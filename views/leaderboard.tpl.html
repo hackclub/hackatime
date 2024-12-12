@@ -62,7 +62,7 @@
                 {{ range $i, $item := .Items }}
                 <li class="px-4 py-2 my-2 rounded-md border-2 border-primary {{ $.ColorModifier $item $.User }} flex justify-between">
                     <div class="w-12"><strong># {{ $item.Rank }}</strong></div>
-                    <div class="flex flex-grow w-16 mx-1 justify-start items-center space-x-4 align-middle">
+                    <div class="flex flex-grow w-16 mx-1 justify-start items-center space-x-4 align-middle truncate">
                         {{ if avatarUrlTemplate }}
                         <img src="{{ $item.User.AvatarURL avatarUrlTemplate }}" width="24px" class="rounded-full border-2 border-accent-primary dark:border-accent-dark-primary" alt="User Profile Avatar"/>
                         {{ else }}
