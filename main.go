@@ -225,6 +225,7 @@ func main() {
 	activityHandler := api.NewActivityApiHandler(userService, activityService)
 	badgeHandler := api.NewBadgeHandler(userService, summaryService)
 	captchaHandler := api.NewCaptchaHandler()
+	redirectHandler := api.NewRedirectApiHandler()
 
 	// Compat Handlers
 	wakatimeV1StatusBarHandler := wtV1Routes.NewStatusBarHandler(userService, summaryService)
@@ -323,6 +324,7 @@ func main() {
 	wakatimeV1LeadersHandler.RegisterRoutes(apiRouter)
 	shieldV1BadgeHandler.RegisterRoutes(apiRouter)
 	captchaHandler.RegisterRoutes(apiRouter)
+	redirectHandler.RegisterRoutes(apiRouter)
 
 	// Static Routes
 	// https://github.com/golang/go/issues/43431
