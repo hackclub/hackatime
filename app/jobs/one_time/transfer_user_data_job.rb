@@ -28,7 +28,14 @@ class OneTime::TransferUserDataJob < ApplicationJob
   end
 
   def transfer_api_keys
-    ApiKey.where(user_id: @source_user_id).update_all(user_id: @target_user_id)
+    ApiKey.where(user_id: @source_user_id).find_each do |api_key|
+      # If target user already has an API key with this name, append a suffix
+      if target_user.api_keys.exists?(name: api_key.name)
+        api_key.name = "#{api_key.name} (transferred)"
+      end
+      api_key.user_id = @target_user_id
+      api_key.save!
+    end
   end
 
   def transfer_heartbeats
