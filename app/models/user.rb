@@ -41,6 +41,13 @@ class User < ApplicationRecord
     @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
   end
 
+  if Rails.env.development?
+    def self.slow_find_by_email(email)
+      # This is an n+1 query, but provided for developer convenience
+      EmailAddress.find_by(email: email)&.user
+    end
+  end
+
   def streak_days_formatted
     if streak_days > 7
       "7+"
