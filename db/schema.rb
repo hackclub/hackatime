@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_09_191155) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_12_205858) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -344,6 +344,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_09_191155) do
     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
   end
 
+  create_table "wakatime_mirrors", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "endpoint_url", default: "https://wakatime.com/api/v1", null: false
+    t.string "encrypted_api_key", null: false
+    t.datetime "last_synced_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "endpoint_url"], name: "index_wakatime_mirrors_on_user_id_and_endpoint_url", unique: true
+    t.index ["user_id"], name: "index_wakatime_mirrors_on_user_id"
+  end
+
   add_foreign_key "api_keys", "users"
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
@@ -353,4 +364,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_09_191155) do
   add_foreign_key "mailing_addresses", "users"
   add_foreign_key "project_repo_mappings", "users"
   add_foreign_key "sign_in_tokens", "users"
+  add_foreign_key "wakatime_mirrors", "users"
 end

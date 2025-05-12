@@ -63,6 +63,8 @@ Rails.application.routes.draw do
     member do
       patch :update_trust_level
     end
+    resource :wakatime_mirrors, only: [ :create ]
+    resources :wakatime_mirrors, only: [ :destroy ]
   end
 
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects

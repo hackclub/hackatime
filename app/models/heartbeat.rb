@@ -87,8 +87,11 @@ class Heartbeat < ApplicationRecord
   self.inheritance_column = nil
 
   belongs_to :user
+  has_many :wakatime_mirrors, dependent: :destroy
 
   validates :time, presence: true
+
+  after_create :mirror_to_wakatime
 
   def self.recent_count
     Cache::HeartbeatCountsJob.perform_now[:recent_count]
@@ -127,5 +130,9 @@ class Heartbeat < ApplicationRecord
     if self.class.column_names.include?("fields_hash")
       self.fields_hash = self.class.generate_fields_hash(self.attributes)
     end
+  end
+
+  def mirror_to_wakatime
+    WakatimeMirror.mirror_heartbeat(self)
   end
 end

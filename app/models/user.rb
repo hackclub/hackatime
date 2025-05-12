@@ -37,6 +37,8 @@ class User < ApplicationRecord
     primary_key: :slack_uid,
     class_name: "SailorsLog"
 
+  has_many :wakatime_mirrors, dependent: :destroy
+
   def streak_days
     @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
   end
