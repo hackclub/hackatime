@@ -30,6 +30,9 @@ class SailorsLogPollForChangesJob < ApplicationJob
   private
 
   def update_sailors_log(sailors_log)
+    # Skip if there's an active migration job for this user
+    return [] if sailors_log.user.in_progress_migration_jobs?
+
     project_updates = []
     project_durations = Heartbeat.where(user_id: sailors_log.user.id)
                                  .group(:project).duration_seconds

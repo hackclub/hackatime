@@ -67,6 +67,13 @@ class User < ApplicationRecord
     ).order(created_at: :desc).limit(10).all
   end
 
+  def in_progress_migration_jobs?
+    GoodJob::Job.where(job_class: "MigrateUserFromHackatimeJob")
+                .where("serialized_params->>'arguments' = ?", [ id ].to_json)
+                .where(finished_at: nil)
+                .exists?
+  end
+
   def set_neighborhood_channel
     return unless slack_uid.present?
 
