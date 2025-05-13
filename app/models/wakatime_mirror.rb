@@ -50,7 +50,7 @@ class WakatimeMirror < ApplicationRecord
   private
 
   def endpoint_url_not_hackatime
-    if endpoint_url.present? && endpoint_url.include?('hackatime.hackclub.com')
+    if endpoint_url.present? && endpoint_url.include?("hackatime.hackclub.com")
       errors.add(:endpoint_url, "cannot be hackatime.hackclub.com")
     end
   end
