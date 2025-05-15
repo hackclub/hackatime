@@ -262,7 +262,11 @@ class StaticPagesController < ApplicationController
             .duration_seconds
             .sort_by { |_, duration| -duration }
             .first(10)
-            .map { |k, v| [ (k.presence || "Unknown").capitalize, v ] }
+            .map do |k, v|
+              label = k.presence || "Unknown"
+              label = label.capitalize unless %i[language category].include?(filter)
+              [label, v]
+            end
             .to_h unless result["singular_#{filter}"]
         end
         # result[:language_stats] = filtered_heartbeats
