@@ -265,7 +265,7 @@ class StaticPagesController < ApplicationController
             .map do |k, v|
               label = k.presence || "Unknown"
               label = label.capitalize unless %i[language category].include?(filter)
-              [label, v]
+              [ label, v ]
             end
             .to_h unless result["singular_#{filter}"]
         end
