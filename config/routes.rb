@@ -17,9 +17,9 @@ Rails.application.routes.draw do
   get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
 
   namespace :admin do
-    get 'timeline', to: 'timeline#show', as: :timeline
-    get 'timeline/search_users', to: 'timeline#search_users'
-    get 'timeline/leaderboard_users', to: 'timeline#leaderboard_users'
+    get "timeline", to: "timeline#show", as: :timeline
+    get "timeline/search_users", to: "timeline#search_users"
+    get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
   end
 
   if Rails.env.development?
