@@ -45,6 +45,8 @@ if Rails.env.development?
   else
     puts "Sample heartbeats already exist for the test user"
   end
+elsif Rails.env.staging?
+  require_relative 'seeds/staging'
 else
   puts "Skipping development seed data in #{Rails.env} environment"
 end
