@@ -169,6 +169,29 @@ class Admin::TimelineController < Admin::BaseController
       }
     end.compact
 
+    # Get commit markers for timeline
+    commits_for_timeline = Commit.where(
+      user_id: @selected_user_ids,
+      created_at: @date.beginning_of_day..@date.end_of_day
+    )
+
+    @timeline_commit_markers = commits_for_timeline.map do |commit|
+      raw = commit.github_raw || {}
+      # Use committer date if available, else fallback to created_at
+      commit_time = if raw.dig("commit", "committer", "date")
+        Time.parse(raw["commit"]["committer"]["date"])
+      else
+        commit.created_at
+      end
+      {
+        user_id: commit.user_id,
+        timestamp: commit_time.to_f,
+        additions: (raw["stats"] && raw["stats"]["additions"]) || raw.dig("files", 0, "additions"),
+        deletions: (raw["stats"] && raw["stats"]["deletions"]) || raw.dig("files", 0, "deletions"),
+        github_url: raw["html_url"]
+      }
+    end
+
     render :show # Renders app/views/admin/timeline/show.html.erb
   end
 

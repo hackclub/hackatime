@@ -359,6 +359,38 @@
             </div>
           <% end %>
         <% end %>
+
+        <% @timeline_commit_markers.each do |commit| %>
+          <% user_index = users_data_array.find_index { |data| data[:user].id == commit[:user_id] } %>
+          <% next unless user_index %>
+          <% user = users_data_array[user_index][:user] %>
+          <% user_tz = user&.timezone || primary_user_tz %>
+          <% today_start_of_day_for_user = @date.in_time_zone(user_tz).beginning_of_day %>
+          <% view_start_datetime = today_start_of_day_for_user.advance(hours: timeline_start_hour) %>
+          <% base_offset_px = user_index * min_column_width_px + (user_index > 0 ? user_index * gutter_px : 0) %>
+          <% pill_left_px = (line_left_rem * 16) + base_offset_px + min_column_width_px - 60 %> <!-- right align, adjust as needed -->
+          <% commit_minutes_from_view_start = ((Time.at(commit[:timestamp]).in_time_zone(user_tz) - view_start_datetime) / 60.0).to_f %>
+          <% commit_top_px = (commit_minutes_from_view_start * pixels_per_minute).round %>
+          <a href="<%= commit[:github_url] %>" target="_blank" rel="noopener noreferrer"
+             title="<%= commit[:message] %>"
+             class="timeline-commit-pill"
+             style="position: absolute;
+                    left: <%= pill_left_px %>px;
+                    top: <%= commit_top_px %>px;
+                    z-index: 20;
+                    background: #222;
+                    color: #fff;
+                    border-radius: 12px;
+                    padding: 0px 7px;
+                    font-size: 0.72em;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    text-decoration: none;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.10);">
+            <span style="<%= commit[:additions].to_i > 0 ? 'color: #22c55e; font-weight: 600;' : '' %>">+<%= commit[:additions] %></span>
+            /
+            <span style="<%= commit[:deletions].to_i > 0 ? 'color: #ef4444; font-weight: 600;' : '' %>">-<%= commit[:deletions] %></span>
+          </a>
+        <% end %>
       </div> <!-- End #timeline-grid-scroll-container -->
     </div> <!-- End .admin-timeline-content-sizer -->
   </div> <!-- End .admin-timeline-view-wrapper -->
