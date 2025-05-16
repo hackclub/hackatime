@@ -152,8 +152,8 @@ class Admin::TimelineController < Admin::BaseController
     uids_sql_array = slack_uids.map { |uid| ActiveRecord::Base.connection.quote(uid) }.join(", ")
     date_str = @date.to_s
     posts_for_timeline = Neighborhood::Post.where(
-      "airtable_fields -> 'slackId' ?| array[#{uids_sql_array}] AND DATE(airtable_fields ->> 'createdAt') = '#{date_str}'"
-    )
+      "airtable_fields -> 'slackId' ?| array[#{uids_sql_array}]"
+    ).where("DATE(airtable_fields ->> 'createdAt') = ?", date_str)
 
     @timeline_post_markers = posts_for_timeline.map do |post|
       {
