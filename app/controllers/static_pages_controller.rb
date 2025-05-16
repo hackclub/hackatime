@@ -223,7 +223,7 @@ class StaticPagesController < ApplicationController
                                         .reverse.map(&:first)
                                         .compact_blank
                                         .map do |k, v|
-              [ %i[language category].include?(filter) ? k : k.capitalize, v ]
+              [ %i[language category project].include?(filter) ? k : k.capitalize, v ]
             end
 
           if params[filter].present?
