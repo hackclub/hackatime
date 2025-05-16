@@ -211,7 +211,7 @@
             duration_seconds_in_view = effective_end_time - effective_start_time
             height_px = (duration_seconds_in_view / 60.0) * pixels_per_minute
             return nil if height_px <= 0.5
-            final_top_px = (minutes_from_view_start * pixels_per_minute)
+            final_top_px = (minutes_from_view_start * pixels_per_minute).round
             title_parts = []
             title_parts << "Languages: #{span_data[:languages].join(', ')}" if span_data[:languages]&.any?
             project_title_segments = (span_data[:projects_edited_details] || []).map do |proj_detail|
@@ -290,10 +290,112 @@
             </div>
           <% end %>
         <% end %>
+
+        <% # Group markers by user and sort by timestamp %>
+        <% cap_width = 16 %>
+        <% cap_height = 4 %>
+        <% vertical_padding = 6 %>
+        <% grouped_markers = @timeline_post_markers.group_by { |m| m[:user_id] } %>
+        <% grouped_markers.each do |user_id, markers| %>
+          <% user_index = users_data_array.find_index { |data| data[:user].id == user_id } %>
+          <% next unless user_index %>
+          <% user = users_data_array[user_index][:user] %>
+          <% user_tz = user&.timezone || primary_user_tz %>
+          <% today_start_of_day_for_user = @date.in_time_zone(user_tz).beginning_of_day %>
+          <% view_start_datetime = today_start_of_day_for_user.advance(hours: timeline_start_hour) %>
+          <% base_offset_px = user_index * min_column_width_px + (user_index > 0 ? user_index * gutter_px : 0) %>
+          <% marker_left_px = (line_left_rem * 16) + base_offset_px + min_column_width_px - 4 %>
+          <% cap_left_px = marker_left_px - (cap_width / 2) + 2 %> <!-- Center the cap on the vertical line -->
+
+          <% sorted_markers = markers.sort_by { |m| m[:timestamp] } %>
+          <% sorted_markers.each_with_index do |marker, idx| %>
+            <% marker_time = Time.at(marker[:timestamp]).in_time_zone(user_tz) %>
+            <% marker_minutes_from_view_start = ((marker_time - view_start_datetime) / 60.0).to_f %>
+            <% marker_top_px = (marker_minutes_from_view_start * pixels_per_minute).round %>
+
+            <% if idx == 0 %>
+              <% prev_time = view_start_datetime %>
+            <% else %>
+              <% prev_time = Time.at(sorted_markers[idx-1][:timestamp]).in_time_zone(user_tz) %>
+            <% end %>
+            <% prev_minutes_from_view_start = ((prev_time - view_start_datetime) / 60.0).to_f %>
+            <% prev_top_px = (prev_minutes_from_view_start * pixels_per_minute).round %>
+            <% line_start_px = prev_top_px + vertical_padding %>
+            <% line_height = marker_top_px - line_start_px %>
+
+            <!-- Vertical line -->
+            <div class="timeline-post-marker-vertical"
+                 style="position: absolute;
+                        left: <%= marker_left_px %>px;
+                        top: <%= line_start_px %>px;
+                        width: 4px;
+                        height: <%= line_height %>px;
+                        background: <%= marker[:highlighted] ? '#FFD600' : '#00BFFF' %>;
+                        border-radius: 2px;
+                        z-index: 10;
+                        cursor: pointer;"
+                 data-description="<%= marker[:description] %>"
+                 data-demo-video="<%= marker[:demo_video] %>"
+                 data-photobooth-video="<%= marker[:photobooth_video] %>"
+                 data-hackatime-time="<%= marker[:hackatime_time] %>"
+                 data-hackatime-time-hours="<%= marker[:hackatime_time_hours] %>"
+                 data-airtable-url="<%= marker[:airtable_url] %>"
+                 onclick="showReviewItemPopup(this)">
+            </div>
+            <!-- Circle at the end -->
+            <% circle_diameter = 14 %>
+            <% circle_left_px = marker_left_px - (circle_diameter / 2) + 2 %>
+            <div class="timeline-post-marker-circle"
+                 style="position: absolute;
+                        left: <%= circle_left_px %>px;
+                        top: <%= marker_top_px - (circle_diameter / 2) %>px;
+                        width: <%= circle_diameter %>px;
+                        height: <%= circle_diameter %>px;
+                        background: <%= marker[:highlighted] ? '#FFD600' : '#00BFFF' %>;
+                        border-radius: 50%;
+                        border: 2px solid #222;
+                        z-index: 12;
+                        pointer-events: none;">
+            </div>
+          <% end %>
+        <% end %>
       </div> <!-- End #timeline-grid-scroll-container -->
     </div> <!-- End .admin-timeline-content-sizer -->
   </div> <!-- End .admin-timeline-view-wrapper -->
 </div> <!-- End Main Page Container --> 
+
+<div id="review-item-popup" style="display:none; position:fixed; z-index:1000; background:#222; color:#fff; padding:1rem; border-radius:8px; max-width:320px;"></div>
+<script>
+window.showReviewItemPopup = function(el) {
+  const popup = document.getElementById('review-item-popup');
+  // Format time using short_time_simple via a data attribute
+  let hackatimeTimeHours = el.dataset.hackatimeTimeHours;
+  let formattedTime = hackatimeTimeHours && !isNaN(hackatimeTimeHours) ? shortTimeSimple(parseFloat(hackatimeTimeHours) * 3600) : 'N/A';
+  let airtableUrl = el.dataset.airtableUrl;
+  popup.innerHTML = `
+    <strong>Description:</strong> ${el.dataset.description || 'N/A'}<br>
+    <strong>Demo Video:</strong> ${el.dataset.demoVideo ? `<a href='${el.dataset.demoVideo}' target='_blank'>View</a>` : 'N/A'}<br>
+    <strong>Photobooth Video:</strong> ${el.dataset.photoboothVideo ? `<a href='${el.dataset.photoboothVideo}' target='_blank'>View</a>` : 'N/A'}<br>
+    <strong>Time:</strong> ${formattedTime}<br>
+    ${airtableUrl ? `<a href='${airtableUrl}' target='_blank' style='color:#FFD600;'>See on Airtable</a><br>` : ''}
+    <button onclick='this.parentElement.style.display="none"' style='margin-top:0.5rem;'>Close</button>
+  `;
+  popup.style.display = 'block';
+  popup.style.left = (window.innerWidth/2 - 160) + 'px';
+  popup.style.top = '100px';
+}
+// Helper for formatting seconds as short_time_simple
+function shortTimeSimple(seconds) {
+  seconds = Math.round(seconds);
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  return min ? `${h}h ${min}m` : `${h}h`;
+}
+</script>
 
 <% content_for :head do %>
 <style>
