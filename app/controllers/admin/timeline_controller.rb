@@ -165,7 +165,7 @@ class Admin::TimelineController < Admin::BaseController
         hackatime_time: post.airtable_fields["hackatimeTime"],
         hackatime_time_hours: post.airtable_fields["hackatimeTimeHours"],
         highlighted: (@review_item.present? && post.id == @review_item.id),
-        airtable_url: @review_item.present? ? @review_item.airtable_url : nil
+        airtable_url: @review_item.airtable_url
       }
     end.compact
 
