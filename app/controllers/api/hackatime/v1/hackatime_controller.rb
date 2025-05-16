@@ -76,10 +76,10 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     heartbeat_array.each do |heartbeat|
       source_type = :direct_entry
 
-      if heartbeat[:user_agent].present?
-        parsed_ua = WakatimeService.parse_user_agent(heartbeat[:user_agent])
-      elsif request.headers["User-Agent"].present?
-        parsed_ua = WakatimeService.parse_user_agent(request.headers["User-Agent"])
+      user_agent = heartbeat[:user_agent] || request.headers["User-Agent"]
+
+      if user_agent.present?
+        parsed_ua = WakatimeService.parse_user_agent(user_agent)
       else
         parsed_ua = { editor: "Unknown", os: "Unknown" }
       end
@@ -95,7 +95,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         ip_address: request.remote_ip,
         editor: parsed_ua[:editor],
         operating_system: parsed_ua[:os],
-        machine: request.headers["X-Machine-Name"] || "Unknown"
+        machine: request.headers["X-Machine-Name"]
       })
       new_heartbeat = Heartbeat.find_or_create_by(attrs)
       if @raw_heartbeat_upload.present? && new_heartbeat.persisted?
