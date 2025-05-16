@@ -78,11 +78,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
       user_agent = heartbeat[:user_agent] || request.headers["User-Agent"]
 
-      if user_agent.present?
-        parsed_ua = WakatimeService.parse_user_agent(user_agent)
-      else
-        parsed_ua = { editor: "Unknown", os: "Unknown" }
-      end
+      # dont pass nil to the user agent parser
+      parsed_ua = WakatimeService.parse_user_agent(user_agent || "")
 
       # special case: if the entity is "test.txt", this is a test heartbeat
       if heartbeat[:entity] == "test.txt"
