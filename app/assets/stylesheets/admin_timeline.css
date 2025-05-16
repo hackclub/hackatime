@@ -101,7 +101,7 @@
   box-sizing: border-box;
   height: 100%; /* Match parent row height */
   display: flex; /* To vertically center text if needed, though align-items on parent might suffice */
-  align-items: center; /* Vertically center text */
+  align-items: flex-start; /* Vertically center text */
 }
 
 .admin-timeline-hour-gridline-container { /* Container that stretches across for the faint mid-hour line */
