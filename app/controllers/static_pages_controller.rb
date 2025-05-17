@@ -222,10 +222,18 @@ class StaticPagesController < ApplicationController
           result[filter] = group_by_time.sort_by { |k, v| v }
                                         .reverse.map(&:first)
                                         .compact_blank
+                                        .map { |k| %i[operating_system editor].include?(filter) ? k.capitalize : k }
 
           if params[filter].present?
             filter_arr = params[filter].split(",")
-            filtered_heartbeats = filtered_heartbeats.where(filter => filter_arr)
+            if %i[operating_system editor].include?(filter)
+              # search for both lowercase and capitalized versions
+              normalized_arr = filter_arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq
+              filtered_heartbeats = filtered_heartbeats.where(filter => normalized_arr)
+            else
+              filtered_heartbeats = filtered_heartbeats.where(filter => filter_arr)
+            end
+
 
             result["singular_#{filter}"] = filter_arr.length == 1
           end
