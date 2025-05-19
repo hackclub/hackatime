@@ -20,6 +20,10 @@ Rails.application.routes.draw do
     get "timeline", to: "timeline#show", as: :timeline
     get "timeline/search_users", to: "timeline#search_users"
     get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
+
+    # New route for post reviews
+    get "post_reviews/:post_id", to: "post_reviews#show", as: :post_review
+    get "post_reviews/:post_id/date/:date", to: "post_reviews#show", as: :post_review_on_date
   end
 
   if Rails.env.development?

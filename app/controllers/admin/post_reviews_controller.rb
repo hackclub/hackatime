@@ -1,20 +1,23 @@
 # app/controllers/admin/post_reviews_controller.rb
 class Admin::PostReviewsController < Admin::BaseController
-  include ApplicationHelper
+  include ApplicationHelper # For short_time_simple, short_time_detailed helpers
 
   before_action :set_post, only: [ :show ]
 
   def show
+    # User related to the post
     slack_uid = @post.airtable_fields["slackId"]&.first
     @user = User.find_by(slack_uid: slack_uid)
-    ensure_exists @user
+    ensure_exists @user # Redirects if user not found
 
-    @target_user_timezone = @user.timezone
+    @target_user_timezone = @user.timezone || "UTC" # Target user's timezone
     @project_repo_mappings_for_user = @user.project_repo_mappings.index_by(&:project_name)
 
     begin
       post_start_str = @post.airtable_fields["lastPost"]
       post_end_str = @post.airtable_fields["createdAt"]
+      @total_post_hackatime_seconds = @post.airtable_fields["hackatimeTime"]&.to_i || 0
+
 
       if post_start_str.blank? || post_end_str.blank?
         raise ArgumentError, "Post start or end date is missing from Airtable. lastPost: '#{post_start_str}', createdAt: '#{post_end_str}'"
@@ -24,7 +27,7 @@ class Admin::PostReviewsController < Admin::BaseController
       post_end_utc = Time.zone.parse(post_end_str)
     rescue ArgumentError, TypeError => e
       Rails.logger.error "Failed to parse post dates from Airtable for post #{@post.id} (User: #{@user.id}): #{e.message}"
-      flash[:alert] = "Could not parse post dates for post ID #{@post.airtable_id}. Please check Airtable data. Error: #{e.message}"
+      flash.now[:alert] = "Could not parse post dates for post ID #{@post.airtable_id}. Please check Airtable data. Error: #{e.message}"
       @review_start_date = Date.current - 1.day
       @review_end_date = Date.current + 1.day
       @post_start_display = Time.current
@@ -45,7 +48,6 @@ class Admin::PostReviewsController < Admin::BaseController
 
     @commits = Commit.where(user: @user, created_at: query_start_utc..query_end_utc).order(created_at: :asc)
 
-    # Calculate detailed spans
     all_heartbeats_for_user_in_review_window = Heartbeat
       .where(user: @user, time: query_start_utc.to_f..query_end_utc.to_f)
       .select(:id, :user_id, :time, :entity, :project, :editor, :language)
@@ -86,6 +88,7 @@ class Admin::PostReviewsController < Admin::BaseController
             languages = current_span_heartbeats.map(&:language).compact.uniq.sort
 
             @detailed_spans << {
+              id: "span_#{SecureRandom.hex(4)}", # Unique ID for checkbox
               start_time: start_time_numeric,
               end_time: last_hb_time_numeric,
               duration: actual_coded_duration_seconds,

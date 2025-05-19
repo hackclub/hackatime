@@ -12,7 +12,6 @@
 
   days_to_display = (@review_start_date..@review_end_date).to_a
   num_days_in_review = days_to_display.count
-  total_timeline_content_width_px = num_days_in_review * day_column_width_px
 %>
 
 <style>
@@ -39,36 +38,22 @@
 
   .timeline-viewport {
     overflow-x: auto; flex-grow: 1; border: 1px solid #4A5568;
-    border-radius: 0.5rem; background-color: #1A202C; display: flex; position: relative; /* For cursor line */
+    border-radius: 0.5rem; background-color: #1A202C; display: flex; position: relative;
   }
   .timeline-grid-container { display: flex; min-height: <%= (timeline_end_hour - timeline_start_hour + 1) * pixels_per_hour + header_height_px %>px; }
 
   .hour-labels-column {
-    width: <%= hour_label_width_rem %>rem;
-    flex-shrink: 0;
-    position: sticky;
-    left: 0;
-    background-color: #1A202C;
-    z-index: 30;
-    padding-top: <%= header_height_px %>px;
+    width: <%= hour_label_width_rem %>rem; flex-shrink: 0; position: sticky; left: 0;
+    background-color: #1A202C; z-index: 30; padding-top: <%= header_height_px %>px;
   }
   .hour-label-cell {
-    height: <%= pixels_per_hour %>px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-end;
-    padding-right: 0.5rem;
-    font-size: 0.7rem;
-    color: #9CA3AF;
-    border-top: 1px solid #374151;
-    box-sizing: border-box;
+    height: <%= pixels_per_hour %>px; display: flex; align-items: flex-start; justify-content: flex-end;
+    padding-right: 0.5rem; font-size: 0.7rem; color: #9CA3AF;
+    border-top: 1px solid #374151; box-sizing: border-box;
   }
   .hour-label-cell:first-child { border-top: none; }
 
-  .days-container { 
-    display: flex;
-    position: relative;
-  }
+  .days-container { display: flex; position: relative; }
   .day-column {
     width: <%= day_column_width_px %>px; min-width: <%= day_column_width_px %>px;
     border-left: 1px solid #374151; position: relative;
@@ -77,10 +62,8 @@
   .day-column:first-child { border-left: none; }
 
   .day-header-sticky-wrapper {
-    position: sticky; top: 0; z-index: 25;
-    display: flex;
-    background-color: #1A202C;
-    padding-left: <%= hour_label_width_rem %>rem;
+    position: sticky; top: 0; z-index: 25; display: flex;
+    background-color: #1A202C; padding-left: <%= hour_label_width_rem %>rem;
   }
   .day-header {
     width: <%= day_column_width_px %>px; height: <%= header_height_px %>px;
@@ -91,34 +74,29 @@
   }
   .day-header:first-child { border-left: none; }
 
-
   .day-column-content-wrapper { position: relative; height: 100%; }
 
   .timeline-item {
     position: absolute; border-radius: 3px; padding: 2px 5px;
-    font-size: 0.75em;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 0.75em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     box-sizing: border-box; box-shadow: 0 1px 2px rgba(0,0,0,0.4); line-height: 1.4;
+    display: flex; /* For checkbox alignment */
+    align-items: center; /* For checkbox alignment */
   }
+  .timeline-item-content { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; }
+  .span-selector-checkbox { margin-right: 5px; transform: scale(0.8); accent-color: #60A5FA; }
+
   .coding-span {
-    left: 4px; right: 4px;
-    background-color: #3B82F6; color: white; z-index: 10;
+    left: 4px; right: 4px; background-color: #3B82F6; color: white; z-index: 10;
     border: 1px solid #2563EB;
   }
   .coding-span a { color: #BBDEFB; text-decoration: underline; }
   .coding-span a:hover { color: #E3F2FD; }
 
   .commit-pill {
-    position: absolute;
-    right: 5px;
-    background: #4A5568; color: #E2E8F0; z-index: 15;
-    border: 1px solid #718096;
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-size: 0.7em;
-    cursor: pointer;
-    width: auto;
-    min-width: 40px; text-align: center;
+    position: absolute; right: 5px; background: #4A5568; color: #E2E8F0; z-index: 15;
+    border: 1px solid #718096; padding: 1px 6px; border-radius: 10px;
+    font-size: 0.7em; cursor: pointer; width: auto; min-width: 40px; text-align: center;
   }
   .commit-pill a { color: inherit; text-decoration: none; }
   .commit-pill .commit-stats-add { color: #A3E635; font-weight: bold; }
@@ -134,26 +112,27 @@
   }
 
   #cursor-line {
-    position: absolute;
-    height: 1px;
-    background-color: red;
-    width: 100%;
-    left: 0;
-    z-index: 35;
-    pointer-events: none;
-    display: none;
+    position: absolute; height: 1px; background-color: red; width: 100%;
+    left: 0; z-index: 35; pointer-events: none; display: none;
   }
   #cursor-time-display {
-    position: absolute;
-    background-color: rgba(45, 55, 72, 0.9);
-    color: #FFF;
-    padding: 2px 5px;
-    font-size: 0.65rem;
-    border-radius: 3px;
-    z-index: 40;
-    pointer-events: none;
-    display: none;
-    transform: translateY(-50%);
+    position: absolute; background-color: rgba(45, 55, 72, 0.9); color: #FFF;
+    padding: 2px 5px; font-size: 0.65rem; border-radius: 3px; z-index: 40;
+    pointer-events: none; display: none; transform: translateY(-50%);
+  }
+  #selected-time-summary {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: rgba(30, 41, 59, 0.9); /* Tailwind slate-800 with opacity */
+    color: #E2E8F0; /* Tailwind slate-200 */
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem; /* Tailwind rounded-md */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 1000;
+    font-size: 0.9rem;
+    min-width: 180px;
+    text-align: center;
   }
 </style>
 
@@ -250,10 +229,6 @@
                   span_start_in_user_tz = span_start_utc.in_time_zone(@target_user_timezone)
                   span_end_in_user_tz = span_end_utc.in_time_zone(@target_user_timezone)
 
-                  # For display, calculate the visual end of the span, including the timeout
-                  # visual_span_end_utc = Time.at(span[:end_time] + Heartbeat.heartbeat_timeout_duration.to_i)
-                  # visual_span_end_in_user_tz = visual_span_end_utc.in_time_zone(@target_user_timezone)
-
                   effective_start_on_day = [span_start_in_user_tz, day_start_in_user_tz].max
                   effective_end_on_day = [span_end_in_user_tz, day_end_in_user_tz].min
                 %>
@@ -271,7 +246,7 @@
                     end.join(" / ").html_safe
 
                     languages_display = span[:languages].join(', ').truncate(20)
-                    duration_display = short_time_simple(span[:duration]) # Actual coded time in span
+                    duration_display = short_time_simple(span[:duration])
 
                     tooltip_parts = []
                     tooltip_parts << "Time: #{span_start_in_user_tz.strftime('%l:%M%P')} - #{span_end_in_user_tz.strftime('%l:%M%P')}"
@@ -284,10 +259,13 @@
                   <div class="timeline-item coding-span"
                        style="top: <%= span_top_px %>px; height: <%= span_height_px %>px;"
                        title="<%= tooltip_parts.join("\n") %>">
-                    <div><%= projects_display.presence || "Coding" %> (<%= duration_display %>)</div>
-                    <% if languages_display.present? && span_height_px > 20 %>
-                      <div style="font-size: 0.9em; opacity: 0.8;"><%= languages_display %></div>
-                    <% end %>
+                       <input type="checkbox" class="span-selector-checkbox" data-duration-seconds="<%= span[:duration] %>" id="<%= span[:id] %>">
+                       <label for="<%= span[:id] %>" class="timeline-item-content">
+                          <%= projects_display.presence || "Coding" %> (<%= duration_display %>)
+                          <% if languages_display.present? && span_height_px > 20 %>
+                            <br><span style="font-size: 0.9em; opacity: 0.8;"><%= languages_display %></span>
+                          <% end %>
+                       </label>
                   </div>
                 <% end %>
               <% end %>
@@ -326,20 +304,49 @@
   </div>
 </div>
 
+<div id="selected-time-summary">
+  <span id="selected-duration">0s</span> / <span id="total-post-duration"><%= short_time_detailed(@total_post_hackatime_seconds) %></span>
+</div>
+
 <script>
 document.addEventListener('turbo:load', function() {
   const timelineViewport = document.getElementById('timelineViewport');
   const hourLabelsColumn = document.getElementById('hourLabelsColumn');
   const daysContainer = document.getElementById('daysContainer');
   const dayHeaderStickyWrapper = document.getElementById('dayHeaderStickyWrapper');
-
   const cursorLine = document.getElementById('cursor-line');
   const cursorTimeDisplay = document.getElementById('cursor-time-display');
+  const selectedDurationEl = document.getElementById('selected-duration');
+  const totalPostDurationEl = document.getElementById('total-post-duration');
 
   const pixelsPerHour = <%= pixels_per_hour %>;
   const pixelsPerMinute = <%= pixels_per_minute %>;
   const timelineStartHour = <%= timeline_start_hour %>;
   const headerHeight = <%= header_height_px %>;
+  const totalPostSeconds = <%= @total_post_hackatime_seconds %>;
+
+  function formatSecondsToHhMmSs(totalSeconds) {
+    if (isNaN(totalSeconds) || totalSeconds < 0) return "0s";
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    let parts = [];
+    if (hours > 0) parts.push(hours + "h");
+    if (minutes > 0) parts.push(minutes + "m");
+    if (seconds > 0 || parts.length === 0) parts.push(seconds + "s"); // Show seconds if only unit or total is 0
+    return parts.join(" ") || "0s";
+  }
+
+  function updateSelectedTimeSummary() {
+    let currentSelectedSeconds = 0;
+    document.querySelectorAll('.span-selector-checkbox:checked').forEach(checkbox => {
+      currentSelectedSeconds += parseInt(checkbox.dataset.durationSeconds, 10) || 0;
+    });
+    selectedDurationEl.textContent = formatSecondsToHhMmSs(currentSelectedSeconds);
+  }
+  
+  totalPostDurationEl.textContent = formatSecondsToHhMmSs(totalPostSeconds);
+  updateSelectedTimeSummary(); // Initial call
 
   if (timelineViewport && hourLabelsColumn && daysContainer && cursorLine && cursorTimeDisplay && dayHeaderStickyWrapper) {
     timelineViewport.addEventListener('scroll', function() {
@@ -358,11 +365,8 @@ document.addEventListener('turbo:load', function() {
     daysContainer.addEventListener('mousemove', function(e) {
       const rect = daysContainer.getBoundingClientRect();
       const viewportRect = timelineViewport.getBoundingClientRect();
-      
       let mouseYInGrid = e.clientY - rect.top; 
-      
       mouseYInGrid = Math.max(0, Math.min(mouseYInGrid, rect.height));
-
       cursorLine.style.top = `${mouseYInGrid}px`;
       cursorLine.style.display = 'block';
       
@@ -372,7 +376,6 @@ document.addEventListener('turbo:load', function() {
       const displayMinutes = totalMinutes % 60;
       
       cursorTimeDisplay.textContent = `${String(displayHours).padStart(2, '0')}:${String(displayMinutes).padStart(2, '0')}`;
-      
       cursorTimeDisplay.style.top = `${mouseYInGrid + headerHeight}px`;
       cursorTimeDisplay.style.left = `5px`;
       cursorTimeDisplay.style.display = 'block';
@@ -381,6 +384,13 @@ document.addEventListener('turbo:load', function() {
     daysContainer.addEventListener('mouseleave', function() {
       cursorLine.style.display = 'none';
       cursorTimeDisplay.style.display = 'none';
+    });
+
+    // Listener for checkboxes
+    daysContainer.addEventListener('change', function(event) {
+      if (event.target.classList.contains('span-selector-checkbox')) {
+        updateSelectedTimeSummary();
+      }
     });
   }
 });
