@@ -19,7 +19,9 @@ module Heartbeatable
       end
     end
 
-    def to_span
+    def to_span(timeout_duration: nil)
+      timeout_duration ||= heartbeat_timeout_duration.to_i
+
       heartbeats = with_valid_timestamps.order(time: :asc)
       return [] if heartbeats.empty?
 
@@ -40,11 +42,11 @@ module Heartbeatable
         current_time = row["time"]
         next_time = row["next_time"]
 
-        if next_time.nil? || (next_time - current_time) > heartbeat_timeout_duration.to_i
+        if next_time.nil? || (next_time - current_time) > timeout_duration
           base_duration = (current_time - current_span_start).round
 
           if next_time
-            gap_duration = [ next_time - current_time, heartbeat_timeout_duration.to_i ].min
+            gap_duration = [ next_time - current_time, timeout_duration ].min
             total_duration = base_duration + gap_duration
             end_time = current_time + gap_duration
           else
