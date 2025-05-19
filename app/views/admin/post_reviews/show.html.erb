@@ -1,3 +1,387 @@
 <%# app/views/admin/post_reviews/show.html.erb %>
+<% content_for :title, "Post Review: #{@post.airtable_fields['description']&.truncate(30) || 'Untitled Post'}" %>
 
-<%# TODO: Implement this view %>
+<%
+  pixels_per_hour = 70
+  pixels_per_minute = pixels_per_hour / 60.0
+  timeline_start_hour = 0
+  timeline_end_hour = 23
+  day_column_width_px = 320
+  hour_label_width_rem = 3.5
+  header_height_px = 40
+
+  days_to_display = (@review_start_date..@review_end_date).to_a
+  num_days_in_review = days_to_display.count
+  total_timeline_content_width_px = num_days_in_review * day_column_width_px
+%>
+
+<style>
+  .post-review-container {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    padding: 1rem; background-color: #1F2937; color: #E5E7EB;
+    min-height: calc(100vh - 4rem); display: flex; flex-direction: column;
+  }
+  .post-review-header h1 { color: #FFF; border-bottom: 1px solid #4A5568; padding-bottom: 0.5rem; margin-bottom: 1rem; font-size: 1.5rem; }
+  .post-details-section {
+    margin-bottom: 1.5rem; padding: 1rem; background-color: #2D3748;
+    border: 1px solid #4A5568; border-radius: 0.5rem; font-size: 0.9rem;
+  }
+  .post-details-section h2 { margin-top: 0; color: #CBD5E0; font-size: 1.2rem; }
+  .post-details-section p { margin-bottom: 0.5rem; color: #A0AEC0; line-height: 1.5; }
+  .post-details-section a { color: #60A5FA; text-decoration: none; }
+  .post-details-section a:hover { text-decoration: underline; color: #93C5FD; }
+  .button-style {
+    display: inline-block; padding: 0.4rem 0.8rem; background-color: #3B82F6; color: white;
+    text-decoration: none; border-radius: 0.25rem; font-size: 0.85rem; border: none;
+    cursor: pointer; transition: background-color 0.2s;
+  }
+  .button-style:hover { background-color: #2563EB; }
+
+  .timeline-viewport {
+    overflow-x: auto; flex-grow: 1; border: 1px solid #4A5568;
+    border-radius: 0.5rem; background-color: #1A202C; display: flex; position: relative; /* For cursor line */
+  }
+  .timeline-grid-container { display: flex; min-height: <%= (timeline_end_hour - timeline_start_hour + 1) * pixels_per_hour + header_height_px %>px; }
+
+  .hour-labels-column {
+    width: <%= hour_label_width_rem %>rem;
+    flex-shrink: 0;
+    position: sticky;
+    left: 0;
+    background-color: #1A202C;
+    z-index: 30;
+    padding-top: <%= header_height_px %>px;
+  }
+  .hour-label-cell {
+    height: <%= pixels_per_hour %>px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    font-size: 0.7rem;
+    color: #9CA3AF;
+    border-top: 1px solid #374151;
+    box-sizing: border-box;
+  }
+  .hour-label-cell:first-child { border-top: none; }
+
+  .days-container { 
+    display: flex;
+    position: relative;
+  }
+  .day-column {
+    width: <%= day_column_width_px %>px; min-width: <%= day_column_width_px %>px;
+    border-left: 1px solid #374151; position: relative;
+    padding-top: <%= header_height_px %>px; box-sizing: border-box;
+  }
+  .day-column:first-child { border-left: none; }
+
+  .day-header-sticky-wrapper {
+    position: sticky; top: 0; z-index: 25;
+    display: flex;
+    background-color: #1A202C;
+    padding-left: <%= hour_label_width_rem %>rem;
+  }
+  .day-header {
+    width: <%= day_column_width_px %>px; height: <%= header_height_px %>px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.85em; background-color: #2D3748;
+    border-bottom: 1px solid #4A5568; color: #CBD5E0; box-sizing: border-box;
+    border-left: 1px solid #374151;
+  }
+  .day-header:first-child { border-left: none; }
+
+
+  .day-column-content-wrapper { position: relative; height: 100%; }
+
+  .timeline-item {
+    position: absolute; border-radius: 3px; padding: 2px 5px;
+    font-size: 0.75em;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    box-sizing: border-box; box-shadow: 0 1px 2px rgba(0,0,0,0.4); line-height: 1.4;
+  }
+  .coding-span {
+    left: 4px; right: 4px;
+    background-color: #3B82F6; color: white; z-index: 10;
+    border: 1px solid #2563EB;
+  }
+  .coding-span a { color: #BBDEFB; text-decoration: underline; }
+  .coding-span a:hover { color: #E3F2FD; }
+
+  .commit-pill {
+    position: absolute;
+    right: 5px;
+    background: #4A5568; color: #E2E8F0; z-index: 15;
+    border: 1px solid #718096;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 0.7em;
+    cursor: pointer;
+    width: auto;
+    min-width: 40px; text-align: center;
+  }
+  .commit-pill a { color: inherit; text-decoration: none; }
+  .commit-pill .commit-stats-add { color: #A3E635; font-weight: bold; }
+  .commit-pill .commit-stats-del { color: #F87171; font-weight: bold; }
+
+  .post-activity-line {
+    position: absolute; background-color: rgba(239, 68, 68, 0.5); z-index: 5;
+    left: 2px; width: calc(100% - 4px); border-radius: 2px; pointer-events: none;
+  }
+  .alert-flash {
+    background-color: #4B0000; color: #FFCDD2; border: 1px solid #EF9A9A;
+    padding: 1rem; border-radius: 0.25rem; margin-bottom: 1rem;
+  }
+
+  #cursor-line {
+    position: absolute;
+    height: 1px;
+    background-color: red;
+    width: 100%;
+    left: 0;
+    z-index: 35;
+    pointer-events: none;
+    display: none;
+  }
+  #cursor-time-display {
+    position: absolute;
+    background-color: rgba(45, 55, 72, 0.9);
+    color: #FFF;
+    padding: 2px 5px;
+    font-size: 0.65rem;
+    border-radius: 3px;
+    z-index: 40;
+    pointer-events: none;
+    display: none;
+    transform: translateY(-50%);
+  }
+</style>
+
+<div class="post-review-container">
+  <div class="post-review-header">
+    <h1>
+      Post Review
+      <% if @user %>
+        <span style="font-size: 0.7em; color: #9CA3AF;">for <%= @user.display_name %></span>
+      <% end %>
+    </h1>
+  </div>
+
+  <% if flash[:alert] %>
+    <div class="alert-flash"><%= flash[:alert] %></div>
+  <% end %>
+
+  <section class="post-details-section">
+    <h2>Post Details</h2>
+    <% if @user %> <p><strong>User:</strong> <%= render "shared/user_mention", user: @user %></p> <% end %>
+    <p><strong>Description:</strong> <%= simple_format(@post.airtable_fields["description"]) %></p>
+    <p>
+      <strong>Post Period (User TZ: <%= @target_user_timezone %>):</strong>
+      <%= @post_start_display.strftime("%B %d, %Y %l:%M %p") %>
+      to
+      <%= @post_end_display.strftime("%B %d, %Y %l:%M %p") %>
+    </p>
+    <p>
+      <strong>Review Window (Dates in User TZ):</strong>
+      <%= @review_start_date.strftime("%B %d, %Y") %> to <%= @review_end_date.strftime("%B %d, %Y") %>
+    </p>
+    <% if @post.airtable_fields["demoVideo"].present? %>
+      <p><strong>Demo Video:</strong> <%= link_to "Watch Demo", @post.airtable_fields["demoVideo"], target: "_blank", class: "button-style" %></p>
+    <% end %>
+    <% if @post.airtable_fields["photoboothVideo"].present? %>
+      <p><strong>Photobooth Video:</strong> <%= link_to "Watch Photobooth", @post.airtable_fields["photoboothVideo"], target: "_blank", class: "button-style" %></p>
+    <% end %>
+    <p><strong>Airtable Link:</strong> <%= link_to "View on Airtable", @post.airtable_url, target: "_blank", class: "button-style" %></p>
+  </section>
+
+  <div class="day-header-sticky-wrapper" id="dayHeaderStickyWrapper">
+    <% days_to_display.each do |day| %>
+      <div class="day-header">
+        <%= day.strftime("%a, %b %d") %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="timeline-viewport" id="timelineViewport">
+    <div class="timeline-grid-container">
+      <div class="hour-labels-column" id="hourLabelsColumn">
+        <div id="cursor-time-display">00:00</div>
+        <% (timeline_start_hour..timeline_end_hour).each do |hour| %>
+          <div class="hour-label-cell">
+            <%= Time.utc(2000,1,1, hour).strftime("%-l%P").sub('m','').strip %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="days-container" id="daysContainer">
+        <div id="cursor-line"></div>
+        <% days_to_display.each do |day| %>
+          <div class="day-column">
+            <div class="day-column-content-wrapper">
+              <% (timeline_start_hour..timeline_end_hour).each do |hour_idx| %>
+                <div style="height: <%= pixels_per_hour %>px; border-top: 1px solid #374151; box-sizing: border-box; position: relative;">
+                  <div style="height: 50%; border-bottom: 1px dotted #2D3748; position:absolute; top: 50%; width:100%;"></div>
+                </div>
+              <% end %>
+
+              <% day_start_in_user_tz = day.in_time_zone(@target_user_timezone).beginning_of_day %>
+              <% day_end_in_user_tz = day.in_time_zone(@target_user_timezone).end_of_day %>
+
+              <%
+                post_line_start_time_on_day = [@post_start_display, day_start_in_user_tz].max
+                post_line_end_time_on_day = [@post_end_display, day_end_in_user_tz].min
+                if post_line_start_time_on_day < post_line_end_time_on_day
+                  post_line_top_offset_minutes = (post_line_start_time_on_day - day_start_in_user_tz) / 60.0
+                  post_line_top_px = post_line_top_offset_minutes * pixels_per_minute
+                  post_line_duration_minutes = (post_line_end_time_on_day - post_line_start_time_on_day) / 60.0
+                  post_line_height_px = [post_line_duration_minutes * pixels_per_minute, 2].max
+              %>
+                <div class="post-activity-line"
+                     style="top: <%= post_line_top_px %>px; height: <%= post_line_height_px %>px;"
+                     title="Post Period on this day: <%= post_line_start_time_on_day.strftime('%l:%M%P') %> to <%= post_line_end_time_on_day.strftime('%l:%M%P') %>">
+                </div>
+              <% end %>
+
+              <%# Coding Spans %>
+              <% @detailed_spans&.each do |span| %>
+                <%
+                  span_start_utc = Time.at(span[:start_time])
+                  span_end_utc = Time.at(span[:end_time])
+                  span_start_in_user_tz = span_start_utc.in_time_zone(@target_user_timezone)
+                  span_end_in_user_tz = span_end_utc.in_time_zone(@target_user_timezone)
+
+                  # For display, calculate the visual end of the span, including the timeout
+                  # visual_span_end_utc = Time.at(span[:end_time] + Heartbeat.heartbeat_timeout_duration.to_i)
+                  # visual_span_end_in_user_tz = visual_span_end_utc.in_time_zone(@target_user_timezone)
+
+                  effective_start_on_day = [span_start_in_user_tz, day_start_in_user_tz].max
+                  effective_end_on_day = [span_end_in_user_tz, day_end_in_user_tz].min
+                %>
+                <% if effective_start_on_day < effective_end_on_day %>
+                  <%
+                    top_offset_minutes = (effective_start_on_day - day_start_in_user_tz) / 60.0
+                    duration_minutes_on_day = (effective_end_on_day - effective_start_on_day) / 60.0
+
+                    span_top_px = top_offset_minutes * pixels_per_minute
+                    span_height_px = [duration_minutes_on_day * pixels_per_minute, 2].max
+                    
+                    projects_display = span[:projects_edited_details].map do |p_detail|
+                      name = p_detail[:name].blank? ? "Unknown" : p_detail[:name].truncate(15)
+                      p_detail[:repo_url] ? link_to(name, p_detail[:repo_url], target: "_blank", rel: "noopener noreferrer") : name
+                    end.join(" / ").html_safe
+
+                    languages_display = span[:languages].join(', ').truncate(20)
+                    duration_display = short_time_simple(span[:duration]) # Actual coded time in span
+
+                    tooltip_parts = []
+                    tooltip_parts << "Time: #{span_start_in_user_tz.strftime('%l:%M%P')} - #{span_end_in_user_tz.strftime('%l:%M%P')}"
+                    tooltip_parts << "Actual Duration: #{short_time_detailed(span[:duration])}"
+                    tooltip_parts << "Projects: #{span[:projects_edited_details].map{ |p| p[:name] }.join(', ')}" if span[:projects_edited_details].any?
+                    tooltip_parts << "Languages: #{span[:languages].join(', ')}" if span[:languages].any?
+                    tooltip_parts << "Editors: #{span[:editors].join(', ')}" if span[:editors].any?
+                    tooltip_parts << "Files: #{span[:files_edited].join(', ')}" if span[:files_edited].any?
+                  %>
+                  <div class="timeline-item coding-span"
+                       style="top: <%= span_top_px %>px; height: <%= span_height_px %>px;"
+                       title="<%= tooltip_parts.join("\n") %>">
+                    <div><%= projects_display.presence || "Coding" %> (<%= duration_display %>)</div>
+                    <% if languages_display.present? && span_height_px > 20 %>
+                      <div style="font-size: 0.9em; opacity: 0.8;"><%= languages_display %></div>
+                    <% end %>
+                  </div>
+                <% end %>
+              <% end %>
+
+              <%
+                last_commit_bottom_px = 0
+                commits_on_this_day = @commits.filter do |commit|
+                  commit.created_at.in_time_zone(@target_user_timezone).to_date == day
+                end
+              %>
+              <% commits_on_this_day.each do |commit| %>
+                <%
+                  commit_time_in_user_tz = commit.created_at.in_time_zone(@target_user_timezone)
+                  top_offset_minutes = (commit_time_in_user_tz - day_start_in_user_tz) / 60.0
+                  commit_top_px = top_offset_minutes * pixels_per_minute
+                  
+                  commit_pill_height = 16
+                  commit_top_px = [commit_top_px - (commit_pill_height / 2), last_commit_bottom_px].max
+                  last_commit_bottom_px = commit_top_px + commit_pill_height + 1
+                  
+                  additions = commit.github_raw.dig("stats", "additions") || 0
+                  deletions = commit.github_raw.dig("stats", "deletions") || 0
+                %>
+                 <a href="<%= commit.github_raw['html_url'] %>" target="_blank" rel="noopener noreferrer"
+                    class="timeline-item commit-pill"
+                    style="top: <%= commit_top_px %>px; height: <%= commit_pill_height %>px;"
+                    title="<%= CGI.escapeHTML(commit.github_raw.dig("commit", "message") || 'No commit message') %>">
+                    <span class="commit-stats-add">+<%= additions %></span>/<span class="commit-stats-del">-<%= deletions %></span>
+                </a>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('turbo:load', function() {
+  const timelineViewport = document.getElementById('timelineViewport');
+  const hourLabelsColumn = document.getElementById('hourLabelsColumn');
+  const daysContainer = document.getElementById('daysContainer');
+  const dayHeaderStickyWrapper = document.getElementById('dayHeaderStickyWrapper');
+
+  const cursorLine = document.getElementById('cursor-line');
+  const cursorTimeDisplay = document.getElementById('cursor-time-display');
+
+  const pixelsPerHour = <%= pixels_per_hour %>;
+  const pixelsPerMinute = <%= pixels_per_minute %>;
+  const timelineStartHour = <%= timeline_start_hour %>;
+  const headerHeight = <%= header_height_px %>;
+
+  if (timelineViewport && hourLabelsColumn && daysContainer && cursorLine && cursorTimeDisplay && dayHeaderStickyWrapper) {
+    timelineViewport.addEventListener('scroll', function() {
+      dayHeaderStickyWrapper.style.transform = `translateX(-${timelineViewport.scrollLeft}px)`;
+    });
+    
+    const postStartDate = new Date('<%= @post_start_display.iso8601 %>');
+    const reviewStartDate = new Date('<%= @review_start_date.iso8601 %>');
+    const dayDiff = Math.floor((postStartDate - reviewStartDate) / (1000 * 60 * 60 * 24));
+    
+    if (dayDiff >= 0 && dayDiff < <%= num_days_in_review %>) {
+      const scrollAmount = dayDiff * <%= day_column_width_px %>;
+      timelineViewport.scrollLeft = Math.max(0, scrollAmount - (<%= day_column_width_px %>/2) );
+    }
+
+    daysContainer.addEventListener('mousemove', function(e) {
+      const rect = daysContainer.getBoundingClientRect();
+      const viewportRect = timelineViewport.getBoundingClientRect();
+      
+      let mouseYInGrid = e.clientY - rect.top; 
+      
+      mouseYInGrid = Math.max(0, Math.min(mouseYInGrid, rect.height));
+
+      cursorLine.style.top = `${mouseYInGrid}px`;
+      cursorLine.style.display = 'block';
+      
+      const minutesFromTimelineStart = mouseYInGrid / pixelsPerMinute;
+      const totalMinutes = Math.floor(timelineStartHour * 60 + minutesFromTimelineStart);
+      const displayHours = Math.floor(totalMinutes / 60) % 24;
+      const displayMinutes = totalMinutes % 60;
+      
+      cursorTimeDisplay.textContent = `${String(displayHours).padStart(2, '0')}:${String(displayMinutes).padStart(2, '0')}`;
+      
+      cursorTimeDisplay.style.top = `${mouseYInGrid + headerHeight}px`;
+      cursorTimeDisplay.style.left = `5px`;
+      cursorTimeDisplay.style.display = 'block';
+    });
+
+    daysContainer.addEventListener('mouseleave', function() {
+      cursorLine.style.display = 'none';
+      cursorTimeDisplay.style.display = 'none';
+    });
+  }
+});
+</script>
