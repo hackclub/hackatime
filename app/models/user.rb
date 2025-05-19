@@ -7,6 +7,14 @@ class User < ApplicationRecord
   validates :timezone, inclusion: { in: TZInfo::Timezone.all_identifiers }, allow_nil: false
   validates :country_code, inclusion: { in: ISO3166::Country.codes }, allow_nil: true
 
+  def country_name
+    ISO3166::Country.new(country_code).common_name
+  end
+
+  def country_subregion
+    ISO3166::Country.new(country_code).subregion
+  end
+
   enum :trust_level, {
     default: 0,
     untrusted: 1,
