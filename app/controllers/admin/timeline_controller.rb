@@ -163,13 +163,13 @@ class Admin::TimelineController < Admin::BaseController
 
     # Get slack_uids for all selected users
     slack_uids = User.where(id: @selected_user_ids).pluck(:slack_uid).compact
-    uids_sql_array = slack_uids.map { |uid| ActiveRecord::Base.connection.quote(uid) }.join(", ")
     date_str = @date.to_s
 
     # Get posts from selected users that intersect with the current date
     # A post is active on a date if it was created after that date AND its last post was before that date
     posts_for_timeline = Neighborhood::Post.where(
-      "airtable_fields -> 'slackId' ?| array[#{uids_sql_array}]"
+      "airtable_fields -> 'slackId' ?| array[:slack_uids]",
+      slack_uids: slack_uids
     ).where(
       "DATE(airtable_fields ->> 'createdAt') >= ? AND " \
       "DATE(airtable_fields ->> 'lastPost') <= ?",

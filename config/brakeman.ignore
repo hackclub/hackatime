@@ -7,7 +7,7 @@
       "check_name": "SQL",
       "message": "Possible SQL injection",
       "file": "app/models/concerns/heartbeatable.rb",
-      "line": 214,
+      "line": 173,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
       "code": "Arel.sql(\"DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{(user_timezone or \"UTC\")}')\")",
       "render_path": null,
@@ -18,29 +18,6 @@
       },
       "user_input": "user_timezone",
       "confidence": "Medium",
-      "cwe_id": [
-        89
-      ],
-      "note": ""
-    },
-    {
-      "warning_type": "SQL Injection",
-      "warning_code": 0,
-      "fingerprint": "ab7733a24f039adc6c400b3ec502206f9a158413249958f8a042f2204950e293",
-      "check_name": "SQL",
-      "message": "Possible SQL injection",
-      "file": "app/controllers/admin/timeline_controller.rb",
-      "line": 155,
-      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Neighborhood::Post.where(\"airtable_fields -> 'slackId' ?| array[#{User.where(:id => (([current_user.id] + (params[:user_ids].split(\",\").map(&:to_i).uniq or [])) << User.find_by(:slack_uid => Neighborhood::Post.find_by(:airtable_id => params[\"post_id\"]).airtable_fields[\"slackId\"].first).id)).pluck(:slack_uid).compact.map do\n ActiveRecord::Base.connection.quote(uid)\n end.join(\", \")}]\")",
-      "render_path": null,
-      "location": {
-        "type": "method",
-        "class": "Admin::TimelineController",
-        "method": "show"
-      },
-      "user_input": "User.where(:id => (([current_user.id] + (params[:user_ids].split(\",\").map(&:to_i).uniq or [])) << User.find_by(:slack_uid => Neighborhood::Post.find_by(:airtable_id => params[\"post_id\"]).airtable_fields[\"slackId\"].first).id)).pluck(:slack_uid)",
-      "confidence": "High",
       "cwe_id": [
         89
       ],
