@@ -268,17 +268,25 @@ class StaticPagesController < ApplicationController
 
         # Prepare pie chart data
         %i[language editor operating_system category].each do |filter|
-          result["#{filter}_stats"] = filtered_heartbeats
+          # If the filter is editor or operating_system, normalize and sum the durations
+          stats = filtered_heartbeats
             .group(filter)
             .duration_seconds
-            .sort_by { |_, duration| -duration }
-            .first(10)
-            .map do |k, v|
-              label = k.presence || "Unknown"
-              label = label.capitalize unless %i[language category].include?(filter)
-              [ label, v ]
+            .each_with_object({}) do |(raw_key, secs), agg|
+              key = raw_key.to_s.presence || "Unknown"
+              key = key.downcase if %i[editor operating_system].include?(filter)
+              agg[key] = (agg[key] || 0) + secs
             end
-            .to_h unless result["singular_#{filter}"]
+
+          result["#{filter}_stats"] =
+            stats
+              .sort_by { |_, secs| -secs }
+              .first(10)
+              .map { |k, v|
+                label = %i[language category].include?(filter) ? k : k.capitalize
+                [ label, v ]
+              }
+              .to_h unless result["singular_#{filter}"]
         end
         # result[:language_stats] = filtered_heartbeats
         #   .group(:language)
