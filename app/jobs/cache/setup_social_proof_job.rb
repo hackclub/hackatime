@@ -10,7 +10,7 @@ class Cache::SetupSocialProofJob < Cache::ActivityJob
       check_social_proof(1.day, 5, "today") ||
       check_social_proof(1.week, 5, "in the past week") ||
       check_social_proof(1.month, 5, "in the past month") ||
-      check_social_proof(Time.current.beginning_of_year, 5, "this year")
+      check_social_proof(1.year, 5, "in the past year")
   end
 
   def check_social_proof(time_period, threshold, humanized_time_period)

@@ -2,27 +2,21 @@ class SetUserCountryCodeJob < ApplicationJob
   queue_as :literally_whenever
 
   def perform(user_id)
-    user = User.find_by(id: user_id)
-    return unless user
-    # return if user.country_code.present?
-
-    # Get unique IPs from user's heartbeats
-    ips = user.heartbeats.where.not(ip_address: nil).order(time: :desc).distinct.pluck(:ip_address)
+    ips = Heartbeat.where(user_id: user_id)
+                   .where.not(ip_address: nil)
+                   .distinct
+                   .pluck(:ip_address)
     return if ips.empty?
 
-    # Try each IP until we get a valid country code
     ips.each do |ip|
       begin
         puts "Getting country code for IP #{ip}"
-        response = HTTP.get("https://ip.hackclub.com/ip/#{ip}")
-        next unless response.status.success?
+        result = Geocoder.search(ip).first
+        next unless result&.country_code.present?
 
-        data = JSON.parse(response.body.to_s)
-        puts "Data: #{data}"
-        country_code = data.dig("country_iso_code")
-        next unless country_code.present?
+        country_code = result.country_code.upcase
+        puts "Found country code: #{country_code}"
 
-        # Update user's country code if it's valid
         if ISO3166::Country.codes.include?(country_code)
           user.update!(country_code: country_code)
           return

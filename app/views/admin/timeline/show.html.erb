@@ -163,7 +163,7 @@
       <% end %>
 
       <!-- Timeline Grid and Spans Section -->
-      <div id="timeline-grid-scroll-container">
+      <div id="timeline-grid-scroll-container" style="overflow: hidden;">
         <%# Hour markers and lines (background grid) %>
         <% (timeline_start_hour..timeline_end_hour).each do |hour| %>
           <div class="admin-timeline-hour-row" style="height: <%= pixels_per_hour %>px;">
@@ -223,7 +223,7 @@
             if files_to_show.any?
               max_files_in_tooltip = 5
               files_display_string = files_to_show.take(max_files_in_tooltip).join(', ')
-              files_display_string += ", ..." if files_to_show.length > max_files_in_tooltip
+              files_display_string += ", +#{files_to_show.length - max_files_in_tooltip} more" if files_to_show.length > max_files_in_tooltip
               title_parts << "Files: #{files_display_string}"
             end
             title_parts << "Duration: #{Time.at(span_data[:duration]).utc.strftime('%Hh %Mm %Ss')}"
@@ -316,12 +316,26 @@
             <% if idx == 0 %>
               <% prev_time = view_start_datetime %>
             <% else %>
-              <% prev_time = Time.at(sorted_markers[idx-1][:timestamp]).in_time_zone(user_tz) %>
+              <% # Find the last post span that ends before this marker %>
+              <% user_data = @users_with_timeline_data.find { |data| data[:user].id == user_id } %>
+              <% marker_time_utc = Time.at(marker[:timestamp]) %>
+              <% last_post_span = user_data&.dig(:spans)&.find { |span| 
+                span_end_time = Time.at(span[:end_time])
+                span_end_time < marker_time_utc
+              } %>
+              <% prev_time = if last_post_span
+                Time.at(last_post_span[:end_time]).in_time_zone(user_tz)
+              else
+                Time.at(sorted_markers[idx-1][:timestamp]).in_time_zone(user_tz)
+              end %>
             <% end %>
             <% prev_minutes_from_view_start = ((prev_time - view_start_datetime) / 60.0).to_f %>
             <% prev_top_px = (prev_minutes_from_view_start * pixels_per_minute).round %>
             <% line_start_px = prev_top_px + vertical_padding %>
             <% line_height = marker_top_px - line_start_px %>
+            <% max_line_height = ((timeline_end_hour + 1) * pixels_per_hour) - line_start_px %>
+            <% line_height = [line_height, max_line_height].min %>
+            <% marker_top_px = [marker_top_px, (timeline_end_hour + 1) * pixels_per_hour].min %>
 
             <!-- Vertical line -->
             <div class="timeline-post-marker-vertical"

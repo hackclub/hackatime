@@ -20,9 +20,12 @@ class StaticPagesController < ApplicationController
         @show_wakatime_setup_notice = true
 
         setup_social_proof = Cache::SetupSocialProofJob.perform_now
-        @ssp_message = setup_social_proof[:message]
-        @ssp_users_recent = setup_social_proof[:users_recent]
-        @ssp_users_size = setup_social_proof[:users_size]
+        if setup_social_proof.present?
+          @ssp_message = setup_social_proof[:message]
+          @ssp_users_recent = setup_social_proof[:users_recent]
+          @ssp_users_size = setup_social_proof[:users_size]
+        end
+
       end
 
       # Get languages and editors in a single query using window functions
