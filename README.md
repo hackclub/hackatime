@@ -1,4 +1,4 @@
-# Harbor README
+# Hackatime README
 
 [![Ping](https://status.hackatime.hackclub.com/api/badge/1/ping)](https://status.hackatime.hackclub.com/status/hackatime)
 [![Status](https://status.hackatime.hackclub.com/api/badge/1/status)](https://status.hackatime.hackclub.com/status/hackatime)
