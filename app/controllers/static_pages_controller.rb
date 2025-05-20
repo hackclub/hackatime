@@ -226,6 +226,7 @@ class StaticPagesController < ApplicationController
                                         .reverse.map(&:first)
                                         .compact_blank
                                         .map { |k| %i[operating_system editor].include?(filter) ? k.capitalize : k }
+                                        .uniq
 
           if params[filter].present?
             filter_arr = params[filter].split(",")
