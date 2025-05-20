@@ -5,11 +5,10 @@ class SetUserCountryCodeJob < ApplicationJob
     user = User.find_by(id: user_id)
     return unless user
 
-    # Get unique IPs from user's heartbeats, properly handling the ORDER BY with DISTINCT
     ips = user.heartbeats
               .where.not(ip_address: nil)
-              .select("DISTINCT ON (ip_address) ip_address, time")
-              .order("ip_address, time DESC")
+              .select(:ip_address)
+              .distinct
               .pluck(:ip_address)
     return if ips.empty?
 
