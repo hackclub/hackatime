@@ -273,15 +273,15 @@ class StaticPagesController < ApplicationController
           stats = filtered_heartbeats
             .group(filter)
             .duration_seconds
-            .each_with_object({}) do |(raw_key, secs), agg|
+            .each_with_object({}) do |(raw_key, duration), agg|
               key = raw_key.to_s.presence || "Unknown"
               key = key.downcase if %i[editor operating_system].include?(filter)
-              agg[key] = (agg[key] || 0) + secs
+              agg[key] = (agg[key] || 0) + duration
             end
 
           result["#{filter}_stats"] =
             stats
-              .sort_by { |_, secs| -secs }
+              .sort_by { |_, duration| -duration }
               .first(10)
               .map { |k, v|
                 label = %i[language category].include?(filter) ? k : k.capitalize
