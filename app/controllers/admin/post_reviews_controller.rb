@@ -49,15 +49,32 @@ class Admin::PostReviewsController < Admin::BaseController
     @commits = Commit.where(user: @user, created_at: query_start_utc..query_end_utc).order(created_at: :asc)
 
     all_heartbeats_for_user_in_review_window = Heartbeat
+      .where.not(project: nil)
       .where(user: @user, time: query_start_utc.to_f..query_end_utc.to_f)
       .select(:id, :user_id, :time, :entity, :project, :editor, :language)
       .order(:time)
       .to_a
 
+    @unique_project_names = all_heartbeats_for_user_in_review_window
+      .map(&:project)
+      .compact
+      .reject(&:blank?)
+      .uniq
+      .sort
+
+    @recommended_project_names = @post.app.projects.map(&:airtable_fields).map { |p| p["name"] }.compact.uniq.sort
+
+    if params[:projects].present?
+      selected_projects = params[:projects].split(",")
+      all_heartbeats_for_user_in_review_window = all_heartbeats_for_user_in_review_window.select do |hb|
+        selected_projects.include?(hb.project)
+      end
+    end
+
     @detailed_spans = []
+    timeout_duration = 20.minutes.to_i
     if all_heartbeats_for_user_in_review_window.any?
       current_span_heartbeats = []
-      timeout_duration = 10.minutes.to_i
 
       all_heartbeats_for_user_in_review_window.each_with_index do |heartbeat, index|
         current_span_heartbeats << heartbeat
