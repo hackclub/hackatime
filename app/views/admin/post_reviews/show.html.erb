@@ -134,6 +134,11 @@
     min-width: 180px;
     text-align: center;
   }
+  #selected-time-summary .seconds {
+    font-size: 0.75rem;
+    color: #94A3B8;
+    margin-top: 0.25rem;
+  }
 </style>
 
 <div class="post-review-container">
@@ -165,13 +170,41 @@
       <%= @review_start_date.strftime("%B %d, %Y") %> to <%= @review_end_date.strftime("%B %d, %Y") %>
     </p>
     <% if @post.airtable_fields["demoVideo"].present? %>
-      <p><strong>Demo Video:</strong> <%= link_to "Watch Demo", @post.airtable_fields["demoVideo"], target: "_blank", class: "button-style" %></p>
+      <%= render "shared/video_on_hover", src: @post.airtable_fields["demoVideo"] %>
     <% end %>
     <% if @post.airtable_fields["photoboothVideo"].present? %>
-      <p><strong>Photobooth Video:</strong> <%= link_to "Watch Photobooth", @post.airtable_fields["photoboothVideo"], target: "_blank", class: "button-style" %></p>
+      <%= render "shared/video_on_hover", src: @post.airtable_fields["photoboothVideo"] %>
     <% end %>
     <p><strong>Airtable Link:</strong> <%= link_to "View on Airtable", @post.airtable_url, target: "_blank", class: "button-style" %></p>
+    <p><strong>API Link:</strong> <%= link_to "View on stats endpoint", api_v1_path(username: @user.id, start_date: @post_start_display.iso8601, end_date: @post_end_display.iso8601, features: "projects") %></p>
   </section>
+
+  <% if @unique_project_names.any? %>
+    <section class="post-details-section">
+      <h2>Filter by Project</h2>
+      <form id="project-filter-form" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="project-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+          <% @unique_project_names.each do |project_name| %>
+            <% is_selected = params[:projects].present? ? params[:projects].split(',').include?(project_name) : true %>
+            <% is_recommended = @recommended_project_names.include?(project_name) %>
+            <label class="project-filter-label <%= 'recommended' if is_recommended %>" 
+                   style="display: flex; align-items: center; background: <%= is_recommended ? '#1F2937' : '#374151' %>; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; border: 1px solid <%= is_recommended ? '#60A5FA' : 'transparent' %>;">
+              <input type="checkbox" 
+                     class="project-filter-checkbox" 
+                     data-project-name="<%= project_name %>" 
+                     <%= is_selected ? 'checked' : '' %>
+                     style="margin-right: 0.5rem; accent-color: #60A5FA;">
+              <%= project_name %>
+              <% if is_recommended %>
+                <span style="margin-left: 0.5rem; font-size: 0.75rem; color: #60A5FA;">(recommended)</span>
+              <% end %>
+            </label>
+          <% end %>
+        </div>
+        <button type="submit" class="button-style" style="align-self: flex-start;">Apply Filters</button>
+      </form>
+    </section>
+  <% end %>
 
   <div class="day-header-sticky-wrapper" id="dayHeaderStickyWrapper">
     <% days_to_display.each do |day| %>
@@ -248,6 +281,8 @@
                     languages_display = span[:languages].join(', ').truncate(20)
                     duration_display = short_time_simple(span[:duration])
 
+                    project_names = span[:projects_edited_details].map { |p| p[:name] }.join(',')
+
                     tooltip_parts = []
                     tooltip_parts << "Time: #{span_start_in_user_tz.strftime('%l:%M%P')} - #{span_end_in_user_tz.strftime('%l:%M%P')}"
                     tooltip_parts << "Actual Duration: #{short_time_detailed(span[:duration])}"
@@ -255,17 +290,18 @@
                     tooltip_parts << "Languages: #{span[:languages].join(', ')}" if span[:languages].any?
                     tooltip_parts << "Editors: #{span[:editors].join(', ')}" if span[:editors].any?
                     tooltip_parts << "Files: #{span[:files_edited].join(', ')}" if span[:files_edited].any?
-                  %>
+                %>
                   <div class="timeline-item coding-span"
                        style="top: <%= span_top_px %>px; height: <%= span_height_px %>px;"
+                       data-projects="<%= project_names %>"
                        title="<%= tooltip_parts.join("\n") %>">
-                       <input type="checkbox" class="span-selector-checkbox" data-duration-seconds="<%= span[:duration] %>" id="<%= span[:id] %>">
-                       <label for="<%= span[:id] %>" class="timeline-item-content">
-                          <%= projects_display.presence || "Coding" %> (<%= duration_display %>)
-                          <% if languages_display.present? && span_height_px > 20 %>
-                            <br><span style="font-size: 0.9em; opacity: 0.8;"><%= languages_display %></span>
-                          <% end %>
-                       </label>
+                    <input type="checkbox" 
+                           class="span-selector-checkbox" 
+                           id="<%= span[:id] %>"
+                           data-duration-seconds="<%= span[:duration] %>">
+                    <div class="timeline-item-content">
+                      <%= projects_display %>
+                    </div>
                   </div>
                 <% end %>
               <% end %>
@@ -305,7 +341,12 @@
 </div>
 
 <div id="selected-time-summary">
-  <span id="selected-duration">0s</span> / <span id="total-post-duration"><%= short_time_detailed(@total_post_hackatime_seconds) %></span>
+  <div>
+    <span id="selected-duration">0s</span> / <span id="total-post-duration"><%= short_time_detailed(@total_post_hackatime_seconds) %></span>
+  </div>
+  <div class="seconds">
+    <span id="selected-seconds">0</span> / <span id="total-seconds"><%= @total_post_hackatime_seconds %></span> seconds
+  </div>
 </div>
 
 <script>
@@ -343,9 +384,11 @@ document.addEventListener('turbo:load', function() {
       currentSelectedSeconds += parseInt(checkbox.dataset.durationSeconds, 10) || 0;
     });
     selectedDurationEl.textContent = formatSecondsToHhMmSs(currentSelectedSeconds);
+    document.getElementById('selected-seconds').textContent = currentSelectedSeconds;
   }
   
   totalPostDurationEl.textContent = formatSecondsToHhMmSs(totalPostSeconds);
+  document.getElementById('total-seconds').textContent = totalPostSeconds;
   updateSelectedTimeSummary(); // Initial call
 
   if (timelineViewport && hourLabelsColumn && daysContainer && cursorLine && cursorTimeDisplay && dayHeaderStickyWrapper) {
@@ -393,5 +436,21 @@ document.addEventListener('turbo:load', function() {
       }
     });
   }
+});
+
+document.getElementById('project-filter-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const checkboxes = document.querySelectorAll('.project-filter-checkbox');
+  const selectedProjects = Array.from(checkboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.dataset.projectName);
+  
+  const url = new URL(window.location.href);
+  if (selectedProjects.length === <%= @unique_project_names.length %>) {
+    url.searchParams.delete('projects');
+  } else {
+    url.searchParams.set('projects', selectedProjects.join(','));
+  }
+  window.location.href = url.toString();
 });
 </script>
