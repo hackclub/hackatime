@@ -8,8 +8,8 @@ class Neighborhood::App < ApplicationRecord
                  pat: ENV["NEIGHBORHOOD_AIRTABLE_PAT"]
 
   def posts
-    return [] unless airtable_fields["app"]&.first
-    Neighborhood::Post.where(airtable_id: airtable_fields["app"])
+    return [] unless airtable_fields["devlog"]&.any?
+    Neighborhood::Post.where(airtable_id: airtable_fields["devlog"])
   end
 
   def projects
