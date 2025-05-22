@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_16_142043) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_22_062125) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -283,6 +283,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_16_142043) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["airtable_id"], name: "index_neighborhood_projects_on_airtable_id", unique: true
+  end
+
+  create_table "neighborhood_ysws_submissions", force: :cascade do |t|
+    t.string "airtable_id", null: false
+    t.jsonb "airtable_fields"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["airtable_id"], name: "index_neighborhood_ysws_submissions_on_airtable_id", unique: true
   end
 
   create_table "physical_mails", force: :cascade do |t|
