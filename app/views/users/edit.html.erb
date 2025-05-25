@@ -185,11 +185,13 @@
     <h2 id="user_markscribe">Markscribe Templates</h2>
     <p>Use markscribe to create beautiful GitHub profile READMEs with your coding stats.</p>
     <div class="code-example">
-      <pre><code>{{ wakatimeDoubleCategoryBar "💾 Languages:" wakatimeData.Languages "💼 Projects:" wakatimeData.Projects 5 }}</code></pre>
+      <pre><code>{{with hackatimeStats}}
+{{ wakatimeLanguages "💾 Languages:" .Data.Languages 5 .Data.HumanReadableTotal }}
+{{end}}</code></pre>
     </div>
-    <p>Add this to your GitHub profile README template to display your top languages and projects.</p>
-    <p><small>See the <a href="https://github.com/taciturnaxolotl/markscribe#your-wakatime-languages-formated-as-a-bar" target="_blank">markscribe documentation</a> for more template options.</small></p>
-    <img src="https://cdn.fluff.pw/slackcdn/524e293aa09bc5f9115c0c29c18fb4bc.png" alt="Example of markscribe output showing coding language and project statistics" width="100%"/>
+    <p>Add this to your GitHub profile README template to display your top languages.</p>
+    <p><small>See the <a href="hhttps://github.com/hashim-cpro/markscribe" target="_blank">markscribe documentation</a> for more template options.</small></p>
+    <img src="hhttps://hc-cdn.hel1.your-objectstorage.com/s/v3/b0144682e06e00aa4aec39fd8757663956c0a516_image.png" alt="Example of markscribe output showing coding language statistics" width="100%"/>
   </section>
 
   <hr>
