@@ -133,6 +133,10 @@ Rails.application.configure do
     geocode_users_without_country: {
       cron: "7 * * * *",
       class: "GeocodeUsersWithoutCountryJob"
+    },
+    cleanup_successful_jobs: {
+      cron: "0 0 * * *",
+      class: "CleanupSuccessfulJobsJob"
     }
   }
 end

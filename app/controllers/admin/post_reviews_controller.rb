@@ -2,7 +2,7 @@
 class Admin::PostReviewsController < Admin::BaseController
   include ApplicationHelper # For short_time_simple, short_time_detailed helpers
 
-  before_action :set_post, only: [ :show ]
+  before_action :set_post, only: [ :show, :update ]
 
   def show
     # User related to the post
@@ -17,7 +17,6 @@ class Admin::PostReviewsController < Admin::BaseController
       post_start_str = @post.airtable_fields["lastPost"]
       post_end_str = @post.airtable_fields["createdAt"]
       @total_post_hackatime_seconds = @post.airtable_fields["hackatimeTime"]&.to_i || 0
-
 
       if post_start_str.blank? || post_end_str.blank?
         raise ArgumentError, "Post start or end date is missing from Airtable. lastPost: '#{post_start_str}', createdAt: '#{post_end_str}'"
@@ -68,6 +67,10 @@ class Admin::PostReviewsController < Admin::BaseController
       selected_projects = params[:projects].split(",")
       all_heartbeats_for_user_in_review_window = all_heartbeats_for_user_in_review_window.select do |hb|
         selected_projects.include?(hb.project)
+      end
+    else
+      all_heartbeats_for_user_in_review_window = all_heartbeats_for_user_in_review_window.select do |hb|
+        @recommended_project_names.include?(hb.project)
       end
     end
 
@@ -121,6 +124,29 @@ class Admin::PostReviewsController < Admin::BaseController
     end
 
     @current_user_timezone = current_user.timezone
+  end
+
+  def update
+    approved_seconds = params[:approved_seconds].to_i
+    comment = params[:comment]
+
+    fields = {
+      "approved_time" => approved_seconds,
+      "review_comment" => comment,
+      "review_status" => "approved"
+    }
+
+    if @post.push_to_airtable!(fields)
+      flash[:notice] = "Time approved successfully"
+      redirect_to admin_ysws_review_path(@post.app.ysws_submission.airtable_id)
+    else
+      flash[:alert] = "Failed to approve time"
+      redirect_to admin_post_review_path(@post.airtable_id)
+    end
+
+  rescue => e
+    flash[:alert] = "Failed to approve time: #{e.message}"
+    redirect_to admin_post_review_path(@post.airtable_id)
   end
 
   private

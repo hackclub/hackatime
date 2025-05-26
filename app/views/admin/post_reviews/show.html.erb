@@ -155,6 +155,10 @@
     <div class="alert-flash"><%= flash[:alert] %></div>
   <% end %>
 
+  <% if flash[:notice] %>
+    <div class="notice-flash"><%= flash[:notice] %></div>
+  <% end %>
+
   <section class="post-details-section">
     <h2>Post Details</h2>
     <% if @user %> <p><strong>User:</strong> <%= render "shared/user_mention", user: @user %></p> <% end %>
@@ -177,6 +181,18 @@
     <% end %>
     <p><strong>Airtable Link:</strong> <%= link_to "View on Airtable", @post.airtable_url, target: "_blank", class: "button-style" %></p>
     <p><strong>API Link:</strong> <%= link_to "View on stats endpoint", api_v1_path(username: @user.id, start_date: @post_start_display.iso8601, end_date: @post_end_display.iso8601, features: "projects") %></p>
+    <p><strong>Created:</strong> <%= @post_start_display.strftime("%B %d, %Y at %I:%M %p") %></p>
+    <p><strong>Last Post:</strong> <%= @post_end_display.strftime("%B %d, %Y at %I:%M %p") %></p>
+    <p><strong>Total Time:</strong> <%= short_time_detailed(@total_post_hackatime_seconds) %></p>
+    <% if @post.airtable_fields["approvedTime"].present? %>
+      <p><strong>Approved Time:</strong> <%= short_time_detailed(@post.airtable_fields["approvedTime"]) %></p>
+    <% end %>
+    <% if @post.airtable_fields["reviewComment"].present? %>
+      <p><strong>Review Comment:</strong> <%= @post.airtable_fields["reviewComment"] %></p>
+    <% end %>
+    <% if @post.airtable_fields["reviewStatus"].present? %>
+      <p><strong>Status:</strong> <%= @post.airtable_fields["reviewStatus"] %></p>
+    <% end %>
   </section>
 
   <% if @unique_project_names.any? %>
@@ -185,7 +201,7 @@
       <form id="project-filter-form" style="display: flex; flex-direction: column; gap: 1rem;">
         <div class="project-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
           <% @unique_project_names.each do |project_name| %>
-            <% is_selected = params[:projects].present? ? params[:projects].split(',').include?(project_name) : true %>
+            <% is_selected = params[:projects].present? ? params[:projects].split(',').include?(project_name) : @recommended_project_names.include?(project_name) %>
             <% is_recommended = @recommended_project_names.include?(project_name) %>
             <label class="project-filter-label <%= 'recommended' if is_recommended %>" 
                    style="display: flex; align-items: center; background: <%= is_recommended ? '#1F2937' : '#374151' %>; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; border: 1px solid <%= is_recommended ? '#60A5FA' : 'transparent' %>;">
@@ -340,14 +356,7 @@
   </div>
 </div>
 
-<div id="selected-time-summary">
-  <div>
-    <span id="selected-duration">0s</span> / <span id="total-post-duration"><%= short_time_detailed(@total_post_hackatime_seconds) %></span>
-  </div>
-  <div class="seconds">
-    <span id="selected-seconds">0</span> / <span id="total-seconds"><%= @total_post_hackatime_seconds %></span> seconds
-  </div>
-</div>
+<%= render "time_approval_form" %>
 
 <script>
 document.addEventListener('turbo:load', function() {
@@ -357,39 +366,11 @@ document.addEventListener('turbo:load', function() {
   const dayHeaderStickyWrapper = document.getElementById('dayHeaderStickyWrapper');
   const cursorLine = document.getElementById('cursor-line');
   const cursorTimeDisplay = document.getElementById('cursor-time-display');
-  const selectedDurationEl = document.getElementById('selected-duration');
-  const totalPostDurationEl = document.getElementById('total-post-duration');
 
   const pixelsPerHour = <%= pixels_per_hour %>;
   const pixelsPerMinute = <%= pixels_per_minute %>;
   const timelineStartHour = <%= timeline_start_hour %>;
   const headerHeight = <%= header_height_px %>;
-  const totalPostSeconds = <%= @total_post_hackatime_seconds %>;
-
-  function formatSecondsToHhMmSs(totalSeconds) {
-    if (isNaN(totalSeconds) || totalSeconds < 0) return "0s";
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    let parts = [];
-    if (hours > 0) parts.push(hours + "h");
-    if (minutes > 0) parts.push(minutes + "m");
-    if (seconds > 0 || parts.length === 0) parts.push(seconds + "s"); // Show seconds if only unit or total is 0
-    return parts.join(" ") || "0s";
-  }
-
-  function updateSelectedTimeSummary() {
-    let currentSelectedSeconds = 0;
-    document.querySelectorAll('.span-selector-checkbox:checked').forEach(checkbox => {
-      currentSelectedSeconds += parseInt(checkbox.dataset.durationSeconds, 10) || 0;
-    });
-    selectedDurationEl.textContent = formatSecondsToHhMmSs(currentSelectedSeconds);
-    document.getElementById('selected-seconds').textContent = currentSelectedSeconds;
-  }
-  
-  totalPostDurationEl.textContent = formatSecondsToHhMmSs(totalPostSeconds);
-  document.getElementById('total-seconds').textContent = totalPostSeconds;
-  updateSelectedTimeSummary(); // Initial call
 
   if (timelineViewport && hourLabelsColumn && daysContainer && cursorLine && cursorTimeDisplay && dayHeaderStickyWrapper) {
     timelineViewport.addEventListener('scroll', function() {
@@ -427,13 +408,6 @@ document.addEventListener('turbo:load', function() {
     daysContainer.addEventListener('mouseleave', function() {
       cursorLine.style.display = 'none';
       cursorTimeDisplay.style.display = 'none';
-    });
-
-    // Listener for checkboxes
-    daysContainer.addEventListener('change', function(event) {
-      if (event.target.classList.contains('span-selector-checkbox')) {
-        updateSelectedTimeSummary();
-      }
     });
   }
 });

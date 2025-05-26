@@ -16,4 +16,9 @@ class Neighborhood::App < ApplicationRecord
     return [] unless airtable_fields["hackatimeProjects"]&.any?
     Neighborhood::Project.where(airtable_id: airtable_fields["hackatimeProjects"])
   end
+
+  def ysws_submission
+    return nil unless airtable_fields["YSWS Project Submission"]&.first
+    Neighborhood::YswsSubmission.find_by(airtable_id: airtable_fields["YSWS Project Submission"].first)
+  end
 end
