@@ -22,9 +22,6 @@
     Hackatime is totally free. Anyone can see the <a href="https://github.com/hackclub/hackatime" target="_blank">code</a>. It's like <a href="https://wakatime.com" target="_blank">WakaTime</a> but free and open source.
   </p>
 
-
-
-
   <h3>🎯 How to Start</h3>
   <ol>
     <li><strong>Make an account</strong> at <a href="<%= root_url %>">hackatime.hackclub.com</a></li>
@@ -33,9 +30,19 @@
     <li><strong>Start coding</strong>: It tracks your time by itself!</li>
   </ol>
 
-  <p style="background: #f0f8ff; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--primary);">
+  <p id="tip-box" class="tip-box" style="background: #f0f8ff; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--primary);">
     <strong>💡 Tip:</strong> The <a href="<%= my_wakatime_setup_path %>">setup page</a> does everything for you. No hard stuff to figure out!
   </p>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .tip-box {
+        background: #1a2233 !important;
+        border-left-color: #4fd1c5 !important;
+        color: #e6e6e6 !important;
+      }
+      .tip-box a { color: #4fd1c5 !important; }
+    }
+  </style>
 
   <h3>🔌 What Code Editors Work</h3>
   <p>
