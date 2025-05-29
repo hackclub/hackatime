@@ -1,0 +1,22 @@
+{
+  "tabWidth": 2,
+  "printWidth": 100,
+  "overrides": [
+    {
+      "files": "*.rb",
+      "options": {
+        "parser": "ruby",
+        "singleQuote": true,
+        "trailingComma": "none"
+      }
+    },
+    {
+      "files": "*.erb",
+      "options": {
+        "parser": "erb",
+        "singleQuote": false,
+        "embeddedLanguageFormatting": "auto"
+      }
+    }
+  ]
+}
