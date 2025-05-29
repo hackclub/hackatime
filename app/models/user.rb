@@ -16,10 +16,17 @@ class User < ApplicationRecord
   end
 
   enum :trust_level, {
-    default: 0,
-    untrusted: 1,
-    trusted: 2
+    yellow: 0,
+    red: 1,
+    green: 2
   }
+  # yellow is unscored, red being convicted while green being trusted
+  # labels make it easier for display :okay-1:
+
+  def set_trust(level)
+    update!(trust_level: level)
+  end
+  # ex: .set_trust(:green) or set_trust(1) setting it to red
 
   has_many :heartbeats
   has_many :email_addresses, dependent: :destroy

@@ -46,7 +46,8 @@
     <% if @entries&.any? %>
       <div class="leaderboard-entries">
         <% @entries.each_with_index do |entry, index| %>
-          <div class="leaderboard-entry <%= 'current-user' if entry.user_id == current_user&.id %> <%= 'omitted' if entry.user.untrusted? && current_user&.admin? %>">
+          <div class="leaderboard-entry <%= 'current-user' if entry.user_id == current_user&.id %> <%= 'omitted' if entry.user.red? && current_user&.admin? %>">
+            <!-- in the future, convicted users will be hidden from public leaderboards -->
             <span class="rank">
               <% case index %>
               <% when 0 then %>
@@ -86,9 +87,9 @@
                       data-trust-level-target="select"
                       data-user-id="<%= entry.user.id %>" 
                       data-current-trust-level="<%= entry.user.trust_level %>">
-                <option value="default" <%= 'selected' if entry.user.default? %>>Default</option>
-                <option value="untrusted" <%= 'selected' if entry.user.untrusted? %>>Untrusted</option>
-                <option value="trusted" <%= 'selected' if entry.user.trusted? %>>Trusted</option>
+                <option value="yellow" <%= 'selected' if entry.user.yellow? %>>Yellow</option>
+                <option value="red" <%= 'selected' if entry.user.red? %>>Red</option>
+                <option value="green" <%= 'selected' if entry.user.green? %>>Green</option>
               </select>
             <% end %>
           </div>
