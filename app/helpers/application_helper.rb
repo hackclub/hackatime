@@ -21,6 +21,14 @@ module ApplicationHelper
     country_code.tr("A-Z", "\u{1F1E6}-\u{1F1FF}")
   end
 
+  # infer country from timezone
+  def timezone_to_country(timezone)
+    return null unless timezone.present?
+    tz = ActiveSupport::TimeZone[timezone]
+    return null unless tz && tz.tzinfo.respond_to?(:country_code)
+    tz.tzinfo.country_code || null
+  end
+
   def timezone_difference_in_seconds(timezone1, timezone2)
     return 0 if timezone1 == timezone2
 
