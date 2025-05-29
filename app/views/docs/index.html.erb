@@ -33,16 +33,7 @@
   <p id="tip-box" class="tip-box" style="background: #f0f8ff; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--primary);">
     <strong>💡 Tip:</strong> The <a href="<%= my_wakatime_setup_path %>">setup page</a> does everything for you. No hard stuff to figure out!
   </p>
-  <style>
-    @media (prefers-color-scheme: dark) {
-      .tip-box {
-        background: #1a2233 !important;
-        border-left-color: #4fd1c5 !important;
-        color: #e6e6e6 !important;
-      }
-      .tip-box a { color: #4fd1c5 !important; }
-    }
-  </style>
+
 
   <h3>🔌 What Code Editors Work</h3>
   <p>
@@ -233,6 +224,16 @@
       <% end %>
     </div>
   </details>
+    <style>
+    @media (prefers-color-scheme: dark) {
+      .tip-box, #all-editors {
+        background: #1a2233 !important;
+        border-left-color: #4fd1c5 !important;
+        color: #e6e6e6 !important;
+      }
+      .tip-box a { color: #4fd1c5 !important; }
+    }
+  </style>
 
   <hr style="margin: 2rem 0;">
 
