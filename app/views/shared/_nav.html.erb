@@ -29,10 +29,22 @@
         Leaderboards
       <% end %>
     </li>
+    <% unless current_user %>
+      <li>
+        <%= link_to docs_path, class: "nav-item #{current_page?(docs_path) || request.path.start_with?('/docs') ? 'active' : ''}" do %>
+          Docs
+        <% end %>
+      </li>
+    <% end %>
     <% if current_user %>
       <li>
         <%= link_to my_projects_path, class: "nav-item #{current_page?(my_projects_path) ? 'active' : ''}" do %>
           Projects
+        <% end %>
+      </li>
+      <li>
+        <%= link_to docs_path, class: "nav-item #{current_page?(docs_path) || request.path.start_with?('/docs') ? 'active' : ''}" do %>
+          Docs
         <% end %>
       </li>
       <li>

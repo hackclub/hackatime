@@ -69,6 +69,10 @@ Rails.application.routes.draw do
 
   resources :leaderboards, only: [ :index ]
 
+  # Docs routes
+  get "docs", to: "docs#index", as: :docs
+  get "docs/*path", to: "docs#show", as: :doc
+
   # Nested under users for admin access
   resources :users, only: [] do
     get "settings", on: :member, to: "users#edit"
@@ -139,4 +143,7 @@ Rails.application.routes.draw do
   end
 
   resources :scrapyard_leaderboards, only: [ :index, :show ]
+
+  # SEO routes
+  get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
 end

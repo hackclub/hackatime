@@ -20,11 +20,24 @@ class ProjectRepoMapping < ApplicationRecord
     "<<LAST PROJECT>>"
   ]
 
+  after_create :schedule_commit_pull
+
   private
 
   def repo_url_exists
     unless GitRemote.check_remote_exists(repo_url)
       errors.add(:repo_url, "is not cloneable")
+    end
+  end
+
+  def schedule_commit_pull
+    # Extract owner and repo name from the URL
+    # Example URL: https://github.com/owner/repo
+    if repo_url =~ %r{https?://[^/]+/([^/]+)/([^/]+)\z}
+      owner = $1
+      repo = $2
+      Rails.logger.info "[ProjectRepoMapping] Scheduling commit pull for #{owner}/#{repo} for User ##{user_id}"
+      PullRepoCommitsJob.perform_now(user_id, owner, repo)
     end
   end
 end

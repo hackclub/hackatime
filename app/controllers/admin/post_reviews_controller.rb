@@ -61,17 +61,34 @@ class Admin::PostReviewsController < Admin::BaseController
       .uniq
       .sort
 
+    @unique_file_extensions = all_heartbeats_for_user_in_review_window
+      .map(&:entity)
+      .compact
+      .map { |entity| File.extname(entity).delete(".") }
+      .reject(&:blank?)
+      .uniq
+      .sort
+
     @recommended_project_names = @post.app.projects.map(&:airtable_fields).map { |p| p["name"] }.compact.uniq.sort
 
-    if params[:projects].present?
-      selected_projects = params[:projects].split(",")
-      all_heartbeats_for_user_in_review_window = all_heartbeats_for_user_in_review_window.select do |hb|
-        selected_projects.include?(hb.project)
-      end
+    @selected_projects = if params[:projects].present?
+      params[:projects].split(",")
     else
-      all_heartbeats_for_user_in_review_window = all_heartbeats_for_user_in_review_window.select do |hb|
-        @recommended_project_names.include?(hb.project)
-      end
+      @recommended_project_names
+    end
+
+    @selected_extensions = if params[:extensions].present?
+      params[:extensions].split(",")
+    else
+      @unique_file_extensions
+    end
+
+    all_heartbeats_for_user_in_review_window = all_heartbeats_for_user_in_review_window.select do |hb|
+      @selected_projects.include?(hb.project)
+    end
+
+    all_heartbeats_for_user_in_review_window = all_heartbeats_for_user_in_review_window.select do |hb|
+      hb.entity.present? && @selected_extensions.include?(File.extname(hb.entity).delete("."))
     end
 
     @detailed_spans = []
@@ -89,34 +106,24 @@ class Admin::PostReviewsController < Admin::BaseController
             start_time_numeric = current_span_heartbeats.first.time
             last_hb_time_numeric = current_span_heartbeats.last.time
 
-            actual_coded_duration_seconds = Heartbeat.where(id: current_span_heartbeats.map(&:id)).duration_seconds
+            # Split span if it crosses post start or end time
+            post_start_numeric = @post_start_display.to_f
+            post_end_numeric = @post_end_display.to_f
 
-            files = current_span_heartbeats.map { |h| h.entity&.split("/")&.last }.compact.uniq.sort
-
-            projects_details_for_span = []
-            unique_project_names = current_span_heartbeats.map(&:project).compact.reject(&:blank?).uniq
-
-            unique_project_names.each do |p_name|
-              repo_mapping = @project_repo_mappings_for_user[p_name]
-              projects_details_for_span << {
-                name: p_name,
-                repo_url: repo_mapping&.repo_url
-              }
+            # Create spans for each segment
+            if start_time_numeric < post_start_numeric && last_hb_time_numeric > post_start_numeric
+              # Split at post start
+              create_span_for_heartbeats(current_span_heartbeats, start_time_numeric, post_start_numeric)
+              create_span_for_heartbeats(current_span_heartbeats, post_start_numeric, last_hb_time_numeric)
+            elsif start_time_numeric < post_end_numeric && last_hb_time_numeric > post_end_numeric
+              # Split at post end
+              create_span_for_heartbeats(current_span_heartbeats, start_time_numeric, post_end_numeric)
+              create_span_for_heartbeats(current_span_heartbeats, post_end_numeric, last_hb_time_numeric)
+            else
+              # No split needed
+              create_span_for_heartbeats(current_span_heartbeats, start_time_numeric, last_hb_time_numeric)
             end
 
-            editors = current_span_heartbeats.map(&:editor).compact.uniq.sort
-            languages = current_span_heartbeats.map(&:language).compact.uniq.sort
-
-            @detailed_spans << {
-              id: "span_#{SecureRandom.hex(4)}", # Unique ID for checkbox
-              start_time: start_time_numeric,
-              end_time: last_hb_time_numeric,
-              duration: actual_coded_duration_seconds,
-              files_edited: files,
-              projects_edited_details: projects_details_for_span.sort_by { |p| p[:name].downcase },
-              editors: editors,
-              languages: languages
-            }
             current_span_heartbeats = []
           end
         end
@@ -150,6 +157,37 @@ class Admin::PostReviewsController < Admin::BaseController
   end
 
   private
+
+  def create_span_for_heartbeats(heartbeats, start_time, end_time)
+    actual_coded_duration_seconds = Heartbeat.where(id: heartbeats.map(&:id)).duration_seconds
+
+    files = heartbeats.map { |h| h.entity&.split("/")&.last }.compact.uniq.sort
+
+    projects_details_for_span = []
+    unique_project_names = heartbeats.map(&:project).compact.reject(&:blank?).uniq
+
+    unique_project_names.each do |p_name|
+      repo_mapping = @project_repo_mappings_for_user[p_name]
+      projects_details_for_span << {
+        name: p_name,
+        repo_url: repo_mapping&.repo_url
+      }
+    end
+
+    editors = heartbeats.map(&:editor).compact.uniq.sort
+    languages = heartbeats.map(&:language).compact.uniq.sort
+
+    @detailed_spans << {
+      id: "span_#{SecureRandom.hex(4)}", # Unique ID for checkbox
+      start_time: start_time,
+      end_time: end_time,
+      duration: actual_coded_duration_seconds,
+      files_edited: files,
+      projects_edited_details: projects_details_for_span.sort_by { |p| p[:name].downcase },
+      editors: editors,
+      languages: languages
+    }
+  end
 
   def set_post
     @post = Neighborhood::Post.find_by(airtable_id: params[:post_id])

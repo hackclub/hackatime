@@ -142,6 +142,7 @@
 </style>
 
 <div class="post-review-container">
+  <%= link_to "Back to Ship Review", admin_ysws_review_path(@post.app.ysws_submission.airtable_id) %>
   <div class="post-review-header">
     <h1>
       Post Review
@@ -195,13 +196,13 @@
     <% end %>
   </section>
 
-  <% if @unique_project_names.any? %>
+  <% if @unique_project_names.any? || @unique_file_extensions.any? %>
     <section class="post-details-section">
-      <h2>Filter by Project</h2>
-      <form id="project-filter-form" style="display: flex; flex-direction: column; gap: 1rem;">
+      <h2 style="margin-bottom: 0.5rem;">Filter by Project</h2>
+      <form id="filters-form" style="display: flex; flex-direction: column; gap: 0.5rem;">
         <div class="project-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
           <% @unique_project_names.each do |project_name| %>
-            <% is_selected = params[:projects].present? ? params[:projects].split(',').include?(project_name) : @recommended_project_names.include?(project_name) %>
+            <% is_selected = @selected_projects.include?(project_name) %>
             <% is_recommended = @recommended_project_names.include?(project_name) %>
             <label class="project-filter-label <%= 'recommended' if is_recommended %>" 
                    style="display: flex; align-items: center; background: <%= is_recommended ? '#1F2937' : '#374151' %>; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; border: 1px solid <%= is_recommended ? '#60A5FA' : 'transparent' %>;">
@@ -217,7 +218,25 @@
             </label>
           <% end %>
         </div>
-        <button type="submit" class="button-style" style="align-self: flex-start;">Apply Filters</button>
+
+        <% if @unique_file_extensions.any? %>
+          <h2 style="margin: 0.75rem 0 0.5rem 0;">Filter by File Extension</h2>
+          <div class="extension-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <% @unique_file_extensions.each do |extension| %>
+              <% is_selected = @selected_extensions.include?(extension) %>
+              <label class="extension-filter-label" 
+                     style="display: flex; align-items: center; background: #374151; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; border: 1px solid transparent;">
+                <input type="checkbox" 
+                       class="extension-filter-checkbox" 
+                       data-extension="<%= extension %>" 
+                       <%= is_selected ? 'checked' : '' %>
+                       style="margin-right: 0.5rem; accent-color: #60A5FA;">
+                <%= extension %>
+              </label>
+            <% end %>
+          </div>
+        <% end %>
+        <button type="submit" class="button-style" style="align-self: flex-start; margin-top: 0.5rem;">Apply Filters</button>
       </form>
     </section>
   <% end %>
@@ -412,18 +431,28 @@ document.addEventListener('turbo:load', function() {
   }
 });
 
-document.getElementById('project-filter-form').addEventListener('submit', function(e) {
+document.getElementById('filters-form').addEventListener('submit', function(e) {
   e.preventDefault();
-  const checkboxes = document.querySelectorAll('.project-filter-checkbox');
-  const selectedProjects = Array.from(checkboxes)
+  const projectCheckboxes = document.querySelectorAll('.project-filter-checkbox');
+  const selectedProjects = Array.from(projectCheckboxes)
     .filter(cb => cb.checked)
     .map(cb => cb.dataset.projectName);
-  
+
+  const extensionCheckboxes = document.querySelectorAll('.extension-filter-checkbox');
+  const selectedExtensions = Array.from(extensionCheckboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.dataset.extension);
+
   const url = new URL(window.location.href);
   if (selectedProjects.length === <%= @unique_project_names.length %>) {
     url.searchParams.delete('projects');
   } else {
     url.searchParams.set('projects', selectedProjects.join(','));
+  }
+  if (selectedExtensions.length === <%= @unique_file_extensions.length %>) {
+    url.searchParams.delete('extensions');
+  } else {
+    url.searchParams.set('extensions', selectedExtensions.join(','));
   }
   window.location.href = url.toString();
 });

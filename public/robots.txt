@@ -1,5 +1,16 @@
-# See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
-
 User-agent: *
-Disallow: /leaderboards
+Allow: /
 
+# Important pages for crawling
+Allow: /docs
+Allow: /docs/*
+Allow: /leaderboard
+
+# Disallow private/internal pages
+Disallow: /my/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+
+# Sitemap
+Sitemap: https://hackatime.hackclub.com/sitemap.xml

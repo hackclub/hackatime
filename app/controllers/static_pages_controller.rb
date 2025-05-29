@@ -67,6 +67,9 @@ class StaticPagesController < ApplicationController
         instance_variable_set("@#{key}", value)
       end
     else
+      # Set homepage SEO content for logged-out users only
+      set_homepage_seo_content
+
       @usage_social_proof = Cache::UsageSocialProofJob.perform_now
 
       @home_stats = Cache::HomeStatsJob.perform_now
@@ -202,6 +205,16 @@ class StaticPagesController < ApplicationController
 
   def ensure_current_user
     redirect_to root_path, alert: "You must be logged in to view this page" unless current_user
+  end
+
+  def set_homepage_seo_content
+    @page_title = "Hackatime - Free Coding Time Tracker | Track Your Programming Time"
+    @meta_description = "Track your coding time easily with Hackatime. See how long you spend programming in different languages. Free alternative to WakaTime. Join thousands of high schoolers!"
+    @meta_keywords = "coding time tracker, programming stats, wakatime alternative, free time tracking, code statistics, high school programming, coding analytics"
+    @og_title = "Hackatime - Free Coding Time Tracker"
+    @og_description = "Track your coding time easily with Hackatime. See how long you spend programming. Free and open source!"
+    @twitter_title = "Hackatime - Free Coding Time Tracker"
+    @twitter_description = "Track your coding time easily with Hackatime. See how long you spend programming. Free and open source!"
   end
 
   def filterable_dashboard_data

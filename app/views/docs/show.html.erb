@@ -1,0 +1,67 @@
+<% content_for :title, "#{@title} - Hackatime Documentation" %>
+<% content_for :meta_description, generate_doc_description(@content, @title) %>
+<% content_for :meta_keywords, generate_doc_keywords(@doc_path, @title) %>
+<% content_for :canonical_url, doc_url(@doc_path) %>
+<% content_for :og_type, "article" %>
+<% content_for :og_title, "#{@title} - Hackatime Documentation" %>
+
+<!-- JSON-LD Structured Data -->
+<% content_for :head do %>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "headline": "<%= @title %>",
+      "description": "<%= generate_doc_description(@content, @title) %>",
+      "url": "<%= doc_url(@doc_path) %>",
+      "dateModified": "<%= File.mtime(safe_docs_path("#{@doc_path}.md")).iso8601 rescue Time.current.iso8601 %>",
+      "author": {
+        "@type": "Organization",
+        "name": "Hack Club",
+        "url": "https://hackclub.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hack Club",
+        "url": "https://hackclub.com"
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "<%= doc_url(@doc_path) %>"
+      },
+      "about": {
+        "@type": "SoftwareApplication",
+        "name": "Hackatime",
+        "description": "Free and open source time tracking alternative to WakaTime"
+      }
+    }
+  </script>
+<% end %>
+
+<div class="container">
+  <p class="super">
+    <% @breadcrumbs.each_with_index do |crumb, index| %>
+      <% if index == @breadcrumbs.length - 1 %>
+        <span><%= crumb[:name] %></span>
+      <% else %>
+        <% if crumb[:is_link] && crumb[:path] %>
+          <%= link_to crumb[:name], crumb[:path] %>
+        <% else %>
+          <span><%= crumb[:name] %></span>
+        <% end %>
+        <span> / </span>
+      <% end %>
+    <% end %>
+  </p>
+
+  <div class="docs-content">
+    <%= raw @rendered_content %>
+  </div>
+
+  <p class="flavor">
+    Found an issue with this page? 
+    <a href="https://github.com/hackclub/hackatime/edit/main/docs/<%= @doc_path %>.md" target="_blank">
+      Edit it on GitHub
+    </a> - we'd love your help making the docs better!
+  </p>
+</div>

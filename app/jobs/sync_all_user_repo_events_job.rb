@@ -1,5 +1,8 @@
 class SyncAllUserRepoEventsJob < ApplicationJob
-  queue_as :default # Or a more specific queue like :batch_enqueueing
+  queue_as :literally_whenever
+
+  include HasEnqueueControl
+  enqueue_limit
 
   def perform
     Rails.logger.info "Kicking off SyncAllUserRepoEventsJob"

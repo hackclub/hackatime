@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_22_062125) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_27_052632) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -221,6 +221,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_22_062125) do
     t.index ["category", "time"], name: "index_heartbeats_on_category_and_time"
     t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
     t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
+    t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
@@ -309,6 +310,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_22_062125) do
     t.string "repo_url", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["project_name"], name: "index_project_repo_mappings_on_project_name"
     t.index ["user_id", "project_name"], name: "index_project_repo_mappings_on_user_id_and_project_name", unique: true
     t.index ["user_id"], name: "index_project_repo_mappings_on_user_id"
   end

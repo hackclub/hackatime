@@ -1,0 +1,238 @@
+<% content_for :title, "Documentation" %>
+<% content_for :meta_description, "Complete documentation for Hackatime - learn how to track your coding time and use our API." %>
+
+<div class="container">
+
+  <h1 class="title">
+    Welcome to <span class="primary-color">Hackatime</span>
+  </h1>
+  <p class="flavor">
+    Tracks your coding time - made by <a href="https://hackclub.com" target="_blank">Hack Club</a>
+  </p>
+
+  <p>
+    Hackatime is a free tool from Hack Club. It shows you how much time you spend coding. You can see what other Hack Clubbers are building too!
+  </p>
+
+  <p>
+    <strong>Why we made this:</strong> The more time you spend making things, the better you get at building cool projects!
+  </p>
+
+  <p>
+    Hackatime is totally free. Anyone can see the <a href="https://github.com/hackclub/hackatime" target="_blank">code</a>. It's like <a href="https://wakatime.com" target="_blank">WakaTime</a> but free and open source.
+  </p>
+
+
+
+
+  <h3>🎯 How to Start</h3>
+  <ol>
+    <li><strong>Make an account</strong> at <a href="<%= root_url %>">hackatime.hackclub.com</a></li>
+    <li><strong>Do the setup</strong>: Go to our <a href="<%= my_wakatime_setup_path %>">setup page</a></li>
+    <li><strong>Add a plugin</strong>: Put WakaTime in your code editor</li>
+    <li><strong>Start coding</strong>: It tracks your time by itself!</li>
+  </ol>
+
+  <p style="background: #f0f8ff; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--primary);">
+    <strong>💡 Tip:</strong> The <a href="<%= my_wakatime_setup_path %>">setup page</a> does everything for you. No hard stuff to figure out!
+  </p>
+
+  <h3>🔌 What Code Editors Work</h3>
+  <p>
+    Hackatime works with <strong>any editor</strong> that has <a href="https://wakatime.com" target="_blank">WakaTime</a>. Just add the WakaTime plugin to your editor:
+  </p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1rem 0;">
+    <div>
+      <strong>Popular Ones:</strong>
+      <ul style="margin-top: 0.5rem;">
+        <li><%= link_to "VS Code", doc_path("editors/vs-code") %></li>
+        <li><%= link_to "PyCharm", doc_path("editors/pycharm") %></li>
+        <li><%= link_to "Vim", doc_path("editors/vim") %></li>
+        <li><%= link_to "Sublime Text", doc_path("editors/sublime-text") %></li>
+      </ul>
+    </div>
+    <div>
+      <strong>Lots More:</strong>
+      <ul style="margin-top: 0.5rem;">
+        <li><%= link_to "Atom", doc_path("editors/atom") %>, <%= link_to "Brackets", doc_path("editors/brackets") %></li>
+        <li>All JetBrains apps</li>
+        <li><%= link_to "Command Line", doc_path("editors/terminal") %></li>
+        <li><a href="#supported-editors" onclick="document.getElementById('all-editors').parentElement.open = true; document.getElementById('all-editors').scrollIntoView({behavior: 'smooth'});">70+ others</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>📚 Help Pages</h3>
+
+  <h4>Getting Started</h4>
+  <ul>
+    <li><%= link_to "Quick Start Guide", doc_path("getting-started/quick-start") %> - Start in 5 minutes</li>
+    <li><%= link_to "Installation", doc_path("getting-started/installation") %> - Add plugins to your editor</li>
+    <li><%= link_to "Configuration", doc_path("getting-started/configuration") %> - Advanced setup stuff</li>
+  </ul>
+
+  <h4>For Coders</h4>
+  <ul>
+    <li><%= link_to "API Overview", doc_path("api/overview") %> - How to use our code API</li>
+    <li><%= link_to "Authentication", doc_path("api/authentication") %> - How to log in with code</li>
+    <li><%= link_to "Endpoints", doc_path("api/endpoints") %> - All the API commands</li>
+  </ul>
+
+  <h3>🔒 Safe & Free</h3>
+  <ul>
+    <li><strong>Open Source</strong>: You can see all the code on <a href="https://github.com/hackclub/hackatime" target="_blank">GitHub</a></li>
+    <li><strong>Private</strong>: We only see how long you code, not what you type</li>
+    <li><strong>Community Made</strong>: Built by Hack Club</li>
+    <li><strong>Free</strong>: You can donate to cover server costs at <a href="https://hackclub.com/donate" target="_blank">hackclub.com/donate</a></li>
+  </ul>
+
+  <h3>🆘 Need Help?</h3>
+  <p>
+    <strong>Not seeing your time?</strong> Go to the <a href="<%= my_wakatime_setup_path %>">setup page</a> 
+    to check if everything is working.
+  </p>
+  <p>
+    <strong>Have questions?</strong> Ask in the <a href="https://hackclub.slack.com" target="_blank">Hack Club Slack</a> 
+    (#hackatime-dev channel) or <a href="https://github.com/hackclub/hackatime/issues" target="_blank">ask on GitHub</a>.
+  </p>
+
+  <h3>🔧 Supported Editors</h3>
+  <p>
+    Hackatime works with any editor that supports WakaTime. Click on your editor below for setup instructions:
+  </p>
+
+  <div id="supported-editors" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin: 2rem 0;">
+    <!-- Most popular editors among teenagers, ordered by popularity -->
+    <a href="<%= doc_path('editors/vs-code') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/vs-code-128.png" alt="VS Code" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">VS Code</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/pycharm') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/pycharm-128.png" alt="PyCharm" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">PyCharm</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/intellij-idea') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/intellij-idea-128.png" alt="IntelliJ IDEA" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">IntelliJ IDEA</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/sublime-text') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/sublime-text-128.png" alt="Sublime Text" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Sublime Text</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/vim') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/vim-128.png" alt="Vim" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Vim</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/neovim') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/neovim-128.png" alt="Neovim" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Neovim</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/android-studio') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/android-studio-128.png" alt="Android Studio" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Android Studio</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/xcode') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/xcode-128.png" alt="Xcode" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Xcode</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/unity') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/unity-128.png" alt="Unity" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Unity</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/godot') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/godot-128.png" alt="Godot" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Godot</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/cursor') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/cursor-128.png" alt="Cursor" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Cursor</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/zed') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/zed-128.png" alt="Zed" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Zed</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/webstorm') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/webstorm-128.png" alt="WebStorm" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">WebStorm</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/eclipse') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/eclipse-128.png" alt="Eclipse" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Eclipse</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/notepad++') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/notepad++-128.png" alt="Notepad++" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Notepad++</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/emacs') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/emacs-128.png" alt="Emacs" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Emacs</div>
+    </a>
+    
+    <a href="<%= doc_path('editors/jupyter') %>" class="editor-card" style="text-decoration: none; color: inherit;">
+      <img src="/images/editor-icons/jupyter-128.png" alt="Jupyter" style="width: 48px; height: 48px; margin: 0 auto; display: block;">
+      <div style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">Jupyter</div>
+    </a>
+  </div>
+  
+  <details style="margin: 1rem 0;">
+    <summary style="cursor: pointer; font-weight: 500;">View all 77 supported editors</summary>
+    <div id="all-editors" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.8rem; margin: 1rem 0; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+      <% 
+        # All 77 editors - alphabetically sorted
+        all_editors = [
+          ['Android Studio', 'android-studio'], ['AppCode', 'appcode'], ['Aptana', 'aptana'], ['Arduino IDE', 'arduino-ide'],
+          ['Azure Data Studio', 'azure-data-studio'], ['Blender', 'blender'], ['Brackets', 'brackets'], ['Brave', 'brave'],
+          ['C++ Builder', 'c++-builder'], ['Canva', 'canva'], ['Chrome', 'chrome'], ['CLion', 'clion'],
+          ['Cloud9', 'cloud9'], ['Coda', 'coda'], ['CodeTasty', 'codetasty'], ['Cursor', 'cursor'],
+          ['DataGrip', 'datagrip'], ['DataSpell', 'dataspell'], ['DBeaver', 'dbeaver'], ['Delphi', 'delphi'],
+          ['Discord', 'discord'], ['Eclipse', 'eclipse'], ['Edge', 'edge'], ['Emacs', 'emacs'],
+          ['Eric', 'eric'], ['Excel', 'excel'], ['Figma', 'figma'], ['Firefox', 'firefox'],
+          ['Gedit', 'gedit'], ['Godot', 'godot'], ['GoLand', 'goland'], ['HBuilder X', 'hbuilder-x'], ['IDA Pro', 'ida-pro'],
+          ['IntelliJ IDEA', 'intellij-idea'], ['Jupyter', 'jupyter'], ['Kakoune', 'kakoune'], ['Kate', 'kate'],
+          ['Komodo', 'komodo'], ['Micro', 'micro'], ['MPS', 'mps'], ['Neovim', 'neovim'],
+          ['NetBeans', 'netbeans'], ['Notepad++', 'notepad++'], ['Nova', 'nova'], ['Obsidian', 'obsidian'],
+          ['Oxygen', 'oxygen'], ['PhpStorm', 'phpstorm'], ['Postman', 'postman'], ['PowerPoint', 'powerpoint'],
+          ['Processing', 'processing'], ['Pulsar', 'pulsar'], ['PyCharm', 'pycharm'], ['ReClassEx', 'reclassex'],
+          ['Rider', 'rider'], ['Roblox Studio', 'roblox-studio'], ['RubyMine', 'rubymine'], ['RustRover', 'rustrover'],
+          ['Safari', 'safari'], ['SiYuan', 'siyuan'], ['Sketch', 'sketch'], ['SlickEdit', 'slickedit'],
+          ['SQL Server Management Studio', 'sql-server-management-studio'], ['Sublime Text', 'sublime-text'], 
+          ['Terminal', 'terminal'], ['TeXstudio', 'texstudio'], ['TextMate', 'textmate'], ['Trae', 'trae'],
+          ['Unity', 'unity'], ['Vim', 'vim'], ['Visual Studio', 'visual-studio'], ['VS Code', 'vs-code'],
+          ['WebStorm', 'webstorm'], ['Windsurf', 'windsurf'], ['Wing', 'wing'], ['Word', 'word'],
+          ['Xcode', 'xcode'], ['Zed', 'zed']
+        ]
+      %>
+      <% all_editors.each do |name, slug| %>
+        <a href="<%= doc_path("editors/#{slug}") %>" class="editor-card-small" style="text-decoration: none; color: inherit; padding: 0.5rem; text-align: center; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='transparent'">
+          <img src="/images/editor-icons/<%= slug %>-128.png" alt="<%= name %>" style="width: 32px; height: 32px; margin: 0 auto; display: block;">
+          <div style="margin-top: 0.3rem; font-size: 0.8rem; line-height: 1.2;"><%= name %></div>
+        </a>
+      <% end %>
+    </div>
+  </details>
+
+  <hr style="margin: 2rem 0;">
+
+  <p class="flavor">
+    Found an issue with the docs? 
+    <a href="https://github.com/hackclub/hackatime" target="_blank">
+      Edit on GitHub
+    </a> - we'd love your help making them better!
+  </p>
+</div>
