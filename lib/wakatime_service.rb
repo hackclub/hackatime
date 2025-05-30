@@ -1,13 +1,31 @@
 include ApplicationHelper
 
 class WakatimeService
-  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil)
+  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, range: nil)
     @scope = Heartbeat.all
     @user = user
 
-    # Default to 1 year ago if no start_date provided or if no data exists
-    @start_date = start_date || @scope.minimum(:time) || 1.year.ago.to_i
-    @end_date = end_date || @scope.maximum(:time) || Time.current.to_i
+    @tz = @user&.timezone || "UTC"
+    @range_name = range.to_s
+
+    Time.use_zone(@tz) do
+      if start_date.present? || end_date.present?
+        @start_date = start_date || @scope.minimum(:time) || 1.year.ago.to_i
+        @end_date = end_date || @scope.maximum(:time) || Time.current.to_i
+        @range_name = "custom"
+      else
+        if range.present?
+          @range = TimeRangeFilterable::RANGES&.[](range.to_sym) || TimeRangeFilterable::RANGES[:all_time]
+          @range_name = range.to_s
+        else
+          @range = TimeRangeFilterable::RANGES&.[](:all_time)
+          @range_name = "all_time"
+        end
+
+        @start_date = @range[:calculate].call.first
+        @end_date = @range[:calculate].call.last
+      end
+    end
 
     @scope = @scope.where(time: @start_date..@end_date)
 
@@ -32,23 +50,28 @@ class WakatimeService
     @start_time = @scope.minimum(:time) || @start_date
     @end_time = @scope.maximum(:time) || @end_date
 
-    summary[:start] = Time.at(@start_time).strftime("%Y-%m-%dT%H:%M:%SZ")
-    summary[:end] = Time.at(@end_time).strftime("%Y-%m-%dT%H:%M:%SZ")
+    summary[:start] = Time.at(@start_time).iso8601
+    summary[:end] = Time.at(@end_time).iso8601
 
-    summary[:range] = "all_time"
-    summary[:human_readable_range] = "All Time"
+    summary[:range] = @range_name || "custom"
+    summary[:human_readable_range] = @range&.[](:human_name) || "custom"
 
     @total_seconds = @scope.duration_seconds || 0
     summary[:total_seconds] = @total_seconds
 
     @total_days = (@end_time - @start_time) / 86400
     summary[:daily_average] = @total_days.zero? ? 0 : @total_seconds / @total_days
+    @days_including_holidays = @scope.distinct.count(Arel.sql("DATE(timezone(?, to_timestamp(time)))", @tz))
+    summary[:days_including_holidays] = @days_including_holidays
 
     summary[:human_readable_total] = ApplicationController.helpers.short_time_detailed(@total_seconds)
     summary[:human_readable_daily_average] = ApplicationController.helpers.short_time_detailed(summary[:daily_average])
 
     summary[:languages] = generate_summary_chunk(:language) if @specific_filters.include?(:languages)
     summary[:projects] = generate_summary_chunk(:project) if @specific_filters.include?(:projects)
+    summary[:editors] = generate_summary_chunk(:editor) if @specific_filters.include?(:editors)
+    summary[:machines] = generate_summary_chunk(:machine) if @specific_filters.include?(:machines)
+    summary[:operating_systems] = generate_summary_chunk(:operating_system) if @specific_filters.include?(:operating_systems)
 
     summary
   end
