@@ -42,7 +42,7 @@ class StaticPagesController < ApplicationController
 
         # Process results to get sorted languages and editors
         language_counts = results
-          .map { |r| [ r.language, r.language_count ] }
+          .map { |r| [ r.language&.downcase, r.language_count ] }
           .reject { |lang, _| lang.nil? || lang.empty? }
           .uniq
           .sort_by { |_, count| -count }
