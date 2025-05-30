@@ -138,6 +138,7 @@ Rails.application.routes.draw do
         get "/", to: "hackatime#index" # many clients seem to link this as the user's dashboard
         get "/users/:id/statusbar/today", to: "hackatime#status_bar_today"
         post "/users/:id/heartbeats", to: "hackatime#push_heartbeats"
+        get "/users/current/stats/last_7_days", to: "hackatime#stats_last_7_days"
       end
     end
   end
