@@ -137,11 +137,17 @@
     <%= Sentry.get_trace_propagation_meta.html_safe %>
   </head>
 
-  <body style="display: flex;">
+  <body style="display: flex;" data-controller="nav">
+    <!-- Mobile nav toggle button -->
+    <button class="nav-toggle" data-action="click->nav#toggle">Menu</button>
+    
+    <!-- Mobile nav overlay -->
+    <div class="nav-overlay" data-nav-target="overlay" data-action="click->nav#close"></div>
+    
     <%= render "shared/nav" %>
     
     <!-- 250px is defined in nav.css -->
-    <main style="margin-left: 250px; max-width: calc(100% - 250px); padding: 20px; margin-bottom: 100px;">
+    <main>
       <%= yield %>
       <footer>
         <div class="container">

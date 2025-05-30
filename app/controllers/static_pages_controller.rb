@@ -208,7 +208,7 @@ class StaticPagesController < ApplicationController
   end
 
   def set_homepage_seo_content
-    @page_title = "Hackatime - Free Coding Time Tracker | Track Your Programming Time"
+    @page_title = "Hackatime - Free Coding Time Tracker"
     @meta_description = "Track your coding time easily with Hackatime. See how long you spend programming in different languages. Free alternative to WakaTime. Join thousands of high schoolers!"
     @meta_keywords = "coding time tracker, programming stats, wakatime alternative, free time tracking, code statistics, high school programming, coding analytics"
     @og_title = "Hackatime - Free Coding Time Tracker"
