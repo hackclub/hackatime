@@ -40,5 +40,11 @@ module Harbor
     end
 
     config.active_job.queue_adapter = :good_job
+
+    config.session_store :cookie_store,
+      key: "_harbor_session",
+      expire_after: 30.days,
+      secure: Rails.env.production?,
+      httponly: true
   end
 end
