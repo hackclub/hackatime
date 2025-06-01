@@ -168,12 +168,18 @@
       </footer>
     </main>
 
-    <div class="currently-hacking-container" data-controller="currently-hacking" data-currently-hacking-target="container">
+    <div class="currently-hacking-container" 
+         data-controller="currently-hacking" 
+         data-currently-hacking-target="container"
+         data-currently-hacking-url-value="<%= currently_hacking_static_pages_path %>"
+         data-currently-hacking-interval-value="60000">
       <div class="currently-hacking">
         <div class="currently-hacking-header">
           <span>
             <div class="live-indicator"></div>
-            <%= pluralize(Cache::CurrentlyHackingJob.perform_now[:users].count, "person") %> currently hacking
+            <span data-currently-hacking-target="count">
+              <%= pluralize(Cache::CurrentlyHackingJob.perform_now[:users].count, "person") %> currently hacking
+            </span>
           </span>
         </div>
       </div>
