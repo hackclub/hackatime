@@ -144,12 +144,12 @@ class StaticPagesController < ApplicationController
       format.html { render partial: "currently_hacking", locals: locals }
       format.json do
         json_response = { count: locals[:users].count }
-        
+
         # Only include HTML if explicitly requested (when list is visible)
-        if params[:include_list] == 'true'
+        if params[:include_list] == "true"
           json_response[:html] = render_to_string(partial: "currently_hacking", locals: locals, formats: [ :html ])
         end
-        
+
         render json: json_response
       end
     end
