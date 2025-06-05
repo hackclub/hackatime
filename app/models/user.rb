@@ -211,9 +211,12 @@ class User < ApplicationRecord
     return if status_present && status_custom
 
     current_project = heartbeats.order(time: :desc).first&.project
-    current_project_heartbeats = heartbeats.today.where(project: current_project)
-    current_project_duration = Heartbeat.duration_seconds(current_project_heartbeats)
-    current_project_duration_formatted = Heartbeat.duration_simple(current_project_heartbeats)
+    Time.use_zone(timezone) do
+      current_project_duration = heartbeats.where(project: current_project)
+                                           .today
+                                           .duration_seconds
+    end
+    current_project_duration_formatted = ApplicationController.helpers.short_time_simple(current_project_duration)
 
     # for 0 duration, don't set a status – this will let status expire when the user has not been cooking today
     return if current_project_duration.zero?
