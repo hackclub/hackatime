@@ -27,6 +27,7 @@ services:
       - POSTGRES_DB=app_development
     ports:
       - "5432:5432"
+    hostname: db
 
 volumes:
   harbor_postgres_data:
