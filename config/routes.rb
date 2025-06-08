@@ -141,6 +141,10 @@ Rails.application.routes.draw do
         get "/users/current/stats/last_7_days", to: "hackatime#stats_last_7_days"
       end
     end
+
+    namespace :internal do
+      post "/can_i_have_a_magic_link_for/:id", to: "magic_links#create"
+    end
   end
 
   resources :scrapyard_leaderboards, only: [ :index, :show ]
