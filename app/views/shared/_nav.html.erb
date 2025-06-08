@@ -94,5 +94,10 @@
         GoodJob
       <% end %>
     <% end %>
+    <% admin_tool(nil, "li") do %>
+      <%= link_to oauth_applications_path, class: "nav-item #{current_page?(oauth_applications_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+        OAuth2 apps
+      <% end %>
+    <% end %>
   </ul>
 </aside>
