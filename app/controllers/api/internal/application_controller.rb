@@ -9,7 +9,7 @@ module Api
 
       def authenticate!
         res = authenticate_with_http_token do |token, _|
-          ENV["INTERNAL_API_KEYS"]&.split(', ')&.include?(token)
+          ENV["INTERNAL_API_KEYS"]&.split(",")&.include?(token)
         end
         unless res
           redirect_to "https://www.youtube.com/watch?v=dQw4w9WgXcQ", allow_other_host: true
