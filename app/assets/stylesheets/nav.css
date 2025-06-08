@@ -23,6 +23,7 @@ aside.nav {
   transform: translateX(0);
   transition: transform 0.3s ease;
   z-index: 1000;
+  overflow: scroll;
 }
 
 .nav > ul {
