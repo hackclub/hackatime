@@ -3,7 +3,7 @@ module Api
     module Authenticated
       class MeController < ApplicationController
         def index
-          return render json: {
+          render json: {
             emails: current_user.email_addresses&.map(&:email)|| [],
             slack_id: current_user.slack_uid
           }

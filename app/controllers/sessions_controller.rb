@@ -145,7 +145,7 @@ class SessionsController < ApplicationController
     if valid_token
       valid_token.mark_used!
       session[:user_id] = valid_token.user_id
-      
+
       if valid_token.continue_param.present?
         redirect_to valid_token.continue_param, notice: "Successfully signed in!"
       else
