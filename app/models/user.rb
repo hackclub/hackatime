@@ -257,10 +257,11 @@ class User < ApplicationRecord
       })
   end
 
-  def self.authorize_url(redirect_uri, close_window: false)
+  def self.authorize_url(redirect_uri, close_window: false, continue_param: nil)
     state = {
       token: SecureRandom.hex(24),
-      close_window: close_window
+      close_window: close_window,
+      continue: continue_param
     }.to_json
 
     params = {
@@ -405,8 +406,8 @@ class User < ApplicationRecord
     heartbeats.where(source_type: :direct_entry).order(time: :desc).first
   end
 
-  def create_email_signin_token
-    sign_in_tokens.create!(auth_type: :email)
+  def create_email_signin_token(continue_param: nil)
+    sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
   end
 
   def find_valid_token(token)

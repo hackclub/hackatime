@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_08_195535) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_08_205244) do
   create_schema "pganalyze"
 
   # These are extensions that must be enabled in order to support this database
@@ -443,6 +443,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_08_195535) do
     t.datetime "used_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "continue_param"
     t.index ["token"], name: "index_sign_in_tokens_on_token"
     t.index ["user_id"], name: "index_sign_in_tokens_on_user_id"
   end

@@ -76,6 +76,11 @@ class StaticPagesController < ApplicationController
     end
   end
 
+  def minimal_login
+    @continue_param = params[:continue] if params[:continue].present?
+    render :minimal_login, layout: "doorkeeper/application"
+  end
+
   def mini_leaderboard
     @leaderboard = Leaderboard.where.associated(:entries)
                               .where(start_date: Date.current)

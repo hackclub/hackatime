@@ -8,6 +8,8 @@ class AdminConstraint
 end
 
 Rails.application.routes.draw do
+  use_doorkeeper
+
   constraints AdminConstraint do
     mount GoodJob::Engine => "good_job"
     mount AhoyCaptain::Engine => "/ahoy_captain"
@@ -55,6 +57,8 @@ Rails.application.routes.draw do
       # get :timeline # Removed: Old route for timeline
     end
   end
+
+  get "/minimal_login", to: "static_pages#minimal_login", as: :minimal_login
 
   # Auth routes
   get "/auth/slack", to: "sessions#new", as: :slack_auth
@@ -126,6 +130,10 @@ Rails.application.routes.draw do
       namespace :my do
         get "heartbeats/most_recent", to: "heartbeats#most_recent"
         get "heartbeats", to: "heartbeats#index"
+      end
+
+      namespace :authenticated do
+        resources :me, only: [ :index ]
       end
     end
 

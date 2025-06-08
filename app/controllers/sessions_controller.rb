@@ -2,7 +2,7 @@ class SessionsController < ApplicationController
   def new
     redirect_uri = url_for(action: :create, only_path: false)
     Rails.logger.info "Starting Slack OAuth flow with redirect URI: #{redirect_uri}"
-    redirect_to User.authorize_url(redirect_uri, close_window: params[:close_window].present?),
+    redirect_to User.authorize_url(redirect_uri, close_window: params[:close_window].present?, continue_param: params[:continue]),
                 host: "https://slack.com",
                 allow_other_host: "https://slack.com"
   end
@@ -30,6 +30,8 @@ class SessionsController < ApplicationController
       state = JSON.parse(params[:state]) rescue {}
       if state["close_window"]
         redirect_to close_window_path
+      elsif state["continue"]
+        redirect_to state["continue"], notice: "Successfully signed in with Slack!"
       else
         redirect_to root_path, notice: "Successfully signed in with Slack!"
       end
@@ -82,11 +84,12 @@ class SessionsController < ApplicationController
 
   def email
     email = params[:email].downcase
+    continue_param = params[:continue]
 
     if Rails.env.production?
-      HandleEmailSigninJob.perform_later(email)
+      HandleEmailSigninJob.perform_later(email, continue_param)
     else
-      HandleEmailSigninJob.perform_now(email)
+      HandleEmailSigninJob.perform_now(email, continue_param)
     end
 
     redirect_to root_path(sign_in_email: true), notice: "Check your email for a sign-in link!"
@@ -142,7 +145,12 @@ class SessionsController < ApplicationController
     if valid_token
       valid_token.mark_used!
       session[:user_id] = valid_token.user_id
-      redirect_to root_path, notice: "Successfully signed in!"
+      
+      if valid_token.continue_param.present?
+        redirect_to valid_token.continue_param, notice: "Successfully signed in!"
+      else
+        redirect_to root_path, notice: "Successfully signed in!"
+      end
     else
       redirect_to root_path, alert: "Invalid or expired link"
     end
