@@ -86,7 +86,7 @@
         
         <% @project_durations.each do |project, duration| %>
           <div class="bar-row">
-            <div class="bar-label"><%= project %></div>
+            <div class="bar-label"><%= (project.presence || "Unknown") %></div>
             <div class="bar-container">
               <div class="bar" style="width: <%= log_scale(duration, max_duration) %>%">
                 <span class="bar-value"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
