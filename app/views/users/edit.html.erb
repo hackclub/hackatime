@@ -305,10 +305,13 @@
     <article>
       <header>
         <h2 id="user_migration_assistant">🚚 Migration Assistant</h2>
-        <p>This will migrate your heartbeats from waka.hackclub.com to this platform.</p>
+        <p>This will migrate your heartbeats from other services to this platform.</p>
       </header>
       
       <%= button_to "Migrate heartbeats", my_settings_migrate_heartbeats_path, method: :post, role: "button" %>
+      <% if WakatimeMirror.find_by(endpoint_url: "https://wakatime.com/api/v1", user_id: @user.id)&.encrypted_api_key %>
+        <%= button_to "Migrate wakatime.com", my_settings_migrate_wakatimecom_heartbeats_path, method: :post, role: "button" %>
+      <% end %>
       
       <% if @heartbeats_migration_jobs.any? %>
         <section>

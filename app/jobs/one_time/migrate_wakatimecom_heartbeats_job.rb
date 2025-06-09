@@ -14,6 +14,7 @@ class OneTime::MigrateWakatimecomHeartbeatsJob < ApplicationJob
 
   def perform(user_id)
     @user = User.find(user_id)
+    @api_key = WakatimeMirror.find_by(endpoint_url: "https://wakatime.com/api/v1", user_id: @user.id)&.encrypted_api_key
     import_heartbeats
   end
 
@@ -41,7 +42,11 @@ class OneTime::MigrateWakatimecomHeartbeatsJob < ApplicationJob
     machines = get_machines
     agents = get_agents
 
-    existing_hashes = Set.new(Heartbeat.where(user_id: @user.id).pluck(:fields_hash))
+    existing_heartbeats = Heartbeat.where(user_id: @user.id)
+      .select(:entity, :type, :project, :branch, :language, :time)
+      .map { |h| generate_dedup_key(h.entity, h.type, h.project, h.branch, h.language, h.time) }
+      .to_set
+    
     # this could explode, let's see how it ends up.
     parsed_json = JSON.parse(File.read(output_path))
     parsed_json = parsed_json["days"].select { |day| day["heartbeats"].any? }
@@ -74,9 +79,10 @@ class OneTime::MigrateWakatimecomHeartbeatsJob < ApplicationJob
           source_type: 3 # wakatimecom_import
         }
 
-        
         attrs[:fields_hash] = Heartbeat.generate_fields_hash(attrs)
-        if existing_hashes.include?(attrs[:fields_hash])
+        
+        dedup_key = generate_dedup_key(attrs[:entity], attrs[:type], attrs[:project], attrs[:branch], attrs[:language], attrs[:time])
+        if existing_heartbeats.include?(dedup_key)
           next
         end
         
@@ -221,7 +227,7 @@ class OneTime::MigrateWakatimecomHeartbeatsJob < ApplicationJob
     File.exist?(output_path)
   end
 
-  def heartbeat_exists?(fields_hash)
-    Heartbeat.exists?(fields_hash: fields_hash)
+  def generate_dedup_key(entity, type, project, branch, language, time)
+    "#{entity}-#{type}-#{project}-#{branch}-#{language}-#{time}"
   end
 end
