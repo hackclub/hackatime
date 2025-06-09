@@ -6,17 +6,41 @@
     <% project_durations.each do |project| %>
       <div class="project-duration-card">
         <div class="project-header">
-          <strong title="<%= project[:project] %>">
-            <%= (project[:project].presence || "Unknown").truncate(12) %>
-          </strong>
-          <% if project[:repo_url].present? %>
-            <%= link_to "🔗", project[:repo_url], target: "_blank" %>
-          <% end %>
-          <% if current_user.github_uid.present? && project[:project].present? %>
-            <%= link_to "✏️", edit_my_project_repo_mapping_path(project_name: project[:project]), class: "edit-repo-link", data: { turbo_frame: '_top'} %>
-          <% end %>
+          <div class="project-name-section">
+            <strong title="<%= project[:project] %>">
+              <%= (project[:project].presence || "Unknown").truncate(15) %>
+            </strong>
+            <% if project[:repository]&.stars.present? %>
+              <span class="project-stars">⭐ <%= project[:repository].stars %></span>
+            <% end %>
+          </div>
+          <div class="project-actions">
+            <% if project[:repository]&.homepage.present? %>
+              <%= link_to "🌐", project[:repository].homepage, target: "_blank", title: "View project website" %>
+            <% end %>
+            <% if project[:repo_url].present? %>
+              <%= link_to "🔗", project[:repo_url], target: "_blank", title: "View repository" %>
+            <% end %>
+            <% if current_user.github_uid.present? && project[:project].present? %>
+              <%= link_to "✏️", edit_my_project_repo_mapping_path(project_name: project[:project]), class: "edit-repo-link", data: { turbo_frame: '_top'}, title: "Edit mapping" %>
+            <% end %>
+          </div>
           <span class="project-time"><%= short_time_detailed project[:duration] %></span>
         </div>
+        
+        <% if project[:repository]&.description.present? %>
+          <div class="project-description">
+            <%= project[:repository].description.truncate(80) %>
+          </div>
+        <% end %>
+        
+        <% if project[:repository]&.formatted_languages.present? %>
+          <div class="project-languages">
+            <span class="languages-label">Languages:</span>
+            <%= project[:repository].formatted_languages %>
+          </div>
+        <% end %>
+        
         <div class="project-progress-bar">
           <div 
             class="progress" 
@@ -24,6 +48,12 @@
                   background-color: var(--primary-color);"
           ></div>
         </div>
+        
+        <% if project[:repository]&.last_commit_at.present? %>
+          <div class="project-meta">
+            Last commit: <%= time_ago_in_words(project[:repository].last_commit_at) %> ago
+          </div>
+        <% end %>
       </div>
     <% end %>
   </div>

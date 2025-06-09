@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= t('doorkeeper.layouts.application.title') %></title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <%= stylesheet_link_tag :app %>
+  <%= csrf_meta_tags %>
+  <style>
+    input[type="submit"] {
+        max-width: 200px;
+    }
+  </style>
+</head>
+<body>
+<main class="container">
+<div style="margin 0 auto;">
+  <%- if flash[:notice].present? %>
+    <div class="alert alert-info">
+      <%= flash[:notice] %>
+    </div>
+  <% end -%>
+
+  <%= yield %>
+</div>
+</main>
+</body>
+</html>

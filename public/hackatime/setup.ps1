@@ -6,6 +6,7 @@ try {
 [settings]
 api_url = $env:HACKATIME_API_URL
 api_key = $env:HACKATIME_API_KEY
+heartbeat_rate_limit_seconds = 30
 "@ | Out-File -FilePath $configPath -Force -Encoding utf8
     
     Write-Host "Config file created at $configPath"
@@ -15,6 +16,7 @@ api_key = $env:HACKATIME_API_KEY
         $config = Get-Content $configPath
         $apiUrl = ($config | Select-String "api_url").ToString().Split('=')[1].Trim()
         $apiKey = ($config | Select-String "api_key").ToString().Split('=')[1].Trim()
+        $heartbeatRate = ($config | Select-String "heartbeat_rate_limit_seconds").ToString().Split('=')[1].Trim()
         
         # Display verification info
         Write-Host "API URL: $apiUrl"

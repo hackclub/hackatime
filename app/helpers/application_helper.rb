@@ -15,6 +15,20 @@ module ApplicationHelper
     concat content_tag(element, class: "dev-tool #{class_name}", **options, &block)
   end
 
+  def country_to_emoji(country_code)
+    # Hack to turn country code into the country's flag
+    # https://stackoverflow.com/a/50859942
+    country_code.tr("A-Z", "\u{1F1E6}-\u{1F1FF}")
+  end
+
+  # infer country from timezone
+  def timezone_to_country(timezone)
+    return null unless timezone.present?
+    tz = ActiveSupport::TimeZone[timezone]
+    return null unless tz && tz.tzinfo.respond_to?(:country_code)
+    tz.tzinfo.country_code || null
+  end
+
   def timezone_difference_in_seconds(timezone1, timezone2)
     return 0 if timezone1 == timezone2
 
@@ -94,5 +108,15 @@ module ApplicationHelper
         "🕚", "🕦"
     ]
     clocks[half_hours % clocks.length]
+  end
+
+  def human_interval_name(key, from: nil, to: nil)
+    if key.present? && Heartbeat.respond_to?(:humanize_range) && Heartbeat::RANGES.key?(key.to_sym)
+      Heartbeat.humanize_range(Heartbeat::RANGES[key.to_sym][:calculate].call)
+    elsif from.present? && to.present?
+      "#{from} to #{to}"
+    else
+      "All Time"
+    end
   end
 end

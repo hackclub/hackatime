@@ -1,0 +1,379 @@
+<%# app/views/admin/timeline/show.html.erb %>
+<%# Instance variables: @users_with_timeline_data, @primary_user, @date, @next_date, @prev_date %>
+
+<%
+  primary_user_tz = @primary_user&.timezone || (current_user&.timezone || 'UTC')
+
+  timeline_start_hour = 0
+  timeline_end_hour = 23
+
+  user_colors = ['#7C3AED', '#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#DB2777', '#6D28D9']
+
+  users_data_array = Array(@users_with_timeline_data)
+  num_users = users_data_array.count
+  num_users = 1 if num_users == 0 # Ensure num_users is at least 1 for calculations
+
+  # Fixed REM values for layout (assuming 1rem = 16px for px calculations)
+  line_left_rem = 4.0
+  line_right_rem = 0.5
+  activity_col_area_start_rem = line_left_rem # Header spacer aligns with hour labels
+  activity_col_area_end_rem = line_right_rem   # Header spacer aligns with right padding of grid
+
+  gutter_rem = 0.25
+  pixels_per_hour = 128 # Controls vertical scale
+  pixels_per_minute = pixels_per_hour / 60.0
+
+  min_column_width_px = 186 # Minimum width for each user column
+  gutter_px = gutter_rem * 16 # Gutter in pixels
+
+  # Calculate the total minimum width required for all user columns + gutters + fixed label/padding areas
+  # This width will be applied to the admin-timeline-content-sizer div
+  user_columns_total_min_width_px = (num_users * min_column_width_px)
+  gutters_total_width_px = (num_users > 1 ? (num_users - 1) * gutter_px : 0)
+  
+  # Total min width for the content that scrolls (headers part)
+  min_header_content_width_px = user_columns_total_min_width_px + gutters_total_width_px
+  
+  # Total min width for the grid content part (timeline-grid-scroll-container's content)
+  # This area includes the hour labels on the left, then the user activity columns, then right padding
+  min_grid_content_width_px = (line_left_rem * 16) + min_header_content_width_px + (line_right_rem * 16)
+
+  # The sizer div needs to be at least as wide as the widest of its direct children (header row or grid row)
+  # The header row's actual content part (user headers) spans min_header_content_width_px.
+  # Add fixed spacers for the header:
+  total_min_scroll_width_px = (activity_col_area_start_rem * 16) + min_header_content_width_px + (activity_col_area_end_rem * 16)
+
+  # Current admin user and selected users for Stimulus
+  current_admin_user = {
+    id: current_user.id,
+    display_name: current_user.display_name,
+    avatar_url: current_user.avatar_url
+  }
+  current_admin_user_json = current_admin_user.to_json
+
+  initial_selected_users_json = @initial_selected_user_objects.to_json
+  current_date_for_form = @date.to_s
+%>
+
+<div style="background-color: #1F2937; color: #FFFFFF; padding: 1rem; border-radius: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; display: flex; flex-direction: column; height: calc(100vh - 8rem);">
+  
+  <!-- User Selector UI -->
+  <div 
+    data-controller="admin-timeline-user-selector"
+    data-admin-timeline-user-selector-current-user-json-value='<%= current_admin_user_json %>'
+    data-admin-timeline-user-selector-initial-selected-users-json-value='<%= initial_selected_users_json %>'
+    data-admin-timeline-user-selector-search-url-value="<%= admin_timeline_search_users_path %>"
+    data-admin-timeline-user-selector-leaderboard-users-url-value="<%= admin_timeline_leaderboard_users_path %>"
+    style="margin-bottom: 1rem; padding: 0.75rem; background-color: #2D3748; border-radius: 0.375rem; flex-shrink: 0;"
+    class="user-selector-compact"
+  >
+    <form id="timeline-filter-form" action="<%= admin_timeline_path %>" method="get" data-turbo-frame="_top">
+      <input type="hidden" name="user_ids" data-admin-timeline-user-selector-target="userIdsInput">
+      <input type="hidden" name="date" value="<%= current_date_for_form %>" data-admin-timeline-user-selector-target="dateInput">
+      
+      <div class="grid">
+        <div style="grid-column: span 7;">
+          <label for="user-search-input" class="visually-hidden">Add User</label>
+          <div style="position: relative;">
+            <input type="text"
+                  id="user-search-input"
+                  placeholder="Add user by name/email..."
+                  data-admin-timeline-user-selector-target="searchInput"
+                  data-action="input->admin-timeline-user-selector#debouncedSearch keydown->admin-timeline-user-selector#handleKeydown focus->admin-timeline-user-selector#search blur->admin-timeline-user-selector#hideResultsDelayed"
+                  autocomplete="off"
+                  style="font-size: 0.875rem; padding: 0.35rem 0.5rem; margin-bottom: 0; width: 100%;">
+            <ul class="list-group position-absolute w-100" 
+                data-admin-timeline-user-selector-target="searchResults"
+                style="z-index: 1050; max-height: 200px; overflow-y: auto; list-style-type: none; padding-left: 0; margin-top: 0; width: 100%; background-color: #1A202C; border: 1px solid #4A5568; border-top: none; border-radius: 0 0 0.25rem 0.25rem; display: none;">
+              <%# Search results will appear here %>
+            </ul>
+          </div>
+        </div>
+
+        <div style="grid-column: span 5; display: flex; align-items: flex-end; justify-content: flex-end; gap: 0.5rem;">
+          <div class="btn-group" role="group" style="display:contents;">
+            <button type="button" class="secondary outline" data-action="admin-timeline-user-selector#applyPreset" data-period="today" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; margin-bottom: 0;">Top Today</button>
+            <button type="button" class="secondary outline" data-action="admin-timeline-user-selector#applyPreset" data-period="last_7_days" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; margin-bottom: 0;">Top 7 Days</button>
+          </div>
+           <button type="submit" class="primary" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; margin-bottom: 0;">View</button>
+        </div>
+      </div>
+      
+      <div class="mt-2" data-admin-timeline-user-selector-target="selectedUsersContainer" style="margin-top: 0.5rem; min-height: 28px;">
+        <%# Selected user pills will appear here %>
+      </div>
+    </form>
+  </div>
+
+  <!-- Date Navigation (remains the same) -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-shrink: 0;">
+    <div style="font-size: 1.125rem; line-height: 1.75rem; font-weight: 600;">
+      <%= @date.in_time_zone(primary_user_tz).strftime("%A, %B %-d, %Y") %>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <%= link_to "← Prev", admin_timeline_path(date: @prev_date.to_s), class: "button button-outline", data: { "date-nav-link": "true" } %>
+      <%= link_to "Today", admin_timeline_path(date: Time.current.to_date.to_s), class: "button button-outline", data: { "date-nav-link": "true" } %>
+      <%= link_to "Next →", admin_timeline_path(date: @next_date.to_s), class: "button button-outline", data: { "date-nav-link": "true" } %>
+    </div>
+  </div>
+
+  <!-- Horizontal Scroll Wrapper -->
+  <div class="admin-timeline-view-wrapper">
+    <!-- Inner Content Sizer: This div gets the calculated min-width -->
+    <div class="admin-timeline-content-sizer" style="min-width: <%= total_min_scroll_width_px %>px;">
+      
+      <!-- User Headers Section (Sticky) - Using position: absolute for exact alignment -->
+      <% if users_data_array.any? %>
+        <div class="admin-timeline-sticky-header" style="padding-left: 0; padding-right: 0;">
+          <div style="position: relative; width: 100%; height: 5rem;">
+            <% users_data_array.each_with_index do |data, index| %>
+              <% user = data[:user] %>
+              <% total_coded_time_seconds = data[:total_coded_time] %>
+              <% 
+                # Calculate the base offset for this column (without the hour label padding)
+                # This ensures evenly spaced columns considering gutters
+                base_offset_px = index * min_column_width_px + (index > 0 ? index * gutter_px : 0)
+                
+                # Add the hour label padding to get the absolute left position - EXACT SAME CALCULATION AS SPANS
+                header_left_px = (line_left_rem * 16) + base_offset_px
+              %>
+              <div class="admin-timeline-user-header-cell" 
+                   style="width: <%= min_column_width_px %>px; position: absolute; left: <%= header_left_px %>px;"
+                   title="User ID: <%= user.id %> - <%= user.respond_to?(:username) && user.username.present? ? user.username : user.email_addresses.first&.email %> | Total Coded: <%= total_coded_time_seconds && total_coded_time_seconds > 0 ? short_time_detailed(total_coded_time_seconds) : '0m' %> | TZ: <%= user.timezone %>">
+                <%= render "shared/user_mention", user: user, show: [:github_profile_link] %>
+                <% if current_user && user != current_user && user.slack_uid.present? %>
+                  <div style="margin-top: 0.25rem;">
+                    <%= link_to "💬 DM", "slack://user?team=T0266FRGM&id=#{user.slack_uid}", target: "_blank", style: "font-size: 0.7rem; color: #9CA3AF; text-decoration: underline;" %>
+                  </div>
+                <% end %>
+                <% if total_coded_time_seconds && total_coded_time_seconds > 0 %>
+                  <div style="font-size: 0.7rem; color: #cbd5e0; margin-top: 0.1rem; line-height: 1;">
+                    <%= short_time_simple(total_coded_time_seconds) %> coded
+                  </div>
+                <% else %>
+                  <div style="font-size: 0.7rem; color: #718096; margin-top: 0.1rem; line-height: 1;">
+                    No time coded
+                  </div>
+                <% end %>
+                <div style="font-size: 0.75rem; color: #9CA3AF; margin-top: 0.125rem; line-height: 1.1;"><%= user.timezone %></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Timeline Grid and Spans Section -->
+      <div id="timeline-grid-scroll-container" style="overflow: hidden;">
+        <%# Hour markers and lines (background grid) %>
+        <% (timeline_start_hour..timeline_end_hour).each do |hour| %>
+          <div class="admin-timeline-hour-row" style="height: <%= pixels_per_hour %>px;">
+            <div class="admin-timeline-hour-label-container" style="width: <%= line_left_rem %>rem;">
+              <%= Time.utc(2000,1,1, hour).strftime("%-l:00 %p") %>
+            </div>
+            <div class="admin-timeline-hour-gridline-container">
+              <%# The actual line is styled to span the container using absolute positioning from CSS %>
+              <div class="admin-timeline-hour-gridline" style="left:0; right: <%= line_right_rem %>rem;"></div>
+            </div>
+          </div>
+        <% end %>
+
+        <%# Current Time Line Indicator %>
+        <%
+          current_time_in_zone = Time.current.in_time_zone(primary_user_tz)
+          is_today = @date == Time.current.in_time_zone(primary_user_tz).to_date
+          show_current_time_line = is_today && current_time_in_zone.hour >= timeline_start_hour && current_time_in_zone.hour < (timeline_end_hour + 1)
+
+          if show_current_time_line
+            minutes_from_timeline_display_start_for_now = (current_time_in_zone.hour - timeline_start_hour) * 60 + current_time_in_zone.min
+            current_time_line_top_px = (minutes_from_timeline_display_start_for_now * pixels_per_minute)
+          end
+        %>
+        <% if show_current_time_line %>
+          <div class="admin-timeline-now-marker" style="left: <%= line_left_rem %>rem; right: <%= line_right_rem %>rem; top: <%= current_time_line_top_px %>px;">
+            <div class="admin-timeline-now-marker-text">NOW</div>
+          </div>
+        <% end %>
+
+        <%# Logic for calculating span properties (remains mostly the same) %>
+        <%
+          calculate_span_properties = lambda do |span_data, span_user_tz|
+            return nil unless span_data && span_data[:start_time] && span_data[:duration]
+            start_time_in_zone = Time.at(span_data[:start_time]).in_time_zone(span_user_tz)
+            end_time_value = span_data[:end_time] || (span_data[:start_time] + span_data[:duration])
+            end_time_in_zone = Time.at(end_time_value).in_time_zone(span_user_tz)
+            today_start_of_day_for_span_user = @date.in_time_zone(span_user_tz).beginning_of_day
+            view_start_datetime = today_start_of_day_for_span_user.advance(hours: timeline_start_hour)
+            view_end_datetime = today_start_of_day_for_span_user.advance(hours: timeline_end_hour + 1)
+            effective_start_time = [start_time_in_zone, view_start_datetime].max
+            effective_end_time = [end_time_in_zone, view_end_datetime].min
+            return nil if effective_start_time >= effective_end_time
+            minutes_from_view_start = ((effective_start_time - view_start_datetime) / 60.0).to_f
+            duration_seconds_in_view = effective_end_time - effective_start_time
+            height_px = (duration_seconds_in_view / 60.0) * pixels_per_minute
+            return nil if height_px <= 0.5
+            final_top_px = (minutes_from_view_start * pixels_per_minute).round
+            title_parts = []
+            title_parts << "Languages: #{span_data[:languages].join(', ')}" if span_data[:languages]&.any?
+            project_title_segments = (span_data[:projects_edited_details] || []).map do |proj_detail|
+              "#{proj_detail[:name]}#{proj_detail[:repo_url] ? ' (GitHub)' : ' (No Repo)'}"
+            end
+            title_parts << "Projects: #{project_title_segments.join('; ')}" if project_title_segments.any?
+            title_parts << "Editors: #{span_data[:editors].join(', ')}" if span_data[:editors]&.any?
+            files_to_show = span_data[:files_edited] || []
+            if files_to_show.any?
+              max_files_in_tooltip = 5
+              files_display_string = files_to_show.take(max_files_in_tooltip).join(', ')
+              files_display_string += ", +#{files_to_show.length - max_files_in_tooltip} more" if files_to_show.length > max_files_in_tooltip
+              title_parts << "Files: #{files_display_string}"
+            end
+            title_parts << "Duration: #{Time.at(span_data[:duration]).utc.strftime('%Hh %Mm %Ss')}"
+            title_parts << "Time: #{start_time_in_zone.strftime("%-l:%M %p")} - #{end_time_in_zone.strftime("%-l:%M %p")}"
+            new_title_for_span = title_parts.join("\n")
+            {
+              final_top_px: final_top_px.round(2),
+              height_px: height_px.round(2),
+              title: new_title_for_span,
+              projects_to_display: span_data[:projects_edited_details] || [],
+              display_text_line2: span_data[:languages]&.any? ? span_data[:languages].join(", ") : "-",
+              display_text_line3: "#{start_time_in_zone.strftime("%-l:%M %p")} - #{end_time_in_zone.strftime("%-l:%M %p")}",
+            }
+          end
+        %>
+
+        <%# Activity Spans %>
+        <% users_data_array.each_with_index do |data, index| %>
+          <%
+            user = data[:user]
+            user_spans = data[:spans]
+            block_color = user_colors[index % user_colors.length]
+            
+            # Calculate the base offset for this column (without the hour label padding)
+            # This ensures evenly spaced columns considering gutters
+            base_offset_px = index * min_column_width_px + (index > 0 ? index * gutter_px : 0)
+            
+            # Add the hour label padding to get the absolute left position
+            current_span_column_left_px = (line_left_rem * 16) + base_offset_px
+          %>
+          <% Array(user_spans).each do |span_data| %>
+            <% props = calculate_span_properties.call(span_data, user.timezone || primary_user_tz) %>
+            <% next unless props %>
+            <div class="admin-timeline-span-item"
+                 style="--span-color: <%= block_color %>;
+                        background-color: var(--span-color);
+                        left: <%= current_span_column_left_px %>px;
+                        width: <%= min_column_width_px %>px;
+                        top: <%= props[:final_top_px] %>px;
+                        height: <%= props[:height_px] %>px;"
+                 title="<%= props[:title] %>">
+              <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <% if props[:projects_to_display]&.any? %>
+                  <% props[:projects_to_display].each_with_index do |project_detail, p_idx| %>
+                    <% if project_detail[:repo_url].present? %>
+                      <a href="<%= project_detail[:repo_url] %>" target="_blank" rel="noopener noreferrer" title="Open <%= project_detail[:name] %> on GitHub"><%= project_detail[:name].truncate(20) %></a>
+                    <% else %>
+                      <span title="<%= project_detail[:name] %> - No GitHub Repo Mapped"><%= project_detail[:name].truncate(20) %> 🚫</span>
+                    <% end %>
+                    <% if p_idx < props[:projects_to_display].length - 1 && props[:height_px] > 20 %>
+                      <%= " / " %>
+                    <% end %>
+                  <% end %>
+                <% else %>
+                  <span>Coding Activity</span>
+                <% end %>
+              </div>
+              <div style="font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <%= props[:display_text_line2] %>
+              </div>
+              <div style="font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #E5E7EB;">
+                <%= props[:display_text_line3] %>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+
+        <% @timeline_commit_markers.each do |commit| %>
+          <% user_index = users_data_array.find_index { |data| data[:user].id == commit[:user_id] } %>
+          <% next unless user_index %>
+          <% user = users_data_array[user_index][:user] %>
+          <% user_tz = user&.timezone || primary_user_tz %>
+          <% today_start_of_day_for_user = @date.in_time_zone(user_tz).beginning_of_day %>
+          <% view_start_datetime = today_start_of_day_for_user.advance(hours: timeline_start_hour) %>
+          <% base_offset_px = user_index * min_column_width_px + (user_index > 0 ? user_index * gutter_px : 0) %>
+          <% pill_left_px = (line_left_rem * 16) + base_offset_px + min_column_width_px - 60 %> <!-- right align, adjust as needed -->
+          <% commit_minutes_from_view_start = ((Time.at(commit[:timestamp]).in_time_zone(user_tz) - view_start_datetime) / 60.0).to_f %>
+          <% commit_top_px = (commit_minutes_from_view_start * pixels_per_minute).round %>
+          <a href="<%= commit[:github_url] %>" target="_blank" rel="noopener noreferrer"
+             title="<%= commit[:message] %>"
+             class="timeline-commit-pill"
+             style="position: absolute;
+                    left: <%= pill_left_px %>px;
+                    top: <%= commit_top_px %>px;
+                    z-index: 20;
+                    background: #222;
+                    color: #fff;
+                    border-radius: 12px;
+                    padding: 0px 7px;
+                    font-size: 0.72em;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    text-decoration: none;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.10);">
+            <span style="<%= commit[:additions].to_i > 0 ? 'color: #22c55e; font-weight: 600;' : '' %>">+<%= commit[:additions] %></span>
+            /
+            <span style="<%= commit[:deletions].to_i > 0 ? 'color: #ef4444; font-weight: 600;' : '' %>">-<%= commit[:deletions] %></span>
+          </a>
+        <% end %>
+      </div> <!-- End #timeline-grid-scroll-container -->
+    </div> <!-- End .admin-timeline-content-sizer -->
+  </div> <!-- End .admin-timeline-view-wrapper -->
+</div> <!-- End Main Page Container --> 
+
+
+
+<% content_for :head do %>
+<style>
+  .user-selector-compact .form-label-sm { font-size: 0.75rem; margin-bottom: 0.25rem; }
+  .user-selector-compact input[type="text"] { font-size: 0.875rem; padding: 0.35rem 0.5rem; margin-bottom: 0; }
+  .user-selector-compact button { font-size: 0.8rem; padding: 0.35rem 0.5rem; margin-bottom: 0; }
+  
+  .user-selector-compact .list-group-item {
+    font-size: 0.875rem;
+    padding: 0.4rem 0.75rem; /* Increased padding for easier clicking */
+    cursor: pointer;
+    background-color: #1A202C; /* Dark background for items */
+    color: #E2E8F0; /* Light text color */
+    border-bottom: 1px solid #2D3748; /* Separator */
+  }
+  .user-selector-compact .list-group.position-absolute {
+    top: 100%; left: 0;
+    border: 1px solid #4A5568; border-top: none;
+    border-radius: 0 0 0.25rem 0.25rem;
+    display: none !important; /* Hidden by default */
+  }
+  .user-selector-compact .list-group.active { 
+    display: block !important; 
+  }
+  .user-selector-compact .list-group-item:hover { background-color: #4A5568; }
+  .user-selector-compact .list-group-item.disabled { color: #A0AEC0; background-color: #2D3748; }
+  
+  .user-selector-compact .avatar-xs { width: 20px; height: 20px; border-radius: 50%; vertical-align: middle; }
+  .user-selector-compact .avatar-xxs { width: 16px; height: 16px; border-radius: 50%; vertical-align: middle; }
+  
+  .user-selector-compact .user-pill {
+    padding: 0.3em 0.6em; font-size: 0.8rem;
+    display: inline-flex; align-items: center;
+    border-radius: var(--pico-border-radius);
+    margin-right: 0.25rem; margin-bottom: 0.25rem; /* Ensure pills wrap nicely */
+  }
+  .user-selector-compact .user-pill .btn-close-custom {
+    background: none; border: none; color: inherit;
+    padding: 0 0.25rem; margin-left: 0.4rem;
+    font-size: 1rem; line-height: 1;
+    cursor: pointer; opacity: 0.7;
+  }
+  .user-selector-compact .user-pill .btn-close-custom:hover { opacity: 1; }
+  .visually-hidden {
+    border: 0; clip: rect(0 0 0 0); height: 1px; margin: -1px;
+    overflow: hidden; padding: 0; position: absolute; width: 1px;
+  }
+</style>
+<% end %> 

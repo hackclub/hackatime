@@ -19,6 +19,7 @@ development:
     url: <%= ENV['DATABASE_URL'] %>
     adapter: postgresql
     encoding: unicode
+    database_tasks: false
   wakatime:
     adapter: postgresql
     encoding: unicode
@@ -41,12 +42,34 @@ development:
 test:
   primary:
     <<: *default
+    adapter: postgresql
     database: test_db
     username: postgres
     password: postgres
     # url: <%= ENV['TEST_DATABASE_URL'] %>
+  primary_direct:
+    adapter: postgresql
+    database: test_db
+    username: postgres
+    password: postgres
+    database_tasks: false
   wakatime:
-    url: <%= ENV['WAKATIME_DATABASE_URL'] %>
+    adapter: postgresql
+    database: test_wakatime
+    username: postgres
+    password: postgres
+    replica: true
+  sailors_log:
+    adapter: postgresql
+    database: test_sailors_log
+    username: postgres
+    password: postgres
+    replica: true
+  warehouse:
+    adapter: postgresql
+    database: test_warehouse
+    username: postgres
+    password: postgres
     replica: true
 
 
@@ -64,6 +87,7 @@ production:
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
     adapter: postgresql
     encoding: unicode
+    database_tasks: false
   wakatime:
     adapter: postgresql
     encoding: unicode

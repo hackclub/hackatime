@@ -35,7 +35,7 @@ module Api
 
       # Format for API response using ISO8601 timestamps and returning extra fields as {} if not provided
       summary = {
-        user_id: user.slack_uid,
+        user_id: params[:user],
         from: Time.parse(wakatime_summary[:start]).iso8601,
         to: Time.parse(wakatime_summary[:end]).iso8601,
         projects: wakatime_summary[:projects] ? wakatime_summary[:projects].map { |item| { key: item[:name].presence || "Other", total: item[:total_seconds] } } : [],

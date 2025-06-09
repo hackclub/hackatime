@@ -2,8 +2,8 @@ class UsersController < ApplicationController
   include ActionView::Helpers::NumberHelper
 
   before_action :set_user
-  before_action :require_current_user
-  before_action :require_admin, unless: :is_own_settings?
+  before_action :require_current_user, except: [ :update_trust_level ]
+  before_action :require_admin, only: [ :update_trust_level ]
 
   def edit
     @can_enable_slack_status = @user.slack_access_token.present? && @user.slack_scopes.include?("users.profile:write")
@@ -14,6 +14,9 @@ class UsersController < ApplicationController
     ).where.not(slack_channel_id: SailorsLog::DEFAULT_CHANNELS)
 
     @heartbeats_migration_jobs = @user.data_migration_jobs
+
+    @projects = @user.project_repo_mappings.distinct.pluck(:project_name)
+    @work_time_stats_url = "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/#{@projects.first || 'example'}"
   end
 
   def update
@@ -21,7 +24,7 @@ class UsersController < ApplicationController
       if @user.uses_slack_status?
         @user.update_slack_status
       end
-      redirect_to is_own_settings? ? my_settings_path : user_settings_path(@user),
+      redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
         notice: "Settings updated successfully"
     else
       flash[:error] = "Failed to update settings"
@@ -30,9 +33,9 @@ class UsersController < ApplicationController
   end
 
   def migrate_heartbeats
-    OneTime::MigrateUserFromHackatimeJob.perform_later(@user.id)
+    MigrateUserFromHackatimeJob.perform_later(@user.id)
 
-    redirect_to is_own_settings? ? my_settings_path : user_settings_path(@user),
+    redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
       notice: "Heartbeats & api keys migration started"
   end
 
@@ -63,6 +66,17 @@ class UsersController < ApplicationController
     ].sample
   end
 
+  def update_trust_level
+    @user = User.find(params[:id])
+    require_admin
+
+    if @user.update(trust_level: params[:trust_level])
+      render json: { status: "success" }
+    else
+      render json: { status: "error", message: @user.errors.full_messages.join(", ") }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   def require_admin
@@ -79,7 +93,7 @@ class UsersController < ApplicationController
 
   def set_user
     @user = if params["id"].present?
-      User.find_by!(slack_uid: params["id"])
+      User.find(params["id"])
     else
       current_user
     end
@@ -88,10 +102,10 @@ class UsersController < ApplicationController
   end
 
   def is_own_settings?
-    @is_own_settings ||= !params["id"].present?
+    @is_own_settings ||= params["id"] == "my" || params["id"]&.blank?
   end
 
   def user_params
-    params.require(:user).permit(:uses_slack_status, :hackatime_extension_text_type, :timezone, :wakatime_api_key)
+    params.require(:user).permit(:uses_slack_status, :hackatime_extension_text_type, :timezone, :wakatime_api_key, :allow_public_stats_lookup)
   end
 end

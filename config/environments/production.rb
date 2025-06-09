@@ -57,6 +57,7 @@ Rails.application.configure do
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_deliveries = true
   config.action_mailer.delivery_method = :smtp
+  config.action_mailer.deliver_later_queue_name = :latency_10s
   config.action_mailer.smtp_settings = {
     # provide fallbacks during build time
     user_name: ENV.fetch("SMTP_USER_NAME", "SMTP_USER_NAME"),

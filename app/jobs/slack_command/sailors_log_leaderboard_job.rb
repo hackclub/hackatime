@@ -1,5 +1,5 @@
 class SlackCommand::SailorsLogLeaderboardJob < ApplicationJob
-  queue_as :default
+  queue_as :latency_10s
   include ApplicationHelper
 
   def perform(slack_uid, channel_id, response_url)

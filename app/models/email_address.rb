@@ -1,9 +1,16 @@
 class EmailAddress < ApplicationRecord
   belongs_to :user
+  has_paper_trail
 
   validates :email, presence: true,
                    uniqueness: true,
                    format: { with: URI::MailTo::EMAIL_REGEXP }
+
+  enum :source, {
+    signing_in: 0,
+    github: 1,
+    slack: 2
+  }, prefix: true
 
   before_validation :downcase_email
 

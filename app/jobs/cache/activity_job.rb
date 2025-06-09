@@ -6,6 +6,10 @@ class Cache::ActivityJob < ApplicationJob
     drop: true
   )
 
+  def self.priority
+    10
+  end
+
   def perform(force_reload: false)
     key = cache_key
     expiration = cache_expiration

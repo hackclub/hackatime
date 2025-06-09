@@ -15,12 +15,16 @@ class LeaderboardsController < ApplicationController
       Date.current
     end
 
-    @leaderboard = Leaderboard.where.not(finished_generating_at: nil)
-                              .find_by(
-                                start_date: start_date,
-                                period_type: @period_type,
-                                deleted_at: nil
-                              )
+    cache_key = "leaderboard_#{@period_type}_#{start_date}"
+    @leaderboard = Rails.cache.fetch(cache_key, expires_in: 1.minute) do
+      Leaderboard.where.not(finished_generating_at: nil)
+                 .find_by(
+                   start_date: start_date,
+                   period_type: @period_type,
+                   deleted_at: nil
+                 )
+      end
+    Rails.cache.delete(cache_key) if @leaderboard.nil?
 
     if @leaderboard.nil?
       LeaderboardUpdateJob.perform_later @period_type

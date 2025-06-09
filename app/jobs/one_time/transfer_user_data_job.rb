@@ -5,17 +5,20 @@ class OneTime::TransferUserDataJob < ApplicationJob
     @source_user_id = source_user_id
     @target_user_id = target_user_id
 
-    transfer_email_addresses
-    transfer_api_keys
-    transfer_heartbeats
-    transfer_slack_data
-    transfer_github_data
+    ActiveRecord::Base.transaction do
+      transfer_email_addresses
+      transfer_api_keys
+      transfer_heartbeats
+      transfer_slack_data
+      transfer_github_data
 
-    target_user.save!
+      source_user.slack_uid = nil if target_user.slack_uid.present?
+      source_user.github_uid = nil if target_user.github_uid.present?
 
-    source_user.slack_uid = nil if target_user.slack_uid.present?
-    source_user.github_uid = nil if target_user.github_uid.present?
-    source_user.save!
+      source_user.save!
+
+      target_user.save!
+    end
   end
 
   private
@@ -25,7 +28,14 @@ class OneTime::TransferUserDataJob < ApplicationJob
   end
 
   def transfer_api_keys
-    ApiKey.where(user_id: @source_user_id).update_all(user_id: @target_user_id)
+    ApiKey.where(user_id: @source_user_id).find_each do |api_key|
+      # If target user already has an API key with this name, append a suffix
+      if target_user.api_keys.exists?(name: api_key.name)
+        api_key.name = "#{api_key.name} (transferred)"
+      end
+      api_key.user_id = @target_user_id
+      api_key.save!
+    end
   end
 
   def transfer_heartbeats

@@ -33,3 +33,37 @@ aside .current-user {
     transform: rotate(360deg);
   }
 }
+
+/* GitHub Profile Link Styling */
+.github-profile-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9CA3AF;
+  text-decoration: none;
+  line-height: 1;
+  background-color: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  padding: 2px 4px;
+  transition: all 0.2s ease;
+  margin-left: 2px;
+}
+
+.github-profile-link:hover {
+  background-color: rgba(255,255,255,0.15);
+  color: #E2E8F0;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.github-profile-link:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* User name and links container */
+.user-name-and-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}

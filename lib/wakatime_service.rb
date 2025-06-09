@@ -75,18 +75,18 @@ class WakatimeService
     # Based on https://github.com/muety/wakapi/blob/b3668085c01dc0724d8330f4d51efd5b5aecaeb2/utils/http.go#L89
 
     # Regex pattern to match wakatime client user agents
-    user_agent_pattern = /wakatime\/[^ ]+ \(([^)]+)\) [^ ]+ ([^\/]+)(?:\/([^\/]+))?/
+    user_agent_pattern = /wakatime\/[^ ]+ \(([^)]+)\)(?: [^ ]+ ([^\/]+)(?:\/([^\/]+))?)?/
 
     if matches = user_agent.match(user_agent_pattern)
       os = matches[1].split("-").first
 
       editor = matches[2]
-      editor ||= matches[3]
+      editor ||= ""
 
       { os: os, editor: editor, err: nil }
     else
       # Try parsing as browser user agent as fallback
-      if browser_ua = user_agent.match(/([^\/]+)\/([^\/]+)/)
+      if browser_ua = user_agent.match(/^([^\/]+)\/([^\/\s]+)/)
         { os: browser_ua[1], editor: browser_ua[2], err: nil }
       else
         { os: "", editor: "", err: "failed to parse user agent string" }

@@ -4,7 +4,7 @@ class SlackNeighborhood
     key = "slack_neighborhood_#{id}"
 
     specific_neighborhood = Rails.cache.fetch(key, expires_in: 10.days) do
-      neighborhood_data = Rails.cache.fetch("slack_neighborhood_list", expires_in: 10.hours) do
+      neighborhood_data = Rails.cache.fetch("slack_neighborhood_list", expires_in: 3.days) do
         response = HTTP.get("https://skksk8sos4g4c0kw4cw0ks80.a.selfhosted.hackclub.com/personal")
         JSON.parse(response.body)
       end

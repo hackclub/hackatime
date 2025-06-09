@@ -1,7 +1,6 @@
 class AttemptProjectRepoMappingJob < ApplicationJob
-  queue_as :default
-
-  include GoodJob::ActiveJobExtensions::Concurrency
+  queue_as :latency_10s
+  include HasEnqueueControl
 
   good_job_control_concurrency_with(
     total_limit: 1,
@@ -15,6 +14,7 @@ class AttemptProjectRepoMappingJob < ApplicationJob
     return unless @user.github_uid.present?
     return unless @user.github_username.present?
     return if @user.project_repo_mappings.exists?(project_name: project_name)
+    return if ProjectRepoMapping::IGNORED_PROJECTS.include?(project_name)
 
     # Search for the project on GitHub
     repo_url = search_for_repo(@user.github_username, project_name)
@@ -66,6 +66,15 @@ class AttemptProjectRepoMappingJob < ApplicationJob
       .get("https://api.github.com/users/#{@user.github_username}/orgs")
 
     Rails.logger.info "GitHub orgs response: #{response.body}"
-    JSON.parse(response.body)
+
+    return [] unless response.status.success?
+
+    parsed_response = JSON.parse(response.body)
+    return [] unless parsed_response.is_a?(Array)
+
+    parsed_response
+  rescue JSON::ParserError => e
+    Rails.logger.error "Failed to parse GitHub orgs response: #{e.message}"
+    []
   end
 end

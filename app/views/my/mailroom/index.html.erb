@@ -1,0 +1,55 @@
+<% content_for :title do %>
+  Mailroom
+<% end %>
+
+<main class="container">
+  <header>
+    <h1>The Mailroom</h1>
+  </header>
+
+  <% if @has_mailing_address %>
+    <section class="mailing-address-status">
+      <p class="super">
+        Your mailing address is set up and ready to receive mail!
+        <%= link_to "View my mailing address", my_mailing_address_path %>
+      </p>
+    </section>
+  <% else %>
+    <section class="mailing-address-status warning">
+      <h2>Mailing Address Required</h2>
+      <p>You need to add your mailing address for your mail to be sent.</p>
+      <%= link_to "Add my address", edit_my_mailing_address_path, class: "button" %>
+    </section>
+  <% end %>
+
+  <section class="physical-mail">
+    <h2>My Mail</h2>
+    <% if @physical_mails.any? %>
+      <div class="mail-list" style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem;">
+        <% @physical_mails.each do |mail| %>
+          <% theseus_link = mail.link_to_theseus %>
+          <div class="mail-card" style="background: #23272f; border-radius: 12px; padding: 1.25rem 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #333; position: relative;">
+            <% if theseus_link %>
+              <a href="<%= theseus_link %>" target="_blank" style="position: absolute; inset: 0; z-index: 1;"></a>
+            <% end %>
+            <div style="position: relative; z-index: 2;">
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 600;">
+                <%= mail.humanized_mission_type %>
+                <% if theseus_link %>
+                  <span style="font-size: 0.9em; margin-left: 0.5em; color: #6cf;">↗</span>
+                <% end %>
+              </h3>
+              <p style="margin: 0.25rem 0; color: #aaa;">Status: <%= mail.status.titleize %></p>
+              <p style="margin: 0.25rem 0; color: #aaa;">Created: <%= mail.created_at.strftime("%B %d, %Y") %></p>
+              <% if theseus_link %>
+                <p style="margin: 0.5rem 0 0 0;"><a href="<%= theseus_link %>" target="_blank" style="color: #6cf; text-decoration: underline;">View on mail.hackclub.com</a></p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p>No mail yet. Keep coding to earn rewards!</p>
+    <% end %>
+  </section>
+</main> 

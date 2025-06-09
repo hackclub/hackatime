@@ -1,0 +1,17 @@
+<div class="mini-leaderboard loading">
+  <p class="super">
+    This leaderboard is in <%= Leaderboard::GLOBAL_TIMEZONE %>.
+    <% if current_user && timezone_difference_in_seconds(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) != 0 %>
+      <%= timezone_difference_in_words(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) %>
+    <% end %>
+  </p>
+  <div class="leaderboard-entries">
+    <% (current_user ? 5 : 3).times do %>
+      <div class="leaderboard-entry">
+        <span class="rank">...</span>
+        <span class="user">Loading...</span>
+        <span class="time">...</span>
+      </div>
+    <% end %>
+  </div>
+</div>

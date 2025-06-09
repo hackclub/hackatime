@@ -11,6 +11,7 @@
 
 @import "https://uchu.style/color.css";
 @import "https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css";
+@import "settings.css";
 
 /* colors */
 
@@ -209,6 +210,11 @@
   animation: flash 1s ease-in-out;
   border: 2px solid var(--uchu-yellow);
   border-radius: 5px;
+}
+
+select {
+  margin: 0.1rem 0;
+  padding: 0.1rem 0.5rem;
 }
 
 @keyframes flash {

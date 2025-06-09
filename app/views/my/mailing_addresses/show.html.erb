@@ -1,0 +1,29 @@
+<% content_for :title do %>
+  My Mailing Address
+<% end %>
+
+<main class="container">
+  <header>
+    <h1>My Mailing Address</h1>
+  </header>
+
+  <% if @user.mailing_address.present? %>
+    <section class="mailing-address">
+      <div class="address-details">
+        <p><%= @user.mailing_address.first_name %> <%= @user.mailing_address.last_name %></p>
+        <p><%= @user.mailing_address.line_1 %></p>
+        <% if @user.mailing_address.line_2.present? %>
+          <p><%= @user.mailing_address.line_2 %></p>
+        <% end %>
+        <p><%= @user.mailing_address.city %>, <%= @user.mailing_address.state %> <%= @user.mailing_address.zip_code %></p>
+        <p><%= @user.mailing_address.country %></p>
+      </div>
+    </section>
+  <% end %>
+
+  <p>
+    <%= link_to @user.mailing_address.present? ? "Update this address" : "Add your address", 
+        edit_my_mailing_address_path, 
+        class: "button" %>
+  </p>
+</main> 

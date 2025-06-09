@@ -2,193 +2,339 @@
   <%= @is_own_settings ? "My Settings" : "Settings | #{@user.username}" %>
 <% end %>
 
+<% content_for :body_class, "settings-page" %>
+
 <main class="container">
-  <header >
+  <header>
     <h1><%= @is_own_settings ? "My Settings" : "Settings for #{@user.username}" %></h1>
     <p>Change your settings for Hackatime and Sailors Log.</p>
   </header>
 
-  <hr>
+  <div class="grid">
 
-  <section>
-    <h2>Time tracking wizard</h2>
-    <%= link_to "Set up time tracking", my_wakatime_setup_path %>
-  </section>
+    <article>
+      <header>
+        <h2>🚀 Time tracking wizard</h2>
+      </header>
+      <p>Get started with tracking your coding time in just a few minutes.</p>
+      <%= link_to "Set up time tracking", my_wakatime_setup_path, role: "button" %>
+    </article>
 
-  <section>
-    <h2 id="user_timezone">Timezone</h2>
-    <%= form_with model: @user,
-      url: @is_own_settings ? my_settings_path : settings_user_path(@user),
-      method: :patch do |f| %>
-      <div class="form-group">
-        <%= f.label :timezone, "Your timezone" %>
-        <%= f.select :timezone,
-            TZInfo::Timezone.all.map(&:identifier).sort,
-            include_blank: @user.timezone.blank?, class: "form-select" %>
+    <article>
+      <header>
+        <h2 id="user_timezone">🌍 Timezone</h2>
+      </header>
+      <%= form_with model: @user,
+        url: @is_own_settings ? my_settings_path : settings_user_path(@user),
+        method: :patch do |f| %>
+        <div class="form-group">
+          <%= f.label :timezone, "Your timezone" %>
+          <%= f.select :timezone,
+              TZInfo::Timezone.all.map(&:identifier).sort,
+              include_blank: @user.timezone.blank?, class: "form-select" %>
+        </div>
         <small>This affects how your activity graph and other time-based features are displayed.</small>
-      </div>
-      <%= f.submit "Save Settings" %>
-    <% end %>
-  </section>
-
-  <hr>
-
-  <section>
-    <h2 id="user_slack_status">Slack status</h2>
-    <p>When you're hacking on a project, Hackatime can update your Slack status so you can show it off!</p>
-    <% unless @can_enable_slack_status %>
-      <%= link_to "Re-authorize with Slack to give permission to update your status", slack_auth_path %>
-    <% end %>
-    <%= form_with model: @user,
-      url: @is_own_settings ? my_settings_path : settings_user_path(@user),
-      method: :patch do |f| %>
-      <fieldset>
-        <label for="user_uses_slack_status">
-          <%= f.check_box :uses_slack_status, id: "user_uses_slack_status" %>
-          <%= f.label :uses_slack_status, "Update my Slack status with my current project" %>
-        </label>
-      </fieldset>
-      <%= f.submit "Save Settings" %>
-    <% end %> 
-  </section>
-
-    <section>
-      <h2 id="user_slack_notifications">Slack notifications</h2>
-    <% if @enabled_sailors_logs.any? %>
-      <p>You have notifications enabled for the following channels:</p>
-      <ul>
-        <% @enabled_sailors_logs.each do |sl| %>
-          <li>
-            <%= render "shared/slack_channel_mention", channel_id: sl.slack_channel_id %>
-          </li>
-        <% end %>
-      </ul>
-    <% else %>
-      <p>You have no notifications enabled.</p>
-    <% end %>
-    <p>
-      You can enable notifications for specific channels by running <code>/sailorslog on</code> in the Slack channel you want to enable notifications for.
-    </p>
-  </section>
-
-  <hr>
-
-  <section>
-    <h2 id="user_github_account">GitHub Account</h2>
-    <p>
-      This is used to show your active projects on the leaderboard &amp; current hacking activity on the dashboard.
-    </p>
-    <% if @user.github_uid.present? %>
-      <p>Your GitHub account is linked. <%= link_to "@#{@user.github_username}", "https://github.com/#{@user.github_username}", target: "_blank" %></p>
-    <% else %>
-      <%= link_to "Link GitHub Account", github_auth_path, data: { turbo: "false" } %>
-    <% end %>
-  </section>
-
-  <section>
-    <h2 id="user_hackatime_extension">Hackatime extension</h2>
-    <%= form_with model: @user,
-      url: @is_own_settings ? my_settings_path : settings_user_path(@user),
-      method: :patch do |f| %>
-      <div class="form-group">
-        <%= f.label "Simple text" %>
-        <%= f.select :hackatime_extension_text_type,
-            User.hackatime_extension_text_types.keys.map { |type| [type.humanize, type] },
-            selected: @user.hackatime_extension_text_type, class: "form-select" %>
-      </div>
-      <%= f.submit "Save Settings" %>
-    <% end %> 
-  </section>
-
-  <section>
-    <h2 id="user_stats_badges">Stats badges</h2>
-    <p>These badges show your stats on your GitHub profile.</p>
-    <select name="theme" id="theme-select" onchange="updateBadgeTheme(this.value)" class="form-select">
-      <% GithubReadmeStats.themes.each do |theme| %>
-        <option value="<%= theme %>"><%= theme.humanize %></option>
+        <%= f.submit "Save Settings", role: "button" %>
       <% end %>
-    </select>
-    <% gh_badge = GithubReadmeStats.new(current_user.id, "darcula") %>
-    <img id="badge-preview" src="<%= gh_badge.generate_badge_url %>" data-url="<%= gh_badge.generate_badge_url %>">
-    <pre id="badge-url"><%= gh_badge.generate_badge_url %></pre>
+    </article>
 
-    <script>
-      function updateBadgeTheme(theme) {
-        const originalUrl = document.getElementById('badge-preview').dataset.url;
-        const [baseUrl, queryString] = originalUrl.split('?');
-        const params = queryString.split('&').map(param => {
-          const [key, value] = param.split('=');
-          return key === 'theme' ? `theme=${theme}` : param;
-        });
-        const newUrl = `${baseUrl}?${params.join('&')}`;
-        document.getElementById('badge-preview').src = newUrl;
-        document.getElementById('badge-url').textContent = newUrl;
-      }
-    </script>
-  </section>
-
-  <hr>
-
-  <section>
-    <h2 id="user_config_file">Config file</h2>
-    <p>
-      <% if current_user.most_recent_direct_entry_heartbeat %>
-        Your last heartbeat was <%= time_ago_in_words current_user.most_recent_direct_entry_heartbeat.created_at %> ago.
-      <% else %>
-        You haven't sent any heartbeats yet directly to this platform.
-      <% end %>
-    </p>
-    <%= render "wakatime_config_display" %>
-    <p>
-      <small>
-        This file is located in <code>~/.wakatime.cfg</code> on your computer.
-        You can configure it with <a href="https://github.com/wakatime/wakatime-cli/blob/develop/USAGE.md#ini-config-file">other settings</a> as well.
-      </small>
-    </p>
-  </section>
-
-  <section>
-    <h2 id="wakatime_api_key">Wakatime.com API key</h2>
-    <%= form_with model: @user,
-      url: @is_own_settings ? my_settings_path : settings_user_path(@user),
-      method: :patch do |f| %>
-      <div class="form-group">
-        <%= f.label :wakatime_api_key, "Your API key" %>
-        <%= f.text_field :wakatime_api_key, value: @user.wakatime_api_key, class: "form-control", type: "password" %>
-        <small>This will be used for the migration of heartbeats.</small>
-      </div>
-      <%= f.submit "Save API Key" %>
-    <% end %>
-  </section>
-
-  <section>
-    <h2 id="user_migration_assistant">Migration assistant</h2>
-    <p>This will migrate your heartbeats from other services to this platform.</p>
-    <%= button_to "Migrate hackatime v1", my_settings_migrate_heartbeats_path, method: :post %>
-    <% if @user.wakatime_api_key.present? %>
-      <%= button_to "Migrate wakatime.com", my_settings_migrate_wakatimecom_heartbeats_path, method: :post %>
-    <% end %>
-    <% if @heartbeats_migration_jobs.any? %>
-      <ul>
-        <% @heartbeats_migration_jobs.each do |job| %>
-          <li>
-            <% if job.finished_at && !job.error %>
-              ✅
-            <% elsif job.finished_at && job.error %>
-              ❌
-            <% else %>
-              ⏳
-            <% end %>
-            Job started at <%= job.created_at.strftime("%Y-%m-%d %H:%M:%S") %>
-            <% if job.finished_at %>
-              (and finished after <%= distance_of_time_in_words(job.finished_at - job.created_at) %>)
-            <% end %>
-            <% admin_tool('', 'span') do %>
-              <%= link_to "View job", GoodJob::Engine.routes.url_helpers.job_path(job.id) %>
-            <% end %>
-          </li>
+    <article>
+      <header>
+        <h2 id="user_slack_status">💬 Slack Integration</h2>
+      </header>
+      
+      <section>
+        <h3>Status Updates</h3>
+        <p>When you're hacking on a project, Hackatime can update your Slack status so you can show it off!</p>
+        <% unless @can_enable_slack_status %>
+          <%= link_to "Re-authorize with Slack to give permission to update your status", slack_auth_path, role: "button", class: "secondary" %>
         <% end %>
-      </ul>
+        <%= form_with model: @user,
+          url: @is_own_settings ? my_settings_path : settings_user_path(@user),
+          method: :patch do |f| %>
+          <fieldset>
+            <label>
+              <%= f.check_box :uses_slack_status, id: "user_uses_slack_status" %>
+              <%= f.label :uses_slack_status, "Update my Slack status with my current project" %>
+            </label>
+          </fieldset>
+          <%= f.submit "Save Settings", role: "button" %>
+        <% end %>
+      </section>
+
+      <section>
+        <h3 id="user_slack_notifications">Channel Notifications</h3>
+        <% if @enabled_sailors_logs.any? %>
+          <p>You have notifications enabled for the following channels:</p>
+          <ul>
+            <% @enabled_sailors_logs.each do |sl| %>
+              <li>
+                <%= render "shared/slack_channel_mention", channel_id: sl.slack_channel_id %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p>You have no notifications enabled.</p>
+        <% end %>
+        <p>
+          You can enable notifications for specific channels by running <code>/sailorslog on</code> in the Slack channel you want to enable notifications for.
+        </p>
+      </section>
+    </article>
+
+    <article>
+      <header>
+        <h2 id="user_github_account">🔗 Connected Accounts</h2>
+      </header>
+      
+      <section>
+        <h3>GitHub Account</h3>
+        <p>This is used to show your active projects on the leaderboard &amp; current hacking activity on the dashboard.</p>
+        <% if @user.github_uid.present? %>
+          <p>✅ Your GitHub account is linked: <%= link_to "@#{@user.github_username}", "https://github.com/#{@user.github_username}", target: "_blank" %></p>
+          <% if @user.github_access_token.present? %>
+            <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, role: "button" %>
+            <%= link_to "Unlink GitHub Account", github_unlink_path, 
+                method: :delete, 
+                data: { confirm: "Are you sure? This will remove access to your GitHub data." }, 
+                role: "button", 
+                class: "outline" %>
+          <% else %>
+            <p>⚠️ Your GitHub token has expired. Please relink your account.</p>
+            <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, role: "button" %>
+          <% end %>
+        <% else %>
+          <%= link_to "Link GitHub Account", github_auth_path, data: { turbo: "false" }, role: "button" %>
+        <% end %>
+      </section>
+
+      <section>
+        <h3 id="user_email_addresses">Email Addresses</h3>
+        <p>These are the email addresses associated with your account.</p>
+        <% if @user.email_addresses.any? %>
+          <ul>
+            <% @user.email_addresses.each do |email_address| %>
+              <li>
+                <%= email_address.email %>
+                <% if email_address.source.present? %>
+                  <span class="super">
+                    (from <%= email_address.source.humanize %>)
+                  </span>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p>No email addresses found.</p>
+        <% end %>
+
+        <div class="email-form">
+          <%= form_tag add_email_auth_path, data: { turbo: false } do %>
+            <div class="field">
+              <%= email_field_tag :email, nil, placeholder: "Add another email address", required: true %>
+            </div>
+            <%= submit_tag "Add Email", role: "button", class: "secondary" %>
+          <% end %>
+        </div>
+      </section>
+    </article>
+
+    <article>
+      <header>
+        <h2 id="user_hackatime_extension">⚙️ Extension Settings</h2>
+      </header>
+      <%= form_with model: @user,
+        url: @is_own_settings ? my_settings_path : settings_user_path(@user),
+        method: :patch do |f| %>
+        <div class="form-group">
+          <%= f.label "Simple text" %>
+          <%= f.select :hackatime_extension_text_type,
+              User.hackatime_extension_text_types.keys.map { |type| [type.humanize, type] },
+              selected: @user.hackatime_extension_text_type, class: "form-select" %>
+        </div>
+        <%= f.submit "Save Settings", role: "button" %>
+      <% end %>
+    </article>
+
+    <article>
+      <header>
+        <h2 id="user_stats_badges">📊 Stats Badges</h2>
+      </header>
+      <section>
+        <p>Show your coding stats on your GitHub profile with beautiful badges.</p>
+        <h3>General Stats Badge</h3>
+        <p>This badge shows your overall coding statistics.</p>
+        <select name="theme" id="theme-select" onchange="updateBadgeTheme(this.value)" class="form-select">
+          <% GithubReadmeStats.themes.each do |theme| %>
+            <option value="<%= theme %>"><%= theme.humanize %></option>
+          <% end %>
+        </select>
+        <% gh_badge = GithubReadmeStats.new(current_user.id, "darcula") %>
+        <img id="badge-preview" src="<%= gh_badge.generate_badge_url %>" data-url="<%= gh_badge.generate_badge_url %>">
+        <pre id="badge-url"><%= gh_badge.generate_badge_url %></pre>
+      </section>
+
+      <% if @projects.any? && @user.slack_uid.present? %>
+        <section>
+          <h3>Project Stats Badge</h3>
+          <p>This badge shows individual project statistics.</p>
+          <p><small>See <a href="https://github.com/pbhak/hackatime-badge">the documentation</a> for more customization options!</small></p>
+          <select name="project-id" id="project-select" onchange="updateBadgeProject(this.value)" class="form-select">
+            <% @projects.each do |project_name| %>
+              <option value="<%= project_name %>"><%= project_name %></option>
+            <% end %>
+          </select>
+          <img id="work-time-badge-preview" src="<%= @work_time_stats_url %>" data-url="<%= @work_time_stats_url %>">
+          <pre id="work-time-badge-url"><%= @work_time_stats_url %></pre>
+        </section>
+      <% end %>
+
+      <script>
+        function updateBadgeTheme(theme) {
+          const originalUrl = document.getElementById('badge-preview').dataset.url;
+          const [baseUrl, queryString] = originalUrl.split('?');
+          const params = queryString.split('&').map(param => {
+            const [key, value] = param.split('=');
+            return key === 'theme' ? `theme=${theme}` : param;
+          });
+          const newUrl = `${baseUrl}?${params.join('&')}`;
+          document.getElementById('badge-preview').src = newUrl;
+          document.getElementById('badge-url').textContent = newUrl;
+        }
+        
+        function updateBadgeProject(project) {
+          const originalUrl = document.getElementById('work-time-badge-preview').dataset.url;
+          let splitUrl = originalUrl.split('/');
+          splitUrl[splitUrl.length - 1] = project;
+          const newUrl = splitUrl.join('/');
+          document.getElementById('work-time-badge-preview').src = newUrl;
+          document.getElementById('work-time-badge-url').textContent = newUrl;
+        }
+      </script>
+    </article>
+
+    <article>
+      <header>
+        <h2 id="user_markscribe">📝 Markscribe Templates</h2>
+        <p>Use markscribe to create beautiful GitHub profile READMEs with your coding stats.</p>
+      </header>
+      
+      <div class="code-example">
+        <pre><code>{{ wakatimeDoubleCategoryBar "💾 Languages:" wakatimeData.Languages "💼 Projects:" wakatimeData.Projects 5 }}</code></pre>
+      </div>
+      <p>Add this to your GitHub profile README template to display your top languages and projects.</p>
+      <p><small>See the <a href="https://github.com/taciturnaxolotl/markscribe#your-wakatime-languages-formated-as-a-bar" target="_blank">markscribe documentation</a> for more template options.</small></p>
+      <img src="https://cdn.fluff.pw/slackcdn/524e293aa09bc5f9115c0c29c18fb4bc.png" alt="Example of markscribe output showing coding language and project statistics" width="100%"/>
+    </article>
+
+    <article>
+      <header>
+        <h2 id="user_config_file">📄 Config File</h2>
+        <p>
+          <% if current_user.most_recent_direct_entry_heartbeat %>
+            Your last heartbeat was <%= time_ago_in_words current_user.most_recent_direct_entry_heartbeat.created_at %> ago.
+          <% else %>
+            You haven't sent any heartbeats yet directly to this platform.
+          <% end %>
+        </p>
+      </header>
+      
+      <%= render "wakatime_config_display" %>
+      <p>
+        <small>
+          This file is located in <code>~/.wakatime.cfg</code> on your computer.
+          You can configure it with <a href="https://github.com/wakatime/wakatime-cli/blob/develop/USAGE.md#ini-config-file">other settings</a> as well.
+        </small>
+      </p>
+    </article>
+
+    <article>
+      <header>
+        <h2 id="user_privacy">🔒 Privacy Settings</h2>
+      </header>
+      
+      <%= form_with model: @user,
+        url: @is_own_settings ? my_settings_path : settings_user_path(@user),
+        method: :patch do |f| %>
+        <fieldset>
+          <label for="user_allow_public_stats_lookup">
+            <%= f.check_box :allow_public_stats_lookup, id: "user_allow_public_stats_lookup" %>
+            <%= f.label :allow_public_stats_lookup, "Allow others to look up my public coding stats via the API" %>
+          </label>
+        </fieldset>
+        <%= f.submit "Save Settings", role: "button" %>
+      <% end %>
+    </article>
+
+    <% admin_tool do %>
+      <article>
+        <header>
+          <h2 id="wakatime_mirror">🔄 WakaTime Mirror</h2>
+          <p>Mirror your coding activity to WakaTime.</p>
+        </header>
+
+        <% if current_user.wakatime_mirrors.any? %>
+          <div class="mirrors-list">
+            <% current_user.wakatime_mirrors.each do |mirror| %>
+              <div class="mirror">
+                <p>
+                  <strong>Endpoint:</strong> <%= mirror.endpoint_url %><br>
+                  <strong>Last synced:</strong> <%= mirror.last_synced_at ? time_ago_in_words(mirror.last_synced_at) + " ago" : "Never" %>
+                </p>
+                <%= button_to "Delete", user_wakatime_mirror_path(current_user, mirror), method: :delete, role: "button", class: "secondary", data: { confirm: "Are you sure?" } %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%= form_with(model: [current_user, WakatimeMirror.new], local: true) do |f| %>
+          <div class="form-group">
+            <%= f.label :endpoint_url, "WakaTime API Endpoint" %>
+            <%= f.text_field :endpoint_url, value: "https://wakatime.com/api/v1", placeholder: "https://wakatime.com/api/v1", class: "form-control" %>
+          </div>
+
+          <div class="form-group">
+            <%= f.label :encrypted_api_key, "WakaTime API Key" %>
+            <%= f.text_field :encrypted_api_key, placeholder: "Enter your WakaTime API key", class: "form-control" %>
+          </div>
+          <%= f.submit "Add Mirror", role: "button" %>
+        <% end %>
+      </article>
     <% end %>
-  </section>
+
+    <article>
+      <header>
+        <h2 id="user_migration_assistant">🚚 Migration Assistant</h2>
+        <p>This will migrate your heartbeats from waka.hackclub.com to this platform.</p>
+      </header>
+      
+      <%= button_to "Migrate heartbeats", my_settings_migrate_heartbeats_path, method: :post, role: "button" %>
+      
+      <% if @heartbeats_migration_jobs.any? %>
+        <section>
+          <h3>Migration Jobs</h3>
+          <ul>
+            <% @heartbeats_migration_jobs.each do |job| %>
+              <li>
+                <% if job.finished_at && !job.error %>
+                  ✅
+                <% elsif job.finished_at && job.error %>
+                  ❌
+                <% else %>
+                  ⏳
+                <% end %>
+                Job started at <%= job.created_at.strftime("%Y-%m-%d %H:%M:%S") %>
+                <% if job.finished_at %>
+                  (and finished after <%= distance_of_time_in_words(job.finished_at - job.created_at) %>)
+                <% end %>
+                <% admin_tool('', 'span') do %>
+                  <%= link_to "View job", GoodJob::Engine.routes.url_helpers.job_path(job.id) %>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        </section>
+      <% end %>
+    </article>
+  </div>
 </main>

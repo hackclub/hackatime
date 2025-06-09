@@ -6,6 +6,7 @@ cat > ~/.wakatime.cfg << EOL
 [settings]
 api_url = ${HACKATIME_API_URL}
 api_key = ${HACKATIME_API_KEY}
+heartbeat_rate_limit_seconds = 30
 EOL
 
 echo "Config file created at ~/.wakatime.cfg"
@@ -18,9 +19,10 @@ fi
 
 API_URL=$(sed -n 's/.*api_url = \(.*\)/\1/p' ~/.wakatime.cfg)
 API_KEY=$(sed -n 's/.*api_key = \(.*\)/\1/p' ~/.wakatime.cfg)
+HEARTBEAT_RATE_LIMIT=$(sed -n 's/.*heartbeat_rate_limit_seconds = \(.*\)/\1/p' ~/.wakatime.cfg)
 
-if [ -z "$API_URL" ] || [ -z "$API_KEY" ]; then
-  echo "Error: Could not read api_url or api_key from config"
+if [ -z "$API_URL" ] || [ -z "$API_KEY" ] || [ -z "$HEARTBEAT_RATE_LIMIT" ]; then
+  echo "Error: Could not read api_url, api_key, or heartbeat_rate_limit_seconds from config"
   exit 1
 fi
 

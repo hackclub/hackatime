@@ -1,0 +1,139 @@
+.admin-timeline-view-wrapper {
+  overflow-x: auto; /* Enables horizontal scrolling */
+  width: 100%; /* Takes full width of its parent in the main layout */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  flex-grow: 1; /* Allow it to take available vertical space in flex layouts */
+  display: flex; /* Needed for flex-grow to work properly with its child */
+  flex-direction: column;
+}
+
+.admin-timeline-content-sizer {
+  /* min-width is set inline dynamically via ERB based on number of users and min_column_width_px */
+  display: block; /* Or inline-block; block should be fine to ensure it respects min-width */
+  /* This element will be wider than its parent if content requires it, triggering scroll on admin-timeline-view-wrapper */
+}
+
+.admin-timeline-sticky-header {
+  /* Changed structure to use simple absolute positioning, no more flex layout */
+  position: sticky; /* Sticky to the top of admin-timeline-view-wrapper */
+  top: 0;
+  z-index: 20; /* Above other content */
+  background-color: #1F2937; /* Match page background to avoid transparency issues */
+  padding-bottom: 0.5rem;
+  padding-top: 0.25rem;
+  box-sizing: border-box;
+  /* No padding left/right as we use absolute positioning for the headers */
+}
+
+/* Removed header spacer and container styles as they're no longer used */
+
+.admin-timeline-user-header-cell {
+  position: absolute; /* Positioned absolutely within the sticky header container */
+  /* left is set inline per instance - using the EXACT same calculation as activity spans */
+  top: 0; /* All headers start at the top of the container */
+  min-width: 186px; /* Minimum width for each header cell */
+  width: 186px; /* Fixed width set inline to match span columns exactly */
+  box-sizing: border-box; /* Include padding and border in width/height */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 500;
+  color: #E5E7EB;
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.1rem 0.25rem; /* Padding for content */
+}
+
+#timeline-grid-scroll-container { /* Original ID, holds hour rows and activity spans */
+  overflow-y: auto; /* Retains vertical scroll for hours */
+  position: relative; /* For absolute positioning of spans and current time line */
+  flex-grow: 1; /* Takes remaining vertical space within admin-timeline-content-sizer */
+  /* Width is implicitly 100% of admin-timeline-content-sizer, which can be very wide */
+}
+
+/* Span items representing user activity */
+.admin-timeline-span-item {
+  position: absolute;
+  /* background-color is set by --span-color CSS variable, applied inline */
+  color: #FFFFFF;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.1;
+  padding: 2px 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 10; /* Above grid lines */
+  overflow: hidden; /* Clip content that overflows */
+  box-sizing: border-box;
+  min-width: 186px; /* Minimum width for each span "column" */
+  width: 186px; /* Fixed width set inline to match exactly with headers */
+}
+
+.admin-timeline-span-item a { /* Ensure links inside spans are visible and styled */
+  color: inherit; /* Inherit color from parent span */
+  text-decoration: underline;
+}
+.admin-timeline-span-item a:hover {
+  color: #FACC15; /* Example: yellow hover for links */
+}
+
+/* Styling for the hour rows that form the timeline background grid */
+.admin-timeline-hour-row {
+  display: flex; /* To layout hour label container and gridline container */
+  align-items: center;
+  border-top: 1px solid #374151; /* Horizontal line for the hour */
+  position: relative; /* For the absolutely positioned detailed grid line */
+  box-sizing: border-box;
+  /* height for each hour row is set inline via ERB (pixels_per_hour) */
+}
+
+.admin-timeline-hour-label-container { /* Container for the hour text, e.g., "9:00 AM" */
+  /* width for this container is set inline via ERB (line_left_rem) */
+  flex-shrink: 0; /* Prevent shrinking */
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #6B7280;
+  padding-right: 0.5rem;
+  text-align: right;
+  box-sizing: border-box;
+  height: 100%; /* Match parent row height */
+  display: flex; /* To vertically center text if needed, though align-items on parent might suffice */
+  align-items: flex-start; /* Vertically center text */
+}
+
+.admin-timeline-hour-gridline-container { /* Container that stretches across for the faint mid-hour line */
+  flex-grow: 1; /* Take remaining width */
+  height: 100%; /* Fill the row height */
+  position: relative; /* For the absolutely positioned line itself */
+}
+
+.admin-timeline-hour-gridline { /* The faint horizontal line in the middle of an hour block */
+  position: absolute;
+  /* left: 0; right: (calculated from line_right_rem) are applied inline */
+  top: 50%;
+  border-bottom: 1px solid #374151; /* Color of the grid line */
+  transform: translateY(-50%);
+  z-index: 1; /* Behind activity spans */
+}
+
+/* Current time indicator line */
+.admin-timeline-now-marker {
+  position: absolute;
+  /* left, right, top positions are set inline via ERB */
+  height: 2px;
+  background-color: #F87171; /* Prominent color for "now" line */
+  z-index: 15; /* Above grid lines, potentially above spans if desired (adjust z-index accordingly) */
+}
+.admin-timeline-now-marker-text { /* For the "NOW" text label */
+  position: absolute;
+  left: -2.5rem; /* Adjust to position text to the left of the line_left_rem area */
+  top: -0.4rem; /* Adjust to vertically center with the line */
+  font-size: 0.65rem;
+  color: #F87171; /* Match line color */
+  background-color: #1F2937; /* Match page background to make it appear to "cut through" */
+  padding: 0 0.2rem;
+  white-space: nowrap;
+} 

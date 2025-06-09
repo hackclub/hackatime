@@ -1,5 +1,6 @@
 class LeaderboardUpdateJob < ApplicationJob
-  queue_as :default
+  queue_as :latency_10s
+
   BATCH_SIZE = 1000
 
   include GoodJob::ActiveJobExtensions::Concurrency

@@ -10,9 +10,55 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_29_114602) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_09_144356) do
+  create_schema "pganalyze"
+
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_stat_statements"
+
+  create_table "ahoy_events", force: :cascade do |t|
+    t.bigint "visit_id"
+    t.bigint "user_id"
+    t.string "name"
+    t.jsonb "properties"
+    t.datetime "time"
+    t.index ["name", "time"], name: "index_ahoy_events_on_name_and_time"
+    t.index ["properties"], name: "index_ahoy_events_on_properties", opclass: :jsonb_path_ops, using: :gin
+    t.index ["user_id"], name: "index_ahoy_events_on_user_id"
+    t.index ["visit_id"], name: "index_ahoy_events_on_visit_id"
+  end
+
+  create_table "ahoy_visits", force: :cascade do |t|
+    t.string "visit_token"
+    t.string "visitor_token"
+    t.bigint "user_id"
+    t.string "ip"
+    t.text "user_agent"
+    t.text "referrer"
+    t.string "referring_domain"
+    t.text "landing_page"
+    t.string "browser"
+    t.string "os"
+    t.string "device_type"
+    t.string "country"
+    t.string "region"
+    t.string "city"
+    t.float "latitude"
+    t.float "longitude"
+    t.string "utm_source"
+    t.string "utm_medium"
+    t.string "utm_term"
+    t.string "utm_content"
+    t.string "utm_campaign"
+    t.string "app_version"
+    t.string "os_version"
+    t.string "platform"
+    t.datetime "started_at"
+    t.index ["user_id"], name: "index_ahoy_visits_on_user_id"
+    t.index ["visit_token"], name: "index_ahoy_visits_on_visit_token", unique: true
+    t.index ["visitor_token", "started_at"], name: "index_ahoy_visits_on_visitor_token_and_started_at"
+  end
 
   create_table "api_keys", force: :cascade do |t|
     t.bigint "user_id", null: false
@@ -26,13 +72,37 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_29_114602) do
     t.index ["user_id"], name: "index_api_keys_on_user_id"
   end
 
+  create_table "commits", primary_key: "sha", id: :string, force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.jsonb "github_raw"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "repository_id"
+    t.index ["repository_id"], name: "index_commits_on_repository_id"
+    t.index ["user_id", "created_at"], name: "index_commits_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_commits_on_user_id"
+  end
+
   create_table "email_addresses", force: :cascade do |t|
     t.string "email"
     t.bigint "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "source"
     t.index ["email"], name: "index_email_addresses_on_email", unique: true
     t.index ["user_id"], name: "index_email_addresses_on_user_id"
+  end
+
+  create_table "email_verification_requests", force: :cascade do |t|
+    t.string "email"
+    t.bigint "user_id", null: false
+    t.string "token"
+    t.datetime "expires_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["email"], name: "index_email_verification_requests_on_email", unique: true
+    t.index ["user_id"], name: "index_email_verification_requests_on_user_id"
   end
 
   create_table "good_job_batches", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -151,8 +221,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_29_114602) do
     t.integer "source_type", null: false
     t.inet "ip_address"
     t.integer "ysws_program", default: 0, null: false
+    t.datetime "deleted_at"
+    t.jsonb "raw_data"
+    t.bigint "raw_heartbeat_upload_id"
     t.index ["category", "time"], name: "index_heartbeats_on_category_and_time"
-    t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash", unique: true
+    t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
+    t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
+    t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
 
@@ -175,6 +251,106 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_29_114602) do
     t.datetime "finished_generating_at"
     t.datetime "deleted_at"
     t.integer "period_type", default: 0, null: false
+    t.index ["start_date"], name: "index_leaderboards_on_start_date", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "mailing_addresses", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "first_name", null: false
+    t.string "last_name", null: false
+    t.string "zip_code", null: false
+    t.string "line_1", null: false
+    t.string "line_2"
+    t.string "city", null: false
+    t.string "state", null: false
+    t.string "country", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_mailing_addresses_on_user_id"
+  end
+
+  create_table "neighborhood_apps", force: :cascade do |t|
+    t.string "airtable_id", null: false
+    t.jsonb "airtable_fields"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["airtable_id"], name: "index_neighborhood_apps_on_airtable_id", unique: true
+  end
+
+  create_table "neighborhood_posts", force: :cascade do |t|
+    t.string "airtable_id", null: false
+    t.jsonb "airtable_fields"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["airtable_id"], name: "index_neighborhood_posts_on_airtable_id", unique: true
+  end
+
+  create_table "neighborhood_projects", force: :cascade do |t|
+    t.string "airtable_id", null: false
+    t.jsonb "airtable_fields"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["airtable_id"], name: "index_neighborhood_projects_on_airtable_id", unique: true
+  end
+
+  create_table "neighborhood_ysws_submissions", force: :cascade do |t|
+    t.string "airtable_id", null: false
+    t.jsonb "airtable_fields"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["airtable_id"], name: "index_neighborhood_ysws_submissions_on_airtable_id", unique: true
+  end
+
+  create_table "oauth_access_grants", force: :cascade do |t|
+    t.bigint "resource_owner_id", null: false
+    t.bigint "application_id", null: false
+    t.string "token", null: false
+    t.integer "expires_in", null: false
+    t.text "redirect_uri", null: false
+    t.string "scopes", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "revoked_at"
+    t.index ["application_id"], name: "index_oauth_access_grants_on_application_id"
+    t.index ["resource_owner_id"], name: "index_oauth_access_grants_on_resource_owner_id"
+    t.index ["token"], name: "index_oauth_access_grants_on_token", unique: true
+  end
+
+  create_table "oauth_access_tokens", force: :cascade do |t|
+    t.bigint "resource_owner_id"
+    t.bigint "application_id", null: false
+    t.string "token", null: false
+    t.string "refresh_token"
+    t.integer "expires_in"
+    t.string "scopes"
+    t.datetime "created_at", null: false
+    t.datetime "revoked_at"
+    t.string "previous_refresh_token", default: "", null: false
+    t.index ["application_id"], name: "index_oauth_access_tokens_on_application_id"
+    t.index ["refresh_token"], name: "index_oauth_access_tokens_on_refresh_token", unique: true
+    t.index ["resource_owner_id"], name: "index_oauth_access_tokens_on_resource_owner_id"
+    t.index ["token"], name: "index_oauth_access_tokens_on_token", unique: true
+  end
+
+  create_table "oauth_applications", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "uid", null: false
+    t.string "secret", null: false
+    t.text "redirect_uri", null: false
+    t.string "scopes", default: "", null: false
+    t.boolean "confidential", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["uid"], name: "index_oauth_applications_on_uid", unique: true
+  end
+
+  create_table "physical_mails", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.integer "mission_type", null: false
+    t.integer "status", default: 0, null: false
+    t.string "theseus_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_physical_mails_on_user_id"
   end
 
   create_table "project_repo_mappings", force: :cascade do |t|
@@ -183,8 +359,47 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_29_114602) do
     t.string "repo_url", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "repository_id"
+    t.index ["project_name"], name: "index_project_repo_mappings_on_project_name"
+    t.index ["repository_id"], name: "index_project_repo_mappings_on_repository_id"
     t.index ["user_id", "project_name"], name: "index_project_repo_mappings_on_user_id_and_project_name", unique: true
     t.index ["user_id"], name: "index_project_repo_mappings_on_user_id"
+  end
+
+  create_table "raw_heartbeat_uploads", force: :cascade do |t|
+    t.jsonb "request_headers", null: false
+    t.jsonb "request_body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "repo_host_events", id: :string, force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.jsonb "raw_event_payload", null: false
+    t.integer "provider", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider"], name: "index_repo_host_events_on_provider"
+    t.index ["user_id", "provider", "created_at"], name: "index_repo_host_events_on_user_provider_created_at"
+    t.index ["user_id"], name: "index_repo_host_events_on_user_id"
+  end
+
+  create_table "repositories", force: :cascade do |t|
+    t.string "url"
+    t.string "host"
+    t.string "owner"
+    t.string "name"
+    t.integer "stars"
+    t.text "description"
+    t.string "language"
+    t.text "languages"
+    t.integer "commit_count"
+    t.datetime "last_commit_at"
+    t.datetime "last_synced_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "homepage"
+    t.index ["url"], name: "index_repositories_on_url", unique: true
   end
 
   create_table "sailors_log_leaderboards", force: :cascade do |t|
@@ -230,6 +445,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_29_114602) do
     t.datetime "used_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "continue_param"
     t.index ["token"], name: "index_sign_in_tokens_on_token"
     t.index ["user_id"], name: "index_sign_in_tokens_on_user_id"
   end
@@ -252,6 +468,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_29_114602) do
     t.string "github_username"
     t.string "slack_username"
     t.string "wakatime_api_key"
+    t.string "slack_neighborhood_channel"
+    t.integer "trust_level", default: 0, null: false
+    t.string "country_code"
+    t.string "mailing_address_otc"
+    t.boolean "allow_public_stats_lookup", default: true, null: false
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
     t.index ["timezone"], name: "index_users_on_timezone"
   end
@@ -267,11 +488,33 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_29_114602) do
     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
   end
 
+  create_table "wakatime_mirrors", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "endpoint_url", default: "https://wakatime.com/api/v1", null: false
+    t.string "encrypted_api_key", null: false
+    t.datetime "last_synced_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "endpoint_url"], name: "index_wakatime_mirrors_on_user_id_and_endpoint_url", unique: true
+    t.index ["user_id"], name: "index_wakatime_mirrors_on_user_id"
+  end
+
   add_foreign_key "api_keys", "users"
+  add_foreign_key "commits", "repositories"
+  add_foreign_key "commits", "users"
   add_foreign_key "email_addresses", "users"
+  add_foreign_key "email_verification_requests", "users"
+  add_foreign_key "heartbeats", "raw_heartbeat_uploads"
   add_foreign_key "heartbeats", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
   add_foreign_key "leaderboard_entries", "users"
+  add_foreign_key "mailing_addresses", "users"
+  add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
+  add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
+  add_foreign_key "physical_mails", "users"
+  add_foreign_key "project_repo_mappings", "repositories"
   add_foreign_key "project_repo_mappings", "users"
+  add_foreign_key "repo_host_events", "users"
   add_foreign_key "sign_in_tokens", "users"
+  add_foreign_key "wakatime_mirrors", "users"
 end

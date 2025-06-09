@@ -1,4 +1,6 @@
 class SlackCommand::SailorsLogJob < ApplicationJob
+  queue_as :latency_10s
+
   def perform(params)
     case params[:text].downcase.strip
     when "on", "off"

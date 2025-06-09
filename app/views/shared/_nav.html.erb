@@ -1,4 +1,4 @@
-<aside class="nav">
+<aside class="nav" data-nav-target="nav">
   <li>
     <% flash.each do |name, msg| %>
       <div class="flash-message <%= name %>">
@@ -20,46 +20,83 @@
 
   <ul>
     <li>
-      <%= link_to root_path, class: "nav-item #{current_page?(root_path) ? 'active' : ''}" do %>
+      <%= link_to root_path, class: "nav-item #{current_page?(root_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
         Home
       <% end %>
     </li>
     <li>
-      <%= link_to leaderboards_path, class: "nav-item #{current_page?(leaderboards_path) ? 'active' : ''}" do %>
+      <%= link_to leaderboards_path, class: "nav-item #{current_page?(leaderboards_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
         Leaderboards
       <% end %>
     </li>
+    <% unless current_user %>
+      <li>
+        <%= link_to docs_path, class: "nav-item #{current_page?(docs_path) || request.path.start_with?('/docs') ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+          Docs
+        <% end %>
+      </li>
+    <% end %>
     <% if current_user %>
       <li>
-        <%= link_to my_projects_static_pages_path, class: "nav-item #{current_page?(my_projects_static_pages_path) ? 'active' : ''}" do %>
-          My Projects
+        <%= link_to my_projects_path, class: "nav-item #{current_page?(my_projects_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+          Projects
         <% end %>
       </li>
       <li>
-        <%= link_to my_settings_path, class: "nav-item #{current_page?(my_settings_path) ? 'active' : ''}" do %>
+        <%= link_to docs_path, class: "nav-item #{current_page?(docs_path) || request.path.start_with?('/docs') ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+          Docs
+        <% end %>
+      </li>
+      <li>
+        <%= link_to my_settings_path, class: "nav-item #{current_page?(my_settings_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
           Settings
         <% end %>
       </li>
       <li>
-        <%= link_to signout_path, class: "nav-item", data: { turbo_method: :delete } do %>
+        <%= link_to signout_path, class: "nav-item", data: { turbo_method: :delete, action: "click->nav#clickLink" } do %>
           Logout
         <% end %>
       </li>
     <% end %>
     
     <% dev_tool(nil, "li") do %>
-      <%= link_to letter_opener_web_path, class: "nav-item #{current_page?(letter_opener_web_path) ? 'active' : ''}" do %>
+      <%= link_to letter_opener_web_path, class: "nav-item #{current_page?(letter_opener_web_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
         Letter Opener
       <% end %>
     <% end %>
-    <% admin_tool(nil, "li") do %>
-      <%= link_to avo_path, class: "nav-item #{current_page?(avo_path) ? 'active' : ''}" do %>
-        Avo
+    <% dev_tool(nil, "li") do %>
+      <%= link_to '/rails/mailers', class: "nav-item #{current_page?('/rails/mailers') ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+        Mailers
       <% end %>
     <% end %>
     <% admin_tool(nil, "li") do %>
-      <%= link_to good_job_path, class: "nav-item #{current_page?(good_job_path) ? 'active' : ''}" do %>
+      <%= link_to admin_timeline_path, class: "nav-item #{current_page?(admin_timeline_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+        Review Timeline
+      <% end %>
+    <% end %>
+    <% admin_tool(nil, "li") do %>
+      <%= link_to my_mailing_address_path, class: "nav-item #{current_page?(my_mailing_address_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+        Mailing Address
+      <% end %>
+    <% end %>
+    <li>
+      <%= link_to my_mailroom_path, class: "nav-item #{current_page?(my_mailroom_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+        Mailroom
+      <% end %>
+    </li>
+    <% admin_tool(nil, "li") do %>
+      <%= link_to ahoy_captain_path, class: "nav-item #{current_page?(ahoy_captain_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+        Ahoy Captain
+      <% end %>
+    <% end %>
+    <% admin_tool(nil, "li") do %>
+      <%= link_to good_job_path, class: "nav-item #{current_page?(good_job_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
         GoodJob
+      <% end %>
+    <% end %>
+    <% admin_tool(nil, "li") do %>
+      <%= link_to oauth_applications_path, class: "nav-item #{current_page?(oauth_applications_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+        OAuth2 apps
       <% end %>
     <% end %>
   </ul>

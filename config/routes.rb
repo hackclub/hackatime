@@ -8,13 +8,27 @@ class AdminConstraint
 end
 
 Rails.application.routes.draw do
+  use_doorkeeper
+
   constraints AdminConstraint do
-    mount Avo::Engine, at: Avo.configuration.root_path
     mount GoodJob::Engine => "good_job"
+    mount AhoyCaptain::Engine => "/ahoy_captain"
 
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
   end
   get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
+
+  namespace :admin do
+    get "timeline", to: "timeline#show", as: :timeline
+    get "timeline/search_users", to: "timeline#search_users"
+    get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
+
+    get "post_reviews/:post_id", to: "post_reviews#show", as: :post_review
+    patch "post_reviews/:post_id", to: "post_reviews#update"
+    get "post_reviews/:post_id/date/:date", to: "post_reviews#show", as: :post_review_on_date
+
+    get "ysws_reviews/:record_id", to: "ysws_reviews#show", as: :ysws_review
+  end
 
   if Rails.env.development?
     mount LetterOpenerWeb::Engine, at: "/letter_opener"
@@ -37,28 +51,45 @@ Rails.application.routes.draw do
       get :currently_hacking
       get :filterable_dashboard_content
       get :filterable_dashboard
-      get :my_projects
+      get :mini_leaderboard
       get "🃏", to: "static_pages#🃏", as: :wildcard
       get :streak
+      # get :timeline # Removed: Old route for timeline
     end
   end
+
+  get "/minimal_login", to: "static_pages#minimal_login", as: :minimal_login
 
   # Auth routes
   get "/auth/slack", to: "sessions#new", as: :slack_auth
   get "/auth/slack/callback", to: "sessions#create"
   get "/auth/github", to: "sessions#github_new", as: :github_auth
   get "/auth/github/callback", to: "sessions#github_create"
+  delete "/auth/github/unlink", to: "sessions#github_unlink", as: :github_unlink
   post "/auth/email", to: "sessions#email", as: :email_auth
+  post "/auth/email/add", to: "sessions#add_email", as: :add_email_auth
   get "/auth/token/:token", to: "sessions#token", as: :auth_token
   get "/auth/close_window", to: "sessions#close_window", as: :close_window
   delete "signout", to: "sessions#destroy", as: "signout"
 
   resources :leaderboards, only: [ :index ]
 
+  # Docs routes
+  get "docs", to: "docs#index", as: :docs
+  get "docs/*path", to: "docs#show", as: :doc
+
   # Nested under users for admin access
   resources :users, only: [] do
     get "settings", on: :member, to: "users#edit"
+    patch "settings", on: :member, to: "users#update"
+    member do
+      patch :update_trust_level
+    end
+    resource :wakatime_mirrors, only: [ :create ]
+    resources :wakatime_mirrors, only: [ :destroy ]
   end
+
+  get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
 
   # Namespace for current user actions
   get "my/settings", to: "users#edit", as: :my_settings
@@ -68,6 +99,8 @@ Rails.application.routes.draw do
 
   namespace :my do
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ]
+    resource :mailing_address, only: [ :show, :edit ]
+    get "mailroom", to: "mailroom#index"
   end
 
   get "my/wakatime_setup", to: "users#wakatime_setup"
@@ -86,6 +119,9 @@ Rails.application.routes.draw do
       get "users/:username/stats", to: "stats#user_stats"
       get "users/:username/heartbeats/spans", to: "stats#user_spans"
 
+      get "users/lookup_email/:email", to: "users#lookup_email", constraints: { email: /[^\/]+/ }
+      get "users/lookup_slack_uid/:slack_uid", to: "users#lookup_slack_uid"
+
       # External service Slack OAuth integration
       post "external/slack/oauth", to: "external_slack#create_user"
 
@@ -96,6 +132,10 @@ Rails.application.routes.draw do
       namespace :my do
         get "heartbeats/most_recent", to: "heartbeats#most_recent"
         get "heartbeats", to: "heartbeats#index"
+      end
+
+      namespace :authenticated do
+        resources :me, only: [ :index ]
       end
     end
 
@@ -108,9 +148,17 @@ Rails.application.routes.draw do
         get "/", to: "hackatime#index" # many clients seem to link this as the user's dashboard
         get "/users/:id/statusbar/today", to: "hackatime#status_bar_today"
         post "/users/:id/heartbeats", to: "hackatime#push_heartbeats"
+        get "/users/current/stats/last_7_days", to: "hackatime#stats_last_7_days"
       end
+    end
+
+    namespace :internal do
+      post "/can_i_have_a_magic_link_for/:id", to: "magic_links#create"
     end
   end
 
   resources :scrapyard_leaderboards, only: [ :index, :show ]
+
+  # SEO routes
+  get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
 end

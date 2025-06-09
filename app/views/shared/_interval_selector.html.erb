@@ -1,0 +1,169 @@
+<%= turbo_frame_tag "interval_selector" do %>
+  <div class="interval-dropdown">
+    <button type="button" class="interval-dropdown-trigger" onclick="toggleIntervalDropdown()">
+      <span id="interval-dropdown-label">
+        <%= human_interval_name(params[:interval], from: params[:from], to: params[:to]) %>
+      </span>
+      <span class="dropdown-arrow">▼</span>
+    </button>
+    <div class="interval-dropdown-menu" id="interval-dropdown-menu" style="display: none;">
+      <ul class="interval-options-list compact-options-list">
+        <% TimeRangeFilterable::RANGES.each do |key, config| %>
+          <li onclick="selectInterval('<%= key %>', '<%= config[:human_name] %>')"><%= config[:human_name] %></li>
+        <% end %>
+        <li onclick="selectInterval('', 'All Time')">All Time</li>
+      </ul>
+      <hr>
+      <div class="interval-custom-range">
+        <label>Start:
+          <input type="date" id="custom-start" value="<%= params[:from] %>">
+        </label>
+        <label>End:
+          <input type="date" id="custom-end" value="<%= params[:to] %>">
+        </label>
+        <button type="button" class="primary-button" onclick="applyCustomRange()">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Common function to update URL parameters and refresh the frame
+    function updateWithParams(params) {
+      const url = new URL(window.location.href);
+      
+      // Clear existing parameters
+      url.searchParams.delete('interval');
+      url.searchParams.delete('from');
+      url.searchParams.delete('to');
+      
+      // Add new parameters
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) url.searchParams.set(key, value);
+      });
+      
+      updateProjectsFrame(url.toString());
+    }
+    
+    function updateProjectsFrame(url) {
+      let baseUrl = '<%= project_durations_static_pages_path %>';
+      const params = new URLSearchParams(new URL(url).search);
+      const frameUrl = baseUrl + '?' + params.toString();
+      
+      const frame = document.getElementById('project_durations');
+      if (frame) {
+        console.log('Updating frame with URL:', frameUrl);
+        frame.src = frameUrl;
+        try {
+          frame.reload();
+          console.log('Frame reload called successfully');
+        } catch (e) {
+          console.error('Error reloading frame:', e);
+        }
+        history.replaceState({}, '', url);
+      } else {
+        console.error('Frame with ID "project_durations" not found');
+        window.location.href = url;
+      }
+    }
+
+    function updateDropdownLabel(label) {
+      const labelElement = document.getElementById('interval-dropdown-label');
+      if (labelElement) {
+        labelElement.textContent = label;
+      }
+    }
+
+    function selectInterval(interval, label) {
+      updateDropdownLabel(label);
+      document.getElementById('interval-dropdown-menu').style.display = 'none';
+      updateWithParams({ interval });
+    }
+    
+    function applyCustomRange() {
+      const start = document.getElementById('custom-start').value;
+      const end = document.getElementById('custom-end').value;
+      
+      if (start || end) {
+        let label = 'Custom Range';
+        if (start && end) {
+          label = `${start} to ${end}`;
+        } else if (start) {
+          label = `From ${start}`;
+        } else if (end) {
+          label = `Until ${end}`;
+        }
+        
+        updateDropdownLabel(label);
+        document.getElementById('interval-dropdown-menu').style.display = 'none';
+        updateWithParams({ interval: 'custom', from: start, to: end });
+      }
+    }
+    
+    function toggleIntervalDropdown() {
+      const menu = document.getElementById('interval-dropdown-menu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+      document.addEventListener('mousedown', closeDropdownOnClickOutside);
+    }
+    
+    function closeDropdownOnClickOutside(e) {
+      const menu = document.getElementById('interval-dropdown-menu');
+      const trigger = document.querySelector('.interval-dropdown-trigger');
+      if (!menu.contains(e.target) && !trigger.contains(e.target)) {
+        menu.style.display = 'none';
+        document.removeEventListener('mousedown', closeDropdownOnClickOutside);
+      }
+    }
+  </script>
+
+  <style>
+    /* Adding explicit styles for the Apply button */
+    .interval-custom-range .primary-button {
+      padding: 0.4rem 0.8rem;
+      margin: 0;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: none;
+      background: var(--primary-color);
+      color: white;
+      cursor: pointer;
+    }
+    
+    .interval-custom-range .primary-button:hover {
+      filter: brightness(1.1);
+    }
+
+    /* Ensure dropdown is visible in light mode */
+    @media (prefers-color-scheme: light) {
+      .interval-dropdown-trigger {
+        background: white;
+        color: #333;
+        border: 1px solid #ccc;
+      }
+      
+      .interval-dropdown-menu {
+        background: white;
+        color: #333;
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      
+      .interval-options-list li {
+        color: #333;
+      }
+      
+      .interval-options-list li:hover {
+        background: #f5f5f5;
+      }
+      
+      .interval-custom-range label {
+        color: #333;
+      }
+      
+      .interval-custom-range input[type="date"] {
+        background: white;
+        color: #333;
+        border: 1px solid #ccc;
+      }
+    }
+  </style>
+<% end %> 

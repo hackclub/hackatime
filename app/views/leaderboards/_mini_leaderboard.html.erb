@@ -1,78 +1,82 @@
-<%
-  entries = leaderboard.entries.order(total_seconds: :desc)
-  if current_user
-    user_rank = entries.find_index { |entry| entry.user_id == current_user.id }
-    if user_rank && user_rank >= 3
-      # Show top 2 entries and immediate competition
-      top_entries = entries[0..1]
-      competition_entries = entries[[user_rank - 1, 2].max..[user_rank + 1, entries.size - 1].min]
-      mini_leaderboard_entries = top_entries + competition_entries
-      show_top_entries = false
-    else
-      # Show top 3 entries (either user is in top 3 or not on leaderboard)
-      mini_leaderboard_entries = entries.first(3)
-      show_top_entries = true
-    end
-  else
-    # Not logged in, show top 3
-    mini_leaderboard_entries = entries.first(3)
-    show_top_entries = true
-  end
-%>
+<%= turbo_frame_tag "mini_leaderboard" do %>
+  <% if leaderboard.present? %>
+    <%
+      entries = leaderboard.entries.order(total_seconds: :desc)
+      if current_user
+        user_rank = entries.find_index { |entry| entry.user_id == current_user.id }
+        if user_rank && user_rank >= 3
+          # Show top 2 entries and immediate competition
+          top_entries = entries[0..1]
+          competition_entries = entries[[user_rank - 1, 2].max..[user_rank + 1, entries.size - 1].min]
+          mini_leaderboard_entries = top_entries + competition_entries
+          show_top_entries = false
+        else
+          # Show top 3 entries (either user is in top 3 or not on leaderboard)
+          mini_leaderboard_entries = entries.first(3)
+          show_top_entries = true
+        end
+      else
+        # Not logged in, show top 3
+        mini_leaderboard_entries = entries.first(3)
+        show_top_entries = true
+      end
+    %>
 
-<% if mini_leaderboard_entries&.any? %>
-  <div class="mini-leaderboard">
-    <p class="super">
-      This leaderboard is in <%= Leaderboard::GLOBAL_TIMEZONE %>.
-      <% if current_user && timezone_difference_in_seconds(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) != 0 %>
-        <%= timezone_difference_in_words(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) %>
-      <% end %>
-    </p>
-    <div class="leaderboard-entries">
-      <% mini_leaderboard_entries.each_with_index do |entry, idx| %>
-        <% is_competition = !show_top_entries && idx >= 2 %>
-        <div class="leaderboard-entry <%= 'current-user' if entry.user_id == current_user&.id %>">
-          <% if !is_competition %>
-            <% rank_emoji = case entries.index(entry)
-               when 0 then "🥇"
-               when 1 then "🥈"
-               when 2 then "🥉"
-               end %>
-            <span class="rank"><%= rank_emoji %></span>
-          <% else %>
-            <% if idx == 2 && entries.index(entry) - entries.index(mini_leaderboard_entries[1]) > 1 %>
-              <div class="leaderboard-break">...</div>
-            <% end %>
-            <span class="rank"><%= (entries.index(entry) + 1).ordinalize %></span>
+    <% if mini_leaderboard_entries&.any? %>
+      <div class="mini-leaderboard">
+        <p class="super">
+          This leaderboard is in <%= Leaderboard::GLOBAL_TIMEZONE %>.
+          <% if current_user && timezone_difference_in_seconds(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) != 0 %>
+            <%= timezone_difference_in_words(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) %>
           <% end %>
-          <span class="user">
-            <%= render "shared/user_mention", user: entry.user, show: [:neighborhood] %>
-            <% if entry.user == current_user && current_user.github_username.blank? %>
-              <span class="super">
-                <%= link_to "Link active projects", my_settings_path(anchor: "user_github_account"), target: "_blank" %>
-              </span>
-            <% end %>
-            <% if @active_projects&.dig(entry.user_id).present? %>
-              <span class="super">
-                working on <%= link_to @active_projects[entry.user_id].project_name, @active_projects[entry.user_id].repo_url, target: "_blank" %>
-                <% dev_tool(nil, 'span') do %>
-                  <%= link_to "🌌", visualize_git_url(@active_projects[entry.user_id].repo_url), target: "_blank" %>
+        </p>
+        <div class="leaderboard-entries">
+          <% mini_leaderboard_entries.each_with_index do |entry, idx| %>
+            <% is_competition = !show_top_entries && idx >= 2 %>
+            <div class="leaderboard-entry <%= 'current-user' if entry.user_id == current_user&.id %>">
+              <% if !is_competition %>
+                <% rank_emoji = case entries.index(entry)
+                  when 0 then "🥇"
+                  when 1 then "🥈"
+                  when 2 then "🥉"
+                  end %>
+                <span class="rank"><%= rank_emoji %></span>
+              <% else %>
+                <% if idx == 2 && entries.index(entry) - entries.index(mini_leaderboard_entries[1]) > 1 %>
+                  <div class="leaderboard-break">...</div>
+                <% end %>
+                <span class="rank"><%= (entries.index(entry) + 1).ordinalize %></span>
+              <% end %>
+              <span class="user">
+                <%= render "shared/user_mention", user: entry.user, show: [:neighborhood] %>
+                <% if entry.user == current_user && current_user.github_username.blank? %>
+                  <span class="super">
+                    <%= link_to "Link active projects", my_settings_path(anchor: "user_github_account"), target: "_blank" %>
+                  </span>
+                <% end %>
+                <% if @active_projects&.dig(entry.user_id).present? %>
+                  <span class="super">
+                    working on <%= link_to @active_projects[entry.user_id].project_name, @active_projects[entry.user_id].repo_url, target: "_blank" %>
+                    <% dev_tool(nil, 'span') do %>
+                      <%= link_to "🌌", visualize_git_url(@active_projects[entry.user_id].repo_url), target: "_blank" %>
+                    <% end %>
+                  </span>
+                <% end %>
+                <% if entry.streak_count > 7 %>
+                  <span class="super" title="7+ daily streak">
+                    🔥 7+
+                  </span>
+                <% elsif entry.streak_count > 0 %>
+                  <span class="super" title="<%= entry.streak_count %> day streak">
+                    🔥 <%= entry.streak_count %>
+                  </span>
                 <% end %>
               </span>
-            <% end %>
-            <% if entry.streak_count > 7 %>
-              <span class="super" title="7+ daily streak">
-                🔥 7+
-              </span>
-            <% elsif entry.streak_count > 0 %>
-              <span class="super" title="<%= entry.streak_count %> day streak">
-                🔥 <%= entry.streak_count %>
-              </span>
-            <% end %>
-          </span>
-          <span class="time"><%= short_time_detailed entry.total_seconds %></span>
+              <span class="time"><%= short_time_detailed entry.total_seconds %></span>
+            </div>
+          <% end %>
         </div>
-      <% end %>
-    </div>
-  </div>
+      </div>
+    <% end %>
+  <% end %>
 <% end %> 

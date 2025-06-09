@@ -1,0 +1,161 @@
+.settings-page .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.settings-page article {
+  background: var(--pico-card-background-color);
+  border: var(--pico-border-width) solid var(--pico-card-border-color);
+  border-radius: var(--pico-border-radius);
+  box-shadow: var(--pico-card-box-shadow);
+  transition: box-shadow var(--pico-transition);
+  margin: 0;
+}
+
+.settings-page article header {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.settings-page article header h2 {
+  margin-bottom: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--pico-color);
+}
+
+.settings-page article header p {
+  margin-bottom: 0;
+  color: var(--pico-muted-color);
+  font-size: 0.875rem;
+}
+
+.settings-page article section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.settings-page article section:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.settings-page article section h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--pico-color);
+}
+
+.settings-page article .form-group {
+  margin-bottom: 1rem;
+}
+
+.settings-page article .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.settings-page article button[role="button"],
+.settings-page article input[type="submit"][role="button"] {
+  margin-top: 1rem;
+}
+
+.settings-page article .secondary {
+  background-color: var(--pico-secondary-background);
+  border-color: var(--pico-secondary-border);
+  color: var(--pico-secondary-color);
+}
+
+.settings-page article .secondary:hover {
+  background-color: var(--pico-secondary-hover-background);
+  border-color: var(--pico-secondary-hover-border);
+}
+
+.settings-page article .code-example {
+  margin: 1rem 0;
+  background: var(--pico-code-background-color);
+  border-radius: var(--pico-border-radius);
+}
+
+.settings-page article .code-example pre {
+  margin: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.settings-page article img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border-radius: var(--pico-border-radius);
+}
+
+.settings-page article pre:not(.code-example pre) {
+  background: var(--pico-code-background-color);
+  padding: 0.75rem;
+  border-radius: var(--pico-border-radius);
+  font-size: 0.875rem;
+  overflow-x: auto;
+}
+
+.settings-page .mirror {
+  padding: 1rem;
+  background: var(--pico-card-sectioning-background-color);
+  border-radius: var(--pico-border-radius);
+  margin-bottom: 1rem;
+}
+
+.settings-page .mirror:last-child {
+  margin-bottom: 0;
+}
+
+.settings-page .email-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.settings-page .email-form .field {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.settings-page .email-form input[type="email"] {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .settings-page .grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .settings-page article {
+    padding: 1rem;
+  }
+
+  .settings-page .email-form .field {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .settings-page article {
+    background: var(--pico-card-background-color, #1e293b);
+    border-color: var(--pico-card-border-color, #334155);
+  }
+
+  .settings-page article:hover {
+    box-shadow: var(
+      --pico-card-box-shadow-hover,
+      0 0.125rem 1rem rgba(0, 0, 0, 0.3)
+    );
+  }
+}

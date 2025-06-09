@@ -8,6 +8,18 @@ class SlackController < ApplicationController
 
   # Handle slack commands
   def create
+    # got hackatime?
+    if params_hash[:command].to_s.downcase.include?("sailorslog")
+      user = User.find_by(slack_uid: params_hash[:user_id])
+      unless user
+        render json: {
+          response_type: "ephemeral",
+          text: "Darn it! I could not find a hackatime account linked with your slack account! please sign up and link your slack account at https://hackatime.hackclub.com/my/settings"
+        }
+        return
+      end
+    end
+
     # Acknowledge receipt
     render json: {
       response_type: "ephemeral",
@@ -38,7 +50,7 @@ class SlackController < ApplicationController
 
   def verify_slack_request
     timestamp = request.headers["X-Slack-Request-Timestamp"]
-    signature = request.headers["X-Slack-Signature"]
+    received_signature = request.headers["X-Slack-Signature"]
 
     # Skip verification in development
     return true if Rails.env.development?
@@ -49,15 +61,14 @@ class SlackController < ApplicationController
 
     sig_basestring = "v0:#{timestamp}:#{request.raw_post}"
 
-    # Try both signing secrets
-    signature = "v0=" + OpenSSL::HMAC.hexdigest(
+    computed_signature = "v0=" + OpenSSL::HMAC.hexdigest(
       "SHA256",
       signing_secret,
       sig_basestring
     )
 
     # Check if the request matches signature
-    unless ActiveSupport::SecurityUtils.secure_compare(signature, signature)
+    unless ActiveSupport::SecurityUtils.secure_compare(received_signature, computed_signature)
       head :unauthorized
       nil
     end

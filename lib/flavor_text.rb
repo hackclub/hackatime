@@ -2,6 +2,8 @@ class FlavorText
   def self.same_user
     [
       "it u!",
+      "it's yUwU",
+      "uwu",
       "hey there",
       "look familiar?",
       "i'm seeing double!!",
@@ -206,9 +208,14 @@ class FlavorText
       "better late than never",
       "beat the clock!",
       "only time will tell!",
-      "it's of the essence",
+      "it's of the essence!",
       "all in good time",
-      "like turbotax for time!"
+      "like turbotax for time!",
+      "never a minute too soon",
+      "a minute saved is a minute earned",
+      "how did it get so late so soon?", # dr. seuss
+      "You can have it all. Just not all at once.", # oprah i think?
+      "from the #{%w[makers inventor].sample} of #{%w[clocks time hackatime].sample}"
     ]
   end
 
@@ -217,7 +224,11 @@ class FlavorText
       "i don't care what everyone else says, you're not that dumb",
       "<a href='https://github.com/hackclub/hackatime' target='_blank'>open source!</a>".html_safe,
       "kill time, don't let it kill you",
-      "the best way to pay your time tax!"
+      "kill time, before it kills you",
+      "better log it or the time man will come out at midnight and get you",
+      "the best way to pay your time tax!",
+      "you need to lock-in",
+      "no time to explain, time is running out!"
     ]
   end
 

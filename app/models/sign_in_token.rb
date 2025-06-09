@@ -3,7 +3,8 @@ class SignInToken < ApplicationRecord
 
   enum :auth_type, {
     email: 0,
-    slack: 1
+    slack: 1,
+    program_magic_link: 2
   }
 
   validates :token, presence: true, uniqueness: true

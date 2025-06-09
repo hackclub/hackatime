@@ -37,6 +37,7 @@ module Api
         return render json: { error: "Email not found" }, status: :bad_request unless email.present?
 
         email_address = EmailAddress.find_or_initialize_by(email: email)
+        email_address.source ||= :slack
         user.email_addresses << email_address unless user.email_addresses.include?(email_address)
 
         user.update_from_slack

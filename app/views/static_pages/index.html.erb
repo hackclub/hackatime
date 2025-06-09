@@ -3,7 +3,11 @@
     <%= @flavor_text %>
   </p>
   <h1 class="title">
-    Keep Track of <span class="primary-color">Your</span> Coding Time
+    <% if current_user %>
+      Keep Track of <span class="primary-color">Your</span> Coding Time
+    <% else %>
+      Free Coding Time Tracker - See How Much You <span class="primary-color">Code</span>
+    <% end %>
     <%# link_to "🃏", wildcard_static_pages_path, class: "wildcard" %>
   </h1>
   <style>
@@ -15,18 +19,34 @@
     }
   </style>
   <p class="flavor">
-    <%= @social_proof&.downcase %>
+    <%= @usage_social_proof&.downcase %>
   </p>
   <% unless current_user %>
     <p class="subtitle">
-      Hackatime is an open source tool that helps you keep track of the time spent coding on different projects.  Ideal for statistics nerds and everyone else.
+      Hackatime helps you track how much time you spend coding. See which programming languages you use most and how productive you are. It's completely free and works with over <%= link_to "75 code editors", docs_path + "#supported-editors" %>!
     </p>
+    
     <% if @home_stats&.[](:seconds_tracked) && @home_stats&.[](:users_tracked) %>
-      <p class="subtitle">
-        Tracking <span class="primary-color"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span>
-        of coding across <span class="primary-color"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'Hack Clubber'.pluralize(@home_stats[:users_tracked]) %></span>
-        since <span class="primary-color">2025</span>.
-      </p>
+      <div class="social-proof">
+        <h2 style="font-size: 1.2em; margin: 0.5em 0;">Join Thousands of High Schoolers</h2>
+        <p class="subtitle">
+          Already tracking <span class="primary-color"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span>
+          of coding across <span class="primary-color"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %></span>
+          since <span class="primary-color">2025</span>.
+        </p>
+      </div>
+      
+      <div class="benefits-section" style="margin: 2em 0;">
+        <h2 style="font-size: 1.3em; margin-bottom: 1em;">Why Choose Hackatime?</h2>
+        <ul style="list-style: none; padding: 0;">
+          <li style="margin: 0.5em 0;">✅ <strong>100% Free</strong> - No paid plans or hidden fees</li>
+          <li style="margin: 0.5em 0;">📊 <strong>75+ Editors</strong> - Works with <%= link_to "VS Code", doc_path("editors/vs-code") %>, <%= link_to "Vim", doc_path("editors/vim") %>, <%= link_to "Sublime", doc_path("editors/sublime-text") %> and <%= link_to "more", docs_path + "#supported-editors" %></li>
+          <li style="margin: 0.5em 0;">📡 <strong>Works Offline</strong> - Time tracking continues even without internet</li>
+          <li style="margin: 0.5em 0;">🔒 <strong>Privacy First</strong> - Your data stays safe</li>
+          <li style="margin: 0.5em 0;">⚡ <strong>Real-time Stats</strong> - See your coding time instantly</li>
+          <li style="margin: 0.5em 0;">🏆 <strong>Leaderboards</strong> - Compare with other high schoolers</li>
+        </ul>
+      </div>
     <% end %>
   <% end %>
   <% if current_user %>
@@ -35,21 +55,21 @@
       <div class="setup-notice">
         <%= link_to "Set up Hackatime! Click me.", my_wakatime_setup_path, class: "auth-button setup-button primary-action" %>
         <div class="setup-info">
-          <% if @recent_setup_users&.any? %>
+          <% if @ssp_users_recent&.any? %>
             <div class="recent-setup-users">
-              <% @recent_setup_users.each do |user| %>
+              <% @ssp_users_recent.each do |user| %>
                 <div class="avatar-container">
                   <div class="avatar-tooltip"><%= user[:display_name] %></div>
                   <img src="<%= user[:avatar_url] %>" alt="<%= user[:display_name] %>" class="setup-avatar" />
                 </div>
               <% end %>
-              <% if @all_setup_users && @all_setup_users.size > 5 %>
-                <div class="avatar-container all-users-hover" title="See all <%= @all_setup_users.size %> users">
-                  <div class="setup-avatar more-avatars">+<%= @all_setup_users.size - 5 %></div>
+              <% if @ssp_users_size && @ssp_users_size > 5 %>
+                <div class="avatar-container all-users-hover" title="See all <%= @ssp_users_size %> users">
+                  <div class="setup-avatar more-avatars">+<%= @ssp_users_size - 5 %></div>
                   <div class="users-hover-list">
                     <h4>All users who set up Hackatime</h4>
                     <div class="hover-user-list">
-                      <% @all_setup_users.each do |user| %>
+                      <% @ssp_users_recent.each do |user| %>
                         <div class="user-item">
                           <img src="<%= user[:avatar_url] %>" alt="<%= user[:display_name] %>" class="user-avatar" />
                           <span class="user-name"><%= user[:display_name] %></span>
@@ -61,7 +81,9 @@
               <% end %>
             </div>
           <% end %>
-          <p class="setup-hint"><%= @setup_social_proof %> (this is real data)</p>
+          <% if @ssp_message %>
+            <p class="setup-hint"><%= @ssp_message %> (this is real data)</p>
+          <% end %>
         </div>
       </div>
     <% end %>
@@ -91,8 +113,8 @@
       <% end %>
     </p>
 
-    <% if @leaderboard %>
-      <%= render "leaderboards/mini_leaderboard", leaderboard: @leaderboard, current_user: current_user %>
+    <%= turbo_frame_tag "mini_leaderboard", src: mini_leaderboard_static_pages_path do %>
+      <%= render "leaderboards/mini_leaderboard_loading" %>
     <% end %>
 
     <%= turbo_frame_tag "filterable_dashboard", src: filterable_dashboard_static_pages_path do %>

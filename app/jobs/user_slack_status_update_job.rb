@@ -1,5 +1,6 @@
 class UserSlackStatusUpdateJob < ApplicationJob
-  queue_as :default
+  queue_as :latency_10s
+
   BATCH_SIZE = 25
 
   def perform

@@ -4,12 +4,39 @@ class User < ApplicationRecord
 
   validates :slack_uid, uniqueness: true, allow_nil: true
   validates :github_uid, uniqueness: true, allow_nil: true
-  validates :timezone, inclusion: { in: TZInfo::Timezone.all.map(&:identifier) }, allow_nil: false
+  validates :timezone, inclusion: { in: TZInfo::Timezone.all_identifiers }, allow_nil: false
+  validates :country_code, inclusion: { in: ISO3166::Country.codes }, allow_nil: true
+
+  attribute :allow_public_stats_lookup, :boolean, default: true
+
+  def country_name
+    ISO3166::Country.new(country_code).common_name
+  end
+
+  def country_subregion
+    ISO3166::Country.new(country_code).subregion
+  end
+
+  enum :trust_level, {
+    yellow: 0,
+    red: 1,
+    green: 2
+  }
+  # yellow is unscored, red being convicted while green being trusted
+  # labels make it easier for display :okay-1:
+
+  def set_trust(level)
+    update!(trust_level: level)
+  end
+  # ex: .set_trust(:green) or set_trust(1) setting it to red
 
   has_many :heartbeats
-  has_many :email_addresses
-  has_many :sign_in_tokens
+  has_many :email_addresses, dependent: :destroy
+  has_many :email_verification_requests, dependent: :destroy
+  has_many :sign_in_tokens, dependent: :destroy
   has_many :project_repo_mappings
+  has_one :mailing_address, dependent: :destroy
+  has_many :physical_mails
 
   has_many :hackatime_heartbeats,
     foreign_key: :user_id,
@@ -28,7 +55,28 @@ class User < ApplicationRecord
     primary_key: :slack_uid,
     class_name: "SailorsLog"
 
-  delegate :streak_days, :streak_days_formatted, to: :heartbeats
+  has_many :wakatime_mirrors, dependent: :destroy
+
+  def streak_days
+    @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
+  end
+
+  if Rails.env.development?
+    def self.slow_find_by_email(email)
+      # This is an n+1 query, but provided for developer convenience
+      EmailAddress.find_by(email: email)&.user
+    end
+  end
+
+  def streak_days_formatted
+    if streak_days > 7
+      "7+"
+    elsif streak_days < 1
+      nil
+    else
+      streak_days.to_s
+    end
+  end
 
   enum :hackatime_extension_text_type, {
     simple_text: 0,
@@ -48,6 +96,19 @@ class User < ApplicationRecord
     ).where(
       job_class: job_classes
     ).order(created_at: :desc).limit(10)
+  end
+
+  def in_progress_migration_jobs?
+    GoodJob::Job.where(job_class: "MigrateUserFromHackatimeJob")
+                .where("serialized_params->>'arguments' = ?", [ id ].to_json)
+                .where(finished_at: nil)
+                .exists?
+  end
+
+  def set_neighborhood_channel
+    return unless slack_uid.present?
+
+    self.slack_neighborhood_channel = SlackNeighborhood.find_by_id(slack_uid)&.dig("id")
   end
 
   def format_extension_text(duration)
@@ -100,6 +161,16 @@ class User < ApplicationRecord
     update!(is_admin: false)
   end
 
+  def raw_github_user_info
+    return nil unless github_uid.present?
+    return nil unless github_access_token.present?
+
+    @github_user_info ||= HTTP.auth("Bearer #{github_access_token}")
+      .get("https://api.github.com/user")
+
+    JSON.parse(@github_user_info.body.to_s)
+  end
+
   def raw_slack_user_info
     return nil unless slack_uid.present?
     return nil unless slack_access_token.present?
@@ -144,9 +215,12 @@ class User < ApplicationRecord
     return if status_present && status_custom
 
     current_project = heartbeats.order(time: :desc).first&.project
-    current_project_heartbeats = heartbeats.today.where(project: current_project)
-    current_project_duration = Heartbeat.duration_seconds(current_project_heartbeats)
-    current_project_duration_formatted = Heartbeat.duration_simple(current_project_heartbeats)
+    current_project_duration = Time.use_zone(timezone) do
+      heartbeats.where(project: current_project)
+                .today
+                .duration_seconds
+    end
+    current_project_duration_formatted = ApplicationController.helpers.short_time_simple(current_project_duration)
 
     # for 0 duration, don't set a status – this will let status expire when the user has not been cooking today
     return if current_project_duration.zero?
@@ -187,10 +261,11 @@ class User < ApplicationRecord
       })
   end
 
-  def self.authorize_url(redirect_uri, close_window: false)
+  def self.authorize_url(redirect_uri, close_window: false, continue_param: nil)
     state = {
       token: SecureRandom.hex(24),
-      close_window: close_window
+      close_window: close_window,
+      continue: continue_param
     }.to_json
 
     params = {
@@ -237,6 +312,7 @@ class User < ApplicationRecord
 
     email = user_data.dig("user", "profile", "email")&.downcase
     email_address = EmailAddress.find_or_initialize_by(email: email)
+    email_address.source ||= :slack
     user = email_address.user
     user ||= begin
       u = User.find_or_initialize_by(slack_uid: data.dig("authed_user", "id"))
@@ -256,6 +332,8 @@ class User < ApplicationRecord
 
     user.slack_access_token = data["authed_user"]["access_token"]
     user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
+
+    user.set_neighborhood_channel
 
     user.save!
     user
@@ -332,12 +410,17 @@ class User < ApplicationRecord
     heartbeats.where(source_type: :direct_entry).order(time: :desc).first
   end
 
-  def create_email_signin_token
-    sign_in_tokens.create!(auth_type: :email)
+  def create_email_signin_token(continue_param: nil)
+    sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
   end
 
   def find_valid_token(token)
     sign_in_tokens.valid.find_by(token: token)
+  end
+
+  # New method for GitHub profile URL
+  def github_profile_url
+    "https://github.com/#{github_username}" if github_username.present?
   end
 
   private

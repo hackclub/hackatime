@@ -1,5 +1,5 @@
 class SlackCommand::SailorsLogHelpJob < ApplicationJob
-  queue_as :default
+  queue_as :latency_10s
 
   def perform(response_url)
     HTTP.post(response_url, json: {

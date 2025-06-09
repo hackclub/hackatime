@@ -18,8 +18,6 @@ gem "turbo-rails"
 gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
-# Avo Community
-gem "avo", ">= 3.2.1"
 # PaperTrail for auditing
 gem "paper_trail"
 # Handle CORS (Cross-Origin Resource Sharing)
@@ -39,6 +37,8 @@ gem "solid_cable"
 gem "stackprof"
 gem "sentry-ruby"
 gem "sentry-rails"
+# Trying out sentry alternative
+gem "honeybadger"
 
 gem "good_job"
 
@@ -80,6 +80,20 @@ gem "flamegraph"
 
 gem "skylight"
 
+# Ahoy analytics
+gem "ahoy_matey"
+gem "geocoder"
+gem "ahoy_captain", git: "https://github.com/johnmcdowall/ahoy_captain.git", branch: "fix_importmaps"
+
+# Airtable syncing
+gem "norairrecord", "~> 0.3.0"
+
+# Country codes
+gem "countries"
+
+# Markdown parsing
+gem "redcarpet"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
@@ -109,4 +123,8 @@ group :test do
   gem "selenium-webdriver"
 end
 
-gem "avo-record_link_field", "~> 0.0.2"
+gem "htmlcompressor", "~> 0.4.0"
+
+gem "doorkeeper", "~> 5.8"
+
+gem "autotuner", "~> 1.0"

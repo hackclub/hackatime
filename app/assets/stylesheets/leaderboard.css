@@ -103,6 +103,14 @@ h3+.mini-leaderboard {
   background-color: #e0e0e0;
 }
 
+.leaderboard-entry.omitted {
+  opacity: 0.4;
+}
+
+.leaderboard-entry.omitted:hover {
+  opacity: 0.6;
+}
+
 /* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
   .mini-leaderboard {
@@ -143,4 +151,19 @@ h3+.mini-leaderboard {
   .period-toggle-btn:hover:not(.active) {
     background-color: rgba(255, 255, 255, 0.1);
   }
+}
+
+.mini-leaderboard.loading .leaderboard-entry {
+  opacity: 0.7;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 0.4; }
+  100% { opacity: 0.7; }
+}
+
+turbo-frame#mini_leaderboard[aria-busy="true"]::before {
+  display: none !important;
 }

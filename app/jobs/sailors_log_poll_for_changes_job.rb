@@ -1,5 +1,5 @@
 class SailorsLogPollForChangesJob < ApplicationJob
-  queue_as :default
+  queue_as :latency_10s
 
   include GoodJob::ActiveJobExtensions::Concurrency
 
@@ -30,6 +30,9 @@ class SailorsLogPollForChangesJob < ApplicationJob
   private
 
   def update_sailors_log(sailors_log)
+    # Skip if there's an active migration job for this user
+    return [] if sailors_log.user.in_progress_migration_jobs?
+
     project_updates = []
     project_durations = Heartbeat.where(user_id: sailors_log.user.id)
                                  .group(:project).duration_seconds
@@ -45,7 +48,8 @@ class SailorsLogPollForChangesJob < ApplicationJob
     notifications_to_create = []
     if sailors_log.changed?
       sailors_log.notification_preferences.each do |np|
-        project_updates.map do |pu|
+        project_updates.each do |pu|
+          next if pu[:project].blank?
           notifications_to_create << {
             slack_uid: sailors_log.user.slack_uid,
             slack_channel_id: np.slack_channel_id,

@@ -1,4 +1,6 @@
 class Cache::ActiveProjectsJob < Cache::ActivityJob
+  queue_as :latency_10s
+
   private
 
   def cache_expiration

@@ -1,0 +1,11 @@
+<header class="page-header" role="banner" style="margin: 0 auto;">
+  <h1>Log in to Hackatime</h1>
+</header>
+<%= link_to "Sign in with Hack Club Slack", slack_auth_path(continue: @continue_param), class: "auth-button slack" %>
+<%= form_tag email_auth_path, class: "email-auth-form", data: { turbo: false } do %>
+  <%= hidden_field_tag :continue, @continue_param if @continue_param %>
+  <div class="field">
+    <%= email_field_tag :email, params[:email], placeholder: "Enter your email", required: true, class: "email-input" %>
+  </div>
+  <%= submit_tag "Send magic link", class: "auth-button email" %>
+<% end %>

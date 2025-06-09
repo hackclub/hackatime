@@ -19,7 +19,9 @@ module Heartbeatable
       end
     end
 
-    def to_span
+    def to_span(timeout_duration: nil)
+      timeout_duration ||= heartbeat_timeout_duration.to_i
+
       heartbeats = with_valid_timestamps.order(time: :asc)
       return [] if heartbeats.empty?
 
@@ -40,11 +42,11 @@ module Heartbeatable
         current_time = row["time"]
         next_time = row["next_time"]
 
-        if next_time.nil? || (next_time - current_time) > heartbeat_timeout_duration.to_i
+        if next_time.nil? || (next_time - current_time) > timeout_duration
           base_duration = (current_time - current_span_start).round
 
           if next_time
-            gap_duration = [ next_time - current_time, heartbeat_timeout_duration.to_i ].min
+            gap_duration = [ next_time - current_time, timeout_duration ].min
             total_duration = base_duration + gap_duration
             end_time = current_time + gap_duration
           else
@@ -65,47 +67,6 @@ module Heartbeatable
       end
 
       spans
-    end
-
-    def streak_days(start_date: 8.days.ago)
-      timezone = all.first&.user&.timezone || "UTC"
-      current_date = Time.current.in_time_zone(timezone).to_date
-
-      scope = coding_only.with_valid_timestamps
-      days = scope.daily_durations(start_date: start_date, end_date: Time.current)
-                .sort_by { |date, _| date }
-                .reverse
-
-      streak = 0
-      days.each do |date, duration|
-        next if date > current_date
-
-        if date == current_date
-          next unless duration >= 15 * 60
-          streak += 1
-          next
-        end
-
-        if date == current_date - streak.days && duration >= 15 * 60
-          streak += 1
-        else
-          break
-        end
-      end
-
-      streak
-    end
-
-    def streak_days_formatted(start_date: 8.days.ago)
-      result = streak_days(start_date: start_date)
-
-      if result > 7
-        "7+"
-      elsif result < 1
-        nil
-      else
-        result.to_s
-      end
     end
 
     def duration_formatted(scope = all)
@@ -202,9 +163,13 @@ module Heartbeatable
       result
     end
 
-    def daily_durations(start_date: 365.days.ago, end_date: Time.current)
-      # Get the timezone from the first associated user (for scoped queries)
-      timezone = all.first&.user&.timezone || "UTC"
+    def daily_durations(user_timezone:, start_date: 365.days.ago, end_date: Time.current)
+      timezone = user_timezone
+
+      unless TZInfo::Timezone.all_identifiers.include?(timezone)
+        Rails.logger.warn "Invalid timezone provided to daily_durations: #{timezone}. Defaulting to UTC."
+        timezone = "UTC"
+      end
 
       # Create the timezone-aware date truncation expression
       day_trunc = Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{timezone}')")
@@ -220,6 +185,10 @@ module Heartbeatable
       scope = scope.with_valid_timestamps
 
       if scope.group_values.any?
+        if scope.group_values.length > 1
+          raise NotImplementedError, "Multiple group values are not supported"
+        end
+
         group_column = scope.group_values.first
 
         # Don't quote if it's a SQL function (contains parentheses)

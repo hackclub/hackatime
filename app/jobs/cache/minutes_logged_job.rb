@@ -1,4 +1,6 @@
 class Cache::MinutesLoggedJob < Cache::ActivityJob
+  queue_as :latency_10s
+
   private
 
   def calculate

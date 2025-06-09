@@ -1,4 +1,6 @@
 class Cache::ActiveUsersGraphDataJob < Cache::ActivityJob
+  queue_as :latency_10s
+
   private
 
   def calculate
@@ -6,6 +8,7 @@ class Cache::ActiveUsersGraphDataJob < Cache::ActivityJob
     hours = Heartbeat.coding_only
                      .with_valid_timestamps
                      .where("time > ?", 24.hours.ago.to_f)
+                     .where("time < ?", Time.current.to_f)
                      .select("(EXTRACT(EPOCH FROM to_timestamp(time))::bigint / 3600 * 3600) as hour, COUNT(DISTINCT user_id) as count")
                      .group("hour")
                      .order("hour DESC")

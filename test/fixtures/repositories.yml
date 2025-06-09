@@ -1,0 +1,27 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  url: MyString
+  host: MyString
+  owner: MyString
+  name: MyString
+  stars: 1
+  description: MyText
+  language: MyString
+  languages: MyText
+  commit_count: 1
+  last_commit_at: 2025-05-30 01:50:16
+  last_synced_at: 2025-05-30 01:50:16
+
+two:
+  url: MyString
+  host: MyString
+  owner: MyString
+  name: MyString
+  stars: 1
+  description: MyText
+  language: MyString
+  languages: MyText
+  commit_count: 1
+  last_commit_at: 2025-05-30 01:50:16
+  last_synced_at: 2025-05-30 01:50:16

@@ -8,10 +8,13 @@ if Rails.env.development?
   test_user = User.find_or_create_by(slack_uid: 'TEST123456') do |user|
     user.username = 'testuser'
     user.is_admin = true
+    # Ensure timezone is set to avoid nil timezone issues
+    user.timezone = 'America/New_York'
   end
 
-  # Add email address
+  # Add email address with slack as the source
   email = test_user.email_addresses.find_or_create_by(email: 'test@example.com')
+  email.update(source: :slack) if email.source.nil?
 
   # Create API key
   api_key = test_user.api_keys.find_or_create_by(name: 'Development API Key') do |key|
@@ -30,18 +33,66 @@ if Rails.env.development?
   puts "  API Key: #{api_key.token}"
   puts "  Sign-in Token: #{token.token}"
 
-  # Create sample heartbeats
-  if test_user.heartbeats.count == 0
-    5.times do |i|
+  # Create sample heartbeats for last 7 days with variety of data
+  if test_user.heartbeats.count < 50
+    # Ensure timezone is set
+    test_user.update!(timezone: 'America/New_York') unless test_user.timezone.present?
+
+    # Create diverse test data over the last 7 days
+    editors = [ 'Zed', 'Neovim', 'VSCode', 'Emacs' ]
+    languages = [ 'Ruby', 'JavaScript', 'TypeScript', 'Python', 'Go', 'HTML', 'CSS', 'Markdown' ]
+    projects = [ 'panorama', 'harbor', 'zera', 'tern', 'smokie' ]
+    operating_systems = [ 'Linux', 'macOS', 'Windows' ]
+    machines = [ 'dev-machine', 'laptop', 'desktop' ]
+
+    # Clear existing heartbeats to ensure consistent test data
+    test_user.heartbeats.destroy_all
+
+    # Create heartbeats for the last 7 days
+    7.downto(0) do |day|
+      # Add 5-20 heartbeats per day
+      heartbeat_count = rand(5..20)
+      heartbeat_count.times do |i|
+        # Distribute throughout the day
+        hour = rand(9..20)  # Between 9 AM and 8 PM
+        minute = rand(0..59)
+        second = rand(0..59)
+
+        # Create timestamp for this heartbeat
+        timestamp = (Time.current - day.days).beginning_of_day + hour.hours + minute.minutes + second.seconds
+
+        # Create the heartbeat with varied data
+        test_user.heartbeats.create!(
+          time: timestamp.to_i,
+          entity: "test/file_#{rand(1..30)}.#{[ 'rb', 'js', 'ts', 'py', 'go' ].sample}",
+          project: projects.sample,
+          language: languages.sample,
+          editor: editors.sample,
+          operating_system: operating_systems.sample,
+          machine: machines.sample,
+          category: "coding",
+          source_type: :direct_entry
+        )
+      end
+    end
+
+    # Create a few sequential heartbeats to properly test duration calculation
+    base_time = Time.current - 2.days
+    10.times do |i|
       test_user.heartbeats.create!(
-        time: (Time.current - i.hours).to_f,
-        entity: "test/file_#{i}.rb",
-        project: "test-project",
-        language: "ruby",
+        time: (base_time + i.minutes).to_i,
+        entity: "test/sequential_file.rb",
+        project: "harbor",
+        language: "Ruby",
+        editor: "Zed",
+        operating_system: "Linux",
+        machine: "dev-machine",
+        category: "coding",
         source_type: :direct_entry
       )
     end
-    puts "Created 5 sample heartbeats for the test user"
+
+    puts "Created comprehensive heartbeat data over the last 7 days for the test user"
   else
     puts "Sample heartbeats already exist for the test user"
   end

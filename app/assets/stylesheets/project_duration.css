@@ -11,6 +11,9 @@
     padding: 1rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .project-duration-card:hover {
@@ -21,8 +24,21 @@
 .project-header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.project-name-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.project-actions {
+    display: flex;
+    gap: 0.5rem;
     align-items: center;
-    margin-bottom: 0.5rem;
 }
 
 .project-header strong {
@@ -33,6 +49,34 @@
 .project-time {
     font-size: 0.875rem;
     color: var(--muted-color);
+    font-weight: 600;
+}
+
+.project-stars {
+    font-size: 0.75rem;
+    color: var(--muted-color);
+}
+
+.project-description {
+    font-size: 0.875rem;
+    color: var(--muted-color);
+    line-height: 1.4;
+}
+
+.project-languages {
+    font-size: 0.8rem;
+    color: var(--muted-color);
+}
+
+.languages-label {
+    font-weight: 600;
+    margin-right: 0.25rem;
+}
+
+.project-meta {
+    font-size: 0.75rem;
+    color: var(--muted-color);
+    margin-top: 0.25rem;
 }
 
 .project-progress-bar {

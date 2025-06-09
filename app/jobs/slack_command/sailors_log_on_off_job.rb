@@ -1,5 +1,5 @@
 class SlackCommand::SailorsLogOnOffJob < ApplicationJob
-  queue_as :default
+  queue_as :latency_10s
 
   def perform(slack_uid, slack_channel_id, user_name, response_url, enabled)
     # set preference for the user
