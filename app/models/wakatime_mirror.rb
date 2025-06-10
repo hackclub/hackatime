@@ -13,7 +13,9 @@ class WakatimeMirror < ApplicationRecord
 
   def unsynced_heartbeats
     # Get heartbeats since last sync, or all heartbeats if never synced
-    user.heartbeats.where("created_at > ?", last_synced_at || Time.at(0))
+    user.heartbeats
+      .where("created_at > ?", last_synced_at || Time.at(0))
+      .where.not(source_type: :wakatimecom_import)
   end
 
   def sync_heartbeats
