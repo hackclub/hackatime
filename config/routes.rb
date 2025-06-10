@@ -52,7 +52,6 @@ Rails.application.routes.draw do
       get :filterable_dashboard_content
       get :filterable_dashboard
       get :mini_leaderboard
-      get "🃏", to: "static_pages#🃏", as: :wildcard
       get :streak
       # get :timeline # Removed: Old route for timeline
     end

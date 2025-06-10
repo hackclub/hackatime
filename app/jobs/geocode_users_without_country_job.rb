@@ -6,7 +6,7 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
   enqueue_limit 1
 
   def perform
-    return if geocodable_users.empty?
+    return unless geocodable_users.exists?
 
     description = "Geocoding #{geocodable_users.count} user(s) at #{Time.current.iso8601}"
 

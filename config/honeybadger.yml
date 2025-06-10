@@ -25,6 +25,11 @@ development_environments:
 # Enable verbose debug logging (useful for troubleshooting).
 debug: false
 
+# Ignore noisy errors
+exceptions:
+  ignore:
+    - GoodJob::ActiveJobExtensions::Concurrency::ConcurrencyExceededError
+
 # Enable Honeybadger Insights
 insights:
   enabled: true

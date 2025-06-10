@@ -182,44 +182,6 @@ class StaticPagesController < ApplicationController
     render partial: "filterable_dashboard_content"
   end
 
-  def 🃏
-    redirect_to root_path unless current_user && current_user.slack_uid.present?
-
-    record = HTTP.auth("Bearer #{ENV.fetch("WILDCARD_AIRTABLE_KEY")}").patch("https://api.airtable.com/v0/appt3yVn2nbiUaijm/tblRCAMjfQ4MIsMPp",
-      json: {
-        records: [
-          {
-            fields: {
-              slack_id: current_user.slack_uid
-            }
-          }
-        ],
-        performUpsert: {
-          fieldsToMergeOn: [ "slack_id" ]
-        }
-      }
-    )
-    record_data = JSON.parse(record.body)
-
-    record_id = record_data.dig("records", 0, "id")
-
-    redirect_to root_path unless record_id&.present?
-
-    # if record is created, set a new auth_key:
-    auth_key = SecureRandom.hex(16)
-    HTTP.auth("Bearer #{ENV.fetch("WILDCARD_AIRTABLE_KEY")}").patch("https://api.airtable.com/v0/appt3yVn2nbiUaijm/tblRCAMjfQ4MIsMPp",
-      json: {
-        records: [
-          { id: record_id, fields: { auth_key: auth_key } }
-        ]
-      }
-    )
-
-    wildcard_host = ENV.fetch("WILDCARD_HOST")
-
-    redirect_to "#{wildcard_host}?auth_key=#{auth_key}", allow_other_host: wildcard_host
-  end
-
   private
 
   def ensure_current_user

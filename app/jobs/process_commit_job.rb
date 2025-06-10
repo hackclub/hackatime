@@ -83,7 +83,7 @@ class ProcessCommitJob < ApplicationJob
         commit = Commit.find_or_create_by(sha: api_commit_sha) do |c|
           c.user_id = user.id
           c.repository_id = repository&.id
-          c.github_raw = commit_data_json
+          c.github_raw = sanitize_json_data(commit_data_json)
           c.created_at = commit_actual_created_at
           c.updated_at = Time.current
         end
@@ -118,5 +118,14 @@ class ProcessCommitJob < ApplicationJob
     rescue ActiveRecord::RecordInvalid => e
       Rails.logger.error "[ProcessCommitJob] Validation failed for commit #{commit_sha} (User ##{user.id}): #{e.message}"
     end
+  end
+
+  def sanitize_json_data(data)
+    json_string = data.to_json
+    sanitized_string = json_string.gsub(/\\u0000/, "")
+    JSON.parse(sanitized_string)
+  rescue JSON::ParserError => e
+    Rails.logger.warn "[ProcessCommitJob] Failed to sanitize JSON data: #{e.message}. Falling back to original data."
+    data
   end
 end
