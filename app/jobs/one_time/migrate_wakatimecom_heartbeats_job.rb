@@ -98,7 +98,7 @@ class OneTime::MigrateWakatimecomHeartbeatsJob < ApplicationJob
       begin
         result = Heartbeat.upsert_all(
           heartbeats_to_insert,
-          unique_by: :index_heartbeats_on_fields_hash
+          unique_by: :fields_hash
         )
         puts "inserted #{result.rows.size} heartbeats."
       rescue => e
@@ -114,7 +114,7 @@ class OneTime::MigrateWakatimecomHeartbeatsJob < ApplicationJob
   end
 
   def get_dumps
-    auth_token = Base64.strict_encode64("#{@user.wakatime_api_key}:")
+    auth_token = Base64.strict_encode64("#{@api_key}:")
     response = HTTP.auth("Basic #{auth_token}")
       .get("https://api.wakatime.com/api/v1/users/current/data_dumps")
 
@@ -128,7 +128,7 @@ class OneTime::MigrateWakatimecomHeartbeatsJob < ApplicationJob
   end
 
   def create_dump
-    auth_token = Base64.strict_encode64("#{@user.wakatime_api_key}:")
+    auth_token = Base64.strict_encode64("#{@api_key}:")
     HTTP.auth("Basic #{auth_token}")
       .post("https://api.wakatime.com/api/v1/users/current/data_dumps",
         json: {
@@ -160,7 +160,7 @@ class OneTime::MigrateWakatimecomHeartbeatsJob < ApplicationJob
   end
 
   def get_machines
-    auth_token = Base64.strict_encode64("#{@user.wakatime_api_key}:")
+    auth_token = Base64.strict_encode64("#{@api_key}:")
     all_machines = []
     page = 1
     
@@ -191,7 +191,7 @@ class OneTime::MigrateWakatimecomHeartbeatsJob < ApplicationJob
   end
 
   def get_agents # basically the editors
-    auth_token = Base64.strict_encode64("#{@user.wakatime_api_key}:")
+    auth_token = Base64.strict_encode64("#{@api_key}:")
     all_agents = []
     page = 1
     

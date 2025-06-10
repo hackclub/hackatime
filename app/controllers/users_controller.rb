@@ -41,7 +41,7 @@ class UsersController < ApplicationController
 
   def migrate_wakatimecom_heartbeats
     OneTime::MigrateWakatimecomHeartbeatsJob.perform_later(@user.id)
-    redirect_to is_own_settings? ? my_settings_path : user_settings_path(@user),
+    redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
       notice: "Wakatime.com heartbeats migration started"
   end
 
