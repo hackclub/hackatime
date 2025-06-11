@@ -99,5 +99,10 @@
         OAuth2 apps
       <% end %>
     <% end %>
+    <% admin_tool(nil, "li") do %>
+      <%= link_to flipper_path, class: "nav-item #{current_page?(flipper_path) ? 'active' : ''}", data: { action: "click->nav#clickLink" } do %>
+        Feature Flags
+      <% end %>
+    <% end %>
   </ul>
 </aside>

@@ -95,8 +95,10 @@
           <% if @user.github_access_token.present? %>
             <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, role: "button" %>
             <%= link_to "Unlink GitHub Account", github_unlink_path, 
-                method: :delete, 
-                data: { confirm: "Are you sure? This will remove access to your GitHub data." }, 
+                data: { 
+                  turbo_method: :delete,
+                  confirm: "Are you sure? This will remove access to your GitHub data." 
+                }, 
                 role: "button", 
                 class: "outline" %>
           <% else %>
@@ -264,6 +266,15 @@
         </fieldset>
         <%= f.submit "Save Settings", role: "button" %>
       <% end %>
+    </article>
+
+    <article>
+      <header>
+        <h2 id="user_beta_features">🧪 Beta Features</h2>
+        <p>Enable experimental features and help us test new functionality.</p>
+      </header>
+      
+      <%= render "timezone_leaderboard_toggle", user: @user %>
     </article>
 
     <% admin_tool do %>

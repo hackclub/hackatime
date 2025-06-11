@@ -82,12 +82,22 @@ class StaticPagesController < ApplicationController
   end
 
   def mini_leaderboard
-    @leaderboard = Leaderboard.where.associated(:entries)
-                              .where(start_date: Date.current)
-                              .where(deleted_at: nil)
-                              .where(period_type: :daily)
-                              .distinct
-                              .first
+    @use_timezone_leaderboard = current_user && Flipper.enabled?(:timezone_leaderboard, current_user)
+
+    if @use_timezone_leaderboard && current_user&.timezone_utc_offset
+      # Use regional leaderboard for beta participants
+      @leaderboard = LeaderboardGenerator.generate_timezone_offset_leaderboard(
+        Date.current, current_user.timezone_utc_offset, :daily
+      )
+    else
+      # Use global leaderboard
+      @leaderboard = Leaderboard.where.associated(:entries)
+                                .where(start_date: Date.current)
+                                .where(deleted_at: nil)
+                                .where(period_type: :daily)
+                                .distinct
+                                .first
+    end
 
     @active_projects = Cache::ActiveProjectsJob.perform_now
 

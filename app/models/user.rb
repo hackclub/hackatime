@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  include TimezoneRegions
+
   has_paper_trail
   encrypts :slack_access_token, :github_access_token
 

@@ -1,5 +1,5 @@
 class SyncRepoMetadataJob < ApplicationJob
-  queue_as :default
+  queue_as :literally_whenever
 
   retry_on HTTP::TimeoutError, HTTP::ConnectionError, wait: :exponentially_longer, attempts: 3
   retry_on JSON::ParserError, wait: 10.seconds, attempts: 2

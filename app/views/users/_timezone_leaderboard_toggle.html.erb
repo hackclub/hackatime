@@ -1,0 +1,12 @@
+<div id="timezone_leaderboard_toggle">
+  <p>
+    <strong>Regional & Timezone Leaderboards</strong><br>
+    <small>Access regional leaderboards that show users in your timezone region or specific timezone. Choose between timezone-specific, regional (UTC offset), or global competition modes.</small>
+  </p>
+  <%= form_with url: (@is_own_settings ? my_settings_path : settings_user_path(user)), method: :patch, local: false do |f| %>
+    <%= hidden_field_tag :toggle_timezone_leaderboard, "1" %>
+    <%= f.submit Flipper.enabled?(:timezone_leaderboard, user) ? "Disable Feature" : "Enable Feature", 
+                 role: "button", 
+                 class: Flipper.enabled?(:timezone_leaderboard, user) ? "secondary" : "" %>
+  <% end %>
+</div>

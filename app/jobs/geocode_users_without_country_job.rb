@@ -6,13 +6,11 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
   enqueue_limit 1
 
   def perform
-    return unless geocodable_users.exists?
+    return unless geocodable_users.present?
 
-    description = "Geocoding #{geocodable_users.count} user(s) at #{Time.current.iso8601}"
-
-    GoodJob::Batch.enqueue(description: description) do
-      geocodable_users.find_each do |user|
-        SetUserCountryCodeJob.perform_later(user.id)
+    GoodJob::Bulk.enqueue do
+      geocodable_users.each do |user_id|
+        SetUserCountryCodeJob.perform_later(user_id)
       end
     end
   end
@@ -24,5 +22,6 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
                               .joins(:heartbeats)
                               .where.not(heartbeats: { ip_address: nil })
                               .distinct
+                              .pluck(:id)
   end
 end

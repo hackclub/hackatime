@@ -1,7 +1,7 @@
 <%= turbo_frame_tag "mini_leaderboard" do %>
   <% if leaderboard.present? %>
     <%
-      entries = leaderboard.entries.order(total_seconds: :desc)
+      entries = leaderboard.entries.respond_to?(:order) ? leaderboard.entries.order(total_seconds: :desc) : leaderboard.entries
       if current_user
         user_rank = entries.find_index { |entry| entry.user_id == current_user.id }
         if user_rank && user_rank >= 3
@@ -25,9 +25,13 @@
     <% if mini_leaderboard_entries&.any? %>
       <div class="mini-leaderboard">
         <p class="super">
-          This leaderboard is in <%= Leaderboard::GLOBAL_TIMEZONE %>.
-          <% if current_user && timezone_difference_in_seconds(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) != 0 %>
-            <%= timezone_difference_in_words(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) %>
+          <% if leaderboard.respond_to?(:scope_name) %>
+            🧪 <strong><%= link_to "Regional Leaderboard", my_settings_path(anchor: "user_beta_features") %>:</strong> Showing others in <%= link_to "your timezone", my_settings_path(anchor: "user_timezone") %>
+          <% else %>
+            This leaderboard is in <%= Leaderboard::GLOBAL_TIMEZONE %>.
+            <% if current_user && timezone_difference_in_seconds(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) != 0 %>
+              <%= timezone_difference_in_words(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) %>
+            <% end %>
           <% end %>
         </p>
         <div class="leaderboard-entries">

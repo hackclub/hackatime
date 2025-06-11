@@ -19,6 +19,7 @@ services:
 
   db:
     image: postgres:16
+    shm_size: '2gb'
     volumes:
       - harbor_postgres_data:/var/lib/postgresql/data
     environment:

@@ -20,15 +20,47 @@ class UsersController < ApplicationController
   end
 
   def update
-    if @user.update(user_params)
-      if @user.uses_slack_status?
-        @user.update_slack_status
+    # Handle timezone leaderboard toggle
+    if params[:toggle_timezone_leaderboard] == "1"
+      if Flipper.enabled?(:timezone_leaderboard, @user)
+        Flipper.disable(:timezone_leaderboard, @user)
+        message = "Regional & Timezone Leaderboards disabled"
+      else
+        Flipper.enable(:timezone_leaderboard, @user)
+        message = "Regional & Timezone Leaderboards enabled"
       end
+
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "timezone_leaderboard_toggle",
+            partial: "timezone_leaderboard_toggle",
+            locals: { user: @user }
+          )
+        end
+        format.html do
+          redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
+            notice: message
+        end
+      end
+      return
+    end
+
+    # Handle regular user settings updates
+    if params[:user].present?
+      if @user.update(user_params)
+        if @user.uses_slack_status?
+          @user.update_slack_status
+        end
+        redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
+          notice: "Settings updated successfully"
+      else
+        flash[:error] = "Failed to update settings"
+        render :settings, status: :unprocessable_entity
+      end
+    else
       redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
         notice: "Settings updated successfully"
-    else
-      flash[:error] = "Failed to update settings"
-      render :settings, status: :unprocessable_entity
     end
   end
 

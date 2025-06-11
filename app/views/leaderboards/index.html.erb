@@ -2,16 +2,37 @@
   <div class="header">
     <h1>Leaderboard</h1>
 
-    <em>This leaderboard runs in UTC time!</em>
+    <% if @scope == 'regional' %>
+      <em>🧪 <strong>Regional Leaderboard:</strong> Showing users in <%= @scope_description %></em>
+    <% elsif @scope == 'timezone' %>
+      <em>🧪 <strong>Timezone Leaderboard:</strong> Showing users in <%= @scope_description %></em>
+    <% elsif @scope == 'global' %>
+      <em>This leaderboard runs in UTC time!</em>
+    <% else %>
+      <em>🧪 <strong>Regional Leaderboard:</strong> Showing users in <%= @scope_description %></em>
+    <% end %>
     
     <div class="period-toggle">
-      <%= link_to "Daily", leaderboards_path(period_type: 'daily'), 
-                  class: "period-toggle-btn #{@period_type == :daily ? 'active' : ''}" %>
-      <%= link_to "Weekly", leaderboards_path(period_type: 'weekly'), 
+      <%= link_to "Daily", leaderboards_path(period_type: 'daily', scope: @scope), 
+                  class: "period-toggle-btn #{(@period_type == :daily || @period_type == :daily_timezone_normalized) ? 'active' : ''}" %>
+      <%= link_to "Weekly", leaderboards_path(period_type: 'weekly', scope: @scope), 
                   class: "period-toggle-btn #{@period_type == :weekly ? 'active' : ''}" %>
-      <%= link_to "Last 7 Days", leaderboards_path(period_type: 'last_7_days'), 
+      <%= link_to "Last 7 Days", leaderboards_path(period_type: 'last_7_days', scope: @scope), 
                   class: "period-toggle-btn #{@period_type == :last_7_days ? 'active' : ''}" %>
     </div>
+
+    <% if current_user && Flipper.enabled?(:timezone_leaderboard, current_user) %>
+      <div class="period-toggle">
+        <%= link_to "Timezone", leaderboards_path(period_type: @period_type, scope: 'timezone'), 
+                    class: "period-toggle-btn #{@scope == 'timezone' ? 'active' : ''}" %>
+        <%= link_to "Regional", leaderboards_path(period_type: @period_type, scope: 'regional'), 
+                    class: "period-toggle-btn #{@scope == 'regional' ? 'active' : ''}" %>
+        <%= link_to "Global", leaderboards_path(period_type: @period_type, scope: 'global'), 
+                    class: "period-toggle-btn #{@scope == 'global' ? 'active' : ''}" %>
+      </div>
+    <% end %>
+
+
 
     <% if current_user && current_user.github_uid.blank? %>
       <p>
@@ -23,7 +44,7 @@
       <% if @leaderboard %>
         <%= @leaderboard.date_range_text %>
 
-        <% if @leaderboard.finished_generating? %>
+        <% if @leaderboard.finished_generating? && @leaderboard.persisted? %>
           <span class="super">
             Updated <%= time_ago_in_words(@leaderboard.updated_at) %> ago.
           </span>
@@ -103,7 +124,7 @@
           <%= link_to "updated their wakatime config", my_settings_path, target: "_blank" %>.
         </p>
       <% end %>
-      <% if @leaderboard.finished_generating? %>
+      <% if @leaderboard.finished_generating? && @leaderboard.persisted? %>
         <span class="super">
           Generated in <%= @leaderboard.finished_generating_at - @leaderboard.created_at %> seconds
         </span>

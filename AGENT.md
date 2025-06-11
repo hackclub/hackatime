@@ -24,6 +24,8 @@
 
 ## Git Practices
 - **NEVER commit `config/database.yml`** unless explicitly asked to - contains sensitive local/production database credentials
+- **NEVER use `git add .`** - always add files individually to avoid accidentally committing unwanted files
+- Use `git add <specific-file>` or `git add <directory>/` for targeted commits
 
 ## Code Style (rubocop-rails-omakase)
 - **Naming**: snake_case files/methods/vars, PascalCase classes, 2-space indent
