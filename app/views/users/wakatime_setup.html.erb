@@ -51,10 +51,7 @@
     <p>Create or edit <code>~/.wakatime.cfg</code> with the following content:</p>
     
     <div class="code-block">
-      <code>[settings]
-api_url = <%= api_hackatime_v1_url %>
-api_key = <%= @current_user_api_key %>
-heartbeat_rate_limit_seconds = 30</code>
+      <code>[settings]&#10;api_url = <%= api_hackatime_v1_url %>&#10;api_key = <%= @current_user_api_key %>&#10;heartbeat_rate_limit_seconds = 30</code>
       <button class="copy-button" onclick="copyCode(this)">Copy</button>
     </div>
     
@@ -344,7 +341,7 @@ heartbeat_rate_limit_seconds = 30</code>
     width: fit-content;
     max-width: 75vw;
     display: flex;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 0.5rem;
   }
 
@@ -355,7 +352,6 @@ heartbeat_rate_limit_seconds = 30</code>
     font-size: 0.875rem;
     cursor: pointer;
     flex-shrink: 0;
-    margin-top: 0.25rem;
     background-color: #0066cc;
     color: white;
     border: 1px solid #0055aa;
