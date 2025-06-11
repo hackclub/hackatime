@@ -10,10 +10,7 @@ class Leaderboard < ApplicationRecord
   enum :period_type, {
     daily: 0,
     weekly: 1,
-    last_7_days: 2,
-    daily_timezone_normalized: 3,
-    daily_regional: 4,
-    daily_timezone_specific: 5
+    last_7_days: 2
   }
 
   def finished_generating?
