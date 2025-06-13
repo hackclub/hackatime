@@ -49,17 +49,7 @@
         <% unless @can_enable_slack_status %>
           <%= link_to "Re-authorize with Slack to give permission to update your status", slack_auth_path, role: "button", class: "secondary" %>
         <% end %>
-        <%= form_with model: @user,
-          url: @is_own_settings ? my_settings_path : settings_user_path(@user),
-          method: :patch do |f| %>
-          <fieldset>
-            <label>
-              <%= f.check_box :uses_slack_status, id: "user_uses_slack_status" %>
-              <%= f.label :uses_slack_status, "Update my Slack status with my current project" %>
-            </label>
-          </fieldset>
-          <%= f.submit "Save Settings", role: "button" %>
-        <% end %>
+        <%= render "slack_status_toggle", user: @user %>
       </section>
 
       <section>
@@ -145,17 +135,7 @@
       <header>
         <h2 id="user_hackatime_extension">⚙️ Extension Settings</h2>
       </header>
-      <%= form_with model: @user,
-        url: @is_own_settings ? my_settings_path : settings_user_path(@user),
-        method: :patch do |f| %>
-        <div class="form-group">
-          <%= f.label "Simple text" %>
-          <%= f.select :hackatime_extension_text_type,
-              User.hackatime_extension_text_types.keys.map { |type| [type.humanize, type] },
-              selected: @user.hackatime_extension_text_type, class: "form-select" %>
-        </div>
-        <%= f.submit "Save Settings", role: "button" %>
-      <% end %>
+      <%= render "extension_settings", user: @user %>
     </article>
 
     <article>
@@ -255,17 +235,7 @@
         <h2 id="user_privacy">🔒 Privacy Settings</h2>
       </header>
       
-      <%= form_with model: @user,
-        url: @is_own_settings ? my_settings_path : settings_user_path(@user),
-        method: :patch do |f| %>
-        <fieldset>
-          <label for="user_allow_public_stats_lookup">
-            <%= f.check_box :allow_public_stats_lookup, id: "user_allow_public_stats_lookup" %>
-            <%= f.label :allow_public_stats_lookup, "Allow others to look up my public coding stats via the API" %>
-          </label>
-        </fieldset>
-        <%= f.submit "Save Settings", role: "button" %>
-      <% end %>
+      <%= render "privacy_settings_toggle", user: @user %>
     </article>
 
     <article>

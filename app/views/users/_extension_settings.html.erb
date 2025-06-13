@@ -1,0 +1,13 @@
+<div id="extension_settings">
+  <%= form_with model: user,
+    url: (@is_own_settings ? my_settings_path : settings_user_path(user)),
+    method: :patch, local: false do |f| %>
+    <div class="form-group">
+      <%= f.label "Simple text" %>
+      <%= f.select :hackatime_extension_text_type,
+          User.hackatime_extension_text_types.keys.map { |type| [type.humanize, type] },
+          { selected: user.hackatime_extension_text_type }, 
+          { class: "form-select", onchange: "this.form.submit()" } %>
+    </div>
+  <% end %>
+</div>

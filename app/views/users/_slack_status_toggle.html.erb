@@ -1,0 +1,12 @@
+<div id="slack_status_toggle">
+  <p>
+    <strong>Slack Status Updates</strong><br>
+    <small>Update my Slack status with my current project</small>
+  </p>
+  <%= form_with url: (@is_own_settings ? my_settings_path : settings_user_path(user)), method: :patch, local: false do |f| %>
+    <%= hidden_field_tag :toggle_slack_status, "1" %>
+    <%= f.submit user.uses_slack_status? ? "Disable Status Updates" : "Enable Status Updates", 
+                 role: "button", 
+                 class: user.uses_slack_status? ? "secondary" : "" %>
+  <% end %>
+</div>
