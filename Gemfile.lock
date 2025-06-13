@@ -311,7 +311,7 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.8-x86_64-linux-musl)
       racc (~> 1.4)
-    norairrecord (0.3.0)
+    norairrecord (0.4.0)
       faraday (>= 1.0, < 3.0)
       faraday-net_http_persistent
       net-http-persistent
@@ -566,7 +566,7 @@ DEPENDENCIES
   letter_opener
   letter_opener_web (~> 3.0)
   memory_profiler
-  norairrecord (~> 0.3.0)
+  norairrecord (~> 0.4.0)
   paper_trail
   pg
   propshaft
