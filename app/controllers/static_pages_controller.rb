@@ -14,7 +14,7 @@ class StaticPagesController < ApplicationController
         # implement this later– for now just redirect to the projects page with the date
         begin
           date = Date.parse(params[:date])
-          redirect_to "/my/projects?interval=custom&from=#{date}&to=#{date + 1.day}"
+          redirect_to "/my/projects?interval=custom&from=#{date}&to=#{date}"
         rescue ArgumentError
         end
       end
