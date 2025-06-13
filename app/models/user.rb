@@ -89,11 +89,15 @@ class User < ApplicationRecord
   after_save :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
 
   def data_migration_jobs
+    job_classes = [
+      "OneTime::MigrateUserFromHackatimeJob",
+      "OneTime::MigrateWakatimecomHeartbeatsJob"
+    ]
     GoodJob::Job.where(
       "serialized_params->>'arguments' = ?", [ id ].to_json
     ).where(
-      "job_class = ?", "MigrateUserFromHackatimeJob"
-    ).order(created_at: :desc).limit(10).all
+      job_class: job_classes
+    ).order(created_at: :desc).limit(10)
   end
 
   def in_progress_migration_jobs?

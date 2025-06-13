@@ -71,6 +71,12 @@ class UsersController < ApplicationController
       notice: "Heartbeats & api keys migration started"
   end
 
+  def migrate_wakatimecom_heartbeats
+    OneTime::MigrateWakatimecomHeartbeatsJob.perform_later(@user.id)
+    redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
+      notice: "Wakatime.com heartbeats migration started"
+  end
+
   def wakatime_setup
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
@@ -132,6 +138,6 @@ class UsersController < ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:uses_slack_status, :hackatime_extension_text_type, :timezone, :allow_public_stats_lookup)
+    params.require(:user).permit(:uses_slack_status, :hackatime_extension_text_type, :timezone, :wakatime_api_key, :allow_public_stats_lookup)
   end
 end

@@ -18,7 +18,8 @@ class Heartbeat < ApplicationRecord
   enum :source_type, {
     direct_entry: 0,
     wakapi_import: 1,
-    test_entry: 2
+    test_entry: 2,
+    wakatimecom_import: 3
   }
 
   enum :ysws_program, {
