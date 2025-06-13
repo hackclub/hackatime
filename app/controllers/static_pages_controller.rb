@@ -11,9 +11,12 @@ class StaticPagesController < ApplicationController
       @flavor_text = flavor_texts.sample
 
       unless params[:date].blank?
-        # implement this later– for now just redirect to a random video
-        allowed_hosts = FlavorText.random_time_video.map { |v| URI.parse(v).host }
-        redirect_to FlavorText.random_time_video.sample, allow_other_host: allowed_hosts
+        # implement this later– for now just redirect to the projects page with the date
+        begin
+          date = Date.parse(params[:date])
+          redirect_to "/my/projects?interval=custom&from=#{date}&to=#{date + 1.day}"
+        rescue ArgumentError
+        end
       end
 
       if current_user.heartbeats.empty? || params[:show_wakatime_setup_notice]
