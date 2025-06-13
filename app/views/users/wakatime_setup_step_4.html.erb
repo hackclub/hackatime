@@ -14,6 +14,12 @@
   <button>Set up another editor</button>
 <% end %>
 
-<%= link_to root_path do %>
-  <button>Done</button>
+<% if (url = session.dig(:return_data, "url")) %>
+  <%= link_to url do %>
+    <button><%= session.dig(:return_data, "button_text") || "Done" %></button>
+  <% end %>
+  <% else %>
+  <%= link_to root_path do %>
+    <button>Done</button>
+  <% end %>
 <% end %>

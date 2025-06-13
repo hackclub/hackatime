@@ -38,7 +38,7 @@ module Api
       end
 
       def magic_link_params
-        params.permit(:continue_param)
+        params.permit(:continue_param, return_data: {})
       end
     end
   end
