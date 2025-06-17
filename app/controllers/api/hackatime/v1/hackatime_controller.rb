@@ -235,9 +235,10 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       source_type = :direct_entry
 
       # Fallback to :plugin if :user_agent is not set
-      raw_ua = heartbeat[:user_agent] || heartbeat[:plugin] || ""
+      fallback_value = heartbeat.delete(:plugin)
+      heartbeat[:user_agent] ||= fallback_value
 
-      parsed_ua = WakatimeService.parse_user_agent(raw_ua)
+      parsed_ua = WakatimeService.parse_user_agent(heartbeat[:user_agent])
 
       # special case: if the entity is "test.txt", this is a test heartbeat
       if heartbeat[:entity] == "test.txt"
@@ -321,7 +322,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       :project_root_count,
       :time,
       :type,
-      :user_agent
+      :user_agent,
+      :plugin
     ]
   end
 
@@ -332,7 +334,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     elsif request.content_type&.include?("text/plain") && request.raw_post.present?
       # Handle text/plain requests by parsing JSON directly
       parsed_json = JSON.parse(request.raw_post, symbolize_names: true) rescue []
-      { heartbeats: parsed_json }
+      filtered_json = parsed_json.map { |hb| hb.slice(*heartbeat_keys) }
+      { heartbeats: filtered_json }
     else
       params.require(:hackatime).permit(
         heartbeats: [
