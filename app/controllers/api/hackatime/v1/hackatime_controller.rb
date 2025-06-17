@@ -235,14 +235,9 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       source_type = :direct_entry
 
       # Fallback to :plugin if :user_agent is not set
-      if heartbeat[:user_agent].blank? && heartbeat[:plugin].present?
-        heartbeat[:user_agent] = heartbeat[:plugin]
-      end
+      raw_ua = heartbeat[:user_agent] || heartbeat[:plugin] || ""
 
-      # Make sure theres no extra keys
-      heartbeat.slice!(*heartbeat_keys)
-
-      parsed_ua = WakatimeService.parse_user_agent(heartbeat[:user_agent] || "")
+      parsed_ua = WakatimeService.parse_user_agent(raw_ua)
 
       # special case: if the entity is "test.txt", this is a test heartbeat
       if heartbeat[:entity] == "test.txt"
