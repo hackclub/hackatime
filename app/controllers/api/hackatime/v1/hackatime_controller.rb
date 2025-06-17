@@ -240,9 +240,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
       parsed_ua = WakatimeService.parse_user_agent(heartbeat[:user_agent])
 
-      # Avoid unviewable categories
-      heartbeat[:category] ||= "unknown"
-
       # special case: if the entity is "test.txt", this is a test heartbeat
       if heartbeat[:entity] == "test.txt"
         source_type = :test_entry

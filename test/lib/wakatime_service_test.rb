@@ -63,6 +63,14 @@ class WakatimeServiceTest < Minitest::Test
     assert_nil result[:error]
   end
 
+  def test_parse_user_agent_with_Firefox
+    user_agent = "Firefox/139.0 linux_x86-64 firefox-wakatime/4.1.0"
+    result = WakatimeService.parse_user_agent(user_agent)
+    assert_equal "linux", result[:os]
+    assert_equal "firefox", result[:editor]
+    assert_nil result[:error]
+  end
+
   def test_parse_user_agent_with_invalid_user_agent
     user_agent = "invalid-user-agent"
     result = WakatimeService.parse_user_agent(user_agent)
