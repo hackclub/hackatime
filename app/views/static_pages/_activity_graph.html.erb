@@ -4,16 +4,27 @@
       <div class="activity-graph">
         <% (365.days.ago.to_date..Time.current.to_date).to_a.each do |date| %>
           <% duration = daily_durations[date] || 0 %>
-          <% # Calculate lightness from 90% (least active) to 20% (most active) %>
-          <% # if there is no duration, set lightness to 100% %>
-          <% lightness = (duration < 1.minute) ? 100 : 100 - (70.0 * duration / length_of_busiest_day) %>
-          <a class="day"
+          <% if duration < 1.minute %>
+            <% level = 0 %>
+          <% else %>
+            <% ratio = duration.to_f / length_of_busiest_day %>
+            <% level =
+              if ratio >= 0.8
+                4
+              elsif ratio >= 0.5
+                3
+              elsif ratio >= 0.2
+                2
+              else
+                1
+              end %>
+          <% end %>
+          <a class="day lvl<%= level %>"
             href="?date=<%= date %>"
             data-turbo-frame="_top"
             data-date="<%= date %>"
             data-duration="<%= distance_of_time_in_words(duration) %>"
-            title="you hacked for <%= distance_of_time_in_words(duration) %> on <%= date %>"
-            style="background-color: hsl(120, 100%, <%= lightness %>%);">
+            title="you hacked for <%= distance_of_time_in_words(duration) %> on <%= date %>">
           </a>
         <% end %>
       </div>
@@ -23,3 +34,4 @@
     </div>
   <% end %>
 <% end %>
+

@@ -42,48 +42,10 @@
   background: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* For lightness 90% and above - light green */
-.day[style*="background-color: hsl(120, 100%, 9"] {
-  background-color: #9be9a8 !important;
-  border: 1px solid #85e394 !important;
-}
-
-/* For lightness around 80% - medium-light green */
-.day[style*="background-color: hsl(120, 100%, 8"] {
-  background-color: #56d364 !important;
-  border: 1px solid #46c155 !important;
-}
-
-/* For lightness around 70% - medium green */
-.day[style*="background-color: hsl(120, 100%, 7"] {
-  background-color: #40c463 !important;
-  border: 1px solid #35b058 !important;
-}
-
-/* For lightness around 60% - medium-dark green */
-.day[style*="background-color: hsl(120, 100%, 6"] {
-  background-color: #30a14e !important;
-  border: 1px solid #2a9147 !important;
-}
-
-/* For lightness around 50% - dark green */
-.day[style*="background-color: hsl(120, 100%, 5"] {
-  background-color: #2a8840 !important;
-  border: 1px solid #24753a !important;
-}
-
-/* For lightness 40% and below - very dark green */
-.day[style*="background-color: hsl(120, 100%, 4"],
-.day[style*="background-color: hsl(120, 100%, 3"],
-.day[style*="background-color: hsl(120, 100%, 2"] {
-  background-color: #216e39 !important;
-  border: 1px solid #1b5e31 !important;
-}
-
 /* Add subtle hover effect */
 .day:hover {
-  transform: scale(1.05);
-  transition: 0.05s all;
+  transform: scale(1.1);
+  transition: 0.2s all;
   z-index: 5;
   box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
 }
@@ -114,3 +76,19 @@
     transform: rotate(360deg);
   }
 }
+
+.lvl0 { background-color: #151b23; }
+.lvl1 { background-color: #033a16; }
+.lvl2 { background-color: #196c2e; }
+.lvl3 { background-color: #2ea043; }
+.lvl4 { background-color: #56d364; }
+
+@media (prefers-color-scheme: light) { /* eww */
+  .lvl0 { background-color: #eff2f5; }
+  .lvl1 { background-color: #aceebb; }
+  .lvl2 { background-color: #4bc26b; }
+  .lvl3 { background-color: #2da44e; }
+  .lvl4 { background-color: #116329; }
+}
+
+
