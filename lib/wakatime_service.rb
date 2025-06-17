@@ -87,7 +87,11 @@ class WakatimeService
     else
       # Try parsing as browser user agent as fallback
       if browser_ua = user_agent.match(/^([^\/]+)\/([^\/\s]+)/)
-        { os: browser_ua[1], editor: browser_ua[2], err: nil }
+        if user_agent.include?("wakatime") then
+          { os: user_agent.split(" ")[1], editor: browser_ua[1], err: nil }
+        else
+          { os: browser_ua[1], editor: browser_ua[2], err: nil }
+        end
       else
         { os: "", editor: "", err: "failed to parse user agent string" }
       end
