@@ -47,3 +47,24 @@ else
   echo -e "\nError sending heartbeat: $body"
   exit 1
 fi 
+
+# *changes begin here* ask setup questions
+read -p "Would you like to automatically set up VS Code time tracking? [y/N] " ans
+
+if [[ "$ans" =~ ^[Yy]$ ]]; then
+if ! command -v code &> /dev/null; then
+    echo "VS Code CLI (code) not found in PATH."
+    echo "Please open VS Code and run 'Shell Command: Install 'code' command in PATH' from the Command Palette. Then, rerun this script. Run `code --version` in your terminal to confirm its working if the script fails again."
+    exit 1
+fi
+
+    code --install-extension WakaTime.vscode-wakatime --force
+    echo -e "\nWakaTime extension installed!"
+fi
+
+read -p "Would you like to automatically set up terminal editor (nano, ttiny, etc) time tracking? [y/N] " ans
+
+if [[ "$ans" =~ ^[Yy]$ ]]; then
+    curl -fsSL http://hack.club/terminal-wakatime.sh | sh
+    echo -e "\nWakaTime for terminal set up!"
+fi
