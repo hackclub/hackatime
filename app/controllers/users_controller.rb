@@ -20,29 +20,15 @@ class UsersController < ApplicationController
   end
 
   def update
-    # Handle timezone leaderboard toggle
+    # Handle setting toggles
     if params[:toggle_timezone_leaderboard] == "1"
-      if Flipper.enabled?(:timezone_leaderboard, @user)
-        Flipper.disable(:timezone_leaderboard, @user)
-        message = "Regional & Timezone Leaderboards disabled"
-      else
-        Flipper.enable(:timezone_leaderboard, @user)
-        message = "Regional & Timezone Leaderboards enabled"
-      end
-
-      respond_to do |format|
-        format.turbo_stream do
-          render turbo_stream: turbo_stream.replace(
-            "timezone_leaderboard_toggle",
-            partial: "timezone_leaderboard_toggle",
-            locals: { user: @user }
-          )
-        end
-        format.html do
-          redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
-            notice: message
-        end
-      end
+      handle_timezone_leaderboard_toggle
+      return
+    elsif params[:toggle_public_stats] == "1"
+      handle_public_stats_toggle
+      return
+    elsif params[:toggle_slack_status] == "1"
+      handle_slack_status_toggle
       return
     end
 
@@ -52,11 +38,32 @@ class UsersController < ApplicationController
         if @user.uses_slack_status?
           @user.update_slack_status
         end
-        redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
-          notice: "Settings updated successfully"
+
+        respond_to do |format|
+          format.turbo_stream do
+            if params[:user][:hackatime_extension_text_type].present?
+              render turbo_stream: turbo_stream.replace(
+                "extension_settings",
+                partial: "extension_settings",
+                locals: { user: @user }
+              )
+            else
+              head :ok
+            end
+          end
+          format.html do
+            redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
+              notice: "Settings updated successfully"
+          end
+        end
       else
-        flash[:error] = "Failed to update settings"
-        render :settings, status: :unprocessable_entity
+        respond_to do |format|
+          format.turbo_stream { head :unprocessable_entity }
+          format.html do
+            flash[:error] = "Failed to update settings"
+            render :edit, status: :unprocessable_entity
+          end
+        end
       end
     else
       redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
@@ -104,6 +111,40 @@ class UsersController < ApplicationController
   end
 
   private
+
+  def handle_timezone_leaderboard_toggle
+    if Flipper.enabled?(:timezone_leaderboard, @user)
+      Flipper.disable(:timezone_leaderboard, @user)
+    else
+      Flipper.enable(:timezone_leaderboard, @user)
+    end
+
+    render_setting_toggle("timezone_leaderboard")
+  end
+
+  def handle_public_stats_toggle
+    @user.update!(allow_public_stats_lookup: !@user.allow_public_stats_lookup?)
+    render_setting_toggle("privacy_settings")
+  end
+
+  def handle_slack_status_toggle
+    @user.update!(uses_slack_status: !@user.uses_slack_status?)
+    @user.update_slack_status if @user.uses_slack_status?
+    render_setting_toggle("slack_status")
+  end
+
+  def render_setting_toggle(partial_name)
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "#{partial_name}_toggle",
+          partial: "#{partial_name}_toggle",
+          locals: { user: @user }
+        )
+      end
+      format.html { redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user) }
+    end
+  end
 
   def require_admin
     unless current_user.admin?

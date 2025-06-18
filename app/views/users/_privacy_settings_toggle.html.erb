@@ -1,0 +1,12 @@
+<div id="privacy_settings_toggle">
+  <p>
+    <strong>Public Stats API Access</strong><br>
+    <small>Allow others to look up your public coding stats via the API</small>
+  </p>
+  <%= form_with url: (@is_own_settings ? my_settings_path : settings_user_path(user)), method: :patch, local: false do |f| %>
+    <%= hidden_field_tag :toggle_public_stats, "1" %>
+    <%= f.submit user.allow_public_stats_lookup? ? "Disable API Access" : "Enable API Access", 
+                 role: "button", 
+                 class: user.allow_public_stats_lookup? ? "secondary" : "" %>
+  <% end %>
+</div>
