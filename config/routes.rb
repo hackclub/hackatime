@@ -110,6 +110,7 @@ Rails.application.routes.draw do
   post "/sailors_log/slack/commands", to: "slack#create"
   post "/timedump/slack/commands", to: "slack#create"
 
+  get "/hackatime/v1", to: redirect("/", status: 302) # some clients seem to link this as the user's dashboard instead of /api/v1/hackatime
   # API routes
   namespace :api do
     # This is our own API– don't worry about compatibility.
