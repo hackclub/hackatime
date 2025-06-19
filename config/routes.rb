@@ -145,7 +145,7 @@ Rails.application.routes.draw do
     # Everything in this namespace conforms to wakatime.com's API.
     namespace :hackatime do
       namespace :v1 do
-        get "/", to: "hackatime#index" # many clients seem to link this as the user's dashboard
+        get "/", to: redirect("/", status: 302) # some clients seem to link this as the user's dashboard instead of /api/v1/hackatime
         get "/users/:id/statusbar/today", to: "hackatime#status_bar_today"
         post "/users/:id/heartbeats", to: "hackatime#push_heartbeats"
         get "/users/current/stats/last_7_days", to: "hackatime#stats_last_7_days"
