@@ -26,7 +26,7 @@
       <div class="mini-leaderboard">
         <p class="super">
           <% if leaderboard.respond_to?(:scope_name) %>
-            <strong>Showing others in <%= link_to "your timezone", my_settings_path(anchor: "user_timezone") %>
+            <strong>Showing others in <%= link_to "your timezone", my_settings_path(anchor: "user_timezone"), data: { turbo: false } %></strong>
           <% else %>
             This leaderboard is in <%= Leaderboard::GLOBAL_TIMEZONE %>.
             <% if current_user && timezone_difference_in_seconds(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) != 0 %>
