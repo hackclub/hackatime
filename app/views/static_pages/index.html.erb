@@ -1,23 +1,12 @@
 <div class="container">
-  <% if current_user&.trust_level == "red" %>
-    <div class="acct-convicted">
+  <% if current_user&.trust_level != "red" %>
+    <div class="text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center">
       <strong>Hold up!</strong> Your account has been flagged for suspicious activity.<br>
       This means that you are no longer included in the public leaderboards.<br>
-      If this was a mistake, please email <a href="mailto:echo@hackclub.com">echo@hackclub.com</a>.
+      If this was a mistake, please email <a href="mailto:echo@hackclub.com" class="underline text-red-600">echo@hackclub.com</a>.
     </div>
-    <style>
-      .acct-convicted {
-        color: #ff6467;
-        background: color-mix(in oklab, rgb(251, 44, 54) 10%, transparent);
-        border: 2px solid color-mix(in oklab, rgb(251, 44, 54) 20%, transparent);
-        padding: 1em;
-        text-align: center;
-        border-radius: 8px;
-        margin-bottom: 1em;
-      }
-    </style>
   <% end %>
-  <p class="super">
+  <p class="italic underline mt-2">
     <%= @flavor_text %>
   </p>
   <h1 class="title">

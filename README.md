@@ -40,7 +40,7 @@ $ docker compose run --service-ports web /bin/bash
 app# bin/rails db:create db:schema:load db:seed
 
 # Now start up the app:
-app# bin/rails s -b 0.0.0.0
+app# bin/dev
 # This hosts the server on your computer w/ default port 3000
 
 # Want to do other things?

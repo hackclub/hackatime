@@ -133,3 +133,7 @@ gem "htmlcompressor", "~> 0.4.0"
 gem "doorkeeper", "~> 5.8"
 
 gem "autotuner", "~> 1.0"
+
+gem "tailwindcss-ruby", "~> 4.1"
+
+gem "tailwindcss-rails", "~> 4.2"

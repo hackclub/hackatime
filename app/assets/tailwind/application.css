@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+:root {
+  --color-darker: #121217;
+  --color-dark: #17171d;
+  --color-darkless: #252429;
+  --color-black: #1f2d3d;
+  --color-steel: #273444;
+  --color-slate: #3c4858;
+  --color-muted: #8492a6;
+  --color-smoke: #e0e6ed;
+  --color-snow: #f9fafc;
+  --color-white: #ffffff;
+  --color-red: #ec3750;
+  --color-orange: #ff8c37;
+  --color-yellow: #f1c40f;
+  --color-green: #33d6a6;
+  --color-cyan: #5bc0de;
+  --color-blue: #338eda;
+  --color-purple: #a633d6;
+  --color-text: var(--color-black);
+  --color-background: var(--color-white);
+  --color-elevated: var(--color-white);
+  --color-sheet: var(--color-snow);
+  --color-sunken: var(--color-smoke);
+  --color-border: var(--color-smoke);
+  --color-primary: #ec3750;
+  --color-secondary: #8492a6;
+  --color-accent: #5bc0de;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text: var(--color-white);
+    --color-background: var(--color-darker);
+    --color-elevated: var(--color-dark);
+    --color-sheet: var(--color-darkless);
+    --color-sunken: var(--color-darkless);
+    --color-border: var(--color-darkless);
+  }
+}
+
+@layer base {
+  .bg-primary {
+    background-color: var(--color-primary);
+  }
+  .bg-secondary {
+    background-color: var(--color-secondary);
+  }
+  .bg-accent {
+    background-color: var(--color-accent);
+  }
+  .bg-darker {
+    background-color: var(--color-darker);
+  }
+  .bg-dark {
+    background-color: var(--color-dark);
+  }
+  .bg-sheet {
+    background-color: var(--color-sheet);
+  }
+  .bg-elevated {
+    background-color: var(--color-elevated);
+  }
+  .bg-sunken {
+    background-color: var(--color-sunken);
+  }
+  
+  .text-primary {
+    color: var(--color-primary);
+  }
+  .text-secondary {
+    color: var(--color-secondary);
+  }
+  .text-accent {
+    color: var(--color-accent);
+  }
+  .text-muted {
+    color: var(--color-muted);
+  }
+  
+  .border-primary {
+    border-color: var(--color-primary);
+  }
+  .border-secondary {
+    border-color: var(--color-secondary);
+  }
+  .border-accent {
+    border-color: var(--color-accent);
+  }
+  .border-default {
+    border-color: var(--color-border);
+  }
+}
