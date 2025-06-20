@@ -1,7 +1,12 @@
 try {
     # Create config file with API settings
     $configPath = "$env:USERPROFILE\.wakatime.cfg"
-    
+    # If config exists, backup
+    if (Test-Path $configPath) {
+        Write-Host "[INFO] Config file already exists, moving into ~/.wakatime.cfg.bak"
+        Move-Item -Path $configPath -Destination "$configPath.bak"
+    }
+
     @"
 [settings]
 api_url = $env:HACKATIME_API_URL

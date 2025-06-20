@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# If config exists, backup
+if [ -f ~/.wakatime.cfg ]; then
+    echo "[INFO] Config file already exists, moving into ~/.wakatime.cfg.bak"
+    mv ~/.wakatime.cfg ~/.wakatime.cfg.bak
+fi
+
 # Create or update config file
 cat > ~/.wakatime.cfg << EOL
 [settings]
