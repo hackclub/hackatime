@@ -146,6 +146,11 @@ Rails.application.configure do
       cron: "0 4 * * *", # Daily at 4 AM
       class: "SyncStaleRepoMetadataJob",
       description: "Refreshes repository metadata (stars, commit counts, etc.) for repositories with stale data."
+    },
+    cleanup_old_leaderboards: {
+      cron: "0 3 * * *", # daily at 3
+      class: "CleanupOldLeaderboardsJob",
+      description: "Remove leaderboards older than 2 days"
     }
   }
 end
