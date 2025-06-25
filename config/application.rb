@@ -48,5 +48,6 @@ module Harbor
       httponly: true
 
     config.middleware.use HtmlCompressor::Rack
+    config.middleware.use Rack::Attack
   end
 end

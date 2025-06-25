@@ -57,6 +57,9 @@ gem "thruster", require: false
 # For query count tracking
 gem "query_count"
 
+# Rate limiting
+gem "rack-attack"
+
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
 
