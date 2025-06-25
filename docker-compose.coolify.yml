@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    environment:
+      - PROCESS_TYPE=web
+      - PORT=80
+      - RAILS_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+    ports:
+      - "80:80"
+    depends_on:
+      - worker
+    
+  worker:
+    build: .
+    environment:
+      - PROCESS_TYPE=worker
+      - RAILS_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+    # No ports exposed for worker

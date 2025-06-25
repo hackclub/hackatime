@@ -1,0 +1,18 @@
+#!/bin/bash -e
+
+# Start the appropriate process based on PROCESS_TYPE environment variable
+case "$PROCESS_TYPE" in
+  web)
+    echo "Starting web server..."
+    exec ./bin/thrust ./bin/rails server -b 0.0.0.0 -p ${PORT:-80}
+    ;;
+  worker)
+    echo "Starting GoodJob worker..."
+    exec bundle exec good_job start
+    ;;
+  *)
+    echo "Unknown PROCESS_TYPE: $PROCESS_TYPE"
+    echo "Valid options: web, worker"
+    exit 1
+    ;;
+esac
