@@ -168,6 +168,7 @@
             in the last 24 hours.
             (DB: <%= pluralize(QueryCount::Counter.counter, "query") %>, <%= QueryCount::Counter.counter_cache %> cached)
             (CACHE: <%= cache_stats[:hits] %> hits, <%= cache_stats[:misses] %> misses)
+            (<%= requests_per_second %>)
           </p>
           <% if session[:impersonater_user_id] %>
             <%= link_to "Stop impersonating", stop_impersonating_path, class: "impersonate-link", data: { turbo_prefetch: "false" } %>
