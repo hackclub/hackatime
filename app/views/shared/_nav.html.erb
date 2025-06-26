@@ -45,6 +45,16 @@
               Docs
             <% end %>
           </div>
+          <% admin_tool(nil, "div") do %>
+            <%= link_to my_mailing_address_path, class: "block px-2 py-1 rounded transition #{current_page?(my_mailing_address_path) ? 'bg-[rgba(225,57,80,0.12)] text-primary' : 'hover:bg-[#23272a] hover:text-primary'}", data: { action: "click->nav#clickLink" } do %>
+              Mailing Address
+            <% end %>
+          <% end %>
+          <div>
+            <%= link_to my_mailroom_path, class: "block px-2 py-1 rounded transition #{current_page?(my_mailroom_path) ? 'bg-[rgba(225,57,80,0.12)] text-primary' : 'hover:bg-[#23272a] hover:text-primary'}", data: { action: "click->nav#clickLink" } do %>
+              Mailroom
+            <% end %>
+          </div>
           <div>
             <%= link_to my_settings_path, class: "block px-2 py-1 rounded transition #{current_page?(my_settings_path) ? 'bg-[rgba(225,57,80,0.12)] text-primary' : 'hover:bg-[#23272a] hover:text-primary'}", data: { action: "click->nav#clickLink" } do %>
               Settings
@@ -71,16 +81,6 @@
             Review Timeline
           <% end %>
         <% end %>
-        <% admin_tool(nil, "div") do %>
-          <%= link_to my_mailing_address_path, class: "block px-2 py-1 rounded transition #{current_page?(my_mailing_address_path) ? 'bg-[rgba(225,57,80,0.12)] text-primary' : 'hover:bg-[#23272a] hover:text-primary'}", data: { action: "click->nav#clickLink" } do %>
-            Mailing Address
-          <% end %>
-        <% end %>
-        <div>
-          <%= link_to my_mailroom_path, class: "block px-2 py-1 rounded transition #{current_page?(my_mailroom_path) ? 'bg-[rgba(225,57,80,0.12)] text-primary' : 'hover:bg-[#23272a] hover:text-primary'}", data: { action: "click->nav#clickLink" } do %>
-            Mailroom
-          <% end %>
-        </div>
         <% admin_tool(nil, "div") do %>
           <%= link_to ahoy_captain_path, class: "block px-2 py-1 rounded transition #{current_page?(ahoy_captain_path) ? 'bg-[rgba(225,57,80,0.12)] text-primary' : 'hover:bg-[#23272a] hover:text-primary'}", data: { action: "click->nav#clickLink" } do %>
             Ahoy Captain
