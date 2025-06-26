@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_23_135342) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_26_001500) do
   create_schema "pganalyze"
 
   # These are extensions that must be enabled in order to support this database
@@ -248,6 +248,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_23_135342) do
     t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
     t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
     t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
+    t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
@@ -495,7 +496,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_23_135342) do
     t.boolean "allow_public_stats_lookup", default: true, null: false
     t.boolean "default_timezone_leaderboard", default: true, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
+    t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
+    t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"
   end
 

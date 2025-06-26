@@ -92,8 +92,22 @@ class StaticPagesController < ApplicationController
       @leaderboard = LeaderboardGenerator.generate_timezone_offset_leaderboard(
         Date.current, current_user.timezone_utc_offset, :daily
       )
+
+      if @leaderboard&.entries&.empty?
+        Rails.logger.warn "[MiniLeaderboard] Regional leaderboard empty for offset #{current_user.timezone_utc_offset}"
+      end
     else
       # Use global leaderboard
+      @leaderboard = Leaderboard.where.associated(:entries)
+                                .where(start_date: Date.current)
+                                .where(deleted_at: nil)
+                                .where(period_type: :daily)
+                                .distinct
+                                .first
+    end
+
+    if @leaderboard.nil? || @leaderboard.entries.empty?
+      Rails.logger.info "[MiniLeaderboard] Falling back to global leaderboard"
       @leaderboard = Leaderboard.where.associated(:entries)
                                 .where(start_date: Date.current)
                                 .where(deleted_at: nil)

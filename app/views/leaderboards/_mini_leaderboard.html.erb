@@ -2,23 +2,19 @@
   <% if leaderboard.present? %>
     <%
       entries = leaderboard.entries.respond_to?(:order) ? leaderboard.entries.order(total_seconds: :desc) : leaderboard.entries
-      if current_user
-        user_rank = entries.find_index { |entry| entry.user_id == current_user.id }
-        if user_rank && user_rank >= 3
-          # Show top 2 entries and immediate competition
-          top_entries = entries[0..1]
-          competition_entries = entries[[user_rank - 1, 2].max..[user_rank + 1, entries.size - 1].min]
-          mini_leaderboard_entries = top_entries + competition_entries
-          show_top_entries = false
-        else
-          # Show top 3 entries (either user is in top 3 or not on leaderboard)
-          mini_leaderboard_entries = entries.first(3)
-          show_top_entries = true
-        end
+      
+      top_entries = entries.first(3)
+      user_entry = current_user ? entries.find { |entry| entry.user_id == current_user.id } : nil
+      user_rank = user_entry ? entries.index(user_entry) : nil
+      
+      if user_entry && user_rank && user_rank >= 3
+        person_above = entries[user_rank - 1] if user_rank > 0
+        context_entries = person_above ? [person_above, user_entry] : [user_entry]
+        mini_leaderboard_entries = top_entries + context_entries
+        show_user_separately = true
       else
-        # Not logged in, show top 3
-        mini_leaderboard_entries = entries.first(3)
-        show_top_entries = true
+        mini_leaderboard_entries = top_entries
+        show_user_separately = false
       end
     %>
 
@@ -36,21 +32,19 @@
         </p>
         <div class="space-y-2">
           <% mini_leaderboard_entries.each_with_index do |entry, idx| %>
-            <% is_competition = !show_top_entries && idx >= 2 %>
-            <div class="flex items-center p-3 rounded-lg hover:bg-dark transition-colors duration-200 <%= 'bg-dark border border-red' if entry.user_id == current_user&.id %>">
-              <% if !is_competition %>
-                <% rank_emoji = case entries.index(entry)
-                     when 0 then "🥇"
-                     when 1 then "🥈"
-                     when 2 then "🥉"
-                     end %>
-                <div class="w-8 text-center text-lg"><%= rank_emoji %></div>
-              <% else %>
-                <% if idx == 2 && entries.index(entry) - entries.index(mini_leaderboard_entries[1]) > 1 %>
-                  <div class="text-center text-muted font-bold tracking-widest text-lg py-1">...</div>
-                <% end %>
-                <div class="w-8 text-center text-lg font-medium text-muted"><%= entries.index(entry) + 1 %></div>
-              <% end %>
+            <% 
+              actual_rank = entries.index(entry) 
+              is_separator_needed = show_user_separately && idx == 3 && actual_rank > 3
+            %>
+
+            <div class="flex items-center p-3 rounded-lg bg-dark transition-colors duration-200 <%= 'bg-dark border border-red' if entry.user_id == current_user&.id %>">
+              <% rank_emoji = case actual_rank
+                   when 0 then "🥇"
+                   when 1 then "🥈"
+                   when 2 then "🥉"
+                   else actual_rank + 1
+                   end %>
+              <div class="w-8 text-center text-lg"><%= rank_emoji %></div>
               <div class="flex-1 mx-3 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                   <%= render "shared/user_mention", user: entry.user, show: [:neighborhood] %>

@@ -9,8 +9,49 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+/* Phantom Sans Font Faces */
+@font-face {
+  font-family: 'Phantom Sans';
+  src: url('/assets/Regular.woff2') format('woff2'),
+       url('/assets/Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Phantom Sans';
+  src: url('/assets/Italic.woff2') format('woff2'),
+       url('/assets/Italic.woff') format('woff');
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Phantom Sans';
+  src: url('/assets/Bold.woff2') format('woff2'),
+       url('/assets/Bold.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
 @import "https://uchu.style/color.css";
 @import "settings.css";
+
+body, html {
+  font-family: 'Phantom Sans', 'Segoe UI', sans-serif;
+}
+
+*, *::before, *::after {
+  font-family: inherit;
+}
+
+code, pre, kbd, samp {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
 
 /* Force dark mode for all elements */
 *, *::before, *::after {

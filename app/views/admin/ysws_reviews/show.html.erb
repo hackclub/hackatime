@@ -1,7 +1,7 @@
 <%# app/views/admin/ysws_reviews/show.html.erb %>
 <% content_for :title, "YSWS Review: #{@submission.airtable_fields['name']&.truncate(30) || 'Untitled Submission'}" %>
 
-<div class="ysws-review-container" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 1rem; background-color: #1F2937; color: #E5E7EB; min-height: calc(100vh - 4rem);">
+<div class="ysws-review-container" style="padding: 1rem; background-color: #1F2937; color: #E5E7EB; min-height: calc(100vh - 4rem);">
   <div class="ysws-review-header">
     <h1 style="color: #FFF; border-bottom: 1px solid #4A5568; padding-bottom: 0.5rem; margin-bottom: 1rem; font-size: 1.5rem;">
       YSWS Submission Review

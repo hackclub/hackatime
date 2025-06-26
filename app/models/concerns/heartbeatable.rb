@@ -98,9 +98,19 @@ module Heartbeatable
     end
 
     def daily_streaks_for_users(user_ids, start_date: 31.days.ago)
-      # First get the raw durations using window function
+      return {} if user_ids.empty?
+      start_date = [ start_date, 30.days.ago ].max
+      keys = user_ids.map { |id| "user_streak_#{id}" }
+      streak_cache = Rails.cache.read_multi(*keys)
+
+      uncached_users = user_ids.select { |id| streak_cache["user_streak_#{id}"].nil? }
+
+      if uncached_users.empty?
+        return user_ids.index_with { |id| streak_cache["user_streak_#{id}"] || 0 }
+      end
+
       raw_durations = joins(:user)
-        .where(user_id: user_ids)
+        .where(user_id: uncached_users)
         .coding_only
         .with_valid_timestamps
         .where(time: start_date..Time.current)
@@ -128,8 +138,7 @@ module Heartbeatable
          }
        end
 
-      # Initialize the result hash with zeros for all users
-      result = user_ids.index_with { 0 }
+      result = user_ids.index_with { |id| streak_cache["user_streak_#{id}"] || 0 }
 
       # Then calculate streaks for each user
       daily_durations.each do |user_id, data|
@@ -158,6 +167,9 @@ module Heartbeatable
         end
 
         result[user_id] = streak
+
+        # Cache the streak for 1 hour
+        Rails.cache.write("user_streak_#{user_id}", streak, expires_in: 1.hour)
       end
 
       result

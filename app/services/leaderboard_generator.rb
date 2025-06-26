@@ -11,14 +11,24 @@ class LeaderboardGenerator
 
   def generate_timezone_offset_leaderboard(date, utc_offset, period_type = :daily)
     date = Date.current if date.blank?
-    users = User.users_in_timezone_offset(utc_offset).not_convicted
-    generate_leaderboard_for_users(users, date, "UTC#{utc_offset >= 0 ? '+' : ''}#{utc_offset}", period_type)
+
+    cache_key = "timezone_leaderboard_#{utc_offset}_#{date}_#{period_type}"
+
+    Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+      users = User.users_in_timezone_offset(utc_offset).not_convicted
+      generate_leaderboard_for_users(users, date, "UTC#{utc_offset >= 0 ? '+' : ''}#{utc_offset}", period_type)
+    end
   end
 
   def generate_timezone_leaderboard(date, timezone, period_type = :daily)
     date = Date.current if date.blank?
-    users = User.users_in_timezone(timezone).not_convicted
-    generate_leaderboard_for_users(users, date, timezone, period_type)
+
+    cache_key = "timezone_leaderboard_#{timezone.gsub('/', '_')}_#{date}_#{period_type}"
+
+    Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+      users = User.users_in_timezone(timezone).not_convicted
+      generate_leaderboard_for_users(users, date, timezone, period_type)
+    end
   end
 
   private
@@ -34,9 +44,12 @@ class LeaderboardGenerator
       finished_generating_at: Time.current
     )
 
-    # Get user IDs
+    # Get user IDs and preload users hash for faster lookups
     user_ids = users.pluck(:id)
     return leaderboard if user_ids.empty?
+
+    # Preload users into a hash for O(1) lookups
+    users_hash = users.index_by(&:id)
 
     # Calculate heartbeats for the date range in UTC
     date_range = case period_type
@@ -48,7 +61,7 @@ class LeaderboardGenerator
       date.all_day
     end
 
-    # Get heartbeats for these users
+    # Get heartbeats for these users - limit to reduce query size
     heartbeats = Heartbeat.where(user_id: user_ids, time: date_range)
                          .coding_only
                          .with_valid_timestamps
@@ -59,8 +72,10 @@ class LeaderboardGenerator
     user_totals = heartbeats.group(:user_id).duration_seconds
     user_totals = user_totals.filter { |_, total_seconds| total_seconds > 60 }
 
-    # Get streaks for all users at once
-    streaks = Heartbeat.daily_streaks_for_users(user_totals.keys) if user_totals.any?
+    # Only calculate streaks for users who actually have time today
+    # This significantly reduces the streak calculation overhead
+    streak_user_ids = user_totals.keys
+    streaks = streak_user_ids.any? ? Heartbeat.daily_streaks_for_users(streak_user_ids, start_date: 30.days.ago) : {}
 
     # Create virtual leaderboard entries
     entries = user_totals.map do |user_id, total_seconds|
@@ -71,8 +86,8 @@ class LeaderboardGenerator
         streak_count: streaks[user_id] || 0
       )
 
-      # Manually set the user association to avoid N+1 queries
-      entry.user = users.find { |u| u.id == user_id }
+      # Use preloaded users hash instead of find
+      entry.user = users_hash[user_id]
       entry
     end.sort_by(&:total_seconds).reverse
 
