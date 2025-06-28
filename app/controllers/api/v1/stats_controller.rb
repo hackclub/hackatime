@@ -99,6 +99,23 @@ class Api::V1::StatsController < ApplicationController
     }
   end
 
+  def all_user_stats
+    # First get durations grouped by user_id
+    user_durations = Heartbeat.joins(:user)
+                              .where.not(users: { slack_uid: nil })
+                              .group(:user_id)
+                              .duration_seconds
+
+    # Then map user_ids to slack_uids
+    result = User.where(id: user_durations.keys)
+                 .pluck(:id, :slack_uid)
+                 .each_with_object({}) do |(user_id, slack_uid), hash|
+                   hash[slack_uid] = user_durations[user_id]
+                 end
+
+    render json: { data: result }
+  end
+
   private
 
   def set_user
