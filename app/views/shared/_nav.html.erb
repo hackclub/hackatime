@@ -68,7 +68,9 @@
             <% end %>
           </div>
           <div>
-            <%= link_to signout_path, class: "block px-2 py-1 rounded-lg transition hover:bg-[#23272a]", data: { turbo_method: :delete, action: "click->nav#clickLink" } do %>
+            <%= link_to signout_path,
+                class: "block px-2 py-1 rounded-lg transition border border-red-600 text-red-600 font-bold hover:bg-red-100",
+                data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to log out?", action: "click->nav#clickLink" } do %>
               Logout
             <% end %>
           </div>
