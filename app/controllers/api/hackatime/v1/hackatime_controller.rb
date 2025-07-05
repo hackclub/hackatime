@@ -25,7 +25,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       # {
       #   ...heartbeat_data
       # }
-      heartbeat_array = Array(heartbeat_params)
+      heartbeat_array = [heartbeat_params]
       new_heartbeat = handle_heartbeat(heartbeat_array)&.first&.first
       render json: new_heartbeat, status: :accepted
     end
