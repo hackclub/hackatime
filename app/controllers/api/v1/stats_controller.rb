@@ -39,6 +39,12 @@ class Api::V1::StatsController < ApplicationController
     end_date = params[:end_date].to_datetime if params[:end_date].present?
     end_date ||= Date.today.end_of_day
 
+    # /api/v1/users/current/stats?filter_by_project=harbor,high-seas
+    scope = nil
+    if params[:filter_by_project].present?
+      filter_by_project = params[:filter_by_project].split(",")
+      scope = Heartbeat.where(project: filter_by_project)
+    end
     limit = params[:limit].to_i
 
     enabled_features = params[:features]&.split(",")&.map(&:to_sym)
