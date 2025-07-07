@@ -114,8 +114,6 @@ Rails.application.routes.draw do
 
   get "my/wakatime_setup", to: "users#wakatime_setup"
   get "my/wakatime_setup/step-2", to: "users#wakatime_setup_step_2"
-  get "my/wakatime_setup/step-3", to: "users#wakatime_setup_step_3"
-  get "my/wakatime_setup/step-4", to: "users#wakatime_setup_step_4"
 
   post "/sailors_log/slack/commands", to: "slack#create"
   post "/timedump/slack/commands", to: "slack#create"
