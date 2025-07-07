@@ -51,17 +51,16 @@ class Api::V1::StatsController < ApplicationController
     enabled_features = params[:features]&.split(",")&.map(&:to_sym)
     enabled_features ||= %i[languages]
 
-    service_params = {
-      user: @user,
-      specific_filters: enabled_features,
-      allow_cache: false,
-      limit: limit,
-      start_date: start_date,
-      end_date: end_date
-    }
+    service_params = {}
+    service_params[:user] = @user
+    service_params[:specific_filters] = enabled_features
+    service_params[:allow_cache] = false
+    service_params[:limit] = limit
+    service_params[:start_date] = start_date
+    service_params[:end_date] = end_date
     service_params[:scope] = scope if scope.present?
 
-    summary = WakatimeService.new(service_params).generate_summary
+    summary = WakatimeService.new(**service_params).generate_summary
 
     trust_level = @user.trust_level
     trust_level = "blue" if trust_level == "yellow"
