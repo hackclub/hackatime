@@ -1,8 +1,8 @@
 include ApplicationHelper
 
 class WakatimeService
-  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil)
-    @scope = Heartbeat.all
+  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil)
+    @scope = scope || Heartbeat.all
     @user = user
 
     # Default to 1 year ago if no start_date provided or if no data exists
