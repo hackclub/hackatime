@@ -62,7 +62,6 @@ Rails.application.routes.draw do
       get :currently_hacking_count
       get :filterable_dashboard_content
       get :filterable_dashboard
-      get :mini_leaderboard
       get :streak
       # get :timeline # Removed: Old route for timeline
     end
