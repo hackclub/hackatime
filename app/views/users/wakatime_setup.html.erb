@@ -2,99 +2,34 @@
   <div class="max-w-6xl mx-auto p-4">
     <div class="text-center mb-4">
       <h1 class="text-4xl font-bold text-primary mb-2">Hackatime Setup</h1>
-      <div class="flex items-center justify-center gap-2 mb-4">
-        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-bold">1</div>
-        <div class="w-16 h-1 bg-darkless"></div>
-        <div class="w-8 h-8 bg-darkless rounded-full flex items-center justify-center text-sm">2</div>
-        <div class="w-16 h-1 bg-darkless"></div>
-        <div class="w-8 h-8 bg-darkless rounded-full flex items-center justify-center text-sm">3</div>
-        <div class="w-16 h-1 bg-darkless"></div>
-        <div class="w-8 h-8 bg-darkless rounded-full flex items-center justify-center text-sm">4</div>
+    </div>
+    <div class="bg-dark rounded-lg p-6">
+      <div class="flex items-center justify-center gap-3 mb-5">
+        <a href="https://github.com/ItsFelix5/Hackatime/releases/latest/download/Hackatime-windows.exe" class="bg-blue hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer">🪟 Download for Windows</a>
+        <a href="https://github.com/ItsFelix5/Hackatime/releases/latest/download/Hackatime-mac" class="bg-blue hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer">🍎 Download for MacOS</a>
+        <a href="https://github.com/ItsFelix5/Hackatime/releases/latest/download/Hackatime-linux" class="bg-blue hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer">🐧 Download for Linux</a>
       </div>
+
+      <p class="text-lg flex items-center">
+        Your API key is
+        <code class="copy-button bg-darkless px-2 py-1 rounded text-cyan mx-2"><%= @current_user_api_key %></code>
+        <button class="copy-button bg-primary hover:bg-red border-0 text-white px-2 py-1 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
+      </p>
     </div>
 
-    <div class="setup-instructions">
-      <div id="mac-linux" class="bg-dark rounded-lg p-6" style="display: block;">
-        <h3 class="text-2xl font-bold text-green mb-4">🍎 Mac/Linux/Codespaces users:</h3>
-        <div class="border border-blue rounded-lg p-4 mb-6">
-          <h4 class="text-xl font-semibold text-blue mb-2">On GitHub Codespaces?</h4>
-          <p class="text-md mb-2">No worries! Here's how to find your terminal:</p>
-          <ol class="list-decimal list-inside text-md space-y-1">
-            <li>Look at the bottom of your Codespaces window for a panel</li>
-            <li>Click the <strong>"Terminal"</strong> tab (it's usually already open!)</li>
-            <li>If you don't see it, press <kbd class="bg-darkless px-1 rounded text-sm">Ctrl+`</kbd> (or <kbd class="bg-darkless px-1 rounded text-sm">Cmd+`</kbd> on Mac)</li>
-            <li>You should see a command prompt with your username - that's your terminal! Keep going with the instructions below to continue setting up Hackatime.</li>
-          </ol>
-        </div>
+    <div id="advanced" class="bg-dark rounded-lg p-6 mt-2">
+      <h3 class="text-2xl font-bold text-purple mb-4">⚙️ Custom Setup:</h3>
+      <div class="bg-purple/10 border border-purple/30 rounded-lg p-4 mb-4">
+        <p class="text-sm">For advanced users who want to manually configure their setup or have specific requirements.</p>
+      </div>
+      <p class="text-lg mb-4">Create or edit <code class="bg-darkless px-2 py-1 rounded text-cyan">~/.wakatime.cfg</code> with the following content:</p>
 
-        <div class="space-y-4">
-          <ol class="list-decimal list-inside text-lg space-y-3 mb-2">
-            <li>
-              <strong>Find your terminal:</strong>
-              <ul class="list-disc list-inside ml-4 mt-1 text-md space-y-1">
-                <li><strong>Mac:</strong> Open the "Terminal" app (search for it in Spotlight)</li>
-                <li><strong>Linux:</strong> Open your terminal emulator</li>
-                <li><strong>Codespaces:</strong> See the blue box above ☝️</li>
-              </ul>
-            </li>
-            <li><strong>Copy the magic command below</strong> (click the Copy button - much easier!)</li>
-            <li><strong>Paste it in your terminal</strong> and press <i>Enter</i></li>
-            <li><strong>Wait a few seconds</strong> - it'll set everything up automatically! ✨</li>
-          </ol>
-        </div>
-        <div class="code-block bg-darkless rounded-lg p-4 mb-4">
-          <code class="text-cyan text-sm">export HACKATIME_API_KEY="<%= @current_user_api_key %>" && export HACKATIME_API_URL="<%= api_hackatime_v1_url %>" && export SUCCESS_URL="<%= root_url %>/success.txt" && curl -sSL <%= root_url %>hackatime/setup.sh | bash</code>
-          <button class="copy-button bg-primary hover:bg-red border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
-        </div>
-        <div class="rounded-lg mb-6">
-          <iframe width="100%" height="300" src="https://www.youtube.com/embed/QTwhJy7nT_w?loop=1&playlist=QTwhJy7nT_w&modestbranding=1&rel=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded"></iframe>
-        </div>
-        
-        <div class="flex gap-4 flex-wrap">
-          <button id="show-windows-button" class="bg-blue hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer" onclick="toggleSection('windows')">Using Windows?</button>
-          <button id="show-advanced-button-from-mac" class="bg-purple hover:bg-darkless text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer" onclick="toggleSection('advanced')">Custom Setup</button>
-        </div>
+      <div class="code-block bg-darkless rounded-lg p-4 mb-6">
+        <code class="text-cyan text-sm">[settings]&#10;api_url = <%= api_hackatime_v1_url %>&#10;api_key = <%= @current_user_api_key %>&#10;heartbeat_rate_limit_seconds = 30</code>
+        <button class="copy-button bg-primary hover:bg-red border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
       </div>
 
-      <div id="windows" class="bg-dark rounded-lg p-6" style="display: none;">
-        <h3 class="text-2xl font-bold text-blue mb-4">🪟 Windows users:</h3>
-        <ol class="list-decimal list-inside text-lg space-y-3 mb-6">
-          <li><strong>Open PowerShell:</strong> Press <kbd class="bg-darkless px-2 py-1 rounded text-md">Windows + R</kbd>, type "powershell", press Enter</li>
-          <li><strong>Copy the command below</strong> (click the Copy button!)</li>
-          <li><strong>Paste it</strong> (right-click in PowerShell, or <kbd class="bg-darkless px-1 rounded text-md">Ctrl+V</kbd>)</li>
-          <li><strong>Press Enter</strong> and wait for the magic!</li>
-        </ol>
-        <div class="code-block bg-darkless rounded-lg p-4 mb-4">
-          <code class="text-cyan text-sm">$env:HACKATIME_API_KEY="<%= @current_user_api_key %>"; $env:HACKATIME_API_URL="<%= api_hackatime_v1_url %>"; powershell -ExecutionPolicy Bypass -Command "& {iwr <%= root_url %>hackatime/setup.ps1 -UseBasicParsing | iex}"</code>
-          <button class="copy-button bg-primary hover:bg-red border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
-        </div>
-        <div class="rounded-lg mb-6">
-          <iframe width="100%" height="300" src="https://www.youtube.com/embed/fX9tsiRvzhg?loop=1&playlist=fX9tsiRvzhg&modestbranding=1&rel=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded"></iframe>
-        </div>
-        
-        <div class="flex gap-4 flex-wrap">
-          <button id="show-mac-linux-button" class="bg-green hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer" onclick="toggleSection('mac-linux')">Using Mac/Linux/Codespaces?</button>
-          <button id="show-advanced-button" class="bg-purple hover:bg-darkless text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer" onclick="toggleSection('advanced')">Custom Setup</button>
-        </div>
-      </div>
-
-      <div id="advanced" class="bg-dark rounded-lg p-6" style="display: none;">
-        <h3 class="text-2xl font-bold text-purple mb-4">⚙️ Custom Setup:</h3>
-        <div class="bg-purple/10 border border-purple/30 rounded-lg p-4 mb-4">
-          <p class="text-sm">For advanced users who want to manually configure their setup or have specific requirements.</p>
-        </div>
-        <p class="text-lg mb-4">Create or edit <code class="bg-darkless px-2 py-1 rounded text-cyan">~/.wakatime.cfg</code> with the following content:</p>
-        
-        <div class="code-block bg-darkless rounded-lg p-4 mb-6">
-          <code class="text-cyan text-sm">[settings]&#10;api_url = <%= api_hackatime_v1_url %>&#10;api_key = <%= @current_user_api_key %>&#10;heartbeat_rate_limit_seconds = 30</code>
-          <button class="copy-button bg-primary hover:bg-red border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
-        </div>
-        
-        <div class="flex gap-4 flex-wrap">
-          <button id="show-mac-linux-from-advanced-button" class="bg-green hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer" onclick="toggleSection('mac-linux')">Using Mac/Linux/Codespaces?</button>
-          <button id="show-windows-from-advanced-button" class="bg-blue hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer" onclick="toggleSection('windows')">Using Windows?</button>
-        </div>
-      </div>
+      <p class="text-lg">And install the "Wakatime" extension for all your IDEs.</p>
     </div>
 
     <div class="mt-2 text-center">
@@ -111,38 +46,7 @@
 </div>
 
 <script>
-  function a() {
-    const ua = window.navigator.userAgent;
-    const mac = document.getElementById('mac-linux');
-    const windows = document.getElementById('windows');
-    if (ua.indexOf('Windows') !== -1) {
-      windows.style.display = 'block';
-    } else {
-      mac.style.display = 'block';
-    }
-  }
-  
   document.addEventListener('turbo:load', function() {
-    a();
-    
-    window.toggleSection = function(section) {
-      const mac = document.getElementById('mac-linux');
-      const windows = document.getElementById('windows');
-      const advanced = document.getElementById('advanced');
-      
-      mac.style.display = 'block';
-      windows.style.display = 'none';
-      advanced.style.display = 'none';
-      
-      if (section === 'windows') {
-        windows.style.display = 'block';
-      } else if (section === 'advanced') {
-        advanced.style.display = 'block';
-      } else {
-        mac.style.display = 'block';
-      }
-    }
-    
     const statusDiv = document.getElementById('heartbeat-status');
     const nextStepLink = document.getElementById('next-step');
     let checkCount = 0;
@@ -184,7 +88,7 @@
       .catch(error => {
         checkCount++;
         if (checkCount >= maxChecks) {
-          statusDiv.innerHTML = '<p class="text-red text-lg font-bold">❌ No heartbeats detected after 5 minutes. Please make sure you\'ve run the command above and have the WakaTime plugin installed in your editor.</p>';
+          statusDiv.innerHTML = '<p class="text-red text-lg font-bold">❌ No heartbeats detected after 5 minutes.</p>';
           return;
         }
         setTimeout(check, 5000);
@@ -226,11 +130,6 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
-
-  .setup-instructions {
-    width: 100%;
-  }
-
   .code-block {
     display: flex;
     align-items: flex-start;
@@ -249,7 +148,6 @@
 
   .copy-button {
     flex-shrink: 0;
-    cursor: pointer;
     font-size: 0.875rem;
   }
 
@@ -258,13 +156,9 @@
       flex-direction: column;
       align-items: stretch;
     }
-    
+
     .code-block code {
       margin-bottom: 1rem;
-    }
-    
-    iframe {
-      height: 200px;
     }
   }
 </style>
