@@ -60,17 +60,11 @@ class UsersController < ApplicationController
   end
 
   def wakatime_setup_step_2
-  end
-
-  def wakatime_setup_step_3
-  end
-
-  def wakatime_setup_step_4
     @no_instruction_wording = [
-      "There is no step 4, lol.",
-      "There is no step 4, psych!",
-      "Tricked ya! There is no step 4.",
-      "There is no step 4, gotcha!"
+      "There is no step 2, lol.",
+      "There is no step 2, psych!",
+      "Tricked ya! There is no step 2.",
+      "There is no step 2, gotcha!"
     ].sample
   end
 
