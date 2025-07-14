@@ -9,7 +9,7 @@ class WakatimeService
     @start_date = start_date || @scope.minimum(:time) || 1.year.ago.to_i
     @end_date = end_date || @scope.maximum(:time) || Time.current.to_i
 
-    @scope = @scope.where(time: @start_date..@end_date)
+    @scope = @scope.where("time >= ? AND time < ?", @start_date, @end_date)
 
     @limit = limit
     @limit = nil if @limit&.zero?
