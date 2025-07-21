@@ -151,7 +151,7 @@ GEM
     erubi (1.13.1)
     et-orbi (1.2.11)
       tzinfo
-    faraday (2.13.1)
+    faraday (2.13.2)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
@@ -234,7 +234,7 @@ GEM
     jbuilder (2.13.0)
       actionview (>= 5.0.0)
       activesupport (>= 5.0.0)
-    json (2.12.2)
+    json (2.13.0)
     kamal (2.7.0)
       activesupport (>= 7.0)
       base64 (~> 0.2)
@@ -316,7 +316,7 @@ GEM
       faraday (>= 1.0, < 3.0)
       faraday-net_http_persistent
       net-http-persistent
-    ostruct (0.6.2)
+    ostruct (0.6.3)
     pagy (9.3.4)
     paper_trail (16.0.0)
       activerecord (>= 6.1)
@@ -461,8 +461,8 @@ GEM
       concurrent-ruby (~> 1.0, >= 1.0.2)
     skylight (6.0.4)
       activesupport (>= 5.2.0)
-    slack-ruby-client (2.6.0)
-      faraday (>= 2.0)
+    slack-ruby-client (2.7.0)
+      faraday (>= 2.0.1)
       faraday-mashify
       faraday-multipart
       gli
