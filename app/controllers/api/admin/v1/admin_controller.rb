@@ -25,6 +25,12 @@ module Api
         def user_info
           user = find_user_by_id
           return unless user
+          valid = user.heartbeats.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
+
+          lht = valid.maximum(:time)
+          if lht && lht > 1000000000000
+            lht = lht / 1000
+          end
 
           render json: {
             user: {
@@ -42,15 +48,15 @@ module Api
               banned: user.trust_level == "red",
               created_at: user.created_at,
               updated_at: user.updated_at,
-              last_heartbeat_at: user.heartbeats.maximum(:time),
+              last_heartbeat_at: lht,
               email_addresses: user.email_addresses.map(&:email),
               api_keys_count: user.api_keys.count,
               stats: {
-                total_heartbeats: user.heartbeats.count,
-                total_coding_time: user.heartbeats.duration_seconds || 0,
-                languages_used: user.heartbeats.distinct.pluck(:language).compact.count,
-                projects_worked_on: user.heartbeats.distinct.pluck(:project).compact.count,
-                days_active: user.heartbeats.distinct.count("DATE(to_timestamp(time))")
+                total_heartbeats: valid.count,
+                total_coding_time: valid.duration_seconds || 0,
+                languages_used: valid.distinct.pluck(:language).compact.count,
+                projects_worked_on: valid.distinct.pluck(:project).compact.count,
+                days_active: valid.distinct.count("DATE(to_timestamp(CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END))")
               }
             }
           }
