@@ -235,5 +235,63 @@ module Heartbeatable
         connection.select_value("SELECT COALESCE(SUM(diff), 0)::integer FROM (#{capped_diffs.to_sql}) AS diffs").to_i
       end
     end
+
+    def duration_seconds_boundary_aware(scope, start_time, end_time)
+      scope = scope.with_valid_timestamps
+
+      model_class = scope.model
+      base_scope = model_class.all.with_valid_timestamps
+
+      if scope.where_values_hash["user_id"]
+        base_scope = base_scope.where(user_id: scope.where_values_hash["user_id"])
+      end
+
+      if scope.where_values_hash["category"]
+        base_scope = base_scope.where(category: scope.where_values_hash["category"])
+      end
+
+      if scope.where_values_hash["project"]
+        base_scope = base_scope.where(project: scope.where_values_hash["project"])
+      end
+
+      if scope.where_values_hash["deleted_at"]
+        base_scope = base_scope.where(deleted_at: scope.where_values_hash["deleted_at"])
+      end
+
+      # get the heartbeat before the start_time
+      boundary_heartbeat = base_scope
+        .where("time < ?", start_time)
+        .order(time: :desc)
+        .limit(1)
+        .first
+
+      # if it's not NULL, we'll use it
+      if boundary_heartbeat
+        combined_scope = base_scope
+          .where("time >= ? OR time = ?", start_time, boundary_heartbeat.time)
+          .where("time <= ?", end_time)
+      else
+        combined_scope = base_scope
+          .where(time: start_time..end_time)
+      end
+
+      # we calc w/ the boundary heartbeat, but we only sum within the orignal constraint
+      capped_diffs = combined_scope
+        .select("time, CASE
+          WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
+          ELSE LEAST(EXTRACT(EPOCH FROM (to_timestamp(time) - to_timestamp(LAG(time) OVER (ORDER BY time)))), #{heartbeat_timeout_duration.to_i})
+        END as diff")
+        .where.not(time: nil)
+        .order(time: :asc)
+
+      connection.select_value(
+        ActiveRecord::Base.sanitize_sql([
+          "SELECT COALESCE(SUM(diff), 0)::integer
+           FROM (#{capped_diffs.to_sql}) AS diffs
+           WHERE time >= ?",
+          start_time
+        ])
+      ).to_i
+    end
   end
 end
