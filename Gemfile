@@ -81,6 +81,9 @@ gem "rack-mini-profiler"
 gem "memory_profiler"
 gem "flamegraph"
 
+# Rails Performance monitoring dashboard
+gem "rails_performance"
+
 gem "skylight"
 
 # Ahoy analytics
