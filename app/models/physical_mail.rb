@@ -14,6 +14,10 @@ class PhysicalMail < ApplicationRecord
     first_time_7_streak: 1
   }
 
+  def self.instant_mission_types
+    %w[first_time_7_streak]
+  end
+
   scope :pending_delivery, -> {
     where(status: :pending)
       .joins(:user)
@@ -36,6 +40,11 @@ class PhysicalMail < ApplicationRecord
     return if status == :sent || theseus_id.present?
 
     slug = "hackatime-#{mission_type.to_s.gsub("_", "-")}"
+    endpoint = if self.class.instant_mission_types.include?(mission_type)
+      "https://mail.hackclub.com/api/v1/letter_queues/instant/#{slug}-instant"
+    else
+      "https://mail.hackclub.com/api/v1/letter_queues/#{slug}"
+    end
 
     flavors = FlavorText.compliment
     flavors.concat(FlavorText.rare_compliment) if rand(10) == 0
@@ -43,7 +52,7 @@ class PhysicalMail < ApplicationRecord
     return nil unless user.mailing_address.present?
 
     # authorization: Bearer <token>
-    response = HTTP.auth("Bearer #{ENV["MAIL_HACKCLUB_TOKEN"]}").post("https://mail.hackclub.com/api/v1/letter_queues/#{slug}", json: {
+    response = HTTP.auth("Bearer #{ENV["MAIL_HACKCLUB_TOKEN"]}").post(endpoint, json: {
       recipient_email: user.email_addresses.first.email,
       address: {
         first_name: user.mailing_address.first_name,
