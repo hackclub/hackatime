@@ -239,6 +239,9 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       # if category is not set, just default to coding
       heartbeat[:category] ||= "coding"
 
+      # fix the bug where langs can have both upper and lower case like JAVA and java found here (https://github.com/hackclub/hackatime/issues/402)
+      heartbeat[:language] = WakatimeService.categorize_language(heartbeat[:language]) if heartbeat[:language].present?
+
       # special case: if the entity is "test.txt", this is a test heartbeat
       if heartbeat[:entity] == "test.txt"
         source_type = :test_entry
