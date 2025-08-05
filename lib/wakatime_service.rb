@@ -132,7 +132,7 @@ class WakatimeService
     # Stole this list of langs from some wikipidia page abt popular langs tehe
     # Please double check this list and add others that i missed or added wrong
     return nil if language.blank?
-    
+
     case language.downcase
     when "java" then "Java"
     when "javascript", "js" then "JavaScript"
