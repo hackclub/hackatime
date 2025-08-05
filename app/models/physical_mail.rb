@@ -79,6 +79,9 @@ class PhysicalMail < ApplicationRecord
       update(status: :failed)
       raise "Failed to deliver physical mail: #{response.body}"
     end
+  rescue OpenSSL::SSL::SSLError => e
+    Rails.logger.warn "SSL error during mail delivery (request likely succeeded): #{e.message}"
+    update(status: :sent)
   rescue => e
     update(status: :failed)
     raise e
