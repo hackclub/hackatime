@@ -13,3 +13,12 @@ Rails.configuration.to_prepare do
 
   Doorkeeper::ApplicationsController.layout "application" # show oauth2 admin in normal hackatime ui
 end
+
+
+
+class String
+  # Hopefully this is the right place! It a really good monkey patch!!
+  def categorize_language
+    WakatimeService.categorize_language(self)
+  end
+end
