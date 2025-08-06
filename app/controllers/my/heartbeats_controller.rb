@@ -4,7 +4,7 @@ module My
 
 
     def export
-      
+
       all_data = params[:all_data] == "true"
       if all_data
         heartbeats = current_user.heartbeats.order(time: :asc)
@@ -25,7 +25,7 @@ module My
           .where("time >= ? AND time <= ?", start_time, end_time)
           .order(time: :asc)
       end
-      
+
 
       export_data = {
         export_info: {
@@ -64,15 +64,15 @@ module My
           }
         end
       }
-      
+
       filename = "heartbeats_#{current_user.slack_uid}_#{start_date.strftime('%Y%m%d')}_#{end_date.strftime('%Y%m%d')}.json"
       
       respond_to do |format|
-        format.json { 
+        format.json {
           send_data export_data.to_json, 
                     filename: filename,
-                    type: 'application/json',
-                    disposition: 'attachment'
+                    type: "application/json",
+                    disposition: "attachment"
         }
       end
     end
