@@ -287,6 +287,18 @@ class StaticPagesController < ApplicationController
               # search for both lowercase and capitalized versions
               normalized_arr = filter_arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq
               filtered_heartbeats = filtered_heartbeats.where(filter => normalized_arr)
+            elsif filter == :language
+              # find the real name, not the pretty one cause some edditors are stupid and return stuff like JAVASCRIPT and javascript and i need to add stuff to make them both fit the lookup
+              raw_language_values = []
+              current_user.heartbeats.distinct.pluck(filter).compact_blank.each do |raw_lang|
+                categorized = raw_lang.categorize_language
+                if filter_arr.include?(categorized)
+                  raw_language_values << raw_lang
+                end
+              end
+               Rails.logger.debug "lang filter: selected=#{filter_arr}, raw_language_values=#{raw_language_values}" # Debug line
+
+              filtered_heartbeats = filtered_heartbeats.where(filter => raw_language_values) if raw_language_values.any?
             else
               filtered_heartbeats = filtered_heartbeats.where(filter => filter_arr)
             end
