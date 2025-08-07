@@ -207,7 +207,7 @@ GEM
     groupdate (6.7.0)
       activesupport (>= 7.1)
     hashie (5.0.0)
-    honeybadger (6.0.2)
+    honeybadger (6.0.3)
       logger
       ostruct
     htmlcompressor (0.4.0)
@@ -310,7 +310,7 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.9-x86_64-linux-musl)
       racc (~> 1.4)
-    norairrecord (0.4.0)
+    norairrecord (0.4.1)
       faraday (>= 1.0, < 3.0)
       faraday-net_http_persistent
       net-http-persistent
@@ -323,10 +323,12 @@ GEM
     parser (3.3.9.0)
       ast (~> 2.4.1)
       racc
-    pg (1.6.0)
-    pg (1.6.0-aarch64-linux)
-    pg (1.6.0-arm64-darwin)
-    pg (1.6.0-x86_64-linux)
+    pg (1.6.1)
+    pg (1.6.1-aarch64-linux)
+    pg (1.6.1-aarch64-linux-musl)
+    pg (1.6.1-arm64-darwin)
+    pg (1.6.1-x86_64-linux)
+    pg (1.6.1-x86_64-linux-musl)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -578,7 +580,7 @@ DEPENDENCIES
   letter_opener
   letter_opener_web (~> 3.0)
   memory_profiler
-  norairrecord (~> 0.4.0)
+  norairrecord (~> 0.4.1)
   paper_trail
   pg
   propshaft
