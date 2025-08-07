@@ -89,7 +89,7 @@ module My
             dependencies: heartbeat.dependencies,
             source_type: heartbeat.source_type,
             created_at: heartbeat.created_at.iso8601,
-            updated_at: heartbeat.updated_at.iso8601,
+            updated_at: heartbeat.updated_at.iso8601
           }.to_json
           response.stream.write hb_json
         end
