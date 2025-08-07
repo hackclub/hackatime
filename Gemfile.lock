@@ -207,7 +207,7 @@ GEM
     groupdate (6.7.0)
       activesupport (>= 7.1)
     hashie (5.0.0)
-    honeybadger (6.0.3)
+    honeybadger (6.0.4)
       logger
       ostruct
     htmlcompressor (0.4.0)
