@@ -30,21 +30,21 @@ module My
 
       filename = "heartbeats_#{current_user.slack_uid}_#{start_date.strftime('%Y%m%d')}_#{end_date.strftime('%Y%m%d')}.json"
 
-      response.headers['Content-Type'] = 'application/json'
-      response.headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
-      response.headers['X-Accel-Buffering'] = 'no'
+      response.headers["Content-Type"] = "application/json"
+      response.headers["Content-Disposition"] = "attachment; filename=\"#{filename}\""
+      response.headers["X-Accel-Buffering"] = "no"
 
       response.stream.write "{"
-      response.stream.write '"export_info": {'
-      response.stream.write '"exported_at": "' + Time.current.iso8601 + '",'
-      response.stream.write '"date_range": {'
-      response.stream.write '"start_date": "' + start_date.iso8601 + '",'
-      response.stream.write '"end_date": "' + end_date.iso8601 + '"'
-      response.stream.write '},'
-      response.stream.write '"total_heartbeats": ' + total_heartbeats.to_s + ','
-      response.stream.write '"total_duration_seconds": ' + total_duration_seconds.to_s
-      response.stream.write '},'
-      response.stream.write '"heartbeats": ['
+      response.stream.write "\"export_info\": {"
+      response.stream.write "\"exported_at\": \"" + Time.current.iso8601 + "\","
+      response.stream.write "\"date_range\": {"
+      response.stream.write "\"start_date\": \"" + start_date.iso8601 + "\","
+      response.stream.write "\"end_date\": \"" + end_date.iso8601 + "\""
+      response.stream.write "},"
+      response.stream.write "\"total_heartbeats\": " + total_heartbeats.to_s + ","
+      response.stream.write "\"total_duration_seconds\": " + total_duration_seconds.to_s
+      response.stream.write "},"
+      response.stream.write "\"heartbeats\": ["
 
       first = true
       heartbeats.find_in_batches(batch_size: 1000) do |batch|
@@ -52,7 +52,7 @@ module My
           if first
             first = false
           else
-            response.stream.write ','
+            response.stream.write ","
           end
           hb_json = {
             id: heartbeat.id,
@@ -82,8 +82,8 @@ module My
         end
       end
 
-      response.stream.write ']'
-      response.stream.write '}'
+      response.stream.write "]"
+      response.stream.write "}"
     ensure
       response.stream.close
     end
