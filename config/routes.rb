@@ -19,6 +19,7 @@ Rails.application.routes.draw do
     mount GoodJob::Engine => "good_job"
     mount AhoyCaptain::Engine => "/ahoy_captain"
     mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
+    mount RailsPerformance::Engine => "rails_performance", as: :rails_performance
 
     get "/my/mailing_address", to: "my/mailing_address#show", as: :my_mailing_address
   end
