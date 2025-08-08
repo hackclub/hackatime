@@ -7,7 +7,7 @@ if Rails.env.development?
   # Creating test user
   test_user = User.find_or_create_by(slack_uid: 'TEST123456') do |user|
     user.username = 'testuser'
-    user.is_admin = true
+    user.admin_level = 2
     # Ensure timezone is set to avoid nil timezone issues
     user.timezone = 'America/New_York'
   end
