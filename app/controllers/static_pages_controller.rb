@@ -89,31 +89,23 @@ class StaticPagesController < ApplicationController
 
     if use_timezone_leaderboard && current_user&.timezone_utc_offset
       # we now doing it by default wooo
-      @leaderboard = LeaderboardGenerator.generate_timezone_offset_leaderboard(
-        Date.current, current_user.timezone_utc_offset, :daily
+      @leaderboard = LeaderboardService.get(
+        period: :daily,
+        date: Date.current,
+        offset: current_user.timezone_utc_offset
       )
 
       if @leaderboard&.entries&.empty?
         Rails.logger.warn "[MiniLeaderboard] Regional leaderboard empty for offset #{current_user.timezone_utc_offset}"
+        @leaderboard = nil
       end
-    else
-      # Use global leaderboard
-      @leaderboard = Leaderboard.where.associated(:entries)
-                                .where(start_date: Date.current)
-                                .where(deleted_at: nil)
-                                .where(period_type: :daily)
-                                .distinct
-                                .first
     end
 
-    if @leaderboard.nil? || @leaderboard.entries.empty?
-      Rails.logger.info "[MiniLeaderboard] Falling back to global leaderboard"
-      @leaderboard = Leaderboard.where.associated(:entries)
-                                .where(start_date: Date.current)
-                                .where(deleted_at: nil)
-                                .where(period_type: :daily)
-                                .distinct
-                                .first
+    if @leaderboard.nil?
+      @leaderboard = LeaderboardService.get(
+        period: :daily,
+        date: Date.current
+      )
     end
 
     @active_projects = Cache::ActiveProjectsJob.perform_now
