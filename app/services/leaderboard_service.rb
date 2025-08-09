@@ -18,8 +18,8 @@ class LeaderboardService
   private
 
   def get_timezone(date, period, offset)
-    key = "tz_leaderboard_#{offset}_#{date}_#{period}"
-    board = Rails.cache.read(key)
+    key = LeaderboardCache.timezone_key(offset, date, period)
+    board = LeaderboardCache.read(key)
 
     if board.present?
       Rails.logger.debug "Cache HIT for timezone leaderboard UTC#{offset >= 0 ? '+' : ''}#{offset}"
@@ -34,15 +34,15 @@ class LeaderboardService
   end
 
   def get_global(date, period)
-    date = date.beginning_of_week if period == :weekly
-    key = "leaderboard_#{period}_#{date}"
-    board = Rails.cache.read(key)
+    date = LeaderboardDateRange.normalize_date(date, period)
+    key = LeaderboardCache.global_key(period, date)
+    board = LeaderboardCache.read(key)
     return board if board.present?
     board = ::Leaderboard.where.not(finished_generating_at: nil)
                          .find_by(start_date: date, period_type: period, timezone_offset: nil, deleted_at: nil)
 
     if board.present?
-      Rails.cache.write(key, board, expires_in: 10.minutes)
+      LeaderboardCache.write(key, board)
       return board
     end
 

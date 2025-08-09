@@ -11,8 +11,8 @@ class LeaderboardUpdateJob < ApplicationJob
   )
 
   def perform(period = :daily, date = Date.current)
-    date = date.is_a?(Date) ? date : Date.parse(date.to_s)
-    date = date.beginning_of_week if period == :weekly
+    date = LeaderboardDateRange.normalize_date(date, period)
+
     Rails.logger.info "Starting leaderboard generation for #{period} on #{date}"
 
     board = build_global(date, period)
@@ -30,7 +30,7 @@ class LeaderboardUpdateJob < ApplicationJob
   private
 
   def build_global(date, period)
-    range = date_range(date, period)
+    range = LeaderboardDateRange.calculate(date, period)
     board = ::Leaderboard.find_or_create_by!(
       start_date: date,
       period_type: period,
@@ -73,14 +73,14 @@ class LeaderboardUpdateJob < ApplicationJob
       board.update!(finished_generating_at: Time.current)
     end
 
-    key = "leaderboard_#{period}_#{date}"
-    Rails.cache.write(key, board, expires_in: 10.minutes)
+    key = LeaderboardCache.global_key(period, date)
+    LeaderboardCache.write(key, board)
 
     board
   end
 
   def build_timezones(date, period)
-    range = date_range(date, period)
+    range = LeaderboardDateRange.calculate(date, period)
 
     offsets = User.joins(:heartbeats)
                   .where(heartbeats: { time: range })
@@ -97,9 +97,9 @@ class LeaderboardUpdateJob < ApplicationJob
   end
 
   def build_timezone(date, period, offset)
-    key = "tz_leaderboard_#{offset}_#{date}_#{period}"
+    key = LeaderboardCache.timezone_key(offset, date, period)
 
-    data = Rails.cache.fetch(key, expires_in: 10.minutes) do
+    data = LeaderboardCache.fetch(key) do
       users = User.users_in_timezone_offset(offset).not_convicted
       build_for_users(users, date, "UTC#{offset >= 0 ? '+' : ''}#{offset}", period)
     end
@@ -123,7 +123,7 @@ class LeaderboardUpdateJob < ApplicationJob
 
     users_map = users.index_by(&:id)
 
-    range = date_range(date, period)
+    range = LeaderboardDateRange.calculate(date, period)
 
     beats = Heartbeat.where(user_id: ids, time: range)
                     .coding_only
@@ -153,16 +153,5 @@ class LeaderboardUpdateJob < ApplicationJob
     board.define_singleton_method(:scope_name) { scope }
 
     board
-  end
-
-  def date_range(date, period)
-    case period
-    when :weekly
-      (date.beginning_of_day...(date + 7.days).beginning_of_day)
-    when :last_7_days
-      ((date - 6.days).beginning_of_day...date.end_of_day)
-    else
-      date.all_day
-    end
   end
 end

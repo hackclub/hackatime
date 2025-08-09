@@ -11,18 +11,17 @@ class TimezoneLeaderboardJob < ApplicationJob
   )
 
   def perform(period = :daily, date = Date.current, offset = 0)
-    date = date.is_a?(Date) ? date : Date.parse(date.to_s)
-    date = date.beginning_of_week if period == :weekly
+    date = LeaderboardDateRange.normalize_date(date, period)
 
     Rails.logger.info "Generating timezone leaderboard for UTC#{offset >= 0 ? '+' : ''}#{offset} (#{period}, #{date})"
 
-    key = "tz_leaderboard_#{offset}_#{date}_#{period}"
+    key = LeaderboardCache.timezone_key(offset, date, period)
 
     # Generate the leaderboard
     board = build_timezone(date, period, offset)
 
     # Cache it for 10 minutes
-    Rails.cache.write(key, board, expires_in: 10.minutes)
+    LeaderboardCache.write(key, board)
 
     Rails.logger.info "Cached timezone leaderboard for UTC#{offset >= 0 ? '+' : ''}#{offset} with #{board&.entries&.size || 0} entries"
 
@@ -57,7 +56,7 @@ class TimezoneLeaderboardJob < ApplicationJob
     users_map = users.index_by(&:id)
 
     # Calculate date range
-    range = date_range(date, period)
+    range = LeaderboardDateRange.calculate(date, period)
 
     # Get heartbeats efficiently
     beats = Heartbeat.where(user_id: ids, time: range)
@@ -92,16 +91,5 @@ class TimezoneLeaderboardJob < ApplicationJob
     board.define_singleton_method(:scope_name) { scope }
 
     board
-  end
-
-  def date_range(date, period)
-    case period
-    when :weekly
-      (date.beginning_of_day...(date + 7.days).beginning_of_day)
-    when :last_7_days
-      ((date - 6.days).beginning_of_day...date.end_of_day)
-    else
-      date.all_day
-    end
   end
 end
