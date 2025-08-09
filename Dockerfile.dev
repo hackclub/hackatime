@@ -26,6 +26,10 @@ COPY entrypoint.dev.sh /usr/bin/
 RUN chmod +x /usr/bin/entrypoint.dev.sh
 ENTRYPOINT ["entrypoint.dev.sh"]
 
+# Global git safeguards
+RUN git config --system http.timeout 30 && \
+    git config --system http.lowSpeedLimit 1000 && \
+    git config --system http.lowSpeedTime 10
 EXPOSE 3000
 
 # Start the main process
