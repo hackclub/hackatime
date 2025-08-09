@@ -1,7 +1,7 @@
 module My
   class HeartbeatsController < ApplicationController
+    include ActionController::Live
     before_action :ensure_current_user
-
 
     def export
       all_data = params[:all_data] == "true"
@@ -25,19 +25,36 @@ module My
           .order(time: :asc)
       end
 
+      total_heartbeats = heartbeats.count
+      total_duration_seconds = heartbeats.duration_seconds
 
-      export_data = {
-        export_info: {
-          exported_at: Time.current.iso8601,
-          date_range: {
-            start_date: start_date.iso8601,
-            end_date: end_date.iso8601
-          },
-          total_heartbeats: heartbeats.count,
-          total_duration_seconds: heartbeats.duration_seconds
-        },
-        heartbeats: heartbeats.map do |heartbeat|
-          {
+      filename = "heartbeats_#{current_user.slack_uid}_#{start_date.strftime('%Y%m%d')}_#{end_date.strftime('%Y%m%d')}.json"
+
+      response.headers["Content-Type"] = "application/json"
+      response.headers["Content-Disposition"] = "attachment; filename=\"#{filename}\""
+      response.headers["X-Accel-Buffering"] = "no"
+
+      response.stream.write "{"
+      response.stream.write "\"export_info\": {"
+      response.stream.write "\"exported_at\": \"" + Time.current.iso8601 + "\","
+      response.stream.write "\"date_range\": {"
+      response.stream.write "\"start_date\": \"" + start_date.iso8601 + "\","
+      response.stream.write "\"end_date\": \"" + end_date.iso8601 + "\""
+      response.stream.write "},"
+      response.stream.write "\"total_heartbeats\": " + total_heartbeats.to_s + ","
+      response.stream.write "\"total_duration_seconds\": " + total_duration_seconds.to_s
+      response.stream.write "},"
+      response.stream.write "\"heartbeats\": ["
+
+      first = true
+      heartbeats.find_in_batches(batch_size: 1000) do |batch|
+        batch.each do |heartbeat|
+          if first
+            first = false
+          else
+            response.stream.write ","
+          end
+          hb_json = {
             id: heartbeat.id,
             time: Time.at(heartbeat.time).iso8601,
             entity: heartbeat.entity,
@@ -60,20 +77,16 @@ module My
             source_type: heartbeat.source_type,
             created_at: heartbeat.created_at.iso8601,
             updated_at: heartbeat.updated_at.iso8601
-          }
+          }.to_json
+          response.stream.write hb_json
         end
-      }
-
-      filename = "heartbeats_#{current_user.slack_uid}_#{start_date.strftime('%Y%m%d')}_#{end_date.strftime('%Y%m%d')}.json"
-
-      respond_to do |format|
-        format.json {
-          send_data export_data.to_json,
-                    filename: filename,
-                    type: "application/json",
-                    disposition: "attachment"
-        }
+        ActiveRecord::Base.clear_active_connections!
       end
+
+      response.stream.write "]"
+      response.stream.write "}"
+    ensure
+      response.stream.close
     end
 
     private
