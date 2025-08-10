@@ -88,7 +88,7 @@ module My
       end
 
       file = params[:heartbeat_file]
-      
+
       unless file.content_type == 'application/json' || file.original_filename.ends_with?('.json')
         redirect_to my_settings_path, alert: "pls upload only json (download from the button above it)"
         return

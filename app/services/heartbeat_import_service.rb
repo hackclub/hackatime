@@ -10,11 +10,11 @@ class HeartbeatImportService
       raise StandardError, "Not json: #{e.message}"
     end
 
-    unless parsed_data.is_a?(Hash) && parsed_data['heartbeats'].is_a?(Array)
+    unless parsed_data.is_a?(Hash) && parsed_data["heartbeats"].is_a?(Array)
       raise StandardError, "Not correct format, download from /my/settings on the offical hackatime then import here"
     end
 
-    heartbeats_data = parsed_data['heartbeats']
+    heartbeats_data = parsed_data["heartbeats"]
     imported_count = 0
     skipped_count = 0
     errors = []
@@ -24,33 +24,33 @@ class HeartbeatImportService
 
       batch.each_with_index do |heartbeat_data, index|
         begin
-          time_value = if heartbeat_data['time'].is_a?(String)
-            Time.parse(heartbeat_data['time']).to_f
+          time_value = if heartbeat_data["time"].is_a?(String)
+            Time.parse(heartbeat_data["time"]).to_f
           else
-            heartbeat_data['time'].to_f
+            heartbeat_data["time"].to_f
           end
 
           attrs = {
             user_id: user.id,
             time: time_value,
-            entity: heartbeat_data['entity'],
-            type: heartbeat_data['type'],
-            category: heartbeat_data['category'] || 'coding',
-            project: heartbeat_data['project'],
-            language: heartbeat_data['language'],
-            editor: heartbeat_data['editor'],
-            operating_system: heartbeat_data['operating_system'],
-            machine: heartbeat_data['machine'],
-            branch: heartbeat_data['branch'],
-            user_agent: heartbeat_data['user_agent'],
-            is_write: heartbeat_data['is_write'] || false,
-            line_additions: heartbeat_data['line_additions'],
-            line_deletions: heartbeat_data['line_deletions'],
-            lineno: heartbeat_data['lineno'],
-            lines: heartbeat_data['lines'],
-            cursorpos: heartbeat_data['cursorpos'],
-            dependencies: heartbeat_data['dependencies'] || [],
-            project_root_count: heartbeat_data['project_root_count'],
+            entity: heartbeat_data["entity"],
+            type: heartbeat_data["type"],
+            category: heartbeat_data["category"] || "coding",
+            project: heartbeat_data["project"],
+            language: heartbeat_data["language"],
+            editor: heartbeat_data["editor"],
+            operating_system: heartbeat_data["operating_system"],
+            machine: heartbeat_data["machine"],
+            branch: heartbeat_data["branch"],
+            user_agent: heartbeat_data["user_agent"],
+            is_write: heartbeat_data["is_write"] || false,
+            line_additions: heartbeat_data["line_additions"],
+            line_deletions: heartbeat_data["line_deletions"],
+            lineno: heartbeat_data["lineno"],
+            lines: heartbeat_data["lines"],
+            cursorpos: heartbeat_data["cursorpos"],
+            dependencies: heartbeat_data["dependencies"] || [],
+            project_root_count: heartbeat_data["project_root_count"],
             source_type: :wakapi_import,
             raw_data: heartbeat_data.slice(*Heartbeat.indexed_attributes)
           }
