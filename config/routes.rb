@@ -113,6 +113,7 @@ Rails.application.routes.draw do
     resources :heartbeats, only: [] do
       collection do
         get :export
+        post :import
       end
     end
   end

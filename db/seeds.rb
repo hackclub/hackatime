@@ -7,7 +7,9 @@ if Rails.env.development?
   # Creating test user
   test_user = User.find_or_create_by(slack_uid: 'TEST123456') do |user|
     user.username = 'testuser'
-    user.is_admin = true
+
+    # Before you had user.is_admin = true, does not work, changed it to that, looks like it works but idk how to use the admin pages so pls check this, i just guess coded this, the cmd to seed the db works without errors
+    user.set_admin_level(:superadmin)
     # Ensure timezone is set to avoid nil timezone issues
     user.timezone = 'America/New_York'
   end

@@ -76,6 +76,56 @@ module My
       end
     end
 
+    def import
+      unless Rails.env.development?
+        redirect_to my_settings_path, alert: "Hey you! This is noit a dev env, STOP DOING THIS!!!!!) Also, idk why this is happning, you should not be able to see this button hmm...."
+        return
+      end
+
+      unless params[:heartbeat_file].present?
+        redirect_to my_settings_path, alert: "pls select a file to import"
+        return
+      end
+
+      file = params[:heartbeat_file]
+      
+      unless file.content_type == 'application/json' || file.original_filename.ends_with?('.json')
+        redirect_to my_settings_path, alert: "pls upload only json (download from the button above it)"
+        return
+      end
+
+      begin
+        file_content = file.read.force_encoding('UTF-8')
+      rescue => e
+        redirect_to my_settings_path, alert: "error reading file: #{e.message}"
+        return
+      end
+
+      result = HeartbeatImportService.import_from_file(file_content, current_user)
+
+      if result[:success]
+        message = "Imported #{result[:imported_count]} out of #{result[:total_count]} heartbeats"
+        if result[:skipped_count] > 0
+          message += " (#{result[:skipped_count]} skipped cause they were duplicates)"
+        end
+        if result[:errors].any?
+          error_count = result[:errors].length
+          if error_count <= 3
+            message += ". Errors occurred: #{result[:errors].join('; ')}"
+          else
+            message += ". #{error_count} errors occurred. First few: #{result[:errors].first(2).join('; ')}..."
+          end
+        end
+        redirect_to root_path, notice: message
+      else
+        error_message = "Import failed: #{result[:error]}"
+        if result[:errors].any? && result[:errors].length > 1
+          error_message += "Errors: #{result[:errors][1..2].join('; ')}"
+        end
+        redirect_to my_settings_path, alert: error_message
+      end
+    end
+
     private
 
     def ensure_current_user
