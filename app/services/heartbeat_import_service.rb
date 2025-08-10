@@ -54,12 +54,12 @@ class HeartbeatImportService
             source_type: :wakapi_import,
             raw_data: heartbeat_data.slice(*Heartbeat.indexed_attributes)
           }
-          
+
           attrs[:fields_hash] = Heartbeat.generate_fields_hash(attrs)
           print(attrs[:fields_hash])
           print("\n")
           records_to_upsert << attrs
-          
+
         rescue => e
           errors << "Row #{index + 1}: #{e.message}"
           next
@@ -99,7 +99,7 @@ class HeartbeatImportService
       imported_count: 0,
       total_count: 0,
       skipped_count: 0,
-      errors: [e.message]
+      errors: [ e.message ]
     }
   end
 end
