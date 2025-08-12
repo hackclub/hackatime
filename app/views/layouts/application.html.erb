@@ -164,11 +164,7 @@
     <!-- 250px is defined in nav.css -->
     <main class="flex-1 lg:ml-[250px] lg:max-w-[calc(100%-250px)] p-5 mb-[100px] pt-16 lg:pt-5 transition-all duration-300 ease-in-out">
       <%= yield %>
-      <!-- the real footer -->
       <footer class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-gray-600 hover:text-gray-300 transition-colors duration-200">
-        <p class="text-sm text-gray-300">
-          Made with ❤️ by <%= link_to "Hack Club", "https://hackclub.com", class: "text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200", target: "_blank", rel: "noopener" %> | <%= link_to "Privacy Policy", "/privacy", class: "text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200" %>
-        </p>
         <div class="container">
           <p>
             Build <%= link_to Rails.application.config.git_version, Rails.application.config.commit_link, class: "text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200" %>
