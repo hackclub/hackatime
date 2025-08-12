@@ -27,7 +27,16 @@ SECRET_KEY_BASE=alallalalallalalallalalalladlalllalal
 ENCRYPTION_PRIMARY_KEY=32characterrandomstring12345678901
 ENCRYPTION_DETERMINISTIC_KEY=32characterrandomstring12345678902
 ENCRYPTION_KEY_DERIVATION_SALT=16charssalt1234
-```
+`# Database configurations - these work with the Docker setup
+DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
+WAKATIME_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
+SAILORS_LOG_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
+
+# Generate these with `rails secret` or use these for development
+SECRET_KEY_BASE=alallalalallalalallalalalladlalllalal
+ENCRYPTION_PRIMARY_KEY=32characterrandomstring12345678901
+ENCRYPTION_DETERMINISTIC_KEY=32characterrandomstring12345678902
+ENCRYPTION_KEY_DERIVATION_SALT=16charssalt1234``
 
 Comment out the `LOOPS_API_KEY` for the local letter opener, otherwise the app will try to send out a email and fail.
 
