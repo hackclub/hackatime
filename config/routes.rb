@@ -189,6 +189,6 @@ Rails.application.routes.draw do
     end
   end
 
-  # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
+  get "/privacy", to: "static_pages#privacy"
 end
