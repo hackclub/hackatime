@@ -420,6 +420,38 @@
             </div>
           </div>
 
+          <% dev_tool do %>
+            <div class="p-6 bg-gray-800 border border-gray-600 rounded">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="p-2 bg-green-600/10 rounded">
+                  <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <h4 class="text-white font-medium">Import Heartbeat Data</h4>
+              </div>
+              <p class="text-gray-300 text-sm mb-4">Import ur data from real hackatime to test stuff with.</p>
+              <p class="text-gray-300 text-sm mb-4">PS: your console will be spammed and might crash ur dev env so be carefull if the file is very big</p>
+              <%= form_with url: import_my_heartbeats_path, method: :post, multipart: true, local: true, class: "space-y-4" do |form| %>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">Select JSON File</label>
+                  <%= form.file_field :heartbeat_file, 
+                      accept: ".json,application/json",
+                      class: "w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-red transition-colors",
+                      required: true %>
+                </div>
+
+                <div class="flex gap-3">
+                  <%= form.submit "Import Heartbeats", 
+                      class: "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center gap-2",
+                      data: { confirm: "Are you sure you want to import heartbeats? This will add new data to your account." } %>
+                </div>
+              <% end %>
+
+
+            </div>
+          <% end %>
+
 
         </div>
       </div>
