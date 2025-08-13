@@ -45,8 +45,10 @@ class StaticPagesController < ApplicationController
 
         # Process results to get sorted languages and editors
         language_counts = results
-          .map { |r| [ r.language&.downcase, r.language_count ] }
+          .map { |r| [ r.language&.categorize_language, r.language_count ] } # fix the bug where langs can have both upper and lower case like JAVA and java found here (https://github.com/hackclub/hackatime/issues/402)
           .reject { |lang, _| lang.nil? || lang.empty? }
+          .group_by { |lang, _| lang }
+          .transform_values { |pairs| pairs.sum { |_, count| count } }
           .uniq
           .sort_by { |_, count| -count }
 
@@ -260,7 +262,15 @@ class StaticPagesController < ApplicationController
           result[filter] = group_by_time.sort_by { |k, v| v }
                                         .reverse.map(&:first)
                                         .compact_blank
-                                        .map { |k| %i[operating_system editor].include?(filter) ? k.capitalize : k }
+                                        .map { |k|
+                                          if filter == :language
+                                            k.categorize_language
+                                          elsif %i[operating_system editor].include?(filter)
+                                            k.capitalize
+                                          else
+                                            k
+                                          end
+                                        }
                                         .uniq
 
           if params[filter].present?
@@ -269,6 +279,18 @@ class StaticPagesController < ApplicationController
               # search for both lowercase and capitalized versions
               normalized_arr = filter_arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq
               filtered_heartbeats = filtered_heartbeats.where(filter => normalized_arr)
+            elsif filter == :language
+              # find the real name, not the pretty one cause some edditors are stupid and return stuff like JAVASCRIPT and javascript and i need to add stuff to make them both fit the lookup
+              raw_language_values = []
+              current_user.heartbeats.distinct.pluck(filter).compact_blank.each do |raw_lang|
+                categorized = raw_lang.categorize_language
+                if filter_arr.include?(categorized)
+                  raw_language_values << raw_lang
+                end
+              end
+               Rails.logger.debug "lang filter: selected=#{filter_arr}, raw_language_values=#{raw_language_values}" # Debug line
+
+              filtered_heartbeats = filtered_heartbeats.where(filter => raw_language_values) if raw_language_values.any?
             else
               filtered_heartbeats = filtered_heartbeats.where(filter => filter_arr)
             end
@@ -310,7 +332,12 @@ class StaticPagesController < ApplicationController
             .duration_seconds
             .each_with_object({}) do |(raw_key, duration), agg|
               key = raw_key.to_s.presence || "Unknown"
-              key = key.downcase if %i[editor operating_system].include?(filter)
+              # fix the bug where langs can have both upper and lower case like JAVA and java found here (https://github.com/hackclub/hackatime/issues/402)
+              if filter == :language
+                key = key.categorize_language unless key == "Unknown"
+              elsif %i[editor operating_system].include?(filter)
+                key = key.downcase
+              end
               agg[key] = (agg[key] || 0) + duration
             end
 
