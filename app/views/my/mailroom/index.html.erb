@@ -27,14 +27,13 @@
         <% end %>
       </section>
     <% else %>
-      <section class="bg-yellow bg-opacity-10 border border-yellow rounded-lg p-6 mb-8">
+      <section class="bg-orange bg-opacity-10 border border-orange rounded-lg p-6 mb-8">
+        
         <div class="flex items-center gap-3 mb-3">
-          <div class="w-8 h-8 bg-yellow rounded-full flex items-center justify-center">
-            <span class="text-darker text-sm font-bold">!</span>
-          </div>
-          <h2 class="text-xl font-bold text-yellow">Mailing Address Required</h2>
+          <img src="https://upload.wikimedia.org/wikipedia/commons/8/83/Emergency_Light.gif" alt="Emergency Light" class="w-8 h-8">
+          <h2 class="text-xl font-bold text-dark">No Address Added!</h2>
         </div>
-        <p class="text-lg mb-4">You need to add your mailing address for your mail to be sent.</p>
+        <p class="text-lg text-dark">You need to add your mailing address to receive physical mail and rewards.</p>
         <%= link_to "Add my address", edit_my_mailing_address_path,
             class: "bg-primary hover:bg-red text-white px-6 py-3 rounded-lg font-semibold transition-colors inline-block" %>
       </section>
