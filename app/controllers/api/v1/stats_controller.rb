@@ -82,6 +82,11 @@ class Api::V1::StatsController < ApplicationController
           query = query.where(project: filter_by_project)
         end
 
+        if params[:filter_by_category].present?
+          filter_by_category = params[:filter_by_category].split(",")
+          query = query.where(category: filter_by_category)
+        end
+
         # do the boundary thingie if requested
         use_boundary_aware = params[:boundary_aware] == "true"
         total_seconds = if use_boundary_aware
