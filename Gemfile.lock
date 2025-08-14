@@ -470,7 +470,7 @@ GEM
       gli
       hashie
       logger
-    solid_cable (3.0.11)
+    solid_cable (3.0.12)
       actioncable (>= 7.2)
       activejob (>= 7.2)
       activerecord (>= 7.2)
