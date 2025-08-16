@@ -17,7 +17,7 @@ Visit the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) to auto
 Run this command in your terminal to install the Hack Club terminal-wakatime plugin:
 
 ```bash
-curl -fsSL http://hack.club/terminal-wakatime.sh | sh
+curl -fsSL https://hack.club/terminal-wakatime.sh | sh
 ```
 
 This installs `terminal-wakatime` and automatically configures it for bash, zsh, or fish shells. The plugin will use your Hackatime configuration from the setup script.
