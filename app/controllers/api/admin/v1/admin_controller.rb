@@ -22,6 +22,25 @@ module Api
           }
         end
 
+        def get_users_by_ip
+          user_ip = params[:ip]
+
+          if user_ip.blank?
+            render json: { error: "bro dont got the ip" }, status: :unprocessable_entity
+            return nil
+          end
+
+          result = Heartbeat.where(["ip_address = '%s'", user_ip]).select(:ip_address, :user_id).distinct
+
+          render json: {
+            users: result.map do |user| {
+              user_id: user.user_id,
+              ip_address: user.ip_address
+            }
+            end
+          }
+        end
+
         def user_info
           user = find_user_by_id
           return unless user
@@ -85,6 +104,7 @@ module Api
               {
                 id: hb.id,
                 time: Time.at(hb.time).utc.iso8601,
+                created_at: hb.created_at,
                 project: hb.project,
                 branch: hb.branch,
                 category: hb.category,
