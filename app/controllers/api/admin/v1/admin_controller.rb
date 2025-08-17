@@ -30,12 +30,35 @@ module Api
             return nil
           end
 
-          result = Heartbeat.where(["ip_address = '%s'", user_ip]).select(:ip_address, :user_id).distinct
+          result = Heartbeat.where(["ip_address = '%s'", user_ip]).select(:ip_address, :user_id, :machine, :user_agent).distinct
 
           render json: {
             users: result.map do |user| {
               user_id: user.user_id,
-              ip_address: user.ip_address
+              ip_address: user.ip_address,
+              machine: user.machine,
+              user_agent: user.user_agent
+            }
+            end
+          }
+        end
+
+        def get_users_by_machine
+          user_machine = params[:machine]
+
+          if user_machine.blank?
+            render json: { error: "bro dont got the machine" }, status: :unprocessable_entity
+            return nil
+          end
+
+          result = Heartbeat.where(["machine = '%s'", user_machine]).select(:ip_address, :user_id, :machine, :user_agent).distinct
+
+          render json: {
+            users: result.map do |user| {
+              user_id: user.user_id,
+              ip_address: user.ip_address,
+              machine: user.machine,
+              user_agent: user.user_agent
             }
             end
           }
