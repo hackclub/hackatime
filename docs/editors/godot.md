@@ -56,4 +56,4 @@ Once configured, your game development time will automatically appear on your [H
 
 ---
 
-*Plugin created by [Bartosz (BudzioT)](https://github.com/BudzioT), a Hack Clubber, and officially approved for High Seas!*
+*Plugin created by [Bartosz (BudzioT)](https://github.com/BudzioT), a Hack Clubber, and officially approved for Hack Club events!*
