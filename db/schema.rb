@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_22_233948) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_21_021751) do
   create_schema "pganalyze"
 
   # These are extensions that must be enabled in order to support this database
@@ -258,6 +258,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_22_233948) do
     t.bigint "raw_heartbeat_upload_id"
     t.index ["category", "time"], name: "index_heartbeats_on_category_and_time"
     t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "index_heartbeats_on_ip_address"
+    t.index ["machine"], name: "index_heartbeats_on_machine"
     t.index ["project", "time"], name: "index_heartbeats_on_project_and_time"
     t.index ["project"], name: "index_heartbeats_on_project"
     t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
