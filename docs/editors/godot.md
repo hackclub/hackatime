@@ -19,10 +19,11 @@ There are two ways to install the plugin made by Bartosz, a Hack Clubber:
 ### Option A: Asset Library (Recommended)
 
 1. Open Godot Engine
-2. Go to the **AssetLib** tab in the project manager or editor
-3. Search for "Godot Super Wakatime"
-4. Click **Download** and then **Install**
-5. Enable the plugin in **Project → Project Settings → Plugins**
+2. Create or open a project
+3. Go to the **AssetLib** tab in the project manager or editor
+4. Search for "Godot Super Wakatime"
+5. Click **Download** and then **Install**
+6. Enable the plugin in **Project → Project Settings → Plugins**
 
 ### Option B: Manual Installation
 
