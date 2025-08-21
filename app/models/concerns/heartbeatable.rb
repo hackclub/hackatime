@@ -242,7 +242,7 @@ module Heartbeatable
       model_class = scope.model
       base_scope = model_class.all.with_valid_timestamps
 
-      excluded_categories = [ "browsing", "ai coding", "meeting", "communicating" ]
+      excluded_categories = [ "browsing", "meeting", "communicating" ]
       base_scope = base_scope.where.not("LOWER(category) IN (?)", excluded_categories)
 
       if scope.where_values_hash["user_id"]
