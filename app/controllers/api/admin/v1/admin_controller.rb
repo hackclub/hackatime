@@ -51,14 +51,12 @@ module Api
             return nil
           end
 
-          result = Heartbeat.where([ "machine = '%s'", user_machine ]).select(:ip_address, :user_id, :machine, :user_agent).distinct
+          result = Heartbeat.where([ "machine = '%s'", user_machine ]).select(:user_id, :machine).distinct
 
           render json: {
             users: result.map do |user| {
               user_id: user.user_id,
-              ip_address: user.ip_address,
-              machine: user.machine,
-              user_agent: user.user_agent
+              machine: user.machine
             }
             end
           }
