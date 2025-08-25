@@ -10,17 +10,17 @@ class LeaderboardUpdateJob < ApplicationJob
     drop: true
   )
 
-  def perform(period = :daily, date = Date.current)
+  def perform(period = :daily, date = Date.current, force_update: false)
     date = LeaderboardDateRange.normalize_date(date, period)
 
     # global
-    build_leaderboard(date, period)
+    build_leaderboard(date, period, nil, nil, force_update)
 
     # Build timezone leaderboards
     range = LeaderboardDateRange.calculate(date, period)
     timezones_for_users_in(range).each do |timezone|
       offset = User.timezone_to_utc_offset(timezone)
-      build_leaderboard(date, period, offset, timezone)
+      build_leaderboard(date, period, offset, timezone, force_update)
     end
   end
 
@@ -39,14 +39,14 @@ class LeaderboardUpdateJob < ApplicationJob
   end
 
 
-  def build_leaderboard(date, period, timezone_offset = nil, timezone = nil)
+  def build_leaderboard(date, period, timezone_offset = nil, timezone = nil, force_update = false)
     board = ::Leaderboard.find_or_create_by!(
       start_date: date,
       period_type: period,
       timezone_utc_offset: timezone_offset
     )
 
-    return board if board.finished_generating_at.present?
+    return board if board.finished_generating_at.present? && !force_update
 
     if timezone_offset
       Rails.logger.info "Building timezone leaderboard for #{timezone} (UTC#{timezone_offset >= 0 ? '+' : ''}#{timezone_offset})"

@@ -30,17 +30,20 @@ Rails.application.configure do
     daily_leaderboard_update: {
       cron: "* * * * *",
       class: "LeaderboardUpdateJob",
-      args: [ :daily ]
+      args: [ :daily ],
+      kwargs: { force_update: true }
     },
     weekly_leaderboard_update: {
       cron: "*/2 * * * *",
       class: "LeaderboardUpdateJob",
-      args: [ :weekly ]
+      args: [ :weekly ],
+      kwargs: { force_update: true }
     },
     last_7_days_leaderboard_update: {
       cron: "*/7 * * * *",
       class: "LeaderboardUpdateJob",
-      args: [ :last_7_days ]
+      args: [ :last_7_days ],
+      kwargs: { force_update: true }
     },
     # sailors_log_poll: {
     #   cron: "*/2 * * * *",
