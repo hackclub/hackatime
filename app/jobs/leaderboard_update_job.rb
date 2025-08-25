@@ -35,9 +35,7 @@ class LeaderboardUpdateJob < ApplicationJob
       start_date: date,
       period_type: period,
       timezone_utc_offset: nil
-    ) do |lb|
-      lb.finished_generating_at = nil
-    end
+    )
 
     return board if board.finished_generating_at.present?
 
@@ -99,15 +97,62 @@ class LeaderboardUpdateJob < ApplicationJob
   end
 
   def build_timezone(date, period, offset)
-    key = LeaderboardCache.timezone_key(offset, date, period)
+    range = LeaderboardDateRange.calculate(date, period)
+    board = ::Leaderboard.find_or_create_by!(
+      start_date: date,
+      period_type: period,
+      timezone_utc_offset: offset
+    )
 
-    data = LeaderboardCache.fetch(key) do
-      users = User.users_in_timezone_offset(offset).not_convicted
-      LeaderboardBuilder.build_for_users(users, date, "UTC#{offset >= 0 ? '+' : ''}#{offset}", period)
+    return board if board.finished_generating_at.present?
+
+    Rails.logger.info "Building timezone leaderboard for UTC#{offset >= 0 ? '+' : ''}#{offset} (#{period}, #{date})"
+
+    ActiveRecord::Base.transaction do
+      board.entries.delete_all
+
+      # Get users in this timezone offset
+      users_in_tz = User.users_in_timezone_offset(offset).not_convicted
+      user_ids = users_in_tz.pluck(:id)
+
+      return board if user_ids.empty?
+
+      data = Heartbeat.where(time: range, user_id: user_ids)
+                      .with_valid_timestamps
+                      .joins(:user)
+                      .coding_only
+                      .where.not(users: { github_uid: nil })
+                      .group(:user_id)
+                      .duration_seconds
+
+      data = data.filter { |_, seconds| seconds > 60 }
+
+      convicted = User.where(trust_level: User.trust_levels[:red]).pluck(:id)
+      data = data.reject { |user_id, _| convicted.include?(user_id) }
+
+      streaks = Heartbeat.daily_streaks_for_users(data.keys)
+
+      entries = data.map do |user_id, seconds|
+        {
+          leaderboard_id: board.id,
+          user_id: user_id,
+          total_seconds: seconds,
+          streak_count: streaks[user_id] || 0,
+          created_at: Time.current,
+          updated_at: Time.current
+        }
+      end
+
+      LeaderboardEntry.insert_all!(entries) if entries.any?
+      board.update!(finished_generating_at: Time.current)
     end
 
-    Rails.logger.debug "Cached timezone leaderboard for UTC#{offset >= 0 ? '+' : ''}#{offset} with #{data&.entries&.size || 0} entries"
+    # Cache the persistent board for faster access
+    key = LeaderboardCache.timezone_key(offset, date, period)
+    LeaderboardCache.write(key, board)
 
-    data
+    Rails.logger.debug "Persisted timezone leaderboard for UTC#{offset >= 0 ? '+' : ''}#{offset} with #{board.entries.count} entries"
+
+    board
   end
 end
