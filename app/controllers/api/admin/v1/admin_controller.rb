@@ -248,11 +248,11 @@ module Api
             return render json: { error: "whatcha doin'?" }, status: :unprocessable_entity
           end
 
-          cool = %w[created_at deleted_at]
+          cool = %w[CREATED_AT DELETED_AT]
           not_cool = %w[INSERT UPDATE DELETE DROP CREATE ALTER TRUNCATE EXEC EXECUTE]
 
           if not_cool.any? { |keyword| query.upcase.include?(keyword) } &&
-             cool.none? { |field| query.upcase.include?(field.upcase) }
+             cool.none? { |field| query.upcase.include?(field) }
             return render json: { error: "no perms lmaooo" }, status: :forbidden
           end
 
