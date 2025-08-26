@@ -257,6 +257,11 @@ module Api
             return render json: { error: "no perms lmaooo" }, status: :forbidden
           end
 
+          cool = %w[created_at deleted_at]
+          if query.upcase.match?(/\b(#{not_cool.join('|')})\b/) && !query.upcase.match?(/\b(#{cool.join('|')})\b/)
+            return render json: { error: "no perms lmaooo" }, status: :forbidden
+          end
+
           begin
             limited_query = query.strip
             unless limited_query.upcase.include?("LIMIT")

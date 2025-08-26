@@ -18,18 +18,21 @@ class LeaderboardService
   private
 
   def get_timezone(date, period, offset)
+    date = LeaderboardDateRange.normalize_date(date, period)
     key = LeaderboardCache.timezone_key(offset, date, period)
     board = LeaderboardCache.read(key)
 
+    return board if board.present?
+
+    board = ::Leaderboard.where.not(finished_generating_at: nil)
+                         .find_by(start_date: date, period_type: period, timezone_utc_offset: offset, deleted_at: nil)
+
     if board.present?
-      Rails.logger.debug "Cache HIT for timezone leaderboard UTC#{offset >= 0 ? '+' : ''}#{offset}"
+      LeaderboardCache.write(key, board)
       return board
     end
 
-    Rails.logger.debug "Cache MISS for timezone leaderboard UTC#{offset >= 0 ? '+' : ''}#{offset}"
-
-    TimezoneLeaderboardJob.perform_later(period, date, offset)
-    Rails.logger.info "Falling back to global leaderboard for UTC#{offset >= 0 ? '+' : ''}#{offset}"
+    ::LeaderboardUpdateJob.perform_later(period, date)
     get_global(date, period)
   end
 
@@ -37,7 +40,9 @@ class LeaderboardService
     date = LeaderboardDateRange.normalize_date(date, period)
     key = LeaderboardCache.global_key(period, date)
     board = LeaderboardCache.read(key)
+
     return board if board.present?
+
     board = ::Leaderboard.where.not(finished_generating_at: nil)
                          .find_by(start_date: date, period_type: period, timezone_utc_offset: nil, deleted_at: nil)
 
@@ -46,8 +51,7 @@ class LeaderboardService
       return board
     end
 
-    Rails.logger.info "No leaderboard found for #{period} #{date}, triggering background generation"
-    LeaderboardUpdateJob.perform_later(period, date)
+    ::LeaderboardUpdateJob.perform_later(period, date)
     nil
   end
 end

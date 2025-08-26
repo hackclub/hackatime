@@ -23,11 +23,11 @@
 
     <div class="inline-flex rounded-full p-1 mb-4 ml-4">
       <%= link_to "Timezone", leaderboards_path(period_type: @period_type, scope: 'timezone'),
-        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@scope == 'timezone' ? ' text-white' : 'text-muted hover:text-white'}", style: "background:none; border:none;" %>
+        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@scope == 'timezone' ? ' bg-primary text-white' : 'text-muted hover:text-white'}", style: "background:none; border:none;" %>
       <%= link_to "Regional", leaderboards_path(period_type: @period_type, scope: 'regional'),
-        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@scope == 'regional' ? ' text-white' : 'text-muted hover:text-white'}", style: "background:none; border:none;" %>
+        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@scope == 'regional' ? ' bg-primary text-white' : 'text-muted hover:text-white'}", style: "background:none; border:none;" %>
       <%= link_to "Global", leaderboards_path(period_type: @period_type, scope: 'global'),
-        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@scope == 'global' ? ' text-white' : 'text-muted hover:text-white'}", style: "background:none; border:none;" %>
+        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@scope == 'global' ? ' bg-primary text-white' : 'text-muted hover:text-white'}", style: "background:none; border:none;" %>
     </div>
 
     <% if current_user && current_user.github_uid.blank? %>

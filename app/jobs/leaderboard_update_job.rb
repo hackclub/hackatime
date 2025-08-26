@@ -10,51 +10,78 @@ class LeaderboardUpdateJob < ApplicationJob
     drop: true
   )
 
-  def perform(period = :daily, date = Date.current)
+  def perform(period = :daily, date = Date.current, force_update: false)
     date = LeaderboardDateRange.normalize_date(date, period)
 
-    Rails.logger.info "Starting leaderboard generation for #{period} on #{date}"
+    # global
+    build_leaderboard(date, period, nil, nil, force_update)
 
-    board = build_global(date, period)
-    build_timezones(date, period)
-
-    Rails.logger.info "Completed leaderboard generation for #{period} on #{date}"
-
-    board
-  rescue => e
-    Rails.logger.error "Failed to update leaderboard: #{e.message}"
-    Honeybadger.notify(e, context: { period: period, date: date })
-    raise
+    # Build timezone leaderboards
+    range = LeaderboardDateRange.calculate(date, period)
+    timezones_for_users_in(range).each do |timezone|
+      offset = User.timezone_to_utc_offset(timezone)
+      build_leaderboard(date, period, offset, timezone, force_update)
+    end
   end
 
   private
 
-  def build_global(date, period)
-    range = LeaderboardDateRange.calculate(date, period)
+  def timezones_for_users_in(range)
+    # Expand range by 1 day in both directions to catch users in all timezones
+    expanded_range = (range.begin - 1.day)...(range.end + 1.day)
+
+    User.joins(:heartbeats)
+        .where(heartbeats: { time: expanded_range })
+        .where.not(timezone: nil)
+        .distinct
+        .pluck(:timezone)
+        .compact
+  end
+
+
+  def build_leaderboard(date, period, timezone_offset = nil, timezone = nil, force_update = false)
     board = ::Leaderboard.find_or_create_by!(
       start_date: date,
       period_type: period,
-      timezone_utc_offset: nil
-    ) do |lb|
-      lb.finished_generating_at = nil
+      timezone_utc_offset: timezone_offset
+    )
+
+    return board if board.finished_generating_at.present? && !force_update
+
+    if timezone_offset
+      Rails.logger.info "Building timezone leaderboard for #{timezone} (UTC#{timezone_offset >= 0 ? '+' : ''}#{timezone_offset})"
+    else
+      Rails.logger.info "Building global leaderboard"
     end
 
-    return board if board.finished_generating_at.present?
+    # Calculate timezone-aware range
+    range = if timezone
+      Time.use_zone(timezone) { LeaderboardDateRange.calculate(date, period) }
+    else
+      LeaderboardDateRange.calculate(date, period)
+    end
 
     ActiveRecord::Base.transaction do
       board.entries.delete_all
-      data = Heartbeat.where(time: range)
-                     .with_valid_timestamps
-                     .joins(:user)
-                     .coding_only
-                     .where.not(users: { github_uid: nil })
-                     .group(:user_id)
-                     .duration_seconds
 
-      data = data.filter { |_, seconds| seconds > 60 }
+      # Build the base heartbeat query
+      heartbeat_query = Heartbeat.where(time: range)
+                                .with_valid_timestamps
+                                .joins(:user)
+                                .coding_only
+                                .where.not(users: { github_uid: nil })
+                                .where.not(users: { trust_level: User.trust_levels[:red] })
 
-      convicted = User.where(trust_level: User.trust_levels[:red]).pluck(:id)
-      data = data.reject { |user_id, _| convicted.include?(user_id) }
+      # Filter by timezone if specified
+      if timezone_offset
+        users_in_tz = User.users_in_timezone_offset(timezone_offset).not_convicted
+        user_ids = users_in_tz.pluck(:id)
+        return board if user_ids.empty?
+        heartbeat_query = heartbeat_query.where(user_id: user_ids)
+      end
+
+      data = heartbeat_query.group(:user_id).duration_seconds
+                            .filter { |_, seconds| seconds > 60 }
 
       streaks = Heartbeat.daily_streaks_for_users(data.keys)
 
@@ -73,41 +100,15 @@ class LeaderboardUpdateJob < ApplicationJob
       board.update!(finished_generating_at: Time.current)
     end
 
-    key = LeaderboardCache.global_key(period, date)
-    LeaderboardCache.write(key, board)
+    # Cache the board
+    cache_key = timezone_offset ?
+      LeaderboardCache.timezone_key(timezone_offset, date, period) :
+      LeaderboardCache.global_key(period, date)
+
+    LeaderboardCache.write(cache_key, board)
+
+    Rails.logger.debug "Persisted #{timezone_offset ? 'timezone' : 'global'} leaderboard with #{board.entries.count} entries"
 
     board
-  end
-
-  def build_timezones(date, period)
-    range = LeaderboardDateRange.calculate(date, period)
-
-    user_timezones = User.joins(:heartbeats)
-                      .where(heartbeats: { time: range })
-                      .where.not(timezone: nil)
-                      .distinct
-                      .pluck(:timezone)
-                      .compact
-
-    offsets = user_timezones.map { |tz| User.timezone_to_utc_offset(tz) }.compact.uniq
-
-    Rails.logger.info "Generating timezone leaderboards for #{offsets.size} active UTC offsets"
-
-    offsets.each do |offset|
-      build_timezone(date, period, offset)
-    end
-  end
-
-  def build_timezone(date, period, offset)
-    key = LeaderboardCache.timezone_key(offset, date, period)
-
-    data = LeaderboardCache.fetch(key) do
-      users = User.users_in_timezone_offset(offset).not_convicted
-      LeaderboardBuilder.build_for_users(users, date, "UTC#{offset >= 0 ? '+' : ''}#{offset}", period)
-    end
-
-    Rails.logger.debug "Cached timezone leaderboard for UTC#{offset >= 0 ? '+' : ''}#{offset} with #{data&.entries&.size || 0} entries"
-
-    data
   end
 end

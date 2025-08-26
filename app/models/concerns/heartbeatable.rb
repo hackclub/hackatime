@@ -212,7 +212,6 @@ module Heartbeatable
             ELSE LEAST(EXTRACT(EPOCH FROM (to_timestamp(time) - to_timestamp(LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time)))), #{heartbeat_timeout_duration.to_i})
           END as diff")
           .where.not(time: nil)
-          .order(time: :asc)
           .unscope(:group)
 
         connection.select_all(
@@ -230,7 +229,6 @@ module Heartbeatable
             ELSE LEAST(EXTRACT(EPOCH FROM (to_timestamp(time) - to_timestamp(LAG(time) OVER (ORDER BY time)))), #{heartbeat_timeout_duration.to_i})
           END as diff")
           .where.not(time: nil)
-          .order(time: :asc)
 
         connection.select_value("SELECT COALESCE(SUM(diff), 0)::integer FROM (#{capped_diffs.to_sql}) AS diffs").to_i
       end
