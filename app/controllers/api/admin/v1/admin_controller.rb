@@ -51,14 +51,12 @@ module Api
             return nil
           end
 
-          result = Heartbeat.where([ "machine = '%s'", user_machine ]).select(:ip_address, :user_id, :machine, :user_agent).distinct
+          result = Heartbeat.where([ "machine = '%s'", user_machine ]).select(:user_id, :machine).distinct
 
           render json: {
             users: result.map do |user| {
               user_id: user.user_id,
-              ip_address: user.ip_address,
-              machine: user.machine,
-              user_agent: user.user_agent
+              machine: user.machine
             }
             end
           }
@@ -248,17 +246,15 @@ module Api
             return render json: { error: "whatcha doin'?" }, status: :unprocessable_entity
           end
 
+          cool = %w[created_at deleted_at]
           not_cool = %w[INSERT UPDATE DELETE DROP CREATE ALTER TRUNCATE EXEC EXECUTE]
-          if not_cool.any? { |keyword| query.upcase.include?(keyword) }
+
+          if not_cool.any? { |keyword| query.upcase.include?(keyword) } &&
+             cool.none? { |field| query.upcase.include?(field.upcase) }
             return render json: { error: "no perms lmaooo" }, status: :forbidden
           end
 
           unless query.strip.upcase.start_with?("SELECT")
-            return render json: { error: "no perms lmaooo" }, status: :forbidden
-          end
-
-          cool = %w[created_at deleted_at]
-          if query.upcase.match?(/\b(#{not_cool.join('|')})\b/) && !query.upcase.match?(/\b(#{cool.join('|')})\b/)
             return render json: { error: "no perms lmaooo" }, status: :forbidden
           end
 
