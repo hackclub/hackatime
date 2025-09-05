@@ -27,7 +27,7 @@ The setup page handles all configuration automatically - no manual editing requi
 
 ## Step 3: Install WakaTime Plugin
 
-Hackatime works with **any WakaTime plugin**. Visit our [editor documentation](https://hackatime.hackclub.com/docs#supported-editors) for instructions for your editor.
+Hackatime works with **any WakaTime plugin**. Visit our [editor documentation](https://hackatime.hackclub.com/docs#supported-editors) for instructions on how to install a WakaTime plugin for your specific editor.
 
 ## Step 4: Configure Plugin to Use Hackatime
 

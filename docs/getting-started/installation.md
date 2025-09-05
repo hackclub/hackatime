@@ -11,11 +11,11 @@ Before you start, make sure you have:
 
 ## Step 1: Do the Automated Setup
 
-**First, use the [setup page](https://hackatime.hackclub.com/my/wakatime_setup)!** It automatically sets up your API key and endpoint so everything works perfectly.
+**First, use our automated [setup tutorial](https://hackatime.hackclub.com/my/wakatime_setup)!** It automatically sets up your API key and endpoint so everything works perfectly.
 
 ## Step 2: Add WakaTime Plugin
 
-After doing the automated setup, install the WakaTime plugin for your editor. Visit our [editor documentation](https://hackatime.hackclub.com/docs#supported-editors) for instructions for your editor.
+After doing the automated setup, install the WakaTime plugin for your editor. Visit our [editor documentation](https://hackatime.hackclub.com/docs#supported-editors) for instructions on how to install a WakaTime plugin for your specific editor.
 
 ## Already Have the Plugin Installed?
 
