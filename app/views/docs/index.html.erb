@@ -163,9 +163,8 @@
           ['Terminal', 'terminal'], ['TeXstudio', 'texstudio'], ['TextMate', 'textmate'], ['Trae', 'trae'],
           ['Unity', 'unity'], ['Vim', 'vim'], ['Visual Studio', 'visual-studio'], ['VS Code', 'vs-code'],
           ['WebStorm', 'webstorm'], ['Windsurf', 'windsurf'], ['Wing', 'wing'], ['Word', 'word'],
-          ['Xcode', 'xcode'], ['Zed', 'zed']
-        ]
-      %>
+          ['Xcode', 'xcode'], ['Zed', 'zed'], ['Swift Playgrounds', 'swift-playgrounds']
+        ].sort_by { |editor| editor[0] } %>
         <% all_editors.each do |name, slug| %>
           <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded p-2 hover:bg-primary/10 transition-colors text-center block">
             <img src="/images/editor-icons/<%= slug %>-128.png" alt="<%= name %>" class="w-8 h-8 mx-auto mb-1">

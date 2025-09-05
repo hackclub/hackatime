@@ -127,10 +127,10 @@ Rails.application.configure do
       cron: "0 * * * *", # Run before AttemptToDeliverPhysicalMailJob
       class: "CheckStreakPhysicalMailJob"
     },
-    # attempt_to_deliver_physical_mail: {
-    #   cron: "5 * * * *", # Run after physical mail is created
-    #   class: "AttemptToDeliverPhysicalMailJob"
-    # },
+    attempt_to_deliver_physical_mail: {
+      cron: "5 * * * *", # Run after physical mail is created
+      class: "AttemptToDeliverPhysicalMailJob"
+    },
     sync_neighborhood_from_airtable: {
       cron: "*/15 * * * *",
       class: "Neighborhood::SyncFromAirtableJob"
