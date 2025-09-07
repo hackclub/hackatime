@@ -247,7 +247,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       attrs = heartbeat.merge({
         user_id: @user.id,
         source_type: source_type,
-        ip_address: request.remote_ip,
+        ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip,
         editor: parsed_ua[:editor],
         operating_system: parsed_ua[:os],
         machine: request.headers["X-Machine-Name"]
