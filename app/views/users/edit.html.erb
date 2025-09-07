@@ -42,7 +42,7 @@
               { class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
         </div>
         <p class="text-xs text-gray-400">This affects how your activity graph and other time-based features are displayed.</p>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
@@ -64,7 +64,7 @@
               {},
               { class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
         </div>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
@@ -93,7 +93,7 @@
               <%= f.label :uses_slack_status, "Update my Slack status automatically",
                   class: "text-sm text-gray-200" %>
             </div>
-            <%= f.submit "Save", class: "mt-3 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
+            <%= f.submit "Save", class: "mt-3 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
 
@@ -136,7 +136,7 @@
               class: "text-sm text-gray-200" %>
         </div>
         <p class="text-xs text-gray-400">When enabled, others can view your coding statistics through public APIs.</p>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
@@ -197,7 +197,7 @@
                 placeholder: "Add another email address",
                 required: true,
                 class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary text-sm" %>
-            <%= submit_tag "Add Email", class: "w-full px-3 py-2 bg-primary hover:bg-primary/80 text-white text-sm font-medium rounded transition-colors duration-200" %>
+            <%= submit_tag "Add Email", class: "w-full px-3 py-2 bg-primary hover:bg-primary/80 text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
       </div>
@@ -304,7 +304,7 @@
         <p class="text-gray-300 text-sm mb-4">This will migrate your heartbeats from waka.hackclub.com to this platform.</p>
 
         <%= button_to "Migrate heartbeats", my_settings_migrate_heartbeats_path, method: :post,
-            class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
+            class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
 
         <% if @heartbeats_migration_jobs.any? %>
           <div class="mt-4 space-y-2">
