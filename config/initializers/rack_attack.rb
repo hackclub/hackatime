@@ -31,7 +31,7 @@ class Rack::Attack
     false
   end
 
-  Rack::Attack.blocklist('block non-cloudflare') do |req|
+  Rack::Attack.blocklist("block non-cloudflare") do |req|
     !req.cloudflare?
   end
 

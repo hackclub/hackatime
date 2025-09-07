@@ -134,8 +134,8 @@ group :test do
 end
 
 group :production do
-  # fix request.remote_ip in prod
-  gem 'cloudflare-rails'
+  # fix request.remote_ip in prod [https://github.com/modosc/cloudflare-rails?tab=readme-ov-file]
+  gem "cloudflare-rails"
 end
 
 gem "htmlcompressor", "~> 0.4.0"
