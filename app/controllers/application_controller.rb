@@ -23,7 +23,7 @@ class ApplicationController < ActionController::Base
     Honeybadger.context(
       user_id: current_user.id,
       user_agent: request.user_agent,
-      ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip,
+      ip_address: request.remote_ip,
     )
   end
 

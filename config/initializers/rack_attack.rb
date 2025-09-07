@@ -31,6 +31,10 @@ class Rack::Attack
     false
   end
 
+  Rack::Attack.blocklist("block non-cloudflare") do |req|
+    !req.cloudflare?
+  end
+
   Rack::Attack.safelist("admin abooze") do |req|
     req.path.start_with?("/api/admin/")
   end
