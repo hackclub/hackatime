@@ -133,6 +133,11 @@ group :test do
   gem "selenium-webdriver"
 end
 
+group :production do
+  # fix request.remote_ip in prod
+  gem 'cloudflare-rails'
+end
+
 gem "htmlcompressor", "~> 0.4.0"
 
 gem "doorkeeper", "~> 5.8"

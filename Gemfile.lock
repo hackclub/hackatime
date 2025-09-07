@@ -126,6 +126,11 @@ GEM
     childprocess (5.1.0)
       logger (~> 1.5)
     chunky_png (1.4.0)
+    cloudflare-rails (6.2.0)
+      actionpack (>= 7.1.0, < 8.1.0)
+      activesupport (>= 7.1.0, < 8.1.0)
+      railties (>= 7.1.0, < 8.1.0)
+      zeitwerk (>= 2.5.0)
     concurrent-ruby (1.3.5)
     connection_pool (2.5.4)
     countries (8.0.4)
@@ -561,6 +566,7 @@ DEPENDENCIES
   brakeman
   bullet
   capybara
+  cloudflare-rails
   countries
   debug
   doorkeeper (~> 5.8)
