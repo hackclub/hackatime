@@ -131,14 +131,6 @@ Rails.application.configure do
       cron: "5 * * * *", # Run after physical mail is created
       class: "AttemptToDeliverPhysicalMailJob"
     },
-    sync_neighborhood_from_airtable: {
-      cron: "*/15 * * * *",
-      class: "Neighborhood::SyncFromAirtableJob"
-    },
-    trigger_time_update: {
-      cron: "*/15 * * * *",
-      class: "Neighborhood::TriggerTimeUpdateJob"
-    },
     # geocode_users_without_country: {
     #   cron: "7 * * * *",
     #   class: "GeocodeUsersWithoutCountryJob"
