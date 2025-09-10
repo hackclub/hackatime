@@ -51,12 +51,16 @@ class Rack::Attack
     req.ip if req.path.in?([ "/login", "/signup", "/auth", "/sessions" ]) && req.post?
   end
 
-  Rack::Attack.throttle("api requests", limit: 600, period: 1.hour) do |req|
+  Rack::Attack.throttle("api requests", limit: 10000, period: 1.hour) do |req|
     req.ip if req.path.start_with?("/api/")
   end
 
-  Rack::Attack.throttle("heartbeat api", limit: 10000, period: 1.hour) do |req|
-    req.ip if req.path.start_with?("/api/hackatime/v1/users/current/heartbeats")
+  # if ur stuff is going faster than this then we got a problem dude
+  Rack::Attack.throttle("heartbeat uploads", limit: 360, period: 1.minute) do |req|
+    req.ip if req.post? && (
+      req.path =~ %r{^/api/hackatime/v1/users/\d+/heartbeats$} ||
+      req.path == "/api/hackatime/v1/users/current/heartbeats"
+    )
   end
 
   # lets actually log things? thanks
