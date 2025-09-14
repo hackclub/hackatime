@@ -21,6 +21,11 @@ class Rack::Attack
     TOKENS = [].freeze
   end
 
+  def self.heartbeat_request?(req)
+    req.path =~ %r{^/api/hackatime/v1/users/\d+/heartbeats$} ||
+    req.path == "/api/hackatime/v1/users/current/heartbeats"
+  end
+
   # Always allow requests from bogon ips
   # (blocklist & throttles are skipped)
   Rack::Attack.safelist("allow from bogon ips") do |req|
@@ -44,7 +49,7 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("posts by ip", limit: 60, period: 5.minutes) do |req|
-    req.ip if req.post?
+    req.ip if req.post? && !heartbeat_request?(req)
   end
 
   Rack::Attack.throttle("auth requests", limit: 5, period: 1.minute) do |req|
@@ -57,10 +62,7 @@ class Rack::Attack
 
   # if ur stuff is going faster than this then we got a problem dude
   Rack::Attack.throttle("heartbeat uploads", limit: 360, period: 1.minute) do |req|
-    req.ip if req.post? && (
-      req.path =~ %r{^/api/hackatime/v1/users/\d+/heartbeats$} ||
-      req.path == "/api/hackatime/v1/users/current/heartbeats"
-    )
+    req.ip if req.post? && heartbeat_request?(req)
   end
 
   # lets actually log things? thanks
