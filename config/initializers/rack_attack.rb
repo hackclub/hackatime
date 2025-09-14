@@ -22,10 +22,8 @@ class Rack::Attack
   end
 
   def self.heartbeat_request?(req)
-    req.post? && (
-      req.path =~ %r{^/api/hackatime/v1/users/\d+/heartbeats$} ||
-      req.path == "/api/hackatime/v1/users/current/heartbeats"
-    )
+    req.path =~ %r{^/api/hackatime/v1/users/\d+/heartbeats$} ||
+    req.path == "/api/hackatime/v1/users/current/heartbeats"
   end
 
   # Always allow requests from bogon ips
