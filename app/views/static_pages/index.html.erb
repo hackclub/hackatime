@@ -29,13 +29,13 @@
   </p>
   <% unless current_user %>
     <p class="text-xl mt-2">
-      See which programming languages you use most and how productive you are. Free and works with over <%= link_to "75 code editors", docs_path + "#supported-editors" %>!
+      Discover the time you spent and your most used programming languages across <%= link_to "75+ code editors", docs_path + "#supported-editors" %>!
     </p>
 
     <% if @home_stats&.[](:seconds_tracked) && @home_stats&.[](:users_tracked) %>
       <div>
         <h2 class="text-3xl my-2">
-          Already tracking <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span>
+          Been tracking <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span>
           of coding across <span class="text-primary"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %></span>
           since <span class="text-primary">2025</span>.
         </h2>
@@ -166,6 +166,7 @@
             <% end %>
           <% end %>
         </div>
+        
       </div>
     </div>
   <% end %>
