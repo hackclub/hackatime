@@ -41,16 +41,23 @@
         </h2>
       </div>
 
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 items-center">
+      <div class="w-full relative pb-[56.25%] h-0 overflow-hidden">
+        <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/eFVA_ZWnzDk?si=TcEVwiigFZh0Sp_Z&loop=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen class="absolute top-0 left-0 w-full h-full rounded-lg"></iframe>
+      </div>
+
       <div class="my-8">
         <ul class="text-xl list-none p-0">
-          <li class="my-2">✅ <strong>100% Free</strong></li>
-          <li class="my-2">📊 <strong>75+ Editors</strong> - Works with <%= link_to "VS Code", doc_path("editors/vs-code") %>, <%= link_to "Vim", doc_path("editors/vim") %>, <%= link_to "Sublime", doc_path("editors/sublime-text") %> and <%= link_to "more", docs_path + "#supported-editors" %></li>
+          <li class="my-2">✅ <strong>100% Free!</strong></li>
+          <li class="my-2">📊 <strong>75+ Editors</strong> - Works with <%= link_to "VS Code", doc_path("editors/vs-code") , class: " text-secondary" %>, <%= link_to "Vim", doc_path("editors/vim") , class: " text-secondary" %>, <%= link_to "Sublime", doc_path("editors/sublime-text"), class: " text-secondary" %> and <%= link_to "more", docs_path + "#supported-editors", class: " text-secondary" %></li>
           <li class="my-2">📡 <strong>Works Offline</strong></li>
           <li class="my-2">🔒 <strong>Privacy First</strong> - Your data stays safe</li>
           <li class="my-2">⚡ <strong>Real-time Stats</strong> - See your coding time instantly</li>
           <li class="my-2">🏆 <strong>Leaderboards</strong> - Compare with other high schoolers</li>
         </ul>
       </div>
+
+    </div>
     <% end %>
   <% end %>
   <% if current_user %>
@@ -135,15 +142,9 @@
       <h3>Today's Top Hack Clubbers</h3>
       <%= render "leaderboards/mini_leaderboard", leaderboard: @leaderboard, current_user: nil %>
     <% end %>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 items-center">
-      <div class="w-full relative pb-[56.25%] h-0 overflow-hidden">
-        <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/eFVA_ZWnzDk?si=TcEVwiigFZh0Sp_Z&loop=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen class="absolute top-0 left-0 w-full h-full rounded-lg"></iframe>
-      </div>
-
       <div class="flex justify-center items-center">
         <div class="max-w-md mx-auto text-center w-full">
-          <%= link_to "Sign in with Hack Club Slack", slack_auth_path, class: "inline-block px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 bg-primary" %>
+          <%= link_to "Sign in with Hack Club Slack", slack_auth_path, class: "inline-block px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 text-primary " %>
 
           <div class="my-4 text-gray-300 relative">
             <span class="px-3">or</span>
@@ -166,8 +167,7 @@
             <% end %>
           <% end %>
         </div>
-        
       </div>
-    </div>
+
   <% end %>
 </div>
