@@ -17,7 +17,7 @@
       <%= @flavor_text %>
     </p>
   </div>
-  <h1 class="font-bold mt-1 mb-1 text-5xl">
+  <h1 class="font-bold mt-1 mb-1 text-6xl text-center">
     <% if current_user %>
       Keep Track of <span class="text-primary">Your</span> Coding Time
     <% else %>
@@ -28,16 +28,16 @@
     <%= @usage_social_proof&.downcase %>
   </p>
   <% unless current_user %>
-    <p class="text-xl mt-2">
+    <p class="text-xl mt-2 text-center">
       Discover the time you spent and your most used programming languages across <%= link_to "75+ code editors", docs_path + "#supported-editors" %>!
     </p>
 
     <% if @home_stats&.[](:seconds_tracked) && @home_stats&.[](:users_tracked) %>
       <div>
-        <h2 class="text-3xl my-2">
+        <h2 class="text-4xl my-2 text-center">
           Been tracking <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span>
           of coding across <span class="text-primary"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %></span>
-          since <span class="text-primary">2025</span>.
+          since <span class="text-primary">2025</span>!
         </h2>
       </div>
 
@@ -144,7 +144,7 @@
     <% end %>
       <div class="flex justify-center items-center">
         <div class="max-w-md mx-auto text-center w-full">
-          <%= link_to "Sign in with Hack Club Slack", slack_auth_path, class: "inline-block px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 text-primary " %>
+          <%= link_to "Sign in with Hack Club Slack", slack_auth_path, class: "inline-block px-6 py-3 rounded text-white font-bold cursor-pointer duration-200 border-none w-full my-2 text-white bg-gray-800 hover:bg-gray-700" %>
 
           <div class="my-4 text-gray-300 relative">
             <span class="px-3">or</span>
@@ -156,7 +156,7 @@
             <div class="mb-4">
               <%= email_field_tag :email, nil, placeholder: "Enter your email", required: true, class: "w-full px-3 py-3 border border-gray-600 rounded text-base bg-gray-800 text-white" %>
             </div>
-            <%= submit_tag "Send sign-in link", class: "inline-block px-6 py-3 rounded text-white font-medium cursor-pointer border-none w-full my-2 bg-blue-600", data: { disable_with: "Sending..." } %>
+            <%= submit_tag "Send sign-in link", class: "inline-block px-6 py-3 rounded text-white font-medium cursor-pointer border-none w-full my-2 bg-blue-600 hover:bg-blue-100 duration-200", data: { disable_with: "Sending..." } %>
           <% end %>
           <% if params[:sign_in_email] %>
             <div class="text-green-500 mt-4">
