@@ -18,7 +18,7 @@
     </p>
   </div>
 
-  <h1 class="font-bold mt-1 mb-1 text-2xl md:text-4xl lg:text-6xl text-center">
+  <h1 class="font-bold mt-1 mb-1 text-3xl md:text-4xl lg:text-6xl text-center">
     <% if current_user %>
       Keep Track of <span class="text-primary">Your</span> Coding Time
     <% else %>
@@ -44,20 +44,20 @@
         </h2>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 items-center">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:my-8 items-center">
       
-        <div class="w-full relative pb-[56.25%] h-0 overflow-hidden nav-mobile-hidden">
+        <div class="w-full relative pb-[56.25%] h-0 overflow-hidden inline-mobile-hidden">
           <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/eFVA_ZWnzDk?si=TcEVwiigFZh0Sp_Z&loop=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen class="absolute top-0 left-0 w-full h-full rounded-lg"></iframe>
         </div>
 
       <div class="my-8">
-        <ul class="text-md md:text-lg lg:text-xl list-none text-center nav-mobile-align p-0">
-          <li class="my-2">✅ <strong>Totally Free!</strong> – No hidden fees, no catch.</li>
-          <li class="my-2">🧠 <strong>75+ Editors Supported</strong> – From <%= link_to "VS Code", doc_path("editors/vs-code"), class: "text-secondary" %> , <%= link_to "Sublime", doc_path("editors/sublime-text"), class: "text-secondary" %> and <%= link_to "more", docs_path + "#supported-editors", class: "text-secondary" %>!</li>
-          <li class="my-2">📶 <strong>Offline Mode</strong> – No Wi-Fi? No problem.</li>
-          <li class="my-2">🛡️ <strong>Privacy First</strong> – Your data, your rules.</li>
-          <li class="my-2">⚡ <strong>Instant Stats</strong> – Track your coding in real-time.</li>
-          <li class="my-2">🏅 <strong>Leaderboards</strong> – Battle it out with fellow coders.</li>
+        <ul class="text-md md:text-lg lg:text-xl list-none text-center  nav-mobile-align p-0">
+          <li class="my-2">✅ <strong>Totally Free!</strong> <span class="inline-mobile-hidden"> – No hidden fees, no catch.</span></li>
+          <li class="my-2">🧠 <strong>75+ Editors Supported</strong> <span class="inline-mobile-hidden">– From <%= link_to "VS Code", doc_path("editors/vs-code"), class: "text-secondary" %> , <%= link_to "Sublime", doc_path("editors/sublime-text"), class: "text-secondary" %> and <%= link_to "more", docs_path + "#supported-editors", class: "text-secondary" %>!</span></li>
+          <li class="my-2">📶 <strong>Offline Mode</strong> <span class="inline-mobile-hidden">– No Wi-Fi? No problem.</span></li>
+          <li class="my-2">🛡️ <strong>Privacy First</strong> <span class="inline-mobile-hidden">– Your data, your rules.</span></li>
+          <li class="my-2">⚡ <strong>Instant Stats</strong> <span class="inline-mobile-hidden">– Track your coding in real-time.</span></li>
+          <li class="my-2">🏅 <strong>Leaderboards</strong> <span class="inline-mobile-hidden">– Battle it out with fellow coders.</span></li>
         </ul>
       </div>
 
