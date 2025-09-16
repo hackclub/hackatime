@@ -63,7 +63,7 @@
   .nav-mobile-hidden {
     @apply lg:block hidden;
   }
-  
+
   .nav-mobile-overlay {
     @apply fixed inset-0 bg-black z-40 lg:hidden;
   }
@@ -74,5 +74,13 @@
   
   .nav-mobile-slide.open {
     @apply translate-x-0;
+  }
+
+  .inline-mobile-hidden {
+    @apply lg:inline hidden 
+  }
+
+  .text-mobile-align {
+    @apply md:text-center
   }
 }
