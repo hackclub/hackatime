@@ -17,6 +17,7 @@
       <%= @flavor_text %>
     </p>
   </div>
+
   <h1 class="font-bold mt-1 mb-1 text-6xl text-center">
     <% if current_user %>
       Keep Track of <span class="text-primary">Your</span> Coding Time
@@ -24,9 +25,11 @@
       <span class="text-primary">Free</span> and <a href="https://github.com/hackclub/hackatime" class="text-primary cursor-pointer">Open-Source</a> Coding Time Tracker! 
     <% end %>
   </h1>
+
   <p class="font-thin italic text-gray-400">
     <%= @usage_social_proof&.downcase %>
   </p>
+  
   <% unless current_user %>
     <p class="text-xl mt-2 text-center">
       Discover the time you spent and your most used programming languages across <%= link_to "75+ code editors", docs_path + "#supported-editors" %>!
@@ -41,23 +44,25 @@
         </h2>
       </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 items-center">
-      <div class="w-full relative pb-[56.25%] h-0 overflow-hidden">
-        <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/eFVA_ZWnzDk?si=TcEVwiigFZh0Sp_Z&loop=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen class="absolute top-0 left-0 w-full h-full rounded-lg"></iframe>
-      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 items-center">
+      
+        <div class="w-full relative pb-[56.25%] h-0 overflow-hidden">
+          <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/eFVA_ZWnzDk?si=TcEVwiigFZh0Sp_Z&loop=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen class="absolute top-0 left-0 w-full h-full rounded-lg"></iframe>
+        </div>
 
       <div class="my-8">
         <ul class="text-xl list-none p-0">
-          <li class="my-2">✅ <strong>100% Free!</strong></li>
-          <li class="my-2">📊 <strong>75+ Editors</strong> - Works with <%= link_to "VS Code", doc_path("editors/vs-code") , class: " text-secondary" %>, <%= link_to "Vim", doc_path("editors/vim") , class: " text-secondary" %>, <%= link_to "Sublime", doc_path("editors/sublime-text"), class: " text-secondary" %> and <%= link_to "more", docs_path + "#supported-editors", class: " text-secondary" %></li>
-          <li class="my-2">📡 <strong>Works Offline</strong></li>
-          <li class="my-2">🔒 <strong>Privacy First</strong> - Your data stays safe</li>
-          <li class="my-2">⚡ <strong>Real-time Stats</strong> - See your coding time instantly</li>
-          <li class="my-2">🏆 <strong>Leaderboards</strong> - Compare with other high schoolers</li>
+          <li class="my-2">✅ <strong>Totally Free!</strong> – No hidden fees, no catch.</li>
+          <li class="my-2">🧠 <strong>75+ Editors Supported</strong> – From <%= link_to "VS Code", doc_path("editors/vs-code"), class: "text-secondary" %> , <%= link_to "Sublime", doc_path("editors/sublime-text"), class: "text-secondary" %> and <%= link_to "more", docs_path + "#supported-editors", class: "text-secondary" %>!</li>
+          <li class="my-2">📶 <strong>Offline Mode</strong> – No Wi-Fi? No problem.</li>
+          <li class="my-2">🛡️ <strong>Privacy First</strong> – Your data, your rules.</li>
+          <li class="my-2">⚡ <strong>Instant Stats</strong> – Track your coding in real-time.</li>
+          <li class="my-2">🏅 <strong>Leaderboards</strong> – Battle it out with fellow coders.</li>
         </ul>
       </div>
 
-    </div>
+
+      </div>
     <% end %>
   <% end %>
   <% if current_user %>
@@ -144,7 +149,7 @@
     <% end %>
       <div class="flex justify-center items-center">
         <div class="max-w-md mx-auto text-center w-full">
-          <%= link_to "Sign in with Hack Club Slack", slack_auth_path, class: "inline-block px-6 py-3 rounded text-white font-bold cursor-pointer duration-200 border-none w-full my-2 text-white bg-gray-800 hover:bg-gray-700" %>
+          <%= link_to "Sign in with Hack Club Slack", slack_auth_path, class: " shadow inline-block px-6 py-3 rounded text-white font-bold cursor-pointer duration-200 border-none w-full my-2 text-white bg-gray-800 hover:bg-gray-700" %>
 
           <div class="my-4 text-gray-300 relative">
             <span class="px-3">or</span>
