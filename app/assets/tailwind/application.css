@@ -63,6 +63,10 @@
   .nav-mobile-hidden {
     @apply lg:block hidden;
   }
+
+  .nav-mobile-align {
+    @apply md:text-start
+  }
   
   .nav-mobile-overlay {
     @apply fixed inset-0 bg-black z-40 lg:hidden;
