@@ -18,7 +18,7 @@
     </p>
   </div>
 
-  <h1 class="font-bold mt-1 mb-1 text-4xl lg:text-6xl text-center">
+  <h1 class="font-bold mt-1 mb-1 text-2xl md:text-4xl lg:text-6xl text-center">
     <% if current_user %>
       Keep Track of <span class="text-primary">Your</span> Coding Time
     <% else %>
@@ -31,13 +31,13 @@
   </p>
   
   <% unless current_user %>
-    <p class="text-md lg:text-xl mt-2 text-center nav-mobile-hidden">
+    <p class="text-sm md:text-lg lg:text-xl mt-2 text-center nav-mobile-hidden">
       Discover the time you spent and your most used programming languages across <%= link_to "75+ code editors", docs_path + "#supported-editors" %>!
     </p>
 
     <% if @home_stats&.[](:seconds_tracked) && @home_stats&.[](:users_tracked) %>
       <div>
-        <h2 class="text-2xl lg:text-4xl my-2 text-center">
+        <h2 class="text-lg md:text-2xl lg:text-4xl my-2 text-center">
           Been tracking <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span>
           of coding across <span class="text-primary"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %></span>
           since <span class="text-primary">2025</span>!
@@ -51,7 +51,7 @@
         </div>
 
       <div class="my-8">
-        <ul class="text-xl list-none text-center nav-mobile-align p-0">
+        <ul class="text-md md:text-lg lg:text-xl list-none text-center nav-mobile-align p-0">
           <li class="my-2">✅ <strong>Totally Free!</strong> – No hidden fees, no catch.</li>
           <li class="my-2">🧠 <strong>75+ Editors Supported</strong> – From <%= link_to "VS Code", doc_path("editors/vs-code"), class: "text-secondary" %> , <%= link_to "Sublime", doc_path("editors/sublime-text"), class: "text-secondary" %> and <%= link_to "more", docs_path + "#supported-editors", class: "text-secondary" %>!</li>
           <li class="my-2">📶 <strong>Offline Mode</strong> – No Wi-Fi? No problem.</li>

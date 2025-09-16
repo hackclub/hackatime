@@ -65,7 +65,7 @@
   }
 
   .nav-mobile-align {
-    @apply md:text-start
+    @apply md:text-left
   }
   
   .nav-mobile-overlay {
