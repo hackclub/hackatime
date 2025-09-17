@@ -22,12 +22,21 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "DS-Digital";
+  src: url("/fonts/DS-DIGIB.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
 @import "https://uchu.style/color.css";
 @import "settings.css";
 
 body,
 html {
   font-family: "Phantom Sans", "Segoe UI", sans-serif;
+  overflow-x: hidden;
 }
 
 *,
@@ -103,5 +112,85 @@ select {
   }
   100% {
     background-color: transparent;
+  }
+}
+
+.ds-digital {
+  font-family: "DS-Digital", monospace;
+}
+
+.monospace {
+  font-family: monospace;
+}
+
+.clock-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 0.05fr 1fr 1fr 0.05fr 1fr 1fr 1fr 1fr;
+  text-align: center;
+  width: 100%;
+  padding-left: 8vw;
+  padding-right: 8vw;
+}
+
+.blink {
+  animation: blink-anim 1s infinite;
+}
+
+@keyframes blink-anim {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+.why-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.som-box {
+  position: relative;
+  background: linear-gradient(145deg, #f6dbba 0%, #e6d4be 100%);
+  border-radius: clamp(6px, 1.5vw, 10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 3px 0 5px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 2px solid rgba(89, 47, 49, 0.3);
+  overflow: hidden;
+  color: black;
+  height: 100%;
+  cursor: 'pointer';
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.bounce {
+  animation: bounce 1s infinite;
+}
+
+#scroll-arrow {
+  transition: transform 1s ease-in-out;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
   }
 }
