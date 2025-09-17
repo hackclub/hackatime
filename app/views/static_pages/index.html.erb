@@ -1,3 +1,6 @@
+<div class="fixed bottom-6 right-4 bg-primary w-[30px] h-[30px] rounded-b-full flex justify-center items-center z-50 bounce" id="scroll-arrow">
+  <img src="/images/down-arrow.svg" class="w-8 h-8" />
+</div>
 <div class="container">
   <% if current_user&.trust_level == "red" %>
     <div class="text-primary bg-red-500/10 border-2 border-red-500/20 p-4 text-center rounded-lg mb-4">
@@ -18,13 +21,13 @@
     </p>
   </div>
   <div id="clock" class="w-[70vw] text-[10vw] cursor-pointer flex justify-center items-center select-none border-12 border-primary rounded-[64px] mx-auto mt-8 mb-8">
-    <table class="technology clock-display"></table>
+    <div class="ds-digital clock-display"></div>
   </div>
   <% if current_user %>
     <h1 class="font-bold mt-1 mb-1 text-5xl mt-8 mb-8 text-center">Keep Track of <span class="text-primary">Your</span> Coding Time</h1>
   <% else %>
-    <h1 class="font-bold mt-1 mb-1 text-5xl mt-8 mb-4 text-center">Track How Much You <span class="text-primary">Code</span></h1>
-    <div class="flex flex-row w-full max-w-[50vw] mx-auto gap-4 mb-8">
+    <h1 class="font-bold mt-1 mb-1 text-5xl mt-12 mb-4 text-center">Track How Much You <span class="text-primary">Code</span></h1>
+    <div class="flex flex-row w-full max-w-[50vw] mx-auto gap-4 mb-22">
       <%= link_to slack_auth_path, class: "flex-[1] inline-flex items-center px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 bg-primary" do %>
         <img src="/images/slack.png" class="h-8 w-8 mr-2 bg-white rounded-full p-1" />
         <span class="hidden md:flex">Sign in with Hack Club Slack</span>
@@ -39,7 +42,7 @@
     <div class="text-green-500 mt-4 text-center max-w-[50vw] mx-auto">
       Check your email for a sign-in link!
     </div>
-    <% dev_tool class: "text-center max-w-[50vw] mx-auto" do %>
+    <% dev_tool class: "text-center max-w-[50vw] mx-auto mb-4" do %>
       Because you're on localhost, <%= link_to "click here to view the email", letter_opener_web_path %>
     <% end %>
   <% end %>
@@ -73,42 +76,58 @@
       -----------------------------------------------------------------------------------------------
     </p>
   </div>
-  <h1 class="font-bold mt-1 mb-1 text-5xl">
-    <% if current_user %>
-      Keep Track of <span class="text-primary">Your</span> Coding Time
-    <% else %>
-      Free Coding Time Tracker - See How Much You <span class="text-primary">Code</span>
+  <div class="mt-8 mb-8">
+    <h1 class="font-bold mt-1 mb-1 text-4xl">Why Hackatime?</h1>
+    <% if @home_stats&.[](:seconds_tracked) && @home_stats&.[](:users_tracked) %>
+      <p class="text-primary monospace text-[20px]">
+        We've tracked over <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span> of coding time across <span class="text-primary"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %></span> since <span class="text-primary">2025</span>!
+      </p>
     <% end %>
-  </h1>
-  <p class="font-thin italic text-gray-400">
-    <%= @usage_social_proof&.downcase %>
-  </p>
-  <% unless current_user %>
-    <p class="text-xl mt-2">
-      See which programming languages you use most and how productive you are. Free and works with over <%= link_to "75 code editors", docs_path + "#supported-editors" %>!
+    <div class="overflow-x-auto -mx-4 px-4 pb-4 no-scrollbar">
+      <div class="grid grid-cols-4 gap-4 mt-4 text-center h-30 min-w-[800px] select-none cursor-pointer">
+        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">100%</span><br>free</p>
+        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">works<br><span class="text-green font-bold text-4xl">offline</span></p>
+        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">real time</span><br>stats</p>
+        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">rise to the<br><span class="text-green font-bold text-4xl">top #1</span></p>
+      </div>
+    </div>
+  </div>
+  <div class="w-full flex justify-center overflow-x-none">
+    <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
+      --------------------------------| #hackclub | #hackclub | #hackclub |--------------------------------
     </p>
 
-    <% if @home_stats&.[](:seconds_tracked) && @home_stats&.[](:users_tracked) %>
-      <div>
-        <h2 class="text-3xl my-2">
-          Already tracking <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span>
-          of coding across <span class="text-primary"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %></span>
-          since <span class="text-primary">2025</span>.
-        </h2>
+  </div>
+  <div class="mt-8 mb-8">
+    <h1 class="font-bold mt-1 mb-1 text-4xl">For your favourite <span class="text-primary">Hack Club</span> events!</span></h1>
+    <p class="text-primary monospace text-[20px]">Don't commit fraud lol ;)</p>
+    <div class="flex flex-col md:flex-row bg-[url('/images/som-bg.png')] mt-4 mb-4 rounded-lg">
+      <div class="w-full md:w-1/2 p-8">
+        <img src="/images/som.png" class="h-2/3 mx-auto md:mx-0 mb-6" />
+        <%= link_to "Start building", "https://summer.hackclub.com/", class: "inline-block bg-[#592F31] font-primary font-bold text-[#f6dbba] px-4 py-2 rounded-[100px] text-[22px] hover:scale-105 transition-transform duration-200", target: "_blank" %>
       </div>
-
-      <div class="my-8">
-        <ul class="text-xl list-none p-0">
-          <li class="my-2">✅ <strong>100% Free</strong></li>
-          <li class="my-2">📊 <strong>75+ Editors</strong> - Works with <%= link_to "VS Code", doc_path("editors/vs-code") %>, <%= link_to "Vim", doc_path("editors/vim") %>, <%= link_to "Sublime", doc_path("editors/sublime-text") %> and <%= link_to "more", docs_path + "#supported-editors" %></li>
-          <li class="my-2">📡 <strong>Works Offline</strong></li>
-          <li class="my-2">🔒 <strong>Privacy First</strong> - Your data stays safe</li>
-          <li class="my-2">⚡ <strong>Real-time Stats</strong> - See your coding time instantly</li>
-          <li class="my-2">🏆 <strong>Leaderboards</strong> - Compare with other high schoolers</li>
-        </ul>
+      <div class="w-full md:w-1/2 p-8 pl-4 pr-4 grid grid-cols-1 gap-4">
+        <div class="som-box p-4">
+          <h2 class="font-bold text-[22px]">Build Projects</h2>
+          <p class="text-[18px]">Build websites, games, apps, or any other personal open-source coding projects to showcase your skills.</p>
+        </div>
+        <div class="som-box p-4">
+          <h2 class="font-bold text-[22px]">Get Stuff</h2>
+          <p class="text-[18px]">Get awesome prizes like Raspberry Pis, Server hosting credits, 3D printers, and more to fuel your next creation.</p>
+        </div>
       </div>
-    <% end %>
-  <% end %>
+    </div>
+    <div class="flex flex-col md:flex-row bg-gradient-to-r from-[#EFCCCC] to-[#D35648] mt-4 mb-4 rounded-lg">
+      <div class="w-full md:w-1/3 translate-y-[-20px]">
+        <img src="/images/athena.png" class="w-[400px]" />
+      </div>
+      <div class="w-full md:w-2/3 p-8 pl-4 pr-4">
+        <img src="/images/athena_award.svg" class="h-24 mb-4" />
+        <p class="text-[18px] m-4">Earn an <b>industry recognized technical certificate</b> for coding 30 hours and building 3 personal projects. Win prizes as you code, and a chance to travel to NYC for 2025's largest high school hackathon for girls.</p>
+        <%= link_to "Join Athena", "https://athena.hackclub.com/", class: "inline-block bg-white font-primary font-bold text-[#D35648] px-4 py-2 m-4 rounded-[100px] text-[22px] hover:scale-105 transition-transform duration-200", target: "_blank" %>
+      </div>
+    </div>
+  </div>
   <% if current_user %>
     <% if @show_wakatime_setup_notice %>
       <div class="text-left my-8 flex flex-col">
@@ -192,36 +211,20 @@
       <%= render "leaderboards/mini_leaderboard", leaderboard: @leaderboard, current_user: nil %>
     <% end %>
 
+    <div class="w-full flex justify-center overflow-x-none">
+      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
+      ==============================================/ h a c k /=============================================
+      </p>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 items-center">
       <div class="w-full relative pb-[56.25%] h-0 overflow-hidden">
         <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/eFVA_ZWnzDk?si=TcEVwiigFZh0Sp_Z&loop=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen class="absolute top-0 left-0 w-full h-full rounded-lg"></iframe>
       </div>
 
-      <div class="flex justify-center items-center">
-        <div class="max-w-md mx-auto text-center w-full">
-          <%= link_to "Sign in with Hack Club Slack", slack_auth_path, class: "inline-block px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 bg-primary" %>
-
-          <div class="my-4 text-gray-300 relative">
-            <span class="px-3">or</span>
-            <div class="absolute top-1/2 left-0 w-[45%] h-px bg-gray-600"></div>
-            <div class="absolute top-1/2 right-0 w-[45%] h-px bg-gray-600"></div>
-          </div>
-
-          <%= form_tag email_auth_path, class: "space-y-4", data: { turbo: false } do %>
-            <div class="mb-4">
-              <%= email_field_tag :email, nil, placeholder: "Enter your email", required: true, class: "w-full px-3 py-3 border border-gray-600 rounded text-base bg-gray-800 text-white" %>
-            </div>
-            <%= submit_tag "Send sign-in link", class: "inline-block px-6 py-3 rounded text-white font-medium cursor-pointer border-none w-full my-2 bg-blue-600", data: { disable_with: "Sending..." } %>
-          <% end %>
-          <% if params[:sign_in_email] %>
-            <div class="text-green-500 mt-4">
-              Check your email for a sign-in link!
-            </div>
-            <% dev_tool do %>
-              Because you're on localhost, <%= link_to "click here to view the email", letter_opener_web_path %>
-            <% end %>
-          <% end %>
-        </div>
+      <div>
+        <h1 class="font-bold mt-1 mb-1 text-5xl">Start hacking with <span class="text-primary">Hackatime</span> now!</h1>
+        <p class="text-primary monospace text-[20px]">Superrrrrr easy to setup :)</p>
       </div>
     </div>
   <% end %>

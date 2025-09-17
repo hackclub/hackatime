@@ -96,6 +96,16 @@ function weirdclockthing() {
   }
 }
 
+function scrollarrow() {
+  window.addEventListener('scroll', function () {
+    const arrow = document.getElementById('scroll-arrow');
+    arrow.classList.remove('bounce');
+    this.setInterval(() => {
+      arrow.style.transform = 'translateY(200px)';
+    }, 100);
+  });
+}
+
 // Handle both initial page load and subsequent Turbo navigations
 document.addEventListener('turbo:load', function() {
   setupCurrentlyHacking();
@@ -111,4 +121,5 @@ document.addEventListener('DOMContentLoaded', function() {
   setupCurrentlyHacking();
   outta();
   weirdclockthing();
+  scrollarrow();
 });
