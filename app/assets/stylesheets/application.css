@@ -22,6 +22,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Technology";
+  src: url("/fonts/Technology-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
 @import "https://uchu.style/color.css";
 @import "settings.css";
 
@@ -103,5 +111,41 @@ select {
   }
   100% {
     background-color: transparent;
+  }
+}
+
+.technology {
+  font-family: "Technology", sans-serif;
+}
+
+.monospace {
+  font-family: monospace;
+}
+
+.clock-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 0.05fr 1fr 1fr 0.05fr 1fr 1fr 1fr 1fr ;
+  text-align: center;
+  width: 100%;
+  padding-left: 8vw;
+  padding-right: 8vw;
+}
+
+.clock-display span {
+  width: 100%;
+  display: inline-block;
+  text-align: center;
+}
+
+.blink {
+  animation: blink-anim 1s infinite;
+}
+
+@keyframes blink-anim {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
   }
 }
