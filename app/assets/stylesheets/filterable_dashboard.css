@@ -616,7 +616,7 @@
   font-size: 0.95rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
 }
 .interval-custom-range input[type="date"] {
   margin-left: 0.5rem;
@@ -632,6 +632,7 @@
   background: #f5b041;
   color: #222;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 .interval-custom-range button:hover {
   background: #f39c12;
