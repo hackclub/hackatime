@@ -238,7 +238,7 @@ GEM
     jbuilder (2.14.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
-    json (2.13.2)
+    json (2.15.0)
     kamal (2.7.0)
       activesupport (>= 7.0)
       base64 (~> 0.2)
@@ -468,7 +468,7 @@ GEM
       concurrent-ruby (~> 1.0, >= 1.0.2)
     skylight (7.0.0)
       activesupport (>= 7.1.0)
-    slack-ruby-client (2.7.0)
+    slack-ruby-client (3.0.0)
       faraday (>= 2.0.1)
       faraday-mashify
       faraday-multipart
