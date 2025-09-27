@@ -58,13 +58,30 @@
       </div>
 
       <div class="bg-dark rounded-lg p-6 hover:bg-darkless transition-colors">
-        <%= link_to my_wakatime_setup_step_3_path, class: "flex items-center gap-4 text-white no-underline" do %>
+        <%= link_to my_wakatime_setup_step_3_path(anchor: "emacs"), class: "flex items-center gap-4 text-white no-underline" do %>
           <div class="w-12 h-12 rounded-lg flex items-center justify-center">
             <img src="/images/editor-icons/emacs-128.png" alt="Emacs" class="w-full h-full object-contain">
           </div>
           <div>
             <h3 class="text-xl font-bold">Emacs</h3>
             <p class="text-secondary">Powerful extensible editor, for the power users</p>
+          </div>
+          <div class="ml-auto text-primary flex items-center">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="bg-dark rounded-lg p-6 hover:bg-darkless transition-colors">
+        <%= link_to my_wakatime_setup_step_3_path(anchor: "godot"), class: "flex items-center gap-4 text-white no-underline" do %>
+          <div class="w-12 h-12 rounded-lg flex items-center justify-center">
+            <img src="/images/editor-icons/godot-128.png" alt="Godot" class="w-full h-full object-contain">
+          </div>
+          <div>
+            <h3 class="text-xl font-bold">Godot</h3>
+            <p class="text-secondary">Open source game engine for all</p>
           </div>
           <div class="ml-auto text-primary flex items-center">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
