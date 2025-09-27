@@ -24,17 +24,28 @@
     <div class="ds-digital clock-display"></div>
   </div>
   <% if current_user %>
-    <h1 class="font-bold mt-1 mb-1 text-5xl mt-8 mb-8 text-center">Keep Track of <span class="text-primary">Your</span> Coding Time</h1>
+    <h1 class="font-bold mt-1 mb-1 text-5xl text-center">Keep Track of <span class="text-primary">Your</span> Coding Time</h1>
   <% else %>
-    <h1 class="font-bold mt-1 mb-1 text-5xl mt-12 mb-4 text-center">Track How Much You <span class="text-primary">Code</span></h1>
-    <div class="flex flex-row w-full max-w-[50vw] mx-auto gap-4 mb-22">
-      <%= link_to slack_auth_path, class: "flex-[1] inline-flex items-center px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 bg-primary" do %>
+    <h1 class="font-bold mt-1 mb-1 text-5xl text-center">Track How Much You <span class="text-primary">Code</span></h1>
+    <div class="flex flex-col w-full max-w-[50vw] mx-auto mb-22">
+      <%= link_to slack_auth_path, class: "inline-flex items-center justify-center px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 bg-primary" do %>
         <img src="/images/slack.png" class="h-8 w-8 mr-2 bg-white rounded-full p-1" />
         <span class="hidden md:flex">Sign in with Hack Club Slack</span>
       <% end %>
-      <%= form_tag email_auth_path, class: "flex-[2]", data: { turbo: false } do %>
-        <%= email_field_tag :email, nil, placeholder: "Enter your email", required: true, class: "inline-block w-full px-3 py-3 border border-gray-600 rounded text-base bg-gray-800 text-white my-2" %>
-        <%= submit_tag "Send", class: "inline-block px-6 py-3 rounded text-white font-medium cursor-pointer border-none w-full my-2 bg-blue-600 text-left", data: { disable_with: "Sending..." } %>
+
+      <div class="flex items-center my-4">
+        <div class="flex-1 border-t border-gray-600"></div>
+        <span class="px-4 text-gray-400 text-sm">or</span>
+        <div class="flex-1 border-t border-gray-600"></div>
+      </div>
+
+      <%= form_tag email_auth_path, class: "relative", data: { turbo: false } do %>
+        <div class="relative">
+          <%= email_field_tag :email, nil, placeholder: "Enter your email to get a sign in link", required: true, class: "w-full px-3 py-3 pr-12 border border-gray-600 rounded text-base bg-gray-800 text-white" %>
+          <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 p-1 bg-blue-600 hover:bg-blue-700 rounded cursor-pointer border-none flex items-center justify-center transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M13.3 20.275q-.3-.3-.3-.7t.3-.7L16.175 16H7q-.825 0-1.412-.587T5 14V5q0-.425.288-.712T6 4t.713.288T7 5v9h9.175l-2.9-2.9q-.3-.3-.288-.7t.288-.7q.3-.3.7-.312t.7.287L19.3 14.3q.15.15.212.325t.063.375t-.063.375t-.212.325l-4.575 4.575q-.3.3-.712.3t-.713-.3"/></svg>
+          </button>
+        </div>
       <% end %>
     </div>
   <% end %>
@@ -85,10 +96,10 @@
     <% end %>
     <div class="overflow-x-auto -mx-4 px-4 pb-4 no-scrollbar">
       <div class="grid grid-cols-4 gap-4 mt-4 text-center h-30 min-w-[800px] select-none cursor-pointer">
-        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">100%</span><br>free</p>
-        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">works<br><span class="text-green font-bold text-4xl">offline</span></p>
-        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">real time</span><br>stats</p>
-        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">rise to the<br><span class="text-green font-bold text-4xl">top #1</span></p>
+        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">100%</span><br>free</p>
+        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">works<br><span class="text-green font-bold text-4xl">offline</span></p>
+        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">real time</span><br>stats</p>
+        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">rise to the<br><span class="text-green font-bold text-4xl">top #1</span></p>
       </div>
     </div>
   </div>
