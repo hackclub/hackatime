@@ -24,7 +24,7 @@
     <div class="ds-digital clock-display"></div>
   </div>
   <% if current_user %>
-    <h1 class="font-bold mt-1 mb-1 text-5xl text-center">Keep Track of <span class="text-primary">Your</span> Coding Time</h1>
+    <h1 class="font-bold mt-1 mb-4 text-5xl text-center">Keep Track of <span class="text-primary">Your</span> Coding Time</h1>
   <% else %>
     <h1 class="font-bold mt-1 mb-1 text-5xl text-center">Track How Much You <span class="text-primary">Code</span></h1>
     <div class="flex flex-col w-full max-w-[50vw] mx-auto mb-22">
@@ -48,97 +48,97 @@
         </div>
       <% end %>
     </div>
-  <% end %>
-  <% if params[:sign_in_email] %>
-    <div class="text-green-500 mt-4 text-center max-w-[50vw] mx-auto">
-      Check your email for a sign-in link!
-    </div>
-    <% dev_tool class: "text-center max-w-[50vw] mx-auto mb-4" do %>
-      Because you're on localhost, <%= link_to "click here to view the email", letter_opener_web_path %>
-    <% end %>
-  <% end %>
-  <div class="w-full flex justify-center overflow-x-none">
-    <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
-      ==============================================/ h a c k /=============================================
-    </p>
-  </div>
-  <div class="mt-8 mb-8">
-    <h1 class="font-bold mt-1 mb-1 text-4xl">Compatible with your favourite IDEs</h1>
-    <p class="text-primary monospace text-[20px]">Hackatime works with these code editors and more!</p>
-    <div id="supported-editors" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-4">
-      <% popular_editors = [
-        ['VS Code', 'vs-code'], ['PyCharm', 'pycharm'], ['IntelliJ IDEA', 'intellij-idea'],
-        ['Sublime Text', 'sublime-text'], ['Vim', 'vim'], ['Neovim', 'neovim'],
-        ['Android Studio', 'android-studio'], ['Xcode', 'xcode'], ['Unity', 'unity'],
-        ['Godot', 'godot'], ['Cursor', 'cursor'], ['Zed', 'zed'],
-        ['Terminal', 'terminal'], ['WebStorm', 'webstorm'], ['Eclipse', 'eclipse'],
-        ['Emacs', 'emacs'], ['Jupyter', 'jupyter'], ['OnShape', 'onshape']
-      ] %>
-      <% popular_editors.each do |name, slug| %>
-        <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">
-          <img src="/images/editor-icons/<%= slug %>-128.png" alt="<%= name %>" class="w-12 h-12 mx-auto mb-2">
-          <div class="text-sm text-white"><%= name %></div>
-        </a>
+    <% if params[:sign_in_email] %>
+      <div class="text-green-500 mt-4 text-center max-w-[50vw] mx-auto">
+        Check your email for a sign-in link!
+      </div>
+      <% dev_tool class: "text-center max-w-[50vw] mx-auto mb-4" do %>
+        Because you're on localhost, <%= link_to "click here to view the email", letter_opener_web_path %>
       <% end %>
-    </div>
-  </div>
-  <div class="w-full flex justify-center overflow-x-none">
-    <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
-      -----------------------------------------------------------------------------------------------
-    </p>
-  </div>
-  <div class="mt-8 mb-8">
-    <h1 class="font-bold mt-1 mb-1 text-4xl">Why Hackatime?</h1>
-    <% if @home_stats&.[](:seconds_tracked) && @home_stats&.[](:users_tracked) %>
-      <p class="text-primary monospace text-[20px]">
-        We've tracked over <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span> of coding time across <span class="text-primary"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %></span> since <span class="text-primary">2025</span>!
-      </p>
     <% end %>
-    <div class="overflow-x-auto -mx-4 px-4 pb-4 no-scrollbar">
-      <div class="grid grid-cols-4 gap-4 mt-4 text-center h-30 min-w-[800px] select-none cursor-pointer">
-        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">100%</span><br>free</p>
-        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">works<br><span class="text-green font-bold text-4xl">offline</span></p>
-        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">real time</span><br>stats</p>
-        <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">rise to the<br><span class="text-green font-bold text-4xl">top #1</span></p>
+    <div class="w-full flex justify-center overflow-x-none">
+      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
+        ==============================================/ h a c k /=============================================
+      </p>
+    </div>
+    <div class="mt-8 mb-8">
+      <h1 class="font-bold mt-1 mb-1 text-4xl">Compatible with your favourite IDEs</h1>
+      <p class="text-primary monospace text-[20px]">Hackatime works with these code editors and more!</p>
+      <div id="supported-editors" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-4">
+        <% popular_editors = [
+          ['VS Code', 'vs-code'], ['PyCharm', 'pycharm'], ['IntelliJ IDEA', 'intellij-idea'],
+          ['Sublime Text', 'sublime-text'], ['Vim', 'vim'], ['Neovim', 'neovim'],
+          ['Android Studio', 'android-studio'], ['Xcode', 'xcode'], ['Unity', 'unity'],
+          ['Godot', 'godot'], ['Cursor', 'cursor'], ['Zed', 'zed'],
+          ['Terminal', 'terminal'], ['WebStorm', 'webstorm'], ['Eclipse', 'eclipse'],
+          ['Emacs', 'emacs'], ['Jupyter', 'jupyter'], ['OnShape', 'onshape']
+        ] %>
+        <% popular_editors.each do |name, slug| %>
+          <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">
+            <img src="/images/editor-icons/<%= slug %>-128.png" alt="<%= name %>" class="w-12 h-12 mx-auto mb-2">
+            <div class="text-sm text-white"><%= name %></div>
+          </a>
+        <% end %>
       </div>
     </div>
-  </div>
-  <div class="w-full flex justify-center overflow-x-none">
-    <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
-      --------------------------------| #hackclub | #hackclub | #hackclub |--------------------------------
-    </p>
+    <div class="w-full flex justify-center overflow-x-none">
+      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
+        -----------------------------------------------------------------------------------------------
+      </p>
+    </div>
+    <div class="mt-8 mb-8">
+      <h1 class="font-bold mt-1 mb-1 text-4xl">Why Hackatime?</h1>
+      <% if @home_stats&.[](:seconds_tracked) && @home_stats&.[](:users_tracked) %>
+        <p class="text-primary monospace text-[20px]">
+          We've tracked over <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span> of coding time across <span class="text-primary"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %></span> since <span class="text-primary">2025</span>!
+        </p>
+      <% end %>
+      <div class="overflow-x-auto -mx-4 px-4 pb-4 no-scrollbar">
+        <div class="grid grid-cols-4 gap-4 mt-4 text-center h-30 min-w-[800px] select-none cursor-pointer">
+          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-primary font-bold text-4xl">100%</span><br>free</p>
+          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">works<br><span class="text-primary font-bold text-4xl">offline</span></p>
+          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20"><span class="text-primary font-bold text-4xl">real time</span><br>stats</p>
+          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:translate-y-[-2px] hover:shadow-lg hover:shadow-blue-500/20">rise to the<br><span class="text-primary font-bold text-4xl">top #1</span></p>
+        </div>
+      </div>
+    </div>
+    <div class="w-full flex justify-center overflow-x-none">
+      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
+        --------------------------------| #hackclub | #hackclub | #hackclub |--------------------------------
+      </p>
 
-  </div>
-  <div class="mt-8 mb-8">
-    <h1 class="font-bold mt-1 mb-1 text-4xl">For your favourite <span class="text-primary">Hack Club</span> events!</span></h1>
-    <p class="text-primary monospace text-[20px]">Don't commit fraud lol ;)</p>
-    <div class="flex flex-col md:flex-row bg-[url('/images/som-bg.png')] mt-4 mb-4 rounded-lg">
-      <div class="w-full md:w-1/2 p-8">
-        <img src="/images/som.png" class="h-2/3 mx-auto md:mx-0 mb-6" />
-        <%= link_to "Start building", "https://summer.hackclub.com/", class: "inline-block bg-[#592F31] font-primary font-bold text-[#f6dbba] px-4 py-2 rounded-[100px] text-[22px] hover:scale-105 transition-transform duration-200", target: "_blank" %>
-      </div>
-      <div class="w-full md:w-1/2 p-8 pl-4 pr-4 grid grid-cols-1 gap-4">
-        <div class="som-box p-4">
-          <h2 class="font-bold text-[22px]">Build Projects</h2>
-          <p class="text-[18px]">Build websites, games, apps, or any other personal open-source coding projects to showcase your skills.</p>
+    </div>
+    <div class="mt-8 mb-8">
+      <h1 class="font-bold mt-1 mb-1 text-4xl">For your favourite <span class="text-primary">Hack Club</span> events!</span></h1>
+      <p class="text-primary monospace text-[20px]">Don't commit fraud lol ;)</p>
+      <div class="flex flex-col md:flex-row bg-[url('/images/som-bg.png')] mt-4 mb-4 rounded-lg">
+        <div class="w-full md:w-1/2 p-8">
+          <img src="/images/som.png" class="h-2/3 mx-auto md:mx-0 mb-6" />
+          <%= link_to "Start building", "https://summer.hackclub.com/", class: "inline-block bg-[#592F31] font-primary font-bold text-[#f6dbba] px-4 py-2 rounded-[100px] text-[22px] hover:scale-105 transition-transform duration-200", target: "_blank" %>
         </div>
-        <div class="som-box p-4">
-          <h2 class="font-bold text-[22px]">Get Stuff</h2>
-          <p class="text-[18px]">Get awesome prizes like Raspberry Pis, Server hosting credits, 3D printers, and more to fuel your next creation.</p>
+        <div class="w-full md:w-1/2 p-8 pl-4 pr-4 grid grid-cols-1 gap-4">
+          <div class="som-box p-4">
+            <h2 class="font-bold text-[22px]">Build Projects</h2>
+            <p class="text-[18px]">Build websites, games, apps, or any other personal open-source coding projects to showcase your skills.</p>
+          </div>
+          <div class="som-box p-4">
+            <h2 class="font-bold text-[22px]">Get Stuff</h2>
+            <p class="text-[18px]">Get awesome prizes like Raspberry Pis, Server hosting credits, 3D printers, and more to fuel your next creation.</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row bg-gradient-to-r from-[#EFCCCC] to-[#D35648] mt-4 mb-4 rounded-lg">
+        <div class="w-full md:w-1/3 translate-y-[-20px]">
+          <img src="/images/athena.png" class="w-[400px]" />
+        </div>
+        <div class="w-full md:w-2/3 p-8 pl-4 pr-4">
+          <img src="/images/athena_award.svg" class="h-24 mb-4" />
+          <p class="text-[18px] m-4">Earn an <b>industry recognized technical certificate</b> for coding 30 hours and building 3 personal projects. Win prizes as you code, and a chance to travel to NYC for 2025's largest high school hackathon for girls.</p>
+          <%= link_to "Join Athena", "https://athena.hackclub.com/", class: "inline-block bg-white font-primary font-bold text-[#D35648] px-4 py-2 m-4 rounded-[100px] text-[22px] hover:scale-105 transition-transform duration-200", target: "_blank" %>
         </div>
       </div>
     </div>
-    <div class="flex flex-col md:flex-row bg-gradient-to-r from-[#EFCCCC] to-[#D35648] mt-4 mb-4 rounded-lg">
-      <div class="w-full md:w-1/3 translate-y-[-20px]">
-        <img src="/images/athena.png" class="w-[400px]" />
-      </div>
-      <div class="w-full md:w-2/3 p-8 pl-4 pr-4">
-        <img src="/images/athena_award.svg" class="h-24 mb-4" />
-        <p class="text-[18px] m-4">Earn an <b>industry recognized technical certificate</b> for coding 30 hours and building 3 personal projects. Win prizes as you code, and a chance to travel to NYC for 2025's largest high school hackathon for girls.</p>
-        <%= link_to "Join Athena", "https://athena.hackclub.com/", class: "inline-block bg-white font-primary font-bold text-[#D35648] px-4 py-2 m-4 rounded-[100px] text-[22px] hover:scale-105 transition-transform duration-200", target: "_blank" %>
-      </div>
-    </div>
-  </div>
+  <% end %>
   <% if current_user %>
     <% if @show_wakatime_setup_notice %>
       <div class="text-left my-8 flex flex-col">
@@ -183,7 +183,7 @@
         </div>
       </div>
     <% end %>
-    <p>
+    <p class="mt-2">
       <% if @show_logged_time_sentence %>
         You've logged
         <%= short_time_detailed @todays_duration %>
