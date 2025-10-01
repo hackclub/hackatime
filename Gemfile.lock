@@ -94,7 +94,7 @@ GEM
       uri (>= 0.13.1)
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
-    ahoy_matey (5.4.0)
+    ahoy_matey (5.4.1)
       activesupport (>= 7.1)
       device_detector (>= 1)
       safely_block (>= 0.4)
