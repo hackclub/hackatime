@@ -5,7 +5,7 @@
                 alt: "#{h(user.username)}'s avatar" if user.avatar_url %>
   <span class="inline-flex items-center gap-1">
     <% if local_assigns.fetch(:show, []).include?(:slack) && user.slack_uid.present? %>
-      <%= link_to "@#{h(user.display_name)}", "https://slack.com/app_redirect?channel=#{user.slack_uid}", target: "_blank", class: "text-blue-500 hover:underline" %>
+      <%= link_to "@#{h(user.display_name)}", "https://hackclub.slack.com/team/#{user.slack_uid}", target: "_blank", class: "text-blue-500 hover:underline" %>
     <% else %>
       <%= h(user.display_name) %>
     <% end %>
@@ -24,7 +24,7 @@
     </span>
   <% end %>
   <% if local_assigns.fetch(:show, []).include?(:neighborhood) && user.slack_neighborhood_channel.present? %>
-    <%= link_to "🏘️", "https://slack.com/app_redirect?channel={user.slack_neighborhood_channel}", target: "_blank" %>
+    <%= link_to "🏘️", "https://hackclub.slack.com/archives/#{user.slack_neighborhood_channel}", target: "_blank" %>
   <% end %>
   <% unless current_user == user %>
     <% admin_tool('', 'span') do %>
