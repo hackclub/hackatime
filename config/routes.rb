@@ -162,6 +162,7 @@ Rails.application.routes.draw do
         get "projects", to: "projects#index"
         # get "projects/:name", to: "projects#show", constraints: { name: /.+/ }
         get "heartbeats/latest", to: "heartbeats#latest"
+        get "api_keys", to: "api_keys#index"
       end
     end
 
