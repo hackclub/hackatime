@@ -1,0 +1,208 @@
+<%= turbo_frame_tag "friends_content" do %>
+  <section class="friends-section">
+    <% if @tab == "currently_hacking" %>
+      <div class="friends-tab-content">
+      <h2 class="friends-section-title">Currently Hacking</h2>
+      <% if @currently_hacking_friends&.any? %>
+        <div class="friends-list">
+          <% @currently_hacking_friends.each do |friend| %>
+            <div class="friends-user-card">
+              <div class="friends-user-avatar">
+                <img src="<%= friend.avatar_url %>" alt="<%= friend.display_name %>" class="friends-avatar-img">
+              </div>
+              <div class="friends-user-info">
+                <h3 class="friends-user-name"><%= friend.display_name %></h3>
+                <% if @active_projects[friend.id] %>
+                  <p class="friends-user-project">
+                    Working on: 
+                    <% if @active_projects[friend.id].repo_url %>
+                      <a href="<%= @active_projects[friend.id].repo_url %>" target="_blank" class="friends-project-link">
+                        <%= @active_projects[friend.id].project_name %>
+                      </a>
+                    <% else %>
+                      <%= @active_projects[friend.id].project_name %>
+                    <% end %>
+                  </p>
+                <% else %>
+                  <p class="friends-user-status">Currently coding</p>
+                <% end %>
+              </div>
+              <button class="friends-remove-btn" 
+                      data-action="click->friend-manager#removeFriend" 
+                      data-friend-id="<%= friend.id %>"
+                      data-friend-name="<%= friend.display_name %>"
+                      title="Remove friend">
+                ✕
+              </button>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="friends-empty-state">
+          <div class="friends-empty-icon">💤</div>
+          <h3 class="friends-empty-title">No friends currently hacking</h3>
+          <p class="friends-empty-text">None of your friends are coding right now.</p>
+        </div>
+      <% end %>
+    </div>
+
+  <% elsif @tab == "all" %>
+    <div class="friends-tab-content">
+      <h2 class="friends-section-title">All Friends (<%= @friends.count %>)</h2>
+      <% if @friends.any? %>
+        <div class="friends-list">
+          <% @friends.each do |friend| %>
+            <div class="friends-user-card">
+              <div class="friends-user-avatar">
+                <img src="<%= friend.avatar_url %>" alt="<%= friend.display_name %>" class="friends-avatar-img">
+              </div>
+              <div class="friends-user-info">
+                <h3 class="friends-user-name"><%= friend.display_name %></h3>
+                <p class="friends-user-username">@<%= friend.username || friend.slack_username || friend.github_username %></p>
+              </div>
+              <button class="friends-remove-btn" 
+                      data-action="click->friend-manager#removeFriend" 
+                      data-friend-id="<%= friend.id %>"
+                      data-friend-name="<%= friend.display_name %>"
+                      title="Remove friend">
+                ✕
+              </button>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="friends-empty-state">
+          <div class="friends-empty-icon">👋</div>
+          <h3 class="friends-empty-title">No friends yet</h3>
+          <p class="friends-empty-text">Add some friends to see them here!</p>
+        </div>
+      <% end %>
+    </div>
+
+  <% elsif @tab == "pending" %>
+    <div class="friends-tab-content" data-controller="friend-requests"
+         data-friend-requests-accept-url-value="<%= my_friends_accept_request_path %>"
+         data-friend-requests-ignore-url-value="<%= my_friends_ignore_request_path %>"
+         data-friend-requests-cancel-url-value="<%= my_friends_cancel_request_path %>">
+      
+      <!-- Incoming Friend Requests -->
+      <div class="friends-pending-section">
+        <div class="friends-pending-header">
+          <h2 class="friends-section-title">Incoming Friend Requests (<%= @incoming_requests.length %>)</h2>
+          <label class="friends-checkbox-label">
+            <%= check_box_tag :show_ignored_incoming, "true", @show_ignored_incoming, 
+                data: { action: "change->friend-requests#toggleIgnoredIncoming" } %>
+            Show ignored
+          </label>
+        </div>
+        
+        <% if @incoming_requests.any? %>
+          <div class="friends-list">
+            <% @incoming_requests.each do |request| %>
+              <div class="friends-request-card" data-request-type="incoming">
+                <div class="friends-user-avatar">
+                  <img src="<%= request[:user].avatar_url %>" alt="<%= request[:user].display_name %>" class="friends-avatar-img">
+                </div>
+                <div class="friends-user-info">
+                  <h3 class="friends-user-name"><%= request[:user].display_name %></h3>
+                  <p class="friends-user-username">@<%= request[:user].username || request[:user].slack_username || request[:user].github_username %></p>
+                  <% if request[:follow].ignored? %>
+                    <span class="friends-ignored-badge">Ignored</span>
+                  <% end %>
+                </div>
+                <div class="friends-request-actions">
+                  <% unless request[:follow].ignored? %>
+                    <button class="friends-accept-btn" 
+                            data-action="click->friend-requests#acceptRequest" 
+                            data-requester-id="<%= request[:user].id %>"
+                            data-requester-name="<%= request[:user].display_name %>">
+                      Accept
+                    </button>
+                  <% end %>
+                  <button class="friends-ignore-btn" 
+                          data-action="click->friend-requests#ignoreRequest" 
+                          data-requester-id="<%= request[:user].id %>"
+                          data-requester-name="<%= request[:user].display_name %>">
+                    <% if request[:follow].ignored? %>Unignore<% else %>Ignore<% end %>
+                  </button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="friends-empty-state">
+            <div class="friends-empty-icon">📭</div>
+            <h3 class="friends-empty-title">No incoming requests</h3>
+            <p class="friends-empty-text">No one has sent you friend requests yet.</p>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Outgoing Friend Requests -->
+      <div class="friends-pending-section">
+        <div class="friends-pending-header">
+          <h2 class="friends-section-title">Outgoing Friend Requests (<%= @outgoing_requests.length %>)</h2>
+          <label class="friends-checkbox-label">
+            <%= check_box_tag :show_unrequited_outgoing, "true", @show_unrequited_outgoing, 
+                data: { action: "change->friend-requests#toggleUnrequitedOutgoing" } %>
+            Show unrequited
+          </label>
+        </div>
+        
+        <% if @outgoing_requests.any? %>
+          <div class="friends-list">
+            <% @outgoing_requests.each do |request| %>
+              <div class="friends-request-card" data-request-type="outgoing">
+                <div class="friends-user-avatar">
+                  <img src="<%= request[:user].avatar_url %>" alt="<%= request[:user].display_name %>" class="friends-avatar-img">
+                </div>
+                <div class="friends-user-info">
+                  <h3 class="friends-user-name"><%= request[:user].display_name %></h3>
+                  <p class="friends-user-username">@<%= request[:user].username || request[:user].slack_username || request[:user].github_username %></p>
+                  <% if request[:follow].ignored? %>
+                    <span class="friends-unrequited-badge">Unrequited</span>
+                  <% end %>
+                </div>
+                <div class="friends-request-actions">
+                  <button class="friends-cancel-btn" 
+                          data-action="click->friend-requests#cancelRequest" 
+                          data-recipient-id="<%= request[:user].id %>"
+                          data-recipient-name="<%= request[:user].display_name %>">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="friends-empty-state">
+            <div class="friends-empty-icon">📤</div>
+            <h3 class="friends-empty-title">No outgoing requests</h3>
+            <p class="friends-empty-text">You haven't sent any friend requests.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+  <% elsif @tab == "add_friend" %>
+    <div class="friends-tab-content" data-controller="friend-search" 
+         data-friend-search-search-url-value="<%= my_friends_search_users_path %>"
+         data-friend-search-add-url-value="<%= my_friends_path %>">
+      <h2 class="friends-section-title">Add Friend</h2>
+      <div class="friends-search-container">
+        <div class="friends-search-input-wrapper">
+          <input type="text" 
+                 placeholder="Search for users by name, username, or email..." 
+                 class="friends-search-input"
+                 data-friend-search-target="searchInput"
+                 data-action="input->friend-search#search">
+          <div class="friends-search-loading" data-friend-search-target="searchLoading">
+            <div class="friends-search-spinner"></div>
+          </div>
+        </div>
+        <div class="friends-search-results" data-friend-search-target="searchResults"></div>
+      </div>
+    </div>
+    <% end %>
+  </section>
+<% end %>

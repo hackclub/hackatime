@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_21_021751) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_03_182423) do
   create_schema "pganalyze"
 
   # These are extensions that must be enabled in order to support this database
@@ -134,6 +134,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_21_021751) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["feature_key", "key", "value"], name: "index_flipper_gates_on_feature_key_and_key_and_value", unique: true
+  end
+
+  create_table "follows", force: :cascade do |t|
+    t.boolean "ignored", default: false, null: false
+    t.bigint "from_id", null: false
+    t.bigint "to_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["from_id", "to_id"], name: "index_follows_on_from_id_and_to_id", unique: true
+    t.index ["from_id"], name: "index_follows_on_from_id"
+    t.index ["to_id"], name: "index_follows_on_to_id"
   end
 
   create_table "good_job_batches", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -396,6 +407,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_21_021751) do
     t.index ["user_id"], name: "index_physical_mails_on_user_id"
   end
 
+  create_table "project_labels", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.string "playable_url"
+    t.string "code_url"
+    t.string "hackatime_project", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_project_labels_on_user_id"
+  end
+
   create_table "project_repo_mappings", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "project_name", null: false
@@ -578,6 +601,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_21_021751) do
   add_foreign_key "commits", "users"
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
+  add_foreign_key "follows", "users", column: "from_id"
+  add_foreign_key "follows", "users", column: "to_id"
   add_foreign_key "heartbeats", "raw_heartbeat_uploads"
   add_foreign_key "heartbeats", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
@@ -586,6 +611,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_21_021751) do
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
   add_foreign_key "physical_mails", "users"
+  add_foreign_key "project_labels", "users"
   add_foreign_key "project_repo_mappings", "repositories"
   add_foreign_key "project_repo_mappings", "users"
   add_foreign_key "repo_host_events", "users"

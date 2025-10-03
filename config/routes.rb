@@ -99,7 +99,13 @@ Rails.application.routes.draw do
     resources :wakatime_mirrors, only: [ :destroy ]
   end
 
-  get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
+  get "my/projects", to: "my/projects#index", as: :my_projects
+  get "my/projects/project_durations", to: "my/projects#project_durations", as: :project_durations_my_projects
+  get "my/projects/new", to: "my/projects#new", as: :new_my_project_label
+  post "my/projects", to: "my/projects#create"
+  get "my/projects/:id/edit", to: "my/projects#edit", as: :edit_my_project_label
+  patch "my/projects/:id", to: "my/projects#update"
+  delete "my/projects/:id", to: "my/projects#destroy"
 
   # Namespace for current user actions
   get "my/settings", to: "users#edit", as: :my_settings
@@ -110,6 +116,13 @@ Rails.application.routes.draw do
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }
     resource :mailing_address, only: [ :show, :edit ]
     get "mailroom", to: "mailroom#index"
+    get "friends", to: "friends#index"
+    get "friends/search_users", to: "friends#search_users"
+    post "friends", to: "friends#create"
+    delete "friends", to: "friends#destroy"
+    post "friends/accept_request", to: "friends#accept_request"
+    post "friends/ignore_request", to: "friends#ignore_request"
+    delete "friends/cancel_request", to: "friends#cancel_request"
     resources :heartbeats, only: [] do
       collection do
         get :export

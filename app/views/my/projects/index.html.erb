@@ -1,0 +1,35 @@
+<h1 class="projects-page-title">My Projects</h1>
+
+<% if current_user.github_uid.blank? %>
+  <div class="projects-github-notice">
+    You can't tie your projects to GitHub until you connect your GitHub account.
+    <%= link_to "Sign in with GitHub", github_auth_path, class: "btn" %>
+  </div>
+<% end %>
+
+<%= render "shared/interval_selector" %>
+
+<!-- Project Labels Section -->
+<% if @labeled_project_durations.any? %>
+  <div class="projects-section">
+    <h2 class="projects-section-title">Labeled Projects</h2>
+    <%= render "labeled_project_cards", project_durations: @labeled_project_durations %>
+  </div>
+<% end %>
+
+<!-- Unlabeled Projects Dropdown -->
+<div class="unlabeled-projects-dropdown">
+  <details class="unlabeled-projects-details">
+    <summary class="unlabeled-projects-summary">
+      <svg class="unlabeled-projects-arrow" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+      </svg>
+      <span class="unlabeled-projects-text">Unlabeled Projects</span>
+    </summary>
+    <div class="unlabeled-projects-content">
+      <%= turbo_frame_tag "project_durations", src: project_durations_my_projects_path(interval: params[:interval], from: params[:from], to: params[:to]), target: "_top" do %>
+        <div class="loading-indicator">Loading unlabeled projects...</div>
+      <% end %>
+    </div>
+  </details>
+</div>

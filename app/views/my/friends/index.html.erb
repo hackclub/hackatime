@@ -1,0 +1,69 @@
+<% content_for :title do %>
+  Friends
+<% end %>
+
+<div class="friends-container" data-controller="friends-tabs friend-manager" 
+     data-friend-manager-remove-url-value="<%= my_friends_path %>">
+  <div class="friends-content">
+    <header class="friends-header">
+      <h1 class="friends-title">Friends</h1>
+      <p class="friends-description">Connect with other hackers</p>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="friends-tab-nav" data-controller="friends-tab-nav">
+      <%= link_to "Currently Hacking", my_friends_path(tab: "currently_hacking"), 
+          class: "friends-tab #{'friends-tab-active' if @tab == 'currently_hacking'}",
+          data: { 
+            turbo_frame: "friends_content",
+            action: "click->friends-tab-nav#updateActiveTab"
+          } %>
+      <%= link_to "All Friends", my_friends_path(tab: "all"), 
+          class: "friends-tab #{'friends-tab-active' if @tab == 'all'}",
+          data: { 
+            turbo_frame: "friends_content",
+            action: "click->friends-tab-nav#updateActiveTab"
+          } %>
+      <%= link_to my_friends_path(tab: "pending"), 
+          class: "friends-tab #{'friends-tab-active' if @tab == 'pending'}",
+          data: { 
+            turbo_frame: "friends_content",
+            action: "click->friends-tab-nav#updateActiveTab"
+          } do %>
+        Pending
+        <span id="pending-badge" class="friends-tab-badge" style="display: none;"></span>
+      <% end %>
+      <%= link_to "Add Friend", my_friends_path(tab: "add_friend"), 
+          class: "friends-tab #{'friends-tab-active' if @tab == 'add_friend'}",
+          data: { 
+            turbo_frame: "friends_content",
+            action: "click->friends-tab-nav#updateActiveTab"
+          } %>
+    </nav>
+
+    <!-- Turbo Frame Content -->
+    <%= turbo_frame_tag "friends_content" do %>
+      <%= render "friends_tab_content" %>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  // Update pending badge on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    fetch('<%= my_friends_path(tab: "pending_count") %>', {
+      headers: { 'Accept': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const badge = document.getElementById('pending-badge');
+      if (data.count > 0) {
+        badge.textContent = `(${data.count})`;
+        badge.style.display = 'inline';
+      } else {
+        badge.style.display = 'none';
+      }
+    })
+    .catch(error => console.log('Failed to load pending count:', error));
+  });
+</script>

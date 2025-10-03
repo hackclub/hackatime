@@ -1,0 +1,528 @@
+.friends-container {
+  min-height: 100vh;
+  background-color: var(--color-darker);
+  color: white;
+}
+
+.friends-content {
+  max-width: 1152px; /* max-w-6xl */
+  margin: 0 auto;
+  padding: 2rem 1.5rem; /* py-8 px-6 */
+}
+
+.friends-header {
+  margin-bottom: 2rem; /* mb-8 */
+}
+
+.friends-title {
+  font-size: 2.25rem; /* text-4xl */
+  font-weight: bold;
+  color: var(--color-primary);
+  margin-bottom: 0.5rem; /* mb-2 */
+}
+
+.friends-description {
+  color: var(--color-secondary);
+  font-size: 1.125rem; /* text-lg */
+}
+
+/* Tab Navigation */
+.friends-tab-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-darkless);
+  padding-bottom: 0.5rem;
+}
+
+.friends-tab {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--color-darkless);
+  color: var(--color-secondary);
+  text-decoration: none;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.friends-tab:hover {
+  background-color: var(--color-dark);
+  color: white;
+}
+
+.friends-tab-active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.friends-tab-active:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* Tab Content */
+.friends-section {
+  background-color: var(--color-dark);
+  border-radius: 0.5rem; /* rounded-lg */
+  padding: 1.5rem; /* p-6 */
+}
+
+.friends-tab-content {
+  min-height: 400px;
+}
+
+.friends-section-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+/* Friends List */
+.friends-list {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.friends-user-card {
+  background-color: var(--color-darkless);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.friends-user-card:hover {
+  background-color: var(--color-dark);
+  transform: translateY(-2px);
+}
+
+.friends-user-card:hover .friends-remove-btn {
+  opacity: 1;
+}
+
+.friends-user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.friends-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.friends-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.friends-user-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.friends-user-username {
+  color: var(--color-secondary);
+  font-size: 0.875rem;
+}
+
+.friends-user-project {
+  color: var(--color-cyan);
+  font-size: 0.875rem;
+}
+
+.friends-project-link {
+  color: var(--color-cyan);
+  text-decoration: underline;
+}
+
+.friends-project-link:hover {
+  color: var(--color-blue);
+}
+
+.friends-user-status {
+  color: var(--color-green);
+  font-size: 0.875rem;
+}
+
+/* Remove Friend Button */
+.friends-remove-btn {
+  background: none;
+  border: none;
+  color: var(--color-secondary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  opacity: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.friends-remove-btn:hover {
+  background-color: var(--color-red);
+  color: white;
+  transform: scale(1.1);
+}
+
+.friends-remove-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.friends-remove-btn:disabled:hover {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+/* Empty States */
+.friends-empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.friends-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.friends-empty-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--color-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.friends-empty-text {
+  color: var(--color-secondary);
+}
+
+/* Search Interface */
+.friends-search-container {
+  max-width: 600px;
+}
+
+.friends-search-input-wrapper {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.friends-search-input {
+  width: 100%;
+  padding: 0.75rem 3rem 0.75rem 1rem; /* Add right padding for spinner */
+  background-color: var(--color-darkless);
+  border: 1px solid var(--color-dark);
+  border-radius: 0.5rem;
+  color: white;
+  font-size: 1rem;
+}
+
+.friends-search-input::placeholder {
+  color: var(--color-secondary);
+}
+
+.friends-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* Search Loading Animation */
+.friends-search-loading {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.friends-search-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-darkless);
+  border-top: 2px solid var(--color-primary);
+  border-radius: 50%;
+  animation: friends-search-spin 1s linear infinite;
+}
+
+@keyframes friends-search-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.friends-search-results {
+  background-color: var(--color-darkless);
+  border-radius: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.friends-search-result {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-dark);
+  transition: background-color 0.2s ease;
+}
+
+.friends-search-result:hover {
+  background-color: var(--color-dark);
+}
+
+.friends-search-result:last-child {
+  border-bottom: none;
+}
+
+.friends-search-result-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.friends-search-result-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.friends-search-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.friends-search-result-name {
+  color: white;
+  font-weight: 500;
+  margin: 0;
+}
+
+.friends-search-result-add {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.friends-search-result-add:hover {
+  background-color: var(--color-red);
+}
+
+.friends-search-result-add:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.friends-search-result-added {
+  background-color: var(--color-green);
+}
+
+.friends-search-result-added:hover {
+  background-color: var(--color-green);
+}
+
+.friends-search-no-results {
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-secondary);
+}
+
+/* Tab Badge */
+.friends-tab-badge {
+  font-size: 0.875rem;
+  font-weight: normal;
+}
+
+/* Pending Tab Styles */
+.friends-pending-section {
+  margin-bottom: 2rem;
+}
+
+.friends-pending-section:last-child {
+  margin-bottom: 0;
+}
+
+.friends-pending-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.friends-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.friends-checkbox-label input[type="checkbox"] {
+  margin: 0;
+}
+
+/* Request Cards */
+.friends-request-card {
+  background-color: var(--color-darkless);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.friends-request-card:hover {
+  background-color: var(--color-dark);
+  transform: translateY(-2px);
+}
+
+.friends-request-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Request Action Buttons */
+.friends-accept-btn,
+.friends-ignore-btn,
+.friends-cancel-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.friends-accept-btn {
+  background-color: var(--color-green);
+  color: white;
+}
+
+.friends-accept-btn:hover {
+  background-color: var(--color-cyan);
+}
+
+.friends-ignore-btn {
+  background-color: var(--color-orange);
+  color: white;
+}
+
+.friends-ignore-btn:hover {
+  background-color: var(--color-yellow);
+  color: var(--color-dark);
+}
+
+.friends-cancel-btn {
+  background-color: var(--color-red);
+  color: white;
+}
+
+.friends-cancel-btn:hover {
+  background-color: var(--color-primary);
+}
+
+.friends-accept-btn:disabled,
+.friends-ignore-btn:disabled,
+.friends-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Status Badges */
+.friends-ignored-badge,
+.friends-unrequited-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.friends-ignored-badge {
+  background-color: var(--color-orange);
+  color: white;
+}
+
+.friends-unrequited-badge {
+  background-color: var(--color-red);
+  color: white;
+}
+
+/* Turbo Frame Loading States */
+turbo-frame[loading] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+turbo-frame[loading]::after {
+  content: "Loading...";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--color-dark);
+  color: var(--color-primary);
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  z-index: 1000;
+}
+
+/* Tab Navigation Optimization */
+.friends-tab {
+  position: relative;
+}
+
+.friends-tab[aria-busy="true"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  transform: translateY(-50%);
+}
+
+@keyframes spin {
+  0% { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
+}

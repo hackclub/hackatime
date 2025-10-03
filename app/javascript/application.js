@@ -1,17 +1,19 @@
 // Configure your import map in config/importmap.rb. Read more: https://github.com/rails/importmap-rails
-import "@hotwired/turbo-rails"
-import "controllers"
+import '@hotwired/turbo-rails';
+import 'controllers';
 
 function setupCurrentlyHacking() {
   const header = document.querySelector('.currently-hacking');
   // only if no existing event listener
-  if (!header) { return }
-  header.onclick = function() {
+  if (!header) {
+    return;
+  }
+  header.onclick = function () {
     const container = document.querySelector('.currently-hacking-container');
     if (container) {
       container.classList.toggle('visible');
     }
-  }
+  };
 }
 
 function outta() {
@@ -42,14 +44,17 @@ function outta() {
 
   can.addEventListener('click', logquit);
 
-  modal.addEventListener('click', function(e) {
+  modal.addEventListener('click', function (e) {
     if (e.target === modal) {
       logquit();
     }
   });
 
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && !modal.classList.contains('pointer-events-none')) {
+  document.addEventListener('keydown', function (e) {
+    if (
+      e.key === 'Escape' &&
+      !modal.classList.contains('pointer-events-none')
+    ) {
       logquit();
     }
   });
@@ -72,11 +77,13 @@ function weirdclockthing() {
     });
   }
 
-  write("HAC:KA:TIME");
+  write('HAC:KA:TIME');
 
   function updateClock() {
     const date = new Date();
-    const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+    const time = `${String(date.getHours()).padStart(2, '0')}:${String(
+      date.getMinutes()
+    ).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
     write(` ${time} `);
   }
 
@@ -86,18 +93,21 @@ function weirdclockthing() {
     if (!intervalId) {
       intervalId = setInterval(updateClock, 1000);
     }
-  }
+  };
 
   clock.onmouseleave = function () {
     clearInterval(intervalId);
     intervalId = null;
-    write("HAC:KA:TIME");
-  }
+    write('HAC:KA:TIME');
+  };
 }
 
 function scrollarrow() {
   window.addEventListener('scroll', function () {
     const arrow = document.getElementById('scroll-arrow');
+    if (!arrow) {
+      return;
+    }
     arrow.classList.remove('bounce');
     this.setInterval(() => {
       arrow.style.transform = 'translateY(200px)';
@@ -106,17 +116,17 @@ function scrollarrow() {
 }
 
 // Handle both initial page load and subsequent Turbo navigations
-document.addEventListener('turbo:load', function() {
+document.addEventListener('turbo:load', function () {
   setupCurrentlyHacking();
   outta();
   weirdclockthing();
 });
-document.addEventListener('turbo:render', function() {
+document.addEventListener('turbo:render', function () {
   setupCurrentlyHacking();
   outta();
   weirdclockthing();
 });
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   setupCurrentlyHacking();
   outta();
   weirdclockthing();

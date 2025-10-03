@@ -50,6 +50,11 @@
             <% end %>
           </div>
           <div>
+            <%= link_to my_friends_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(my_friends_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+              Friends
+            <% end %>
+          </div>
+          <div>
             <%= link_to docs_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(docs_path) || request.path.start_with?('/docs') ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
               Docs
             <% end %>

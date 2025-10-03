@@ -1,0 +1,53 @@
+<h1 class="projects-page-title">Create New Project Label</h1>
+
+<div class="project-label-form-container">
+  <%= form_with model: [@project_label], url: my_projects_path, local: true, class: "project-label-form" do |form| %>
+    <% if @project_label.errors.any? %>
+      <div class="form-errors">
+        <h3><%= pluralize(@project_label.errors.count, "error") %> prohibited this project label from being saved:</h3>
+        <ul>
+          <% @project_label.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="form-field">
+      <%= form.label :name, class: "form-label" %>
+      <%= form.text_field :name, class: "form-input", required: true %>
+    </div>
+
+    <div class="form-field">
+      <%= form.label :hackatime_project, "Hackatime Project", class: "form-label" %>
+      <%= form.select :hackatime_project, 
+          options_for_select(@available_projects.map { |p| [p, p] }, @project_label.hackatime_project),
+          { prompt: "Select a project..." },
+          { class: "form-select", required: true } %>
+      <p class="form-help">Choose from your tracked projects</p>
+    </div>
+
+    <div class="form-field">
+      <%= form.label :description, class: "form-label" %>
+      <%= form.text_area :description, class: "form-textarea", rows: 3 %>
+      <p class="form-help">Optional description of the project</p>
+    </div>
+
+    <div class="form-field">
+      <%= form.label :playable_url, "Project URL", class: "form-label" %>
+      <%= form.url_field :playable_url, class: "form-input" %>
+      <p class="form-help">Optional link to live project or demo</p>
+    </div>
+
+    <div class="form-field">
+      <%= form.label :code_url, "Code URL", class: "form-label" %>
+      <%= form.url_field :code_url, class: "form-input" %>
+      <p class="form-help">Optional link to source code repository</p>
+    </div>
+
+    <div class="form-actions">
+      <%= form.submit "Create Project Label", class: "btn btn-primary" %>
+      <%= link_to "Cancel", my_projects_path, class: "btn btn-secondary" %>
+    </div>
+  <% end %>
+</div>

@@ -90,10 +90,7 @@ class User < ApplicationRecord
     primary_key: :slack_uid,
     class_name: "Hackatime::Heartbeat"
 
-  has_many :project_labels,
-    foreign_key: :user_id,
-    primary_key: :slack_uid,
-    class_name: "Hackatime::ProjectLabel"
+  has_many :project_labels
 
   has_many :api_keys
   has_many :admin_api_keys, dependent: :destroy
