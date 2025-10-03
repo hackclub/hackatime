@@ -57,19 +57,18 @@ function outta() {
 
 function weirdclockthing() {
   const clock = document.getElementById('clock');
-  const display = clock.querySelector('.clock-display');
 
-  if (!clock || !display) return;
+  if (!clock) return;
 
   function write(something) {
-    display.innerHTML = '';
+    clock.innerHTML = '';
     Array.from(something).forEach((char) => {
       const span = document.createElement('span');
       span.textContent = char === ' ' ? '\u00A0' : char;
       if (char === ':') {
         span.classList.add('blink');
       }
-      display.appendChild(span);
+      clock.appendChild(span);
     });
   }
 
