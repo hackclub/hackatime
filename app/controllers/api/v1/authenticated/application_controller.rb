@@ -4,11 +4,17 @@ module Api
       class ApplicationController < ActionController::API
         include Doorkeeper::Rails::Helpers
         before_action :doorkeeper_authorize!
+        before_action :set_time_zone
 
         private
 
         def current_user
           @current_user ||= User.find(doorkeeper_token.resource_owner_id) if doorkeeper_token
+        end
+
+        def set_time_zone
+          Time.use_zone(current_user.timezone) if current_user&.timezone
+          response.headers["X-Timezone"] = current_user.timezone if current_user&.timezone
         end
       end
     end
