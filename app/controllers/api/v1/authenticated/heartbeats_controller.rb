@@ -12,13 +12,14 @@ module Api
             render json: {
               id: heartbeat.id,
               created_at: heartbeat.created_at,
+              time: heartbeat.time,
+              category: heartbeat.category,
               project: heartbeat.project,
               language: heartbeat.language,
               editor: heartbeat.editor,
               operating_system: heartbeat.operating_system,
               machine: heartbeat.machine,
-              file: heartbeat.file,
-              duration: heartbeat.duration
+              entity: heartbeat.entity
             }
           else
             render json: { heartbeat: nil }
