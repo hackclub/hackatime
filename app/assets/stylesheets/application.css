@@ -124,12 +124,26 @@ select {
 }
 
 .clock-display {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 0.05fr 1fr 1fr 0.05fr 1fr 1fr 1fr 1fr;
-  text-align: center;
-  width: 100%;
-  padding-left: 8vw;
-  padding-right: 8vw;
+	width: 100%;
+	height: 1.5em;
+	font-size: 15vmin;
+
+	display: flex;
+	justify-content: center;
+	align-items: center;
+
+	border: 12px solid var(--color-primary);
+	border-radius: 64px;
+
+	margin: 2rem auto;
+}
+.clock-display * {
+	line-height: normal;
+}
+@media (max-width: 87.5rem) {
+	.clock-display {
+		font-size:10vmin;
+	}
 }
 
 .blink {
