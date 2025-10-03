@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_21_021751) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_03_161836) do
   create_schema "pganalyze"
 
   # These are extensions that must be enabled in order to support this database
@@ -584,7 +584,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_21_021751) do
   add_foreign_key "leaderboard_entries", "users"
   add_foreign_key "mailing_addresses", "users"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
+  add_foreign_key "oauth_access_grants", "users", column: "resource_owner_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
+  add_foreign_key "oauth_access_tokens", "users", column: "resource_owner_id"
   add_foreign_key "physical_mails", "users"
   add_foreign_key "project_repo_mappings", "repositories"
   add_foreign_key "project_repo_mappings", "users"

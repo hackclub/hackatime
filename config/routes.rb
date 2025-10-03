@@ -154,8 +154,14 @@ Rails.application.routes.draw do
         get "heartbeats", to: "heartbeats#index"
       end
 
+      # oauth authenticated namespace
       namespace :authenticated do
         resources :me, only: [ :index ]
+        get "hours", to: "hours#index"
+        get "streak", to: "streak#show"
+        get "projects", to: "projects#index"
+        # get "projects/:name", to: "projects#show", constraints: { name: /.+/ }
+        get "heartbeats/latest", to: "heartbeats#latest"
       end
     end
 
