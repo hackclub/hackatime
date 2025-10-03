@@ -3,6 +3,10 @@
 Doorkeeper.configure do
   base_controller "ApplicationController"
 
+  default_scopes :profile
+  optional_scopes :read
+  enforce_configured_scopes
+
   resource_owner_authenticator do
     current_user || redirect_to(minimal_login_path(continue: request.fullpath))
   end
