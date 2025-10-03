@@ -28,7 +28,7 @@ Doorkeeper.configure do
   # Allow public clients (desktop/mobile apps) without client secrets
   allow_blank_redirect_uri
   skip_client_authentication_for_password_grant
-  
+
   # Enable PKCE for public clients
   force_ssl_in_redirect_uri false
 end
