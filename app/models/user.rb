@@ -1,7 +1,10 @@
 class User < ApplicationRecord
   include TimezoneRegions
+  include PublicActivity::Model
 
   has_paper_trail
+
+  after_create :create_signup_activity
   encrypts :slack_access_token, :github_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
@@ -501,5 +504,9 @@ class User < ApplicationRecord
 
   def invalidate_activity_graph_cache
     Rails.cache.delete("user_#{id}_daily_durations")
+  end
+
+  def create_signup_activity
+    create_activity :first_signup, owner: self
   end
 end

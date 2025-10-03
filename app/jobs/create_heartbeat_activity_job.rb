@@ -2,6 +2,8 @@ class CreateHeartbeatActivityJob < ApplicationJob
   queue_as :default
 
   def perform(user_id, project_name)
+    @user_id = user_id
+
     # Look for future coding activity only (not past events that are already showing)
     recent_activity = PublicActivity::Activity.with_future
       .where(owner_id: user_id, trackable_type: "Heartbeat", key: "coding_session")
@@ -23,8 +25,16 @@ class CreateHeartbeatActivityJob < ApplicationJob
         )
       )
     else
-      user = User.find(user_id)
       return unless user
+
+      # Create immediate "started working" activity - person just resumed coding
+      PublicActivity::Activity.create!(
+        trackable_type: "Heartbeat",
+        trackable_id: nil,
+        owner: user,
+        key: "started_working",
+        parameters: { project: project_name }
+      )
 
       # Create new session 5 minutes in future
       started_at = Time.current.to_i
@@ -41,6 +51,23 @@ class CreateHeartbeatActivityJob < ApplicationJob
         },
         created_at: Time.current + 5.minutes
       )
+
+      # Check if this is the user's first heartbeat ever
+      if user.heartbeats.count == 1
+        PublicActivity::Activity.create!(
+          trackable_type: "Heartbeat",
+          trackable_id: nil,
+          owner: user,
+          key: "first_heartbeat",
+          parameters: { project: project_name }
+        )
+      end
     end
+  end
+
+  private
+
+  def user
+    @user ||= User.find_by(id: @user_id)
   end
 end
