@@ -4,6 +4,7 @@ class ApplicationController < ActionController::Base
   before_action :initialize_cache_counters
   before_action :try_rack_mini_profiler_enable
   before_action :track_request
+  before_action :set_public_activity
   after_action :track_action
 
   around_action :switch_time_zone, if: :current_user
@@ -18,6 +19,10 @@ class ApplicationController < ActionController::Base
   helper_method :current_user, :user_signed_in?, :active_users_graph_data
 
   private
+
+  def set_public_activity
+    @activities = PublicActivity::Activity.all
+  end
 
   def honeybadger_context
     Honeybadger.context(
