@@ -8,7 +8,7 @@ module Api
                 name: project,
                 total_seconds: time_per_project[project] || 0,
                 most_recent_heartbeat: most_recent_heartbeat_per_project[project] ? Time.at(most_recent_heartbeat_per_project[project]).strftime("%Y-%m-%dT%H:%M:%SZ") : nil,
-                languages: languages_per_project[project] || [],
+                languages: languages_per_project[project] || []
               }
             }
 
