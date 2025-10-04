@@ -280,7 +280,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   def queue_heartbeat_public_activity(user_id, project_name)
     # only queue the job once per minute
     Rails.cache.fetch("heartbeat_public_activity_#{user_id}_#{project_name}", expires_in: 30.seconds) do
-      CreateHeartbeatActivityJob.perform_later(user_id, project_name)
+      # temporarily disable
+      # CreateHeartbeatActivityJob.perform_later(user_id, project_name)
     end
   rescue => e
     # never raise an error here because it will break the heartbeat flow
