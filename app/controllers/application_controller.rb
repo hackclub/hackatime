@@ -22,7 +22,7 @@ class ApplicationController < ActionController::Base
 
   def set_public_activity
     return unless Flipper.enabled?(:public_activity_log, current_user)
-    @activities = PublicActivity::Activity.all
+    @activities = PublicActivity::Activity.limit(25).order(created_at: :desc).includes(:owner, :trackable)
   end
 
   def honeybadger_context
