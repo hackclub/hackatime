@@ -16,5 +16,8 @@ Rails.configuration.to_prepare do
   PublicActivity::Activity.class_eval do
     default_scope { where("created_at <= ?", Time.current) }
     scope :with_future, -> { unscope(where: :created_at) }
+    
+    # Allow activities without trackable (e.g., coding sessions, general events)
+    belongs_to :trackable, polymorphic: true, optional: true
   end
 end
