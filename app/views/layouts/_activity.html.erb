@@ -1,0 +1,5 @@
+<%= render "shared/user_mention", user: activity.owner %>
+<%= yield %>
+<p class="muted super">
+  <%= time_ago_in_words activity.created_at %> ago
+</p>

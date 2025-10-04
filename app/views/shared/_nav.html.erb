@@ -152,7 +152,7 @@
           <% end %>
         <% end %>
 
-        <%= render_activities(@activities) if defined?(@activities) %>
+        <%= render_activities(@activities, layout: :activity) if defined?(@activities) %>
       </div>
     </div>
   </div>
