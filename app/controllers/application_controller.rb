@@ -21,6 +21,7 @@ class ApplicationController < ActionController::Base
   private
 
   def set_public_activity
+    return unless Flipper.enabled?(:public_activity_log, current_user)
     @activities = PublicActivity::Activity.all
   end
 
