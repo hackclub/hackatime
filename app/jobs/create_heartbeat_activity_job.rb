@@ -29,8 +29,7 @@ class CreateHeartbeatActivityJob < ApplicationJob
 
       # Create immediate "started working" activity - person just resumed coding
       PublicActivity::Activity.create!(
-        trackable_type: "Heartbeat",
-        trackable_id: nil,
+        trackable: user,
         owner: user,
         key: "started_working",
         parameters: { project: project_name }
@@ -39,8 +38,7 @@ class CreateHeartbeatActivityJob < ApplicationJob
       # Create new session 5 minutes in future
       started_at = Time.current.to_i
       activity = PublicActivity::Activity.create!(
-        trackable_type: "Heartbeat",
-        trackable_id: nil, # Not tied to specific heartbeat
+        trackable: user,
         owner: user,
         key: "coding_session",
         parameters: {
@@ -55,8 +53,7 @@ class CreateHeartbeatActivityJob < ApplicationJob
       # Check if this is the user's first heartbeat ever
       if user.heartbeats.count == 1
         PublicActivity::Activity.create!(
-          trackable_type: "Heartbeat",
-          trackable_id: nil,
+          trackable: user,
           owner: user,
           key: "first_heartbeat",
           parameters: { project: project_name }
