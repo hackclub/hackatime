@@ -6,7 +6,7 @@ class CreateHeartbeatActivityJob < ApplicationJob
 
     # Look for future coding activity only (not past events that are already showing)
     recent_activity = PublicActivity::Activity.with_future
-      .where(owner_id: user_id, trackable_type: "Heartbeat", key: "coding_session")
+      .where(owner_id: user_id, trackable_type: "User", key: "user.coding_session")
       .where("created_at > ?", Time.current)
       .first
 
@@ -31,7 +31,7 @@ class CreateHeartbeatActivityJob < ApplicationJob
       PublicActivity::Activity.create!(
         trackable: user,
         owner: user,
-        key: "started_working",
+        key: "user.started_working",
         parameters: { project: project_name }
       )
 
@@ -40,7 +40,7 @@ class CreateHeartbeatActivityJob < ApplicationJob
       activity = PublicActivity::Activity.create!(
         trackable: user,
         owner: user,
-        key: "coding_session",
+        key: "user.coding_session",
         parameters: {
           project: project_name,
           started_at: started_at,
@@ -55,7 +55,7 @@ class CreateHeartbeatActivityJob < ApplicationJob
         PublicActivity::Activity.create!(
           trackable: user,
           owner: user,
-          key: "first_heartbeat",
+          key: "user.first_heartbeat",
           parameters: { project: project_name }
         )
       end
