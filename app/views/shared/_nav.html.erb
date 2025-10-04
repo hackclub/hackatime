@@ -151,6 +151,8 @@
             Feature Flags
           <% end %>
         <% end %>
+
+        <%= render_activities(@activities) if defined?(@activities) %>
       </div>
     </div>
   </div>

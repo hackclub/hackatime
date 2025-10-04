@@ -258,6 +258,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         new_heartbeat.save! if new_heartbeat.changed?
       end
       queue_project_mapping(heartbeat[:project])
+      queue_heartbeat_public_activity(@user.id, heartbeat[:project]) if new_heartbeat.persisted?
       results << [ new_heartbeat.attributes, 201 ]
     rescue => e
       Rails.logger.error("Error creating heartbeat: #{e.class.name} #{e.message}")
@@ -274,6 +275,16 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   rescue => e
     # never raise an error here because it will break the heartbeat flow
     Rails.logger.error("Error queuing project mapping: #{e.class.name} #{e.message}")
+  end
+
+  def queue_heartbeat_public_activity(user_id, project_name)
+    # only queue the job once per minute
+    Rails.cache.fetch("heartbeat_public_activity_#{user_id}_#{project_name}", expires_in: 30.seconds) do
+      CreateHeartbeatActivityJob.perform_later(user_id, project_name)
+    end
+  rescue => e
+    # never raise an error here because it will break the heartbeat flow
+    Rails.logger.error("Error queuing heartbeat public activity: #{e.class.name} #{e.message}")
   end
 
   def set_user
