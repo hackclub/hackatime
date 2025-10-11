@@ -61,7 +61,7 @@
             <li><%= link_to "Brackets", doc_path("editors/brackets"), class: "text-white hover:text-primary" %></li>
             <li class="text-secondary">All JetBrains apps</li>
             <li><%= link_to "Command Line", doc_path("editors/terminal"), class: "text-white hover:text-primary" %></li>
-            <li><a href="#supported-editors" onclick="document.getElementById('all-editors').parentElement.open = true; document.getElementById('all-editors').scrollIntoView({behavior: 'smooth'});" class="text-primary hover:text-red">70+ others</a></li>
+            <li><a href="#supported-editors" onclick="document.getElementById('all-editors').parentElement.open = true; document.getElementById('all-editors').scrollIntoView({behavior: 'smooth'});" class="text-primary hover:text-red">66+ others</a></li>
           </ul>
         </div>
       </div>
@@ -139,18 +139,18 @@
     </div>
 
     <details class="bg-dark rounded-lg p-6 mb-8">
-      <summary class="cursor-pointer font-semibold text-primary">View all 77 supported editors</summary>
+      <summary class="cursor-pointer font-semibold text-primary">View all 73 supported editors</summary>
       <div id="all-editors" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mt-4 p-4">
       <%
-        # All 77 editors - alphabetically sorted
+        # All 73 editors - alphabetically sorted
         all_editors = [
           ['Android Studio', 'android-studio'], ['AppCode', 'appcode'], ['Aptana', 'aptana'], ['Arduino IDE', 'arduino-ide'],
           ['Azure Data Studio', 'azure-data-studio'], ['Blender', 'blender'], ['Brackets', 'brackets'], ['Brave', 'brave'],
-          ['C++ Builder', 'c++-builder'], ['Canva', 'canva'], ['Chrome', 'chrome'], ['CLion', 'clion'],
+          ['C++ Builder', 'c++-builder'], ['Canva', 'canva'], ['CLion', 'clion'],
           ['Cloud9', 'cloud9'], ['Coda', 'coda'], ['CodeTasty', 'codetasty'], ['Cursor', 'cursor'],
           ['DataGrip', 'datagrip'], ['DataSpell', 'dataspell'], ['DBeaver', 'dbeaver'], ['Delphi', 'delphi'],
-          ['Discord', 'discord'], ['Eclipse', 'eclipse'], ['Edge', 'edge'], ['Emacs', 'emacs'],
-          ['Eric', 'eric'], ['Excel', 'excel'], ['Figma', 'figma'], ['Firefox', 'firefox'],
+          ['Discord', 'discord'], ['Eclipse', 'eclipse'], ['Emacs', 'emacs'],
+          ['Eric', 'eric'], ['Excel', 'excel'], ['Figma', 'figma'],
           ['Gedit', 'gedit'], ['Godot', 'godot'], ['GoLand', 'goland'], ['HBuilder X', 'hbuilder-x'], ['IDA Pro', 'ida-pro'],
           ['IntelliJ IDEA', 'intellij-idea'], ['Jupyter', 'jupyter'], ['Kakoune', 'kakoune'], ['Kate', 'kate'],
           ['Komodo', 'komodo'], ['Micro', 'micro'], ['MPS', 'mps'], ['Neovim', 'neovim'],
@@ -158,7 +158,7 @@
           ['OnShape', 'onshape'], ['Oxygen', 'oxygen'], ['PhpStorm', 'phpstorm'], ['Postman', 'postman'], ['PowerPoint', 'powerpoint'],
           ['Processing', 'processing'], ['Pulsar', 'pulsar'], ['PyCharm', 'pycharm'], ['ReClassEx', 'reclassex'],
           ['Rider', 'rider'], ['Roblox Studio', 'roblox-studio'], ['RubyMine', 'rubymine'], ['RustRover', 'rustrover'],
-          ['Safari', 'safari'], ['SiYuan', 'siyuan'], ['Sketch', 'sketch'], ['SlickEdit', 'slickedit'],
+          ['SiYuan', 'siyuan'], ['Sketch', 'sketch'], ['SlickEdit', 'slickedit'],
           ['SQL Server Management Studio', 'sql-server-management-studio'], ['Sublime Text', 'sublime-text'],
           ['Terminal', 'terminal'], ['TeXstudio', 'texstudio'], ['TextMate', 'textmate'], ['Trae', 'trae'],
           ['Unity', 'unity'], ['Vim', 'vim'], ['Visual Studio', 'visual-studio'], ['VS Code', 'vs-code'],
