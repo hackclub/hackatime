@@ -7,7 +7,7 @@
                 alt: "#{h(user.username)}'s avatar" if user.avatar_url %>
   <div class="flex-1 min-w-0 overflow-hidden">
     <% if local_assigns.fetch(:show, []).include?(:slack) && user.slack_uid.present? %>
-      <div class="text-blue-500 font-medium break-words">@<%= h(user.display_name) %></div>
+      <%= link_to "@#{h(user.display_name)}", "https://hackclub.slack.com/team/#{user.slack_uid}", target: "_blank", class: "text-blue-500 hover:underline" %>
     <% else %>
       <div class="font-medium break-words"><%= h(user.display_name) %></div>
     <% end %>

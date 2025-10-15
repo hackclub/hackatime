@@ -169,7 +169,7 @@ export default class extends Controller {
     const url = u.avatar_url || ''
     
     const name = u.slack_uid ? 
-      `<a href="https://slack.com/app_redirect?channel=${u.slack_uid}" target="_blank" class="text-blue-500 hover:underline">@${dis}</a>` :
+      `<a href="https://hackclub.slack.com/team/${u.slack_uid}" target="_blank" class="text-blue-500 hover:underline">@${dis}</a>` :
       `<span class="text-white">${dis}</span>`
     
     return `

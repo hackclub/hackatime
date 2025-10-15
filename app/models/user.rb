@@ -1,7 +1,10 @@
 class User < ApplicationRecord
   include TimezoneRegions
+  include PublicActivity::Model
 
   has_paper_trail
+
+  after_create :create_signup_activity
   encrypts :slack_access_token, :github_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
@@ -104,6 +107,16 @@ class User < ApplicationRecord
 
   has_many :trust_level_audit_logs, dependent: :destroy
   has_many :trust_level_changes_made, class_name: "TrustLevelAuditLog", foreign_key: "changed_by_id", dependent: :destroy
+
+  has_many :access_grants,
+           class_name: "Doorkeeper::AccessGrant",
+           foreign_key: :resource_owner_id,
+           dependent: :delete_all
+
+  has_many :access_tokens,
+           class_name: "Doorkeeper::AccessToken",
+           foreign_key: :resource_owner_id,
+           dependent: :delete_all
 
   def streak_days
     @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
@@ -488,5 +501,9 @@ class User < ApplicationRecord
 
   def invalidate_activity_graph_cache
     Rails.cache.delete("user_#{id}_daily_durations")
+  end
+
+  def create_signup_activity
+    create_activity :first_signup, owner: self
   end
 end

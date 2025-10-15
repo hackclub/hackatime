@@ -1,6 +1,17 @@
 class PhysicalMail < ApplicationRecord
   belongs_to :user
 
+  include PublicActivity::Model
+  tracked only: [ :create, :update ], owner: :user, params: proc { |controller, model|
+    {
+      mission_type: model.mission_type,
+      humanized_mission_type: model.humanized_mission_type
+    }
+  }
+
+  after_create :create_streak_activity, if: :first_time_7_streak?
+  after_update :create_sent_activity, if: :became_sent?
+
   scope :going_out, -> { where(status: :pending).or(where(status: :sent)) }
 
   enum :status, {
@@ -91,5 +102,23 @@ class PhysicalMail < ApplicationRecord
 
   def user_address
     user.mailing_address
+  end
+
+  def became_sent?
+    saved_change_to_status? && status == "sent" && status_before_last_save == "pending"
+  end
+
+  def create_streak_activity
+    create_activity :first_streak_achieved, owner: user, params: {
+      mission_type: mission_type,
+      humanized_mission_type: humanized_mission_type
+    }
+  end
+
+  def create_sent_activity
+    create_activity :mail_sent, owner: user, params: {
+      mission_type: mission_type,
+      humanized_mission_type: humanized_mission_type
+    }
   end
 end
