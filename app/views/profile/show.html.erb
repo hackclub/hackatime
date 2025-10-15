@@ -1,0 +1,199 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="profile-left">
+      <div class="profile-avatar">
+        <% if @user.avatar_url.present? %>
+          <img src="<%= @user.avatar_url %>" alt="<%= @user.display_name %>" class="profile-image">
+        <% else %>
+          <div class="profile-image-placeholder">
+            <%= @user.display_name&.first&.upcase || "?" %>
+          </div>
+        <% end %>
+      </div>
+      
+      <div class="profile-info">
+        <h1 class="profile-name"><%= @user.display_name %></h1>
+        <% if @user.username.present? %>
+          <p class="profile-username">@<%= @user.username %></p>
+        <% end %>
+        <% if @user.country_code.present? %>
+          <p class="profile-location"><%= @user.country_name %></p>
+        <% end %>
+        
+        <% if @user.github_username.present? %>
+          <p class="profile-github">
+            <svg class="profile-icon" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <a href="https://github.com/<%= @user.github_username %>" target="_blank" class="profile-link">
+              <%= @user.github_username %>
+            </a>
+          </p>
+        <% end %>
+        <% if @user.slack_username.present? %>
+          <p class="profile-slack">
+            <svg class="profile-icon" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+            </svg>
+            <a href="https://hackclub.slack.com/team/<%= @user.slack_uid %>" target="_blank" class="profile-link">
+              <%= @user.slack_username %>
+            </a>
+          </p>
+        <% end %>
+      </div>
+    </div>
+    
+    <div class="profile-right">
+      <p class="profile-member-since">Member since <%= @user.created_at.strftime("%B %Y") %></p>
+      <% if @user.timezone.present? %>
+        <p class="profile-timezone"><%= @user.timezone %></p>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="profile-stats">
+    <div class="profile-stat">
+      <div class="stat-value"><%= short_time_simple(@this_week_duration) %></div>
+      <div class="stat-label">Coded This Week</div>
+    </div>
+    
+    <div class="profile-stat">
+      <div class="stat-value"><%= short_time_simple(@user.heartbeats.duration_seconds) %></div>
+      <div class="stat-label">Total Time Coded</div>
+    </div>
+    
+    <div class="profile-stat">
+      <div class="stat-value"><%= @user.project_labels.count %></div>
+      <div class="stat-label">Projects</div>
+    </div>
+  </div>
+
+  <!-- This Week Section -->
+  <% if @this_week_duration > 0 %>
+    <div class="this-week-section">
+      <h2 class="section-title">This Week</h2>
+      
+      <!-- Project Labels This Week -->
+      <% if @this_week_project_labels.any? %>
+        <div class="this-week-projects">
+          <h3 class="subsection-title">Projects</h3>
+          <div class="this-week-project-list">
+            <% @this_week_project_labels.each do |project| %>
+              <div class="this-week-project-item">
+                <span class="project-name"><%= project[:name] %></span>
+                <span class="project-time"><%= short_time_simple(project[:duration]) %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+      
+      <!-- Activity Log This Week -->
+      <% if @this_week_activity.any? %>
+        <div class="this-week-activity">
+          <h3 class="subsection-title">Recent Activity</h3>
+          <div class="activity-list">
+            <% @this_week_activity.each do |heartbeat| %>
+              <div class="activity-item">
+                <div class="activity-details">
+                  <span class="activity-project"><%= heartbeat.project.presence || "Unknown Project" %></span>
+                  <span class="activity-file"><%= heartbeat.entity.presence || "Unknown File" %></span>
+                </div>
+                <div class="activity-meta">
+                  <span class="activity-language"><%= heartbeat.language.presence || "Unknown" %></span>
+                  <span class="activity-time"><%= time_ago_in_words(Time.at(heartbeat.time)) %> ago</span>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- All Projects Section -->
+  <div class="all-projects-section">
+    <h2 class="section-title">All Projects</h2>
+    
+    <!-- Labeled Projects -->
+    <% if @all_labeled_projects.any? %>
+      <div class="labeled-projects">
+        <h3 class="subsection-title">Labeled Projects</h3>
+        <div class="projects-grid">
+          <% @all_labeled_projects.each do |project| %>
+            <%= link_to user_project_path(@user.slack_uid.present? ? @user.slack_uid : @user.id, project[:label].id), class: "project-card project-card-link" do %>
+              <div class="project-card-header">
+                <div class="project-card-info">
+                  <h3 class="project-card-title" title="<%= h(project[:name]) %>">
+                    <%= h(project[:name]) %>
+                  </h3>
+                </div>
+                <div class="project-card-actions">
+                <% if project[:playable_url].present? %>
+                <% playable_click = "event.stopPropagation(); window.open('#{project[:playable_url]}', '_blank')" %>
+                <span class="project-card-action" onclick="<%= playable_click %>" title="View project website">
+                <svg viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2m-5.15 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56M14.34 14H9.66c-.1-.66-.16-1.32-.16-2s.06-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2M12 19.96c-.83-1.2-1.5-2.53-1.91-3.96h3.82c-.41 1.43-1.08 2.76-1.91 3.96M8 8H5.08A7.92 7.92 0 0 1 9.4 4.44C8.8 5.55 8.35 6.75 8 8m-2.92 8H8c.35 1.25.8 2.45 1.4 3.56A8 8 0 0 1 5.08 16m-.82-2C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2M12 4.03c.83 1.2 1.5 2.54 1.91 3.97h-3.82c.41-1.43 1.08-2.77 1.91-3.97M18.92 8h-2.95a15.7 15.7 0 0 0-1.38-3.56c1.84.63 3.37 1.9 4.33 3.56M12 2C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2" />
+                  </svg>
+                  </span>
+                <% end %>
+                <% if project[:code_url].present? %>
+                <% code_click = "event.stopPropagation(); window.open('#{project[:code_url]}', '_blank')" %>
+                <span class="project-card-action" onclick="<%= code_click %>" title="View code">
+                <svg viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2a2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2c-.18 0-.35 0-.5.07L13.93 7.5a1.98 1.98 0 0 0-1.15-2.34c-.43-.16-.88-.2-1.28-.09L9.8 3.38l.79-.78c.78-.79 2.04-.79 2.82 0l7.99 7.99c.79.78.79 2.04 0 2.82l-7.99 7.99c-.78.79-2.04.79-2.82 0L2.6 13.41c-.79-.78-.79-2.04 0-2.82" />
+                    </svg>
+                    </span>
+                   <% end %>
+                 </div>
+              </div>
+
+              <div class="project-card-duration">
+                <span class="project-card-time"><%= short_time_simple(project[:duration]) %></span>
+              </div>
+
+              <% if project[:description].present? %>
+                <div class="project-card-description">
+                  <%= h(project[:description]) %>
+                </div>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Unlabeled Projects Dropdown -->
+    <% if @all_unlabeled_projects.any? %>
+      <div class="unlabeled-projects-dropdown">
+        <details class="unlabeled-projects-details">
+          <summary class="unlabeled-projects-summary">
+            <svg class="unlabeled-projects-arrow" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+            <span class="unlabeled-projects-text">Unlabeled Projects</span>
+          </summary>
+          <div class="unlabeled-projects-content">
+            <div class="projects-grid">
+              <% @all_unlabeled_projects.each do |project| %>
+                <div class="project-card">
+                  <div class="project-card-header">
+                    <div class="project-card-info">
+                      <h3 class="project-card-title" title="<%= h(project[:project]) %>">
+                        <%= h(project[:project]) %>
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div class="project-card-duration">
+                    <span class="project-card-time"><%= short_time_simple(project[:duration]) %></span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </details>
+      </div>
+    <% end %>
+  </div>
+</div>

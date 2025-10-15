@@ -1,0 +1,165 @@
+<div class="project-page-container">
+  <div class="project-header">
+    <div class="project-left">
+      <div class="project-icon">
+        <svg viewBox="0 0 24 24" class="project-icon-svg">
+          <path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </div>
+      
+      <div class="project-info">
+        <h1 class="project-show-name">
+          <%= @project_label&.name || @project_name %>
+        </h1>
+        <p class="project-show-raw-name">
+          <%= @project_name %>
+        </p>
+        <% if @project_label&.description.present? %>
+          <p class="project-show-description">
+            <%= h(@project_label.description) %>
+          </p>
+        <% end %>
+        
+        <div class="project-links">
+          <% if @project_label&.playable_url.present? %>
+            <a href="<%= @project_label.playable_url %>" target="_blank" class="project-link">
+              <svg viewBox="0 0 24 24" class="project-link-icon">
+                <path fill="currentColor" d="M16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2m-5.15 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56M14.34 14H9.66c-.1-.66-.16-1.32-.16-2s.06-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2M12 19.96c-.83-1.2-1.5-2.53-1.91-3.96h3.82c-.41 1.43-1.08 2.76-1.91 3.96M8 8H5.08A7.92 7.92 0 0 1 9.4 4.44C8.8 5.55 8.35 6.75 8 8m-2.92 8H8c.35 1.25.8 2.45 1.4 3.56A8 8 0 0 1 5.08 16m-.82-2C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2M12 4.03c.83 1.2 1.5 2.54 1.91 3.97h-3.82c.41-1.43 1.08-2.77 1.91-3.97M18.92 8h-2.95a15.7 15.7 0 0 0-1.38-3.56c1.84.63 3.37 1.9 4.33 3.56M12 2C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2" />
+              </svg>
+              View Project
+            </a>
+          <% end %>
+          <% if @project_label&.code_url.present? %>
+            <a href="<%= @project_label.code_url %>" target="_blank" class="project-link">
+              <svg viewBox="0 0 24 24" class="project-link-icon">
+                <path fill="currentColor" d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2a2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2c-.18 0-.35 0-.5.07L13.93 7.5a1.98 1.98 0 0 0-1.15-2.34c-.43-.16-.88-.2-1.28-.09L9.8 3.38l.79-.78c.78-.79 2.04-.79 2.82 0l7.99 7.99c.79.78.79 2.04 0 2.82l-7.99 7.99c-.78.79-2.04.79-2.82 0L2.6 13.41c-.79-.78-.79-2.04 0-2.82" />
+              </svg>
+              View Code
+            </a>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="project-right">
+      <% if @project_author == current_user %>
+        <div class="project-edit-action">
+          <%= link_to edit_my_project_label_path(@project_label), class: "project-edit-btn" do %>
+            <svg viewBox="0 0 24 24" class="edit-icon">
+              <path fill="currentColor" d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83l3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z" />
+            </svg>
+            Edit Project
+          <% end %>
+        </div>
+      <% end %>
+      
+      <div class="project-author">
+        <p class="author-label">Created by</p>
+        <div class="author-info">
+          <% if @project_author.avatar_url.present? %>
+            <img src="<%= @project_author.avatar_url %>" alt="<%= @project_author.display_name %>" class="author-avatar">
+          <% else %>
+            <div class="author-avatar-placeholder">
+              <%= @project_author.display_name&.first&.upcase || "?" %>
+            </div>
+          <% end %>
+          <a href="<%= user_profile_path(@project_author.slack_uid.present? ? @project_author.slack_uid : @project_author.id) %>" class="author-name">
+            <%= @project_author.display_name %>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Statistics -->
+  <div class="project-stats">
+    <div class="project-stat">
+      <div class="stat-value"><%= short_time_simple(@this_week_duration) %></div>
+      <div class="stat-label">Coded This Week</div>
+    </div>
+    
+    <div class="project-stat">
+      <div class="stat-value"><%= short_time_simple(@total_duration) %></div>
+      <div class="stat-label">Total Time Coded</div>
+    </div>
+    
+    <div class="project-stat">
+      <div class="stat-value"><%= @days_worked %></div>
+      <div class="stat-label">Days Worked</div>
+    </div>
+  </div>
+
+  <!-- Recent Commits -->
+  <% if @recent_commits.any? %>
+    <div class="project-commits-section">
+      <h2 class="section-title">Recent Commits</h2>
+      <div class="commits-list">
+        <% @recent_commits.each do |commit_data| %>
+          <div class="commit-item">
+            <div class="commit-info">
+              <div class="commit-header">
+                <span class="commit-sha"><%= commit_data[:commit].sha.first(7) %></span>
+                <span class="commit-time-logged"><%= short_time_simple(commit_data[:time_logged]) %></span>
+              </div>
+              <p class="commit-message">
+                <%= commit_data[:commit].message.present? ? h(commit_data[:commit].message.lines.first.strip) : "No commit message" %>
+              </p>
+              <div class="commit-meta">
+                <span class="commit-date"><%= time_ago_in_words(commit_data[:commit_time]) %> ago</span>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Language Breakdown -->
+  <% if @language_stats.any? %>
+    <div class="project-languages-section">
+      <h2 class="section-title">Languages Used</h2>
+      <div class="language-list">
+        <% @language_stats.each do |language, duration| %>
+          <div class="language-item">
+            <span class="language-name"><%= language %></span>
+            <span class="language-time"><%= short_time_simple(duration) %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+
+
+  <!-- Recent Activity -->
+  <% if @recent_activity.any? %>
+    <div class="project-activity-section">
+      <h2 class="section-title">Recent Activity</h2>
+      <div class="activity-list">
+        <% @recent_activity.each do |heartbeat| %>
+          <div class="activity-item">
+            <div class="activity-user">
+              <% if heartbeat.user.avatar_url.present? %>
+                <img src="<%= heartbeat.user.avatar_url %>" alt="<%= heartbeat.user.display_name %>" class="activity-avatar">
+              <% else %>
+                <div class="activity-avatar-placeholder">
+                  <%= heartbeat.user.display_name&.first&.upcase || "?" %>
+                </div>
+              <% end %>
+              <a href="<%= user_profile_path(heartbeat.user.slack_uid.present? ? heartbeat.user.slack_uid : heartbeat.user.id) %>" class="activity-username">
+                <%= heartbeat.user.display_name %>
+              </a>
+            </div>
+            <div class="activity-details">
+              <span class="activity-file"><%= heartbeat.entity.presence || "Unknown File" %></span>
+              <div class="activity-meta">
+                <span class="activity-language"><%= heartbeat.language.presence || "Unknown" %></span>
+                <span class="activity-time"><%= time_ago_in_words(Time.at(heartbeat.time)) %> ago</span>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

@@ -1,4 +1,6 @@
 class StaticPagesController < ApplicationController
+  layout :resolve_layout
+  
   before_action :ensure_current_user, only: %i[
     filterable_dashboard
     filterable_dashboard_content
@@ -370,5 +372,9 @@ class StaticPagesController < ApplicationController
 
       result
     end
+  end
+
+  def resolve_layout
+    action_name == "index" && current_user ? "homepage" : "application"
   end
 end

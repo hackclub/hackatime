@@ -2,6 +2,7 @@ class My::ProjectsController < ApplicationController
   before_action :ensure_current_user
 
   def index
+    @user = current_user
     @project_repo_mappings = current_user.project_repo_mappings.includes(:repository)
     @interval = params[:interval] || "daily"
     @from = params[:from]
@@ -12,38 +13,44 @@ class My::ProjectsController < ApplicationController
     
     # Get project durations for labeled projects
     @labeled_project_durations = get_labeled_project_durations
+    
+    render 'projects/index'
   end
 
   def new
     @project_label = current_user.project_labels.build
     @project_label.hackatime_project = params[:hackatime_project] if params[:hackatime_project].present?
     @available_projects = get_available_hackatime_projects
+    
+    render 'projects/new'
   end
 
   def create
     @project_label = current_user.project_labels.build(project_label_params)
     
     if @project_label.save
-      redirect_to my_projects_path, notice: "Project label created successfully!"
+      redirect_to user_project_path(current_user.slack_uid.present? ? current_user.slack_uid : current_user.id, @project_label.id), notice: "Project label created successfully!"
     else
       @available_projects = get_available_hackatime_projects
-      render :new, status: :unprocessable_entity
+      render 'projects/new', status: :unprocessable_entity
     end
   end
 
   def edit
     @project_label = current_user.project_labels.find(params[:id])
     @available_projects = get_available_hackatime_projects(@project_label.hackatime_project)
+    
+    render 'projects/edit'
   end
 
   def update
     @project_label = current_user.project_labels.find(params[:id])
     
     if @project_label.update(project_label_params)
-      redirect_to my_projects_path, notice: "Project label updated successfully!"
+      redirect_to user_project_path(current_user.slack_uid.present? ? current_user.slack_uid : current_user.id, @project_label.id), notice: "Project label updated successfully!"
     else
       @available_projects = get_available_hackatime_projects(@project_label.hackatime_project)
-      render :edit, status: :unprocessable_entity
+      render 'projects/edit', status: :unprocessable_entity
     end
   end
 
@@ -62,17 +69,22 @@ class My::ProjectsController < ApplicationController
       heartbeats = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
       project_times = heartbeats.group(:project).duration_seconds
       project_labels = current_user.project_labels
-      project_times.map do |project, duration|
+      labeled_projects = project_labels.pluck(:hackatime_project)
+      
+      project_times.filter_map do |project, duration|
+        # Skip labeled projects - only show unlabeled ones
+        next if labeled_projects.include?(project)
+        
         mapping = @project_repo_mappings.find { |p| p.project_name == project }
         {
-          project: project_labels.find { |p| p.hackatime_project == project }&.name || project || "Unknown",
+          project: project || "Unknown",
           repo_url: mapping&.repo_url,
           repository: mapping&.repository,
           duration: duration
         }
       end.filter { |p| p[:duration].positive? }.sort_by { |p| p[:duration] }.reverse
     end
-    render partial: "project_durations", locals: { project_durations: project_durations }
+    render partial: "projects/project_durations", locals: { project_durations: project_durations }
   end
 
   private

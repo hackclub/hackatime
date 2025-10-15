@@ -1,30 +1,204 @@
-<div class="fixed bottom-6 right-4 bg-primary w-[30px] h-[30px] rounded-b-full flex justify-center items-center z-50 bounce" id="scroll-arrow">
-  <img src="/images/down-arrow.svg" class="w-8 h-8" />
-</div>
-<div class="container">
-  <% if current_user&.trust_level == "red" %>
-    <div class="text-primary bg-red-500/10 border-2 border-red-500/20 p-4 text-center rounded-lg mb-4">
-      <div class="flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M8 14.5a6.5 6.5 0 1 0 0-13a6.5 6.5 0 0 0 0 13M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m1-5a1 1 0 1 1-2 0a1 1 0 0 1 2 0m-.25-6.25a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 1.5 0z" clip-rule="evenodd" /></svg>
-        <span class="text-3xl font-bold block ml-2">Hold up! Your account has been banned for suspicious activity.</span>
+<% if current_user %>
+  <div class="homepage-container">
+    <!-- Sidebar Navigation -->
+    <div class="homepage-sidebar">
+      <!-- Navigation Buttons -->
+      <div class="homepage-nav">
+        <%= link_to root_path, class: "homepage-nav-button #{current_page?(root_path) ? 'active' : ''}" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="homepage-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+          <span>home</span>
+        <% end %>
+        
+        <%= link_to my_projects_path, class: "homepage-nav-button #{current_page?(my_projects_path) ? 'active' : ''}" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="homepage-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
+          </svg>
+          <span>projects</span>
+        <% end %>
+        
+        <%= link_to leaderboards_path, class: "homepage-nav-button #{current_page?(leaderboards_path) ? 'active' : ''}" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="homepage-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 11V3H8v6H2v12h20V11h-6zm-6-6h4v14h-4V5zm-6 6h4v8H4v-8zm16 8h-4v-6h4v6z"/>
+          </svg>
+          <span>statistics</span>
+        <% end %>
       </div>
-      <div>
-        <p class="text-primary text-left text-lg mb-2"><b>What does this mean?</b> Your account was convicted for fraud or abuse of Hackatime, such as using methods to gain an unfair advantage on the leaderboards or attempting to manipulate your coding time in any way. This restricts your access to participate in public leaderboards, but Hackatime will still track and display your time. This may also affect your ability to participate in current and future Hack Club events.</p>
-        <p class="text-primary text-left text-lg mb-2"><b>What can I do?</b> Account bans are non-negotiable, and will not be removed unless determined to have been issued incorrectly. In that case, it will automatically be removed. We take fraud very seriously and have a zero-tolerance policy for abuse. If you believe this was a mistake, please DM the <a href="https://hackclub.slack.com/team/U091HC53CE8" target="_blank" class="underline">Fraud Department</a> on Slack. We do not respond in any other channel.</p>
-        <p class="text-primary text-left text-lg mb-0"><b>Can I know what caused this?</b> No. We do not disclose the patterns that were detected. Releasing this information would only benefit fraudsters. The fraud team regularly investigates claims of false bans to increase the effectiveness of our detection systems to combat fraud.</p>
+      
+      <!-- User Card -->
+      <div class="homepage-user-card">
+        <div class="homepage-user-header">
+          <% if current_user.avatar_url %>
+            <img src="<%= current_user.avatar_url %>" alt="<%= current_user.display_name %>" class="homepage-user-avatar">
+          <% else %>
+            <div class="homepage-user-avatar-placeholder">
+              <%= current_user.display_name[0] %>
+            </div>
+          <% end %>
+          <span class="homepage-user-name"><%= current_user.display_name %></span>
+        </div>
+        
+        <div class="homepage-user-status">
+          <span class="homepage-user-status-icon">💤</span>
+          <span class="homepage-user-status-text">No active session</span>
+        </div>
+        
+        <%= link_to my_settings_path, class: "homepage-settings-button" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="homepage-settings-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+          </svg>
+        <% end %>
       </div>
     </div>
-  <% end %>
-  <div class="flex items-center space-x-2 mt-2">
-    <p class="italic text-gray-400 m-0">
-      <%= @flavor_text %>
-    </p>
+    
+    <!-- Main Content -->
+    <div class="homepage-main">
+      <% if current_user.trust_level == "red" %>
+        <div class="homepage-alert homepage-alert-banned">
+          <div class="homepage-alert-content">
+            <svg xmlns="http://www.w3.org/2000/svg" class="homepage-alert-icon" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M8 14.5a6.5 6.5 0 1 0 0-13a6.5 6.5 0 0 0 0 13M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m1-5a1 1 0 1 1-2 0a1 1 0 0 1 2 0m-.25-6.25a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 1.5 0z" clip-rule="evenodd" /></svg>
+            <span class="homepage-alert-text">Hold up! Your account has been banned for suspicious activity.</span>
+          </div>
+        </div>
+      <% end %>
+      
+      <!-- Welcome Section -->
+      <div class="homepage-welcome">
+        <h1>
+          welcome back,<br>
+          <%= current_user.display_name %>
+        </h1>
+        <p>imagine a world where everyone ships code daily.</p>
+      </div>
+      
+      <!-- Stats Card -->
+      <div class="homepage-stats-card">
+        <div class="homepage-stats-container">
+          <!-- Streak -->
+          <div class="homepage-streak">
+            <div class="homepage-streak-icon-wrapper">
+              <div class="homepage-streak-icon-bg">
+                <span class="homepage-streak-icon">🔥</span>
+              </div>
+              <div class="homepage-streak-count">
+                <span><%= current_user.streak_days %></span>
+              </div>
+            </div>
+            <div class="homepage-streak-text">
+              <p class="homepage-streak-label">you have a</p>
+              <p class="homepage-streak-value"><%= current_user.streak_days %> days streak</p>
+            </div>
+          </div>
+          
+          <!-- Hours Coded -->
+          <div class="homepage-stat-box hours">
+            <p class="homepage-stat-number"><%= (@todays_duration / 3600.0).round %></p>
+            <p class="homepage-stat-label">HOURS CODED</p>
+          </div>
+          
+          <!-- Rank -->
+          <% 
+            leaderboard = LeaderboardService.get(period: :daily, date: Date.current)
+            user_rank = leaderboard&.entries&.find_index { |e| e.user_id == current_user.id }
+            rank_display = user_rank ? "##{user_rank + 1}" : "#?"
+          %>
+          <div class="homepage-stat-box rank">
+            <p class="homepage-stat-number"><%= rank_display %></p>
+            <p class="homepage-stat-label">AMONG FRIENDS</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Weekly Progress & Activity Chart -->
+      <div class="homepage-activity">
+        <!-- Weekly Comparison -->
+        <%
+          last_week_duration = current_user.heartbeats.where(time: 1.week.ago.beginning_of_week.to_f..1.week.ago.end_of_week.to_f).duration_seconds
+          this_week_duration = current_user.heartbeats.where(time: Time.current.beginning_of_week.to_f..Time.current.to_f).duration_seconds
+          percentage_change = last_week_duration > 0 ? ((this_week_duration - last_week_duration).to_f / last_week_duration * 100).round : 0
+          change_sign = percentage_change >= 0 ? "+" : ""
+        %>
+        <div class="homepage-weekly-comparison">
+          <div class="homepage-weekly-left">
+            <span class="homepage-weekly-percentage"><%= "#{change_sign}#{percentage_change}%" %></span>
+            <span class="homepage-weekly-label">Weekly Coding Time vs last week</span>
+          </div>
+          <span class="homepage-weekly-hours"><%= short_time_detailed(this_week_duration) %></span>
+        </div>
+        
+        <!-- Last 7 Days Activity -->
+        <div class="homepage-activity-chart">
+          <h3 class="homepage-activity-title">Last 7 Days Activity</h3>
+          <div class="homepage-chart-container">
+            <div class="homepage-chart-yaxis">
+              <% [ 5, 4, 3, 2, 1, 0 ].each do |hour| %>
+                <span><%= hour %>h</span>
+              <% end %>
+            </div>
+            <div class="homepage-chart-bars">
+              <% 7.times do |i| %>
+                <% 
+                  date = (6 - i).days.ago.to_date
+                  duration = Time.use_zone(current_user.timezone) do
+                    current_user.heartbeats.where(time: date.beginning_of_day.to_f..date.end_of_day.to_f).duration_seconds
+                  end
+                  max_height = 5.hours
+                  height_percentage = [(duration.to_f / max_height * 100).round, 5].max
+                %>
+                <div class="homepage-chart-bar-wrapper">
+                  <div class="homepage-chart-bar" 
+                       style="height: <%= height_percentage %>%"
+                       title="<%= short_time_detailed(duration) %>">
+                  </div>
+                  <span class="homepage-chart-day"><%= date.strftime('%a') %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <% if @show_wakatime_setup_notice %>
+        <div class="homepage-setup-notice">
+          <p class="homepage-setup-text">
+            Hello friend! Looks like you are new around here, let's get you set up so you can start tracking your coding time.
+          </p>
+          <%= link_to "Let's setup Hackatime! Click me :D", my_wakatime_setup_path, class: "homepage-setup-button" %>
+        </div>
+      <% end %>
+    </div>
+    
+    <!-- Right Sidebar - Leaderboard -->
+    <div class="homepage-leaderboard">
+      <div class="homepage-leaderboard-card">
+        <div class="homepage-leaderboard-header">
+          <h2 class="homepage-leaderboard-title">leaderboard</h2>
+          <div class="homepage-leaderboard-tabs">
+            <button class="homepage-leaderboard-tab active">friends</button>
+            <button class="homepage-leaderboard-tab">global</button>
+          </div>
+        </div>
+        
+        <%= turbo_frame_tag "mini_leaderboard", src: mini_leaderboard_static_pages_path do %>
+          <%= render "leaderboards/mini_leaderboard_loading" %>
+        <% end %>
+      </div>
+    </div>
   </div>
-  <div id="clock" class="ds-digital clock-display">
+<% else %>
+  <!-- Original logged-out view -->
+  <div class="fixed bottom-6 right-4 bg-primary w-[30px] h-[30px] rounded-b-full flex justify-center items-center z-50 bounce" id="scroll-arrow">
+    <img src="/images/down-arrow.svg" class="w-8 h-8" />
   </div>
-  <% if current_user %>
-    <h1 class="font-bold mt-1 mb-4 text-5xl text-center">Keep Track of <span class="text-primary">Your</span> Coding Time</h1>
-  <% else %>
+  <div class="container">
+    <div class="flex items-center space-x-2 mt-2">
+      <p class="italic text-gray-400 m-0">
+        <%= @flavor_text %>
+      </p>
+    </div>
+    <div id="clock" class="ds-digital clock-display">
+    </div>
     <h1 class="font-bold mt-1 mb-1 text-5xl text-center">Track How Much You <span class="text-primary">Code</span></h1>
     <div class="flex flex-col w-full max-w-[50vw] mx-auto mb-22">
       <%= link_to slack_auth_path, class: "inline-flex items-center justify-center px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 bg-primary" do %>
@@ -137,85 +311,6 @@
         </div>
       </div>
     </div>
-  <% end %>
-  <% if current_user %>
-    <% if @show_wakatime_setup_notice %>
-      <div class="text-left my-8 flex flex-col">
-        <p class="mb-4 text-xl text-primary">
-          Hello friend! Looks like you are new around here, let's get you set up so you can start tracking your coding time.
-        </p>
-        <%= link_to "Let's setup Hackatime! Click me :D", my_wakatime_setup_path, class: "inline-block w-auto text-3xl font-bold px-8 py-4 bg-primary text-white rounded shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-pulse" %>
-        <div class="flex items-center mt-4 flex-nowrap">
-          <% if @ssp_users_recent&.any? %>
-            <div class="flex m-0 ml-0 flex-shrink-0">
-              <% @ssp_users_recent.each_with_index do |user, index| %>
-                <div class="relative cursor-pointer transition-transform duration-200 hover:-translate-y-1 hover:z-10 group <%= index > 0 ? '-ml-4' : '' %>">
-                  <div class="absolute -top-9 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-                    <%= h(user[:display_name]) %>
-                    <div class="absolute top-full left-1/2 -ml-1 border-l-2 border-r-2 border-t-2 border-transparent border-t-gray-800"></div>
-                  </div>
-                  <img src="<%= user[:avatar_url] %>" alt="<%= h(user[:display_name]) %>" class="w-10 h-10 rounded-full border-2 border-primary object-cover shadow-sm">
-                </div>
-              <% end %>
-              <% if @ssp_users_size && @ssp_users_size > 5 %>
-                <div class="relative cursor-pointer transition-transform duration-200 hover:-translate-y-1 hover:z-10 group -ml-4" title="See all <%= @ssp_users_size %> users">
-                  <div class="w-10 h-10 rounded-full border-2 border-primary bg-primary text-white font-bold text-sm flex items-center justify-center shadow-sm">+<%= @ssp_users_size - 5 %></div>
-                  <div class="absolute left-[-20px] top-11 bg-gray-800 rounded-lg shadow-xl p-4 w-80 z-50 max-h-96 overflow-y-auto opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                    <h4 class="mt-0 mb-2 text-base text-gray-200 border-b border-gray-600 pb-2">All users who set up Hackatime</h4>
-                    <div class="flex flex-col gap-2">
-                      <% @ssp_users_recent.each do |user| %>
-                        <div class="flex items-center p-1 rounded hover:bg-gray-700 transition-colors duration-200">
-                          <img src="<%= user[:avatar_url] %>" alt="<%= h(user[:display_name]) %>" class="w-8 h-8 rounded-full mr-2 border border-primary">
-                          <span class="font-medium text-sm"><%= h(user[:display_name]) %></span>
-                        </div>
-                      <% end %>
-                    </div>
-                    <div class="absolute -top-2 left-8 w-0 h-0 border-l-2 border-r-2 border-b-2 border-transparent border-b-gray-800"></div>
-                  </div>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-          <% if @ssp_message %>
-            <p class="m-0 ml-2 italic text-gray-400"><%= @ssp_message %> (this is real data)</p>
-          <% end %>
-        </div>
-      </div>
-    <% end %>
-    <p class="mt-2">
-      <% if @show_logged_time_sentence %>
-        You've logged
-        <%= short_time_detailed @todays_duration %>
-        <% if @todays_languages.any? || @todays_editors.any? %>
-          across
-          <% if @todays_languages.any? %>
-            <% if @todays_languages.length >= 4 %>
-              <%= @todays_languages[0..1].join(", ") %> <span title="<%= @todays_languages[2..].join(", ") %>">(& <%= pluralize(@todays_languages.length - 2, 'other language') %>)</span>
-            <% else %>
-              <%= @todays_languages.to_sentence %>
-            <% end %>
-          <% end %>
-          <% if @todays_languages.any? && @todays_editors.any? %>
-            using
-          <% end %>
-          <% if @todays_editors.any? %>
-            <%= @todays_editors.to_sentence %>
-          <% end %>
-        <% end %>
-      <% else %>
-        No time logged today... but you can change that!
-      <% end %>
-    </p>
-    <%= turbo_frame_tag "mini_leaderboard", src: mini_leaderboard_static_pages_path do %>
-      <%= render "leaderboards/mini_leaderboard_loading" %>
-    <% end %>
-    <%= turbo_frame_tag "filterable_dashboard", src: filterable_dashboard_static_pages_path do %>
-      <span>Loading...</span>
-    <% end %>
-    <%= turbo_frame_tag "activity_graph", src: activity_graph_static_pages_path do %>
-      <span>Loading...</span>
-    <% end %>
-  <% else %>
     <% if @leaderboard %>
       <h3>Today's Top Hack Clubbers</h3>
       <%= render "leaderboards/mini_leaderboard", leaderboard: @leaderboard, current_user: nil %>
@@ -237,5 +332,5 @@
         <p class="text-primary monospace text-[20px]">Superrrrrr easy to setup :)</p>
       </div>
     </div>
-  <% end %>
-</div>
+  </div>
+<% end %>

@@ -1,0 +1,343 @@
+/* Profile Page Styles */
+.profile-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background-color: #111827;
+  border: 1px solid #f59e0b;
+  border-radius: 1rem;
+}
+
+.profile-left {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+}
+
+.profile-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  text-align: right;
+}
+
+.profile-avatar {
+  flex-shrink: 0;
+}
+
+.profile-image, .profile-image-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid #f59e0b;
+}
+
+.profile-image-placeholder {
+  background-color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: bold;
+  color: white;
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.profile-name {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 0.5rem 0;
+}
+
+.profile-username {
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 1rem 0;
+}
+
+.profile-location {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0.25rem 0;
+}
+
+.profile-member-since, .profile-timezone {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.profile-github, .profile-slack {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.profile-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #f59e0b;
+}
+
+.profile-link {
+  color: #f59e0b;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.profile-link:hover {
+  color: #d97706;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.profile-stat {
+  background-color: #111827;
+  border: 1px solid #374151;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f59e0b;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.profile-details {
+  background-color: #111827;
+  border: 1px solid #374151;
+  border-radius: 1rem;
+  padding: 2rem;
+}
+
+.profile-section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #f59e0b;
+  padding-bottom: 0.5rem;
+}
+
+.profile-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #374151;
+}
+
+.profile-field:last-child {
+  border-bottom: none;
+}
+
+.field-label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.field-value {
+  color: white;
+  font-weight: 500;
+}
+
+.trust-blue {
+  color: #3b82f6;
+}
+
+.trust-red {
+  color: #ef4444;
+}
+
+.trust-green {
+  color: #10b981;
+}
+
+.trust-yellow {
+  color: #f59e0b;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* This Week Section */
+.this-week-section {
+  background-color: #111827;
+  border: 1px solid #374151;
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 3rem;
+}
+
+/* This Week Projects */
+.this-week-projects {
+  margin-bottom: 2rem;
+}
+
+.this-week-activity {
+  margin-bottom: 1rem;
+}
+
+.subsection-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #374151;
+  padding-bottom: 0.5rem;
+}
+
+/* This Week Projects */
+.this-week-project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.this-week-project-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  border: 1px solid #374151;
+}
+
+.project-name {
+  font-weight: 500;
+  color: white;
+}
+
+.project-time {
+  font-weight: 600;
+  color: #f59e0b;
+  font-size: 0.875rem;
+}
+
+/* This Week Activity */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.activity-item {
+  padding: 0.75rem;
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  border: 1px solid #374151;
+}
+
+.activity-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.activity-project {
+  font-weight: 600;
+  color: white;
+  font-size: 0.875rem;
+}
+
+.activity-file {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
+.activity-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.activity-language {
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.activity-time {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* All Projects Section */
+.all-projects-section {
+  background-color: #111827;
+  border: 1px solid #374151;
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 3rem;
+}
+
+.labeled-projects {
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .profile-left {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .profile-right {
+    align-items: center;
+    text-align: center;
+  }
+  
+  .profile-container {
+    padding: 1rem;
+  }
+  
+  .profile-actions {
+    justify-content: center;
+  }
+}

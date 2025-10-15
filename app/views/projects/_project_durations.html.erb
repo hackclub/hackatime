@@ -1,0 +1,33 @@
+<%= turbo_frame_tag "project_durations" do %>
+  <%
+    max = project_durations.map { |p| p[:duration] }.max || 1
+  %>
+  <div class="projects-grid">
+    <% project_durations.each do |project| %>
+      <% next if project[:project].blank? %>
+      <div class="project-card">
+        <div class="project-card-header">
+          <div class="project-card-info">
+            <h3 class="project-card-title" title="<%= h(project[:project]) %>">
+              <%= h(project[:project].presence || "Unknown") %>
+            </h3>
+          </div>
+          <div class="project-card-actions">
+            <% if project[:project].present? %>
+              <% create_click = "event.stopPropagation(); window.location.href='#{new_my_project_label_path(hackatime_project: project[:project])}'" %>
+              <span class="project-card-action" onclick="<%= create_click %>" title="Create project label">
+                <svg viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+              </span>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="project-card-duration">
+          <span class="project-card-time"><%= short_time_simple project[:duration] %></span>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>

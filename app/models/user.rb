@@ -444,15 +444,15 @@ class User < ApplicationRecord
   end
 
   def display_name
-    return slack_username.presence.truncate(10) if slack_username.present?
-    return github_username.presence.truncate(10) if github_username.present?
-    return username.presence.truncate(10) if username.present?
+    return slack_username.presence.truncate(20) if slack_username.present?
+    return github_username.presence.truncate(20) if github_username.present?
+    return username.presence.truncate(20) if username.present?
 
     # "zach@hackclub.com" -> "zach (email sign-up)"
     email = email_addresses&.first&.email
     return "error displaying name" unless email.present?
 
-    email.split("@")&.first.truncate(10) + " (email sign-up)"
+    email.split("@")&.first.truncate(15) + " (email sign-up)"
   end
 
   def most_recent_direct_entry_heartbeat

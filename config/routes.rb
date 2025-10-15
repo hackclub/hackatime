@@ -99,6 +99,11 @@ Rails.application.routes.draw do
     resources :wakatime_mirrors, only: [ :destroy ]
   end
 
+  # User projects routes
+  get ":user_id/projects", to: "user_projects#index", as: :user_projects, constraints: { user_id: /\d+|U[A-Z0-9]+/ }
+  get ":user_id/projects/:id", to: "user_projects#show", as: :user_project, constraints: { user_id: /\d+|U[A-Z0-9]+/, id: /\d+/ }
+  
+  # My projects routes (shortcuts for current user)
   get "my/projects", to: "my/projects#index", as: :my_projects
   get "my/projects/project_durations", to: "my/projects#project_durations", as: :project_durations_my_projects
   get "my/projects/new", to: "my/projects#new", as: :new_my_project_label
@@ -106,6 +111,10 @@ Rails.application.routes.draw do
   get "my/projects/:id/edit", to: "my/projects#edit", as: :edit_my_project_label
   patch "my/projects/:id", to: "my/projects#update"
   delete "my/projects/:id", to: "my/projects#destroy"
+
+  # Profile routes
+  get ":id/profile", to: "profile#show", as: :user_profile, constraints: { id: /\d+|U[A-Z0-9]+/ }
+  get "my/profile", to: "profile#my_profile", as: :my_profile
 
   # Namespace for current user actions
   get "my/settings", to: "users#edit", as: :my_settings
