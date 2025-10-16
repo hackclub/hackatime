@@ -18,3 +18,12 @@ Rails.configuration.to_prepare do
     scope :with_future, -> { unscope(where: :created_at) }
   end
 end
+
+
+
+class String
+  # Hopefully this is the right place! It a really good monkey patch!!
+  def categorize_language
+    WakatimeService.categorize_language(self)
+  end
+end
