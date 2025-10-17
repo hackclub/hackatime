@@ -351,7 +351,7 @@ GEM
       i18n (>= 0.5.0)
       railties (>= 6.1.0)
     public_suffix (6.0.2)
-    puma (7.0.4)
+    puma (7.1.0)
       nio4r (~> 2.0)
     query_count (1.1.1)
       activerecord (>= 4.2)
