@@ -1,4 +1,6 @@
 class My::ProjectsController < ApplicationController
+  layout :resolve_layout
+  
   before_action :ensure_current_user
 
   def index
@@ -14,6 +16,13 @@ class My::ProjectsController < ApplicationController
     # Get project durations for labeled projects
     @labeled_project_durations = get_labeled_project_durations
     
+    # Calculate totals for sidebar stats
+    overall = current_user.heartbeats.filter_by_time_range(@interval, @from, @to).duration_seconds
+    labeled_total = @labeled_project_durations.sum { |p| p[:duration] }
+    @overall_duration = overall
+    @labeled_total = labeled_total
+    @unlabeled_total = [overall - labeled_total, 0].max
+    
     render 'projects/index'
   end
 
@@ -23,6 +32,39 @@ class My::ProjectsController < ApplicationController
     @available_projects = get_available_hackatime_projects
     
     render 'projects/new'
+  end
+
+  def project_stats
+    project_name = params[:project]
+    return render json: { error: "No project specified" }, status: :bad_request if project_name.blank?
+
+    Time.use_zone(current_user.timezone) do
+      # Get all heartbeats for this project
+      project_heartbeats = current_user.heartbeats.where(project: project_name)
+      
+      # Total time
+      total_time = project_heartbeats.duration_seconds
+      
+      # Time this week
+      week_start = Time.current.beginning_of_week
+      week_heartbeats = project_heartbeats.where("time >= ?", week_start.to_f)
+      week_time = week_heartbeats.duration_seconds
+      
+      # Language stats
+      language_stats = project_heartbeats
+        .group(:language)
+        .duration_seconds
+        .reject { |lang, _| lang.blank? }
+        .sort_by { |_, duration| -duration }
+        .first(10)
+        .to_h
+
+      render json: {
+        total_time: total_time,
+        week_time: week_time,
+        language_stats: language_stats
+      }
+    end
   end
 
   def create
@@ -137,5 +179,9 @@ class My::ProjectsController < ApplicationController
       .where.not(project: labeled_projects)
       .order(:project)
       .pluck(:project)
+  end
+
+  def resolve_layout
+    %w[index new edit].include?(action_name) ? "homepage" : "application"
   end
 end

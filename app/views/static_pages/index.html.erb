@@ -2,6 +2,11 @@
   <div class="homepage-container">
     <!-- Sidebar Navigation -->
     <div class="homepage-sidebar">
+      <!-- Logo -->
+      <div class="homepage-logo">
+        <img src="/images/hackabirb.webp" alt="Hackatime" class="homepage-logo-img">
+      </div>
+      
       <!-- Navigation Buttons -->
       <div class="homepage-nav">
         <%= link_to root_path, class: "homepage-nav-button #{current_page?(root_path) ? 'active' : ''}" do %>
@@ -39,11 +44,6 @@
           <span class="homepage-user-name"><%= current_user.display_name %></span>
         </div>
         
-        <div class="homepage-user-status">
-          <span class="homepage-user-status-icon">💤</span>
-          <span class="homepage-user-status-text">No active session</span>
-        </div>
-        
         <%= link_to my_settings_path, class: "homepage-settings-button" do %>
           <svg xmlns="http://www.w3.org/2000/svg" class="homepage-settings-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
@@ -72,18 +72,23 @@
         <p>imagine a world where everyone ships code daily.</p>
       </div>
       
+      <% if @show_wakatime_setup_notice %>
+        <div class="homepage-setup-notice">
+          <p class="homepage-setup-text">
+            Hello friend! Looks like you are new around here, let's get you set up so you can start tracking your coding time.
+          </p>
+          <%= link_to "Let's setup Hackatime! Click me :D", my_wakatime_setup_path, class: "homepage-setup-button" %>
+        </div>
+      <% end %>
+      
       <!-- Stats Card -->
       <div class="homepage-stats-card">
         <div class="homepage-stats-container">
           <!-- Streak -->
           <div class="homepage-streak">
             <div class="homepage-streak-icon-wrapper">
-              <div class="homepage-streak-icon-bg">
-                <span class="homepage-streak-icon">🔥</span>
-              </div>
-              <div class="homepage-streak-count">
-                <span><%= current_user.streak_days %></span>
-              </div>
+              <img src="/images/flame-icon.svg" alt="Streak" class="homepage-streak-flame">
+              <span class="homepage-streak-number"><%= current_user.streak_days %></span>
             </div>
             <div class="homepage-streak-text">
               <p class="homepage-streak-label">you have a</p>
@@ -93,7 +98,7 @@
           
           <!-- Hours Coded -->
           <div class="homepage-stat-box hours">
-            <p class="homepage-stat-number"><%= (@todays_duration / 3600.0).round %></p>
+            <p class="homepage-stat-number"><%= ((@todays_duration || 0) / 3600.0).round %></p>
             <p class="homepage-stat-label">HOURS CODED</p>
           </div>
           
@@ -131,42 +136,77 @@
         <div class="homepage-activity-chart">
           <h3 class="homepage-activity-title">Last 7 Days Activity</h3>
           <div class="homepage-chart-container">
+            <% 
+              daily_data = []
+              Time.use_zone(current_user.timezone) do
+                7.times do |i|
+                  date = (6 - i).days.ago.to_date
+                  day_start = date.beginning_of_day
+                  day_end = date.end_of_day
+                  duration = current_user.heartbeats.where(time: day_start.to_f..day_end.to_f).duration_seconds
+                  daily_data << { date: date, duration: duration }
+                end
+              end
+              
+              max_duration = daily_data.map { |d| d[:duration] }.max || 1.hour
+              max_duration = [max_duration, 1.hour].max
+              
+              chart_max = if max_duration < 2.hours
+                (max_duration / 1800.0).ceil * 1800
+              elsif max_duration < 5.hours
+                (max_duration / 3600.0).ceil * 3600
+              elsif max_duration < 10.hours
+                ((max_duration / 7200.0).ceil * 7200)
+              else
+                ((max_duration / 18000.0).ceil * 18000)
+              end
+              
+              scale_factor = 65.0
+              num_labels = 5
+              label_values = (0..num_labels).map { |i| (chart_max * i / num_labels.to_f / 3600.0) }.reverse
+            %>
+            
             <div class="homepage-chart-yaxis">
-              <% [ 5, 4, 3, 2, 1, 0 ].each do |hour| %>
-                <span><%= hour %>h</span>
+              <% label_values.each do |hour| %>
+                <% 
+                  display_hour = hour >= 1 ? hour.round : hour.round(1)
+                %>
+                <span><%= display_hour == display_hour.to_i ? "#{display_hour.to_i}h" : "#{display_hour}h" %></span>
               <% end %>
             </div>
             <div class="homepage-chart-bars">
-              <% 7.times do |i| %>
+              <% 
+                max_data_duration = daily_data.map { |d| d[:duration] }.max || 1
+              %>
+              <% daily_data.each do |day_data| %>
                 <% 
-                  date = (6 - i).days.ago.to_date
-                  duration = Time.use_zone(current_user.timezone) do
-                    current_user.heartbeats.where(time: date.beginning_of_day.to_f..date.end_of_day.to_f).duration_seconds
+                  height_percentage = day_data[:duration] > 0 ? ((day_data[:duration].to_f / chart_max) * scale_factor).round(1) : 2
+                  
+                  if day_data[:duration] == 0
+                    saturation = 0
+                  else
+                    relative_intensity = day_data[:duration].to_f / max_data_duration
+                    saturation = 30 + (relative_intensity * 50)
                   end
-                  max_height = 5.hours
-                  height_percentage = [(duration.to_f / max_height * 100).round, 5].max
+                  
+                  bar_color = if day_data[:duration] == 0
+                    "#555"
+                  else
+                    "hsl(330, #{saturation.round}%, 75%)"
+                  end
                 %>
-                <div class="homepage-chart-bar-wrapper">
+                <div class="homepage-chart-bar-wrapper" data-debug="<%= "Date: #{day_data[:date]}, Duration: #{day_data[:duration]}s, Height: #{height_percentage}%, Sat: #{saturation.round}%" %>">
                   <div class="homepage-chart-bar" 
-                       style="height: <%= height_percentage %>%"
-                       title="<%= short_time_detailed(duration) %>">
+                       style="height: <%= height_percentage %>%; background: <%= bar_color %>"
+                       title="<%= short_time_detailed(day_data[:duration]) %>">
                   </div>
-                  <span class="homepage-chart-day"><%= date.strftime('%a') %></span>
+                  <span class="homepage-chart-day"><%= day_data[:date].strftime('%a') %></span>
                 </div>
               <% end %>
             </div>
           </div>
         </div>
       </div>
-      
-      <% if @show_wakatime_setup_notice %>
-        <div class="homepage-setup-notice">
-          <p class="homepage-setup-text">
-            Hello friend! Looks like you are new around here, let's get you set up so you can start tracking your coding time.
-          </p>
-          <%= link_to "Let's setup Hackatime! Click me :D", my_wakatime_setup_path, class: "homepage-setup-button" %>
-        </div>
-      <% end %>
     </div>
     
     <!-- Right Sidebar - Leaderboard -->
@@ -187,10 +227,7 @@
     </div>
   </div>
 <% else %>
-  <!-- Original logged-out view -->
-  <div class="fixed bottom-6 right-4 bg-primary w-[30px] h-[30px] rounded-b-full flex justify-center items-center z-50 bounce" id="scroll-arrow">
-    <img src="/images/down-arrow.svg" class="w-8 h-8" />
-  </div>
+  <!-- Logged-out view uses default application layout -->
   <div class="container">
     <div class="flex items-center space-x-2 mt-2">
       <p class="italic text-gray-400 m-0">

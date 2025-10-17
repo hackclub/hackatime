@@ -1,53 +1,272 @@
-<h1 class="projects-page-title">Create New Project Label</h1>
+<div class="homepage-container">
+  <!-- LEFT: Sidebar navigation -->
+  <div class="homepage-sidebar">
+    <div class="homepage-logo">
+      <img src="/images/hackabirb.webp" alt="Hackatime" class="homepage-logo-img">
+    </div>
 
-<div class="project-label-form-container">
-  <%= form_with model: [@project_label], url: my_projects_path, local: true, class: "project-label-form" do |form| %>
-    <% if @project_label.errors.any? %>
-      <div class="form-errors">
-        <h3><%= pluralize(@project_label.errors.count, "error") %> prohibited this project label from being saved:</h3>
-        <ul>
-          <% @project_label.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
+    <div class="homepage-nav">
+      <%= link_to root_path, class: "homepage-nav-button" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="homepage-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+        </svg>
+        <span>home</span>
+      <% end %>
+
+      <%= link_to my_projects_path, class: "homepage-nav-button active" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="homepage-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
+        </svg>
+        <span>projects</span>
+      <% end %>
+
+      <%= link_to leaderboards_path, class: "homepage-nav-button" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="homepage-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M16 11V3H8v6H2v12h20V11h-6zm-6-6h4v14h-4V5zm-6 6h4v8H4v-8zm16 8h-4v-6h4v6z"/>
+        </svg>
+        <span>statistics</span>
+      <% end %>
+    </div>
+
+    <div class="homepage-user-card">
+      <div class="homepage-user-header">
+        <% if current_user.avatar_url %>
+          <img src="<%= current_user.avatar_url %>" alt="<%= current_user.display_name %>" class="homepage-user-avatar">
+        <% else %>
+          <div class="homepage-user-avatar-placeholder">
+            <%= current_user.display_name[0] %>
+          </div>
+        <% end %>
+        <span class="homepage-user-name"><%= current_user.display_name %></span>
       </div>
-    <% end %>
 
-    <div class="form-field">
-      <%= form.label :name, class: "form-label" %>
-      <%= form.text_field :name, class: "form-input", required: true %>
+      <%= link_to my_settings_path, class: "homepage-settings-button" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="homepage-settings-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+      <% end %>
     </div>
+  </div>
 
-    <div class="form-field">
-      <%= form.label :hackatime_project, "Hackatime Project", class: "form-label" %>
-      <%= form.select :hackatime_project, 
-          options_for_select(@available_projects.map { |p| [p, p] }, @project_label.hackatime_project),
-          { prompt: "Select a project..." },
-          { class: "form-select", required: true } %>
-      <p class="form-help">Choose from your tracked projects</p>
-    </div>
+  <!-- MIDDLE: Form content -->
+  <div class="homepage-main">
+    <h1 class="projects-page-title">create new project label</h1>
 
-    <div class="form-field">
-      <%= form.label :description, class: "form-label" %>
-      <%= form.text_area :description, class: "form-textarea", rows: 3 %>
-      <p class="form-help">Optional description of the project</p>
-    </div>
+    <div class="project-form-with-stats">
+      <div class="project-label-form-container">
+      <%= form_with model: [@project_label], url: my_projects_path, local: true, class: "project-label-form" do |form| %>
+        <% if @project_label.errors.any? %>
+          <div class="form-errors">
+            <h3><%= pluralize(@project_label.errors.count, "error") %> prohibited this project label from being saved:</h3>
+            <ul>
+              <% @project_label.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
 
-    <div class="form-field">
-      <%= form.label :playable_url, "Project URL", class: "form-label" %>
-      <%= form.url_field :playable_url, class: "form-input" %>
-      <p class="form-help">Optional link to live project or demo</p>
-    </div>
+        <div class="form-field">
+          <%= form.label :name, class: "form-label" %>
+          <%= form.text_field :name, class: "form-input", required: true %>
+        </div>
 
-    <div class="form-field">
-      <%= form.label :code_url, "Code URL", class: "form-label" %>
-      <%= form.url_field :code_url, class: "form-input" %>
-      <p class="form-help">Optional link to source code repository</p>
-    </div>
+        <div class="form-field">
+          <%= form.label :hackatime_project, "Hackatime Project", class: "form-label" %>
+          <%= form.select :hackatime_project, 
+              options_for_select(@available_projects.map { |p| [p, p] }, @project_label.hackatime_project),
+              { prompt: "Select a project..." },
+              { class: "form-select", required: true } %>
+          <p class="form-help">Choose from your tracked projects</p>
+        </div>
 
-    <div class="form-actions">
-      <%= form.submit "Create Project Label", class: "btn btn-primary" %>
-      <%= link_to "Cancel", my_projects_path, class: "btn btn-secondary" %>
+        <div class="form-field">
+          <%= form.label :description, class: "form-label" %>
+          <%= form.text_area :description, class: "form-textarea", rows: 3 %>
+          <p class="form-help">Optional description of the project</p>
+        </div>
+
+        <div class="form-field">
+          <%= form.label :playable_url, "Project URL", class: "form-label" %>
+          <%= form.url_field :playable_url, class: "form-input" %>
+          <p class="form-help">Optional link to live project or demo</p>
+        </div>
+
+        <div class="form-field">
+          <%= form.label :code_url, "Code URL", class: "form-label" %>
+          <%= form.url_field :code_url, class: "form-input" %>
+          <p class="form-help">Optional link to source code repository</p>
+        </div>
+
+        <div class="form-actions">
+          <%= form.submit "Create Project Label", class: "btn btn-primary" %>
+          <%= link_to "Cancel", my_projects_path, class: "btn btn-secondary" %>
+        </div>
+      <% end %>
+      </div>
+
+      <!-- Project Stats Sidebar -->
+      <div class="project-stats-sidebar" id="projectStatsSidebar">
+        <div class="project-stats-empty">
+          <p>Select a project to view its stats</p>
+        </div>
+        
+        <div class="project-stats-content" id="projectStatsContent" style="display: none;">
+          <h3 class="project-stats-title">project stats</h3>
+          
+          <div class="project-stats-cards">
+            <div class="project-stat-card">
+              <div class="project-stat-value" id="totalTime">-</div>
+              <div class="project-stat-label">Total Time</div>
+            </div>
+            
+            <div class="project-stat-card">
+              <div class="project-stat-value" id="weekTime">-</div>
+              <div class="project-stat-label">This Week</div>
+            </div>
+          </div>
+
+          <div class="project-languages-chart">
+            <h4 class="project-languages-title">languages</h4>
+            <canvas id="projectLanguageChart" width="200" height="200"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
-  <% end %>
+  </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const projectSelect = document.querySelector('select[name="project_label[hackatime_project]"]');
+  const statsEmpty = document.querySelector('.project-stats-empty');
+  const statsContent = document.getElementById('projectStatsContent');
+  let currentChart = null;
+
+  function formatDuration(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
+
+  function updateProjectStats(projectName) {
+    if (!projectName) {
+      statsEmpty.style.display = 'block';
+      statsContent.style.display = 'none';
+      if (currentChart) {
+        currentChart.destroy();
+        currentChart = null;
+      }
+      return;
+    }
+
+    fetch(`<%= project_stats_my_projects_path %>?project=${encodeURIComponent(projectName)}`)
+      .then(response => response.json())
+      .then(data => {
+        // Update stats
+        document.getElementById('totalTime').textContent = formatDuration(data.total_time);
+        document.getElementById('weekTime').textContent = formatDuration(data.week_time);
+
+        // Show stats content
+        statsEmpty.style.display = 'none';
+        statsContent.style.display = 'block';
+
+        // Create/update chart
+        const canvas = document.getElementById('projectLanguageChart');
+        const ctx = canvas.getContext('2d');
+
+        if (currentChart) {
+          currentChart.destroy();
+        }
+
+        const labels = Object.keys(data.language_stats);
+        const values = Object.values(data.language_stats);
+
+        if (labels.length > 0) {
+          currentChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: values,
+                backgroundColor: [
+                  'rgba(248, 166, 200, 0.8)',
+                  'rgba(188, 113, 89, 0.8)',
+                  'rgba(80, 146, 224, 0.8)',
+                  'rgba(236, 55, 80, 0.8)',
+                  'rgba(162, 105, 196, 0.8)',
+                  'rgba(51, 214, 166, 0.8)',
+                  'rgba(252, 177, 49, 0.8)',
+                  'rgba(255, 124, 163, 0.8)',
+                  'rgba(123, 97, 255, 0.8)',
+                  'rgba(255, 214, 0, 0.8)'
+                ],
+                borderColor: '#281F2A',
+                borderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    color: '#ffffff',
+                    font: {
+                      size: 11,
+                      family: "'Phantom Sans', 'Segoe UI', sans-serif"
+                    },
+                    padding: 10,
+                    boxWidth: 12
+                  }
+                },
+                tooltip: {
+                  backgroundColor: '#3A2D3D',
+                  titleColor: '#ffffff',
+                  bodyColor: '#d1d5db',
+                  borderColor: 'rgba(248, 166, 200, 0.3)',
+                  borderWidth: 1,
+                  padding: 12,
+                  displayColors: true,
+                  callbacks: {
+                    label: function(context) {
+                      const label = context.label || '';
+                      const value = context.raw || 0;
+                      const duration = formatDuration(value);
+                      const total = values.reduce((a, b) => a + b, 0);
+                      const percentage = ((value / total) * 100).toFixed(1);
+                      return ` ${label}: ${duration} (${percentage}%)`;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching project stats:', error);
+      });
+  }
+
+  if (projectSelect) {
+    projectSelect.addEventListener('change', function() {
+      updateProjectStats(this.value);
+    });
+
+    // Load initial stats if project is pre-selected
+    if (projectSelect.value) {
+      updateProjectStats(projectSelect.value);
+    }
+  }
+});
+</script>

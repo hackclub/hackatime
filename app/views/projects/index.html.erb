@@ -1,47 +1,111 @@
-<h1 class="projects-page-title">
-  <% if @user == current_user %>
-    My Projects
-  <% else %>
-    <%= @user.display_name %>'s Projects
-  <% end %>
-</h1>
+<div class="homepage-container">
+  <!-- LEFT: Sidebar navigation (reused from homepage) -->
+  <div class="homepage-sidebar">
+    <div class="homepage-logo">
+      <img src="/images/hackabirb.webp" alt="Hackatime" class="homepage-logo-img">
+    </div>
 
-<% if @user == current_user && current_user.github_uid.blank? %>
-  <div class="projects-github-notice">
-    You can't tie your projects to GitHub until you connect your GitHub account.
-    <%= link_to "Sign in with GitHub", github_auth_path, class: "btn" %>
-  </div>
-<% end %>
-
-<%= render "shared/interval_selector" %>
-
-<!-- Project Labels Section -->
-<% if @labeled_project_durations.any? %>
-  <div class="projects-section">
-    <h2 class="projects-section-title">Labeled Projects</h2>
-    <%= render "projects/labeled_project_cards", project_durations: @labeled_project_durations %>
-  </div>
-<% else %>
-  <div class="no-projects-message">
-    <p>No labeled projects yet.</p>
-  </div>
-<% end %>
-
-<!-- Unlabeled Projects Dropdown (only for current user) -->
-<% if @user == current_user %>
-  <div class="unlabeled-projects-dropdown">
-    <details class="unlabeled-projects-details">
-      <summary class="unlabeled-projects-summary">
-        <svg class="unlabeled-projects-arrow" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+    <div class="homepage-nav">
+      <%= link_to root_path, class: "homepage-nav-button #{current_page?(root_path) ? 'active' : ''}" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="homepage-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
         </svg>
-        <span class="unlabeled-projects-text">Unlabeled Projects</span>
-      </summary>
-      <div class="unlabeled-projects-content">
-        <%= turbo_frame_tag "project_durations", src: project_durations_my_projects_path(interval: params[:interval], from: params[:from], to: params[:to]), target: "_top" do %>
-          <div class="loading-indicator">Loading unlabeled projects...</div>
+        <span>home</span>
+      <% end %>
+
+      <%= link_to my_projects_path, class: "homepage-nav-button #{current_page?(my_projects_path) ? 'active' : ''}" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="homepage-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
+        </svg>
+        <span>projects</span>
+      <% end %>
+
+      <%= link_to leaderboards_path, class: "homepage-nav-button #{current_page?(leaderboards_path) ? 'active' : ''}" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="homepage-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M16 11V3H8v6H2v12h20V11h-6zm-6-6h4v14h-4V5zm-6 6h4v8H4v-8zm16 8h-4v-6h4v6z"/>
+        </svg>
+        <span>statistics</span>
+      <% end %>
+    </div>
+
+    <div class="homepage-user-card">
+      <div class="homepage-user-header">
+        <% if current_user.avatar_url %>
+          <img src="<%= current_user.avatar_url %>" alt="<%= current_user.display_name %>" class="homepage-user-avatar">
+        <% else %>
+          <div class="homepage-user-avatar-placeholder">
+            <%= current_user.display_name[0] %>
+          </div>
         <% end %>
+        <span class="homepage-user-name"><%= current_user.display_name %></span>
       </div>
-    </details>
+
+      <%= link_to my_settings_path, class: "homepage-settings-button" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="homepage-settings-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+      <% end %>
+    </div>
   </div>
-<% end %>
+
+  <!-- MIDDLE: Projects main -->
+  <div class="homepage-main">
+    <div class="projects-header">
+      <h1 class="projects-title">
+        <% if @user == current_user %>
+          my projects
+        <% else %>
+          <%= @user.display_name.downcase %>'s projects
+        <% end %>
+      </h1>
+      <div class="projects-interval">
+        <%= render "shared/interval_selector" %>
+      </div>
+    </div>
+
+    <% if @user == current_user && current_user.github_uid.blank? %>
+      <div class="homepage-setup-notice">
+        <p class="homepage-setup-text">
+          You can't tie your projects to GitHub until you connect your GitHub account.
+        </p>
+        <%= link_to "Sign in with GitHub", github_auth_path, class: "homepage-setup-button" %>
+      </div>
+    <% end %>
+
+    <!-- Labeled Projects -->
+    <% if @labeled_project_durations.any? %>
+      <div class="projects-card">
+        <h2 class="projects-section-title">labeled projects</h2>
+        <%= render "projects/labeled_project_cards", project_durations: @labeled_project_durations %>
+      </div>
+    <% else %>
+      <div class="projects-empty">
+        <p>No labeled projects yet.</p>
+      </div>
+    <% end %>
+
+    <!-- Unlabeled Projects Dropdown (current user only) -->
+    <% if @user == current_user %>
+      <div class="projects-card">
+        <details class="unlabeled-projects-details">
+          <summary class="unlabeled-projects-summary">
+            <svg class="unlabeled-projects-arrow" viewBox="0 0 20 20" aria-hidden="true">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+            <span>Unlabeled Projects</span>
+            <% if @unlabeled_total && @unlabeled_total > 0 %>
+              <span class="unlabeled-total">• <%= short_time_detailed(@unlabeled_total) %></span>
+            <% end %>
+          </summary>
+          <div class="unlabeled-projects-content">
+            <%= turbo_frame_tag "project_durations",
+              src: project_durations_my_projects_path(interval: params[:interval], from: params[:from], to: params[:to]),
+              target: "_top" do %>
+              <div class="loading-indicator">Loading unlabeled projects...</div>
+            <% end %>
+          </div>
+        </details>
+      </div>
+    <% end %>
+  </div>
+</div>

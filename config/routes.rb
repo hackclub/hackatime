@@ -106,6 +106,7 @@ Rails.application.routes.draw do
   # My projects routes (shortcuts for current user)
   get "my/projects", to: "my/projects#index", as: :my_projects
   get "my/projects/project_durations", to: "my/projects#project_durations", as: :project_durations_my_projects
+  get "my/projects/project_stats", to: "my/projects#project_stats", as: :project_stats_my_projects
   get "my/projects/new", to: "my/projects#new", as: :new_my_project_label
   post "my/projects", to: "my/projects#create"
   get "my/projects/:id/edit", to: "my/projects#edit", as: :edit_my_project_label

@@ -73,13 +73,44 @@
       }
     }
 
+
+
+    function toggleIntervalDropdown() {
+      const menu = document.getElementById('interval-dropdown-menu');
+      const trigger = document.querySelector('.interval-dropdown-trigger');
+      const isOpen = menu.style.display === 'block';
+      
+      menu.style.display = isOpen ? 'none' : 'block';
+      
+      if (isOpen) {
+        trigger.classList.remove('open');
+      } else {
+        trigger.classList.add('open');
+        document.addEventListener('mousedown', closeDropdownOnClickOutside);
+      }
+    }
+
+    function closeDropdownOnClickOutside(e) {
+      const menu = document.getElementById('interval-dropdown-menu');
+      const trigger = document.querySelector('.interval-dropdown-trigger');
+      if (!menu.contains(e.target) && !trigger.contains(e.target)) {
+        menu.style.display = 'none';
+        trigger.classList.remove('open');
+        document.removeEventListener('mousedown', closeDropdownOnClickOutside);
+      }
+    }
+    
     function selectInterval(interval, label) {
+      const trigger = document.querySelector('.interval-dropdown-trigger');
+      trigger.classList.remove('open');
       updateDropdownLabel(label);
       document.getElementById('interval-dropdown-menu').style.display = 'none';
       updateWithParams({ interval });
     }
-
+    
     function applyCustomRange() {
+      const trigger = document.querySelector('.interval-dropdown-trigger');
+      trigger.classList.remove('open');
       const start = document.getElementById('custom-start').value;
       const end = document.getElementById('custom-end').value;
 
@@ -98,38 +129,7 @@
         updateWithParams({ interval: 'custom', from: start, to: end });
       }
     }
-
-    function toggleIntervalDropdown() {
-      const menu = document.getElementById('interval-dropdown-menu');
-      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-      document.addEventListener('mousedown', closeDropdownOnClickOutside);
-    }
-
-    function closeDropdownOnClickOutside(e) {
-      const menu = document.getElementById('interval-dropdown-menu');
-      const trigger = document.querySelector('.interval-dropdown-trigger');
-      if (!menu.contains(e.target) && !trigger.contains(e.target)) {
-        menu.style.display = 'none';
-        document.removeEventListener('mousedown', closeDropdownOnClickOutside);
-      }
-    }
   </script>
 
-  <style>
-    /* Adding explicit styles for the Apply button */
-    .interval-custom-range .primary-button {
-      padding: 0.4rem 0.8rem;
-      margin: 0;
-      font-size: 1rem;
-      border-radius: 4px;
-      border: none;
-      background: var(--primary-color);
-      color: white;
-      cursor: pointer;
-    }
 
-    .interval-custom-range .primary-button:hover {
-      filter: brightness(1.1);
-    }
-  </style>
 <% end %>

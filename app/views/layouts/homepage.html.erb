@@ -59,39 +59,34 @@
     <%= Sentry.get_trace_propagation_meta.html_safe %>
   </head>
 
-  <body style="background: #1a1a2e; margin: 0; padding: 0; overflow-x: hidden;">
+  <body style="background: #302532; margin: 0; padding: 0; overflow-x: hidden;">
     <% flash.each do |name, msg| %>
-      <% c = case name.to_sym
-      when :notice
-        "border: 2px solid #10b981; color: #10b981;"
-      else
-        "border: 2px solid #ec3750; color: #ec3750;"
-      end %>
-      <div style="position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 9999; background: #1f2937; border-radius: 0.5rem; padding: 1rem 1.5rem; <%= c %>">
+      <% flash_class = name.to_sym == :notice ? 'notice' : 'alert' %>
+      <div class="homepage-flash <%= flash_class %>">
         <%= msg %>
       </div>
     <% end %>
 
     <%= yield %>
 
-    <div id="logout-modal" class="fixed inset-0 flex items-center justify-center z-[9999] opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out hidden" style="background-color: rgba(0, 0, 0, 0.5);backdrop-filter: blur(4px);">
-      <div class="bg-dark border border-primary rounded-lg p-6 max-w-md w-full mx-4 flex flex-col items-center justify-center transform scale-95 transition-transform duration-300 ease-in-out">
-        <div class="flex flex-col items-center w-full">
-          <div class="mb-4 flex justify-center w-full">
-            <svg class="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div id="logout-modal" class="homepage-logout-modal hidden">
+      <div class="homepage-logout-modal-content">
+        <div class="homepage-logout-modal-inner">
+          <div class="homepage-logout-modal-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path fill="currentColor" d="M5 5h6c.55 0 1-.45 1-1s-.45-1-1-1H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h6c.55 0 1-.45 1-1s-.45-1-1-1H5z" /><path fill="currentColor" d="m20.65 11.65l-2.79-2.79a.501.501 0 0 0-.86.35V11h-7c-.55 0-1 .45-1 1s.45 1 1 1h7v1.79c0 .45.54.67.85.35l2.79-2.79c.2-.19.2-.51.01-.7" />
             </svg>
           </div>
-          <h3 class="text-xl font-bold text-white mb-2 text-center w-full">Woah hold on a sec</h3>
-          <p class="text-gray-300 mb-6 text-center w-full">You sure you want to sign out? You can sign back in later but that is a bit of a hassle...</p>
-          <div class="flex w-full h-[40px] gap-3">
-            <button id="cancel-logout" class="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-darkless transition-colors duration-200 cursor-pointer m-0 h-[40px]">
+          <h3 class="homepage-logout-modal-title">Woah hold on a sec</h3>
+          <p class="homepage-logout-modal-text">You sure you want to sign out? You can sign back in later but that is a bit of a hassle...</p>
+          <div class="homepage-logout-modal-buttons">
+            <button id="cancel-logout" class="homepage-logout-cancel">
               nevermind
             </button>
-            <form method="post" action="<%= signout_path %>" class="flex-1">
+            <form method="post" action="<%= signout_path %>">
               <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
               <input type="hidden" name="_method" value="delete">
-              <button type="submit" class="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-red-600 transition-colors duration-200 font-medium cursor-pointer m-0 h-[40px]">
+              <button type="submit" class="homepage-logout-confirm">
                 get me outta here
               </button>
             </form>
