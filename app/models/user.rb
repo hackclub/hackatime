@@ -372,8 +372,7 @@ class User < ApplicationRecord
     end
 
     user.slack_uid = data.dig("authed_user", "id")
-    user.username ||= user_data.dig("user", "profile", "username")
-    user.username ||= user_data.dig("user", "profile", "display_name_normalized")
+    user.username = user_data.dig("user", "profile", "username") || user_data.dig("user", "profile", "display_name_normalized")
     user.slack_username = user_data.dig("user", "profile", "username")
     user.slack_avatar_url = user_data.dig("user", "profile", "image_192") || user_data.dig("user", "profile", "image_72")
 
@@ -427,7 +426,7 @@ class User < ApplicationRecord
 
     # Update GitHub-specific fields
     current_user.github_uid = github_uid
-    current_user.username ||= user_data["login"]
+    current_user.username = user_data["login"]
     current_user.github_username = user_data["login"]
     current_user.github_avatar_url = user_data["avatar_url"]
     current_user.github_access_token = data["access_token"]
