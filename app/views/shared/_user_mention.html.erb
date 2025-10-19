@@ -13,11 +13,6 @@ end %>">
     <% else %>
       <%= h(user.name) %>
     <% end %>
-      <% if user.country_code.present? %>
-        <span title="<%= ISO3166::Country.new(user.country_code).common_name %>">
-          <%= country_to_emoji(user.country_code) %>
-        </span>
-      <% end %>
     <%# GitHub profile link - shown if :github_profile_link is in the :show array %>
     <% if github_url = user.github_profile_url # Assign to variable to avoid calling method twice %>
       <% if local_assigns.fetch(:show, []).include?(:github_profile_link) %>
@@ -27,6 +22,11 @@ end %>">
       <% end %>
     <% end %>
   </span>
+  <% if user.country_code.present? %>
+    <span title="<%= ISO3166::Country.new(user.country_code).common_name %>">
+      <%= country_to_emoji(user.country_code) %>
+    </span>
+  <% end %>
   <% if local_assigns.fetch(:show, []).include?(:neighborhood) && user.slack_neighborhood_channel.present? %>
     <%= link_to "🏘️", "https://hackclub.slack.com/archives/#{user.slack_neighborhood_channel}", target: "_blank" %>
   <% end %>
