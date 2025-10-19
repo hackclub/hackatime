@@ -243,13 +243,13 @@ class User < ApplicationRecord
 
     return unless user_data.present?
 
-    profile = user_data.dig("profile")
+    profile = user_data["profile"] || {}
 
-    self.slack_avatar_url = profile.dig("image_192") || profile.dig("image_72")
+    self.slack_avatar_url = profile["image_192"] || profile["image_72"]
 
-    self.slack_username = profile.dig("username").presence
-    self.slack_username ||= profile.dig("display_name_normalized").presence
-    self.slack_username ||= profile.dig("real_name_normalized").presence
+    self.slack_username = user_data["name"].presence
+    self.slack_username ||= profile["display_name_normalized"].presence
+    self.slack_username ||= profile["real_name_normalized"].presence
   end
 
   def update_slack_status
@@ -365,7 +365,10 @@ class User < ApplicationRecord
 
     return nil unless user_data["ok"]
 
-    email = user_data.dig("user", "profile", "email")&.downcase
+    slack_user = user_data["user"] || {}
+    profile = slack_user["profile"] || {}
+
+    email = profile["email"]&.downcase
     email_address = EmailAddress.find_or_initialize_by(email: email)
     email_address.source ||= :slack
     user = email_address.user
@@ -378,12 +381,12 @@ class User < ApplicationRecord
     end
 
     user.slack_uid = data.dig("authed_user", "id")
-    user.slack_username = user_data.dig("username").presence
-    user.slack_username ||= user_data.dig("display_name_normalized").presence
-    user.slack_username ||= user_data.dig("real_name_normalized").presence
-    user.slack_avatar_url = user_data.dig("user", "profile", "image_192") || user_data.dig("user", "profile", "image_72")
+    user.slack_username = slack_user["name"].presence
+    user.slack_username ||= profile["display_name_normalized"].presence
+    user.slack_username ||= profile["real_name_normalized"].presence
+    user.slack_avatar_url = profile["image_192"] || profile["image_72"]
 
-    user.parse_and_set_timezone(user_data.dig("user", "tz"))
+    user.parse_and_set_timezone(slack_user["tz"])
 
     user.slack_access_token = data["authed_user"]["access_token"]
     user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
@@ -433,7 +436,7 @@ class User < ApplicationRecord
 
     # Update GitHub-specific fields
     current_user.github_uid = github_uid
-    current_user.github_username = user_data["login"]
+    current_user.github_username = user_data["login"].presence || user_data["name"].presence
     current_user.github_avatar_url = user_data["avatar_url"]
     current_user.github_access_token = data["access_token"]
 
