@@ -25,7 +25,7 @@ class Admin::TrustLevelAuditLogsController < Admin::BaseController
     if params[:user_search].present?
       search_term = params[:user_search].strip
       user_ids = User.joins(:email_addresses)
-                    .where("LOWER(users.username) LIKE ? OR LOWER(users.slack_username) LIKE ? OR LOWER(users.github_username) LIKE ? OR LOWER(email_addresses.email) LIKE ? OR CAST(users.id AS TEXT) LIKE ?",
+                    .where("LOWER(users.custom_name) LIKE ? OR LOWER(users.slack_username) LIKE ? OR LOWER(users.github_username) LIKE ? OR LOWER(email_addresses.email) LIKE ? OR CAST(users.id AS TEXT) LIKE ?",
                            "%#{search_term.downcase}%", "%#{search_term.downcase}%", "%#{search_term.downcase}%", "%#{search_term.downcase}%", "%#{search_term}%")
                     .pluck(:id)
       @audit_logs = @audit_logs.where(user_id: user_ids)
@@ -35,7 +35,7 @@ class Admin::TrustLevelAuditLogsController < Admin::BaseController
     if params[:admin_search].present?
       search_term = params[:admin_search].strip
       admin_ids = User.joins(:email_addresses)
-                     .where("LOWER(users.username) LIKE ? OR LOWER(users.slack_username) LIKE ? OR LOWER(users.github_username) LIKE ? OR LOWER(email_addresses.email) LIKE ? OR CAST(users.id AS TEXT) LIKE ?",
+                     .where("LOWER(users.custom_name) LIKE ? OR LOWER(users.slack_username) LIKE ? OR LOWER(users.github_username) LIKE ? OR LOWER(email_addresses.email) LIKE ? OR CAST(users.id AS TEXT) LIKE ?",
                             "%#{search_term.downcase}%", "%#{search_term.downcase}%", "%#{search_term.downcase}%", "%#{search_term.downcase}%", "%#{search_term}%")
                      .pluck(:id)
       @audit_logs = @audit_logs.where(changed_by_id: admin_ids)

@@ -29,9 +29,7 @@ class Cache::CurrentlyHackingJob < Cache::ActivityJob
     users = users.sort_by do |user|
       [
         active_projects[user.id].present? ? 0 : 1,
-        user.username.present? ? 0 : 1,
-        user.slack_username.present? ? 0 : 1,
-        user.github_username.present? ? 0 : 1
+        user.name.present? ? 0 : 1
       ]
     end
 

@@ -165,7 +165,7 @@
           <div class="absolute top-0 p-3 rounded-lg shadow-lg <%= trust_level_bg %>"
                data-user-id="<%= user.id %>"
                style="left: <%= column_left + 2 %>px; width: <%= min_column_width_px - 4 %>px;"
-               title="User ID: <%= user.id %> - <%= user.respond_to?(:username) && user.username.present? ? h(user.username) : h(user.email_addresses.first&.email) %> | Total Coded: <%= total_coded_time_seconds && total_coded_time_seconds > 0 ? short_time_detailed(total_coded_time_seconds) : '0m' %> | TZ: <%= h(user.timezone) %>">
+               title="User ID: <%= user.id %> - <%= user.respond_to?(:name) && user.name.present? ? h(user.name) : h(user.email_addresses.first&.email) %> | Total Coded: <%= total_coded_time_seconds && total_coded_time_seconds > 0 ? short_time_detailed(total_coded_time_seconds) : '0m' %> | TZ: <%= h(user.timezone) %>">
             <div class="flex items-center space-x-1 mb-1">
               <%= render "shared/user_mention", user: user %>
             </div>

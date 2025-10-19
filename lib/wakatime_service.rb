@@ -26,7 +26,7 @@ class WakatimeService
   def generate_summary
     summary = {}
 
-    summary[:username] = @user.username if @user.present?
+    summary[:username] = @user.name if @user.present?
     summary[:user_id] = @user.id.to_s if @user.present?
     summary[:is_coding_activity_visible] = true if @user.present?
     summary[:is_other_usage_visible] = true if @user.present?
