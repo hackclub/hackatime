@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_03_215127) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_21_202329) do
   create_schema "pganalyze"
 
   # These are extensions that must be enabled in order to support this database
@@ -543,7 +543,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_03_215127) do
     t.string "slack_uid"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "username"
+    t.string "deprecated_name"
     t.string "slack_avatar_url"
     t.boolean "uses_slack_status", default: false, null: false
     t.string "slack_scopes", default: [], array: true
@@ -562,6 +562,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_03_215127) do
     t.boolean "allow_public_stats_lookup", default: true, null: false
     t.boolean "default_timezone_leaderboard", default: true, null: false
     t.integer "admin_level", default: 0, null: false
+    t.string "custom_name"
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true

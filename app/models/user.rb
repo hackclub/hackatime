@@ -2,15 +2,23 @@ class User < ApplicationRecord
   include TimezoneRegions
   include PublicActivity::Model
 
+  CUSTOM_NAME_MAX_LENGTH = 21 # going over 21 overflows the navbar
+
   has_paper_trail
 
   after_create :create_signup_activity
+  before_validation :normalize_custom_name
   encrypts :slack_access_token, :github_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
   validates :github_uid, uniqueness: { conditions: -> { where.not(github_access_token: nil) } }, allow_nil: true
   validates :timezone, inclusion: { in: TZInfo::Timezone.all_identifiers }, allow_nil: false
   validates :country_code, inclusion: { in: ISO3166::Country.codes }, allow_nil: true
+  validates :custom_name,
+    length: { maximum: CUSTOM_NAME_MAX_LENGTH },
+    format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
+    allow_nil: true
+  validate :custom_name_must_be_visible
 
   attribute :allow_public_stats_lookup, :boolean, default: true
   attribute :default_timezone_leaderboard, :boolean, default: true
@@ -235,15 +243,13 @@ class User < ApplicationRecord
 
     return unless user_data.present?
 
-    profile = user_data.dig("profile")
+    profile = user_data["profile"] || {}
 
-    self.slack_avatar_url = profile.dig("image_192") || profile.dig("image_72")
+    self.slack_avatar_url = profile["image_192"] || profile["image_72"]
 
-    self.slack_username = profile.dig("username").presence
-    self.slack_username ||= profile.dig("display_name_normalized").presence
-    self.slack_username ||= profile.dig("real_name_normalized").presence
-
-    self.username.blank? && self.username = self.slack_username
+    self.slack_username = user_data["name"].presence
+    self.slack_username ||= profile["display_name_normalized"].presence
+    self.slack_username ||= profile["real_name_normalized"].presence
   end
 
   def update_slack_status
@@ -359,7 +365,10 @@ class User < ApplicationRecord
 
     return nil unless user_data["ok"]
 
-    email = user_data.dig("user", "profile", "email")&.downcase
+    slack_user = user_data["user"] || {}
+    profile = slack_user["profile"] || {}
+
+    email = profile["email"]&.downcase
     email_address = EmailAddress.find_or_initialize_by(email: email)
     email_address.source ||= :slack
     user = email_address.user
@@ -372,12 +381,12 @@ class User < ApplicationRecord
     end
 
     user.slack_uid = data.dig("authed_user", "id")
-    user.username ||= user_data.dig("user", "profile", "username")
-    user.username ||= user_data.dig("user", "profile", "display_name_normalized")
-    user.slack_username = user_data.dig("user", "profile", "username")
-    user.slack_avatar_url = user_data.dig("user", "profile", "image_192") || user_data.dig("user", "profile", "image_72")
+    user.slack_username = slack_user["name"].presence
+    user.slack_username ||= profile["display_name_normalized"].presence
+    user.slack_username ||= profile["real_name_normalized"].presence
+    user.slack_avatar_url = profile["image_192"] || profile["image_72"]
 
-    user.parse_and_set_timezone(user_data.dig("user", "tz"))
+    user.parse_and_set_timezone(slack_user["tz"])
 
     user.slack_access_token = data["authed_user"]["access_token"]
     user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
@@ -427,8 +436,7 @@ class User < ApplicationRecord
 
     # Update GitHub-specific fields
     current_user.github_uid = github_uid
-    current_user.username ||= user_data["login"]
-    current_user.github_username = user_data["login"]
+    current_user.github_username = user_data["login"].presence || user_data["name"].presence
     current_user.github_avatar_url = user_data["avatar_url"]
     current_user.github_access_token = data["access_token"]
 
@@ -460,9 +468,8 @@ class User < ApplicationRecord
   end
 
   def display_name
-    return slack_username.presence.truncate(10) if slack_username.present?
-    return github_username.presence.truncate(10) if github_username.present?
-    return username.presence.truncate(10) if username.present?
+    name = custom_name || slack_username || github_username
+    return name if name.present?
 
     # "zach@hackclub.com" -> "zach (email sign-up)"
     email = email_addresses&.first&.email
@@ -508,5 +515,28 @@ class User < ApplicationRecord
 
   def create_signup_activity
     create_activity :first_signup, owner: self
+  end
+
+  def normalize_custom_name
+    original = custom_name
+    @custom_name_cleared_for_invisible = false
+
+    return if original.nil?
+
+    cleaned = original.gsub(/\p{Cf}/, "")
+    stripped = cleaned.strip
+
+    if stripped.empty?
+      self.custom_name = nil
+      @custom_name_cleared_for_invisible = original.length.positive?
+    else
+      self.custom_name = stripped
+    end
+  end
+
+  def custom_name_must_be_visible
+    if instance_variable_defined?(:@custom_name_cleared_for_invisible) && @custom_name_cleared_for_invisible
+      errors.add(:custom_name, "must include visible characters")
+    end
   end
 end

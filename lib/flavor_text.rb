@@ -246,8 +246,8 @@ class FlavorText
     r = []
 
     r << "quit slacking off!" if user.slack_uid.present?
-    r << "in the nick of time!" if %w[nick nicholas nickolas].include?(user.username)
-    r << "just-in time!" if %w[justin justine].include?(user.username)
+    r << "in the nick of time!" if %w[nick nicholas nickolas].include?(user.display_name)
+    r << "just-in time!" if %w[justin justine].include?(user.display_name)
 
     minutes_logged = Cache::MinutesLoggedJob.perform_now
     r << "in the past hour, #{minutes_logged} minutes have passed" if minutes_logged > 0

@@ -170,7 +170,7 @@ class StaticPagesController < ApplicationController
         json_response = locals[:users].map do |user|
           {
             id: user.id,
-            username: user.username,
+            username: user.display_name,
             slack_username: user.slack_username,
             github_username: user.github_username,
             display_name: user.display_name,

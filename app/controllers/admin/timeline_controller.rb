@@ -135,7 +135,7 @@ class Admin::TimelineController < Admin::BaseController
 
     # For Stimulus: provide initial selected users with details
     @initial_selected_user_objects = User.where(id: @selected_user_ids)
-                                        .select(:id, :username, :slack_username, :github_username, :slack_avatar_url, :github_avatar_url)
+                                        .select(:id, :custom_name, :slack_username, :github_username, :slack_avatar_url, :github_avatar_url)
                                         .map { |u| { id: u.id, display_name: "#{u.display_name}", avatar_url: u.avatar_url } }
                                         .sort_by { |u_obj| @selected_user_ids.index(u_obj[:id]) || Float::INFINITY } # Preserve order
 
@@ -185,10 +185,10 @@ class Admin::TimelineController < Admin::BaseController
         avatar_url: user_id_match.avatar_url
       } ]
     else
-      users = User.where("LOWER(username) LIKE :query OR LOWER(slack_username) LIKE :query OR CAST(id AS TEXT) LIKE :query OR EXISTS (SELECT 1 FROM email_addresses WHERE email_addresses.user_id = users.id AND LOWER(email_addresses.email) LIKE :query)", query: "%#{query_term}%")
-                  .order(Arel.sql("CASE WHEN LOWER(username) = #{ActiveRecord::Base.connection.quote(query_term)} THEN 0 ELSE 1 END, username ASC")) # Prioritize exact match
+      users = User.where("LOWER(custom_name) LIKE :query OR LOWER(slack_username) LIKE :query OR CAST(id AS TEXT) LIKE :query OR EXISTS (SELECT 1 FROM email_addresses WHERE email_addresses.user_id = users.id AND LOWER(email_addresses.email) LIKE :query)", query: "%#{query_term}%")
+                  .order(Arel.sql("CASE WHEN LOWER(custom_name) = #{ActiveRecord::Base.connection.quote(query_term)} THEN 0 ELSE 1 END, username ASC")) # Prioritize exact match
                   .limit(20)
-                  .select(:id, :username, :slack_username, :github_username, :slack_avatar_url, :github_avatar_url)
+                  .select(:id, :custom_name, :slack_username, :github_username, :slack_avatar_url, :github_avatar_url)
 
       results = users.map do |user|
         {
@@ -218,7 +218,7 @@ class Admin::TimelineController < Admin::BaseController
     all_ids_to_fetch.unshift(current_user.id).uniq!
 
     users_data = User.where(id: all_ids_to_fetch)
-                     .select(:id, :username, :slack_username, :github_username, :slack_avatar_url, :github_avatar_url)
+                     .select(:id, :custom_name, :slack_username, :github_username, :slack_avatar_url, :github_avatar_url)
                      .index_by(&:id)
 
     final_user_objects = []
