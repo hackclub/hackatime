@@ -299,7 +299,7 @@ module Api
                 new_trust_level: log.new_trust_level,
                 changed_by: {
                   id: log.changed_by.id,
-                  username: log.changed_by.name,
+                  username: log.changed_by.username,
                   display_name: log.changed_by.display_name,
                   admin_level: log.changed_by.admin_level
                 },
