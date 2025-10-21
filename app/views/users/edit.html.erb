@@ -1,11 +1,11 @@
 <% content_for :title do %>
-  <%= @is_own_settings ? "My Settings" : "Settings | #{@user.name}" %>
+  <%= @is_own_settings ? "My Settings" : "Settings | #{@user.display_name}" %>
 <% end %>
 
 <div class="max-w-6xl mx-auto p-6 space-y-6">
   <header class="text-center mb-8">
     <h1 class="text-4xl font-bold text-white mb-2">
-      <%= @is_own_settings ? "My Settings" : "Settings for #{@user.name}" %>
+      <%= @is_own_settings ? "My Settings" : "Settings for #{@user.display_name}" %>
     </h1>
     <p class="text-muted text-lg">Change your Hackatime experience and preferences</p>
   </header>

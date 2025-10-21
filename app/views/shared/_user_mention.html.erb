@@ -6,12 +6,12 @@ end %>">
   <%= image_tag user.avatar_url,
                 size: "32x32",
                 class: "rounded-full aspect-square border border-gray-300",
-                alt: "#{h(user.name)}'s avatar" if user.avatar_url %>
+                alt: "#{h(user.display_name)}'s avatar" if user.avatar_url %>
   <span class="inline-flex items-center gap-1">
     <% if local_assigns.fetch(:show, []).include?(:slack) && user.slack_uid.present? %>
-      <%= link_to "@#{h(user.name)}", "https://hackclub.slack.com/team/#{user.slack_uid}", target: "_blank", class: "text-blue-500 hover:underline" %>
+      <%= link_to "@#{h(user.display_name)}", "https://hackclub.slack.com/team/#{user.slack_uid}", target: "_blank", class: "text-blue-500 hover:underline" %>
     <% else %>
-      <%= h(user.name) %>
+      <%= h(user.display_name) %>
     <% end %>
     <%# GitHub profile link - shown if :github_profile_link is in the :show array %>
     <% if github_url = user.github_profile_url # Assign to variable to avoid calling method twice %>

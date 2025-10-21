@@ -39,7 +39,7 @@ if Rails.env.development?
   end
 
   puts "Created test user:"
-  puts "  Username: #{test_user.name}"
+  puts "  Username: #{test_user.display_name}"
   puts "  Email: #{email.email}"
   puts "  API Key: #{api_key.token}"
   puts "  Sign-in Token: #{token.token}"

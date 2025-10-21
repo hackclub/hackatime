@@ -191,7 +191,7 @@ class SessionsController < ApplicationController
 
     session[:impersonater_user_id] ||= current_user.id
     session[:user_id] = user.id
-    redirect_to root_path, notice: "Impersonating #{user.name}"
+    redirect_to root_path, notice: "Impersonating #{user.display_name}"
   end
 
   def stop_impersonating

@@ -15,7 +15,7 @@ module Api
             },
             creator: {
               id: creator.id,
-              username: creator.name,
+              username: creator.custom_name,
               display_name: creator.display_name,
               admin_level: creator.admin_level
             }
@@ -75,7 +75,7 @@ module Api
           render json: {
             user: {
               id: user.id,
-              username: user.name,
+              username: user.custom_name,
               display_name: user.display_name,
               slack_uid: user.slack_uid,
               slack_username: user.slack_username,
@@ -118,7 +118,7 @@ module Api
 
           render json: {
             user_id: user.id,
-            username: user.name,
+            username: user.display_name,
             date: date.iso8601,
             timezone: user.timezone,
             heartbeats: heartbeats.map do |hb|
@@ -184,7 +184,7 @@ module Api
 
           render json: {
             user_id: user.id,
-            username: user.name,
+            username: user.display_name,
             projects: project_data,
             total_projects: project_data.count
           }
@@ -223,12 +223,12 @@ module Api
               message: "gotcha, updated to #{trust_level}",
               user: {
                 id: user.id,
-                username: user.name,
+                username: user.display_name,
                 trust_level: user.trust_level,
                 updated_at: user.updated_at
               },
               audit_log: {
-                changed_by: current_user.name,
+                changed_by: current_user.display_name,
                 reason: reason,
                 notes: notes,
                 timestamp: Time.current
@@ -276,7 +276,7 @@ module Api
               columns: columns,
               rows: rows,
               row_count: rows.count,
-              executed_by: current_user.name,
+              executed_by: current_user.display_name,
               executed_at: Time.current
             }
           rescue => e

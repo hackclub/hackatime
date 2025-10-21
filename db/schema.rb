@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_18_181955) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_21_202329) do
   create_schema "pganalyze"
 
   # These are extensions that must be enabled in order to support this database
@@ -543,7 +543,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_18_181955) do
     t.string "slack_uid"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "username"
+    t.string "deprecated_name"
     t.string "slack_avatar_url"
     t.boolean "uses_slack_status", default: false, null: false
     t.string "slack_scopes", default: [], array: true
