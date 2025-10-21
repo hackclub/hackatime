@@ -2,23 +2,23 @@ class User < ApplicationRecord
   include TimezoneRegions
   include PublicActivity::Model
 
-  CUSTOM_NAME_MAX_LENGTH = 21 # going over 21 overflows the navbar
+  USERNAME_MAX_LENGTH = 21 # going over 21 overflows the navbar
 
   has_paper_trail
 
   after_create :create_signup_activity
-  before_validation :normalize_custom_name
+  before_validation :normalize_username
   encrypts :slack_access_token, :github_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
   validates :github_uid, uniqueness: { conditions: -> { where.not(github_access_token: nil) } }, allow_nil: true
   validates :timezone, inclusion: { in: TZInfo::Timezone.all_identifiers }, allow_nil: false
   validates :country_code, inclusion: { in: ISO3166::Country.codes }, allow_nil: true
-  validates :custom_name,
-    length: { maximum: CUSTOM_NAME_MAX_LENGTH },
+  validates :username,
+    length: { maximum: USERNAME_MAX_LENGTH },
     format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
     allow_nil: true
-  validate :custom_name_must_be_visible
+  validate :username_must_be_visible
 
   attribute :allow_public_stats_lookup, :boolean, default: true
   attribute :default_timezone_leaderboard, :boolean, default: true
@@ -468,7 +468,7 @@ class User < ApplicationRecord
   end
 
   def display_name
-    name = custom_name || slack_username || github_username
+    name = username || slack_username || github_username
     return name if name.present?
 
     # "zach@hackclub.com" -> "zach (email sign-up)"
@@ -517,9 +517,9 @@ class User < ApplicationRecord
     create_activity :first_signup, owner: self
   end
 
-  def normalize_custom_name
-    original = custom_name
-    @custom_name_cleared_for_invisible = false
+  def normalize_username
+    original = username
+    @username_cleared_for_invisible = false
 
     return if original.nil?
 
@@ -527,16 +527,16 @@ class User < ApplicationRecord
     stripped = cleaned.strip
 
     if stripped.empty?
-      self.custom_name = nil
-      @custom_name_cleared_for_invisible = original.length.positive?
+      self.username = nil
+      @username_cleared_for_invisible = original.length.positive?
     else
-      self.custom_name = stripped
+      self.username = stripped
     end
   end
 
-  def custom_name_must_be_visible
-    if instance_variable_defined?(:@custom_name_cleared_for_invisible) && @custom_name_cleared_for_invisible
-      errors.add(:custom_name, "must include visible characters")
+  def username_must_be_visible
+    if instance_variable_defined?(:@username_cleared_for_invisible) && @username_cleared_for_invisible
+      errors.add(:username, "must include visible characters")
     end
   end
 end

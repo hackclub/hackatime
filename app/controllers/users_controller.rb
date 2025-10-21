@@ -153,7 +153,7 @@ class UsersController < ApplicationController
       :timezone,
       :allow_public_stats_lookup,
       :default_timezone_leaderboard,
-      :custom_name,
+      :username,
     )
   end
 end

@@ -14,7 +14,7 @@ Doorkeeper::Application.find_or_create_by(
 if Rails.env.development?
   # Creating test user
   test_user = User.find_or_create_by(slack_uid: 'TEST123456') do |user|
-    user.custom_name = 'testuser'
+    user.username = 'testuser'
     user.slack_username = 'testuser'
 
     # Before you had user.is_admin = true, does not work, changed it to that, looks like it works but idk how to use the admin pages so pls check this, i just guess coded this, the cmd to seed the db works without errors
