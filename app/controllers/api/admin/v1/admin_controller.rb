@@ -15,7 +15,7 @@ module Api
             },
             creator: {
               id: creator.id,
-              username: creator.username,
+              username: creator.custom_name,
               display_name: creator.display_name,
               admin_level: creator.admin_level
             }
@@ -75,7 +75,7 @@ module Api
           render json: {
             user: {
               id: user.id,
-              username: user.username,
+              username: user.custom_name,
               display_name: user.display_name,
               slack_uid: user.slack_uid,
               slack_username: user.slack_username,
@@ -299,7 +299,7 @@ module Api
                 new_trust_level: log.new_trust_level,
                 changed_by: {
                   id: log.changed_by.id,
-                  username: log.changed_by.username,
+                  username: log.changed_by.name,
                   display_name: log.changed_by.display_name,
                   admin_level: log.changed_by.admin_level
                 },
