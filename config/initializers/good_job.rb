@@ -17,7 +17,6 @@ Rails.application.configure do
   # https://github.com/bensheldon/good_job#configuring-your-queues
   # Reduced from 24 to 8 total threads to leave room for 16 web request threads
   config.good_job.queues = "latency_10s:3; latency_5m,latency_10s:2; literally_whenever,*,latency_5m,latency_10s:3"
-  config.good_job.max_threads = 1
 
   #  https://github.com/bensheldon/good_job#pgbouncer-compatibility
   GoodJob.active_record_parent_class = "ApplicationDirectRecord"
