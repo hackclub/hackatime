@@ -8,7 +8,7 @@
     <meta name="color-scheme" content="dark">
 
     <!-- SEO Meta Tags -->
-    <meta name="description" content="<%= @meta_description || content_for(:meta_description) || 'Track your coding time easily with Hackatime. A free tool to see how much time you spend programming in different languages and editors. Better than WakaTime and totally free!' %>">
+    <meta name="description" content="<%= @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
     <meta name="keywords" content="<%= @meta_keywords || content_for(:meta_keywords) || 'coding time tracker, programming stats, wakatime alternative, free time tracking, code statistics, developer analytics, programming time, coding productivity' %>">
     <meta name="author" content="Hack Club">
     <meta name="robots" content="index, follow">
@@ -20,7 +20,7 @@
 
     <!-- Open Graph Tags -->
     <meta property="og:title" content="<%= @og_title || content_for(:og_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
-    <meta property="og:description" content="<%= @og_description || content_for(:og_description) || @meta_description || content_for(:meta_description) || 'Track your coding time easily with Hackatime. A free tool to see how much time you spend programming. Better than WakaTime!' %>">
+    <meta property="og:description" content="<%= @og_description || content_for(:og_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
     <meta property="og:url" content="<%= content_for(:og_url) || request.original_url %>">
     <meta property="og:type" content="<%= content_for(:og_type) || 'website' %>">
     <meta property="og:image" content="<%= content_for(:og_image) || asset_path('favicon.png') %>">
@@ -34,7 +34,7 @@
     <meta name="twitter:site" content="@hackclub">
     <meta name="twitter:creator" content="@hackclub">
     <meta name="twitter:title" content="<%= @twitter_title || content_for(:twitter_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
-    <meta name="twitter:description" content="<%= @twitter_description || content_for(:twitter_description) || @meta_description || content_for(:meta_description) || 'Track your coding time easily with Hackatime. A free tool to see how much time you spend programming. Better than WakaTime!' %>">
+    <meta name="twitter:description" content="<%= @twitter_description || content_for(:twitter_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
     <meta name="twitter:image" content="<%= content_for(:twitter_image) || asset_path('favicon.png') %>">
 
     <%= csrf_meta_tags %>
@@ -54,11 +54,22 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Hackatime",
+      "alternateName": "Hack Club Hackatime",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Any",
       "description": "Track your coding time easily with Hackatime. A free tool to see how much time you spend programming in different languages and editors.",
       "url": "https://hackatime.hackclub.com",
       "downloadUrl": "https://hackatime.hackclub.com",
+      "sameAs": [
+        "https://github.com/hackclub/hackatime",
+        "https://hackatime.hackclub.com/docs"
+      ],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
       "author": {
         "@type": "Organization",
         "name": "Hack Club",
@@ -95,6 +106,17 @@
     }
     </script>
 
+    <!-- WebSite Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Hackatime",
+      "alternateName": "Hack Club Hackatime",
+      "url": "https://hackatime.hackclub.com"
+    }
+    </script>
+
     <!-- FAQ Schema for Homepage -->
     <% if request.path == "/" %>
     <script type="application/ld+json">
@@ -124,6 +146,14 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Hackatime is free and open source, while WakaTime has paid plans. Hackatime gives you all features for free and you can host it yourself."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Hackatime the same as WakaTime?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Hackatime is a separate, independent open-source project built by Hack Club. While both track coding time, Hackatime is completely free and designed for high school students in the Hack Club community."
           }
         }
       ]

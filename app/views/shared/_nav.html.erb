@@ -42,6 +42,11 @@
               Docs
             <% end %>
           </div>
+          <div>
+            <%= link_to "/what-is-hackatime", class: "block px-2 py-1 rounded-lg transition #{current_page?('/what-is-hackatime') ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+              What is Hackatime?
+            <% end %>
+          </div>
         <% end %>
         <% if current_user %>
           <div>

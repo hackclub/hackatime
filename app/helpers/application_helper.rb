@@ -142,7 +142,7 @@ module ApplicationHelper
 
   def display_editor_name(editor)
     return "Unknown" if editor.blank?
-    
+
     case editor.downcase
     when "vscode" then "VS Code"
     when "pycharm" then "PyCharm"
@@ -161,7 +161,7 @@ module ApplicationHelper
 
   def display_os_name(os)
     return "Unknown" if os.blank?
-    
+
     case os.downcase
     when "darwin" then "macOS"
     when "macos" then "macOS"
@@ -171,7 +171,7 @@ module ApplicationHelper
 
   def display_language_name(language)
     return "Unknown" if language.blank?
-    
+
     case language.downcase
     when "typescript" then "TypeScript"
     when "javascript" then "JavaScript"

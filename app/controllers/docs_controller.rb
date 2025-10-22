@@ -158,12 +158,12 @@ class DocsController < ApplicationController
                                  .strip
       description.length > 155 ? "#{description[0..155]}..." : description
     else
-      "#{title} - Complete documentation for Hackatime, the free and open source WakaTime alternative"
+      "#{title} - Complete documentation for Hackatime, the free and open source time tracker by Hack Club"
     end
   end
 
   def generate_doc_keywords(doc_path, title)
-    base_keywords = %w[hackatime wakatime alternative time tracking coding documentation]
+    base_keywords = %w[hackatime hack club open source tracker time tracking coding documentation]
 
     # Add path-specific keywords
     path_keywords = case doc_path

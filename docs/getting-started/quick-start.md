@@ -1,6 +1,6 @@
-# Hackatime Quick Start Guide - Free WakaTime Alternative
+# Hackatime Quick Start Guide - Free Time Tracker
 
-Get up and running with Hackatime in under 5 minutes! Start tracking your coding time across 40+ editors with our free, open source WakaTime alternative.
+Get up and running with Hackatime in under 5 minutes! Start tracking your coding time across 40+ editors with our free, open source time tracker built by Hack Club.
 
 ## What is Hackatime?
 

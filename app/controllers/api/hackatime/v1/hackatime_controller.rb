@@ -180,10 +180,10 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     category_durations.map do |name, duration|
       name = name.presence || "unknown"
       name = case category
-        when "editor" then ApplicationController.helpers.display_editor_name(name)
-        when "operating_system" then ApplicationController.helpers.display_os_name(name)
-        when "language" then ApplicationController.helpers.display_language_name(name)
-        else name
+      when "editor" then ApplicationController.helpers.display_editor_name(name)
+      when "operating_system" then ApplicationController.helpers.display_os_name(name)
+      when "language" then ApplicationController.helpers.display_language_name(name)
+      else name
       end
       percent = ((duration / total_duration) * 100).round(2)
       hours = duration.to_i / 3600

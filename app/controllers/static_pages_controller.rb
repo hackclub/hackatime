@@ -84,6 +84,16 @@ class StaticPagesController < ApplicationController
     render :minimal_login, layout: "doorkeeper/application"
   end
 
+  def what_is_hackatime
+    @page_title = "What is Hackatime? - Free Coding Time Tracker"
+    @meta_description = "Hackatime is a free, open-source coding time tracker built by Hack Club for high school students. Track your programming time across 75+ editors and see your coding statistics."
+    @meta_keywords = "what is hackatime, hackatime definition, hack club time tracker, coding time tracker, programming statistics"
+    @og_title = @page_title
+    @og_description = @meta_description
+    @twitter_title = @page_title
+    @twitter_description = @meta_description
+  end
+
   def mini_leaderboard
     use_timezone_leaderboard = current_user&.default_timezone_leaderboard
 
@@ -235,7 +245,7 @@ class StaticPagesController < ApplicationController
 
     @page_title = title
     @meta_description = desc
-    @meta_keywords = "coding time tracker, programming stats, wakatime alternative, free time tracking, code statistics, high school programming, coding analytics"
+    @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
     @og_title = title
     @og_description = desc
     @twitter_title = title
@@ -263,7 +273,7 @@ class StaticPagesController < ApplicationController
           result[filter] = group_by_time.sort_by { |k, v| v }
                                         .reverse.map(&:first)
                                         .compact_blank
-                                        .map { |k| 
+                                        .map { |k|
                                           if filter == :editor
                                             ApplicationController.helpers.display_editor_name(k)
                                           elsif filter == :operating_system
@@ -338,11 +348,11 @@ class StaticPagesController < ApplicationController
               .first(10)
               .map { |k, v|
                 label = case filter
-                  when :editor then ApplicationController.helpers.display_editor_name(k)
-                  when :operating_system then ApplicationController.helpers.display_os_name(k)
-                  when :language then ApplicationController.helpers.display_language_name(k)
-                  when :category then k
-                  else k.capitalize
+                when :editor then ApplicationController.helpers.display_editor_name(k)
+                when :operating_system then ApplicationController.helpers.display_os_name(k)
+                when :language then ApplicationController.helpers.display_language_name(k)
+                when :category then k
+                else k.capitalize
                 end
                 [ label, v ]
               }
