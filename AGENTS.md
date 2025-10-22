@@ -1,5 +1,7 @@
 # AGENT.md - Rails Hackatime/Harbor Project
 
+We do development using docker-compose. Run `docker-compose ps` to see if the dev server is running. If it is, then you can restart the dev server with `touch tmp/restart.txt`. If not, then bring the dev server up with `docker-compose up`.
+
 ## Commands (via Docker Compose)
 
 - **Tests**: `docker compose run web rails test` (all), `docker compose run web rails test test/models/user_test.rb` (single file), `docker compose run web rails test test/models/user_test.rb -n test_method_name` (single test) - Note: Limited test coverage
