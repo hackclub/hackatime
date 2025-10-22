@@ -56,8 +56,8 @@ class StaticPagesController < ApplicationController
           .uniq
           .sort_by { |_, count| -count }
 
-        @todays_languages = language_counts.map(&:first)
-        @todays_editors = editor_counts.map(&:first)
+        @todays_languages = language_counts.map(&:first).map { |language| ApplicationController.helpers.display_language_name(language) }
+        @todays_editors = editor_counts.map(&:first).map { |editor| ApplicationController.helpers.display_editor_name(editor) }
         @todays_duration = current_user.heartbeats.today.duration_seconds
 
         if @todays_duration > 1.minute
@@ -260,7 +260,17 @@ class StaticPagesController < ApplicationController
           result[filter] = group_by_time.sort_by { |k, v| v }
                                         .reverse.map(&:first)
                                         .compact_blank
-                                        .map { |k| %i[operating_system editor].include?(filter) ? k.capitalize : k }
+                                        .map { |k| 
+                                          if filter == :editor
+                                            ApplicationController.helpers.display_editor_name(k)
+                                          elsif filter == :operating_system
+                                            ApplicationController.helpers.display_os_name(k)
+                                          elsif filter == :language
+                                            ApplicationController.helpers.display_language_name(k)
+                                          else
+                                            k
+                                          end
+                                        }
                                         .uniq
 
           if params[filter].present?
@@ -294,6 +304,11 @@ class StaticPagesController < ApplicationController
                                                        &.first
         end
 
+        # Transform top editor, OS, and language names
+        result["top_editor"] = ApplicationController.helpers.display_editor_name(result["top_editor"]) if result["top_editor"]
+        result["top_operating_system"] = ApplicationController.helpers.display_os_name(result["top_operating_system"]) if result["top_operating_system"]
+        result["top_language"] = ApplicationController.helpers.display_language_name(result["top_language"]) if result["top_language"]
+
         # Prepare project durations data
         result[:project_durations] = filtered_heartbeats
           .group(:project)
@@ -319,7 +334,13 @@ class StaticPagesController < ApplicationController
               .sort_by { |_, duration| -duration }
               .first(10)
               .map { |k, v|
-                label = %i[language category].include?(filter) ? k : k.capitalize
+                label = case filter
+                  when :editor then ApplicationController.helpers.display_editor_name(k)
+                  when :operating_system then ApplicationController.helpers.display_os_name(k)
+                  when :language then ApplicationController.helpers.display_language_name(k)
+                  when :category then k
+                  else k.capitalize
+                end
                 [ label, v ]
               }
               .to_h unless result["singular_#{filter}"]

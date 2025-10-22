@@ -139,4 +139,46 @@ module ApplicationHelper
       "All Time"
     end
   end
+
+  def display_editor_name(editor)
+    return "Unknown" if editor.blank?
+    
+    case editor.downcase
+    when "vscode" then "VS Code"
+    when "pycharm" then "PyCharm"
+    when "intellij" then "IntelliJ IDEA"
+    when "webstorm" then "WebStorm"
+    when "phpstorm" then "PhpStorm"
+    when "datagrip" then "DataGrip"
+    when "ktexteditor" then "Kate"
+    when "android studio" then "Android Studio"
+    when "visual studio" then "Visual Studio"
+    when "sublime text" then "Sublime Text"
+    when "iterm2" then "iTerm2"
+    else editor.capitalize
+    end
+  end
+
+  def display_os_name(os)
+    return "Unknown" if os.blank?
+    
+    case os.downcase
+    when "darwin" then "macOS"
+    when "macos" then "macOS"
+    else os.capitalize
+    end
+  end
+
+  def display_language_name(language)
+    return "Unknown" if language.blank?
+    
+    case language.downcase
+    when "typescript" then "TypeScript"
+    when "javascript" then "JavaScript"
+    when "json" then "JSON"
+    when "sql" then "SQL"
+    when "yaml" then "YAML"
+    else language.capitalize
+    end
+  end
 end
