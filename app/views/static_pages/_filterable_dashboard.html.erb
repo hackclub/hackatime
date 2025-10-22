@@ -121,6 +121,78 @@
       });
     };
 
+    // Update only the header text and clear button based on current checked boxes (no fetch)
+    window.updateSelectHeader = window.updateSelectHeader || function(select) {
+      const header = select.querySelector('.select-header');
+      const clearButton = select.querySelector('.clear-button');
+      const checkboxes = select.querySelectorAll('input[type="checkbox"]');
+      const checked = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+
+      if (checked.length === 0) {
+        const labelText = header.closest('.filter').querySelector('.filter-label').textContent.slice(2).toLowerCase();
+        header.textContent = `Filter by ${labelText}...`;
+        if (clearButton) clearButton.style.display = 'none';
+      } else if (checked.length === 1) {
+        header.textContent = checked[0];
+        if (clearButton) clearButton.style.display = 'block';
+      } else {
+        header.textContent = `${checked.length} selected`;
+        if (clearButton) clearButton.style.display = 'block';
+      }
+    };
+
+    // Apply all URL params to the multi-selects (checks boxes) and update headers without triggering multiple fetches.
+    window.applyParamsFromURL = window.applyParamsFromURL || function() {
+      const params = new URLSearchParams(window.location.search);
+      const types = ['project', 'language', 'editor', 'operating_system', 'category'];
+
+      types.forEach(type => {
+        const select = document.getElementById(`${type}-select`);
+        if (!select) return;
+
+        const paramName = select.dataset.param;
+        if (!paramName) return;
+
+        if (params.has(paramName)) {
+          const values = params.get(paramName).split(',').filter(v => v.trim() !== '');
+          const checkboxes = select.querySelectorAll('input[type="checkbox"]');
+          checkboxes.forEach(cb => {
+            cb.checked = values.includes(cb.value);
+          });
+        }
+
+        // Update header based on now-checked boxes
+        updateSelectHeader(select);
+      });
+
+      // Now fetch the combined content once using the current URL (which already contains the params)
+      const frame = document.querySelector('#filterable_dashboard_content');
+      if (!frame) return;
+      frame.classList.add('loading');
+
+      const contentUrl = new URL(window.location);
+      contentUrl.pathname = "<%= filterable_dashboard_content_static_pages_path %>";
+
+      // Let Turbo handle the content update (set src so turbo-frame sees it)
+      frame.src = contentUrl.toString();
+
+      // Track this request with a timestamp so stale responses don't overwrite fresh ones
+      const requestTimestamp = Date.now();
+      window.lastRequestTimestamp = requestTimestamp;
+
+      fetch(contentUrl.toString(), {
+        headers: {
+          'Accept': 'text/html'
+        }
+      }).then(response => response.text()).then(html => {
+        if (requestTimestamp === window.lastRequestTimestamp) {
+          frame.innerHTML = html;
+          frame.classList.remove('loading');
+          window.hackatimeCharts?.initializeCharts();
+        }
+      });
+    };
+
     // Global function to update select and fetch new data
     window.updateSelect = window.updateSelect || function(select) {
       const header = select.querySelector('.select-header');
@@ -189,6 +261,9 @@
         ['project', 'language', 'editor', 'operating_system', 'category'].forEach(type => {
           window.initializeMultiSelect(`${type}-select`);
         });
+
+        // Apply params from URL once after initialization so selections and headers reflect the link
+        window.applyParamsFromURL();
 
         // Close all dropdowns when clicking outside
         document.addEventListener('click', function(e) {
