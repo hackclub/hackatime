@@ -111,7 +111,7 @@ jobs:
           bin/rails test
 
       - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: screenshots
@@ -165,7 +165,7 @@ jobs:
   #         bin/rails test test:system
 
   #     - name: Keep screenshots from failed system tests
-  #       uses: actions/upload-artifact@v4
+  #       uses: actions/upload-artifact@v5
   #       if: failure()
   #       with:
   #         name: screenshots
