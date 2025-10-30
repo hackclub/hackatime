@@ -2,12 +2,11 @@ class PhysicalMail < ApplicationRecord
   belongs_to :user
 
   include PublicActivity::Model
-  tracked only: [ :create, :update ], owner: :user, params: proc { |controller, model|
-    {
-      mission_type: model.mission_type,
-      humanized_mission_type: model.humanized_mission_type
-    }
-  }
+
+  # tracked only: [ :update ], owner: :user, params: {
+  #   mission_type: ->(controller, model) { model.mission_type },
+  #   humanized_mission_type: ->(controller, model) { model.humanized_mission_type }
+  # }
 
   after_create :create_streak_activity, if: :first_time_7_streak?
   after_update :create_sent_activity, if: :became_sent?
