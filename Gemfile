@@ -144,7 +144,7 @@ gem "htmlcompressor", "~> 0.4.0"
 
 gem "doorkeeper", "~> 5.8"
 
-gem "autotuner", "~> 1.0"
+gem "autotuner", "~> 1.1"
 
 gem "tailwindcss-ruby", "~> 4.1"
 
