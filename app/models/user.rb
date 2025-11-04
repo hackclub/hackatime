@@ -431,7 +431,7 @@ class User < ApplicationRecord
 
     other_users.find_each do |user|
       Rails.logger.info "Clearing GitHub token for User ##{user.id} (GitHub UID: #{github_uid}) - linking to new account"
-      user.update!(github_access_token: nil)
+      user.update!(github_access_token: nil, github_uid: nil, github_username: nil)
     end
 
     # Update GitHub-specific fields
