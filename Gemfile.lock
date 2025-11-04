@@ -321,9 +321,7 @@ GEM
       faraday-net_http_persistent
       net-http-persistent
     ostruct (0.6.3)
-    pagy (43.0.0)
-      json
-      yaml
+    pagy (9.4.0)
     paper_trail (17.0.0)
       activerecord (>= 7.1)
       request_store (~> 1.4)
