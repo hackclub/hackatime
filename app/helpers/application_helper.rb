@@ -67,7 +67,7 @@ module ApplicationHelper
     elsif diff.positive?
       "It's currently #{Time.zone.now.in_time_zone(timezone1).strftime("%H:%M")} in #{timezone1} (#{msg} ahead of you)"
     else
-      "It's currently #{Time.zone.now.in_time_zone(timezone1).strftime("%H:%M")} in #{timezone1} (#{msg} behind of you)"
+      "It's currently #{Time.zone.now.in_time_zone(timezone1).strftime("%H:%M")} in #{timezone1} (#{msg} behind you)"
     end
   end
 
