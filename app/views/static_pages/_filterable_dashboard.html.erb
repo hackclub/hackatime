@@ -1,37 +1,37 @@
 <%= turbo_frame_tag "filterable_dashboard" do %>
   <div class="content">
     <div class="filters-section">
-      <%= render partial: 'shared/multi_select', locals: {
-        label: 'Project',
-        param: 'project',
+      <%= render partial: "shared/multi_select", locals: {
+        label: "Project",
+        param: "project",
         values: @project,
         selected: @selected_project
       } %>
 
-      <%= render partial: 'shared/multi_select', locals: {
-        label: 'Language',
-        param: 'language',
+      <%= render partial: "shared/multi_select", locals: {
+        label: "Language",
+        param: "language",
         values: @language,
         selected: @selected_language
       } %>
 
-      <%= render partial: 'shared/multi_select', locals: {
-        label: 'OS',
-        param: 'operating_system',
+      <%= render partial: "shared/multi_select", locals: {
+        label: "OS",
+        param: "operating_system",
         values: @operating_system,
         selected: @selected_operating_system
       } %>
 
-      <%= render partial: 'shared/multi_select', locals: {
-        label: 'Editor',
-        param: 'editor',
+      <%= render partial: "shared/multi_select", locals: {
+        label: "Editor",
+        param: "editor",
         values: @editor,
         selected: @selected_editor
       } %>
 
-      <%= render partial: 'shared/multi_select', locals: {
-        label: 'Category',
-        param: 'category',
+      <%= render partial: "shared/multi_select", locals: {
+        label: "Category",
+        param: "category",
         values: @category,
         selected: @selected_category
       } %>
@@ -39,7 +39,7 @@
   </div>
 
   <div id="filterable_dashboard_content">
-    <%= render partial: 'filterable_dashboard_content' %>
+    <%= render partial: "filterable_dashboard_content" %>
   </div>
 
   <script>
@@ -48,17 +48,17 @@
           const select = document.getElementById(selectId);
           if (!select || select.dataset.initialized) return;
 
-          select.dataset.initialized = 'true';
-          const header = select.querySelector('.select-header');
-          const container = select.querySelector('.options-container');
+          select.dataset.initialized = "true";
+          const header = select.querySelector(".select-header");
+          const container = select.querySelector(".options-container");
           const checkboxes = select.querySelectorAll('input[type="checkbox"]');
-          const clearButton = select.querySelector('.clear-button');
-          const searchInput = select.querySelector('.search-input');
+          const clearButton = select.querySelector(".clear-button");
+          const searchInput = select.querySelector(".search-input");
 
           // Header and clear button visibility
           const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
           if (checkedBoxes.length > 0 && clearButton) {
-              clearButton.style.display = 'block';
+              clearButton.style.display = "block";
               if (checkedBoxes.length === 1) {
                   header.textContent = checkedBoxes[0].value;
               } else {
@@ -67,19 +67,19 @@
           }
 
           // Toggle dropdown
-          header.addEventListener('click', function(e) {
+          header.addEventListener("click", function(e) {
               e.stopPropagation();
-              const isVisible = container.style.display === 'block';
-              document.querySelectorAll('.options-container').forEach(c => {
-                  if (c !== container) c.style.display = 'none';
+              const isVisible = container.style.display === "block";
+              document.querySelectorAll(".options-container").forEach(c => {
+                  if (c !== container) c.style.display = "none";
               });
-              container.style.display = isVisible ? 'none' : 'block';
+              container.style.display = isVisible ? "none" : "block";
               if (!isVisible && searchInput) searchInput.focus();
           });
 
           // Clear filter
           if (clearButton) {
-              clearButton.addEventListener('click', function(e) {
+              clearButton.addEventListener("click", function(e) {
                   e.stopPropagation();
                   checkboxes.forEach(cb => cb.checked = false);
                   updateSelect(select);
@@ -88,34 +88,34 @@
 
           // Handle search input
           if (searchInput) {
-              searchInput.addEventListener('input', function(e) {
+              searchInput.addEventListener("input", function(e) {
                   const searchTerm = e.target.value.toLowerCase().trim();
-                  const options = select.querySelectorAll('.option');
+                  const options = select.querySelectorAll(".option");
                   options.forEach(option => {
-                      const text = option.querySelector('span').textContent.toLowerCase().trim();
-                      option.style.display = text.includes(searchTerm) ? '' : 'none';
+                      const text = option.querySelector("span").textContent.toLowerCase().trim();
+                      option.style.display = text.includes(searchTerm) ? "" : "none";
                   });
               });
-              searchInput.addEventListener('click', function(e) {
+              searchInput.addEventListener("click", function(e) {
                   e.stopPropagation();
               });
           }
 
           // Update header text and URL when checkboxes change
           checkboxes.forEach(checkbox => {
-              checkbox.addEventListener('change', function() {
+              checkbox.addEventListener("change", function() {
                   updateSelect(select);
               });
           });
       };
 
       window.updateSelect = window.updateSelect || function(select) {
-          const header = select.querySelector('.select-header');
-          const clearButton = select.querySelector('.clear-button');
+          const header = select.querySelector(".select-header");
+          const clearButton = select.querySelector(".clear-button");
           const checkboxes = select.querySelectorAll('input[type="checkbox"]');
           const param = select.dataset.param;
-          const frame = document.querySelector('#filterable_dashboard_content');
-          frame.classList.add('loading');
+          const frame = document.querySelector("#filterable_dashboard_content");
+          frame.classList.add("loading");
 
           const selected = Array.from(checkboxes)
               .filter(cb => cb.checked)
@@ -123,54 +123,54 @@
 
           // Header text, clear button
           if (selected.length === 0) {
-              header.textContent = `Filter by ${header.closest('.filter').querySelector('.filter-label').textContent.slice(2).toLowerCase()}...`;
-              if (clearButton) clearButton.style.display = 'none';
+              header.textContent = `Filter by ${header.closest(".filter").querySelector(".filter-label").textContent.slice(2).toLowerCase()}...`;
+              if (clearButton) clearButton.style.display = "none";
           } else if (selected.length === 1) {
               header.textContent = selected[0];
-              if (clearButton) clearButton.style.display = 'block';
+              if (clearButton) clearButton.style.display = "block";
           } else {
               header.textContent = `${selected.length} selected`;
-              if (clearButton) clearButton.style.display = 'block';
+              if (clearButton) clearButton.style.display = "block";
           }
 
           // Update URL params
           const rootUrl = new URL(window.location);
           if (selected.length > 0) {
-              rootUrl.searchParams.set(param, selected.join(','));
+              rootUrl.searchParams.set(param, selected.join(","));
           } else {
               rootUrl.searchParams.delete(param);
           }
-          window.history.pushState({}, '', rootUrl);
+          window.history.pushState({}, "", rootUrl);
 
           // update content-frame url for Turbo
           const contentUrl = new URL(window.location);
           contentUrl.pathname = "<%= filterable_dashboard_content_static_pages_path %>";
-          contentUrl.searchParams.set(param, selected.join(','));
+          contentUrl.searchParams.set(param, selected.join(","));
           frame.src = contentUrl.toString();
 
           const requestTimestamp = Date.now();
           window.lastRequestTimestamp = requestTimestamp;
 
           fetch(contentUrl.toString(), {
-              headers: { 'Accept': 'text/html' }
+              headers: { "Accept": "text/html" }
           }).then(response => response.text()).then(html => {
               if (requestTimestamp === window.lastRequestTimestamp) {
                   frame.innerHTML = html;
-                  frame.classList.remove('loading');
+                  frame.classList.remove("loading");
                   window.hackatimeCharts?.initializeCharts();
               }
           });
       };
 
-      document.addEventListener('turbo:frame-load', function(event) {
-          if (event.target.id === 'filterable_dashboard') {
-              ['project', 'language', 'editor', 'operating_system', 'category'].forEach(type => {
+      document.addEventListener("turbo:frame-load", function(event) {
+          if (event.target.id === "filterable_dashboard") {
+              ["project", "language", "editor", "operating_system", "category"].forEach(type => {
                   window.initializeMultiSelect(`${type}-select`);
               });
-              document.addEventListener('click', function(e) {
-                  if (!e.target.closest('.custom-select')) {
-                      document.querySelectorAll('.options-container').forEach(container => {
-                          container.style.display = 'none';
+              document.addEventListener("click", function(e) {
+                  if (!e.target.closest(".custom-select")) {
+                      document.querySelectorAll(".options-container").forEach(container => {
+                          container.style.display = "none";
                       });
                   }
               });
@@ -200,9 +200,9 @@
                   if (window.chartInstances[elementId]) {
                       window.chartInstances[elementId].destroy();
                   }
-                  const ctx = canvas.getContext('2d');
+                  const ctx = canvas.getContext("2d");
                   window.chartInstances[elementId] = new Chart(ctx, {
-                      type: 'pie',
+                      type: "pie",
                       data: { labels, datasets: [{data, borderWidth: 1 }] },
                       options: {
                           responsive: true,
@@ -212,7 +212,7 @@
                               tooltip: {
                                   callbacks: {
                                       label: function(context) {
-                                          const label = context.label || '';
+                                          const label = context.label || "";
                                           const value = context.raw || 0;
                                           const duration = window.hackatimeCharts.formatDuration(value);
                                           const percentage = ((value / data.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
@@ -221,8 +221,8 @@
                                   }
                               },
                               legend: {
-                                  position: 'right',
-                                  align: 'center',
+                                  position: "right",
+                                  align: "center",
                                   labels: {
                                       boxWidth: 10,
                                       padding: 8,
@@ -235,7 +235,7 @@
               },
 
               createProjectTimelineChart() {
-                  const canvas = document.getElementById('projectTimelineChart');
+                  const canvas = document.getElementById("projectTimelineChart");
                   if (!canvas) return;
 
                   const weeklyStats = JSON.parse(canvas.dataset.stats);
@@ -247,7 +247,7 @@
                   const datasets = Array.from(allProjects).map((project) => ({
                       label: project,
                       data: sortedWeeks.map(week => weeklyStats[week][project] || 0),
-                      stack: 'stack0',
+                      stack: "stack0",
                   }));
 
                   datasets.sort((a, b) => {
@@ -256,16 +256,16 @@
                       return sumB - sumA;
                   });
 
-                  if (window.chartInstances['projectTimelineChart']) {
-                      window.chartInstances['projectTimelineChart'].destroy();
+                  if (window.chartInstances["projectTimelineChart"]) {
+                      window.chartInstances["projectTimelineChart"].destroy();
                   }
-                  const ctx = canvas.getContext('2d');
-                  window.chartInstances['projectTimelineChart'] = new Chart(ctx, {
-                      type: 'bar',
+                  const ctx = canvas.getContext("2d");
+                  window.chartInstances["projectTimelineChart"] = new Chart(ctx, {
+                      type: "bar",
                       data: {
                           labels: sortedWeeks.map(week => {
                               const date = new Date(week);
-                              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
                           }),
                           datasets: datasets
                       },
@@ -279,16 +279,16 @@
                               },
                               y: {
                                   stacked: true,
-                                  type: 'linear',
+                                  type: "linear",
                                   grid: {
                                       color: (ctx) => {
-                                          if (ctx.tick.value === 0) return 'transparent';
-                                          return ctx.tick.value % 1 === 0 ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+                                          if (ctx.tick.value === 0) return "transparent";
+                                          return ctx.tick.value % 1 === 0 ? "rgba(0, 0, 0, 0.1)" : "rgba(0, 0, 0, 0.05)";
                                       }
                                   },
                                   ticks: {
                                       callback: function(value) {
-                                          if (value === 0) return '0s';
+                                          if (value === 0) return "0s";
                                           const hours = Math.floor(value / 3600);
                                           const minutes = Math.floor((value % 3600) / 60);
                                           if (hours > 0) return `${hours}h`;
@@ -299,7 +299,7 @@
                           },
                           plugins: {
                               legend: {
-                                  position: 'right',
+                                  position: "right",
                                   labels: {
                                       boxWidth: 12,
                                       padding: 15
@@ -324,9 +324,9 @@
               },
 
               initializeCharts() {
-                  this.createPieChart('languageChart');
-                  this.createPieChart('editorChart');
-                  this.createPieChart('operatingSystemChart');
+                  this.createPieChart("languageChart");
+                  this.createPieChart("editorChart");
+                  this.createPieChart("operatingSystemChart");
                   this.createProjectTimelineChart();
               }
           };
@@ -334,10 +334,10 @@
 
       if (!window.chartListenersInitialized) {
           window.chartListenersInitialized = true;
-          document.addEventListener('turbo:frame-load', () => {
-              if (typeof Chart === 'undefined') {
+          document.addEventListener("turbo:frame-load", () => {
+              if (typeof Chart === "undefined") {
                   const checkChart = setInterval(() => {
-                      if (typeof Chart !== 'undefined') {
+                      if (typeof Chart !== "undefined") {
                           clearInterval(checkChart);
                           window.hackatimeCharts.initializeCharts();
                       }
@@ -348,7 +348,7 @@
               }
           });
       }
-      if (typeof Chart !== 'undefined') {
+      if (typeof Chart !== "undefined") {
           window.hackatimeCharts.initializeCharts();
       }
   </script>
