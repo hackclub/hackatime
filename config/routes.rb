@@ -69,6 +69,7 @@ Rails.application.routes.draw do
   end
 
   get "/minimal_login", to: "static_pages#minimal_login", as: :minimal_login
+  get "/what-is-hackatime", to: "static_pages#what_is_hackatime"
 
   # Auth routes
   get "/auth/slack", to: "sessions#new", as: :slack_auth

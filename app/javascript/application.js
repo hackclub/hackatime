@@ -60,24 +60,38 @@ function weirdclockthing() {
 
   if (!clock) return;
 
-  function write(something) {
-    clock.innerHTML = '';
+  clock.innerHTML = '';
+
+  function write(element, something) {
+    element.innerHTML = '';
     Array.from(something).forEach((char) => {
       const span = document.createElement('span');
       span.textContent = char === ' ' ? '\u00A0' : char;
       if (char === ':') {
         span.classList.add('blink');
       }
-      clock.appendChild(span);
+      element.appendChild(span);
     });
   }
 
-  write("HAC:KA:TIME");
+  const inner = document.createElement('div');
+  inner.className = 'clock-display-inner';
+
+  const front = document.createElement('div');
+  front.className = 'clock-display-front';
+  write(front, "HAC:KA:TIME");
+
+  const back = document.createElement('div');
+  back.className = 'clock-display-back';
+
+  inner.appendChild(front);
+  inner.appendChild(back);
+  clock.appendChild(inner);
 
   function updateClock() {
     const date = new Date();
     const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
-    write(` ${time} `);
+    write(back, ` ${time} `);
   }
 
   let intervalId = null;
@@ -91,7 +105,6 @@ function weirdclockthing() {
   clock.onmouseleave = function () {
     clearInterval(intervalId);
     intervalId = null;
-    write("HAC:KA:TIME");
   }
 }
 

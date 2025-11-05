@@ -127,16 +127,48 @@ select {
 	width: 100%;
 	height: 1.5em;
 	font-size: 15vmin;
+	margin: 2rem auto;
+	perspective: 1000px;
+	position: relative;
+}
 
+.clock-display-inner {
+	width: 100%;
+	height: 100%;
 	display: flex;
 	justify-content: center;
 	align-items: center;
-
 	border: 12px solid var(--color-primary);
 	border-radius: 64px;
-
-	margin: 2rem auto;
+	transform-style: preserve-3d;
+	transition: transform 0.3s ease-in-out;
+	position: relative;
 }
+
+.clock-display:hover .clock-display-inner {
+	transform: rotateX(180deg);
+}
+
+.clock-display-front,
+.clock-display-back {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+
+.clock-display-front {
+	transform: rotateX(0deg);
+}
+
+.clock-display-back {
+	transform: rotateX(180deg);
+}
+
 .clock-display * {
 	line-height: normal;
 }

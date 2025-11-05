@@ -247,9 +247,9 @@ class User < ApplicationRecord
 
     self.slack_avatar_url = profile["image_192"] || profile["image_72"]
 
-    self.slack_username = user_data["name"].presence
-    self.slack_username ||= profile["display_name_normalized"].presence
+    self.slack_username = profile["display_name_normalized"].presence
     self.slack_username ||= profile["real_name_normalized"].presence
+    self.slack_username ||= user_data["name"].presence
   end
 
   def update_slack_status
@@ -381,9 +381,9 @@ class User < ApplicationRecord
     end
 
     user.slack_uid = data.dig("authed_user", "id")
-    user.slack_username = slack_user["name"].presence
-    user.slack_username ||= profile["display_name_normalized"].presence
+    user.slack_username = profile["display_name_normalized"].presence
     user.slack_username ||= profile["real_name_normalized"].presence
+    user.slack_username ||= slack_user["name"].presence
     user.slack_avatar_url = profile["image_192"] || profile["image_72"]
 
     user.parse_and_set_timezone(slack_user["tz"])
@@ -431,7 +431,7 @@ class User < ApplicationRecord
 
     other_users.find_each do |user|
       Rails.logger.info "Clearing GitHub token for User ##{user.id} (GitHub UID: #{github_uid}) - linking to new account"
-      user.update!(github_access_token: nil)
+      user.update!(github_access_token: nil, github_uid: nil, github_username: nil)
     end
 
     # Update GitHub-specific fields

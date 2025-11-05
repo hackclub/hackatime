@@ -34,6 +34,10 @@ class Api::V1::StatsController < ApplicationController
 
     return render json: { error: "User not found" }, status: :not_found unless @user.present?
 
+    if !@user.allow_public_stats_lookup && (!current_user || current_user != @user)
+      return render json: { error: "user has disabled public stats" }, status: :forbidden
+    end
+
     start_date = params[:start_date].to_datetime if params[:start_date].present?
     start_date ||= 10.years.ago
     end_date = params[:end_date].to_datetime if params[:end_date].present?

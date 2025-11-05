@@ -29,7 +29,7 @@ Get your coding stats:
 
 ```bash
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-  https://hackatime.hackclub.com/api/v1/stats
+  https://hackatime.hackclub.com/api/v1/users/{your-username}/stats
 ```
 
 ## Works With WakaTime Tools
@@ -42,9 +42,9 @@ Since Hackatime works like WakaTime's API, you can:
 
 ## Popular Endpoints
 
-- **Your Stats**: `/api/v1/stats` - How much you've coded
+- **Your Stats**: `/api/v1/stats` - How much you've coded (Admin Only)
 - **Your Heartbeats**: `/api/v1/my/heartbeats` - Raw coding activity
-- **User Stats**: `/api/v1/users/{username}/stats` - Someone else's public stats
+- **User Stats**: `/api/v1/users/{username}/stats` - Any user's public stats
 
 ## More Details
 

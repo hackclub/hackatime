@@ -1,7 +1,7 @@
 class Api::Hackatime::V1::HackatimeController < ApplicationController
   before_action :set_user
   skip_before_action :verify_authenticity_token
-  before_action :set_raw_heartbeat_upload, only: [ :push_heartbeats ]
+  before_action :set_raw_heartbeat_upload, only: [ :push_heartbeats ], if: :is_blank?
 
   def push_heartbeats
     # Handle both single and bulk heartbeats based on format
@@ -17,6 +17,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       #   ]
       # }
       heartbeat_array = heartbeat_bulk_params[:heartbeats].map(&:to_h)
+
+      if heartbeat_array.empty?
+        return render json: { error: "No data provided..." }, status: :bad_request
+      end
+
       render json: { responses: handle_heartbeat(heartbeat_array) }, status: :created
     else
       # POST /api/hackatime/v1/users/:id/heartbeats
@@ -26,6 +31,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       #   ...heartbeat_data
       # }
       heartbeat_array = Array(heartbeat_params)
+
+      if heartbeat_array.empty? || heartbeat_params.blank?
+        return render json: { error: "No data provided..." }, status: :bad_request
+      end
+
       new_heartbeat = handle_heartbeat(heartbeat_array)&.first&.first
       render json: new_heartbeat, status: :accepted
     end
@@ -138,6 +148,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   private
 
+  def is_blank?
+    body = body_to_json
+    body.present? && (body.is_a?(Array) ? body.any? : true)
+  end
+
   def calculate_category_stats(heartbeats, category)
     return [] if heartbeats.empty?
 
@@ -180,10 +195,10 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     category_durations.map do |name, duration|
       name = name.presence || "unknown"
       name = case category
-        when "editor" then ApplicationController.helpers.display_editor_name(name)
-        when "operating_system" then ApplicationController.helpers.display_os_name(name)
-        when "language" then ApplicationController.helpers.display_language_name(name)
-        else name
+      when "editor" then ApplicationController.helpers.display_editor_name(name)
+      when "operating_system" then ApplicationController.helpers.display_os_name(name)
+      when "language" then ApplicationController.helpers.display_language_name(name)
+      else name
       end
       percent = ((duration / total_duration) * 100).round(2)
       hours = duration.to_i / 3600

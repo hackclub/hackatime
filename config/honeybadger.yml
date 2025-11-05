@@ -30,6 +30,6 @@ exceptions:
   ignore:
     - GoodJob::ActiveJobExtensions::Concurrency::ConcurrencyExceededError
 
-# Enable Honeybadger Insights
+# disable insights lol
 insights:
-  enabled: true
+  enabled: false
