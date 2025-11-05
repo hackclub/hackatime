@@ -270,11 +270,11 @@ class StaticPagesController < ApplicationController
     @category         = Category.distinct.pluck(:name)
 
     # Parse filter selections from params for initial load and deep-linking
-    @selected_project          = params[:project]&.split(',') || []
-    @selected_language         = params[:language]&.split(',') || []
-    @selected_operating_system = params[:operating_system]&.split(',') || []
-    @selected_editor           = params[:editor]&.split(',') || []
-    @selected_category         = params[:category]&.split(',') || []
+    @selected_project          = params[:project]&.split(",") || []
+    @selected_language         = params[:language]&.split(",") || []
+    @selected_operating_system = params[:operating_system]&.split(",") || []
+    @selected_editor           = params[:editor]&.split(",") || []
+    @selected_category         = params[:category]&.split(",") || []
   end
 
     filtered_heartbeats = current_user.heartbeats
