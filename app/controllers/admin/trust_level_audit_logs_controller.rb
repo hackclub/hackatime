@@ -4,7 +4,7 @@ class Admin::TrustLevelAuditLogsController < Admin::BaseController
   def index
     @audit_logs = TrustLevelAuditLog.includes(:user, :changed_by)
                                    .recent
-                                   .limit(100) # if there are more actions, fuck off man
+                                   .limit(250) # if there are more actions, fuck off man
 
     if params[:user_id].present?
       user = User.find_by(id: params[:user_id])

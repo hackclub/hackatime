@@ -26,7 +26,7 @@ class WakatimeService
   def generate_summary
     summary = {}
 
-    summary[:username] = @user.username if @user.present?
+    summary[:username] = @user.display_name if @user.present?
     summary[:user_id] = @user.id.to_s if @user.present?
     summary[:is_coding_activity_visible] = true if @user.present?
     summary[:is_other_usage_visible] = true if @user.present?
@@ -60,7 +60,7 @@ class WakatimeService
     result = []
     @scope.group(group_by).duration_seconds.each do |key, value|
       result << {
-        name: key.presence || "Other",
+        name: transform_display_name(group_by, key),
         total_seconds: value,
         text: ApplicationController.helpers.short_time_simple(value),
         hours: value / 3600,
@@ -111,20 +111,18 @@ class WakatimeService
     { os: "", editor: "", err: "failed to parse user agent string" }
   end
 
-  def categorize_os(os)
-    case os.downcase
-    when "win" then "Windows"
-    when "darwin" then "MacOS"
-    when os.include?("windows") then "Windows"
-    else os.capitalize
-    end
-  end
 
-  def categorize_editor(editor)
-    case editor.downcase
-    when "vscode" then "VSCode"
-    when "KTextEditor" then "Kate"
-    else editor.capitalize
+  def transform_display_name(group_by, key)
+    value = key.presence || "Other"
+    case group_by
+    when :editor
+      ApplicationController.helpers.display_editor_name(value)
+    when :operating_system
+      ApplicationController.helpers.display_os_name(value)
+    when :language
+      ApplicationController.helpers.display_language_name(value)
+    else
+      value
     end
   end
 

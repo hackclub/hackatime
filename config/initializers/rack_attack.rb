@@ -21,6 +21,11 @@ class Rack::Attack
     TOKENS = [].freeze
   end
 
+  def self.heartbeat_request?(req)
+    req.path =~ %r{^/api/hackatime/v1/users/\d+/heartbeats$} ||
+    req.path == "/api/hackatime/v1/users/current/heartbeats"
+  end
+
   # Always allow requests from bogon ips
   # (blocklist & throttles are skipped)
   Rack::Attack.safelist("allow from bogon ips") do |req|
@@ -29,6 +34,10 @@ class Rack::Attack
     ip.loopback? || ip.private?
   rescue IPAddr::InvalidAddressError
     false
+  end
+
+  Rack::Attack.blocklist("block non-cloudflare") do |req|
+    !req.cloudflare?
   end
 
   Rack::Attack.safelist("admin abooze") do |req|
@@ -40,19 +49,20 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("posts by ip", limit: 60, period: 5.minutes) do |req|
-    req.ip if req.post?
+    req.ip if req.post? && !heartbeat_request?(req)
   end
 
   Rack::Attack.throttle("auth requests", limit: 5, period: 1.minute) do |req|
     req.ip if req.path.in?([ "/login", "/signup", "/auth", "/sessions" ]) && req.post?
   end
 
-  Rack::Attack.throttle("api requests", limit: 600, period: 1.hour) do |req|
+  Rack::Attack.throttle("api requests", limit: 10000, period: 1.hour) do |req|
     req.ip if req.path.start_with?("/api/")
   end
 
-  Rack::Attack.throttle("heartbeat api", limit: 10000, period: 1.hour) do |req|
-    req.ip if req.path.start_with?("/api/hackatime/v1/users/current/heartbeats")
+  # if ur stuff is going faster than this then we got a problem dude
+  Rack::Attack.throttle("heartbeat uploads", limit: 360, period: 1.minute) do |req|
+    req.ip if req.post? && heartbeat_request?(req)
   end
 
   # lets actually log things? thanks

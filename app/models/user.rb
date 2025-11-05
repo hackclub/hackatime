@@ -1,13 +1,24 @@
 class User < ApplicationRecord
   include TimezoneRegions
+  include PublicActivity::Model
+
+  USERNAME_MAX_LENGTH = 21 # going over 21 overflows the navbar
 
   has_paper_trail
+
+  after_create :create_signup_activity
+  before_validation :normalize_username
   encrypts :slack_access_token, :github_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
   validates :github_uid, uniqueness: { conditions: -> { where.not(github_access_token: nil) } }, allow_nil: true
   validates :timezone, inclusion: { in: TZInfo::Timezone.all_identifiers }, allow_nil: false
   validates :country_code, inclusion: { in: ISO3166::Country.codes }, allow_nil: true
+  validates :username,
+    length: { maximum: USERNAME_MAX_LENGTH },
+    format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
+    allow_nil: true
+  validate :username_must_be_visible
 
   attribute :allow_public_stats_lookup, :boolean, default: true
   attribute :default_timezone_leaderboard, :boolean, default: true
@@ -107,6 +118,16 @@ class User < ApplicationRecord
 
   has_many :trust_level_audit_logs, dependent: :destroy
   has_many :trust_level_changes_made, class_name: "TrustLevelAuditLog", foreign_key: "changed_by_id", dependent: :destroy
+
+  has_many :access_grants,
+           class_name: "Doorkeeper::AccessGrant",
+           foreign_key: :resource_owner_id,
+           dependent: :delete_all
+
+  has_many :access_tokens,
+           class_name: "Doorkeeper::AccessToken",
+           foreign_key: :resource_owner_id,
+           dependent: :delete_all
 
   def streak_days
     @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
@@ -222,15 +243,13 @@ class User < ApplicationRecord
 
     return unless user_data.present?
 
-    profile = user_data.dig("profile")
+    profile = user_data["profile"] || {}
 
-    self.slack_avatar_url = profile.dig("image_192") || profile.dig("image_72")
+    self.slack_avatar_url = profile["image_192"] || profile["image_72"]
 
-    self.slack_username = profile.dig("username").presence
-    self.slack_username ||= profile.dig("display_name_normalized").presence
-    self.slack_username ||= profile.dig("real_name_normalized").presence
-
-    self.username.blank? && self.username = self.slack_username
+    self.slack_username = profile["display_name_normalized"].presence
+    self.slack_username ||= profile["real_name_normalized"].presence
+    self.slack_username ||= user_data["name"].presence
   end
 
   def update_slack_status
@@ -346,7 +365,10 @@ class User < ApplicationRecord
 
     return nil unless user_data["ok"]
 
-    email = user_data.dig("user", "profile", "email")&.downcase
+    slack_user = user_data["user"] || {}
+    profile = slack_user["profile"] || {}
+
+    email = profile["email"]&.downcase
     email_address = EmailAddress.find_or_initialize_by(email: email)
     email_address.source ||= :slack
     user = email_address.user
@@ -359,12 +381,12 @@ class User < ApplicationRecord
     end
 
     user.slack_uid = data.dig("authed_user", "id")
-    user.username ||= user_data.dig("user", "profile", "username")
-    user.username ||= user_data.dig("user", "profile", "display_name_normalized")
-    user.slack_username = user_data.dig("user", "profile", "username")
-    user.slack_avatar_url = user_data.dig("user", "profile", "image_192") || user_data.dig("user", "profile", "image_72")
+    user.slack_username = profile["display_name_normalized"].presence
+    user.slack_username ||= profile["real_name_normalized"].presence
+    user.slack_username ||= slack_user["name"].presence
+    user.slack_avatar_url = profile["image_192"] || profile["image_72"]
 
-    user.parse_and_set_timezone(user_data.dig("user", "tz"))
+    user.parse_and_set_timezone(slack_user["tz"])
 
     user.slack_access_token = data["authed_user"]["access_token"]
     user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
@@ -409,13 +431,12 @@ class User < ApplicationRecord
 
     other_users.find_each do |user|
       Rails.logger.info "Clearing GitHub token for User ##{user.id} (GitHub UID: #{github_uid}) - linking to new account"
-      user.update!(github_access_token: nil)
+      user.update!(github_access_token: nil, github_uid: nil, github_username: nil)
     end
 
     # Update GitHub-specific fields
     current_user.github_uid = github_uid
-    current_user.username ||= user_data["login"]
-    current_user.github_username = user_data["login"]
+    current_user.github_username = user_data["login"].presence || user_data["name"].presence
     current_user.github_avatar_url = user_data["avatar_url"]
     current_user.github_access_token = data["access_token"]
 
@@ -447,9 +468,8 @@ class User < ApplicationRecord
   end
 
   def display_name
-    return slack_username.presence.truncate(10) if slack_username.present?
-    return github_username.presence.truncate(10) if github_username.present?
-    return username.presence.truncate(10) if username.present?
+    name = username || slack_username || github_username
+    return name if name.present?
 
     # "zach@hackclub.com" -> "zach (email sign-up)"
     email = email_addresses&.first&.email
@@ -491,5 +511,32 @@ class User < ApplicationRecord
 
   def invalidate_activity_graph_cache
     Rails.cache.delete("user_#{id}_daily_durations")
+  end
+
+  def create_signup_activity
+    create_activity :first_signup, owner: self
+  end
+
+  def normalize_username
+    original = username
+    @username_cleared_for_invisible = false
+
+    return if original.nil?
+
+    cleaned = original.gsub(/\p{Cf}/, "")
+    stripped = cleaned.strip
+
+    if stripped.empty?
+      self.username = nil
+      @username_cleared_for_invisible = original.length.positive?
+    else
+      self.username = stripped
+    end
+  end
+
+  def username_must_be_visible
+    if instance_variable_defined?(:@username_cleared_for_invisible) && @username_cleared_for_invisible
+      errors.add(:username, "must include visible characters")
+    end
   end
 end

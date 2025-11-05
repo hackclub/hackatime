@@ -78,35 +78,31 @@ class LeaderboardsController < ApplicationController
   def generate_regional_leaderboard
     return nil unless current_user&.timezone_utc_offset
 
-    LeaderboardGenerator.generate_timezone_offset_leaderboard(
-      start_date, current_user.timezone_utc_offset, @period_type
+    LeaderboardService.get(
+      period: @period_type,
+      date: start_date,
+      offset: current_user.timezone_utc_offset
     )
   end
 
   def generate_timezone_leaderboard
     return nil unless current_user&.timezone
 
-    LeaderboardGenerator.generate_timezone_leaderboard(
-      start_date, current_user.timezone, @period_type
+    offset = current_user.timezone_utc_offset
+    return nil unless offset
+
+    LeaderboardService.get(
+      period: @period_type,
+      date: start_date,
+      offset: offset
     )
   end
 
   def find_or_generate_global_leaderboard
-    cache_key = "leaderboard_#{@period_type}_#{start_date}"
-
-    leaderboard = Rails.cache.fetch(cache_key, expires_in: 1.minute) do
-      Leaderboard.where.not(finished_generating_at: nil)
-                 .find_by(start_date: start_date, period_type: @period_type, deleted_at: nil)
-    end
-
-    Rails.cache.delete(cache_key) if leaderboard.nil?
-
-    if leaderboard.nil?
-      LeaderboardUpdateJob.perform_later(@period_type)
-      nil
-    else
-      leaderboard
-    end
+    LeaderboardService.get(
+      period: @period_type,
+      date: start_date
+    )
   end
 
   def start_date

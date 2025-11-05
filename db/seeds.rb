@@ -2,12 +2,23 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
+Doorkeeper::Application.find_or_create_by(
+  name: "Hackatime Desktop",
+  redirect_uri: "hackatime://auth/callback",
+  uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ",
+  scopes: [ "profile" ],
+  confidential: false,
+)
+
 # Only seed test data in development environment
 if Rails.env.development?
   # Creating test user
   test_user = User.find_or_create_by(slack_uid: 'TEST123456') do |user|
     user.username = 'testuser'
-    user.is_admin = true
+    user.slack_username = 'testuser'
+
+    # Before you had user.is_admin = true, does not work, changed it to that, looks like it works but idk how to use the admin pages so pls check this, i just guess coded this, the cmd to seed the db works without errors
+    user.set_admin_level(:superadmin)
     # Ensure timezone is set to avoid nil timezone issues
     user.timezone = 'America/New_York'
   end
@@ -28,7 +39,7 @@ if Rails.env.development?
   end
 
   puts "Created test user:"
-  puts "  Username: #{test_user.username}"
+  puts "  Username: #{test_user.display_name}"
   puts "  Email: #{email.email}"
   puts "  API Key: #{api_key.token}"
   puts "  Sign-in Token: #{token.token}"

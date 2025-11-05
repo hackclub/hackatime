@@ -1,6 +1,16 @@
 class PhysicalMail < ApplicationRecord
   belongs_to :user
 
+  include PublicActivity::Model
+
+  # tracked only: [ :update ], owner: :user, params: {
+  #   mission_type: ->(controller, model) { model.mission_type },
+  #   humanized_mission_type: ->(controller, model) { model.humanized_mission_type }
+  # }
+
+  after_create :create_streak_activity, if: :first_time_7_streak?
+  after_update :create_sent_activity, if: :became_sent?
+
   scope :going_out, -> { where(status: :pending).or(where(status: :sent)) }
 
   enum :status, {
@@ -13,6 +23,10 @@ class PhysicalMail < ApplicationRecord
     admin_mail: 0,
     first_time_7_streak: 1
   }
+
+  def self.instant_mission_types
+    %w[first_time_7_streak]
+  end
 
   scope :pending_delivery, -> {
     where(status: :pending)
@@ -36,6 +50,11 @@ class PhysicalMail < ApplicationRecord
     return if status == :sent || theseus_id.present?
 
     slug = "hackatime-#{mission_type.to_s.gsub("_", "-")}"
+    endpoint = if self.class.instant_mission_types.include?(mission_type)
+      "https://mail.hackclub.com/api/v1/letter_queues/instant/#{slug}-instant"
+    else
+      "https://mail.hackclub.com/api/v1/letter_queues/#{slug}"
+    end
 
     flavors = FlavorText.compliment
     flavors.concat(FlavorText.rare_compliment) if rand(10) == 0
@@ -43,7 +62,7 @@ class PhysicalMail < ApplicationRecord
     return nil unless user.mailing_address.present?
 
     # authorization: Bearer <token>
-    response = HTTP.auth("Bearer #{ENV["MAIL_HACKCLUB_TOKEN"]}").post("https://mail.hackclub.com/api/v1/letter_queues/#{slug}", json: {
+    response = HTTP.auth("Bearer #{ENV["MAIL_HACKCLUB_TOKEN"]}").post(endpoint, json: {
       recipient_email: user.email_addresses.first.email,
       address: {
         first_name: user.mailing_address.first_name,
@@ -70,6 +89,9 @@ class PhysicalMail < ApplicationRecord
       update(status: :failed)
       raise "Failed to deliver physical mail: #{response.body}"
     end
+  rescue OpenSSL::SSL::SSLError => e
+    Rails.logger.warn "SSL error during mail delivery (request likely succeeded): #{e.message}"
+    update(status: :sent)
   rescue => e
     update(status: :failed)
     raise e
@@ -79,5 +101,23 @@ class PhysicalMail < ApplicationRecord
 
   def user_address
     user.mailing_address
+  end
+
+  def became_sent?
+    saved_change_to_status? && status == "sent" && status_before_last_save == "pending"
+  end
+
+  def create_streak_activity
+    create_activity :first_streak_achieved, owner: user, params: {
+      mission_type: mission_type,
+      humanized_mission_type: humanized_mission_type
+    }
+  end
+
+  def create_sent_activity
+    create_activity :mail_sent, owner: user, params: {
+      mission_type: mission_type,
+      humanized_mission_type: humanized_mission_type
+    }
   end
 end

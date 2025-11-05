@@ -1,6 +1,6 @@
-# Hackatime Quick Start Guide - Free WakaTime Alternative
+# Hackatime Quick Start Guide - Free Time Tracker
 
-Get up and running with Hackatime in under 5 minutes! Start tracking your coding time across 40+ editors with our free, open source WakaTime alternative.
+Get up and running with Hackatime in under 5 minutes! Start tracking your coding time across 40+ editors with our free, open source time tracker built by Hack Club.
 
 ## What is Hackatime?
 
@@ -27,19 +27,7 @@ The setup page handles all configuration automatically - no manual editing requi
 
 ## Step 3: Install WakaTime Plugin
 
-Hackatime works with **any WakaTime plugin**. Install for your editor:
-
-### Popular Editors
-
-- **VS Code**: Search "WakaTime" in Extensions marketplace
-- **IntelliJ/PyCharm**: Settings → Plugins → Install "WakaTime"
-- **Vim/Neovim**: Install `vim-wakatime` plugin
-- **Sublime Text**: Install via Package Control
-- **Atom**: Install `wakatime` package
-
-### All Other Editors
-
-Visit [wakatime.com/plugins](https://wakatime.com/plugins) for 40+ supported editors.
+Hackatime works with **any WakaTime plugin**. Visit our [editor documentation](https://hackatime.hackclub.com/docs#supported-editors) for instructions on how to install a WakaTime plugin for your specific editor.
 
 ## Step 4: Configure Plugin to Use Hackatime
 

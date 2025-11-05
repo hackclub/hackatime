@@ -7,3 +7,8 @@ db/schema.rb linguist-generated
 vendor/* linguist-vendored
 config/credentials/*.yml.enc diff=rails_credentials
 config/credentials.yml.enc diff=rails_credentials
+
+# TWO HOURS. This took 2 HOURS to figure out I hate windows now
+# Just makes stuff easy to run on Windows without it yelling at you!
+*.sh text eol=lf
+bin/* text eol=lf

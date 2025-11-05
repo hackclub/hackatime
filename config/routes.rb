@@ -69,6 +69,7 @@ Rails.application.routes.draw do
   end
 
   get "/minimal_login", to: "static_pages#minimal_login", as: :minimal_login
+  get "/what-is-hackatime", to: "static_pages#what_is_hackatime"
 
   # Auth routes
   get "/auth/slack", to: "sessions#new", as: :slack_auth
@@ -107,9 +108,15 @@ Rails.application.routes.draw do
   post "my/settings/migrate_heartbeats", to: "users#migrate_heartbeats", as: :my_settings_migrate_heartbeats
 
   namespace :my do
-  resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }
+    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }
     resource :mailing_address, only: [ :show, :edit ]
     get "mailroom", to: "mailroom#index"
+    resources :heartbeats, only: [] do
+      collection do
+        get :export
+        post :import
+      end
+    end
   end
 
   get "my/wakatime_setup", to: "users#wakatime_setup"
@@ -148,8 +155,15 @@ Rails.application.routes.draw do
         get "heartbeats", to: "heartbeats#index"
       end
 
+      # oauth authenticated namespace
       namespace :authenticated do
         resources :me, only: [ :index ]
+        get "hours", to: "hours#index"
+        get "streak", to: "streak#show"
+        get "projects", to: "projects#index"
+        # get "projects/:name", to: "projects#show", constraints: { name: /.+/ }
+        get "heartbeats/latest", to: "heartbeats#latest"
+        get "api_keys", to: "api_keys#index"
       end
     end
 
@@ -158,8 +172,11 @@ Rails.application.routes.draw do
       namespace :v1 do
         get "check", to: "admin#check"
         get "user/info", to: "admin#user_info"
+        get "user/get_users_by_ip", to: "admin#get_users_by_ip"
+        get "user/get_users_by_machine", to: "admin#get_users_by_machine"
         get "user/stats", to: "admin#user_stats"
         get "user/projects", to: "admin#user_projects"
+        get "user/trust_logs", to: "admin#trust_logs"
         post "user/convict", to: "admin#user_convict"
         post "execute", to: "admin#execute"
       end

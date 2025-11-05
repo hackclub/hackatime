@@ -10,12 +10,31 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_09_001202) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_21_211039) do
   create_schema "pganalyze"
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
+
+  create_table "activities", force: :cascade do |t|
+    t.string "trackable_type"
+    t.bigint "trackable_id"
+    t.string "owner_type"
+    t.bigint "owner_id"
+    t.string "key"
+    t.text "parameters"
+    t.string "recipient_type"
+    t.bigint "recipient_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["owner_id", "owner_type"], name: "index_activities_on_owner_id_and_owner_type"
+    t.index ["owner_type", "owner_id"], name: "index_activities_on_owner"
+    t.index ["recipient_id", "recipient_type"], name: "index_activities_on_recipient_id_and_recipient_type"
+    t.index ["recipient_type", "recipient_id"], name: "index_activities_on_recipient"
+    t.index ["trackable_id", "trackable_type"], name: "index_activities_on_trackable_id_and_trackable_type"
+    t.index ["trackable_type", "trackable_id"], name: "index_activities_on_trackable"
+  end
 
   create_table "admin_api_keys", force: :cascade do |t|
     t.bigint "user_id", null: false
@@ -258,6 +277,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_09_001202) do
     t.bigint "raw_heartbeat_upload_id"
     t.index ["category", "time"], name: "index_heartbeats_on_category_and_time"
     t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "index_heartbeats_on_ip_address"
+    t.index ["machine"], name: "index_heartbeats_on_machine"
+    t.index ["project", "time"], name: "index_heartbeats_on_project_and_time"
+    t.index ["project"], name: "index_heartbeats_on_project"
     t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
     t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
@@ -520,7 +543,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_09_001202) do
     t.string "slack_uid"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "username"
+    t.string "deprecated_name"
     t.string "slack_avatar_url"
     t.boolean "uses_slack_status", default: false, null: false
     t.string "slack_scopes", default: [], array: true
@@ -539,6 +562,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_09_001202) do
     t.boolean "allow_public_stats_lookup", default: true, null: false
     t.boolean "default_timezone_leaderboard", default: true, null: false
     t.integer "admin_level", default: 0, null: false
+    t.string "username"
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
@@ -580,7 +604,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_09_001202) do
   add_foreign_key "leaderboard_entries", "users"
   add_foreign_key "mailing_addresses", "users"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
+  add_foreign_key "oauth_access_grants", "users", column: "resource_owner_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
+  add_foreign_key "oauth_access_tokens", "users", column: "resource_owner_id"
   add_foreign_key "physical_mails", "users"
   add_foreign_key "project_repo_mappings", "repositories"
   add_foreign_key "project_repo_mappings", "users"

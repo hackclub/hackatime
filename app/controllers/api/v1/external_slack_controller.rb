@@ -23,7 +23,7 @@ module Api
         if user.persisted?
           return render json: {
             user_id: user.id,
-            username: user.username,
+            username: user.display_name,
             email: user.email_addresses.first&.email
           }, status: :ok
         end
@@ -46,7 +46,7 @@ module Api
         if user.save
           render json: {
             user_id: user.id,
-            username: user.username,
+            username: user.display_name,
             email: email
           }, status: :created
         else

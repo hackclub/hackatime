@@ -40,7 +40,7 @@ module TimeRangeFilterable
         timezone = "America/New_York"
         Time.use_zone(timezone) do
           from = Time.parse("2025-06-16").beginning_of_day
-          to = Time.parse("2025-08-31").end_of_day
+          to = Time.parse("2025-09-30").end_of_day
           from.beginning_of_day..to.end_of_day
         end
       }

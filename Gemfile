@@ -72,6 +72,8 @@ gem "dotenv-rails"
 # Added from the code block
 gem "http"
 
+gem "public_activity"
+
 # Bulk import
 gem "activerecord-import"
 
@@ -89,7 +91,7 @@ gem "geocoder"
 gem "ahoy_captain", git: "https://github.com/johnmcdowall/ahoy_captain.git", branch: "fix_importmaps"
 
 # Airtable syncing
-gem "norairrecord", "~> 0.4.0"
+gem "norairrecord", "~> 0.4.1"
 
 # Country codes
 gem "countries"
@@ -131,6 +133,11 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+end
+
+group :production do
+  # fix request.remote_ip in prod [https://github.com/modosc/cloudflare-rails?tab=readme-ov-file]
+  gem "cloudflare-rails"
 end
 
 gem "htmlcompressor", "~> 0.4.0"

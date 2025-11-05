@@ -1,7 +1,7 @@
 class OneTime::TransferUserDataJob < ApplicationJob
   queue_as :default
 
-  def perform(source_user_id, target_user_id)
+  def perform(source_user_id, target_user_id, dry_run: true)
     @source_user_id = source_user_id
     @target_user_id = target_user_id
 
@@ -18,6 +18,8 @@ class OneTime::TransferUserDataJob < ApplicationJob
       source_user.save!
 
       target_user.save!
+
+      raise ActiveRecord::Rollback if dry_run
     end
   end
 

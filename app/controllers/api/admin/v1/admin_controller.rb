@@ -22,6 +22,46 @@ module Api
           }
         end
 
+        def get_users_by_ip
+          user_ip = params[:ip]
+
+          if user_ip.blank?
+            render json: { error: "bro dont got the ip" }, status: :unprocessable_entity
+            return nil
+          end
+
+          result = Heartbeat.where([ "ip_address = '%s'", user_ip ]).select(:ip_address, :user_id, :machine, :user_agent).distinct
+
+          render json: {
+            users: result.map do |user| {
+              user_id: user.user_id,
+              ip_address: user.ip_address,
+              machine: user.machine,
+              user_agent: user.user_agent
+            }
+            end
+          }
+        end
+
+        def get_users_by_machine
+          user_machine = params[:machine]
+
+          if user_machine.blank?
+            render json: { error: "bro dont got the machine" }, status: :unprocessable_entity
+            return nil
+          end
+
+          result = Heartbeat.where([ "machine = '%s'", user_machine ]).select(:user_id, :machine).distinct
+
+          render json: {
+            users: result.map do |user| {
+              user_id: user.user_id,
+              machine: user.machine
+            }
+            end
+          }
+        end
+
         def user_info
           user = find_user_by_id
           return unless user
@@ -78,13 +118,14 @@ module Api
 
           render json: {
             user_id: user.id,
-            username: user.username,
+            username: user.display_name,
             date: date.iso8601,
             timezone: user.timezone,
             heartbeats: heartbeats.map do |hb|
               {
                 id: hb.id,
                 time: Time.at(hb.time).utc.iso8601,
+                created_at: hb.created_at,
                 project: hb.project,
                 branch: hb.branch,
                 category: hb.category,
@@ -143,7 +184,7 @@ module Api
 
           render json: {
             user_id: user.id,
-            username: user.username,
+            username: user.display_name,
             projects: project_data,
             total_projects: project_data.count
           }
@@ -182,12 +223,12 @@ module Api
               message: "gotcha, updated to #{trust_level}",
               user: {
                 id: user.id,
-                username: user.username,
+                username: user.display_name,
                 trust_level: user.trust_level,
                 updated_at: user.updated_at
               },
               audit_log: {
-                changed_by: current_user.username,
+                changed_by: current_user.display_name,
                 reason: reason,
                 notes: notes,
                 timestamp: Time.current
@@ -205,8 +246,11 @@ module Api
             return render json: { error: "whatcha doin'?" }, status: :unprocessable_entity
           end
 
+          cool = %w[created_at deleted_at]
           not_cool = %w[INSERT UPDATE DELETE DROP CREATE ALTER TRUNCATE EXEC EXECUTE]
-          if not_cool.any? { |keyword| query.upcase.include?(keyword) }
+
+          if not_cool.any? { |keyword| query.upcase.include?(keyword) } &&
+             cool.none? { |field| query.upcase.include?(field.upcase) }
             return render json: { error: "no perms lmaooo" }, status: :forbidden
           end
 
@@ -232,7 +276,7 @@ module Api
               columns: columns,
               rows: rows,
               row_count: rows.count,
-              executed_by: current_user.username,
+              executed_by: current_user.display_name,
               executed_at: Time.current
             }
           rescue => e
@@ -241,6 +285,30 @@ module Api
               error: "failed #{e.message}"
             }, status: :unprocessable_entity
           end
+        end
+
+        def trust_logs
+          user = find_user_by_id
+          return unless user
+          logs = TrustLevelAuditLog.for_user(user).recent.limit(25)
+          render json: {
+            trust_logs: logs.map do |log|
+              {
+                id: log.id,
+                previous_trust_level: log.previous_trust_level,
+                new_trust_level: log.new_trust_level,
+                changed_by: {
+                  id: log.changed_by.id,
+                  username: log.changed_by.username,
+                  display_name: log.changed_by.display_name,
+                  admin_level: log.changed_by.admin_level
+                },
+                reason: log.reason,
+                notes: log.notes,
+                created_at: log.created_at
+              }
+            end
+          }
         end
 
         private

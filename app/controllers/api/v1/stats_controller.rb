@@ -34,6 +34,10 @@ class Api::V1::StatsController < ApplicationController
 
     return render json: { error: "User not found" }, status: :not_found unless @user.present?
 
+    if !@user.allow_public_stats_lookup && (!current_user || current_user != @user)
+      return render json: { error: "user has disabled public stats" }, status: :forbidden
+    end
+
     start_date = params[:start_date].to_datetime if params[:start_date].present?
     start_date ||= 10.years.ago
     end_date = params[:end_date].to_datetime if params[:end_date].present?
@@ -80,6 +84,11 @@ class Api::V1::StatsController < ApplicationController
         if params[:filter_by_project].present?
           filter_by_project = params[:filter_by_project].split(",")
           query = query.where(project: filter_by_project)
+        end
+
+        if params[:filter_by_category].present?
+          filter_by_category = params[:filter_by_category].split(",")
+          query = query.where(category: filter_by_category)
         end
 
         # do the boundary thingie if requested

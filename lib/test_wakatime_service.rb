@@ -6,6 +6,9 @@ class TestWakatimeService
     # trusting time from hackatime extensions.....
     # @scope = @scope.coding_only
     @scope = @scope.with_valid_timestamps
+
+    # yeah macha we're removing unwated categories
+    @scope = @scope.where.not("LOWER(category) IN (?)", [ "browsing", "ai coding", "meeting", "communicating" ])
     @user = user
     @boundary_aware = boundary_aware
 
@@ -30,7 +33,7 @@ class TestWakatimeService
   def generate_summary
     summary = {}
 
-    summary[:username] = @user.username if @user.present?
+    summary[:username] = @user.display_name if @user.present?
     summary[:user_id] = @user.id.to_s if @user.present?
     summary[:is_coding_activity_visible] = true if @user.present?
     summary[:is_other_usage_visible] = true if @user.present?

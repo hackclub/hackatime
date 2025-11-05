@@ -44,11 +44,22 @@
 }
 
 .filter .options-list {
-  max-height: 200px;
+  /* not 200 cause the search thingie is 35.5 px high */
+  max-height: 164.5px; 
   overflow-y: auto;
   padding: 0;
   margin: 0;
+  /* Hide the scroll bar for stupid browers that dont follow regular standereds (looking at u microsoft IE) */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+
+/* Hide the scroll bar cause it looks terrible (sorry to eho ever made it) */
+.filter .options-list::-webkit-scrollbar {
+  display: none;
+}
+
+
 
 .filter .option {
   display: flex;
@@ -362,7 +373,7 @@
 .filters-section {
   display: flex;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 0.5rem;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
@@ -442,7 +453,7 @@
   border-radius: 4px;
   margin-top: 4px;
   max-height: 200px;
-  overflow-y: auto;
+  overflow-y: hidden  ;
   z-index: 1000;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -605,7 +616,7 @@
   font-size: 0.95rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
 }
 .interval-custom-range input[type="date"] {
   margin-left: 0.5rem;
@@ -621,6 +632,7 @@
   background: #f5b041;
   color: #222;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 .interval-custom-range button:hover {
   background: #f39c12;

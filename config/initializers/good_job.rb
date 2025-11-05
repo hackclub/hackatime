@@ -15,9 +15,8 @@ Rails.application.configure do
   config.good_job.enable_cron = Rails.env.production?
 
   # https://github.com/bensheldon/good_job#configuring-your-queues
-  # Reduced from 24 to 8 total threads to leave room for 16 web request threads
-  config.good_job.queues = "latency_10s:3; latency_5m,latency_10s:2; literally_whenever,*,latency_5m,latency_10s:3"
-  config.good_job.max_threads = 1
+  # 12 threads total
+  config.good_job.queues = "latency_10s:4; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:5"
 
   #  https://github.com/bensheldon/good_job#pgbouncer-compatibility
   GoodJob.active_record_parent_class = "ApplicationDirectRecord"
@@ -30,17 +29,20 @@ Rails.application.configure do
     daily_leaderboard_update: {
       cron: "* * * * *",
       class: "LeaderboardUpdateJob",
-      args: [ :daily ]
+      args: [ :daily ],
+      kwargs: { force_update: true }
     },
     weekly_leaderboard_update: {
       cron: "*/2 * * * *",
       class: "LeaderboardUpdateJob",
-      args: [ :weekly ]
+      args: [ :weekly ],
+      kwargs: { force_update: true }
     },
     last_7_days_leaderboard_update: {
       cron: "*/7 * * * *",
       class: "LeaderboardUpdateJob",
-      args: [ :last_7_days ]
+      args: [ :last_7_days ],
+      kwargs: { force_update: true }
     },
     # sailors_log_poll: {
     #   cron: "*/2 * * * *",
@@ -124,17 +126,9 @@ Rails.application.configure do
       cron: "0 * * * *", # Run before AttemptToDeliverPhysicalMailJob
       class: "CheckStreakPhysicalMailJob"
     },
-    # attempt_to_deliver_physical_mail: {
-    #   cron: "5 * * * *", # Run after physical mail is created
-    #   class: "AttemptToDeliverPhysicalMailJob"
-    # },
-    sync_neighborhood_from_airtable: {
-      cron: "*/15 * * * *",
-      class: "Neighborhood::SyncFromAirtableJob"
-    },
-    trigger_time_update: {
-      cron: "*/15 * * * *",
-      class: "Neighborhood::TriggerTimeUpdateJob"
+    attempt_to_deliver_physical_mail: {
+      cron: "5 * * * *", # Run after physical mail is created
+      class: "AttemptToDeliverPhysicalMailJob"
     },
     # geocode_users_without_country: {
     #   cron: "7 * * * *",

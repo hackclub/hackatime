@@ -58,8 +58,8 @@ class StaticPagesController < ApplicationController
           .uniq
           .sort_by { |_, count| -count }
 
-        @todays_languages = language_counts.map(&:first)
-        @todays_editors = editor_counts.map(&:first)
+        @todays_languages = language_counts.map(&:first).map { |language| ApplicationController.helpers.display_language_name(language) }
+        @todays_editors = editor_counts.map(&:first).map { |editor| ApplicationController.helpers.display_editor_name(editor) }
         @todays_duration = current_user.heartbeats.today.duration_seconds
 
         if @todays_duration > 1.minute
@@ -86,36 +86,38 @@ class StaticPagesController < ApplicationController
     render :minimal_login, layout: "doorkeeper/application"
   end
 
+  def what_is_hackatime
+    @page_title = "What is Hackatime? - Free Coding Time Tracker"
+    @meta_description = "Hackatime is a free, open-source coding time tracker built by Hack Club for high school students. Track your programming time across 75+ editors and see your coding statistics."
+    @meta_keywords = "what is hackatime, hackatime definition, hack club time tracker, coding time tracker, programming statistics"
+    @og_title = @page_title
+    @og_description = @meta_description
+    @twitter_title = @page_title
+    @twitter_description = @meta_description
+  end
+
   def mini_leaderboard
     use_timezone_leaderboard = current_user&.default_timezone_leaderboard
 
     if use_timezone_leaderboard && current_user&.timezone_utc_offset
       # we now doing it by default wooo
-      @leaderboard = LeaderboardGenerator.generate_timezone_offset_leaderboard(
-        Date.current, current_user.timezone_utc_offset, :daily
+      @leaderboard = LeaderboardService.get(
+        period: :daily,
+        date: Date.current,
+        offset: current_user.timezone_utc_offset
       )
 
       if @leaderboard&.entries&.empty?
         Rails.logger.warn "[MiniLeaderboard] Regional leaderboard empty for offset #{current_user.timezone_utc_offset}"
+        @leaderboard = nil
       end
-    else
-      # Use global leaderboard
-      @leaderboard = Leaderboard.where.associated(:entries)
-                                .where(start_date: Date.current)
-                                .where(deleted_at: nil)
-                                .where(period_type: :daily)
-                                .distinct
-                                .first
     end
 
-    if @leaderboard.nil? || @leaderboard.entries.empty?
-      Rails.logger.info "[MiniLeaderboard] Falling back to global leaderboard"
-      @leaderboard = Leaderboard.where.associated(:entries)
-                                .where(start_date: Date.current)
-                                .where(deleted_at: nil)
-                                .where(period_type: :daily)
-                                .distinct
-                                .first
+    if @leaderboard.nil?
+      @leaderboard = LeaderboardService.get(
+        period: :daily,
+        date: Date.current
+      )
     end
 
     @active_projects = Cache::ActiveProjectsJob.perform_now
@@ -180,7 +182,7 @@ class StaticPagesController < ApplicationController
         json_response = locals[:users].map do |user|
           {
             id: user.id,
-            username: user.username,
+            username: user.display_name,
             slack_username: user.slack_username,
             github_username: user.github_username,
             display_name: user.display_name,
@@ -240,13 +242,16 @@ class StaticPagesController < ApplicationController
   end
 
   def set_homepage_seo_content
-    @page_title = "Hackatime - Free Coding Time Tracker"
-    @meta_description = "Track your coding time easily with Hackatime. See how long you spend programming in different languages. Free alternative to WakaTime. Join thousands of high schoolers!"
-    @meta_keywords = "coding time tracker, programming stats, wakatime alternative, free time tracking, code statistics, high school programming, coding analytics"
-    @og_title = "Hackatime - Free Coding Time Tracker"
-    @og_description = "Track your coding time easily with Hackatime. See how long you spend programming. Free and open source!"
-    @twitter_title = "Hackatime - Free Coding Time Tracker"
-    @twitter_description = "Track your coding time easily with Hackatime. See how long you spend programming. Free and open source!"
+    title = "Hackatime - See How Much You Code"
+    desc = "Free and open source. Works with VS Code, JetBrains IDEs, vim, emacs, and 70+ other editors. Built and made free for teenagers by Hack Club."
+
+    @page_title = title
+    @meta_description = desc
+    @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
+    @og_title = title
+    @og_description = desc
+    @twitter_title = title
+    @twitter_description = desc
   end
 
   def filterable_dashboard_data
@@ -324,6 +329,11 @@ class StaticPagesController < ApplicationController
                                                        &.first
         end
 
+        # Transform top editor, OS, and language names
+        result["top_editor"] = ApplicationController.helpers.display_editor_name(result["top_editor"]) if result["top_editor"]
+        result["top_operating_system"] = ApplicationController.helpers.display_os_name(result["top_operating_system"]) if result["top_operating_system"]
+        result["top_language"] = ApplicationController.helpers.display_language_name(result["top_language"]) if result["top_language"]
+
         # Prepare project durations data
         result[:project_durations] = filtered_heartbeats
           .group(:project)
@@ -354,7 +364,13 @@ class StaticPagesController < ApplicationController
               .sort_by { |_, duration| -duration }
               .first(10)
               .map { |k, v|
-                label = %i[language category].include?(filter) ? k : k.capitalize
+                label = case filter
+                when :editor then ApplicationController.helpers.display_editor_name(k)
+                when :operating_system then ApplicationController.helpers.display_os_name(k)
+                when :language then ApplicationController.helpers.display_language_name(k)
+                when :category then k
+                else k.capitalize
+                end
                 [ label, v ]
               }
               .to_h unless result["singular_#{filter}"]

@@ -27,7 +27,7 @@
     <div class="stat-card">
       <div class="stat-label">TOP LANGUAGE</div>
       <div class="stat-value" data-stat="top_language">
-        <%= @top_language || "Unknown" %>
+        <%= display_language_name(@top_language) || "Unknown" %>
         <% if @singular_language %>
           <span class="super"><%= FlavorText.obvious.sample %></span>
         <% end %>
@@ -37,7 +37,7 @@
     <div class="stat-card">
       <div class="stat-label">TOP OS</div>
       <div class="stat-value" data-stat="top_operating_system">
-        <%= @top_operating_system || "Unknown" %>
+        <%= display_os_name(@top_operating_system) || "Unknown" %>
         <% if @singular_operating_system %>
           <span class="super"><%= FlavorText.obvious.sample %></span>
         <% end %>
@@ -47,7 +47,7 @@
     <div class="stat-card">
       <div class="stat-label">TOP EDITOR</div>
       <div class="stat-value" data-stat="top_editor">
-        <%= @top_editor || "Unknown" %>
+        <%= display_editor_name(@top_editor) || "Unknown" %>
         <% if @singular_editor %>
           <span class="super"><%= FlavorText.obvious.sample %></span>
         <% end %>

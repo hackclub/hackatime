@@ -1,6 +1,6 @@
 <div class="min-h-screen text-white">
   <div class="max-w-6xl mx-auto p-4">
-    <div class="text-center mb-4">
+    <div class="text-center mb-8">
       <h1 class="text-4xl font-bold text-primary mb-2">Hackatime Setup</h1>
       <div class="flex items-center justify-center gap-2 mb-4">
         <div class="w-8 h-8 bg-green rounded-full flex items-center justify-center text-sm font-bold">
@@ -29,10 +29,14 @@
       </div>
     </div>
 
-    <div class="text-center mb-8">
-      <h2 class="text-3xl font-bold text-green mt-4 mb-4">🎉 Setup Complete!</h2>
+    <div class="text-center mb-8 mt-4 max-w-5xl mx-auto">
+      <h2 class="text-3xl font-bold text-green mt-4 mb-4">Oh, and one more thing...</h2>
+      <p class="text-xl text-secondary mb-2">
+        <b>Please do not try to cheat the system!</b> We have measures in place to detect and prevent cheating. If you attempt to manipulate Hackatime, you will be banned from Hackatime and other participating YSWS / events / programs, so please play fair! We are a non-profit organization and we run off of donations.
+      </p>
+
       <p class="text-xl text-secondary">
-        <%= @no_instruction_wording %> You're all set!
+        But besides that, you're all set! Happy hacking!
       </p>
     </div>
 
@@ -54,7 +58,7 @@
         <% end %>
       <% else %>
         <%= link_to root_path, class: "bg-primary hover:bg-red text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg" do %>
-          Get Started
+          I agree, Get started!
         <% end %>
       <% end %>
     </div>

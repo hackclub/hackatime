@@ -6,17 +6,7 @@ class UsersController < ApplicationController
   before_action :require_admin, only: [ :update_trust_level ]
 
   def edit
-    @can_enable_slack_status = @user.slack_access_token.present? && @user.slack_scopes.include?("users.profile:write")
-
-    @enabled_sailors_logs = SailorsLogNotificationPreference.where(
-      slack_uid: @user.slack_uid,
-      enabled: true,
-    ).where.not(slack_channel_id: SailorsLog::DEFAULT_CHANNELS)
-
-    @heartbeats_migration_jobs = @user.data_migration_jobs
-
-    @projects = @user.project_repo_mappings.distinct.pluck(:project_name)
-    @work_time_stats_url = "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/#{@projects.first || 'example'}"
+    prepare_settings_page
   end
 
   def update
@@ -29,8 +19,9 @@ class UsersController < ApplicationController
         redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
           notice: "Settings updated successfully"
       else
-        flash[:error] = "Failed to update settings"
-        render :settings, status: :unprocessable_entity
+        flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
+        prepare_settings_page
+        render :edit, status: :unprocessable_entity
       end
     elsif params[:default_timezone_leaderboard].present?
       if @user.update(default_timezone_leaderboard: params[:default_timezone_leaderboard] == "1")
@@ -126,6 +117,21 @@ class UsersController < ApplicationController
     end
   end
 
+  def prepare_settings_page
+    @is_own_settings = is_own_settings?
+    @can_enable_slack_status = @user.slack_access_token.present? && @user.slack_scopes.include?("users.profile:write")
+
+    @enabled_sailors_logs = SailorsLogNotificationPreference.where(
+      slack_uid: @user.slack_uid,
+      enabled: true,
+    ).where.not(slack_channel_id: SailorsLog::DEFAULT_CHANNELS)
+
+    @heartbeats_migration_jobs = @user.data_migration_jobs
+
+    @projects = @user.project_repo_mappings.distinct.pluck(:project_name)
+    @work_time_stats_url = "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/#{@projects.first || 'example'}"
+  end
+
   def set_user
     @user = if params["id"].present?
       User.find(params["id"])
@@ -141,6 +147,13 @@ class UsersController < ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:uses_slack_status, :hackatime_extension_text_type, :timezone, :allow_public_stats_lookup, :default_timezone_leaderboard)
+    params.require(:user).permit(
+      :uses_slack_status,
+      :hackatime_extension_text_type,
+      :timezone,
+      :allow_public_stats_lookup,
+      :default_timezone_leaderboard,
+      :username,
+    )
   end
 end
