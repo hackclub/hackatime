@@ -252,6 +252,21 @@ class StaticPagesController < ApplicationController
       cache_key << params[filter]
     end
 
+  def dashboard
+    @project          = Project.distinct.pluck(:name)
+    @language         = Language.distinct.pluck(:name)
+    @operating_system = OperatingSystem.distinct.pluck(:name)
+    @editor           = Editor.distinct.pluck(:name)
+    @category         = Category.distinct.pluck(:name)
+
+    # Parse filter selections from params for initial load and deep-linking
+    @selected_project          = params[:project]&.split(',') || []
+    @selected_language         = params[:language]&.split(',') || []
+    @selected_operating_system = params[:operating_system]&.split(',') || []
+    @selected_editor           = params[:editor]&.split(',') || []
+    @selected_category         = params[:category]&.split(',') || []
+  end
+
     filtered_heartbeats = current_user.heartbeats
     # Load filter options and apply filters with caching
     Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
