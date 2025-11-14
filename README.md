@@ -31,6 +31,16 @@ ENCRYPTION_KEY_DERIVATION_SALT=16charssalt1234
 
 Comment out the `LOOPS_API_KEY` for the local letter opener, otherwise the app will try to send out a email and fail.
 
+### Slack Activity Digest Bot Token
+
+Daily Slack activity digests require a bot token with `chat:write` access. Add the token to your `.env` file:
+
+```
+SLACK_ACTIVITY_DIGEST_BOT_TOKEN=xoxb-...
+```
+
+Without this token the digest job will raise an error when it attempts to post to Slack.
+
 ## Build & Run the project
 
 ```sh

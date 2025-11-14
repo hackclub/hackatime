@@ -38,6 +38,10 @@ Rails.application.configure do
       args: [ :weekly ],
       kwargs: { force_update: true }
     },
+    slack_activity_digest_scheduler: {
+      cron: "15 * * * *",
+      class: "SlackActivityDigestSchedulerJob"
+    },
     last_7_days_leaderboard_update: {
       cron: "*/7 * * * *",
       class: "LeaderboardUpdateJob",

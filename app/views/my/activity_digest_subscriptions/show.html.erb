@@ -1,0 +1,54 @@
+<div class="prose max-w-3xl mx-auto space-y-6">
+  <h1 class="text-3xl font-semibold">Slack activity digest</h1>
+
+  <% if @channel_id.blank? %>
+    <p class="text-gray-700">We could not detect a Slack neighborhood channel for your account yet. Once your account is linked to a team channel, you can enable the daily digest here.</p>
+  <% else %>
+    <section class="space-y-4">
+      <p class="text-gray-700">
+        We'll post a daily coding recap for <span class="font-semibold"><%= @subscription&.channel_mention || "<##{@channel_id}>" %></span>
+        covering the previous day once the local clock hits your chosen delivery hour.
+      </p>
+
+      <% if @subscription&.enabled? %>
+        <div class="rounded-lg border border-green-200 bg-green-50 p-4">
+          <p class="font-medium text-green-800">Digest is currently enabled.</p>
+          <p class="text-sm text-green-700">Last delivered: <%= @subscription.last_delivered_at ? l(@subscription.last_delivered_at, format: :long) : "pending" %></p>
+        </div>
+
+        <%= form_with model: @subscription, url: my_activity_digest_subscription_path, method: :patch, class: "space-y-4" do |f| %>
+          <div>
+            <%= f.label :timezone, "Timezone", class: "block text-sm font-medium" %>
+            <%= f.select :timezone, options_for_select(@timezones, @subscription.timezone), {}, class: "mt-1 block w-full rounded-md border-gray-300" %>
+          </div>
+
+          <div>
+            <%= f.label :delivery_hour, "Delivery hour (0-23)", class: "block text-sm font-medium" %>
+            <%= f.number_field :delivery_hour, in: 0..23, class: "mt-1 block w-full rounded-md border-gray-300" %>
+          </div>
+
+          <div class="flex gap-3">
+            <%= f.submit "Save changes", class: "btn btn-primary" %>
+            <%= button_to "Disable digest", my_activity_digest_subscription_path, method: :delete, class: "btn btn-secondary" %>
+          </div>
+        <% end %>
+      <% else %>
+        <%= form_with model: SlackActivityDigestSubscription.new, url: my_activity_digest_subscription_path, method: :post, class: "space-y-4" do |f| %>
+          <div>
+            <%= f.label :timezone, "Timezone", class: "block text-sm font-medium" %>
+            <%= f.select :timezone, options_for_select(@timezones, current_user.timezone), {}, class: "mt-1 block w-full rounded-md border-gray-300" %>
+          </div>
+
+          <div>
+            <%= f.label :delivery_hour, "Delivery hour (0-23)", class: "block text-sm font-medium" %>
+            <%= f.number_field :delivery_hour, in: 0..23, value: 10, class: "mt-1 block w-full rounded-md border-gray-300" %>
+          </div>
+
+          <%= f.hidden_field :slack_team_id, value: params[:slack_team_id] %>
+
+          <%= f.submit "Enable daily digest", class: "btn btn-primary" %>
+        <% end %>
+      <% end %>
+    </section>
+  <% end %>
+</div>
