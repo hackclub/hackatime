@@ -1,6 +1,6 @@
 # Set Up Hackatime with Unreal Engine 4.27
 
-![Unreal Engine 4](/images/editor-icons/unrealengine4-128.png)
+![Unreal Engine 4](/images/editor-icons/unreal-engine-4-128.png)
 
 This guide will walk you through setting up **Hackatime** to automatically track your game development time in **Unreal Engine 4.27**. This currently only supports Windows systems.
 
@@ -9,8 +9,6 @@ This guide will walk you through setting up **Hackatime** to automatically track
 ## Step 1: Log In to Your Hackatime Account
 
 First, make sure you have a **Hackatime account** and are logged in. If you don't have an account, you can create one at [hackatime.hackclub.com](https://hackatime.hackclub.com).
-
----
 
 ## Step 2: Download UE4 WakatimeIntegration Plugin
 
