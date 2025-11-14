@@ -12,7 +12,7 @@ class WakatimeServiceTest < Minitest::Test
     result = WakatimeService.parse_user_agent(user_agent)
     assert_equal "darwin", result[:os]
     assert_equal "vscode", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_GitHub_Desktop
@@ -20,7 +20,7 @@ class WakatimeServiceTest < Minitest::Test
     result = WakatimeService.parse_user_agent(user_agent)
     assert_equal "darwin", result[:os]
     assert_equal "github-desktop", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_Figma
@@ -28,7 +28,7 @@ class WakatimeServiceTest < Minitest::Test
     result = WakatimeService.parse_user_agent(user_agent)
     assert_equal "darwin", result[:os]
     assert_equal "figma", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_Terminal
@@ -36,7 +36,7 @@ class WakatimeServiceTest < Minitest::Test
     result = WakatimeService.parse_user_agent(user_agent)
     assert_equal "darwin", result[:os]
     assert_equal "terminal", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_vim
@@ -44,7 +44,7 @@ class WakatimeServiceTest < Minitest::Test
     result = WakatimeService.parse_user_agent(user_agent)
     assert_equal "darwin", result[:os]
     assert_equal "vim", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_Windows
@@ -52,7 +52,7 @@ class WakatimeServiceTest < Minitest::Test
     result = WakatimeService.parse_user_agent(user_agent)
     assert_equal "windows", result[:os]
     assert_equal "vscode", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_Cursor
@@ -60,7 +60,7 @@ class WakatimeServiceTest < Minitest::Test
     result = WakatimeService.parse_user_agent(user_agent)
     assert_equal "darwin", result[:os]
     assert_equal "cursor", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_Firefox
@@ -68,7 +68,7 @@ class WakatimeServiceTest < Minitest::Test
     result = WakatimeService.parse_user_agent(user_agent)
     assert_equal "linux", result[:os]
     assert_equal "firefox", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_invalid_user_agent
@@ -77,5 +77,26 @@ class WakatimeServiceTest < Minitest::Test
     assert_equal "", result[:os]
     assert_equal "", result[:editor]
     assert_equal "failed to parse user agent string", result[:err]
+  end
+
+  def test_generate_summary_chunk_handles_zero_total_seconds
+    service = WakatimeService.new(scope: Heartbeat.none)
+    service.instance_variable_set(:@total_seconds, 0)
+
+    grouped_scope = Minitest::Mock.new
+    grouped_scope.expect(:duration_seconds, { "Hackatime" => 0 })
+
+    scope = Minitest::Mock.new
+    scope.expect(:group, grouped_scope, [ :project ])
+
+    service.instance_variable_set(:@scope, scope)
+
+    chunk = service.generate_summary_chunk(:project)
+
+    assert_equal 1, chunk.length
+    assert_equal 0.0, chunk.first[:percent]
+
+    scope.verify
+    grouped_scope.verify
   end
 end
