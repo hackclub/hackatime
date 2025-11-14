@@ -110,6 +110,7 @@ Rails.application.routes.draw do
   namespace :my do
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }
     resource :mailing_address, only: [ :show, :edit ]
+    resource :activity_digest_subscription, only: [ :show, :create, :update, :destroy ]
     get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
       collection do
