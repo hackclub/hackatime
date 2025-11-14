@@ -15,7 +15,7 @@ Click this link to the [setup page](https://hackatime.hackclub.com/my/wakatime_s
 ## Step 3: Add the Plugin to PyCharm
 
 1. Open PyCharm
-2. Go to **File** → **Settings** (on Mac: **PyCharm** → **Preferences**)
+2. Go to **File** → **Settings** (on Mac: **PyCharm** → **Settings** or press Cmd+,)
 3. Click **Plugins** on the left
 4. Click the **Marketplace** tab at the top
 5. Type "WakaTime" in the search box
