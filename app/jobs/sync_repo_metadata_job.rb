@@ -3,7 +3,6 @@ class SyncRepoMetadataJob < ApplicationJob
 
   retry_on HTTP::TimeoutError, HTTP::ConnectionError, wait: :exponentially_longer, attempts: 3
   retry_on JSON::ParserError, wait: 10.seconds, attempts: 2
-  discard_on ArgumentError # Invalid repository URLs
 
   def perform(repository_id)
     repository = Repository.find_by(id: repository_id)
@@ -17,6 +16,11 @@ class SyncRepoMetadataJob < ApplicationJob
       return unless user
 
       service = RepoHost::ServiceFactory.for_url(user, repository.url)
+      unless service
+        Rails.logger.info "[SyncRepoMetadataJob] Unsupported repository host for #{repository.url}"
+        return
+      end
+
       metadata = service.fetch_repo_metadata
 
       if metadata
@@ -25,9 +29,6 @@ class SyncRepoMetadataJob < ApplicationJob
       else
         Rails.logger.warn "[SyncRepoMetadataJob] No metadata returned for #{repository.url}"
       end
-    rescue ArgumentError => e
-      Rails.logger.error "[SyncRepoMetadataJob] #{e.message} for repository #{repository.id}"
-      raise # Discard job for unsupported hosts
     rescue => e
       Rails.logger.error "[SyncRepoMetadataJob] Unexpected error: #{e.message}"
       raise # Retry for other errors
