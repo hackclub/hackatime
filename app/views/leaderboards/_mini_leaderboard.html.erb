@@ -22,14 +22,7 @@
     <% if mini_leaderboard_entries&.any? %>
       <div class="bg-elevated rounded-xl border border-primary p-4 shadow-lg">
         <p class="text-xs italic text-muted mb-4">
-          <% if leaderboard.respond_to?(:scope_name) %>
-            <strong>Showing others in <%= link_to "your timezone", my_settings_path(anchor: "user_timezone"), data: { turbo: false }, class: "text-accent hover:text-cyan-400 transition-colors" %></strong>
-          <% else %>
-            This leaderboard is in <%= Leaderboard::GLOBAL_TIMEZONE %>.
-            <% if current_user && timezone_difference_in_seconds(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) != 0 %>
-              <%= timezone_difference_in_words(Leaderboard::GLOBAL_TIMEZONE, current_user.timezone) %>
-            <% end %>
-          <% end %>
+          This leaderboard shows time logged in the last 24 hours (UTC time).
         </p>
         <div class="space-y-2">
           <% mini_leaderboard_entries.each_with_index do |entry, idx| %>
