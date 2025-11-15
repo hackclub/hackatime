@@ -37,11 +37,13 @@ class UsersController < ApplicationController
   end
 
   def rotate_api_key
-    @user.api_keys.destroy_all
+    @user.api_keys.transaction do
+      @user.api_keys.destroy_all
 
-    new_api_key = @user.api_keys.create!(name: "Hackatime key")
+      new_api_key = @user.api_keys.create!(name: "Hackatime key")
 
-    render json: { token: new_api_key.token }, status: :ok
+      render json: { token: new_api_key.token }, status: :ok
+    end
   rescue => e
     Rails.logger.error("error rotate #{e.class.name} #{e.message}")
     render json: { error: "cant rotate" }, status: :unprocessable_entity
