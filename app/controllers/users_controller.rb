@@ -36,6 +36,17 @@ class UsersController < ApplicationController
       notice: "Heartbeats & api keys migration started"
   end
 
+  def rotate_api_key
+    @user.api_keys.destroy_all
+
+    new_api_key = @user.api_keys.create!(name: "Hackatime key")
+
+    render json: { token: new_api_key.token }, status: :ok
+  rescue => e
+    Rails.logger.error("error rotate #{e.class.name} #{e.message}")
+    render json: { error: "cant rotate" }, status: :unprocessable_entity
+  end
+
   def wakatime_setup
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
