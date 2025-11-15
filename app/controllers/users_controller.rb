@@ -23,14 +23,6 @@ class UsersController < ApplicationController
         prepare_settings_page
         render :edit, status: :unprocessable_entity
       end
-    elsif params[:default_timezone_leaderboard].present?
-      if @user.update(default_timezone_leaderboard: params[:default_timezone_leaderboard] == "1")
-        redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
-          notice: "Settings updated successfully!"
-      else
-        flash[:error] = "Failed to update settings :("
-        redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user)
-      end
     else
       redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
         notice: "Settings updated successfully!"
@@ -152,7 +144,6 @@ class UsersController < ApplicationController
       :hackatime_extension_text_type,
       :timezone,
       :allow_public_stats_lookup,
-      :default_timezone_leaderboard,
       :username,
     )
   end

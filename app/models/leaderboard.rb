@@ -9,7 +9,6 @@ class Leaderboard < ApplicationRecord
 
   enum :period_type, {
     daily: 0,
-    weekly: 1,
     last_7_days: 2
   }
 
@@ -18,19 +17,12 @@ class Leaderboard < ApplicationRecord
   end
 
   def period_end_date
-    case period_type
-    when "weekly"
-      start_date + 6.days
-    when "last_7_days"
-      start_date
-    else
-      start_date
-    end
+    start_date
   end
 
   def date_range_text
-    if weekly?
-      "#{start_date.strftime('%b %d')} - #{period_end_date.strftime('%b %d, %Y')}"
+    if last_7_days?
+      "#{(start_date - 6.days).strftime('%b %d')} - #{start_date.strftime('%b %d, %Y')}"
     else
       start_date.strftime("%B %d, %Y")
     end
