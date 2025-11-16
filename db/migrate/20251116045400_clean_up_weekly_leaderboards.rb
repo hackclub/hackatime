@@ -1,4 +1,4 @@
-class CleanUpWeeklyLeaderboards < ActiveRecord::Migration[8.0]
+class CleanUpWeeklyLeaderboards < ActiveRecord::Migration[8.1]
   def up
     execute "DELETE FROM leaderboards WHERE period_type = 1"
     execute "DELETE FROM leaderboards WHERE timezone_utc_offset IS NOT NULL"
