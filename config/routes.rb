@@ -106,6 +106,7 @@ Rails.application.routes.draw do
   get "my/settings", to: "users#edit", as: :my_settings
   patch "my/settings", to: "users#update"
   post "my/settings/migrate_heartbeats", to: "users#migrate_heartbeats", as: :my_settings_migrate_heartbeats
+  post "my/settings/rotate_api_key", to: "users#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }

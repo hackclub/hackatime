@@ -13,6 +13,7 @@ class ProjectRepoMapping < ApplicationRecord
     message: "must be a valid repository URL"
   }
 
+  validate :repo_host_supported
   validate :repo_url_exists
 
   IGNORED_PROJECTS = [
@@ -25,6 +26,13 @@ class ProjectRepoMapping < ApplicationRecord
   after_update :sync_repository_if_url_changed
 
   private
+
+  def repo_host_supported
+    host = RepoHost::ServiceFactory.host_for_url(repo_url)
+    unless host && RepoHost::ServiceFactory.supported_hosts.include?(host)
+      errors.add(:repo_url, "We only support GitHub repositories")
+    end
+  end
 
   def repo_url_exists
     unless GitRemote.check_remote_exists(repo_url)

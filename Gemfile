@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.2"
+gem "rails", "~> 8.1.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use sqlite3 as the database for Active Record
@@ -89,6 +89,8 @@ gem "skylight"
 gem "ahoy_matey"
 gem "geocoder"
 gem "ahoy_captain", git: "https://github.com/johnmcdowall/ahoy_captain.git", branch: "fix_importmaps"
+
+gem "pagy", "~> 43.0"
 
 # Airtable syncing
 gem "norairrecord", "~> 0.4.1"
