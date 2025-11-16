@@ -16,11 +16,6 @@ class SyncRepoMetadataJob < ApplicationJob
       return unless user
 
       service = RepoHost::ServiceFactory.for_url(user, repository.url)
-      unless service
-        Rails.logger.info "[SyncRepoMetadataJob] Unsupported repository host for #{repository.url}"
-        return
-      end
-
       metadata = service.fetch_repo_metadata
 
       if metadata
@@ -29,6 +24,8 @@ class SyncRepoMetadataJob < ApplicationJob
       else
         Rails.logger.warn "[SyncRepoMetadataJob] No metadata returned for #{repository.url}"
       end
+    rescue ArgumentError
+      # silent skip
     rescue => e
       Rails.logger.error "[SyncRepoMetadataJob] Unexpected error: #{e.message}"
       raise # Retry for other errors
