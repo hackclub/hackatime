@@ -24,8 +24,12 @@ class SyncRepoMetadataJob < ApplicationJob
       else
         Rails.logger.warn "[SyncRepoMetadataJob] No metadata returned for #{repository.url}"
       end
-    rescue ArgumentError
-      # silent skip
+    rescue ArgumentError => e
+      if e.message.include?("Unsupported repository host")
+        Rails.logger.debug "[SyncRepoMetadataJob] Skipping unsupported host: #{repository.url}"
+      else
+        raise
+      end
     rescue => e
       Rails.logger.error "[SyncRepoMetadataJob] Unexpected error: #{e.message}"
       raise # Retry for other errors
