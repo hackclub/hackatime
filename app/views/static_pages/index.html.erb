@@ -25,7 +25,7 @@
     <h1 class="font-bold mt-1 mb-1 text-5xl text-center">Track How Much You <span class="text-primary">Code</span></h1>
     <div class="flex flex-col w-full max-w-[50vw] mx-auto mb-22">
       <%= link_to slack_auth_path, class: "inline-flex items-center justify-center px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 bg-primary" do %>
-        <img src="/images/slack.png" class="h-8 w-8 mr-2 bg-white rounded-full p-1" />
+        <img src="/images/slack.png" class="h-8 w-8 mr-2 bg-white rounded-full p-1">
         <span class="hidden md:flex">Sign in with Hack Club Slack</span>
       <% end %>
 
@@ -39,7 +39,7 @@
         <div class="relative">
           <%= email_field_tag :email, nil, placeholder: "Enter your email to get a sign in link", required: true, class: "w-full px-3 py-3 pr-12 border border-gray-600 rounded text-base bg-gray-800 text-white" %>
           <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 p-1 bg-blue-600 hover:bg-blue-700 rounded cursor-pointer border-none flex items-center justify-center transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M13.3 20.275q-.3-.3-.3-.7t.3-.7L16.175 16H7q-.825 0-1.412-.587T5 14V5q0-.425.288-.712T6 4t.713.288T7 5v9h9.175l-2.9-2.9q-.3-.3-.288-.7t.288-.7q.3-.3.7-.312t.7.287L19.3 14.3q.15.15.212.325t.063.375t-.063.375t-.212.325l-4.575 4.575q-.3.3-.712.3t-.713-.3"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M13.3 20.275q-.3-.3-.3-.7t.3-.7L16.175 16H7q-.825 0-1.412-.587T5 14V5q0-.425.288-.712T6 4t.713.288T7 5v9h9.175l-2.9-2.9q-.3-.3-.288-.7t.288-.7q.3-.3.7-.312t.7.287L19.3 14.3q.15.15.212.325t.063.375t-.063.375t-.212.325l-4.575 4.575q-.3.3-.712.3t-.713-.3" /></svg>
           </button>
         </div>
       <% end %>
@@ -109,7 +109,7 @@
       <p class="text-primary monospace text-[20px]">Don't commit fraud lol ;)</p>
       <div class="flex flex-col md:flex-row bg-[url('/images/som-bg.png')] mt-4 mb-4 rounded-lg">
         <div class="w-full md:w-1/2 p-8">
-          <img src="/images/som.png" class="h-2/3 mx-auto md:mx-0 mb-6" />
+          <img src="/images/som.png" class="h-2/3 mx-auto md:mx-0 mb-6">
           <%= link_to "Start building", "https://summer.hackclub.com/", class: "inline-block bg-[#592F31] font-primary font-bold text-[#f6dbba] px-4 py-2 rounded-[100px] text-[22px] hover:scale-105 transition-transform duration-200", target: "_blank" %>
         </div>
         <div class="w-full md:w-1/2 p-8 pl-4 pr-4 grid grid-cols-1 gap-4">
@@ -125,10 +125,10 @@
       </div>
       <div class="flex flex-col md:flex-row bg-gradient-to-r from-[#EFCCCC] to-[#D35648] mt-4 mb-4 rounded-lg">
         <div class="w-full md:w-1/3 translate-y-[-20px]">
-          <img src="/images/athena.png" class="w-[400px]" />
+          <img src="/images/athena.png" class="w-[400px]">
         </div>
         <div class="w-full md:w-2/3 p-8 pl-4 pr-4">
-          <img src="/images/athena_award.svg" class="h-24 mb-4" />
+          <img src="/images/athena_award.svg" class="h-24 mb-4">
           <p class="text-[18px] m-4">Earn an <b>industry recognized technical certificate</b> for coding 30 hours and building 3 personal projects. Win prizes as you code, and a chance to travel to NYC for 2025's largest high school hackathon for girls.</p>
           <%= link_to "Join Athena", "https://athena.hackclub.com/", class: "inline-block bg-white font-primary font-bold text-[#D35648] px-4 py-2 m-4 rounded-[100px] text-[22px] hover:scale-105 transition-transform duration-200", target: "_blank" %>
         </div>
