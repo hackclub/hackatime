@@ -227,10 +227,6 @@ select {
   animation: bounce 1s infinite;
 }
 
-#scroll-arrow {
-  transition: transform 1s ease-in-out;
-}
-
 @keyframes bounce {
   0%,
   100% {
