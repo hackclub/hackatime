@@ -25,14 +25,14 @@
   <% if current_user %>
     <h1 class="font-bold mt-1 mb-4 text-5xl text-center">Keep Track of <span class="text-primary">Your</span> Coding Time</h1>
   <% else %>
-    <h1 class="font-bold mt-1 mb-1 text-5xl text-center">Track How Much You <span class="text-primary">Code</span></h1>
+    <h1 class="font-bold mt-1 mb-2 text-5xl text-center">Track How Much You <span class="text-primary">Code</span></h1>
     <div class="flex flex-col w-full max-w-[50vw] mx-auto mb-22">
-      <%= link_to slack_auth_path, class: "inline-flex items-center justify-center px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full my-2 bg-primary" do %>
+      <%= link_to slack_auth_path, class: "inline-flex items-center justify-center px-6 py-3 rounded text-white font-bold cursor-pointer border-none w-full bg-primary" do %>
         <img src="/images/slack.png" class="h-8 w-8 mr-2 bg-white rounded-full p-1" />
         <span class="hidden md:flex">Sign in with Hack Club Slack</span>
       <% end %>
 
-      <div class="flex items-center my-4">
+      <div class="flex items-center my-2">
         <div class="flex-1 border-t border-gray-600"></div>
         <span class="px-4 text-gray-400 text-sm">or</span>
         <div class="flex-1 border-t border-gray-600"></div>
@@ -45,6 +45,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M13.3 20.275q-.3-.3-.3-.7t.3-.7L16.175 16H7q-.825 0-1.412-.587T5 14V5q0-.425.288-.712T6 4t.713.288T7 5v9h9.175l-2.9-2.9q-.3-.3-.288-.7t.288-.7q.3-.3.7-.312t.7.287L19.3 14.3q.15.15.212.325t.063.375t-.063.375t-.212.325l-4.575 4.575q-.3.3-.712.3t-.713-.3"/></svg>
           </button>
         </div>
+        <p class="mt-2 text-sm text-gray-400">By continuing, you agree to our <a href="/privacy" class="text-primary underline" target="_blank">Privacy Policy</a>.</p>
       <% end %>
     </div>
     <% if params[:sign_in_email] %>
@@ -179,6 +180,9 @@
           <% if @ssp_message %>
             <p class="m-0 ml-2 italic text-gray-400"><%= @ssp_message %> (this is real data)</p>
           <% end %>
+          <p class="mb-4 text-sm text-gray-400">
+            By continuing, you agree to our <a href="/privacy" class="text-primary underline">Privacy Policy</a>.
+          </p>
         </div>
       </div>
     <% end %>
