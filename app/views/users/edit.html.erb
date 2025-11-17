@@ -183,7 +183,7 @@
 
         <button type="button"
                 data-controller="api-key-rotation"
-                data-action="click->api-key-rotation#rotateKey"
+                data-action="click->api-key-rotation#confirm"
                 class="w-full px-4 py-2 bg-primary hover:bg-red text-white font-medium rounded transition-colors duration-200 cursor-pointer">
           Rotate API Key
         </button>
@@ -549,4 +549,46 @@
       </div>
     <% end %>
   </div>
+</div>
+
+<div data-controller="api-key-rotation">
+  <%= render "shared/modal",
+    modal_id: "api-key-confirm-modal",
+    title: "Rotate API Key?",
+    description: "Your old key will be immediately invalidated and you'll need to update it in all your applications.",
+    icon_svg: '<path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>',
+    icon_color: "text-primary",
+    buttons: [
+      {
+        text: "Cancel",
+        class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+        action: "click->modal#close"
+      },
+      {
+        text: "Rotate Now",
+        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        action: "click->api-key-rotation#rotate"
+      }
+    ] %>
+
+  <%= render "shared/modal",
+    modal_id: "api-key-success-modal",
+    title: "New API Key Generated",
+    description: "Your old API key has been invalidated. Update your editor configuration with this new key:",
+    icon_svg: '<path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>',
+    icon_color: "text-green-500",
+    max_width: "max-w-lg",
+    buttons: [
+      {
+        text: "Close",
+        class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+        action: "click->modal#close"
+      },
+      {
+        text: "Copy Key",
+        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        action: "click->api-key-rotation#copyKey"
+      }
+    ],
+    custom: '<div class="w-full mb-4"><div class="bg-darker rounded-lg p-3"><code id="new-api-key-display" class="text-sm text-white break-all" data-token=""></code></div></div>' %>
 </div>
