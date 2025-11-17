@@ -53,6 +53,9 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
+      - name: Lint ERB templates
+        run: bundle exec erb_lint --lint-all
+
   zeitwerk:
     runs-on: ubuntu-latest
 
