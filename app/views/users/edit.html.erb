@@ -426,7 +426,7 @@
                 <div class="text-sm text-gray-300">Total Coding Time</div>
               </div>
             </div>
-            <div class="bg-gray-800 border border-gray-600 rounded p-4">  
+            <div class="bg-gray-800 border border-gray-600 rounded p-4">
               <div class="text-center">
                 <div class="text-2xl font-bold text-primary mb-1"><%= @user.heartbeats.where("time >= ?", 7.days.ago.to_f).count %></div>
                 <div class="text-sm text-gray-300">Heartbeats in the Last 7 Days</div>
@@ -459,7 +459,7 @@
 
               <%= link_to "#",
                   class: "w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
-                  data: { 
+                  data: {
                     controller: "heartbeat-export",
                     action: "click->heartbeat-export#handleExport"
                   } do %>
@@ -491,14 +491,14 @@
               <%= form_with url: import_my_heartbeats_path, method: :post, multipart: true, local: true, class: "space-y-4" do |form| %>
                 <div>
                   <label class="block text-sm font-medium text-gray-300 mb-2">Select JSON File</label>
-                  <%= form.file_field :heartbeat_file, 
+                  <%= form.file_field :heartbeat_file,
                       accept: ".json,application/json",
                       class: "w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-red transition-colors",
                       required: true %>
                 </div>
 
                 <div class="flex gap-3">
-                  <%= form.submit "Import Heartbeats", 
+                  <%= form.submit "Import Heartbeats",
                       class: "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center gap-2",
                       data: { confirm: "Are you sure you want to import heartbeats? This will add new data to your account." } %>
                 </div>
