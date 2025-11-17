@@ -67,6 +67,12 @@ export default class extends Controller {
   copyKey(event) {
     event.preventDefault();
     const d = document.getElementById("new-api-key-display");
+
+    if (!d) {
+      console.error("modal issues???");
+      return;
+    }
+
     const t = d.dataset.token;
     const b = event.currentTarget;
 

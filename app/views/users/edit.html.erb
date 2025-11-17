@@ -589,11 +589,6 @@
         class: "bg-primary text-white hover:bg-red-600 font-medium",
         action: "click->api-key-rotation#copyKey"
       }
-    ] do %>
-    <div class="w-full mb-4">
-      <div class="bg-darker rounded-lg p-3">
-        <code id="new-api-key-display" class="text-sm text-white break-all" data-token=""></code>
-      </div>
-    </div>
-  <% end %>
+    ],
+    custom: '<div class="w-full mb-4"><div class="bg-darker rounded-lg p-3"><code id="new-api-key-display" class="text-sm text-white break-all" data-token=""></code></div></div>' %>
 </div>

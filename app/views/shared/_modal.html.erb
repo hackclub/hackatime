@@ -6,6 +6,7 @@
   description ||= nil
   buttons ||= []
   max_width ||= "max-w-md"
+  custom ||= nil
 %>
 
 <div id="<%= modal_id %>"
@@ -29,8 +30,8 @@
         <p class="text-gray-300 mb-6 text-center w-full"><%= description %></p>
       <% end %>
 
-      <% if block_given? %>
-        <%= yield %>
+      <% if custom.present? %>
+        <%= custom.html_safe %>
       <% end %>
 
       <% if buttons.any? %>
