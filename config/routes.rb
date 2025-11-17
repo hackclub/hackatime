@@ -68,6 +68,7 @@ Rails.application.routes.draw do
     end
   end
 
+  get "/privacy", to: "static_pages#privacy"
   get "/minimal_login", to: "static_pages#minimal_login", as: :minimal_login
   get "/what-is-hackatime", to: "static_pages#what_is_hackatime"
 
