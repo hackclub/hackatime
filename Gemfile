@@ -93,7 +93,7 @@ gem "ahoy_captain", git: "https://github.com/johnmcdowall/ahoy_captain.git", bra
 gem "pagy", "~> 43.0"
 
 # Airtable syncing
-gem "norairrecord", "~> 0.4.1"
+gem "norairrecord", "~> 0.5.1"
 
 # Country codes
 gem "countries"
