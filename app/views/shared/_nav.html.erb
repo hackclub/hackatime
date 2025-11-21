@@ -43,13 +43,13 @@
             <% end %>
           </div>
           <div>
-            <%= link_to "/what-is-hackatime", class: "block px-2 py-1 rounded-lg transition #{current_page?('/what-is-hackatime') ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
-              What is Hackatime?
+            <%= link_to extensions_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(extensions_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+              Extensions
             <% end %>
           </div>
           <div>
-            <%= link_to extensions_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(extensions_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
-              Extensions
+            <%= link_to "/what-is-hackatime", class: "block px-2 py-1 rounded-lg transition #{current_page?('/what-is-hackatime') ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+              What is Hackatime?
             <% end %>
           </div>
         <% end %>
@@ -64,11 +64,11 @@
               Docs
             <% end %>
           </div>
-          <% superadmin_tool(nil, "div") do %>
-            <%= link_to my_mailing_address_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(my_mailing_address_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
-              Mailing Address
+          <div>
+            <%= link_to extensions_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(extensions_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+              Extensions
             <% end %>
-          <% end %>
+          </div>
           <div>
             <%= link_to my_mailroom_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(my_mailroom_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
               Mailroom
