@@ -105,6 +105,13 @@ GEM
     autotuner (1.1.0)
     base64 (0.3.0)
     bcrypt_pbkdf (1.1.1)
+    better_html (2.2.0)
+      actionview (>= 7.0)
+      activesupport (>= 7.0)
+      ast (~> 2.0)
+      erubi (~> 1.4)
+      parser (>= 2.4)
+      smart_properties
     bigdecimal (3.3.1)
     bindex (0.8.1)
     bootsnap (1.19.0)
@@ -154,6 +161,13 @@ GEM
     drb (2.2.3)
     ed25519 (1.4.0)
     erb (6.0.0)
+    erb_lint (0.9.0)
+      activesupport
+      better_html (>= 2.0.1)
+      parser (>= 2.7.1.4)
+      rainbow
+      rubocop (>= 1)
+      smart_properties
     erubi (1.13.1)
     et-orbi (1.4.0)
       tzinfo
@@ -282,7 +296,7 @@ GEM
     matrix (0.4.3)
     memory_profiler (1.1.0)
     mini_mime (1.1.5)
-    minitest (5.26.1)
+    minitest (5.26.2)
     msgpack (1.8.0)
     multipart-post (2.4.1)
     net-http (0.8.0)
@@ -318,12 +332,12 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.10-x86_64-linux-musl)
       racc (~> 1.4)
-    norairrecord (0.4.1)
+    norairrecord (0.5.1)
       faraday (>= 1.0, < 3.0)
       faraday-net_http_persistent
       net-http-persistent
     ostruct (0.6.3)
-    pagy (43.0.6)
+    pagy (43.1.4)
       json
       yaml
     paper_trail (17.0.0)
@@ -472,10 +486,10 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
-    sentry-rails (6.1.0)
+    sentry-rails (6.1.1)
       railties (>= 5.2.0)
-      sentry-ruby (~> 6.1.0)
-    sentry-ruby (6.1.0)
+      sentry-ruby (~> 6.1.1)
+    sentry-ruby (6.1.1)
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
     skylight (7.0.0)
@@ -487,6 +501,7 @@ GEM
       gli
       hashie
       logger
+    smart_properties (1.17.0)
     solid_cable (3.0.12)
       actioncable (>= 7.2)
       activejob (>= 7.2)
@@ -587,6 +602,7 @@ DEPENDENCIES
   debug
   doorkeeper (~> 5.8)
   dotenv-rails
+  erb_lint
   flamegraph
   flipper
   flipper-active_record
@@ -602,8 +618,8 @@ DEPENDENCIES
   letter_opener
   letter_opener_web (~> 3.0)
   memory_profiler
-  norairrecord (~> 0.4.1)
-  pagy (~> 43.0)
+  norairrecord (~> 0.5.1)
+  pagy (~> 43.1)
   paper_trail
   pg
   propshaft

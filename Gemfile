@@ -90,10 +90,10 @@ gem "ahoy_matey"
 gem "geocoder"
 gem "ahoy_captain", git: "https://github.com/johnmcdowall/ahoy_captain.git", branch: "fix_importmaps"
 
-gem "pagy", "~> 43.0"
+gem "pagy", "~> 43.1"
 
 # Airtable syncing
-gem "norairrecord", "~> 0.4.1"
+gem "norairrecord", "~> 0.5.1"
 
 # Country codes
 gem "countries"
@@ -114,6 +114,9 @@ group :development, :test do
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
+
+  # ERB linting [https://github.com/Shopify/erb_lint]
+  gem "erb_lint", require: false
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false

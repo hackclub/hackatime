@@ -14,6 +14,7 @@ development_environments:
 - test
 - development
 - cucumber
+- production # temporary disable
 
 # By default, Honeybadger won't report errors in the development_environments.
 # You can override this by explicitly setting report_data to true or false.

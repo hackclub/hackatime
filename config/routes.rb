@@ -15,6 +15,8 @@ Rails.application.routes.draw do
 
   root "static_pages#index"
 
+  resources :extensions, only: [ :index ]
+
   constraints AdminLevelConstraint.new(:superadmin) do
     mount GoodJob::Engine => "good_job"
     mount AhoyCaptain::Engine => "/ahoy_captain"

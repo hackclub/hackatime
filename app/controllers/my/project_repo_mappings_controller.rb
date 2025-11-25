@@ -19,7 +19,7 @@ class My::ProjectRepoMappingsController < ApplicationController
     end
 
     if @project_repo_mapping.update(project_repo_mapping_params)
-      redirect_to my_project_repo_mapping_path, notice: "Repository mapping updated successfully."
+      redirect_to my_projects_path, notice: "Repository mapping updated successfully."
     else
       flash.now[:alert] = @project_repo_mapping.errors.full_messages.join(", ")
       render :edit, status: :unprocessable_entity

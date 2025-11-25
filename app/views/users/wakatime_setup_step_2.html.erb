@@ -22,89 +22,88 @@
       <p class="text-secondary text-lg"><em>Let's setup one for now, you can setup more later!</em></p>
     </div>
 
-    <div class="grid gap-4 max-w-2xl mx-auto">
-      <div class="bg-dark rounded-lg p-6 hover:bg-darkless transition-colors">
-        <%= link_to my_wakatime_setup_step_3_path(anchor: "vs-code"), class: "flex items-center gap-4 text-white no-underline" do %>
-          <div class="w-12 h-12 rounded-lg flex items-center justify-center">
-            <img src="/images/editor-icons/vs-code-128.png" alt="VS Code" class="w-full h-full object-contain">
-          </div>
-          <div>
-            <h3 class="text-xl font-bold">Visual Studio Code</h3>
-            <p class="text-secondary">Most popular code editor, loved by millions</p>
-          </div>
-          <div class="ml-auto text-primary flex items-center">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        <% end %>
-      </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+      <%= link_to my_wakatime_setup_step_3_path(editor: "vscode"), class: "bg-dark rounded-lg p-6 hover:bg-darkless transition-colors flex flex-col items-center justify-center text-center gap-4 text-white no-underline group h-full" do %>
+        <div class="w-20 h-20 rounded-xl flex items-center justify-center bg-darkless group-hover:scale-110 transition-transform duration-200">
+          <img src="/images/editor-icons/vs-code-128.png" alt="VS Code" class="w-16 h-16 object-contain">
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">VS Code</h3>
+        </div>
+      <% end %>
 
-      <div class="bg-dark rounded-lg p-6 hover:bg-darkless transition-colors">
-        <%= link_to my_wakatime_setup_step_3_path(anchor: "vim"), class: "flex items-center gap-4 text-white no-underline" do %>
-          <div class="w-12 h-12 rounded-lg flex items-center justify-center">
-            <img src="/images/editor-icons/vim-128.png" alt="Vim" class="w-full h-full object-contain">
-          </div>
-          <div>
-            <h3 class="text-xl font-bold">Vim</h3>
-            <p class="text-secondary">Terminal-based editor, for the cool kids</p>
-          </div>
-          <div class="ml-auto text-primary flex items-center">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        <% end %>
-      </div>
+      <%= link_to my_wakatime_setup_step_3_path(editor: "vim"), class: "bg-dark rounded-lg p-6 hover:bg-darkless transition-colors flex flex-col items-center justify-center text-center gap-4 text-white no-underline group h-full" do %>
+        <div class="w-20 h-20 rounded-xl flex items-center justify-center bg-darkless group-hover:scale-110 transition-transform duration-200">
+          <img src="/images/editor-icons/vim-128.png" alt="Vim" class="w-16 h-16 object-contain">
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Vim</h3>
+        </div>
+      <% end %>
 
-      <div class="bg-dark rounded-lg p-6 hover:bg-darkless transition-colors">
-        <%= link_to my_wakatime_setup_step_3_path(anchor: "emacs"), class: "flex items-center gap-4 text-white no-underline" do %>
-          <div class="w-12 h-12 rounded-lg flex items-center justify-center">
-            <img src="/images/editor-icons/emacs-128.png" alt="Emacs" class="w-full h-full object-contain">
-          </div>
-          <div>
-            <h3 class="text-xl font-bold">Emacs</h3>
-            <p class="text-secondary">Powerful extensible editor, for the power users</p>
-          </div>
-          <div class="ml-auto text-primary flex items-center">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        <% end %>
-      </div>
+      <%= link_to my_wakatime_setup_step_3_path(editor: "neovim"), class: "bg-dark rounded-lg p-6 hover:bg-darkless transition-colors flex flex-col items-center justify-center text-center gap-4 text-white no-underline group h-full" do %>
+        <div class="w-20 h-20 rounded-xl flex items-center justify-center bg-darkless group-hover:scale-110 transition-transform duration-200">
+          <img src="/images/editor-icons/neovim-128.png" alt="Neovim" class="w-16 h-16 object-contain">
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Neovim</h3>
+        </div>
+      <% end %>
 
-      <div class="bg-dark rounded-lg p-6 hover:bg-darkless transition-colors">
-        <%= link_to my_wakatime_setup_step_3_path(anchor: "godot"), class: "flex items-center gap-4 text-white no-underline" do %>
-          <div class="w-12 h-12 rounded-lg flex items-center justify-center">
-            <img src="/images/editor-icons/godot-128.png" alt="Godot" class="w-full h-full object-contain">
-          </div>
-          <div>
-            <h3 class="text-xl font-bold">Godot</h3>
-            <p class="text-secondary">Open source game engine for all</p>
-          </div>
-          <div class="ml-auto text-primary flex items-center">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        <% end %>
-      </div>
+      <%= link_to my_wakatime_setup_step_3_path(editor: "emacs"), class: "bg-dark rounded-lg p-6 hover:bg-darkless transition-colors flex flex-col items-center justify-center text-center gap-4 text-white no-underline group h-full" do %>
+        <div class="w-20 h-20 rounded-xl flex items-center justify-center bg-darkless group-hover:scale-110 transition-transform duration-200">
+          <img src="/images/editor-icons/emacs-128.png" alt="Emacs" class="w-16 h-16 object-contain">
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Emacs</h3>
+        </div>
+      <% end %>
 
-      <div class="bg-dark rounded-lg p-6 hover:bg-darkless transition-colors">
-        <%= link_to my_wakatime_setup_step_3_path, class: "flex items-center gap-4 text-white no-underline" do %>
-          <div class="w-12 h-12 bg-orange rounded-lg flex items-center justify-center text-2xl">🔧</div>
-          <div>
-            <h3 class="text-xl font-bold">Not listed here!</h3>
-            <p class="text-secondary">Any WakaTime-supported editor, there are hundreds!</p>
-          </div>
-          <div class="ml-auto text-primary flex items-center">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        <% end %>
-      </div>
+      <%= link_to my_wakatime_setup_step_3_path(editor: "pycharm"), class: "bg-dark rounded-lg p-6 hover:bg-darkless transition-colors flex flex-col items-center justify-center text-center gap-4 text-white no-underline group h-full" do %>
+        <div class="w-20 h-20 rounded-xl flex items-center justify-center bg-darkless group-hover:scale-110 transition-transform duration-200">
+          <img src="/images/editor-icons/pycharm-128.png" alt="PyCharm" class="w-16 h-16 object-contain">
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">PyCharm</h3>
+        </div>
+      <% end %>
+
+      <%= link_to my_wakatime_setup_step_3_path(editor: "sublime"), class: "bg-dark rounded-lg p-6 hover:bg-darkless transition-colors flex flex-col items-center justify-center text-center gap-4 text-white no-underline group h-full" do %>
+        <div class="w-20 h-20 rounded-xl flex items-center justify-center bg-darkless group-hover:scale-110 transition-transform duration-200">
+          <img src="/images/editor-icons/sublime-text-128.png" alt="Sublime" class="w-16 h-16 object-contain">
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Sublime Text</h3>
+        </div>
+      <% end %>
+
+      <%= link_to my_wakatime_setup_step_3_path(editor: "unity"), class: "bg-dark rounded-lg p-6 hover:bg-darkless transition-colors flex flex-col items-center justify-center text-center gap-4 text-white no-underline group h-full" do %>
+        <div class="w-20 h-20 rounded-xl flex items-center justify-center bg-darkless group-hover:scale-110 transition-transform duration-200">
+          <img src="/images/editor-icons/unity-128.png" alt="Unity" class="w-16 h-16 object-contain">
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Unity</h3>
+        </div>
+      <% end %>
+
+      <%= link_to my_wakatime_setup_step_3_path(editor: "godot"), class: "bg-dark rounded-lg p-6 hover:bg-darkless transition-colors flex flex-col items-center justify-center text-center gap-4 text-white no-underline group h-full" do %>
+        <div class="w-20 h-20 rounded-xl flex items-center justify-center bg-darkless group-hover:scale-110 transition-transform duration-200">
+          <img src="/images/editor-icons/godot-128.png" alt="Godot" class="w-16 h-16 object-contain">
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Godot</h3>
+        </div>
+      <% end %>
+
+      <%= link_to my_wakatime_setup_step_3_path(editor: "other"), class: "bg-dark rounded-lg p-6 hover:bg-darkless transition-colors flex flex-col items-center justify-center text-center gap-4 text-white no-underline group h-full col-span-2 md:col-span-3 lg:col-span-4" do %>
+        <div class="w-20 h-20 rounded-xl flex items-center justify-center bg-darkless group-hover:scale-110 transition-transform duration-200">
+          <div class="text-4xl">🔧</div>
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Other Editor</h3>
+          <p class="text-secondary text-sm">Hackatime supports 70+ editors</p>
+        </div>
+      <% end %>
     </div>
   </div>
 </div>

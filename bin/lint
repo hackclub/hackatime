@@ -3,3 +3,6 @@ set -e
 
 echo "rubocoppin'..."
 bundle exec rubocop -A
+
+echo "erb_lintin'..."
+bundle exec erb_lint . -a
