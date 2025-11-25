@@ -57,16 +57,25 @@ class WakatimeService
   end
 
   def generate_summary_chunk(group_by)
+    helpers = ApplicationController.helpers
+    total_seconds = @total_seconds.to_f
+
     result = []
     @scope.group(group_by).duration_seconds.each do |key, value|
+      percent_value = if total_seconds.positive?
+        (100.0 * value / total_seconds).round(2)
+      else
+        0.0
+      end
+
       result << {
         name: transform_display_name(group_by, key),
         total_seconds: value,
-        text: ApplicationController.helpers.short_time_simple(value),
+        text: helpers.short_time_simple(value),
         hours: value / 3600,
         minutes: (value % 3600) / 60,
-        percent: (100.0 * value / @total_seconds).round(2),
-        digital: ApplicationController.helpers.digital_time(value)
+        percent: percent_value,
+        digital: helpers.digital_time(value)
       }
     end
     result = result.sort_by { |item| -item[:total_seconds] }
