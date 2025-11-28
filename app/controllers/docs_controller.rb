@@ -116,8 +116,22 @@ class DocsController < ApplicationController
     title_line&.sub(/^# /, "")&.strip
   end
 
+  # removes .md extension from links
+  class DocsRenderer < Redcarpet::Render::HTML
+    def link(link, title, content)
+      if link && !link.match?(/\A[a-z]+:/)
+        link = link.sub(/\.md(?=[#?]|$)/, "")
+      end
+
+      attributes = "href=\"#{link}\""
+      attributes += " title=\"#{title}\"" if title
+
+      "<a #{attributes}>#{content}</a>"
+    end
+  end
+
   def render_markdown(content)
-    renderer = Redcarpet::Render::HTML.new(
+    renderer = DocsRenderer.new(
       filter_html: true,
       no_links: false,
       no_images: false,
