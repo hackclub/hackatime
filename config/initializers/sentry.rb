@@ -6,4 +6,9 @@ Sentry.init do |config|
   config.send_default_pii = true
   config.traces_sample_rate = 1.0
   config.profiles_sample_rate = 1.0
+
+  # Enable sending logs to Sentry
+  config.enable_logs = true
+  # Patch Ruby logger to forward logs
+  config.enabled_patches = [ :logger ]
 end
