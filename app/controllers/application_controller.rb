@@ -1,6 +1,6 @@
 class ApplicationController < ActionController::Base
   before_action :set_paper_trail_whodunnit
-  before_action :honeybadger_context, if: :current_user
+  before_action :sentry_context, if: :current_user
   before_action :initialize_cache_counters
   before_action :try_rack_mini_profiler_enable
   before_action :track_request
@@ -25,11 +25,14 @@ class ApplicationController < ActionController::Base
     @activities = PublicActivity::Activity.limit(25).order(created_at: :desc).includes(:owner, :trackable)
   end
 
-  def honeybadger_context
-    Honeybadger.context(
-      user_id: current_user.id,
+  def sentry_context
+    Sentry.set_user(
+      id: current_user.id,
+      username: current_user.username
+    )
+    Sentry.set_extras(
       user_agent: request.user_agent,
-      ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip,
+      ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip
     )
   end
 
