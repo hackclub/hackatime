@@ -12,8 +12,8 @@ class SessionsController < ApplicationController
 
     if params[:error].present?
       Rails.logger.error "Slack OAuth error: #{params[:error]}"
-      uuid = Honeybadger.notify("Slack OAuth error: #{params[:error]}")
-      redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{uuid}"
+      Sentry.capture_message("Slack OAuth error: #{params[:error]}")
+      redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
       return
     end
 
@@ -67,8 +67,8 @@ class SessionsController < ApplicationController
 
     if params[:error].present?
       Rails.logger.error "GitHub OAuth error: #{params[:error]}"
-      uuid = Honeybadger.notify("GitHub OAuth error: #{params[:error]}")
-      redirect_to my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{uuid}"
+      Sentry.capture_message("GitHub OAuth error: #{params[:error]}")
+      redirect_to my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{Sentry.last_event_id}"
       return
     end
 
