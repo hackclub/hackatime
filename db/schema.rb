@@ -10,9 +10,8 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_16_045500) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_01_161700) do
   create_schema "pganalyze"
-
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -568,6 +567,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_045500) do
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"
+    t.index ["username"], name: "index_users_on_username"
   end
 
   create_table "versions", force: :cascade do |t|
