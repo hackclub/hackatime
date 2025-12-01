@@ -209,11 +209,22 @@ class User < ApplicationRecord
   end
 
   def parse_and_set_timezone(timezone)
-    begin
-      tz = ActiveSupport::TimeZone.find_tzinfo(timezone)
-      self.timezone = tz.name
-    rescue TZInfo::InvalidTimezoneIdentifier => e
-      Rails.logger.error "Invalid timezone #{timezone} for user #{id}: #{e.message}"
+    as_tz = ActiveSupport::TimeZone[timezone]
+
+    unless as_tz
+      begin
+        tzinfo = TZInfo::Timezone.get(timezone)
+        as_tz = ActiveSupport::TimeZone.all.find do |z|
+          z.tzinfo.identifier == tzinfo.identifier
+        end
+      rescue TZInfo::InvalidTimezoneIdentifier
+      end
+    end
+
+    if as_tz
+      self.timezone = as_tz.name
+    else
+      Rails.logger.error "Invalid timezone #{timezone} for user #{id}"
     end
   end
 
