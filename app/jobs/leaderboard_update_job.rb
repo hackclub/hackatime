@@ -57,7 +57,11 @@ class LeaderboardUpdateJob < ApplicationJob
 
       LeaderboardEntry.insert_all!(entries, on_duplicate: :update, update_only: %i[total_seconds streak_count updated_at]) if entries.any?
 
-      board.entries.where.not(user_id: data.keys).delete_all
+      if data.keys.any?
+        board.entries.where.not(user_id:  data.keys).delete_all
+      else
+        board.entries.delete_all
+      end
 
       board.update!(finished_generating_at: Time.current)
     end
