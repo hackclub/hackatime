@@ -394,11 +394,11 @@ class User < ApplicationRecord
               end
 
     # update scopes if user exists
-    @user.update(hca_scopes: identity["scopes"], hca_id: identity["id"]) if @user
+    @user.update(hca_scopes: hca_data["scopes"], hca_id: identity["id"]) if !!@user
 
     # if no user, create one
     @user ||= begin
-                u = User.create!(hca_id: identity["id"], slack_uid: identity["slack_id"], hca_scopes: identity["scopes"])
+                u = User.create!(hca_id: identity["id"], slack_uid: identity["slack_id"], hca_scopes: hca_data["scopes"])
                 EmailAddress.create!(email: identity["email"], user: u) unless identity["email"].blank?
                 u
               end
