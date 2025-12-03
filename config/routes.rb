@@ -22,7 +22,7 @@ Rails.application.routes.draw do
     mount AhoyCaptain::Engine => "/ahoy_captain"
     mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
 
-    get "/my/mailing_address", to: "my/mailing_address#show", as: :my_mailing_address
+    # get "/my/mailing_address", to: "my/mailing_address#show", as: :my_mailing_address
   end
 
   constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer) do
@@ -112,8 +112,8 @@ Rails.application.routes.draw do
 
   namespace :my do
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }
-    resource :mailing_address, only: [ :show, :edit ]
-    get "mailroom", to: "mailroom#index"
+    # resource :mailing_address, only: [ :show, :edit ]
+    # get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
       collection do
         get :export
