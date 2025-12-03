@@ -42,7 +42,7 @@ class SessionsController < ApplicationController
   end
 
   def slack_create
-    redirect_uri = url_for(action: :create, only_path: false)
+    redirect_uri = url_for(action: :slack_create, only_path: false)
 
     if params[:error].present?
       Rails.logger.error "Slack OAuth error: #{params[:error]}"
