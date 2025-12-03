@@ -74,8 +74,10 @@ Rails.application.routes.draw do
   get "/what-is-hackatime", to: "static_pages#what_is_hackatime"
 
   # Auth routes
-  get "/auth/slack", to: "sessions#new", as: :slack_auth
-  get "/auth/slack/callback", to: "sessions#create"
+  get "/auth/hca", to: "sessions#hca_new", as: :hca_auth
+  get "/auth/hca/callback", to: "sessions#hca_create"
+  get "/auth/slack", to: "sessions#slack_new", as: :slack_auth
+  get "/auth/slack/callback", to: "sessions#slack_create"
   get "/auth/github", to: "sessions#github_new", as: :github_auth
   get "/auth/github/callback", to: "sessions#github_create"
   delete "/auth/github/unlink", to: "sessions#github_unlink", as: :github_unlink

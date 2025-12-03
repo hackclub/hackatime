@@ -6,9 +6,9 @@
       <h1 class="font-bold text-3xl text-white">Log in to Hackatime</h1>
     </header>
 
-    <%= link_to slack_auth_path(continue: @continue_param), class: "inline-flex items-center justify-center w-full px-6 py-3 rounded text-white font-bold bg-primary hover:bg-red-600 transition-colors" do %>
+    <%= link_to hca_auth_path(continue: @continue_param), class: "inline-flex items-center justify-center w-full px-6 py-3 rounded text-white font-bold bg-primary hover:bg-red-600 transition-colors" do %>
       <img src="/images/slack.png" class="h-5 w-5 mr-2 bg-white rounded p-0.5">
-      <span>Sign in with Hack Club Slack</span>
+      <span>Sign in with Hack Club</span>
     <% end %>
 
     <div class="flex items-center my-4">
