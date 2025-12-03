@@ -332,7 +332,7 @@ class User < ApplicationRecord
       redirect_uri:,
       client_id: ENV["HCA_CLIENT_ID"],
       response_type: "code",
-      scope: "email"
+      scope: "email slack_id verification_status"
     }
 
     URI.parse("#{HCAService.host}/oauth/authorize?#{params.to_query}")
@@ -382,14 +382,15 @@ class User < ApplicationRecord
     return nil if access_token.nil?
 
     # get user info
-    identity = ::HCAService.me(access_token)
+    hca_data = ::HCAService.me(access_token)
+    identity = hca_data["identity"]
     # find by HCA ID
     @user = User.find_by_hca_id(identity["id"]) unless identity["id"].blank?
     # find by slack_id
     @user ||= User.find_by_slack_uid(identity["slack_id"]) unless identity["slack_id"].blank?
     # find by email
     @user ||= begin
-                EmailAddress.find_by(email: identity["email"])&.user unless identity["email"].blank?
+                EmailAddress.find_by(email: identity["primary_email"])&.user unless identity["primary_email"].blank?
               end
 
     # update scopes if user exists
