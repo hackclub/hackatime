@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_01_161700) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_02_221230) do
   create_schema "pganalyze"
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
@@ -550,6 +550,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_01_161700) do
     t.string "github_uid"
     t.string "github_username"
     t.integer "hackatime_extension_text_type", default: 0, null: false
+    t.string "hca_access_token"
+    t.string "hca_id"
+    t.string "hca_scopes", default: [], array: true
     t.string "mailing_address_otc"
     t.text "slack_access_token"
     t.string "slack_avatar_url"

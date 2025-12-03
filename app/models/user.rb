@@ -8,7 +8,7 @@ class User < ApplicationRecord
 
   after_create :create_signup_activity
   before_validation :normalize_username
-  encrypts :slack_access_token, :github_access_token
+  encrypts :slack_access_token, :github_access_token, :hca_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
   validates :github_uid, uniqueness: { conditions: -> { where.not(github_access_token: nil) } }, allow_nil: true
@@ -327,7 +327,18 @@ class User < ApplicationRecord
       })
   end
 
-  def self.authorize_url(redirect_uri, close_window: false, continue_param: nil)
+  def self.hca_authorize_url(redirect_uri)
+    params = {
+      redirect_uri:,
+      client_id: ENV["HCA_CLIENT_ID"],
+      response_type: "code",
+      scope: "email"
+    }
+
+    URI.parse("#{HCAService.host}/oauth/authorize?#{params.to_query}")
+  end
+
+  def self.slack_authorize_url(redirect_uri, close_window: false, continue_param: nil)
     state = {
       token: SecureRandom.hex(24),
       close_window: close_window,
@@ -353,6 +364,43 @@ class User < ApplicationRecord
     }
 
     URI.parse("https://github.com/login/oauth/authorize?#{params.to_query}")
+  end
+
+  def self.from_hca_token(code, redirect_uri)
+    # Exchange code for token
+    response = HTTP.post("#{HCAService.host}/oauth/token", form: {
+      client_id: ENV["HCA_CLIENT_ID"],
+      client_secret: ENV["HCA_CLIENT_SECRET"],
+      redirect_uri: redirect_uri,
+      code: code,
+      grant_type: "authorization_code"
+    })
+
+    data = JSON.parse(response.body.to_s)
+
+    access_token = data["access_token"]
+    return nil if access_token.nil?
+
+    # get user info
+    identity = ::HCAService.me(access_token)
+    # find by HCA ID
+    @user = User.find_by_hca_id(identity["id"]) unless identity["id"].blank?
+    # find by slack_id
+    @user ||= User.find_by_slack_uid(identity["slack_id"]) unless identity["slack_id"].blank?
+    # find by email
+    @user ||= begin
+                EmailAddress.find_by(email: identity["email"])&.user unless identity["email"].blank?
+              end
+
+    # update scopes if user exists
+    @user.update(hca_scopes: identity["scopes"], hca_id: identity["id"]) if @user
+
+    # if no user, create one
+    @user ||= begin
+                u = User.create!(hca_id: identity["id"], slack_uid: identity["slack_id"], hca_scopes: identity["scopes"])
+                EmailAddress.create!(email: identity["email"], user: u) unless identity["email"].blank?
+                u
+              end
   end
 
   def self.from_slack_token(code, redirect_uri)
