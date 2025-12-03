@@ -1,6 +1,7 @@
 ---
 # The authentication token for the application.
 authentication: SJGDElOyNN4OESRDxcL3qTgjIgJVyHnYCW6-XUddxgk
+disable_dev_warning: true
 ignored_endpoints:
   - SessionsController#impersonate
   - SessionsController#stop_impersonating
