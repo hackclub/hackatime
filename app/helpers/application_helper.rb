@@ -175,6 +175,8 @@ module ApplicationHelper
     case language.downcase
     when "typescript" then "TypeScript"
     when "javascript" then "JavaScript"
+    when "html" then "HTML"
+    when "css" then "CSS"
     when "json" then "JSON"
     when "sql" then "SQL"
     when "yaml" then "YAML"
