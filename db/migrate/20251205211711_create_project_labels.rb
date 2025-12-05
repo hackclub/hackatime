@@ -8,6 +8,6 @@ class CreateProjectLabels < ActiveRecord::Migration[8.1]
       t.timestamps
     end
     add_index :project_labels, :user_id
-    add_index :project_labels, [:user_id, :project_key], unique: true
+    add_index :project_labels, [ :user_id, :project_key ], unique: true
   end
 end
