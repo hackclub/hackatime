@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_02_221230) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_05_211711) do
   create_schema "pganalyze"
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
@@ -412,6 +412,16 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_02_221230) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_physical_mails_on_user_id"
+  end
+
+  create_table "project_labels", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label"
+    t.string "project_key"
+    t.datetime "updated_at", null: false
+    t.string "user_id"
+    t.index ["user_id", "project_key"], name: "index_project_labels_on_user_id_and_project_key", unique: true
+    t.index ["user_id"], name: "index_project_labels_on_user_id"
   end
 
   create_table "project_repo_mappings", force: :cascade do |t|
