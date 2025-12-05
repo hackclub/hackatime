@@ -19,7 +19,6 @@ class SessionsController < ApplicationController
 
     @user = User.from_hca_token(params[:code], redirect_uri)
 
-    # if @user&.persisted?
     if @user&.persisted?
       session[:user_id] = @user.id
 
@@ -27,7 +26,7 @@ class SessionsController < ApplicationController
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
-      redirect_to root_path, notice: "Successfully signed in with Slack! Welcome!"
+      redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
     else
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
     end
