@@ -143,6 +143,15 @@
           <% end %>
         <% end %>
         <% superadmin_tool(nil, "div") do %>
+          <%= link_to admin_deletion_requests_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(admin_deletion_requests_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+            Account Deletions
+            <% pending_count = DeletionRequest.pending.count %>
+            <% if pending_count > 0 %>
+              <span class="ml-1 px-2 py-0.5 text-xs rounded-full bg-primary text-white font-semibold"><%= pending_count %></span>
+            <% end %>
+          <% end %>
+        <% end %>
+        <% superadmin_tool(nil, "div") do %>
           <%= link_to ahoy_captain_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(ahoy_captain_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
             Ahoy Captain
           <% end %>
