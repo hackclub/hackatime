@@ -147,7 +147,7 @@ class User < ApplicationRecord
     return false if pending_deletion?
     return true unless red?
 
-    last_audit = trust_level_audit_logs.order(created_at: :desc).first
+    last_audit = trust_level_audit_logs.where(new_level: :red).order(created_at: :desc).first
     return true unless last_audit
 
     last_audit.created_at <= 365.days.ago
