@@ -5,6 +5,7 @@ class ApplicationController < ActionController::Base
   before_action :try_rack_mini_profiler_enable
   before_action :track_request
   before_action :set_public_activity
+  before_action :enforce_lockout
   after_action :track_action
 
   around_action :switch_time_zone, if: :current_user
@@ -62,6 +63,12 @@ class ApplicationController < ActionController::Base
     unless user_signed_in?
       redirect_to root_path, alert: "Please sign in first!"
     end
+  end
+
+  def enforce_lockout
+    return unless current_user&.pending_deletion?
+    return if %w[deletion_requests sessions].include?(controller_name)
+    redirect_to deletion_path
   end
 
   def initialize_cache_counters

@@ -118,6 +118,8 @@ class User < ApplicationRecord
 
   has_many :trust_level_audit_logs, dependent: :destroy
   has_many :trust_level_changes_made, class_name: "TrustLevelAuditLog", foreign_key: "changed_by_id", dependent: :destroy
+  has_many :deletion_requests, dependent: :destroy
+  has_many :deletion_approvals, class_name: "DeletionRequest", foreign_key: "admin_approved_by_id"
 
   has_many :access_grants,
            class_name: "Doorkeeper::AccessGrant",
@@ -131,6 +133,24 @@ class User < ApplicationRecord
 
   def streak_days
     @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
+  end
+
+  def active_deletion_request
+    deletion_requests.active.order(created_at: :desc).first
+  end
+
+  def pending_deletion?
+    active_deletion_request.present?
+  end
+
+  def can_request_deletion?
+    return false if pending_deletion?
+    return true unless red?
+
+    last_audit = trust_level_audit_logs.order(created_at: :desc).first
+    return true unless last_audit
+
+    last_audit.created_at <= 365.days.ago
   end
 
   if Rails.env.development?

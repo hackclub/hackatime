@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_05_211711) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
   create_schema "pganalyze"
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
@@ -114,6 +114,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_211711) do
     t.index ["repository_id"], name: "index_commits_on_repository_id"
     t.index ["user_id", "created_at"], name: "index_commits_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_commits_on_user_id"
+  end
+
+  create_table "deletion_requests", force: :cascade do |t|
+    t.datetime "admin_approved_at"
+    t.bigint "admin_approved_by_id"
+    t.datetime "cancelled_at"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "requested_at", null: false
+    t.datetime "scheduled_deletion_at"
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["status"], name: "index_deletion_requests_on_status"
+    t.index ["user_id", "status"], name: "index_deletion_requests_on_user_id_and_status"
+    t.index ["user_id"], name: "index_deletion_requests_on_user_id"
   end
 
   create_table "email_addresses", force: :cascade do |t|
@@ -609,6 +625,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_211711) do
   add_foreign_key "api_keys", "users"
   add_foreign_key "commits", "repositories"
   add_foreign_key "commits", "users"
+  add_foreign_key "deletion_requests", "users"
+  add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
   add_foreign_key "heartbeats", "raw_heartbeat_uploads"
