@@ -39,6 +39,12 @@ Rails.application.routes.draw do
 
       resources :trust_level_audit_logs, only: [ :index, :show ]
       resources :admin_api_keys, except: [ :edit, :update ]
+      resources :deletion_requests, only: [ :index, :show ] do
+        member do
+          post :approve
+          post :reject
+        end
+      end
     end
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
   end
@@ -123,6 +129,10 @@ Rails.application.routes.draw do
       end
     end
   end
+
+  get "deletion", to: "deletion_requests#show", as: :deletion
+  post "deletion", to: "deletion_requests#create", as: :create_deletion
+  delete "deletion", to: "deletion_requests#cancel", as: :cancel_deletion
 
   get "my/wakatime_setup", to: "users#wakatime_setup"
   get "my/wakatime_setup/step-2", to: "users#wakatime_setup_step_2"
