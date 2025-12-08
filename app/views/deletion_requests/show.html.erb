@@ -1,0 +1,77 @@
+<% content_for :title do %>
+  Account Deletion Pending
+<% end %>
+
+<% content_for :hide_nav, true %>
+
+<div class="flex items-center justify-center p-6">
+  <div class="max-w-2xl w-full space-y-6">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-white mb-2">Account Scheduled for Deletion</h1>
+      <p class="text-muted text-lg">Your account is scheduled to self-destruct soon.</p>
+    </header>
+
+    <div class="border border-primary rounded-xl p-6 bg-dark">
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-gray-300">Status</span>
+          <span class="px-3 py-1 rounded-full text-sm font-medium
+            <%= @deletion_request.approved? ? 'bg-green-600/20 text-green-400' : 'bg-yellow-600/20 text-yellow-400' %>">
+            <%= @deletion_request.status.humanize %>
+          </span>
+        </div>
+
+        <div class="flex items-center justify-between ">
+          <span class="text-gray-300">Requested</span>
+          <span class="text-white"><%= @deletion_request.requested_at.strftime("%B %d, %Y at %I:%M %p") %></span>
+        </div>
+
+        <% if @deletion_request.pending? %>
+          <div class="p-4 bg-yellow-900/30 border border-yellow-700 rounded">
+            <p class="text-yellow-200">
+              Your deletion request is pending approval. During this time, we will review your request and get back to you as soon as possible.
+            </p>
+          </div>
+        <% elsif @deletion_request.approved? %>
+          <div class="flex items-center justify-between">
+            <span class="text-gray-300">Deletion Date</span>
+            <span class="text-red-400 font-semibold">
+              <%= @deletion_request.scheduled_deletion_at.strftime("%B %d, %Y") %>
+              (<%= @deletion_request.days_until_deletion %> days remaining)
+            </span>
+          </div>
+
+          <div class="p-4 bg-red-900/30 border border-red-700 rounded">
+            <p class="text-red-200">
+              Your account will be permanently deleted on <%= @deletion_request.scheduled_deletion_at.strftime("%B %d, %Y") %>.
+              After deletion, your email address will be retained on file, but all other personal information will be removed or anonymized.
+            </p>
+          </div>
+        <% end %>
+
+        <h3 class="text-white font-medium mb-2">Important Information</h3>
+        <ul class="text-gray-300 text-sm space-y-2">
+          <li>• During the 30-day waiting period, you cannot upload data, download data, or use your account for Hack Club programs.</li>
+          <li>• You can cancel this request at any time before the deletion date.</li>
+          <li>• After deletion, your email address will be retained to prevent ban evasion.</li>
+        </ul>
+      </div>
+
+      <div class="mt-6 grid grid-cols-2 gap-3 items-center">
+        <%= link_to signout_path, method: :delete, class: "w-full inline-flex justify-center px-4 py-3 border border-gray-600 text-gray-300 hover:bg-darkless font-medium rounded text-center transition-colors duration-200" do %>
+          Return to Login
+        <% end %>
+
+        <% if @deletion_request.can_be_cancelled? %>
+          <%= button_to "I changed my mind",
+            cancel_deletion_path,
+            method: :delete,
+            form: { class: "w-full" },
+            class: "w-full px-4 py-3 bg-primary hover:bg-red-600 text-white font-medium rounded text-center transition-colors duration-200 cursor-pointer" %>
+        <% else %>
+          <div class="w-full"></div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

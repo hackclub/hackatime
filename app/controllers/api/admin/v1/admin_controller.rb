@@ -158,25 +158,34 @@ module Api
           user = find_user_by_id
           return unless user
 
-          projects = user.heartbeats
-                        .select(:project, "COUNT(*) as heartbeat_count")
-                        .where.not(project: nil)
-                        .group(:project)
-                        .order(Arel.sql("COUNT(*) DESC"))
+          base_heartbeats = user.heartbeats.where.not(project: nil)
 
-          project_data = projects.map do |heartbeat|
-            project_name = heartbeat.project
-            project_heartbeats = user.heartbeats.where(project: project_name)
+          project_stats = base_heartbeats
+            .select(
+              :project,
+              "COUNT(*) as heartbeat_count",
+              "MIN(time) as first_heartbeat",
+              "MAX(time) as last_heartbeat",
+              "ARRAY_AGG(DISTINCT language) FILTER (WHERE language IS NOT NULL) as languages"
+            )
+            .group(:project)
+            .order(Arel.sql("COUNT(*) DESC"))
 
-            repo_mapping = user.project_repo_mappings.find_by(project_name: project_name)
+          durations = base_heartbeats.group(:project).duration_seconds
 
+          repo_mappings = user.project_repo_mappings
+            .where(project_name: project_stats.map(&:project))
+            .index_by(&:project_name)
+
+          project_data = project_stats.map do |stat|
+            repo_mapping = repo_mappings[stat.project]
             {
-              name: project_name,
-              total_heartbeats: project_heartbeats.count,
-              total_duration: project_heartbeats.duration_seconds || 0,
-              first_heartbeat: project_heartbeats.minimum(:time),
-              last_heartbeat: project_heartbeats.maximum(:time),
-              languages: project_heartbeats.distinct.pluck(:language).compact,
+              name: stat.project,
+              total_heartbeats: stat.heartbeat_count,
+              total_duration: durations[stat.project] || 0,
+              first_heartbeat: stat.first_heartbeat,
+              last_heartbeat: stat.last_heartbeat,
+              languages: stat.languages || [],
               repo: repo_mapping&.repo_url,
               repo_mapping_id: repo_mapping&.id
             }

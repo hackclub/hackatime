@@ -12,73 +12,32 @@ class LeaderboardUpdateJob < ApplicationJob
 
   def perform(period = :daily, date = Date.current, force_update: false)
     date = LeaderboardDateRange.normalize_date(date, period)
-
-    # global
-    build_leaderboard(date, period, nil, nil, force_update)
-
-    # Build timezone leaderboards
-    range = LeaderboardDateRange.calculate(date, period)
-    timezones_for_users_in(range).each do |timezone|
-      offset = User.timezone_to_utc_offset(timezone)
-      build_leaderboard(date, period, offset, timezone, force_update)
-    end
+    build_leaderboard(date, period, force_update)
   end
 
   private
 
-  def timezones_for_users_in(range)
-    # Expand range by 1 day in both directions to catch users in all timezones
-    expanded_range = (range.begin - 1.day)...(range.end + 1.day)
-
-    User.joins(:heartbeats)
-        .where(heartbeats: { time: expanded_range })
-        .where.not(timezone: nil)
-        .distinct
-        .pluck(:timezone)
-        .compact
-  end
-
-
-  def build_leaderboard(date, period, timezone_offset = nil, timezone = nil, force_update = false)
+  def build_leaderboard(date, period, force_update = false)
     board = ::Leaderboard.find_or_create_by!(
       start_date: date,
       period_type: period,
-      timezone_utc_offset: timezone_offset
+      timezone_utc_offset: nil
     )
 
     return board if board.finished_generating_at.present? && !force_update
 
-    if timezone_offset
-      Rails.logger.info "Building timezone leaderboard for #{timezone} (UTC#{timezone_offset >= 0 ? '+' : ''}#{timezone_offset})"
-    else
-      Rails.logger.info "Building global leaderboard"
-    end
+    Rails.logger.info "Building leaderboard for #{period} on #{date}"
 
-    # Calculate timezone-aware range
-    range = if timezone
-      Time.use_zone(timezone) { LeaderboardDateRange.calculate(date, period) }
-    else
-      LeaderboardDateRange.calculate(date, period)
-    end
+    range = LeaderboardDateRange.calculate(date, period)
 
     ActiveRecord::Base.transaction do
-      board.entries.delete_all
-
       # Build the base heartbeat query
       heartbeat_query = Heartbeat.where(time: range)
-                                .with_valid_timestamps
-                                .joins(:user)
-                                .coding_only
-                                .where.not(users: { github_uid: nil })
-                                .where.not(users: { trust_level: User.trust_levels[:red] })
-
-      # Filter by timezone if specified
-      if timezone_offset
-        users_in_tz = User.users_in_timezone_offset(timezone_offset).not_convicted
-        user_ids = users_in_tz.pluck(:id)
-        return board if user_ids.empty?
-        heartbeat_query = heartbeat_query.where(user_id: user_ids)
-      end
+                                 .with_valid_timestamps
+                                 .joins(:user)
+                                 .coding_only
+                                 .where.not(users: { github_uid: nil })
+                                 .where.not(users: { trust_level: User.trust_levels[:red] })
 
       data = heartbeat_query.group(:user_id).duration_seconds
                             .filter { |_, seconds| seconds > 60 }
@@ -96,18 +55,22 @@ class LeaderboardUpdateJob < ApplicationJob
         }
       end
 
-      LeaderboardEntry.insert_all!(entries) if entries.any?
+      LeaderboardEntry.upsert_all(entries, unique_by: %i[leaderboard_id user_id]) if entries.any?
+
+      if data.keys.any?
+        board.entries.where.not(user_id: data.keys).delete_all
+      else
+        board.entries.delete_all
+      end
+
       board.update!(finished_generating_at: Time.current)
     end
 
     # Cache the board
-    cache_key = timezone_offset ?
-      LeaderboardCache.timezone_key(timezone_offset, date, period) :
-      LeaderboardCache.global_key(period, date)
-
+    cache_key = LeaderboardCache.global_key(period, date)
     LeaderboardCache.write(cache_key, board)
 
-    Rails.logger.debug "Persisted #{timezone_offset ? 'timezone' : 'global'} leaderboard with #{board.entries.count} entries"
+    Rails.logger.debug "Persisted leaderboard for #{period} with #{board.entries.count} entries"
 
     board
   end

@@ -175,10 +175,20 @@ module ApplicationHelper
     case language.downcase
     when "typescript" then "TypeScript"
     when "javascript" then "JavaScript"
+    when "html" then "HTML"
+    when "css" then "CSS"
     when "json" then "JSON"
     when "sql" then "SQL"
     when "yaml" then "YAML"
     else language.capitalize
     end
+  end
+
+  def modal_open_button(modal_id, text, **options)
+    button_tag text, {
+      type: "button",
+      data: { action: "click->modal#open" },
+      onclick: "document.getElementById('#{modal_id}').querySelector('[data-controller=\"modal\"]').dispatchEvent(new CustomEvent('modal:open', { bubbles: true }))"
+    }.merge(options)
   end
 end

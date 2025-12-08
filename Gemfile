@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.2"
+gem "rails", "~> 8.1.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use sqlite3 as the database for Active Record
@@ -37,8 +37,6 @@ gem "solid_cable"
 gem "stackprof"
 gem "sentry-ruby"
 gem "sentry-rails"
-# Trying out sentry alternative
-gem "honeybadger"
 
 gem "good_job"
 
@@ -90,8 +88,10 @@ gem "ahoy_matey"
 gem "geocoder"
 gem "ahoy_captain", git: "https://github.com/johnmcdowall/ahoy_captain.git", branch: "fix_importmaps"
 
+gem "pagy", "~> 43.2"
+
 # Airtable syncing
-gem "norairrecord", "~> 0.4.1"
+gem "norairrecord", "~> 0.5.1"
 
 # Country codes
 gem "countries"
@@ -112,6 +112,9 @@ group :development, :test do
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
+
+  # ERB linting [https://github.com/Shopify/erb_lint]
+  gem "erb_lint", require: false
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false

@@ -129,6 +129,19 @@ module Heartbeatable
       ).group_by { |row| row["user_id"] }
        .transform_values do |rows|
          timezone = rows.first["user_timezone"]
+
+         if timezone.blank?
+           Rails.logger.warn "nil tz, going to utc."
+           timezone = "UTC"
+         else
+           begin
+             TZInfo::Timezone.get(timezone)
+           rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
+             Rails.logger.warn "Invalid timezone for streak calculation: #{timezone}. Defaulting to UTC."
+             timezone = "UTC"
+           end
+         end
+
          current_date = Time.current.in_time_zone(timezone).to_date
          {
            current_date: current_date,

@@ -163,20 +163,56 @@
           <%= f.label :allow_public_stats_lookup, "Allow public stats lookup",
               class: "text-sm text-gray-200" %>
         </div>
-        <p class="text-xs text-gray-400">When enabled, others can view your coding statistics through public APIs.</p>
+        <p class="text-xs text-gray-400">When enabled, others can view your coding statistics through public APIs. Many Hack Club YSWS programs use this to track your progress. Disabling this can prevent you from participating in some programs.</p>
         <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
+
+      <div class="border-t border-gray-700 pt-4 mt-4 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-red-600/10 rounded">
+            <span class="text-2xl">🗑️</span>
+          </div>
+          <h3 class="text-lg font-semibold text-white" id="delete_account">Delete Account</h3>
+        </div>
+
+        <% if @user.can_request_deletion? %>
+          <p class="text-gray-300 text-sm">
+            Permanently delete your account and all associated data. This action cannot be undone after the 30-day grace period.
+          </p>
+          <button type="button"
+                  data-controller="account-deletion"
+                  data-action="click->account-deletion#confirm"
+                  class="w-full px-4 py-2 bg-primary text-white font-medium rounded cursor-pointer">
+            Request Account Deletion
+          </button>
+        <% else %>
+          <p class="text-white text-sm">
+            Due to your account standing, you cannot request account deletion at this time. Reach out in #hackatime-v2 if this is a mistake.
+          </p>
+        <% end %>
+      </div>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
         <div class="p-2 bg-red-600/10 rounded">
-          <span class="text-2xl">🏆</span>
+          <span class="text-2xl">🔑</span>
         </div>
-        <h2 class="text-xl font-semibold text-white" id="user_beta_features">Leaderboard Settings</h2>
+        <h2 class="text-xl font-semibold text-white" id="user_api_key">API Key</h2>
       </div>
-      <p class="text-gray-300 text-sm mb-4">Customize how you see the leaderboard</p>
-      <%= render "timezone_leaderboard_toggle", user: @user %>
+
+      <div class="space-y-4">
+        <p class="text-gray-300 text-sm">
+          Your API key is used to authenticate requests from your code editor. If your key has been compromised, you can rotate it to generate a new one. Rotating your API key will immediately invalidate your old key. You'll need to update the key in all of your code editors and IDEs.
+        </p>
+
+        <button type="button"
+                data-controller="api-key-rotation"
+                data-action="click->api-key-rotation#confirm"
+                class="w-full px-4 py-2 bg-primary hover:bg-red text-white font-medium rounded transition-colors duration-200 cursor-pointer">
+          Rotate API Key
+        </button>
+      </div>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 md:col-span-2">
@@ -415,7 +451,7 @@
                 <div class="text-sm text-gray-300">Total Coding Time</div>
               </div>
             </div>
-            <div class="bg-gray-800 border border-gray-600 rounded p-4">  
+            <div class="bg-gray-800 border border-gray-600 rounded p-4">
               <div class="text-center">
                 <div class="text-2xl font-bold text-primary mb-1"><%= @user.heartbeats.where("time >= ?", 7.days.ago.to_f).count %></div>
                 <div class="text-sm text-gray-300">Heartbeats in the Last 7 Days</div>
@@ -448,7 +484,7 @@
 
               <%= link_to "#",
                   class: "w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
-                  data: { 
+                  data: {
                     controller: "heartbeat-export",
                     action: "click->heartbeat-export#handleExport"
                   } do %>
@@ -480,14 +516,14 @@
               <%= form_with url: import_my_heartbeats_path, method: :post, multipart: true, local: true, class: "space-y-4" do |form| %>
                 <div>
                   <label class="block text-sm font-medium text-gray-300 mb-2">Select JSON File</label>
-                  <%= form.file_field :heartbeat_file, 
+                  <%= form.file_field :heartbeat_file,
                       accept: ".json,application/json",
                       class: "w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-red transition-colors",
                       required: true %>
                 </div>
 
                 <div class="flex gap-3">
-                  <%= form.submit "Import Heartbeats", 
+                  <%= form.submit "Import Heartbeats",
                       class: "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center gap-2",
                       data: { confirm: "Are you sure you want to import heartbeats? This will add new data to your account." } %>
                 </div>
@@ -539,3 +575,71 @@
     <% end %>
   </div>
 </div>
+
+<div data-controller="api-key-rotation">
+  <%= render "shared/modal",
+    modal_id: "api-key-confirm-modal",
+    title: "Rotate API Key?",
+    description: "Your old key will be immediately invalidated and you'll need to update it in all your applications.",
+    icon_svg: '<path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>',
+    icon_color: "text-primary",
+    buttons: [
+      {
+        text: "Cancel",
+        class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+        action: "click->modal#close"
+      },
+      {
+        text: "Rotate Now",
+        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        action: "click->api-key-rotation#rotate"
+      }
+    ] %>
+
+  <%= render "shared/modal",
+    modal_id: "api-key-success-modal",
+    title: "New API Key Generated",
+    description: "Your old API key has been invalidated. Update your editor configuration with this new key:",
+    icon_svg: '<path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>',
+    icon_color: "text-green-500",
+    max_width: "max-w-lg",
+    buttons: [
+      {
+        text: "Close",
+        class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+        action: "click->modal#close"
+      },
+      {
+        text: "Copy Key",
+        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        action: "click->api-key-rotation#copyKey"
+      }
+    ],
+    custom: '<div class="w-full mb-4"><div class="bg-darker rounded-lg p-3"><code id="new-api-key-display" class="text-sm text-white break-all" data-token=""></code></div></div>' %>
+</div>
+
+
+<% if @user.can_request_deletion? %>
+<div data-controller="account-deletion">
+  <%= render "shared/modal",
+    modal_id: "account-deletion-confirm-modal",
+    title: "Delete Your Account?",
+    description: "This will permanently delete your account after a 30 day waiting period. During this time, you won't be able to use your account for any Hack Club programs.",
+    icon_svg: '<path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',
+    icon_color: "text-primary",
+    buttons: [
+      {
+        text: "Cancel",
+        class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+        action: "click->modal#close"
+      },
+      {
+        text: "Delete My Account",
+        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        form: true,
+        url: create_deletion_path,
+        method: "post"
+      }
+    ] %>
+    </div>
+<% end %>

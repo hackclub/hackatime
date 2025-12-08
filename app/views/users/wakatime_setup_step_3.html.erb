@@ -25,153 +25,159 @@
       <h2 class="text-3xl font-bold mb-4">Install Plugin!</h2>
     </div>
 
-    <section id="vs-code" class="bg-dark rounded-lg p-6 mb-6">
-      <h3 class="text-2xl font-bold text-blue mb-4">💻 VS Code (Visual Studio Code)</h3>
-      <div class="space-y-6">
-        <p class="text-lg">
-          Install the <a href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime" target="_blank" rel="noopener noreferrer" class="text-cyan hover:text-blue underline">WakaTime extension from the marketplace</a>.
-        </p>
+    <% if params[:editor] == "vscode" %>
+      <section id="vs-code" class="bg-dark rounded-lg p-6 mb-6">
+        <h3 class="text-2xl font-bold text-blue mb-4">💻 VS Code (Visual Studio Code)</h3>
+        <div class="space-y-6">
+          <p class="text-lg">
+            Install the <a href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime" target="_blank" rel="noopener noreferrer" class="text-cyan hover:text-blue underline">WakaTime extension from the marketplace</a>.
+          </p>
 
-        <div class="bg-blue/10 border border-blue/30 rounded-lg p-4">
-          <h4 class="font-bold mb-2">Step-by-step:</h4>
-          <ol class="list-decimal list-inside space-y-1">
-            <li>Open VS Code</li>
-            <li>Click the Extensions icon (squares) on the left sidebar</li>
-            <li>Search for "WakaTime"</li>
-            <li>Click <strong>Install</strong> on the WakaTime extension</li>
-            <li>Restart VS Code if prompted</li>
-          </ol>
-        </div>
+          <div class="bg-blue/10 border border-blue/30 rounded-lg p-4">
+            <h4 class="font-bold mb-2">Step-by-step:</h4>
+            <ol class="list-decimal list-inside space-y-1">
+              <li>Open VS Code</li>
+              <li>Click the Extensions icon (squares) on the left sidebar</li>
+              <li>Search for "WakaTime"</li>
+              <li>Click <strong>Install</strong> on the WakaTime extension</li>
+              <li>Restart VS Code if prompted</li>
+            </ol>
+          </div>
 
-        <div>
-          <p class="text-lg mb-4">You'll know it works if you see a clock in your status bar:</p>
           <div>
-            <img src="https://hc-cdn.hel1.your-objectstorage.com/s/v3/95d2513ce4b0c1c147827d17ecb4c24540cd73cc_p.png" alt="WakaTime status bar in VS Code" class="max-w-full h-auto rounded-lg">
+            <p class="text-lg mb-4">You'll know it works if you see a clock in your status bar:</p>
+            <div>
+              <img src="https://hc-cdn.hel1.your-objectstorage.com/s/v3/95d2513ce4b0c1c147827d17ecb4c24540cd73cc_p.png" alt="WakaTime status bar in VS Code" class="max-w-full h-auto rounded-lg">
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="vim" class="bg-dark rounded-lg p-6 mb-6">
-      <h3 class="text-2xl font-bold text-green mb-4">📟 Vim</h3>
-      <div class="space-y-6">
-        <p class="text-lg">
-          Install the WakaTime plugin using your preferred plugin manager:
-        </p>
+    <% elsif params[:editor] == "vim" %>
+      <section id="vim" class="bg-dark rounded-lg p-6 mb-6">
+        <h3 class="text-2xl font-bold text-green mb-4">📟 Vim</h3>
+        <div class="space-y-6">
+          <p class="text-lg">
+            Install the WakaTime plugin using your preferred plugin manager:
+          </p>
 
-        <div class="space-y-4">
-          <div class="bg-green/10 border border-green/30 rounded-lg p-4">
-            <h4 class="font-bold mb-2">Using vim-plug:</h4>
-            <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>Plug 'wakatime/vim-wakatime'</code></pre>
-            <p class="text-sm mt-2">Then run <code class="bg-darkless px-1 rounded text-cyan">:PlugInstall</code></p>
-          </div>
+          <div class="space-y-4">
+            <div class="bg-green/10 border border-green/30 rounded-lg p-4">
+              <h4 class="font-bold mb-2">Using vim-plug:</h4>
+              <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>Plug 'wakatime/vim-wakatime'</code></pre>
+              <p class="text-sm mt-2">Then run <code class="bg-darkless px-1 rounded text-cyan">:PlugInstall</code></p>
+            </div>
 
-          <div class="bg-green/10 border border-green/30 rounded-lg p-4">
-            <h4 class="font-bold mb-2">Using Vundle:</h4>
-            <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>Plugin 'wakatime/vim-wakatime'</code></pre>
-            <p class="text-sm mt-2">Then run <code class="bg-darkless px-1 rounded text-cyan">:PluginInstall</code></p>
-          </div>
+            <div class="bg-green/10 border border-green/30 rounded-lg p-4">
+              <h4 class="font-bold mb-2">Using Vundle:</h4>
+              <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>Plugin 'wakatime/vim-wakatime'</code></pre>
+              <p class="text-sm mt-2">Then run <code class="bg-darkless px-1 rounded text-cyan">:PluginInstall</code></p>
+            </div>
 
-          <div class="bg-green/10 border border-green/30 rounded-lg p-4">
-            <h4 class="font-bold mb-2">Manual installation:</h4>
-            <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>cd ~/.vim/bundle
-git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="emacs" class="bg-dark rounded-lg p-6 mb-6">
-      <h3 class="text-2xl font-bold text-purple mb-4">🔮 Emacs</h3>
-      <div class="space-y-6">
-        <p class="text-lg">
-          Install the WakaTime package using your preferred method:
-        </p>
-
-        <div class="space-y-4">
-          <div class="bg-purple/10 border border-purple/30 rounded-lg p-4">
-            <h4 class="font-bold mb-2">Using MELPA:</h4>
-            <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>M-x package-install RET wakatime-mode RET</code></pre>
-            <p class="text-sm mt-2">Then add to your config: <code class="bg-darkless px-1 rounded text-cyan">(global-wakatime-mode)</code></p>
-          </div>
-
-          <div class="bg-purple/10 border border-purple/30 rounded-lg p-4">
-            <h4 class="font-bold mb-2">Using use-package:</h4>
-            <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>(use-package wakatime-mode
-  :ensure t
-  :config
-  (global-wakatime-mode))</code></pre>
+            <div class="bg-green/10 border border-green/30 rounded-lg p-4">
+              <h4 class="font-bold mb-2">Manual installation:</h4>
+              <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>cd ~/.vim/bundle
+  git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="godot" class="bg-dark rounded-lg p-6 mb-6">
-      <h3 class="text-2xl font-bold text-cyan mb-4">🎮 Godot</h3>
-      <div class="space-y-6">
-        <p class="text-lg">
-          Follow our comprehensive <a href="/docs/editors/godot" class="text-cyan hover:text-blue underline">Godot & Hackatime Setup guide</a> with video tutorial!
-        </p>
+    <% elsif params[:editor] == "emacs" %>
+      <section id="emacs" class="bg-dark rounded-lg p-6 mb-6">
+        <h3 class="text-2xl font-bold text-purple mb-4">🔮 Emacs</h3>
+        <div class="space-y-6">
+          <p class="text-lg">
+            Install the WakaTime package using your preferred method:
+          </p>
 
-        <div class="bg-cyan/10 border border-cyan/30 rounded-lg p-4">
-          <h4 class="font-bold mb-2">Quick steps:</h4>
-          <ol class="list-decimal list-inside space-y-1 text-sm">
-            <li>Open your Godot project</li>
-            <li>Go to the <strong>AssetLib</strong> tab</li>
-            <li>Search for <strong>"Godot Super Wakatime"</strong></li>
-            <li>Click <strong>Download</strong> and <strong>Install</strong></li>
-            <li>Enable in <strong>Project → Project Settings → Plugins</strong></li>
-          </ol>
-          <p class="text-sm mt-3 text-cyan">
-            📺 <a href="https://www.youtube.com/watch?v=a938RgsBzNg&t=29s" target="_blank" class="underline">Watch the workshop recording</a> for a complete walkthrough!
+          <div class="space-y-4">
+            <div class="bg-purple/10 border border-purple/30 rounded-lg p-4">
+              <h4 class="font-bold mb-2">Using MELPA:</h4>
+              <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>M-x package-install RET wakatime-mode RET</code></pre>
+              <p class="text-sm mt-2">Then add to your config: <code class="bg-darkless px-1 rounded text-cyan">(global-wakatime-mode)</code></p>
+            </div>
+
+            <div class="bg-purple/10 border border-purple/30 rounded-lg p-4">
+              <h4 class="font-bold mb-2">Using use-package:</h4>
+              <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>(use-package wakatime-mode
+    :ensure t
+    :config
+    (global-wakatime-mode))</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    <% elsif params[:editor] == "godot" %>
+      <section id="godot" class="bg-dark rounded-lg p-6 mb-6">
+        <h3 class="text-2xl font-bold text-cyan mb-4">🎮 Godot</h3>
+        <div class="space-y-6">
+          <p class="text-lg">
+            Follow our comprehensive <a href="/docs/editors/godot" class="text-cyan hover:text-blue underline">Godot & Hackatime Setup guide</a> with video tutorial!
+          </p>
+
+          <div class="bg-cyan/10 border border-cyan/30 rounded-lg p-4">
+            <h4 class="font-bold mb-2">Quick steps:</h4>
+            <ol class="list-decimal list-inside space-y-1 text-sm">
+              <li>Open your Godot project</li>
+              <li>Go to the <strong>AssetLib</strong> tab</li>
+              <li>Search for <strong>"Godot Super Wakatime"</strong></li>
+              <li>Click <strong>Download</strong> and <strong>Install</strong></li>
+              <li>Enable in <strong>Project → Project Settings → Plugins</strong></li>
+            </ol>
+            <p class="text-sm mt-3 text-cyan">
+              📺 <a href="https://www.youtube.com/watch?v=a938RgsBzNg&t=29s" target="_blank" class="underline">Watch the workshop recording</a> for a complete walkthrough!
+            </p>
+          </div>
+
+          <div class="bg-yellow/10 border border-yellow/30 rounded-lg p-4">
+            <p class="text-yellow text-sm">
+              <strong>Note:</strong> You need to install the plugin for each Godot project separately (it's a Godot limitation).
+            </p>
+          </div>
+        </div>
+      </section>
+
+    <% else %>
+      <section class="bg-dark rounded-lg p-6 mb-6">
+        <h3 class="text-2xl font-bold text-orange mb-4">🔧 Setup your Editor</h3>
+        <div class="bg-orange/10 border border-orange/30 rounded-lg p-4 mb-4">
+          <p class="mb-4">
+            <strong>Hackatime works with any editor that supports WakaTime!</strong> This includes PyCharm, IntelliJ, Sublime Text, Atom, Neovim, Unity, Godot, and <a href="https://hackatime.hackclub.com/docs#supported-editors" class="text-cyan hover:text-blue underline">77+ more editors</a>.
           </p>
         </div>
 
-        <div class="bg-yellow/10 border border-yellow/30 rounded-lg p-4">
-          <p class="text-yellow text-sm">
-            <strong>Note:</strong> You need to install the plugin for each Godot project separately (it's a Godot limitation).
-          </p>
-        </div>
-      </div>
-    </section>
+        <div class="space-y-4">
+          <div>
+            <h4 class="font-bold mb-2 text-lg">Popular Editors:</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <a href="/docs/editors/pycharm" class="flex items-center gap-3 bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-colors">
+                <img src="/images/editor-icons/pycharm-128.png" alt="PyCharm" class="w-8 h-8">
+                <span>PyCharm</span>
+              </a>
+              <a href="/docs/editors/sublime-text" class="flex items-center gap-3 bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-colors">
+                <img src="/images/editor-icons/sublime-text-128.png" alt="Sublime Text" class="w-8 h-8">
+                <span>Sublime Text</span>
+              </a>
+              <a href="/docs/editors/unity" class="flex items-center gap-3 bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-colors">
+                <img src="/images/editor-icons/unity-128.png" alt="Unity" class="w-8 h-8">
+                <span>Unity</span>
+              </a>
+              <a href="/docs/editors/neovim" class="flex items-center gap-3 bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-colors">
+                <img src="/images/editor-icons/neovim-128.png" alt="Neovim" class="w-8 h-8">
+                <span>Neovim</span>
+              </a>
+            </div>
+          </div>
 
-    <section class="bg-dark rounded-lg p-6 mb-6">
-      <h3 class="text-2xl font-bold text-orange mb-4">🔧 Other Editors</h3>
-      <div class="bg-orange/10 border border-orange/30 rounded-lg p-4 mb-4">
-        <p class="mb-4">
-          <strong>Hackatime works with any editor that supports WakaTime!</strong> This includes PyCharm, IntelliJ, Sublime Text, Atom, Neovim, Unity, Godot, and <a href="https://hackatime.hackclub.com/docs#supported-editors" class="text-cyan hover:text-blue underline">77+ more editors</a>.
-        </p>
-      </div>
-      
-      <div class="space-y-4">
-        <div>
-          <h4 class="font-bold mb-2 text-lg">Popular Editors:</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <a href="/docs/editors/pycharm" class="flex items-center gap-3 bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-colors">
-              <img src="/images/editor-icons/pycharm-128.png" alt="PyCharm" class="w-8 h-8">
-              <span>PyCharm</span>
-            </a>
-            <a href="/docs/editors/sublime-text" class="flex items-center gap-3 bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-colors">
-              <img src="/images/editor-icons/sublime-text-128.png" alt="Sublime Text" class="w-8 h-8">
-              <span>Sublime Text</span>
-            </a>
-            <a href="/docs/editors/unity" class="flex items-center gap-3 bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-colors">
-              <img src="/images/editor-icons/unity-128.png" alt="Unity" class="w-8 h-8">
-              <span>Unity</span>
-            </a>
-            <a href="/docs/editors/neovim" class="flex items-center gap-3 bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-colors">
-              <img src="/images/editor-icons/neovim-128.png" alt="Neovim" class="w-8 h-8">
-              <span>Neovim</span>
-            </a>
+          <div class="bg-yellow/10 border border-yellow/30 rounded-lg p-4">
+            <p class="text-yellow font-bold mb-2">⚠️ Important:</p>
+            <p>When setting up WakaTime plugins, <strong>skip any steps that ask you to update ~/.wakatime.cfg</strong> or change the api_url. The setup script from Step 1 already configured this correctly!</p>
           </div>
         </div>
-
-        <div class="bg-yellow/10 border border-yellow/30 rounded-lg p-4">
-          <p class="text-yellow font-bold mb-2">⚠️ Important:</p>
-          <p>When setting up WakaTime plugins, <strong>skip any steps that ask you to update ~/.wakatime.cfg</strong> or change the api_url. The setup script from Step 1 already configured this correctly!</p>
-        </div>
-      </div>
-    </section>
+      </section>
+    <% end %>
 
     <div class="flex gap-4 flex-wrap justify-center">
       <%= link_to my_wakatime_setup_step_4_path, class: "bg-primary hover:bg-red text-white px-6 py-3 rounded-lg font-semibold transition-colors" do %>
@@ -180,15 +186,3 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
     </div>
   </div>
 </div>
-
-<script>
-  function autoScroll() {
-    const editor = window.location.hash.replace("#", "");
-    if (!editor) { return }
-    const section = document.getElementById(editor);
-    if (!section) { return }
-    section.scrollIntoView({ behavior: "smooth" });
-    section.classList.add('auto-scroll')
-  }
-  autoScroll();
-</script>

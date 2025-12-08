@@ -1,0 +1,131 @@
+<div class="max-w-6xl mx-auto p-6 space-y-6">
+  <header class="text-center mb-8">
+    <h1 class="text-4xl font-bold text-white mb-2">gdpr nerds</h1>
+  </header>
+
+  <div class="border border-primary rounded-xl p-6 bg-dark">
+    <h2 class="text-2xl font-semibold text-yellow-400 mb-4">approval queue (<%= @pending.count %>)</h2>
+    <% if @pending.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-gray-700">
+              <th class="py-3 px-4">goober</th>
+              <th class="py-3 px-4">email</th>
+              <th class="py-3 px-4">date</th>
+              <th class="py-3 px-4">trust</th>
+              <th class="py-3 px-4">exec</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @pending.each do |request| %>
+              <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-2">
+                    <img src="<%= request.user.avatar_url %>" alt="Avatar" class="w-8 h-8 rounded-full">
+                    <span class="text-white"><%= request.user.display_name %></span>
+                  </div>
+                </td>
+                <td class="py-3 px-4 text-gray-300"><%= request.user.email_addresses.first&.email || "N/A" %></td>
+                <td class="py-3 px-4 text-gray-300"><%= time_ago_in_words(request.requested_at) %> ago</td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-1 rounded text-xs font-medium
+                    <%= case request.user.trust_level
+                        when 'green' then 'bg-green-600/20 text-green-400'
+                        when 'yellow' then 'bg-yellow-600/20 text-yellow-400'
+                        when 'red' then 'bg-red-600/20 text-red-400'
+                        else 'bg-blue-600/20 text-blue-400'
+                        end %>">
+                    <%= request.user.trust_level %>
+                  </span>
+                </td>
+                <td class="py-3 px-4">
+                  <div class="flex gap-2">
+                    <%= button_to "yuh", approve_admin_deletion_request_path(request),
+                        method: :post,
+                        class: "px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded transition-colors cursor-pointer" %>
+                    <%= button_to "nah", reject_admin_deletion_request_path(request),
+                        method: :post,
+                        class: "px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
+                        data: { confirm: "yo " } %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-gray-400">nuthing here</p>
+    <% end %>
+  </div>
+
+  <div class="border border-primary rounded-xl p-6 bg-dark">
+    <h2 class="text-2xl font-semibold text-red-400 mb-4">accounts waiting to go kerblam (<%= @approved.count %>)</h2>
+    <% if @approved.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-gray-700">
+              <th class="py-3 px-4">goober</th>
+              <th class="py-3 px-4">approver</th>
+              <th class="py-3 px-4">approved</th>
+              <th class="py-3 px-4">exploded</th>
+              <th class="py-3 px-4">eta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @approved.each do |request| %>
+              <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-2">
+                    <img src="<%= request.user.avatar_url %>" alt="Avatar" class="w-8 h-8 rounded-full">
+                    <span class="text-white"><%= request.user.display_name %></span>
+                  </div>
+                </td>
+                <td class="py-3 px-4 text-gray-300"><%= request.admin_approved_by&.display_name || "N/A" %></td>
+                <td class="py-3 px-4 text-gray-300"><%= request.admin_approved_at&.strftime("%b %d, %Y") %></td>
+                <td class="py-3 px-4 text-red-400"><%= request.scheduled_deletion_at&.strftime("%b %d, %Y") %></td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-1 rounded text-xs font-medium bg-red-600/20 text-red-400">
+                    <%= request.days_until_deletion %> days
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-gray-400">nuthing here</p>
+    <% end %>
+  </div>
+
+  <div class="border border-primary rounded-xl p-6 bg-dark">
+    <h2 class="text-2xl font-semibold text-gray-400 mb-4">recently kerblamed</h2>
+    <% if @done.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-gray-700">
+              <th class="py-3 px-4">goober</th>
+              <th class="py-3 px-4">approver</th>
+              <th class="py-3 px-4">kerblamed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @done.each do |request| %>
+              <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+                <td class="py-3 px-4 text-gray-300">#<%= request.user_id %></td>
+                <td class="py-3 px-4 text-gray-300"><%= request.admin_approved_by&.display_name || "N/A" %></td>
+                <td class="py-3 px-4 text-gray-300"><%= request.completed_at&.strftime("%b %d, %Y at %I:%M %p") %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-gray-400">nuthing here</p>
+    <% end %>
+  </div>
+</div>

@@ -97,28 +97,10 @@ class StaticPagesController < ApplicationController
   end
 
   def mini_leaderboard
-    use_timezone_leaderboard = current_user&.default_timezone_leaderboard
-
-    if use_timezone_leaderboard && current_user&.timezone_utc_offset
-      # we now doing it by default wooo
-      @leaderboard = LeaderboardService.get(
-        period: :daily,
-        date: Date.current,
-        offset: current_user.timezone_utc_offset
-      )
-
-      if @leaderboard&.entries&.empty?
-        Rails.logger.warn "[MiniLeaderboard] Regional leaderboard empty for offset #{current_user.timezone_utc_offset}"
-        @leaderboard = nil
-      end
-    end
-
-    if @leaderboard.nil?
-      @leaderboard = LeaderboardService.get(
-        period: :daily,
-        date: Date.current
-      )
-    end
+    @leaderboard = LeaderboardService.get(
+      period: :daily,
+      date: Date.current
+    )
 
     @active_projects = Cache::ActiveProjectsJob.perform_now
 
@@ -263,6 +245,21 @@ class StaticPagesController < ApplicationController
     filters.each do |filter|
       cache_key << params[filter]
     end
+
+  def dashboard
+    @project          = Project.distinct.pluck(:name)
+    @language         = Language.distinct.pluck(:name)
+    @operating_system = OperatingSystem.distinct.pluck(:name)
+    @editor           = Editor.distinct.pluck(:name)
+    @category         = Category.distinct.pluck(:name)
+
+    # Parse filter selections from params for initial load and deep-linking
+    @selected_project          = params[:project]&.split(",") || []
+    @selected_language         = params[:language]&.split(",") || []
+    @selected_operating_system = params[:operating_system]&.split(",") || []
+    @selected_editor           = params[:editor]&.split(",") || []
+    @selected_category         = params[:category]&.split(",") || []
+  end
 
     filtered_heartbeats = current_user.heartbeats
     # Load filter options and apply filters with caching

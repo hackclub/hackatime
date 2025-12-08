@@ -177,22 +177,22 @@
   </head>
 
   <body class="<%= content_for(:body_class) %> flex min-h-screen bg-darker" data-controller="nav">
-    <button class="mobile-nav-button"
-            data-action="click->nav#toggle"
-            data-nav-target="button"
-            aria-label="Toggle navigation menu"
-            aria-expanded="false">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </button>
-
-    <div class="nav-overlay" data-nav-target="overlay" data-action="click->nav#close"></div>
-
-    <%= render "shared/nav" %>
+    <% unless content_for?(:hide_nav) %>
+      <button class="mobile-nav-button"
+              data-action="click->nav#toggle"
+              data-nav-target="button"
+              aria-label="Toggle navigation menu"
+              aria-expanded="false">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <div class="nav-overlay" data-nav-target="overlay" data-action="click->nav#close"></div>
+      <%= render "shared/nav" %>
+    <% end %>
 
     <!-- 250px is defined in nav.css -->
-    <main class="flex-1 lg:ml-[250px] lg:max-w-[calc(100%-250px)] p-5 mb-[100px] pt-16 lg:pt-5 transition-all duration-300 ease-in-out">
+    <main class="flex-1 <%= 'lg:ml-[250px] lg:max-w-[calc(100%-250px)]' unless content_for?(:hide_nav) %> p-5 mb-[100px] pt-16 lg:pt-5 transition-all duration-300 ease-in-out">
       <%= yield %>
       <footer class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-gray-600 hover:text-gray-300 transition-colors duration-200">
         <div class="container">
@@ -231,31 +231,25 @@
       <div data-currently-hacking-target="content" style="display: none;">
       </div>
     </div>
-
-    <div id="logout-modal" class="fixed inset-0 flex items-center justify-center z-[9999] opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out hidden" style="background-color: rgba(0, 0, 0, 0.5);backdrop-filter: blur(4px);">
-      <div class="bg-dark border border-primary rounded-lg p-6 max-w-md w-full mx-4 flex flex-col items-center justify-center transform scale-95 transition-transform duration-300 ease-in-out">
-        <div class="flex flex-col items-center w-full">
-          <div class="mb-4 flex justify-center w-full">
-            <svg class="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M5 5h6c.55 0 1-.45 1-1s-.45-1-1-1H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h6c.55 0 1-.45 1-1s-.45-1-1-1H5z" /><path fill="currentColor" d="m20.65 11.65l-2.79-2.79a.501.501 0 0 0-.86.35V11h-7c-.55 0-1 .45-1 1s.45 1 1 1h7v1.79c0 .45.54.67.85.35l2.79-2.79c.2-.19.2-.51.01-.7" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-white mb-2 text-center w-full">Woah hold on a sec</h3>
-          <p class="text-gray-300 mb-6 text-center w-full">You sure you want to sign out? You can sign back in later but that is a bit of a hassle...</p>
-          <div class="flex w-full h-[40px] gap-3">
-            <button id="cancel-logout" class="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-darkless transition-colors duration-200 cursor-pointer m-0 h-[40px]">
-              nevermind
-            </button>
-            <form method="post" action="<%= signout_path %>" class="flex-1">
-              <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-              <input type="hidden" name="_method" value="delete">
-              <button type="submit" class="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-red-600 transition-colors duration-200 font-medium cursor-pointer m-0 h-[40px]">
-                get me outta here
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+    <%= render "shared/modal",
+      modal_id: "logout-modal",
+      title: "Woah hold on a sec",
+      description: "You sure you want to sign out? You can sign back in later but that is a bit of a hassle...",
+      icon_svg: '<path fill="currentColor" d="M5 5h6c.55 0 1-.45 1-1s-.45-1-1-1H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h6c.55 0 1-.45 1-1s-.45-1-1-1H5z" /><path fill="currentColor" d="m20.65 11.65l-2.79-2.79a.501.501 0 0 0-.86.35V11h-7c-.55 0-1 .45-1 1s.45 1 1 1h7v1.79c0 .45.54.67.85.35l2.79-2.79c.2-.19.2-.51.01-.7" />',
+      icon_color: "text-primary",
+      buttons: [
+        {
+          text: "Go back",
+          class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+          action: "click->modal#close"
+        },
+        {
+          text: "Log out now",
+          class: "bg-primary text-white hover:bg-red-600 font-medium",
+          form: true,
+          url: signout_path,
+          method: "delete"
+        }
+      ] %>
   </body>
 </html>

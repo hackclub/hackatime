@@ -23,14 +23,6 @@ class UsersController < ApplicationController
         prepare_settings_page
         render :edit, status: :unprocessable_entity
       end
-    elsif params[:default_timezone_leaderboard].present?
-      if @user.update(default_timezone_leaderboard: params[:default_timezone_leaderboard] == "1")
-        redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
-          notice: "Settings updated successfully!"
-      else
-        flash[:error] = "Failed to update settings :("
-        redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user)
-      end
     else
       redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
         notice: "Settings updated successfully!"
@@ -42,6 +34,19 @@ class UsersController < ApplicationController
 
     redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
       notice: "Heartbeats & api keys migration started"
+  end
+
+  def rotate_api_key
+    @user.api_keys.transaction do
+      @user.api_keys.destroy_all
+
+      new_api_key = @user.api_keys.create!(name: "Hackatime key")
+
+      render json: { token: new_api_key.token }, status: :ok
+    end
+  rescue => e
+    Rails.logger.error("error rotate #{e.class.name} #{e.message}")
+    render json: { error: "cant rotate" }, status: :unprocessable_entity
   end
 
   def wakatime_setup
@@ -152,7 +157,6 @@ class UsersController < ApplicationController
       :hackatime_extension_text_type,
       :timezone,
       :allow_public_stats_lookup,
-      :default_timezone_leaderboard,
       :username,
     )
   end

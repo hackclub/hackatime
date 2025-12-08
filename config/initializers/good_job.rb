@@ -32,12 +32,6 @@ Rails.application.configure do
       args: [ :daily ],
       kwargs: { force_update: true }
     },
-    weekly_leaderboard_update: {
-      cron: "*/2 * * * *",
-      class: "LeaderboardUpdateJob",
-      args: [ :weekly ],
-      kwargs: { force_update: true }
-    },
     last_7_days_leaderboard_update: {
       cron: "*/7 * * * *",
       class: "LeaderboardUpdateJob",
@@ -137,6 +131,11 @@ Rails.application.configure do
     cleanup_successful_jobs: {
       cron: "0 0 * * *",
       class: "CleanupSuccessfulJobsJob"
+    },
+    process_account_deletions: {
+      cron: "0 2 * * *",
+      class: "ProcessAccountDeletionsJob",
+      description: "nuke accounts after 30 days"
     }
     # sync_stale_repo_metadata: {
     #   cron: "0 4 * * *", # Daily at 4 AM

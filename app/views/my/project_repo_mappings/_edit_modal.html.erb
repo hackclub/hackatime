@@ -1,0 +1,51 @@
+<%
+  modal_id = "edit-project-modal-#{project[:project]&.parameterize || 'unknown'}"
+  form_id = "edit-project-form-#{project[:project]&.parameterize || 'unknown'}"
+  project_name = project[:project]
+  repo_url = project[:repo_url] || ""
+  form_content = capture do
+%>
+  <%= form_with model: ProjectRepoMapping.new,
+    url: my_project_repo_mapping_path(CGI.escape(project_name)),
+    method: :patch,
+    local: true,
+    id: form_id,
+    class: "w-full space-y-4" do |f| %>
+    <div class="space-y-2">
+      <%= f.label :project_name, "Project Name", class: "block text-sm font-semibold text-white" %>
+      <%= f.text_field :project_name,
+        value: project_name,
+        disabled: true,
+        class: "w-full px-4 py-3 bg-darkless text-secondary border border-darkless rounded-lg cursor-not-allowed" %>
+      <p class="text-xs text-gray-400">Project name cannot be changed.</p>
+    </div>
+
+    <div class="space-y-2 mb-4">
+      <%= f.label :repo_url, "Repository URL", class: "block text-sm font-semibold text-white" %>
+      <%= f.url_field :repo_url,
+        value: repo_url,
+        placeholder: "https://github.com/username/repo",
+        class: "w-full px-4 py-3 bg-darkless text-white border border-darkless rounded-lg focus:border-primary focus:outline-none transition-colors" %>
+    </div>
+  <% end %>
+<% end %>
+
+<%= render "shared/modal",
+  modal_id: modal_id,
+  title: "Edit Project Mapping",
+  description: "We try to autodetect your Git repository, but you can manually specify it if needed.",
+  max_width: "max-w-lg",
+  custom: form_content,
+  buttons: [
+    {
+      text: "Cancel",
+      class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+      action: "click->modal#close"
+    },
+    {
+      text: "Update Project",
+      class: "bg-primary text-white hover:bg-red font-medium",
+      form: true,
+      form_id: form_id
+    }
+  ] %>

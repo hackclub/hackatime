@@ -43,6 +43,11 @@
             <% end %>
           </div>
           <div>
+            <%= link_to extensions_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(extensions_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+              Extensions
+            <% end %>
+          </div>
+          <div>
             <%= link_to "/what-is-hackatime", class: "block px-2 py-1 rounded-lg transition #{current_page?('/what-is-hackatime') ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
               What is Hackatime?
             <% end %>
@@ -59,15 +64,15 @@
               Docs
             <% end %>
           </div>
-          <% superadmin_tool(nil, "div") do %>
-            <%= link_to my_mailing_address_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(my_mailing_address_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
-              Mailing Address
-            <% end %>
-          <% end %>
           <div>
-            <%= link_to my_mailroom_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(my_mailroom_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
-              Mailroom
+            <%= link_to extensions_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(extensions_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+              Extensions
             <% end %>
+          </div>
+          <div>
+            <%# link_to my_mailroom_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(my_mailroom_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+<!--              Mailroom-->
+            <%# end %>
           </div>
           <div>
             <%= link_to my_settings_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(my_settings_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
@@ -76,6 +81,7 @@
           </div>
             <div>
             <button
+              type="button"
               onclick="showLogout()"
               class="w-full text-left cursor-pointer block px-2 py-1 rounded-lg transition hover:text-primary"
               style="display: block; padding: 10px 15px; border-radius: 6px; transition: background-color 0.15s, color 0.15s; text-decoration: none;"
@@ -133,6 +139,15 @@
           <% viewer_tool(nil, "div") do %>
             <%= link_to admin_admin_api_keys_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(admin_admin_api_keys_path) || request.path.start_with?('/admin/admin_api_keys') ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
               Admin API Keys
+            <% end %>
+          <% end %>
+        <% end %>
+        <% superadmin_tool(nil, "div") do %>
+          <%= link_to admin_deletion_requests_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(admin_deletion_requests_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+            Account Deletions
+            <% pending_count = DeletionRequest.pending.count %>
+            <% if pending_count > 0 %>
+              <span class="ml-1 px-2 py-0.5 text-xs rounded-full bg-primary text-white font-semibold"><%= pending_count %></span>
             <% end %>
           <% end %>
         <% end %>
