@@ -15,6 +15,11 @@ class EmailAddress < ApplicationRecord
 
   before_validation :downcase_email
 
+  def can_unlink?
+    # only allow unlinking if signin email
+    self.source_signing_in?
+  end
+
   private
 
   def downcase_email
