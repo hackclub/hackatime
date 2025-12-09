@@ -16,8 +16,7 @@ class EmailAddress < ApplicationRecord
   before_validation :downcase_email
 
   def can_unlink?
-    # only allow unlinking if signin email
-    self.source_signing_in?
+    !(self.source_github? || self.source_slack? || self.source_preserved_for_deletion?)
   end
 
   private
