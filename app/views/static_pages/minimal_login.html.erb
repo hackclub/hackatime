@@ -3,24 +3,24 @@
 <div class="fixed inset-0 flex items-center justify-center bg-darker">
   <div class="w-full max-w-md px-6 py-8">
     <header class="text-center mb-8">
-      <h1 class="font-bold text-3xl text-white">Log in to Hackatime</h1>
+      <h1 class="font-bold text-3xl text-white">Welcome to Hackatime</h1>
     </header>
 
-    <%= link_to slack_auth_path(continue: @continue_param), class: "inline-flex items-center justify-center w-full px-6 py-3 rounded text-white font-bold bg-primary hover:bg-red-600 transition-colors" do %>
-      <img src="/images/slack.png" class="h-5 w-5 mr-2 bg-white rounded p-0.5">
-      <span>Sign in with Hack Club Slack</span>
+    <%= link_to hca_auth_path(continue: @continue_param), class: "inline-flex items-center justify-center w-full px-6 py-3 rounded text-white font-bold bg-primary hover:bg-red-600 transition-colors" do %>
+      <img src="/images/icon-rounded.png" class="h-6 w-6 mr-2">
+      <span>Sign in with your Hack Club account</span>
     <% end %>
 
     <div class="flex items-center my-4">
-      <div class="flex-1 border-t border-gray-600"></div>
+      <div class="flex-1 border-t border-darkless"></div>
       <span class="px-4 text-gray-400 text-sm">or</span>
-      <div class="flex-1 border-t border-gray-600"></div>
+      <div class="flex-1 border-t border-darkless"></div>
     </div>
 
     <%= form_tag email_auth_path, class: "relative", data: { turbo: false } do %>
       <%= hidden_field_tag :continue, @continue_param if @continue_param %>
       <div class="relative">
-        <%= email_field_tag :email, params[:email], placeholder: "Enter your email", required: true, class: "w-full px-3 py-3 pr-12 border border-gray-600 rounded text-base bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" %>
+        <%= email_field_tag :email, params[:email], placeholder: "Enter your email", required: true, class: "w-full px-3 py-3 pr-12 border border-darkless bg-dark hover:bg-gray-600 placeholder-gray-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" %>
         <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 p-1 bg-blue-600 hover:bg-blue-700 rounded cursor-pointer border-none flex items-center justify-center transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5"><path fill="currentColor" d="M13.3 20.275q-.3-.3-.3-.7t.3-.7L16.175 16H7q-.825 0-1.412-.587T5 14V5q0-.425.288-.712T6 4t.713.288T7 5v9h9.175l-2.9-2.9q-.3-.3-.288-.7t.288-.7q.3-.3.7-.312t.7.287L19.3 14.3q.15.15.212.325t.063.375t-.063.375t-.212.325l-4.575 4.575q-.3.3-.712.3t-.713-.3" /></svg>
         </button>
