@@ -172,6 +172,40 @@ class SessionsController < ApplicationController
     redirect_to my_settings_path, alert: "Failed to add email: #{e.record.errors.full_messages.join(', ')}"
   end
 
+  def unlink_email
+    unless current_user
+      redirect_to root_path, alert: "Please sign in first to unlink an email"
+      return
+    end
+
+    email = params[:email].downcase
+
+    email_record = current_user.email_addresses.find_by(
+      email: email
+    )
+
+    unless email_record
+      redirect_to my_settings_path, alert: "Email must exist to be unlinked"
+      return
+    end
+
+    unless current_user.can_delete_email_address?(email_record)
+      redirect_to my_settings_path, alert: "Email must be registered for signing in to unlink"
+      return
+    end
+
+    email_verification_request = current_user.email_verification_requests.find_by(
+      email: email
+    )
+
+    email_record.destroy!
+    email_verification_request.destroy
+
+    redirect_to my_settings_path, notice: "Email unlinked!"
+  rescue ActiveRecord::RecordNotDestroyed => e
+    redirect_to my_settings_path, alert: "Failed to unlink email: #{e.record.errors.full_messages.join(', ')}"
+  end
+
   def token
     verification_request = EmailVerificationRequest.valid.find_by(token: params[:token])
 

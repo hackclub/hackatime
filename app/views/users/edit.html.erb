@@ -245,11 +245,21 @@
           <% if @user.email_addresses.any? %>
             <div class="space-y-2">
               <% @user.email_addresses.each do |email| %>
-                <div class="flex items-center gap-2 p-2 bg-gray-800 border border-gray-600 rounded">
-                  <span class="text-gray-300 text-sm"><%= email.email %></span>
-                  <span class="text-xs px-2 py-1 bg-gray-700 text-gray-200 rounded">
-                    <%= email.source&.humanize || "Unknown" %>
-                  </span>
+                <div class="flex gap-2 items-center">
+                  <div class="flex items-center gap-2 p-2 bg-gray-800 border border-gray-600 rounded grow">
+                    <span class="text-gray-300 text-sm"><%= email.email %></span>
+                    <span class="text-xs px-2 py-1 bg-gray-700 text-gray-200 rounded">
+                      <%= email.source&.humanize || "Unknown" %>
+                    </span>
+                  </div>
+                  <% if @user.can_delete_email_address?(email) %>
+                    <%= form_with url: unlink_email_auth_path,
+                      method: :delete,
+                      class: "space-y-4" do |f| %>
+                      <%= f.hidden_field :email, value: email.email %>
+                      <%= f.submit "Unlink!", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+                    <% end %>
+                  <% end %>
                 </div>
               <% end %>
             </div>

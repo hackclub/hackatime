@@ -153,6 +153,15 @@ class User < ApplicationRecord
     last_audit.created_at <= 365.days.ago
   end
 
+  def can_delete_emails?
+    # don't let user delete emails if email count is <= 1
+    email_addresses.size > 1
+  end
+
+  def can_delete_email_address?(email)
+    email.can_unlink? && can_delete_emails?
+  end
+
   if Rails.env.development?
     def self.slow_find_by_email(email)
       # This is an n+1 query, but provided for developer convenience
