@@ -22,7 +22,7 @@ Rails.application.routes.draw do
     mount AhoyCaptain::Engine => "/ahoy_captain"
     mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
 
-    get "/my/mailing_address", to: "my/mailing_address#show", as: :my_mailing_address
+    # get "/my/mailing_address", to: "my/mailing_address#show", as: :my_mailing_address
   end
 
   constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer) do
@@ -39,6 +39,12 @@ Rails.application.routes.draw do
 
       resources :trust_level_audit_logs, only: [ :index, :show ]
       resources :admin_api_keys, except: [ :edit, :update ]
+      resources :deletion_requests, only: [ :index, :show ] do
+        member do
+          post :approve
+          post :reject
+        end
+      end
     end
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
   end
@@ -75,13 +81,16 @@ Rails.application.routes.draw do
   get "/what-is-hackatime", to: "static_pages#what_is_hackatime"
 
   # Auth routes
-  get "/auth/slack", to: "sessions#new", as: :slack_auth
-  get "/auth/slack/callback", to: "sessions#create"
+  get "/auth/hca", to: "sessions#hca_new", as: :hca_auth
+  get "/auth/hca/callback", to: "sessions#hca_create"
+  get "/auth/slack", to: "sessions#slack_new", as: :slack_auth
+  get "/auth/slack/callback", to: "sessions#slack_create"
   get "/auth/github", to: "sessions#github_new", as: :github_auth
   get "/auth/github/callback", to: "sessions#github_create"
   delete "/auth/github/unlink", to: "sessions#github_unlink", as: :github_unlink
   post "/auth/email", to: "sessions#email", as: :email_auth
   post "/auth/email/add", to: "sessions#add_email", as: :add_email_auth
+  delete "/auth/email/unlink", to: "sessions#unlink_email", as: :unlink_email_auth
   get "/auth/token/:token", to: "sessions#token", as: :auth_token
   get "/auth/close_window", to: "sessions#close_window", as: :close_window
   delete "signout", to: "sessions#destroy", as: "signout"
@@ -113,8 +122,8 @@ Rails.application.routes.draw do
 
   namespace :my do
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }
-    resource :mailing_address, only: [ :show, :edit ]
-    get "mailroom", to: "mailroom#index"
+    # resource :mailing_address, only: [ :show, :edit ]
+    # get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
       collection do
         get :export
@@ -122,6 +131,10 @@ Rails.application.routes.draw do
       end
     end
   end
+
+  get "deletion", to: "deletion_requests#show", as: :deletion
+  post "deletion", to: "deletion_requests#create", as: :create_deletion
+  delete "deletion", to: "deletion_requests#cancel", as: :cancel_deletion
 
   get "my/wakatime_setup", to: "users#wakatime_setup"
   get "my/wakatime_setup/step-2", to: "users#wakatime_setup_step_2"
@@ -206,4 +219,10 @@ Rails.application.routes.draw do
 
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
+
+  # fuck ups
+  match "/400", to: "errors#bad_request", via: :all
+  match "/404", to: "errors#not_found", via: :all
+  match "/422", to: "errors#unprocessable_entity", via: :all
+  match "/500", to: "errors#internal_server_error", via: :all
 end

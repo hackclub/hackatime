@@ -8,7 +8,7 @@ class User < ApplicationRecord
 
   after_create :create_signup_activity
   before_validation :normalize_username
-  encrypts :slack_access_token, :github_access_token
+  encrypts :slack_access_token, :github_access_token, :hca_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
   validates :github_uid, uniqueness: { conditions: -> { where.not(github_access_token: nil) } }, allow_nil: true
@@ -118,6 +118,8 @@ class User < ApplicationRecord
 
   has_many :trust_level_audit_logs, dependent: :destroy
   has_many :trust_level_changes_made, class_name: "TrustLevelAuditLog", foreign_key: "changed_by_id", dependent: :destroy
+  has_many :deletion_requests, dependent: :destroy
+  has_many :deletion_approvals, class_name: "DeletionRequest", foreign_key: "admin_approved_by_id"
 
   has_many :access_grants,
            class_name: "Doorkeeper::AccessGrant",
@@ -131,6 +133,33 @@ class User < ApplicationRecord
 
   def streak_days
     @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
+  end
+
+  def active_deletion_request
+    deletion_requests.active.order(created_at: :desc).first
+  end
+
+  def pending_deletion?
+    active_deletion_request.present?
+  end
+
+  def can_request_deletion?
+    return false if pending_deletion?
+    return true unless red?
+
+    last_audit = trust_level_audit_logs.where(new_trust_level: :red).order(created_at: :desc).first
+    return true unless last_audit
+
+    last_audit.created_at <= 365.days.ago
+  end
+
+  def can_delete_emails?
+    # don't let user delete emails if email count is <= 1
+    email_addresses.size > 1
+  end
+
+  def can_delete_email_address?(email)
+    email.can_unlink? && can_delete_emails?
   end
 
   if Rails.env.development?
@@ -209,11 +238,22 @@ class User < ApplicationRecord
   end
 
   def parse_and_set_timezone(timezone)
-    begin
-      tz = ActiveSupport::TimeZone.find_tzinfo(timezone)
-      self.timezone = tz.name
-    rescue TZInfo::InvalidTimezoneIdentifier => e
-      Rails.logger.error "Invalid timezone #{timezone} for user #{id}: #{e.message}"
+    as_tz = ActiveSupport::TimeZone[timezone]
+
+    unless as_tz
+      begin
+        tzinfo = TZInfo::Timezone.get(timezone)
+        as_tz = ActiveSupport::TimeZone.all.find do |z|
+          z.tzinfo.identifier == tzinfo.identifier
+        end
+      rescue TZInfo::InvalidTimezoneIdentifier
+      end
+    end
+
+    if as_tz
+      self.timezone = as_tz.name
+    else
+      Rails.logger.error "Invalid timezone #{timezone} for user #{id}"
     end
   end
 
@@ -316,7 +356,18 @@ class User < ApplicationRecord
       })
   end
 
-  def self.authorize_url(redirect_uri, close_window: false, continue_param: nil)
+  def self.hca_authorize_url(redirect_uri)
+    params = {
+      redirect_uri:,
+      client_id: ENV["HCA_CLIENT_ID"],
+      response_type: "code",
+      scope: "email slack_id verification_status"
+    }
+
+    URI.parse("#{HCAService.host}/oauth/authorize?#{params.to_query}")
+  end
+
+  def self.slack_authorize_url(redirect_uri, close_window: false, continue_param: nil)
     state = {
       token: SecureRandom.hex(24),
       close_window: close_window,
@@ -342,6 +393,53 @@ class User < ApplicationRecord
     }
 
     URI.parse("https://github.com/login/oauth/authorize?#{params.to_query}")
+  end
+
+  def self.from_hca_token(code, redirect_uri)
+    # Exchange code for token
+    response = HTTP.post("#{HCAService.host}/oauth/token", form: {
+      client_id: ENV["HCA_CLIENT_ID"],
+      client_secret: ENV["HCA_CLIENT_SECRET"],
+      redirect_uri: redirect_uri,
+      code: code,
+      grant_type: "authorization_code"
+    })
+
+    data = JSON.parse(response.body.to_s)
+
+    access_token = data["access_token"]
+    return nil if access_token.nil?
+
+    # get user info
+    hca_data = ::HCAService.me(access_token)
+    identity = hca_data["identity"]
+    # find by HCA ID
+    @user = User.find_by_hca_id(identity["id"]) unless identity["id"].blank?
+    # find by slack_id
+    @user ||= User.find_by_slack_uid(identity["slack_id"]) unless identity["slack_id"].blank?
+    # find by email
+    @user ||= begin
+                EmailAddress.find_by(email: identity["primary_email"])&.user unless identity["primary_email"].blank?
+              end
+
+    # update scopes etc if user exists
+    @user.update(
+      hca_scopes: hca_data["scopes"],
+      hca_id: identity["id"],
+      hca_access_token: access_token
+    ) if !!@user
+
+    # if no user, create one
+    @user ||= begin
+                u = User.create!(
+                  hca_id: identity["id"],
+                  slack_uid: identity["slack_id"],
+                  hca_scopes: hca_data["scopes"],
+                  hca_access_token: access_token,
+                )
+                EmailAddress.create!(email: identity["primary_email"], user: u) unless identity["primary_email"].blank?
+                u
+              end
   end
 
   def self.from_slack_token(code, redirect_uri)

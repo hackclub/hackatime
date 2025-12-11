@@ -131,6 +131,11 @@ Rails.application.configure do
     cleanup_successful_jobs: {
       cron: "0 0 * * *",
       class: "CleanupSuccessfulJobsJob"
+    },
+    process_account_deletions: {
+      cron: "0 2 * * *",
+      class: "ProcessAccountDeletionsJob",
+      description: "nuke accounts after 30 days"
     }
     # sync_stale_repo_metadata: {
     #   cron: "0 4 * * *", # Daily at 4 AM

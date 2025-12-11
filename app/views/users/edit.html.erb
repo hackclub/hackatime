@@ -166,6 +166,31 @@
         <p class="text-xs text-gray-400">When enabled, others can view your coding statistics through public APIs. Many Hack Club YSWS programs use this to track your progress. Disabling this can prevent you from participating in some programs.</p>
         <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
+
+      <div class="border-t border-gray-700 pt-4 mt-4 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-red-600/10 rounded">
+            <span class="text-2xl">🗑️</span>
+          </div>
+          <h3 class="text-lg font-semibold text-white" id="delete_account">Delete Account</h3>
+        </div>
+
+        <% if @user.can_request_deletion? %>
+          <p class="text-gray-300 text-sm">
+            Permanently delete your account and all associated data. This action cannot be undone after the 30-day grace period.
+          </p>
+          <button type="button"
+                  data-controller="account-deletion"
+                  data-action="click->account-deletion#confirm"
+                  class="w-full px-4 py-2 bg-primary text-white font-medium rounded cursor-pointer">
+            Request Account Deletion
+          </button>
+        <% else %>
+          <p class="text-white text-sm">
+            Due to your account standing, you cannot request account deletion at this time. Reach out in #hackatime-v2 if this is a mistake.
+          </p>
+        <% end %>
+      </div>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
@@ -220,11 +245,21 @@
           <% if @user.email_addresses.any? %>
             <div class="space-y-2">
               <% @user.email_addresses.each do |email| %>
-                <div class="flex items-center gap-2 p-2 bg-gray-800 border border-gray-600 rounded">
-                  <span class="text-gray-300 text-sm"><%= email.email %></span>
-                  <span class="text-xs px-2 py-1 bg-gray-700 text-gray-200 rounded">
-                    <%= email.source&.humanize || "Unknown" %>
-                  </span>
+                <div class="flex gap-2 items-center">
+                  <div class="flex items-center gap-2 p-2 bg-gray-800 border border-gray-600 rounded grow">
+                    <span class="text-gray-300 text-sm"><%= email.email %></span>
+                    <span class="text-xs px-2 py-1 bg-gray-700 text-gray-200 rounded">
+                      <%= email.source&.humanize || "Unknown" %>
+                    </span>
+                  </div>
+                  <% if @user.can_delete_email_address?(email) %>
+                    <%= form_with url: unlink_email_auth_path,
+                      method: :delete,
+                      class: "space-y-4" do |f| %>
+                      <%= f.hidden_field :email, value: email.email %>
+                      <%= f.submit "Unlink!", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+                    <% end %>
+                  <% end %>
                 </div>
               <% end %>
             </div>
@@ -592,3 +627,29 @@
     ],
     custom: '<div class="w-full mb-4"><div class="bg-darker rounded-lg p-3"><code id="new-api-key-display" class="text-sm text-white break-all" data-token=""></code></div></div>' %>
 </div>
+
+
+<% if @user.can_request_deletion? %>
+<div data-controller="account-deletion">
+  <%= render "shared/modal",
+    modal_id: "account-deletion-confirm-modal",
+    title: "Delete Your Account?",
+    description: "This will permanently delete your account after a 30 day waiting period. During this time, you won't be able to use your account for any Hack Club programs.",
+    icon_svg: '<path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',
+    icon_color: "text-primary",
+    buttons: [
+      {
+        text: "Cancel",
+        class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+        action: "click->modal#close"
+      },
+      {
+        text: "Delete My Account",
+        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        form: true,
+        url: create_deletion_path,
+        method: "post"
+      }
+    ] %>
+    </div>
+<% end %>

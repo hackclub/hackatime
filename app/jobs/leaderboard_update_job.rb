@@ -31,8 +31,6 @@ class LeaderboardUpdateJob < ApplicationJob
     range = LeaderboardDateRange.calculate(date, period)
 
     ActiveRecord::Base.transaction do
-      board.entries.delete_all
-
       # Build the base heartbeat query
       heartbeat_query = Heartbeat.where(time: range)
                                  .with_valid_timestamps
@@ -57,7 +55,14 @@ class LeaderboardUpdateJob < ApplicationJob
         }
       end
 
-      LeaderboardEntry.insert_all!(entries) if entries.any?
+      LeaderboardEntry.upsert_all(entries, unique_by: %i[leaderboard_id user_id]) if entries.any?
+
+      if data.keys.any?
+        board.entries.where.not(user_id: data.keys).delete_all
+      else
+        board.entries.delete_all
+      end
+
       board.update!(finished_generating_at: Time.current)
     end
 

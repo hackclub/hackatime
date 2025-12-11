@@ -37,8 +37,6 @@ gem "solid_cable"
 gem "stackprof"
 gem "sentry-ruby"
 gem "sentry-rails"
-# Trying out sentry alternative
-gem "honeybadger"
 
 gem "good_job"
 
@@ -90,7 +88,7 @@ gem "ahoy_matey"
 gem "geocoder"
 gem "ahoy_captain", git: "https://github.com/johnmcdowall/ahoy_captain.git", branch: "fix_importmaps"
 
-gem "pagy", "~> 43.1"
+gem "pagy", "~> 43.2"
 
 # Airtable syncing
 gem "norairrecord", "~> 0.5.1"

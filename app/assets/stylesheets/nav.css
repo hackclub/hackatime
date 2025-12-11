@@ -5,8 +5,6 @@ body {
 
 main {
   flex: 1;
-  margin-left: 250px;
-  max-width: calc(100% - 250px);
   padding: 20px;
   margin-bottom: 100px;
   transition: margin-left 0.3s ease, max-width 0.3s ease;

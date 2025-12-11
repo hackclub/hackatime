@@ -10,9 +10,8 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_16_045500) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
   create_schema "pganalyze"
-
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -115,6 +114,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_045500) do
     t.index ["repository_id"], name: "index_commits_on_repository_id"
     t.index ["user_id", "created_at"], name: "index_commits_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_commits_on_user_id"
+  end
+
+  create_table "deletion_requests", force: :cascade do |t|
+    t.datetime "admin_approved_at"
+    t.bigint "admin_approved_by_id"
+    t.datetime "cancelled_at"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "requested_at", null: false
+    t.datetime "scheduled_deletion_at"
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["status"], name: "index_deletion_requests_on_status"
+    t.index ["user_id", "status"], name: "index_deletion_requests_on_user_id_and_status"
+    t.index ["user_id"], name: "index_deletion_requests_on_user_id"
   end
 
   create_table "email_addresses", force: :cascade do |t|
@@ -415,6 +430,16 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_045500) do
     t.index ["user_id"], name: "index_physical_mails_on_user_id"
   end
 
+  create_table "project_labels", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label"
+    t.string "project_key"
+    t.datetime "updated_at", null: false
+    t.string "user_id"
+    t.index ["user_id", "project_key"], name: "index_project_labels_on_user_id_and_project_key", unique: true
+    t.index ["user_id"], name: "index_project_labels_on_user_id"
+  end
+
   create_table "project_repo_mappings", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "project_name", null: false
@@ -551,6 +576,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_045500) do
     t.string "github_uid"
     t.string "github_username"
     t.integer "hackatime_extension_text_type", default: 0, null: false
+    t.string "hca_access_token"
+    t.string "hca_id"
+    t.string "hca_scopes", default: [], array: true
     t.string "mailing_address_otc"
     t.text "slack_access_token"
     t.string "slack_avatar_url"
@@ -568,6 +596,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_045500) do
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"
+    t.index ["username"], name: "index_users_on_username"
   end
 
   create_table "versions", force: :cascade do |t|
@@ -596,6 +625,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_045500) do
   add_foreign_key "api_keys", "users"
   add_foreign_key "commits", "repositories"
   add_foreign_key "commits", "users"
+  add_foreign_key "deletion_requests", "users"
+  add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
   add_foreign_key "heartbeats", "raw_heartbeat_uploads"

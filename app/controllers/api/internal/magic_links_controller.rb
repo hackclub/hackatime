@@ -41,7 +41,7 @@ module Api
             existing:
           }
         rescue => e
-          Honeybadger.notify(e, context: { slack_uid: slack_uid, email: email, params: params.to_unsafe_h })
+          Sentry.capture_exception(e, extra: { slack_uid: slack_uid, email: email, params: params.to_unsafe_h })
           render json: { error: "internal error creating magic link" }, status: 500
         end
       end

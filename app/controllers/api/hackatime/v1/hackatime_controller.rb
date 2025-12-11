@@ -1,6 +1,8 @@
 class Api::Hackatime::V1::HackatimeController < ApplicationController
   before_action :set_user
   skip_before_action :verify_authenticity_token
+  skip_before_action :enforce_lockout
+  before_action :check_lockout, only: [ :push_heartbeats ]
   before_action :set_raw_heartbeat_upload, only: [ :push_heartbeats ], if: :is_blank?
 
   def push_heartbeats
@@ -307,6 +309,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   rescue => e
     # never raise an error here because it will break the heartbeat flow
     Rails.logger.error("Error queuing heartbeat public activity: #{e.class.name} #{e.message}")
+  end
+
+  def check_lockout
+    return unless @user&.pending_deletion?
+    render json: { error: "Account pending deletion" }, status: :forbidden
   end
 
   def set_user

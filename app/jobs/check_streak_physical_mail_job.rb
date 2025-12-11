@@ -14,8 +14,14 @@ class CheckStreakPhysicalMailJob < ApplicationJob
 
     over_7_day_streaks = streaks.select { |_, streak| streak > 7 }.keys
 
+    existing_user_ids = PhysicalMail.going_out
+                                    .where(mission_type: :first_time_7_streak)
+                                    .where(user_id: over_7_day_streaks)
+                                    .pluck(:user_id)
+                                    .to_set
+
     over_7_day_streaks.each do |user_id|
-      next if PhysicalMail.going_out.exists?(user_id: user_id, mission_type: :first_time_7_streak)
+      next if existing_user_ids.include?(user_id)
 
       user = User.find(user_id)
 

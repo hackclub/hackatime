@@ -1,19 +1,52 @@
 class SessionsController < ApplicationController
-  def new
-    redirect_uri = url_for(action: :create, only_path: false)
+  def hca_new
+    redirect_uri = url_for(action: :hca_create, only_path: false)
+
+    redirect_to User.hca_authorize_url(redirect_uri),
+      host: "https://auth.hackclub.com",
+      allow_other_host: "https://auth.hackclub.com"
+  end
+
+  def hca_create
+    if params[:error].present?
+      Rails.logger.error "Slack OAuth error: #{params[:error]}"
+      Sentry.capture_message("Slack OAuth error: #{params[:error]}")
+      redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
+      return
+    end
+
+    redirect_uri = url_for(action: :hca_create, only_path: false)
+
+    @user = User.from_hca_token(params[:code], redirect_uri)
+
+    if @user&.persisted?
+      session[:user_id] = @user.id
+
+      if @user.data_migration_jobs.empty?
+        MigrateUserFromHackatimeJob.perform_later(@user.id)
+      end
+
+      redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+    else
+      redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
+    end
+  end
+
+  def slack_new
+    redirect_uri = url_for(action: :slack_create, only_path: false)
     Rails.logger.info "Starting Slack OAuth flow with redirect URI: #{redirect_uri}"
-    redirect_to User.authorize_url(redirect_uri, close_window: params[:close_window].present?, continue_param: params[:continue]),
+    redirect_to User.slack_authorize_url(redirect_uri, close_window: params[:close_window].present?, continue_param: params[:continue]),
                 host: "https://slack.com",
                 allow_other_host: "https://slack.com"
   end
 
-  def create
-    redirect_uri = url_for(action: :create, only_path: false)
+  def slack_create
+    redirect_uri = url_for(action: :slack_create, only_path: false)
 
     if params[:error].present?
       Rails.logger.error "Slack OAuth error: #{params[:error]}"
-      uuid = Honeybadger.notify("Slack OAuth error: #{params[:error]}")
-      redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{uuid}"
+      Sentry.capture_message("Slack OAuth error: #{params[:error]}")
+      redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
       return
     end
 
@@ -67,8 +100,8 @@ class SessionsController < ApplicationController
 
     if params[:error].present?
       Rails.logger.error "GitHub OAuth error: #{params[:error]}"
-      uuid = Honeybadger.notify("GitHub OAuth error: #{params[:error]}")
-      redirect_to my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{uuid}"
+      Sentry.capture_message("GitHub OAuth error: #{params[:error]}")
+      redirect_to my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{Sentry.last_event_id}"
       return
     end
 
@@ -137,6 +170,40 @@ class SessionsController < ApplicationController
     redirect_to my_settings_path, notice: "Check your email to verify the new address!"
   rescue ActiveRecord::RecordInvalid => e
     redirect_to my_settings_path, alert: "Failed to add email: #{e.record.errors.full_messages.join(', ')}"
+  end
+
+  def unlink_email
+    unless current_user
+      redirect_to root_path, alert: "Please sign in first to unlink an email"
+      return
+    end
+
+    email = params[:email].downcase
+
+    email_record = current_user.email_addresses.find_by(
+      email: email
+    )
+
+    unless email_record
+      redirect_to my_settings_path, alert: "Email must exist to be unlinked"
+      return
+    end
+
+    unless current_user.can_delete_email_address?(email_record)
+      redirect_to my_settings_path, alert: "Email must be registered for signing in to unlink"
+      return
+    end
+
+    email_verification_request = current_user.email_verification_requests.find_by(
+      email: email
+    )
+
+    email_record.destroy!
+    email_verification_request&.destroy
+
+    redirect_to my_settings_path, notice: "Email unlinked!"
+  rescue ActiveRecord::RecordNotDestroyed => e
+    redirect_to my_settings_path, alert: "Failed to unlink email: #{e.record.errors.full_messages.join(', ')}"
   end
 
   def token
