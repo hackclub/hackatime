@@ -199,7 +199,7 @@ class SessionsController < ApplicationController
     )
 
     email_record.destroy!
-    email_verification_request.destroy
+    email_verification_request&.destroy
 
     redirect_to my_settings_path, notice: "Email unlinked!"
   rescue ActiveRecord::RecordNotDestroyed => e
