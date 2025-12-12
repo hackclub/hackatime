@@ -9,9 +9,11 @@ class SessionsController < ApplicationController
 
   def hca_create
     if params[:error].present?
-      Rails.logger.error "Slack OAuth error: #{params[:error]}"
-      Sentry.capture_message("Slack OAuth error: #{params[:error]}")
-      redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
+      Rails.logger.error "HCA OAuth error: #{params[:error]}"
+      Sentry.capture_message("HCA OAuth error: #{params[:error]}")
+      continue_param = session.delete(:hca_continue_param)
+      redirect_path = continue_param || root_path
+      redirect_to redirect_path, alert: "Failed to authenticate with Hack Club Auth. Error ID: #{Sentry.last_event_id}"
       return
     end
 
