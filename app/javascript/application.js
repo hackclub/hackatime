@@ -47,7 +47,8 @@ function weirdclockthing() {
   inner.className = 'clock-display-inner';
 
   const front = document.createElement('div');
-  front.className = 'clock-display-front';
+  // kinda janky lol
+  front.className = 'clock-display-front ds-digital';
   write(front, "HAC:KA:TIME");
 
   const back = document.createElement('div');

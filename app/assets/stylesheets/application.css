@@ -30,6 +30,13 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "clockicons";
+  src: url("/fonts/clockicons.woff2") format("woff2"), url("/fonts/clockicons.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+}
+
 @import "https://uchu.style/color.css";
 @import "settings.css";
 
@@ -117,6 +124,10 @@ select {
 
 .ds-digital {
   font-family: "DS-Digital", monospace;
+}
+
+.clockicons {
+  font-family: "clockicons", monospace;
 }
 
 .monospace {
