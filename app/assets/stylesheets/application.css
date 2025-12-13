@@ -30,6 +30,13 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "clockicons";
+  src: url("/fonts/clockicons.woff2") format("woff2"), url("/fonts/clockicons.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+}
+
 @import "https://uchu.style/color.css";
 @import "settings.css";
 
@@ -59,26 +66,6 @@ select {
   color-scheme: dark;
 }
 
-.superadmin-tool {
-  border-radius: 5px;
-  border: 1px dashed rgb(251, 44, 54);
-  background-color: rgba(255, 255, 255, 0.02);
-}
-.admin-tool {
-  border-radius: 5px;
-  border: 1px dashed rgb(240, 177, 0);
-  background-color: rgba(255, 255, 255, 0.02);
-}
-.viewer-tool {
-  border-radius: 5px;
-  border: 1px dashed rgb(43, 127, 255);
-  background-color: rgba(255, 255, 255, 0.02);
-}
-.dev-tool {
-  border-radius: 5px;
-  border: 1px dashed var(--color-green);
-  background-color: rgba(255, 255, 255, 0.02);
-}
 
 .loading {
   filter: grayscale(100%);
@@ -117,6 +104,10 @@ select {
 
 .ds-digital {
   font-family: "DS-Digital", monospace;
+}
+
+.clockicons {
+  font-family: "clockicons", monospace;
 }
 
 .monospace {
