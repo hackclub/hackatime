@@ -1,0 +1,88 @@
+<div data-controller="sitewide-notice" class="not-prose">
+  <!-- Top banner (dismissible, can persist even after modal is dismissed) -->
+  <div
+    data-sitewide-notice-target="banner"
+    class="hidden fixed top-0 left-0 right-0 z-[9998]"
+  >
+    <div class="mx-auto max-w-6xl px-4 pt-4">
+      <div class="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 shadow-lg">
+        <div class="flex items-start justify-between gap-4">
+          <div class="text-sm text-zinc-100">
+            <span class="font-semibold uppercase tracking-wide text-red-200">Required update (mandatory):</span>
+            All users must install the newest version of <span class="font-semibold">Godot Super WakaTime</span>:
+            <a class="underline break-all" href="https://github.com/BudzioT/Godot_Super-Wakatime" target="_blank" rel="noreferrer">
+              https://github.com/BudzioT/Godot_Super-Wakatime
+            </a>
+            <span class="block mt-1">
+              Effective <span class="font-semibold">January 1, 2026</span>, any Hackatime project using the old Godot time-tracking plugin/extension will be
+              <span class="font-semibold">immediately rejected</span>.
+            </span>
+          </div>
+
+          <button
+            type="button"
+            class="shrink-0 rounded-lg bg-zinc-900/60 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-900"
+            data-action="sitewide-notice#dismissBanner"
+            aria-label="Dismiss notice banner"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal popup (one-time, centered, not clipped) -->
+  <div
+    data-sitewide-notice-target="modal"
+    class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4"
+    aria-modal="true"
+    role="dialog"
+  >
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/70"></div>
+
+    <!-- Modal panel -->
+    <div class="relative w-full max-w-2xl rounded-2xl bg-darkless p-6 shadow-2xl border border-red-500/30">
+      <h2 class="text-xl font-semibold text-white">
+        REQUIRED UPDATE (MANDATORY)
+      </h2>
+
+      <p class="mt-3 text-zinc-200">
+        You must install or upgrade to the newest version of <strong>Godot Super WakaTime</strong>:
+        <br />
+        <a class="underline break-all" href="https://github.com/BudzioT/Godot_Super-Wakatime" target="_blank" rel="noreferrer">
+          https://github.com/BudzioT/Godot_Super-Wakatime
+        </a>
+      </p>
+
+      <p class="mt-3 text-zinc-200">
+        <strong>Effective January 1, 2026</strong>, any Hackatime project that uses the old Godot time-tracking
+        plugin/extension will be <strong>immediately rejected</strong>.
+      </p>
+
+      <p class="mt-3 text-zinc-200">
+        If you installed this plugin before, you still need to update. Do not assume you are on the newest version.
+      </p>
+
+      <div class="mt-6 flex flex-wrap items-center justify-end gap-3">
+        <a
+          class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black"
+          href="https://github.com/BudzioT/Godot_Super-Wakatime"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Get the newest version
+        </a>
+
+        <button
+          type="button"
+          class="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
+          data-action="sitewide-notice#dismissModal"
+        >
+          I understand
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
