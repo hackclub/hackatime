@@ -1,5 +1,7 @@
 class SessionsController < ApplicationController
   def hca_new
+    session[:return_data] = { url: params[:continue].presence || request.referer } if request.referer.present? && request.referer != request.url
+    Rails.logger.info("Sessions return data: #{session[:return_data]}")
     redirect_uri = url_for(action: :hca_create, only_path: false)
 
     redirect_to User.hca_authorize_url(redirect_uri),
@@ -11,8 +13,6 @@ class SessionsController < ApplicationController
     if params[:error].present?
       Rails.logger.error "HCA OAuth error: #{params[:error]}"
       Sentry.capture_message("HCA OAuth error: #{params[:error]}")
-      continue_param = session.delete(:hca_continue_param)
-      redirect_path = continue_param || root_path
       redirect_to redirect_path, alert: "Failed to authenticate with Hack Club Auth. Error ID: #{Sentry.last_event_id}"
       return
     end
@@ -28,7 +28,13 @@ class SessionsController < ApplicationController
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
-      redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+      if @user.created_at > 5.seconds.ago
+        session[:return_data] ||= { url: params[:continue].presence || request.referer }
+        Rails.logger.info("Sessions return data: #{session[:return_data]}")
+        redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+      else
+        redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+      end
     else
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
     end
