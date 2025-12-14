@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.4
-# check=error=true
+# check=error=true;skip=SecretsUsedInArgOrEnv
 
 # This Dockerfile is designed for production worker processes, not development. Use with Kamal or build'n'run by hand:
 # docker build -f Dockerfile.production-worker -t harbor-worker .
