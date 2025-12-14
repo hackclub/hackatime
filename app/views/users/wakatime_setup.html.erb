@@ -174,8 +174,15 @@
       .then(response => response.json())
       .then(data => {
         if (data.has_heartbeat) {
-          window.location.href = '<%= my_wakatime_setup_step_2_path %>';
-          return;
+          const heartbeatTime = new Date(data.heartbeat.created_at);
+          const now = new Date();
+          const secondsAgo = (now - heartbeatTime) / 1000;
+          const recentThreshold = 30; // 30 seconds
+                   
+          if (secondsAgo <= recentThreshold) {
+            window.location.href = '<%= my_wakatime_setup_step_2_path %>';
+            return;
+          }
         }
         throw new Error('No heartbeats yet');
       })
