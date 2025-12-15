@@ -9,10 +9,10 @@ export default class extends Controller {
     //   this.bannerTarget.classList.remove("hidden")
     // }
 
-    // Modal 1x 
-    if (!this.modalDismissed()) {
-      this.openModal()
-    }
+    // side-wide noti scooter use it if ya want
+    // if (!this.modalDismissed()) {
+    //   this.openModal()
+    // }
   }
 
   openModal() {
