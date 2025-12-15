@@ -174,10 +174,15 @@
       .then(response => response.json())
       .then(data => {
         if (data.has_heartbeat) {
-          const timeAgo = timeAgoInWords(data.heartbeat.created_at);
-          statusDiv.innerHTML = `<p class="text-green text-xl font-bold">✅ Heartbeat received ${timeAgo}! You can proceed to the next step.</p>`;
-          nextStepLink.classList.remove('hidden');
-          return;
+          const heartbeatTime = new Date(data.heartbeat.created_at);
+          const now = new Date();
+          const secondsAgo = (now - heartbeatTime) / 1000;
+          const recentThreshold = 30; // 30 seconds
+                   
+          if (secondsAgo <= recentThreshold) {
+            window.location.href = '<%= my_wakatime_setup_step_2_path %>';
+            return;
+          }
         }
         throw new Error('No heartbeats yet');
       })

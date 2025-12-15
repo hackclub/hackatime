@@ -13,7 +13,7 @@ class SessionsController < ApplicationController
     if params[:error].present?
       Rails.logger.error "HCA OAuth error: #{params[:error]}"
       Sentry.capture_message("HCA OAuth error: #{params[:error]}")
-      redirect_to redirect_path, alert: "Failed to authenticate with Hack Club Auth. Error ID: #{Sentry.last_event_id}"
+      redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth. Error ID: #{Sentry.last_event_id}"
       return
     end
 
