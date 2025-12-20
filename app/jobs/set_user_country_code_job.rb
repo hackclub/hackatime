@@ -11,7 +11,7 @@ class SetUserCountryCodeJob < ApplicationJob
 
     # Try IP geocoding first
     ips.each do |ip|
-      country_code = ip_to_country_code(ip)
+      country_code = geo(ip)
       next unless country_code.present?
       return user.update!(country_code: country_code)
     end
@@ -29,7 +29,8 @@ class SetUserCountryCodeJob < ApplicationJob
         user.update!(country_code: country_code)
       end
     rescue => e
-      Rails.logger.error "Error getting country code from timezone #{@user.timezone}: #{e.message}"
+      Rails.logger.error "timezone geocode fail for #{@user.timezone}: #{e.message}"
+      Sentry.capture_exception(e)
     end
   end
 
@@ -43,7 +44,7 @@ class SetUserCountryCodeJob < ApplicationJob
     ApplicationHelper.timezone_to_country(timezone)
   end
 
-  def ip_to_country_code(ip)
+  def geo(ip)
     begin
       puts "Getting country code for IP #{ip}"
       result = Geocoder.search(ip).first
@@ -52,7 +53,8 @@ class SetUserCountryCodeJob < ApplicationJob
       result.country_code.upcase
 
     rescue => e
-      Rails.logger.error "Error getting country code for IP #{ip}: #{e.message}"
+      Rails.logger.error "geocode fail on #{ip}: #{e.message}"
+      Sentry.capture_exception(e)
     end
   end
 end
