@@ -148,6 +148,10 @@ Rails.application.routes.draw do
   namespace :api do
     # This is our own API– don't worry about compatibility.
     namespace :v1 do
+      get "leaderboard", to: "leaderboard#daily"
+      get "leaderboard/daily", to: "leaderboard#daily"
+      get "leaderboard/weekly", to: "leaderboard#weekly"
+
       get "stats", to: "stats#show"
       get "users/:username/stats", to: "stats#user_stats"
       get "users/:username/heartbeats/spans", to: "stats#user_spans"
