@@ -55,7 +55,7 @@
             </div>
             <div class="flex-1 mx-4 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <%= render "shared/user_mention", user: entry.user, show: [:neighborhood, :slack] %>
+                <%= render "shared/user_mention", user: entry.user, show: [:profile_link, :verified_badge] %>
                 <% if @active_projects&.dig(entry.user_id).present? %>
                   <span class="text-xs italic text-muted">
                     working on <%= link_to h(@active_projects[entry.user_id].project_name), @active_projects[entry.user_id].repo_url, target: "_blank", class: "text-accent hover:text-cyan-400 transition-colors" %>
