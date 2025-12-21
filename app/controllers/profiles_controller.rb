@@ -3,7 +3,7 @@ class ProfilesController < ApplicationController
     @user = find(params[:username])
 
     if @user.nil?
-      render :not_found, status: :not_found
+      render :not_found, status: :not_found, formats: [ :html ]
       return
     end
 
