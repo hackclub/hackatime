@@ -17,6 +17,7 @@ class User < ApplicationRecord
   validates :username,
     length: { maximum: USERNAME_MAX_LENGTH },
     format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
+    uniqueness: { case_sensitive: false },
     allow_nil: true
   validate :username_must_be_visible
 
@@ -566,7 +567,7 @@ class User < ApplicationRecord
   end
 
   def display_name
-    name = username || slack_username || github_username
+    name = slack_username || github_username
     return name if name.present?
 
     # "zach@hackclub.com" -> "zach (email sign-up)"
