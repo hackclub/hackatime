@@ -50,10 +50,10 @@ Rails.application.configure do
     #   cron: "0 12 * * *",
     #   class: "UpdateSlackNeighborhoodChannelsJob"
     # },
-    # slack_username_update: {
-    #   cron: "0 0 * * *",
-    #   class: "SlackUsernameUpdateJob"
-    # },
+    slack_username_update: {
+      cron: "0 0 * * *",
+      class: "SlackUsernameUpdateJob"
+    },
     # scan_github_repos: {
     #   cron: "0 10 * * *",
     #   class: "ScanGithubReposJob"
