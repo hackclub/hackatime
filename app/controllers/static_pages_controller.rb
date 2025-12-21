@@ -149,7 +149,8 @@ class StaticPagesController < ApplicationController
 
     render partial: "activity_graph", locals: {
       daily_durations: daily_durations,
-      length_of_busiest_day: length_of_busiest_day
+      length_of_busiest_day: length_of_busiest_day,
+      user_tz: user_tz
     }
   end
 

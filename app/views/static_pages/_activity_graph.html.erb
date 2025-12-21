@@ -33,7 +33,7 @@
         <% if current_user %>
           Calculated in <%= link_to ActiveSupport::TimeZone[current_user.timezone].to_s, my_settings_path(anchor: "user_timezone"), data: { turbo_frame: "_top" } %>
         <% else %>
-          Calculated in <%= ActiveSupport::TimeZone[user_tz].to_s %>
+          Calculated in <%= ActiveSupport::TimeZone[local_assigns.fetch(:user_tz, "UTC")].to_s %>
         <% end %>
       </p>
     </div>
