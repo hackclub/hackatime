@@ -90,8 +90,13 @@
           <% end %>
         </div>
         <p class="text-xs text-gray-400">
-          Choose a name to use in Hackatime. This will take priority over Slack or GitHub names when possible. You will be able to use your username in your profile URL, hackatime.hackclub.com/@username. Letters, numbers, "-" and "_" only, max <%= User::USERNAME_MAX_LENGTH %> chars.
+          Choose a name to use in Hackatime. Only letters, numbers, "-" and "_" are allowed, max <%= User::USERNAME_MAX_LENGTH %> characters.
         </p>
+        <% if @user.username.present? %>
+          <p class="text-md text-gray-400">
+            Your profile is currently live at <%= link_to "hackati.me/#{@user.username}", "https://hackati.me/#{@user.username}", target: "_blank", class: "text-primary hover:underline" %>
+          </p>
+        <% end %>
         <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
