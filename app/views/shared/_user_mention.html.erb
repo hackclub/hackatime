@@ -8,10 +8,15 @@ end %>">
                 class: "rounded-full aspect-square border border-gray-300",
                 alt: "#{h(user.display_name)}'s avatar" if user.avatar_url %>
   <span class="inline-flex items-center gap-1">
-    <% if local_assigns.fetch(:show, []).include?(:slack) && user.slack_uid.present? %>
+    <% if local_assigns.fetch(:show, []).include?(:profile_link) && user.username.present? %>
+      <%= link_to h(user.display_name), profile_path(user.username), class: "text-blue-500 hover:underline" %>
+    <% elsif local_assigns.fetch(:show, []).include?(:slack) && user.slack_uid.present? %>
       <%= link_to "@#{h(user.display_name)}", "https://hackclub.slack.com/team/#{user.slack_uid}", target: "_blank", class: "text-blue-500 hover:underline" %>
     <% else %>
       <%= h(user.display_name) %>
+    <% end %>
+    <% if local_assigns.fetch(:show, []).include?(:verified_badge) && user.trust_level == "green" %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 256 256" fill="#EC3750" title="Verified"><path d="M225.86 102.82c-3.77-3.94-7.67-8-9.14-11.57c-1.36-3.27-1.44-8.69-1.52-13.94c-.15-9.76-.31-20.82-8-28.51s-18.75-7.85-28.51-8c-5.25-.08-10.67-.16-13.94-1.52c-3.56-1.47-7.63-5.37-11.57-9.14C146.28 23.51 138.44 16 128 16s-18.27 7.51-25.18 14.14c-3.94 3.77-8 7.67-11.57 9.14c-3.25 1.36-8.69 1.44-13.94 1.52c-9.76.15-20.82.31-28.51 8s-7.8 18.75-8 28.51c-.08 5.25-.16 10.67-1.52 13.94c-1.47 3.56-5.37 7.63-9.14 11.57C23.51 109.72 16 117.56 16 128s7.51 18.27 14.14 25.18c3.77 3.94 7.67 8 9.14 11.57c1.36 3.27 1.44 8.69 1.52 13.94c.15 9.76.31 20.82 8 28.51s18.75 7.85 28.51 8c5.25.08 10.67.16 13.94 1.52c3.56 1.47 7.63 5.37 11.57 9.14c6.9 6.63 14.74 14.14 25.18 14.14s18.27-7.51 25.18-14.14c3.94-3.77 8-7.67 11.57-9.14c3.27-1.36 8.69-1.44 13.94-1.52c9.76-.15 20.82-.31 28.51-8s7.85-18.75 8-28.51c.08-5.25.16-10.67 1.52-13.94c1.47-3.56 5.37-7.63 9.14-11.57c6.63-6.9 14.14-14.74 14.14-25.18s-7.51-18.27-14.14-25.18m-52.2 6.84l-56 56a8 8 0 0 1-11.32 0l-24-24a8 8 0 0 1 11.32-11.32L112 148.69l50.34-50.35a8 8 0 0 1 11.32 11.32"/></svg>
     <% end %>
     <%# GitHub profile link - shown if :github_profile_link is in the :show array %>
     <% if github_url = user.github_profile_url # Assign to variable to avoid calling method twice %>
@@ -31,8 +36,8 @@ end %>">
     <%= link_to "🏘️", "https://hackclub.slack.com/archives/#{user.slack_neighborhood_channel}", target: "_blank" %>
   <% end %>
   <% unless current_user == user %>
-    <% admin_tool('', 'span') do %>
-      <% if (!user.admin_level.in?(["admin", "superadmin"]) || (user.admin_level == "admin" && current_user.admin_level == "superadmin" && user.admin_level != "superadmin")) %>
+    <% if (!user.admin_level.in?(["admin", "superadmin"]) || (user.admin_level == "admin" && current_user.admin_level == "superadmin" && user.admin_level != "superadmin")) %>
+      <% admin_tool('', 'span') do %>
         <%= link_to impersonate_user_path(user), class: "text-primary font-bold hover:text-red-300 transition-colors duration-200", data: { turbo_frame: "_top", turbo_prefetch: "false" } do %>
           🥸
         <% end %>
