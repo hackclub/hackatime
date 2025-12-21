@@ -17,7 +17,7 @@ class User < ApplicationRecord
   validates :username,
     length: { maximum: USERNAME_MAX_LENGTH },
     format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
-    uniqueness: { case_sensitive: false },
+    uniqueness: { case_sensitive: false, message: "has already been taken" },
     allow_nil: true
   validate :username_must_be_visible
 
