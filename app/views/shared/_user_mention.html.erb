@@ -22,8 +22,8 @@ end %>">
       <% end %>
     <% end %>
   </span>
-  <% if user.country_code.present? %>
-    <span title="<%= ISO3166::Country.new(user.country_code).common_name %>">
+  <% if user.country_code.present? && (country = ISO3166::Country.new(user.country_code)) %>
+    <span title="<%= country.common_name %>">
       <%= country_to_emoji(user.country_code) %>
     </span>
   <% end %>
