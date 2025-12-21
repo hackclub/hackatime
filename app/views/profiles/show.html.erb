@@ -1,0 +1,103 @@
+<div class="container">
+  <div class="flex items-center gap-4 mb-6">
+    <img src="<%= @user.avatar_url %>" alt="<%= @user.display_name %>" class="w-20 h-20 rounded-full border-2 border-primary">
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-4xl font-bold m-0"><%= @user.display_name %></h1>
+        <% if @user.trust_level == "green" %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 256 256" fill="#EC3750" title="Verified"><path d="M225.86 102.82c-3.77-3.94-7.67-8-9.14-11.57c-1.36-3.27-1.44-8.69-1.52-13.94c-.15-9.76-.31-20.82-8-28.51s-18.75-7.85-28.51-8c-5.25-.08-10.67-.16-13.94-1.52c-3.56-1.47-7.63-5.37-11.57-9.14C146.28 23.51 138.44 16 128 16s-18.27 7.51-25.18 14.14c-3.94 3.77-8 7.67-11.57 9.14c-3.25 1.36-8.69 1.44-13.94 1.52c-9.76.15-20.82.31-28.51 8s-7.8 18.75-8 28.51c-.08 5.25-.16 10.67-1.52 13.94c-1.47 3.56-5.37 7.63-9.14 11.57C23.51 109.72 16 117.56 16 128s7.51 18.27 14.14 25.18c3.77 3.94 7.67 8 9.14 11.57c1.36 3.27 1.44 8.69 1.52 13.94c.15 9.76.31 20.82 8 28.51s18.75 7.85 28.51 8c5.25.08 10.67.16 13.94 1.52c3.56 1.47 7.63 5.37 11.57 9.14c6.9 6.63 14.74 14.14 25.18 14.14s18.27-7.51 25.18-14.14c3.94-3.77 8-7.67 11.57-9.14c3.27-1.36 8.69-1.44 13.94-1.52c9.76-.15 20.82-.31 28.51-8s7.85-18.75 8-28.51c.08-5.25.16-10.67 1.52-13.94c1.47-3.56 5.37-7.63 9.14-11.57c6.63-6.9 14.14-14.74 14.14-25.18s-7.51-18.27-14.14-25.18m-52.2 6.84l-56 56a8 8 0 0 1-11.32 0l-24-24a8 8 0 0 1 11.32-11.32L112 148.69l50.34-50.35a8 8 0 0 1 11.32 11.32"/></svg>
+        <% end %>
+        <% if @profile_visible && @streak_days && @streak_days > 0 %>
+          <%= render "static_pages/streak", user: @user, streak_count: @streak_days, turbo_frame: false, icon_size: 20, show_text: true %>
+        <% end %>
+      </div>
+      <% if @user.username.present? %>
+        <p class="text-gray-400 m-0">@<%= @user.username %></p>
+      <% end %>
+      <% if @user.github_username.present? %>
+        <a href="<%= @user.github_profile_url %>" target="_blank" class="text-gray-400 hover:text-primary inline-flex items-center gap-1 mt-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5c.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34c-.46-1.16-1.11-1.47-1.11-1.47c-.91-.62.07-.6.07-.6c1 .07 1.53 1.03 1.53 1.03c.87 1.52 2.34 1.07 2.91.83c.09-.65.35-1.09.63-1.34c-2.22-.25-4.55-1.11-4.55-4.92c0-1.11.38-2 1.03-2.71c-.1-.25-.45-1.29.1-2.64c0 0 .84-.27 2.75 1.02c.79-.22 1.65-.33 2.5-.33s1.71.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02c.55 1.35.2 2.39.1 2.64c.65.71 1.03 1.6 1.03 2.71c0 3.82-2.34 4.66-4.57 4.91c.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2" /></svg>
+          <%= @user.github_username %>
+        </a>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @profile_visible %>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div class="border border-primary rounded-xl p-5 text-center">
+        <div class="text-sm text-gray-400 uppercase tracking-wide mb-1">Today</div>
+        <div class="text-2xl font-bold text-primary"><%= ApplicationController.helpers.short_time_simple(@total_time_today) %></div>
+      </div>
+      <div class="border border-primary rounded-xl p-5 text-center">
+        <div class="text-sm text-gray-400 uppercase tracking-wide mb-1">This Week</div>
+        <div class="text-2xl font-bold text-primary"><%= ApplicationController.helpers.short_time_simple(@total_time_week) %></div>
+      </div>
+      <div class="border border-primary rounded-xl p-5 text-center">
+        <div class="text-sm text-gray-400 uppercase tracking-wide mb-1">All Time</div>
+        <div class="text-2xl font-bold text-primary"><%= ApplicationController.helpers.short_time_simple(@total_time_all) %></div>
+      </div>
+    </div>
+
+    <% if @top_projects_month.present? && @top_projects_month.size > 0 %>
+      <div class="mb-6">
+        <h2 class="text-xl font-bold mb-4">Top Projects <span class="text-gray-400 font-normal text-base">(Past Month)</span></h2>
+        <%= render "profiles/project_cards", projects: @top_projects_month %>
+      </div>
+    <% end %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <% if @top_languages.present? && @top_languages.size > 0 %>
+        <div class="border border-primary rounded-xl p-5">
+          <h2 class="text-xl font-bold mb-4">Top Languages</h2>
+          <div class="flex flex-col gap-3">
+            <% max_duration = @top_languages.values.max %>
+            <% @top_languages.each do |language, duration| %>
+              <div class="flex items-center gap-3">
+                <div class="w-24 text-sm text-gray-300 truncate"><%= ApplicationController.helpers.display_language_name(language) || "Unknown" %></div>
+                <div class="flex-1 h-6 bg-darkless rounded-full overflow-hidden relative">
+                  <div class="h-full bg-primary rounded-full flex items-center justify-end pr-2" style="width: <%= [duration.to_f / max_duration * 100, 100].min.round %>%">
+                    <span class="text-xs font-medium text-white"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @top_editors.present? && @top_editors.size > 0 %>
+        <div class="border border-primary rounded-xl p-5">
+          <h2 class="text-xl font-bold mb-4">Favorite Editors</h2>
+          <div class="flex flex-col gap-3">
+            <% max_duration = @top_editors.values.max %>
+            <% @top_editors.each do |editor, duration| %>
+              <div class="flex items-center gap-3">
+                <div class="w-24 text-sm text-gray-300 truncate"><%= editor %></div>
+                <div class="flex-1 h-6 bg-darkless rounded-full overflow-hidden relative">
+                  <div class="h-full bg-primary rounded-full flex items-center justify-end pr-2" style="width: <%= [duration.to_f / max_duration * 100, 100].min.round %>%">
+                    <span class="text-xs font-medium text-white"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @daily_durations.present? %>
+      <div class="mt-6">
+        <h2 class="text-xl font-bold mb-4">Activity</h2>
+        <%= render "static_pages/activity_graph", daily_durations: @daily_durations, length_of_busiest_day: 8.hours.to_i %>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="text-center py-16">
+      <div class="text-6xl mb-4">🔒</div>
+      <h2 class="text-2xl font-bold mb-2">This user has their stats private</h2>
+      <p class="text-gray-400">They've chosen not to share their coding statistics publicly.</p>
+    </div>
+  <% end %>
+</div>

@@ -178,7 +178,7 @@
           const now = new Date();
           const secondsAgo = (now - heartbeatTime) / 1000;
           const recentThreshold = 30; // 30 seconds
-                   
+
           if (secondsAgo <= recentThreshold) {
             window.location.href = '<%= my_wakatime_setup_step_2_path %>';
             return;

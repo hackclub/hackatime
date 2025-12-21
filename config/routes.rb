@@ -216,6 +216,8 @@ Rails.application.routes.draw do
     end
   end
 
+  get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }
+
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
 
