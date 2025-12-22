@@ -11,6 +11,11 @@ class SessionsController < ApplicationController
 
   def hca_create
     if params[:error].present?
+      if params[:error] == "access_denied"
+        redirect_to root_path, alert: "Sign in cancelled"
+        return
+      end
+
       Rails.logger.error "HCA OAuth error: #{params[:error]}"
       Sentry.capture_message("HCA OAuth error: #{params[:error]}")
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth. Error ID: #{Sentry.last_event_id}"
@@ -52,6 +57,11 @@ class SessionsController < ApplicationController
     redirect_uri = url_for(action: :slack_create, only_path: false)
 
     if params[:error].present?
+      if params[:error] == "access_denied"
+        redirect_to root_path, alert: "Sign in cancelled"
+        return
+      end
+
       Rails.logger.error "Slack OAuth error: #{params[:error]}"
       Sentry.capture_message("Slack OAuth error: #{params[:error]}")
       redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
