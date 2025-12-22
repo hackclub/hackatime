@@ -1,6 +1,6 @@
 <% if projects.present? && projects.size > 0 %>
   <%
-    max = projects.map { |p| p[:duration] }.max || 1
+    max = projects.map { |p| p[:duration].to_f }.select { |d| d.finite? && d > 0 }.max || 1
   %>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     <% projects.each do |project| %>
@@ -25,7 +25,7 @@
         <div class="w-full h-2 bg-darkless rounded-full overflow-hidden">
           <div
             class="h-full bg-primary rounded-full"
-            style="width: <%= [project[:duration].to_f / max.to_f * 100, 100].min %>%;"></div>
+            style="width: <%= [(project[:duration].to_f.finite? ? project[:duration].to_f : 0) / max.to_f * 100, 100].min %>%;"></div>
         </div>
       </div>
     <% end %>
