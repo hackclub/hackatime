@@ -154,7 +154,10 @@ class DocsController < ApplicationController
   end
 
   def render_not_found
-    render file: "#{Rails.root}/public/404.html", status: :not_found, layout: false
+    @status_code = 404
+    @title = "Page Not Found"
+    @message = "The documentation page you were looking for doesn't exist."
+    render "errors/show", status: :not_found, layout: "errors"
   end
 
   # Make these helper methods available to views
