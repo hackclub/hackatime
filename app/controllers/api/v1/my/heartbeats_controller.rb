@@ -1,15 +1,20 @@
 class Api::V1::My::HeartbeatsController < ApplicationController
+  include ActionView::Helpers::DateHelper
   before_action :ensure_authenticated!
 
   def most_recent
-    heartbeat = current_user.heartbeats
-      .where(source_type: :test_entry)
-      .order(time: :desc)
-      .first
+    scope = current_user.heartbeats.order(time: :desc)
+
+    if params[:editor].present?
+      scope = scope.where("LOWER(editor) = ?", params[:editor].downcase)
+    end
+
+    heartbeat = scope.first
 
     render json: {
       has_heartbeat: heartbeat.present?,
-      heartbeat: heartbeat
+      heartbeat: heartbeat,
+      time_ago: heartbeat.present? ? time_ago_in_words(Time.at(heartbeat.time)) + " ago" : nil
     }
   end
 

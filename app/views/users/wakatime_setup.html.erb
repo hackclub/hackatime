@@ -156,7 +156,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h4 class="text-xl font-bold text-green mb-2">Setup complete!</h4>
+                <h4 class="text-xl font-bold text-green mb-2">Setup complete <span id="heartbeat-time-ago"></span>!</h4>
                 <p class="text-secondary text-sm">Hackatime is configured and ready to go.</p>
               </div>
 
@@ -229,11 +229,12 @@
       "We'll detect it as soon as the script runs!"
     ];
 
-    function showSuccess() {
+    function showSuccess(timeAgo) {
       waitingState.classList.add('hidden');
       successState.classList.remove('hidden');
       statusPanel.classList.remove('border-darkless');
       statusPanel.classList.add('border-green');
+      document.getElementById('heartbeat-time-ago').textContent = timeAgo;
     }
 
     function check() {
@@ -251,7 +252,7 @@
           const recentThreshold = 30;
 
           if (secondsAgo <= recentThreshold) {
-            showSuccess();
+            showSuccess(data.time_ago);
             return;
           }
         }

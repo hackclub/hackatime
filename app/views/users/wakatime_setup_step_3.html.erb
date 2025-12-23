@@ -98,7 +98,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h4 class="text-xl font-bold text-green mb-2">Heartbeat detected!</h4>
+                  <h4 class="text-xl font-bold text-green mb-2">Heartbeat detected <span id="heartbeat-time-ago"></span>!</h4>
                   <p class="text-secondary text-sm">Hackatime is tracking your coding. Nice work!</p>
                 </div>
 
@@ -321,29 +321,16 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
       "Make any edit in VS Code to continue!"
     ];
 
-    function timeAgoInWords(d) {
-      const s = Math.floor((new Date() - new Date(d)) / 1000);
-      const m = Math.floor(s / 60);
-      const h = Math.floor(m / 60);
-
-      if (h > 0) {
-        return h === 1 ? "1 hour ago" : `${h} hours ago`;
-      } else if (m > 0) {
-        return m === 1 ? "1 minute ago" : `${m} minutes ago`;
-      } else {
-        return s <= 5 ? "just now" : `${s} seconds ago`;
-      }
-    }
-
-    function showSuccess() {
+    function showSuccess(timeAgo) {
       waitingState.classList.add('hidden');
       successState.classList.remove('hidden');
       statusPanel.classList.remove('border-darkless');
       statusPanel.classList.add('border-green');
+      document.getElementById('heartbeat-time-ago').textContent = timeAgo;
     }
 
     function check() {
-      fetch('<%= api_v1_my_heartbeats_most_recent_path %>', {
+      fetch('<%= api_v1_my_heartbeats_most_recent_path(editor: "vscode") %>', {
         headers: {
           'Authorization': 'Bearer <%= @current_user_api_key %>'
         }
@@ -357,7 +344,7 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
           const recentThreshold = 60; // 60s
 
           if (secondsAgo <= recentThreshold) {
-            showSuccess();
+            showSuccess(data.time_ago);
             return;
           }
         }
