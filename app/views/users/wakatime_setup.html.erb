@@ -249,7 +249,7 @@
           const heartbeatTime = new Date(data.heartbeat.created_at);
           const now = new Date();
           const secondsAgo = (now - heartbeatTime) / 1000;
-          const recentThreshold = 30;
+          const recentThreshold = 300;
 
           if (secondsAgo <= recentThreshold) {
             showSuccess(data.time_ago);
