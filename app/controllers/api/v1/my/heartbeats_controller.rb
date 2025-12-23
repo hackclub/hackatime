@@ -1,4 +1,5 @@
 class Api::V1::My::HeartbeatsController < ApplicationController
+  include ActionView::Helpers::DateHelper
   before_action :ensure_authenticated!
 
   def most_recent
@@ -12,7 +13,8 @@ class Api::V1::My::HeartbeatsController < ApplicationController
 
     render json: {
       has_heartbeat: heartbeat.present?,
-      heartbeat: heartbeat
+      heartbeat: heartbeat,
+      time_ago: heartbeat.present? ? time_ago_in_words(Time.at(heartbeat.time)) + " ago" : nil
     }
   end
 
