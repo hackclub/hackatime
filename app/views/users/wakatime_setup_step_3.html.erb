@@ -99,7 +99,8 @@
                     </svg>
                   </div>
                   <h4 class="text-xl font-bold text-green mb-2">Heartbeat detected <span id="heartbeat-time-ago"></span>!</h4>
-                  <p class="text-secondary text-sm">Hackatime is tracking your coding. Nice work!</p>
+                  <p class="text-secondary text-sm" id="success-message">Hackatime is tracking your coding. Nice work!</p>
+                  <p id="editor-mismatch-message" class="hidden text-cyan text-sm mt-2"></p>
                 </div>
 
                 <%= link_to my_wakatime_setup_step_4_path, class: "block w-full bg-primary hover:bg-red text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors" do %>
@@ -321,16 +322,22 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
       "Make any edit in VS Code to continue!"
     ];
 
-    function showSuccess(timeAgo) {
+    function showSuccess(timeAgo, detectedEditor) {
       waitingState.classList.add('hidden');
       successState.classList.remove('hidden');
       statusPanel.classList.remove('border-darkless');
       statusPanel.classList.add('border-green');
       document.getElementById('heartbeat-time-ago').textContent = timeAgo;
+
+      if (detectedEditor && detectedEditor.toLowerCase() !== 'vscode' && detectedEditor.toLowerCase() !== 'vs code') {
+        const mismatchMessage = document.getElementById('editor-mismatch-message');
+        mismatchMessage.textContent = `We detected a heartbeat from ${detectedEditor}. If this is intended, you're all set!`;
+        mismatchMessage.classList.remove('hidden');
+      }
     }
 
     function check() {
-      fetch('<%= api_v1_my_heartbeats_most_recent_path(editor: "vscode") %>', {
+      fetch('<%= api_v1_my_heartbeats_most_recent_path %>', {
         headers: {
           'Authorization': 'Bearer <%= @current_user_api_key %>'
         }
@@ -341,10 +348,10 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
           const heartbeatTime = new Date(data.heartbeat.created_at);
           const now = new Date();
           const secondsAgo = (now - heartbeatTime) / 1000;
-          const recentThreshold = 86400; // 5m
+          const recentThreshold = 86400;
 
           if (secondsAgo <= recentThreshold) {
-            showSuccess(data.time_ago);
+            showSuccess(data.time_ago, data.editor);
             return;
           }
         }
