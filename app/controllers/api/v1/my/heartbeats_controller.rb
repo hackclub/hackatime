@@ -5,6 +5,12 @@ class Api::V1::My::HeartbeatsController < ApplicationController
   def most_recent
     scope = current_user.heartbeats.order(time: :desc)
 
+    if params[:source_type].present?
+      scope = scope.where(source_type: params[:source_type])
+    else
+      scope = scope.where.not(source_type: :test_entry)
+    end
+
     if params[:editor].present?
       scope = scope.where("LOWER(editor) = ?", params[:editor].downcase)
     end
@@ -14,6 +20,7 @@ class Api::V1::My::HeartbeatsController < ApplicationController
     render json: {
       has_heartbeat: heartbeat.present?,
       heartbeat: heartbeat,
+      editor: heartbeat&.editor,
       time_ago: heartbeat.present? ? time_ago_in_words(Time.at(heartbeat.time)) + " ago" : nil
     }
   end
