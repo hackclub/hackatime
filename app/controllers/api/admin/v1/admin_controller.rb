@@ -248,57 +248,6 @@ module Api
           end
         end
 
-        def execute
-          query = params[:query]
-
-          if query.blank?
-            return render json: { error: "whatcha doin'?" }, status: :unprocessable_entity
-          end
-
-          write_keywords = %w[INSERT UPDATE DELETE DROP CREATE ALTER TRUNCATE EXEC EXECUTE GRANT REVOKE]
-          query_upper = query.upcase
-
-          if write_keywords.any? { |keyword| query_upper.include?(keyword) }
-            return render json: { error: "no write operations allowed" }, status: :forbidden
-          end
-
-          if query.include?(";")
-            return render json: { error: "no multi-statement queries allowed" }, status: :forbidden
-          end
-
-          unless query.strip.upcase.start_with?("SELECT")
-            return render json: { error: "only SELECT queries allowed" }, status: :forbidden
-          end
-
-          begin
-            limited_query = query.strip
-            unless limited_query.upcase.include?("LIMIT")
-              limited_query += " LIMIT 1000"
-            end
-
-            sanitized_query = ActiveRecord::Base.sanitize_sql(limited_query)
-            result = ActiveRecord::Base.connection.execute(sanitized_query)
-
-            columns = result.fields
-            rows = result.to_a.map { |row| columns.zip(row).to_h }
-
-            render json: {
-              success: true,
-              query: sanitized_query,
-              columns: columns,
-              rows: rows,
-              row_count: rows.count,
-              executed_by: current_user.display_name,
-              executed_at: Time.current
-            }
-          rescue => e
-            Rails.logger.error "execute failed: #{e.message}"
-            render json: {
-              error: "failed #{e.message}"
-            }, status: :unprocessable_entity
-          end
-        end
-
         def trust_logs
           user = find_user_by_id
           return unless user
