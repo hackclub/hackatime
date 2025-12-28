@@ -57,25 +57,27 @@
       <% end %>
 
       <% if (url = session.dig(:return_data, "url")) %>
-        <%= link_to url, class: "bg-primary hover:bg-red text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg" do %>
+        <%= link_to url, id: "s", class: "bg-primary hover:bg-red text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg opacity-50 pointer-events-none" do %>
           <%= session.dig(:return_data, "button_text") || "Done" %>
         <% end %>
       <% else %>
         <%= link_to root_path, id: "s", class: "bg-primary hover:bg-red text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg opacity-50 pointer-events-none" do %>
-        I agree, Get started!
+          I agree, Get started!
+        <% end %>
       <% end %>
 
-        <script>
-          document.getElementById('o').addEventListener('change', function() {
-            const x = document.getElementById('s');
-            if (this.checked) {
-              x.classList.remove('opacity-50', 'pointer-events-none');
-            } else {
-              x.classList.add('opacity-50', 'pointer-events-none');
-            }
-          });
-        </script>
-      <% end %>
+      <script>
+        document.getElementById('o').addEventListener('change', function() {
+          const x = document.getElementById('s');
+          if (this.checked) {
+            x.classList.remove('opacity-50', 'pointer-events-none');
+            x.disabled = false;
+          } else {
+            x.classList.add('opacity-50', 'pointer-events-none');
+            x.disabled = true;
+          }
+        });
+      </script>
     </div>
   </div>
 </div>
