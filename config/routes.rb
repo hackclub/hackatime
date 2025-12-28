@@ -193,11 +193,12 @@ Rails.application.routes.draw do
         get "check", to: "admin#check"
         get "user/info", to: "admin#user_info"
         get "user/get_users_by_ip", to: "admin#get_users_by_ip"
-        get "user/search_fuzzy", to: "admin#search_users_fuzzy"
         get "user/get_users_by_machine", to: "admin#get_users_by_machine"
         get "user/stats", to: "admin#user_stats"
         get "user/projects", to: "admin#user_projects"
         get "user/trust_logs", to: "admin#trust_logs"
+        post "user/get_user_by_email", to: "admin#get_user_by_email"
+        post "user/search_fuzzy", to: "admin#search_users_fuzzy"
         post "user/convict", to: "admin#user_convict"
       end
     end
