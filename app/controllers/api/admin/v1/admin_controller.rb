@@ -255,16 +255,19 @@ module Api
             return render json: { error: "whatcha doin'?" }, status: :unprocessable_entity
           end
 
-          cool = %w[created_at deleted_at]
-          not_cool = %w[INSERT UPDATE DELETE DROP CREATE ALTER TRUNCATE EXEC EXECUTE]
+          write_keywords = %w[INSERT UPDATE DELETE DROP CREATE ALTER TRUNCATE EXEC EXECUTE GRANT REVOKE]
+          query_upper = query.upcase
 
-          if not_cool.any? { |keyword| query.upcase.include?(keyword) } &&
-             cool.none? { |field| query.upcase.include?(field.upcase) }
-            return render json: { error: "no perms lmaooo" }, status: :forbidden
+          if write_keywords.any? { |keyword| query_upper.include?(keyword) }
+            return render json: { error: "no write operations allowed" }, status: :forbidden
+          end
+
+          if query.include?(";")
+            return render json: { error: "no multi-statement queries allowed" }, status: :forbidden
           end
 
           unless query.strip.upcase.start_with?("SELECT")
-            return render json: { error: "no perms lmaooo" }, status: :forbidden
+            return render json: { error: "only SELECT queries allowed" }, status: :forbidden
           end
 
           begin
