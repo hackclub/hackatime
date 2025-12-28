@@ -333,7 +333,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
     # Sanitize api_token to handle invalid UTF-8 sequences
     api_token = api_token.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
-    
+
     # When using an admin key, we allow any ID for endpoints that accept an :id parameter.
     admin_key = AdminApiKey.find_by(token: api_token)
     if admin_key.present?
@@ -342,7 +342,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       @user = admin_key.user
       return
     end
-    
+
     valid_key = ApiKey.find_by(token: api_token)
     return render json: { error: "Unauthorized" }, status: :unauthorized unless valid_key.present?
 
