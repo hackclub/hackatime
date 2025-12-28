@@ -103,7 +103,7 @@ module Api
             LIMIT 10
           SQL
 
-          sanitized_query = ActiveRecord::Base.sanitize_sql([ user_search_query, query: query ])
+          sanitized_query = ActiveRecord::Base.sanitize_sql([ user_search_query, query: ActiveRecord::Base.sanitize_sql_like(query) ])
           result = ActiveRecord::Base.connection.execute(sanitized_query)
           columns = result.fields
           rows = result.to_a.map { |row| columns.zip(row).to_h }
