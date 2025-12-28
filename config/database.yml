@@ -15,11 +15,6 @@ development:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
     url: <%= ENV['DATABASE_URL'] %>
-  primary_direct:
-    url: <%= ENV['DATABASE_URL'] %>
-    adapter: postgresql
-    encoding: unicode
-    database_tasks: false
   wakatime:
     adapter: postgresql
     encoding: unicode
@@ -47,12 +42,6 @@ test:
     username: postgres
     password: postgres
     # url: <%= ENV['TEST_DATABASE_URL'] %>
-  primary_direct:
-    adapter: postgresql
-    database: test_db
-    username: postgres
-    password: postgres
-    database_tasks: false
   wakatime:
     adapter: postgresql
     database: test_wakatime
@@ -81,12 +70,6 @@ production:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 16 }.to_i + 8 %> # Web threads + 8 GoodJob threads
     url: <%= ENV['POOL_DATABASE_URL'] %>
-  primary_direct: # https://github.com/bensheldon/good_job?tab=readme-ov-file#pgbouncer-compatibility
-    url: <%= ENV['DATABASE_URL'] %>
-    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 16 }.to_i + 8 %> # Web threads + 8 GoodJob threads
-    adapter: postgresql
-    encoding: unicode
-    database_tasks: false
   wakatime:
     adapter: postgresql
     encoding: unicode

@@ -18,9 +18,6 @@ Rails.application.configure do
   # 12 threads total
   config.good_job.queues = "latency_10s:4; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:5"
 
-  #  https://github.com/bensheldon/good_job#pgbouncer-compatibility
-  GoodJob.active_record_parent_class = "ApplicationDirectRecord"
-
   config.good_job.cron = {
     # update_slack_status: {
     #   cron: "*/5 * * * *",
