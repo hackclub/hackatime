@@ -341,9 +341,9 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       @current_admin_user = admin_key.user
       @user = admin_key.user
       return
-    end
+      end
 
-    valid_key = ApiKey.find_by(token: api_token)
+      valid_key = ApiKey.find_by(token: api_token)
     return render json: { error: "Unauthorized" }, status: :unauthorized unless valid_key.present?
 
     @user = valid_key.user
@@ -370,7 +370,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     else
       # This is a regular API key - the only user they can fetch is themselves.
       if requested_id != "current"
-        return render json: { error: "Unauthorized" }, status: :unauthorized
+        render json: { error: "Unauthorized" }, status: :unauthorized
       end
 
       # @user is already set by set_user.
