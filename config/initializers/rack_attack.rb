@@ -40,7 +40,7 @@ class Rack::Attack
     !req.cloudflare?
   end
 
-  Rack::Attack.safelist("admin abooze") do |req|
+  Rack::Attack.throttle("admin abooze", limit: 5, period: 1.second) do |req|
     req.path.start_with?("/api/admin/")
   end
 
