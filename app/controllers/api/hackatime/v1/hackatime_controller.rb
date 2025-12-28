@@ -370,7 +370,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     else
       # This is a regular API key - the only user they can fetch is themselves.
       if requested_id != "current"
-        render json: { error: "Unauthorized" }, status: :unauthorized
+        return render json: { error: "Unauthorized" }, status: :unauthorized
       end
 
       # @user is already set by set_user.
