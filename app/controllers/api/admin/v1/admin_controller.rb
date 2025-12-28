@@ -2,6 +2,8 @@ module Api
   module Admin
     module V1
       class AdminController < Api::Admin::V1::ApplicationController
+        before_action :can_write!, only: [ :user_convict ]
+
         def check
           api_key = current_admin_api_key
           creator = User.find(api_key.user_id)
@@ -366,6 +368,13 @@ module Api
         end
 
         private
+
+        def can_write!
+          # blocks viewers
+          unless current_user.admin_level.in?([ "admin", "superadmin" ])
+            render json: { error: "no perms lmaooo" }, status: :forbidden
+          end
+        end
 
         def find_user_by_id
           user_id = params[:id]
