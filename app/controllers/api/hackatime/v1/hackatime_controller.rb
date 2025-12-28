@@ -336,14 +336,14 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
     # When using an admin key, we allow any ID for endpoints that accept an :id parameter.
     admin_key = AdminApiKey.find_by(token: api_token)
-    if admin_key.present?
+    if admin_key.present? && admin_key.active?
       @admin_api_key = admin_key
       @current_admin_user = admin_key.user
       @user = admin_key.user
       return
-      end
+    end
 
-      valid_key = ApiKey.find_by(token: api_token)
+    valid_key = ApiKey.find_by(token: api_token)
     return render json: { error: "Unauthorized" }, status: :unauthorized unless valid_key.present?
 
     @user = valid_key.user
