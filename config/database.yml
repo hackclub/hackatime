@@ -15,11 +15,6 @@ development:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
     url: <%= ENV['DATABASE_URL'] %>
-  primary_direct:
-    url: <%= ENV['DATABASE_URL'] %>
-    adapter: postgresql
-    encoding: unicode
-    database_tasks: false
   wakatime:
     adapter: postgresql
     encoding: unicode
@@ -81,11 +76,14 @@ production:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 16 }.to_i + 8 %> # Web threads + 8 GoodJob threads
     url: <%= ENV['POOL_DATABASE_URL'] %>
+<<<<<<< HEAD
   primary_direct: # https://github.com/bensheldon/good_job?tab=readme-ov-file#pgbouncer-compatibility
     url: <%= ENV['DATABASE_URL'] %>
     adapter: postgresql
     encoding: unicode
     database_tasks: false
+=======
+>>>>>>> parent of 78fce04 (Attempt to fix race condition in goodjob)
   wakatime:
     adapter: postgresql
     encoding: unicode
