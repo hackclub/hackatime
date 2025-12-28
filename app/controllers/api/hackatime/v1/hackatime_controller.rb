@@ -1,5 +1,6 @@
 class Api::Hackatime::V1::HackatimeController < ApplicationController
   before_action :set_user
+  before_action :validate_user_id_parameter
   skip_before_action :verify_authenticity_token
   skip_before_action :enforce_lockout
   before_action :check_lockout, only: [ :push_heartbeats ]
@@ -332,12 +333,48 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
     # Sanitize api_token to handle invalid UTF-8 sequences
     api_token = api_token.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
-
+    
+    # When using an admin key, we allow any ID for endpoints that accept an :id parameter.
+    admin_key = AdminApiKey.find_by(token: api_token)
+    if admin_key.present?
+      @admin_api_key = admin_key
+      @current_admin_user = admin_key.user
+      @user = admin_key.user
+      return
+    end
+    
     valid_key = ApiKey.find_by(token: api_token)
     return render json: { error: "Unauthorized" }, status: :unauthorized unless valid_key.present?
 
     @user = valid_key.user
     render json: { error: "Unauthorized" }, status: :unauthorized unless @user
+  end
+
+  def validate_user_id_parameter
+    return unless params[:id].present?
+
+    requested_id = params[:id] # e.g. "current", user ID, slack UID
+
+    if @admin_api_key.present?
+      if requested_id == "current"
+        # When using an admin key, the caller MUST specify a user ID.
+        return render json: { error: "Unauthorized" }, status: :unauthorized
+      end
+
+      target_user = User.find_by(id: requested_id) || User.find_by(slack_uid: requested_id)
+      unless target_user
+        return render json: { error: "User not found" }, status: :not_found
+      end
+
+      @user = target_user
+    else
+      # This is a regular API key - the only user they can fetch is themselves.
+      if requested_id != "current"
+        render json: { error: "Unauthorized" }, status: :unauthorized
+      end
+
+      # @user is already set by set_user.
+    end
   end
 
   def heartbeat_keys
