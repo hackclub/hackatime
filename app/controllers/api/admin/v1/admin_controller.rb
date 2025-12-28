@@ -22,6 +22,99 @@ module Api
           }
         end
 
+        def get_user_by_email
+          email = params[:email]
+
+          if email.blank?
+            render json: { error: "bro dont have a email" }, status: :unprocessable_entity
+            return
+          end
+
+          email_record = EmailAddress.find_by email: email
+          if email_record.nil?
+            render json: { error: "email not found" }, status: :not_found
+            return
+          end
+
+          render json: {
+            user_id: email_record.user_id
+          }
+        end
+
+
+        def search_users_fuzzy
+          query = params[:query]
+          if query.blank?
+            render json: { error: "bro dont have a query" }, status: :unprocessable_entity
+            return
+          end
+
+          user_search_query = <<-SQL
+            SELECT
+              *
+            FROM (
+              SELECT
+                users.*,
+                (
+                  CASE WHEN users.id::text = :query THEN 1000 ELSE 0 END +
+                  CASE WHEN users.slack_uid = :query THEN 1000 ELSE 0 END +
+                  CASE
+                    WHEN users.username ILIKE :query THEN 100
+                    WHEN users.username ILIKE :query || '%' THEN 50
+                    WHEN users.username ILIKE '%' || :query || '%' THEN 10
+                    ELSE 0
+                  END +
+                  CASE
+                    WHEN users.github_username ILIKE :query THEN 100
+                    WHEN users.github_username ILIKE :query || '%' THEN 50
+                    WHEN users.github_username ILIKE '%' || :query || '%' THEN 10
+                    ELSE 0
+                  END +
+                  CASE
+                    WHEN users.slack_username ILIKE :query THEN 100
+                    WHEN users.slack_username ILIKE :query || '%' THEN 50
+                    WHEN users.slack_username ILIKE '%' || :query || '%' THEN 10
+                    ELSE 0
+                  END +
+                  CASE
+                    WHEN email_addresses.email ILIKE :query THEN 100
+                    WHEN email_addresses.email ILIKE :query || '%' THEN 50
+                    WHEN email_addresses.email ILIKE '%' || :query || '%' THEN 10
+                    ELSE 0
+                  END
+                ) AS rank_score,
+                email_addresses.email
+              FROM
+                users
+                INNER JOIN email_addresses ON users.id=email_addresses.user_id
+              WHERE
+                users.id::text = :query
+                OR users.slack_uid = :query
+                OR users.username ILIKE '%' || :query || '%'
+                OR users.github_username ILIKE '%' || :query || '%'
+                OR users.slack_username ILIKE '%' || :query || '%'
+                OR email_addresses.email ILIKE '%' || :query || '%'
+            ) AS ranked_users
+            WHERE
+              rank_score > 0
+            ORDER BY
+              rank_score DESC,
+              username ASC
+            LIMIT 10
+          SQL
+
+          sanitized_query = ActiveRecord::Base.sanitize_sql([ user_search_query, query: query ])
+          result = ActiveRecord::Base.connection.execute(sanitized_query)
+          columns = result.fields
+          rows = result.to_a.map { |row| columns.zip(row).to_h }
+
+          render json: {
+            columns: columns,
+            rows: rows
+          }
+        end
+
+
         def get_users_by_ip
           user_ip = params[:ip]
 
