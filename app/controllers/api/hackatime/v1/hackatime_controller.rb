@@ -337,7 +337,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     admin_key = AdminApiKey.find_by(token: api_token)
     if admin_key.present?
       return render json: { error: "Unauthorized" }, status: :unauthorized unless admin_key.active?
-      
+
       @admin_api_key = admin_key
       @current_admin_user = admin_key.user
 
