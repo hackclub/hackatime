@@ -1,6 +1,5 @@
 class Api::Hackatime::V1::HackatimeController < ApplicationController
   before_action :set_user
-  before_action :validate_user_id_parameter
   skip_before_action :verify_authenticity_token
   skip_before_action :enforce_lockout
   before_action :check_lockout, only: [ :push_heartbeats ]
@@ -336,45 +335,35 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
     # When using an admin key, we allow any ID for endpoints that accept an :id parameter.
     admin_key = AdminApiKey.find_by(token: api_token)
-    if admin_key.present? && admin_key.active?
+    if admin_key.present?
+      return render json: { error: "Unauthorized" }, status: :unauthorized unless admin_key.active?
+      
       @admin_api_key = admin_key
       @current_admin_user = admin_key.user
-      @user = admin_key.user
+
+      # When using an admin key, the caller MUST specify a user ID (e.g. user ID, slack UID).
+      requested_id = params[:id]
+      if requested_id.blank? || requested_id == "current"
+        return render json: { error: "Specific user ID must be provided when using an admin key" }, status: :bad_request
+      end
+
+      target_user = User.find_by(id: requested_id) || User.find_by(slack_uid: requested_id)
+      return render json: { error: "User not found" }, status: :not_found unless target_user
+
+      @user = target_user
       return
     end
 
     valid_key = ApiKey.find_by(token: api_token)
     return render json: { error: "Unauthorized" }, status: :unauthorized unless valid_key.present?
 
+    # This is a regular API key - the only user they can fetch is themselves.
+    if params[:id].present? && params[:id] != "current"
+      return render json: { error: "Unauthorized" }, status: :unauthorized
+    end
+
     @user = valid_key.user
     render json: { error: "Unauthorized" }, status: :unauthorized unless @user
-  end
-
-  def validate_user_id_parameter
-    return unless params[:id].present?
-
-    requested_id = params[:id] # e.g. "current", user ID, slack UID
-
-    if @admin_api_key.present?
-      if requested_id == "current"
-        # When using an admin key, the caller MUST specify a user ID.
-        return render json: { error: "Unauthorized" }, status: :unauthorized
-      end
-
-      target_user = User.find_by(id: requested_id) || User.find_by(slack_uid: requested_id)
-      unless target_user
-        return render json: { error: "User not found" }, status: :not_found
-      end
-
-      @user = target_user
-    else
-      # This is a regular API key - the only user they can fetch is themselves.
-      if requested_id != "current"
-        render json: { error: "Unauthorized" }, status: :unauthorized
-      end
-
-      # @user is already set by set_user.
-    end
   end
 
   def heartbeat_keys
