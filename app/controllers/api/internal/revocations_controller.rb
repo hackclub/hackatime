@@ -16,7 +16,8 @@ module Api
 
         render json: {
           success: true,
-          owner_email: user.email_addresses.first&.email
+          owner_email: user.email_addresses.first&.email,
+          key_name: admin_api_key.name
         }.compact_blank
       end
 
