@@ -34,6 +34,17 @@ module TimeRangeFilterable
       human_name: "Last 12 Months",
       calculate: -> { (Time.current - 12.months).beginning_of_day..Time.current.end_of_day }
     },
+    flavortown: {
+      human_name: "Flavortown",
+      calculate: -> {
+        timezone = "America/Nework"
+        Time.use_zone(timezone) do 
+          from = Time.parse("2025-12-15").beginning_of_day
+          to = Time.parse("2026-03-31").end_of_day
+          from.beginning_of_day..to.end_of_day
+        end
+      }
+    },
     summer_of_making: {
       human_name: "Summer of Making",
       calculate: -> {
