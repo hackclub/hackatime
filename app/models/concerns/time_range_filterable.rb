@@ -37,7 +37,7 @@ module TimeRangeFilterable
     flavortown: {
       human_name: "Flavortown",
       calculate: -> {
-        timezone = "America/Nework"
+        timezone = "America/New_York"
         Time.use_zone(timezone) do
           from = Time.parse("2025-12-15").beginning_of_day
           to = Time.parse("2026-03-31").end_of_day
