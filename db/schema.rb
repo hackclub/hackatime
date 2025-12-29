@@ -10,8 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
-  create_schema "pganalyze"
+ActiveRecord::Schema[8.1].define(version: 2025_12_29_142540) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -344,38 +343,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
     t.bigint "user_id", null: false
     t.string "zip_code", null: false
     t.index ["user_id"], name: "index_mailing_addresses_on_user_id"
-  end
-
-  create_table "neighborhood_apps", force: :cascade do |t|
-    t.jsonb "airtable_fields"
-    t.string "airtable_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["airtable_id"], name: "index_neighborhood_apps_on_airtable_id", unique: true
-  end
-
-  create_table "neighborhood_posts", force: :cascade do |t|
-    t.jsonb "airtable_fields"
-    t.string "airtable_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["airtable_id"], name: "index_neighborhood_posts_on_airtable_id", unique: true
-  end
-
-  create_table "neighborhood_projects", force: :cascade do |t|
-    t.jsonb "airtable_fields"
-    t.string "airtable_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["airtable_id"], name: "index_neighborhood_projects_on_airtable_id", unique: true
-  end
-
-  create_table "neighborhood_ysws_submissions", force: :cascade do |t|
-    t.jsonb "airtable_fields"
-    t.string "airtable_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["airtable_id"], name: "index_neighborhood_ysws_submissions_on_airtable_id", unique: true
   end
 
   create_table "oauth_access_grants", force: :cascade do |t|
