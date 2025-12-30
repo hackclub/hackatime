@@ -1,6 +1,4 @@
 class Api::V1::LeaderboardController < ApplicationController
-  before_action :ensure_authenticated!
-
   def daily
     leaderboard = LeaderboardService.get(period: :daily, date: Date.current)
 
@@ -47,14 +45,4 @@ class Api::V1::LeaderboardController < ApplicationController
     }
   end
 
-  def ensure_authenticated!
-    return if Rails.env.development?
-
-    token = request.headers["Authorization"]&.split(" ")&.last
-    token ||= params[:api_key]
-
-    unless token == ENV["STATS_API_KEY"]
-      render json: { error: "Unauthorized" }, status: :unauthorized
-    end
-  end
 end
