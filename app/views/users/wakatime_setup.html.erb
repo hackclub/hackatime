@@ -217,10 +217,10 @@
     const statusMessage = document.getElementById('status-message');
     const pollStatus = document.getElementById('poll-status');
     const statusPanel = document.getElementById('status-panel');
-    
+
     let checkCount = 0;
     const maxChecks = 120;
-    
+
     const msg = [
       "Copy the command on the left and run it in your terminal!",
       "Paste the command and press Enter...",
@@ -260,19 +260,19 @@
       })
       .catch(error => {
         checkCount++;
-        
+
         if (checkCount % 3 === 0) {
           const msgIndex = Math.floor(checkCount / 3) % msg.length;
           statusMessage.textContent = msg[msgIndex];
         }
-        
+
         pollStatus.textContent = `Checked ${checkCount} time${checkCount === 1 ? '' : 's'}...`;
-        
+
         if (checkCount >= maxChecks) {
           pollStatus.textContent = "Still waiting... Make sure you've run the command!";
           return;
         }
-        
+
         setTimeout(check, 5000);
       });
     }
