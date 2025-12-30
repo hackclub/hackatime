@@ -24,40 +24,6 @@
       "note": ""
     },
     {
-      "warning_type": "Cross-Site Scripting",
-      "warning_code": 4,
-      "fingerprint": "8184712392e74f5ce3734b80dcfd36172e118373aa4d12bb8756004866bd72c9",
-      "check_name": "LinkToHref",
-      "message": "Potentially unsafe model attribute in `link_to` href",
-      "file": "app/views/admin/ysws_reviews/show.html.erb",
-      "line": 65,
-      "link": "https://brakemanscanner.org/docs/warning_types/link_to_href",
-      "code": "link_to(\"View on Airtable\", (Unresolved Model).new.airtable_url, :target => \"_blank\", :style => \"display: inline-block; padding: 0.4rem 0.8rem; background-color: #374151; color: #E5E7EB; text-decoration: none; border-radius: 0.25rem; font-size: 0.85rem;\")",
-      "render_path": [
-        {
-          "type": "controller",
-          "class": "Admin::YswsReviewsController",
-          "method": "show",
-          "line": 7,
-          "file": "app/controllers/admin/ysws_reviews_controller.rb",
-          "rendered": {
-            "name": "admin/ysws_reviews/show",
-            "file": "app/views/admin/ysws_reviews/show.html.erb"
-          }
-        }
-      ],
-      "location": {
-        "type": "template",
-        "template": "admin/ysws_reviews/show"
-      },
-      "user_input": "(Unresolved Model).new.airtable_url",
-      "confidence": "Weak",
-      "cwe_id": [
-        79
-      ],
-      "note": ""
-    },
-    {
       "warning_type": "SQL Injection",
       "warning_code": 0,
       "fingerprint": "db41fbf90d0feb7b7c1c11545d498447162cf5e54e091d2ddcfcaba28b2513f6",

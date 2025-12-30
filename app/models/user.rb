@@ -203,12 +203,6 @@ class User < ApplicationRecord
                 .exists?
   end
 
-  def set_neighborhood_channel
-    return unless slack_uid.present?
-
-    self.slack_neighborhood_channel = SlackNeighborhood.find_by_id(slack_uid)&.dig("id")
-  end
-
   def format_extension_text(duration)
     case hackatime_extension_text_type
     when "simple_text"
@@ -489,8 +483,6 @@ class User < ApplicationRecord
 
     user.slack_access_token = data["authed_user"]["access_token"]
     user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
-
-    user.set_neighborhood_channel
 
     user.save!
     user
