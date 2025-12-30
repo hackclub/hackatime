@@ -32,9 +32,7 @@ end %>">
       <%= country_to_emoji(user.country_code) %>
     </span>
   <% end %>
-  <% if local_assigns.fetch(:show, []).include?(:neighborhood) && user.slack_neighborhood_channel.present? %>
-    <%= link_to "🏘️", "https://hackclub.slack.com/archives/#{user.slack_neighborhood_channel}", target: "_blank" %>
-  <% end %>
+
   <% unless current_user == user %>
     <% if current_user && (!user.admin_level.in?(["admin", "superadmin"]) || (user.admin_level == "admin" && current_user.admin_level == "superadmin" && user.admin_level != "superadmin")) %>
       <% admin_tool('', 'span') do %>
