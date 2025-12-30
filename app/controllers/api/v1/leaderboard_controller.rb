@@ -44,5 +44,4 @@ class Api::V1::LeaderboardController < ApplicationController
       entries: entries
     }
   end
-
 end
