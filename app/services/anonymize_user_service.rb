@@ -34,7 +34,6 @@ class AnonymizeUserService
       slack_avatar_url: nil,
       slack_access_token: nil,
       slack_scopes: [],
-      slack_neighborhood_channel: nil,
       github_uid: nil,
       github_username: nil,
       github_avatar_url: nil,
