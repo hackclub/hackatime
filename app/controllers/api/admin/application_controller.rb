@@ -14,15 +14,16 @@ module Api
           if @admin_api_key
             @current_user = @admin_api_key.user
 
-            unless @current_user.admin_level.in?([ "admin", "superadmin", "viewer" ])
+            if @current_user.admin_level.in?([ "admin", "superadmin", "viewer" ])
+              true
+            else
               @admin_api_key.revoke!
               render json: { error: "lmao no perms" }, status: :unauthorized
               false
-            else
-              true
             end
           else
             render json: { error: "lmao no perms" }, status: :unauthorized
+            false
           end
         end
       end
