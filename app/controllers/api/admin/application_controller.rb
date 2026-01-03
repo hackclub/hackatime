@@ -9,7 +9,8 @@ module Api
 
       def authenticate_admin_api_key!
         authenticate_or_request_with_http_token do |token, options|
-          @admin_api_key = AdminApiKey.active.find_by(token: token)
+          admin_api_key = AdminApiKey.active.find { |key| ActiveSupport::SecurityUtils.secure_compare(key.token, token) }
+          @admin_api_key = admin_api_key
 
           if @admin_api_key
             @current_user = @admin_api_key.user
