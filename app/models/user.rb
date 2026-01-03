@@ -94,8 +94,7 @@ class User < ApplicationRecord
   has_many :email_verification_requests, dependent: :destroy
   has_many :sign_in_tokens, dependent: :destroy
   has_many :project_repo_mappings
-  has_one :mailing_address, dependent: :destroy
-  has_many :physical_mails
+
 
   has_many :hackatime_heartbeats,
     foreign_key: :user_id,
