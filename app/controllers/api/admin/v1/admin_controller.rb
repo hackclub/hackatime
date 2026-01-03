@@ -55,13 +55,12 @@ module Api
 
           user_search_query = <<-SQL
             SELECT
-              id, username, display_name, slack_username, github_username,
+              id, username, slack_username, github_username,
               slack_avatar_url, github_avatar_url, email
             FROM (
               SELECT
                 users.id,
                 users.username,
-                users.display_name,
                 users.slack_username,
                 users.github_username,
                 users.slack_avatar_url,
