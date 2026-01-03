@@ -8,22 +8,26 @@ module Api
       private
 
       def authenticate_admin_api_key!
-        authenticate_or_request_with_http_token do |token, options|
-          @admin_api_key = AdminApiKey.active.find_by(token: token)
+        token = request.headers["Authorization"]&.split(" ")&.last
+        
+        unless token
+          render json: { error: "lmao no perms" }, status: :unauthorized
+          return
+        end
 
-          if @admin_api_key
-            @current_user = @admin_api_key.user
+        @admin_api_key = AdminApiKey.active.find_by(token: token)
 
-            unless @current_user.admin_level.in?([ "admin", "superadmin", "viewer" ])
-              @admin_api_key.revoke!
-              render json: { error: "lmao no perms" }, status: :unauthorized
-              false
-            else
-              true
-            end
-          else
-            render json: { error: "lmao no perms" }, status: :unauthorized
-          end
+        unless @admin_api_key
+          render json: { error: "lmao no perms" }, status: :unauthorized
+          return
+        end
+
+        @current_user = @admin_api_key.user
+
+        unless @current_user.admin_level.in?([ "admin", "superadmin", "viewer" ])
+          @admin_api_key.revoke!
+          render json: { error: "lmao no perms" }, status: :unauthorized
+          return
         end
       end
 
