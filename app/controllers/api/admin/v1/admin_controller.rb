@@ -55,10 +55,18 @@ module Api
 
           user_search_query = <<-SQL
             SELECT
-              *
+              id, username, display_name, slack_username, github_username,
+              slack_avatar_url, github_avatar_url, email
             FROM (
               SELECT
-                users.*,
+                users.id,
+                users.username,
+                users.display_name,
+                users.slack_username,
+                users.github_username,
+                users.slack_avatar_url,
+                users.github_avatar_url,
+                email_addresses.email,
                 (
                   CASE WHEN users.id::text = :query THEN 1000 ELSE 0 END +
                   CASE WHEN users.slack_uid = :query THEN 1000 ELSE 0 END +
@@ -86,8 +94,7 @@ module Api
                     WHEN email_addresses.email ILIKE '%' || :query || '%' THEN 10
                     ELSE 0
                   END
-                ) AS rank_score,
-                email_addresses.email
+                ) AS rank_score
               FROM
                 users
                 INNER JOIN email_addresses ON users.id=email_addresses.user_id
@@ -109,12 +116,9 @@ module Api
 
           sanitized_query = ActiveRecord::Base.sanitize_sql([ user_search_query, query: query ])
           result = ActiveRecord::Base.connection.execute(sanitized_query)
-          columns = result.fields
-          rows = result.to_a.map { |row| columns.zip(row).to_h }
 
           render json: {
-            columns: columns,
-            rows: rows
+            users: result.to_a
           }
         end
 
