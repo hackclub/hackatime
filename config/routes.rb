@@ -22,6 +22,14 @@ Rails.application.routes.draw do
     mount AhoyCaptain::Engine => "/ahoy_captain"
     mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
 
+    namespace :admin do
+      resources :admin_users, only: [ :index, :update ] do
+        collection do
+          get :search
+        end
+      end
+    end
+
     # get "/my/mailing_address", to: "my/mailing_address#show", as: :my_mailing_address
   end
 
