@@ -29,8 +29,6 @@ Rails.application.routes.draw do
         end
       end
     end
-
-    # get "/my/mailing_address", to: "my/mailing_address#show", as: :my_mailing_address
   end
 
   constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer) do

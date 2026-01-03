@@ -44,7 +44,7 @@ class AnonymizeUserService
       username: "deleted_user_#{user.id}",
       uses_slack_status: false,
       country_code: nil,
-      mailing_address_otc: nil,
+
       deprecated_name: nil
     )
   end
@@ -56,7 +56,7 @@ class AnonymizeUserService
     user.email_verification_requests.destroy_all
     user.wakatime_mirrors.destroy_all
     user.project_repo_mappings.destroy_all
-    user.mailing_address&.destroy
+
     user.heartbeats.destroy_all
 
     user.access_grants.destroy_all
