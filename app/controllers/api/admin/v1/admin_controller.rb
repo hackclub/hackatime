@@ -51,6 +51,8 @@ module Api
             return
           end
 
+          query = ActiveRecord::Base.sanitize_sql_like(query)
+
           user_search_query = <<-SQL
             SELECT
               *

@@ -26,7 +26,8 @@ class Admin::AdminUsersController < Admin::BaseController
   def search
     query = params[:q].to_s.strip
     @users = if query.present?
-      User.where("slack_username ILIKE :q OR username ILIKE :q OR slack_uid ILIKE :q", q: "%#{query}%")
+      x = ActiveRecord::Base.sanitize_sql_like(query)
+      User.where("slack_username ILIKE :q OR username ILIKE :q OR slack_uid ILIKE :q", q: "%#{x}%")
           .limit(20)
     else
       User.none
