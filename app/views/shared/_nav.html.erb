@@ -143,6 +143,11 @@
           <% end %>
         <% end %>
         <% superadmin_tool(nil, "div") do %>
+          <%= link_to admin_admin_users_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(admin_admin_users_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+            Admin Management
+          <% end %>
+        <% end %>
+        <% superadmin_tool(nil, "div") do %>
           <%= link_to admin_deletion_requests_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(admin_deletion_requests_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
             Account Deletions
             <% pending_count = DeletionRequest.pending.count %>
