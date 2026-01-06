@@ -34,7 +34,9 @@ class My::ProjectRepoMappingsController < ApplicationController
 
   def unarchive
     @project_repo_mapping.unarchive!
-    redirect_to my_projects_path(show_archived: true), notice: "Back from the dead!"
+    r = current_user.project_repo_mappings.archived.where.not(id: @project_repo_mapping.id).exists?
+    p = r ? my_projects_path(show_archived: true) : my_projects_path
+    redirect_to p, notice: "Back from the dead!"
   end
 
   private
