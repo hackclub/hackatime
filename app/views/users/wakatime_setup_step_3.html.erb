@@ -21,37 +21,100 @@
       </div>
     </div>
 
-    <div class="text-center mb-8">
-      <h2 class="text-3xl font-bold mb-4">Install Plugin!</h2>
-    </div>
-
     <% if params[:editor] == "vscode" %>
-      <section id="vs-code" class="bg-dark rounded-lg p-6 mb-6">
-        <h3 class="text-2xl font-bold text-blue mb-4">💻 VS Code (Visual Studio Code)</h3>
-        <div class="space-y-6">
-          <p class="text-lg">
-            Install the <a href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime" target="_blank" rel="noopener noreferrer" class="text-cyan hover:text-blue underline">WakaTime extension from the marketplace</a>.
-          </p>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+          <section class="bg-dark rounded-lg p-6">
+            <h3 class="text-2xl font-bold text-blue mb-4">💻 Install the VS Code Extension</h3>
+            <div class="space-y-4">
+              <p class="text-lg">
+                Install the <a href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime" target="_blank" rel="noopener noreferrer" class="text-cyan hover:text-blue underline font-semibold">WakaTime extension from the marketplace</a>.
+              </p>
 
-          <div class="bg-blue/10 border border-blue/30 rounded-lg p-4">
-            <h4 class="font-bold mb-2">Step-by-step:</h4>
-            <ol class="list-decimal list-inside space-y-1">
-              <li>Open VS Code</li>
-              <li>Click the Extensions icon (squares) on the left sidebar</li>
-              <li>Search for "WakaTime"</li>
-              <li>Click <strong>Install</strong> on the WakaTime extension</li>
-              <li>Restart VS Code if prompted</li>
-            </ol>
-          </div>
+              <h4 class="font-bold mb-2">Step-by-step:</h4>
+              <ol class="list-decimal list-inside space-y-1">
+                <li>Open VS Code</li>
+                <li>Click the Extensions icon (squares) on the left sidebar</li>
+                <li>Search for "WakaTime"</li>
+                <li>Click <strong>Install</strong> on the WakaTime extension</li>
+                <li>Restart VS Code if prompted</li>
+                <li>Code for a few minutes to start tracking your time to make sure it's working</li>
+              </ol>
 
-          <div>
-            <p class="text-lg mb-4">You'll know it works if you see a clock in your status bar:</p>
-            <div>
-              <img src="https://hc-cdn.hel1.your-objectstorage.com/s/v3/95d2513ce4b0c1c147827d17ecb4c24540cd73cc_p.png" alt="WakaTime status bar in VS Code" class="max-w-full h-auto rounded-lg">
+              <details class="group">
+                <summary class="cursor-pointer text-secondary hover:text-white flex items-center gap-2">
+                  <svg class="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                  How do I know it's working?
+                </summary>
+                <div class="mt-3 pl-6">
+                  <p class="text-md mb-3">You'll see a clock icon in your status bar:</p>
+                  <img src="https://hc-cdn.hel1.your-objectstorage.com/s/v3/95d2513ce4b0c1c147827d17ecb4c24540cd73cc_p.png" alt="WakaTime status bar in VS Code" class="max-w-full h-auto rounded-lg border border-darkless">
+                </div>
+              </details>
+              <details class="group">
+                <summary class="cursor-pointer text-secondary hover:text-white flex items-center gap-2">
+                  <svg class="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                  Why is the extension called WakaTime?
+                </summary>
+                <div class="mt-3 pl-6">
+                  <p class="text-md mb-3">WakaTime is a popular protocol for tracking time spent coding. Think of Hackatime as a different app that uses the same protocol. Think of it like Gmail and Yahoo have different names, but they both use the same email protocol! You will often have to install a "WakaTime" extension for your editor or IDE, but you can always link it to Hackatime.</p>
+                </div>
+              </details>
             </div>
+          </section>
+        </div>
+
+        <div class="lg:col-span-1">
+          <div class="lg:sticky lg:top-4">
+            <section id="status-panel" class="bg-dark rounded-lg p-6 border-2 border-darkless">
+              <div id="waiting-state">
+                <div class="text-center mb-4">
+                  <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-blue/20 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-blue animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                  <h4 class="text-xl font-bold text-white mb-2">Waiting for you to code...</h4>
+                  <p class="text-secondary text-sm" id="status-message">Once you've installed the extension, open a file and start typing!</p>
+                </div>
+
+                <div class="bg-darkless rounded-lg p-3  ">
+                  <div class="flex items-center justify-center gap-2 text-secondary">
+                    <div class="x"></div>
+                    <span class="text-sm" id="poll-status">Checking for heartbeats...</span>
+                  </div>
+                </div>
+              </div>
+
+              <div id="success-state" class="hidden">
+                <div class="text-center mb-4">
+                  <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-green/20 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-green" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h4 class="text-xl font-bold text-green mb-2">Heartbeat detected <span id="heartbeat-time-ago"></span>!</h4>
+                  <p class="text-secondary text-sm" id="success-message">Hackatime is tracking your coding. Nice work!</p>
+                  <p id="editor-mismatch-message" class="hidden text-cyan text-sm mt-2"></p>
+                </div>
+
+                <%= link_to my_wakatime_setup_step_4_path, class: "block w-full bg-primary hover:bg-red text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors" do %>
+                  Continue →
+                <% end %>
+              </div>
+            </section>
+
+            <p class="text-center text-secondary text-xs mt-3">
+              Already set up? <a href="<%= my_wakatime_setup_step_4_path %>" class="text-cyan hover:underline">Skip to finish</a>
+            </p>
           </div>
         </div>
-      </section>
+      </div>
 
     <% elsif params[:editor] == "vim" %>
       <section id="vim" class="bg-dark rounded-lg p-6 mb-6">
@@ -77,11 +140,51 @@
             <div class="bg-green/10 border border-green/30 rounded-lg p-4">
               <h4 class="font-bold mb-2">Manual installation:</h4>
               <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>cd ~/.vim/bundle
-  git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
+git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
             </div>
           </div>
         </div>
       </section>
+
+      <div class="flex gap-4 flex-wrap justify-center">
+        <%= link_to my_wakatime_setup_step_4_path, class: "bg-primary hover:bg-red text-white px-6 py-3 rounded-lg font-semibold transition-colors" do %>
+          Next Step
+        <% end %>
+      </div>
+
+    <% elsif params[:editor] == "neovim" %>
+      <section id="neovim" class="bg-dark rounded-lg p-6 mb-6">
+        <h3 class="text-2xl font-bold text-green mb-4">📟 Neovim</h3>
+        <div class="space-y-6">
+          <p class="text-lg">
+            Install the WakaTime plugin using your preferred plugin manager:
+          </p>
+
+          <div class="space-y-4">
+            <div class="bg-green/10 border border-green/30 rounded-lg p-4">
+              <h4 class="font-bold mb-2">Using lazy.nvim:</h4>
+              <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>{ "wakatime/vim-wakatime", lazy = false }</code></pre>
+            </div>
+
+            <div class="bg-green/10 border border-green/30 rounded-lg p-4">
+              <h4 class="font-bold mb-2">Using packer.nvim:</h4>
+              <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>use 'wakatime/vim-wakatime'</code></pre>
+            </div>
+
+            <div class="bg-green/10 border border-green/30 rounded-lg p-4">
+              <h4 class="font-bold mb-2">Using vim-plug:</h4>
+              <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>Plug 'wakatime/vim-wakatime'</code></pre>
+              <p class="text-sm mt-2">Then run <code class="bg-darkless px-1 rounded text-cyan">:PlugInstall</code></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="flex gap-4 flex-wrap justify-center">
+        <%= link_to my_wakatime_setup_step_4_path, class: "bg-primary hover:bg-red text-white px-6 py-3 rounded-lg font-semibold transition-colors" do %>
+          Next Step
+        <% end %>
+      </div>
 
     <% elsif params[:editor] == "emacs" %>
       <section id="emacs" class="bg-dark rounded-lg p-6 mb-6">
@@ -101,13 +204,19 @@
             <div class="bg-purple/10 border border-purple/30 rounded-lg p-4">
               <h4 class="font-bold mb-2">Using use-package:</h4>
               <pre class="bg-darkless rounded p-3 text-cyan text-sm overflow-x-auto"><code>(use-package wakatime-mode
-    :ensure t
-    :config
-    (global-wakatime-mode))</code></pre>
+  :ensure t
+  :config
+  (global-wakatime-mode))</code></pre>
             </div>
           </div>
         </div>
       </section>
+
+      <div class="flex gap-4 flex-wrap justify-center">
+        <%= link_to my_wakatime_setup_step_4_path, class: "bg-primary hover:bg-red text-white px-6 py-3 rounded-lg font-semibold transition-colors" do %>
+          Next Step
+        <% end %>
+      </div>
 
     <% elsif params[:editor] == "godot" %>
       <section id="godot" class="bg-dark rounded-lg p-6 mb-6">
@@ -138,6 +247,12 @@
           </div>
         </div>
       </section>
+
+      <div class="flex gap-4 flex-wrap justify-center">
+        <%= link_to my_wakatime_setup_step_4_path, class: "bg-primary hover:bg-red text-white px-6 py-3 rounded-lg font-semibold transition-colors" do %>
+          Next Step
+        <% end %>
+      </div>
 
     <% else %>
       <section class="bg-dark rounded-lg p-6 mb-6">
@@ -177,12 +292,111 @@
           </div>
         </div>
       </section>
-    <% end %>
 
-    <div class="flex gap-4 flex-wrap justify-center">
-      <%= link_to my_wakatime_setup_step_4_path, class: "bg-primary hover:bg-red text-white px-6 py-3 rounded-lg font-semibold transition-colors" do %>
-        Next Step
-      <% end %>
-    </div>
+      <div class="flex gap-4 flex-wrap justify-center">
+        <%= link_to my_wakatime_setup_step_4_path, class: "bg-primary hover:bg-red text-white px-6 py-3 rounded-lg font-semibold transition-colors" do %>
+          Next Step
+        <% end %>
+      </div>
+    <% end %>
   </div>
 </div>
+
+<% if params[:editor] == "vscode" %>
+<script>
+  document.addEventListener('turbo:load', function() {
+    const waitingState = document.getElementById('waiting-state');
+    const successState = document.getElementById('success-state');
+    const statusMessage = document.getElementById('status-message');
+    const pollStatus = document.getElementById('poll-status');
+    const statusPanel = document.getElementById('status-panel');
+
+    let checkCount = 0;
+    const maxChecks = 120; // 10m (5s)
+
+    const msg = [
+      "Open any code file and start typing!",
+      "Try editing some code in VS Code...",
+      "Type a few characters in your editor!",
+      "We're watching for your first keystroke...",
+      "Make any edit in VS Code to continue!"
+    ];
+
+    function showSuccess(timeAgo, detectedEditor) {
+      waitingState.classList.add('hidden');
+      successState.classList.remove('hidden');
+      statusPanel.classList.remove('border-darkless');
+      statusPanel.classList.add('border-green');
+      document.getElementById('heartbeat-time-ago').textContent = timeAgo;
+
+      if (detectedEditor && detectedEditor.toLowerCase() !== 'vscode' && detectedEditor.toLowerCase() !== 'vs code') {
+        const mismatchMessage = document.getElementById('editor-mismatch-message');
+        mismatchMessage.textContent = `We detected a heartbeat from ${detectedEditor}. If this is intended, you're all set!`;
+        mismatchMessage.classList.remove('hidden');
+      }
+    }
+
+    function check() {
+      fetch('<%= api_v1_my_heartbeats_most_recent_path %>', {
+        headers: {
+          'Authorization': 'Bearer <%= @current_user_api_key %>'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.has_heartbeat) {
+          const heartbeatTime = new Date(data.heartbeat.created_at);
+          const now = new Date();
+          const secondsAgo = (now - heartbeatTime) / 1000;
+          const recentThreshold = 86400;
+
+          if (secondsAgo <= recentThreshold) {
+            showSuccess(data.time_ago, data.editor);
+            return;
+          }
+        }
+        throw new Error('No recent heartbeats');
+      })
+      .catch(error => {
+        checkCount++;
+
+        if (checkCount % 3 === 0) {
+          const msgIndex = Math.floor(checkCount / 3) % msg.length;
+          statusMessage.textContent = msg[msgIndex];
+        }
+
+        pollStatus.textContent = `Checked ${checkCount} time${checkCount === 1 ? '' : 's'}...`;
+
+        if (checkCount >= maxChecks) {
+          pollStatus.textContent = "Still waiting... Make sure the extension is installed!";
+          return;
+        }
+
+        setTimeout(check, 5000);
+      });
+    }
+
+    check();
+
+    window.skipToNext = function() {
+      window.location.href = '<%= my_wakatime_setup_step_4_path %>';
+    };
+  });
+</script>
+
+<style>
+  .x {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--color-darkless);
+    border-top: 2px solid var(--color-blue);
+    border-radius: 50%;
+    animation: x 1s linear infinite;
+  }
+
+  @keyframes x {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
+<% end %>

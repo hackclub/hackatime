@@ -59,6 +59,9 @@ class UsersController < ApplicationController
   end
 
   def wakatime_setup_step_3
+    api_key = current_user&.api_keys&.last
+    api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
+    @current_user_api_key = api_key&.token
   end
 
   def wakatime_setup_step_4

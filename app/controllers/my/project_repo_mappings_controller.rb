@@ -1,10 +1,11 @@
 class My::ProjectRepoMappingsController < ApplicationController
   before_action :ensure_current_user
   before_action :require_github_oauth, only: [ :edit, :update ]
-  before_action :set_project_repo_mapping, only: [ :edit, :update ]
+  before_action :set_project_repo_mapping_for_edit, only: [ :edit, :update ]
+  before_action :set_project_repo_mapping, only: [ :archive, :unarchive ]
 
   def index
-    @project_repo_mappings = current_user.project_repo_mappings || []
+    @project_repo_mappings = current_user.project_repo_mappings.active
     @interval = params[:interval] || "daily"
     @from = params[:from]
     @to = params[:to]
@@ -26,6 +27,18 @@ class My::ProjectRepoMappingsController < ApplicationController
     end
   end
 
+  def archive
+    @project_repo_mapping.archive!
+    redirect_to my_projects_path, notice: "Away it goes!"
+  end
+
+  def unarchive
+    @project_repo_mapping.unarchive!
+    r = current_user.project_repo_mappings.archived.where.not(id: @project_repo_mapping.id).exists?
+    p = r ? my_projects_path(show_archived: true) : my_projects_path
+    redirect_to p, notice: "Back from the dead!"
+  end
+
   private
 
   def ensure_current_user
@@ -39,9 +52,16 @@ class My::ProjectRepoMappingsController < ApplicationController
     end
   end
 
-  def set_project_repo_mapping
+  def set_project_repo_mapping_for_edit
     decoded_project_name = CGI.unescape(params[:project_name])
     @project_repo_mapping = current_user.project_repo_mappings.find_or_initialize_by(
+      project_name: decoded_project_name
+    )
+  end
+
+  def set_project_repo_mapping
+    decoded_project_name = CGI.unescape(params[:project_name])
+    @project_repo_mapping = current_user.project_repo_mappings.find_or_create_by!(
       project_name: decoded_project_name
     )
   end

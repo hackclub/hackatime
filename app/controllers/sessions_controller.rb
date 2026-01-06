@@ -1,5 +1,7 @@
 class SessionsController < ApplicationController
   def hca_new
+    session[:return_data] = { url: params[:continue].presence || request.referer } if request.referer.present? && request.referer != request.url
+    Rails.logger.info("Sessions return data: #{session[:return_data]}")
     redirect_uri = url_for(action: :hca_create, only_path: false)
 
     redirect_to User.hca_authorize_url(redirect_uri),
@@ -9,9 +11,14 @@ class SessionsController < ApplicationController
 
   def hca_create
     if params[:error].present?
-      Rails.logger.error "Slack OAuth error: #{params[:error]}"
-      Sentry.capture_message("Slack OAuth error: #{params[:error]}")
-      redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
+      if params[:error] == "access_denied"
+        redirect_to root_path, alert: "Sign in cancelled"
+        return
+      end
+
+      Rails.logger.error "HCA OAuth error: #{params[:error]}"
+      Sentry.capture_message("HCA OAuth error: #{params[:error]}")
+      redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth. Error ID: #{Sentry.last_event_id}"
       return
     end
 
@@ -26,7 +33,13 @@ class SessionsController < ApplicationController
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
-      redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+      if @user.created_at > 5.seconds.ago
+        session[:return_data] ||= { url: params[:continue].presence || request.referer }
+        Rails.logger.info("Sessions return data: #{session[:return_data]}")
+        redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+      else
+        redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+      end
     else
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
     end
@@ -44,6 +57,11 @@ class SessionsController < ApplicationController
     redirect_uri = url_for(action: :slack_create, only_path: false)
 
     if params[:error].present?
+      if params[:error] == "access_denied"
+        redirect_to root_path, alert: "Sign in cancelled"
+        return
+      end
+
       Rails.logger.error "Slack OAuth error: #{params[:error]}"
       Sentry.capture_message("Slack OAuth error: #{params[:error]}")
       redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
@@ -170,6 +188,40 @@ class SessionsController < ApplicationController
     redirect_to my_settings_path, notice: "Check your email to verify the new address!"
   rescue ActiveRecord::RecordInvalid => e
     redirect_to my_settings_path, alert: "Failed to add email: #{e.record.errors.full_messages.join(', ')}"
+  end
+
+  def unlink_email
+    unless current_user
+      redirect_to root_path, alert: "Please sign in first to unlink an email"
+      return
+    end
+
+    email = params[:email].downcase
+
+    email_record = current_user.email_addresses.find_by(
+      email: email
+    )
+
+    unless email_record
+      redirect_to my_settings_path, alert: "Email must exist to be unlinked"
+      return
+    end
+
+    unless current_user.can_delete_email_address?(email_record)
+      redirect_to my_settings_path, alert: "Email must be registered for signing in to unlink"
+      return
+    end
+
+    email_verification_request = current_user.email_verification_requests.find_by(
+      email: email
+    )
+
+    email_record.destroy!
+    email_verification_request&.destroy
+
+    redirect_to my_settings_path, notice: "Email unlinked!"
+  rescue ActiveRecord::RecordNotDestroyed => e
+    redirect_to my_settings_path, alert: "Failed to unlink email: #{e.record.errors.full_messages.join(', ')}"
   end
 
   def token

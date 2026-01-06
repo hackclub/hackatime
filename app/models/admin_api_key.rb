@@ -13,7 +13,10 @@ class AdminApiKey < ApplicationRecord
   end
 
   def revoke!
-    update!(revoked_at: Time.current)
+    update!(
+      revoked_at: Time.current,
+      name: "#{name}_revoked_#{SecureRandom.hex(8)}"
+    )
   end
 
   private

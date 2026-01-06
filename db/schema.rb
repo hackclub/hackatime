@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_06_143925) do
   create_schema "pganalyze"
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
@@ -331,53 +331,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
     t.index ["start_date"], name: "index_leaderboards_on_start_date", where: "(deleted_at IS NULL)"
   end
 
-  create_table "mailing_addresses", force: :cascade do |t|
-    t.string "city", null: false
-    t.string "country", null: false
-    t.datetime "created_at", null: false
-    t.string "first_name", null: false
-    t.string "last_name", null: false
-    t.string "line_1", null: false
-    t.string "line_2"
-    t.string "state", null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.string "zip_code", null: false
-    t.index ["user_id"], name: "index_mailing_addresses_on_user_id"
-  end
-
-  create_table "neighborhood_apps", force: :cascade do |t|
-    t.jsonb "airtable_fields"
-    t.string "airtable_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["airtable_id"], name: "index_neighborhood_apps_on_airtable_id", unique: true
-  end
-
-  create_table "neighborhood_posts", force: :cascade do |t|
-    t.jsonb "airtable_fields"
-    t.string "airtable_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["airtable_id"], name: "index_neighborhood_posts_on_airtable_id", unique: true
-  end
-
-  create_table "neighborhood_projects", force: :cascade do |t|
-    t.jsonb "airtable_fields"
-    t.string "airtable_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["airtable_id"], name: "index_neighborhood_projects_on_airtable_id", unique: true
-  end
-
-  create_table "neighborhood_ysws_submissions", force: :cascade do |t|
-    t.jsonb "airtable_fields"
-    t.string "airtable_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["airtable_id"], name: "index_neighborhood_ysws_submissions_on_airtable_id", unique: true
-  end
-
   create_table "oauth_access_grants", force: :cascade do |t|
     t.bigint "application_id", null: false
     t.datetime "created_at", null: false
@@ -420,16 +373,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
     t.index ["uid"], name: "index_oauth_applications_on_uid", unique: true
   end
 
-  create_table "physical_mails", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.integer "mission_type", null: false
-    t.integer "status", default: 0, null: false
-    t.string "theseus_id"
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["user_id"], name: "index_physical_mails_on_user_id"
-  end
-
   create_table "project_labels", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "label"
@@ -441,14 +384,16 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
   end
 
   create_table "project_repo_mappings", force: :cascade do |t|
+    t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.string "project_name", null: false
-    t.string "repo_url", null: false
+    t.string "repo_url"
     t.bigint "repository_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["project_name"], name: "index_project_repo_mappings_on_project_name"
     t.index ["repository_id"], name: "index_project_repo_mappings_on_repository_id"
+    t.index ["user_id", "archived_at"], name: "index_project_repo_mappings_on_user_id_and_archived_at"
     t.index ["user_id", "project_name"], name: "index_project_repo_mappings_on_user_id_and_project_name", unique: true
     t.index ["user_id"], name: "index_project_repo_mappings_on_user_id"
   end
@@ -579,10 +524,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
-    t.string "mailing_address_otc"
     t.text "slack_access_token"
     t.string "slack_avatar_url"
-    t.string "slack_neighborhood_channel"
     t.string "slack_scopes", default: [], array: true
     t.string "slack_uid"
     t.string "slack_username"
@@ -633,12 +576,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_08_020226) do
   add_foreign_key "heartbeats", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
   add_foreign_key "leaderboard_entries", "users"
-  add_foreign_key "mailing_addresses", "users"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_grants", "users", column: "resource_owner_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_tokens", "users", column: "resource_owner_id"
-  add_foreign_key "physical_mails", "users"
   add_foreign_key "project_repo_mappings", "repositories"
   add_foreign_key "project_repo_mappings", "users"
   add_foreign_key "repo_host_events", "users"

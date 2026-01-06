@@ -40,6 +40,58 @@ Shows how much you've coded today.
 
 These are special to Hackatime.
 
+### Leaderboards (Admin Only)
+
+Daily and weekly leaderboards of total coding time.
+
+```bash
+GET /api/v1/leaderboard           # alias for daily
+GET /api/v1/leaderboard/daily
+GET /api/v1/leaderboard/weekly
+```
+
+Authentication:
+
+- Requires the Stats API key: use `Authorization: Bearer STATS_API_KEY` or `?api_key=STATS_API_KEY`
+- In development, these endpoints may work without a key
+
+Response (example):
+
+```json
+{
+  "period": "daily",
+  "start_date": "2025-12-20T00:00:00Z",
+  "date_range": "Sat, Dec 20, 2025",
+  "generated_at": "2025-12-20T00:05:12Z",
+  "entries": [
+    {
+      "rank": 1,
+      "user": {
+        "id": 123,
+        "username": "alice",
+        "avatar_url": "https://.../avatar.png"
+      },
+      "total_seconds": 14400
+    },
+    {
+      "rank": 2,
+      "user": {
+        "id": 456,
+        "username": "bob",
+        "avatar_url": "https://.../avatar.png"
+      },
+      "total_seconds": 10800
+    }
+  ]
+}
+```
+
+Notes:
+
+- `weekly` uses a 7-day window and returns `period: "last_7_days"` with a multi-day `date_range`
+- If the leaderboard is still generating, returns `503` with `{ "error": "Leaderboard is being generated" }`
+- If the API key is invalid or missing, returns `401` with `{ "error": "Unauthorized" }`
+
 ### Your Coding Stats
 
 ```bash

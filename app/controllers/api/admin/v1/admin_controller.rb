@@ -2,6 +2,8 @@ module Api
   module Admin
     module V1
       class AdminController < Api::Admin::V1::ApplicationController
+        before_action :can_write!, only: [ :user_convict ]
+
         def check
           api_key = current_admin_api_key
           creator = User.find(api_key.user_id)
@@ -22,6 +24,104 @@ module Api
           }
         end
 
+        def get_user_by_email
+          email = params[:email]
+
+          if email.blank?
+            render json: { error: "bro dont have a email" }, status: :unprocessable_entity
+            return
+          end
+
+          email_record = EmailAddress.find_by email: email
+          if email_record.nil?
+            render json: { error: "email not found" }, status: :not_found
+            return
+          end
+
+          render json: {
+            user_id: email_record.user_id
+          }
+        end
+
+
+        def search_users_fuzzy
+          query = params[:query]
+          if query.blank?
+            render json: { error: "bro dont have a query" }, status: :unprocessable_entity
+            return
+          end
+
+          query = ActiveRecord::Base.sanitize_sql_like(query)
+
+          user_search_query = <<-SQL
+            SELECT
+              id, username, slack_username, github_username,
+              slack_avatar_url, github_avatar_url, email
+            FROM (
+              SELECT
+                users.id,
+                users.username,
+                users.slack_username,
+                users.github_username,
+                users.slack_avatar_url,
+                users.github_avatar_url,
+                email_addresses.email,
+                (
+                  CASE WHEN users.id::text = :query THEN 1000 ELSE 0 END +
+                  CASE WHEN users.slack_uid = :query THEN 1000 ELSE 0 END +
+                  CASE
+                    WHEN users.username ILIKE :query THEN 100
+                    WHEN users.username ILIKE :query || '%' THEN 50
+                    WHEN users.username ILIKE '%' || :query || '%' THEN 10
+                    ELSE 0
+                  END +
+                  CASE
+                    WHEN users.github_username ILIKE :query THEN 100
+                    WHEN users.github_username ILIKE :query || '%' THEN 50
+                    WHEN users.github_username ILIKE '%' || :query || '%' THEN 10
+                    ELSE 0
+                  END +
+                  CASE
+                    WHEN users.slack_username ILIKE :query THEN 100
+                    WHEN users.slack_username ILIKE :query || '%' THEN 50
+                    WHEN users.slack_username ILIKE '%' || :query || '%' THEN 10
+                    ELSE 0
+                  END +
+                  CASE
+                    WHEN email_addresses.email ILIKE :query THEN 100
+                    WHEN email_addresses.email ILIKE :query || '%' THEN 50
+                    WHEN email_addresses.email ILIKE '%' || :query || '%' THEN 10
+                    ELSE 0
+                  END
+                ) AS rank_score
+              FROM
+                users
+                INNER JOIN email_addresses ON users.id=email_addresses.user_id
+              WHERE
+                users.id::text = :query
+                OR users.slack_uid = :query
+                OR users.username ILIKE '%' || :query || '%'
+                OR users.github_username ILIKE '%' || :query || '%'
+                OR users.slack_username ILIKE '%' || :query || '%'
+                OR email_addresses.email ILIKE '%' || :query || '%'
+            ) AS ranked_users
+            WHERE
+              rank_score > 0
+            ORDER BY
+              rank_score DESC,
+              username ASC
+            LIMIT 10
+          SQL
+
+          sanitized_query = ActiveRecord::Base.sanitize_sql([ user_search_query, query: query ])
+          result = ActiveRecord::Base.connection.execute(sanitized_query)
+
+          render json: {
+            users: result.to_a
+          }
+        end
+
+
         def get_users_by_ip
           user_ip = params[:ip]
 
@@ -30,7 +130,7 @@ module Api
             return nil
           end
 
-          result = Heartbeat.where([ "ip_address = '%s'", user_ip ]).select(:ip_address, :user_id, :machine, :user_agent).distinct
+          result = Heartbeat.where(ip_address: user_ip).select(:ip_address, :user_id, :machine, :user_agent).distinct
 
           render json: {
             users: result.map do |user| {
@@ -51,7 +151,7 @@ module Api
             return nil
           end
 
-          result = Heartbeat.where([ "machine = '%s'", user_machine ]).select(:user_id, :machine).distinct
+          result = Heartbeat.where(machine: user_machine).select(:user_id, :machine).distinct
 
           render json: {
             users: result.map do |user| {
@@ -187,7 +287,8 @@ module Api
               last_heartbeat: stat.last_heartbeat,
               languages: stat.languages || [],
               repo: repo_mapping&.repo_url,
-              repo_mapping_id: repo_mapping&.id
+              repo_mapping_id: repo_mapping&.id,
+              archived: repo_mapping&.archived? || false
             }
           end
 
@@ -248,54 +349,6 @@ module Api
           end
         end
 
-        def execute
-          query = params[:query]
-
-          if query.blank?
-            return render json: { error: "whatcha doin'?" }, status: :unprocessable_entity
-          end
-
-          cool = %w[created_at deleted_at]
-          not_cool = %w[INSERT UPDATE DELETE DROP CREATE ALTER TRUNCATE EXEC EXECUTE]
-
-          if not_cool.any? { |keyword| query.upcase.include?(keyword) } &&
-             cool.none? { |field| query.upcase.include?(field.upcase) }
-            return render json: { error: "no perms lmaooo" }, status: :forbidden
-          end
-
-          unless query.strip.upcase.start_with?("SELECT")
-            return render json: { error: "no perms lmaooo" }, status: :forbidden
-          end
-
-          begin
-            limited_query = query.strip
-            unless limited_query.upcase.include?("LIMIT")
-              limited_query += " LIMIT 1000"
-            end
-
-            sanitized_query = ActiveRecord::Base.sanitize_sql(limited_query)
-            result = ActiveRecord::Base.connection.execute(sanitized_query)
-
-            columns = result.fields
-            rows = result.to_a.map { |row| columns.zip(row).to_h }
-
-            render json: {
-              success: true,
-              query: sanitized_query,
-              columns: columns,
-              rows: rows,
-              row_count: rows.count,
-              executed_by: current_user.display_name,
-              executed_at: Time.current
-            }
-          rescue => e
-            Rails.logger.error "execute failed: #{e.message}"
-            render json: {
-              error: "failed #{e.message}"
-            }, status: :unprocessable_entity
-          end
-        end
-
         def trust_logs
           user = find_user_by_id
           return unless user
@@ -321,6 +374,13 @@ module Api
         end
 
         private
+
+        def can_write!
+          # blocks viewers
+          unless current_user.admin_level.in?([ "admin", "superadmin" ])
+            render json: { error: "no perms lmaooo" }, status: :forbidden
+          end
+        end
 
         def find_user_by_id
           user_id = params[:id]

@@ -113,9 +113,18 @@ class StaticPagesController < ApplicationController
   def project_durations
     return unless current_user
 
-    @project_repo_mappings = current_user.project_repo_mappings.includes(:repository)
-    cache_key = "user_#{current_user.id}_project_durations_#{params[:interval]}"
+    show_archived = params[:show_archived] == "true"
+
+    if show_archived
+      @project_repo_mappings = current_user.project_repo_mappings.archived.includes(:repository)
+    else
+      @project_repo_mappings = current_user.project_repo_mappings.active.includes(:repository)
+    end
+    archived_projects = current_user.project_repo_mappings.archived.pluck(:project_name)
+
+    cache_key = "user_#{current_user.id}_project_durations_#{params[:interval]}_v2"
     cache_key += "_#{params[:from]}_#{params[:to]}" if params[:interval] == "custom"
+    cache_key += "_archived" if show_archived
 
     project_durations = Rails.cache.fetch(cache_key, expires_in: 1.minute) do
       heartbeats = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
@@ -125,13 +134,22 @@ class StaticPagesController < ApplicationController
         mapping = @project_repo_mappings.find { |p| p.project_name == project }
         {
           project: project_labels.find { |p| p.project_key == project }&.label || project || "Unknown",
+          project_key: project,
           repo_url: mapping&.repo_url,
           repository: mapping&.repository,
+          has_mapping: mapping.present?,
           duration: duration
         }
       end.filter { |p| p[:duration].positive? }.sort_by { |p| p[:duration] }.reverse
     end
-    render partial: "project_durations", locals: { project_durations: project_durations }
+
+    if show_archived
+      project_durations = project_durations.select { |p| archived_projects.include?(p[:project_key]) }
+    else
+      project_durations = project_durations.reject { |p| archived_projects.include?(p[:project_key]) }
+    end
+
+    render partial: "project_durations", locals: { project_durations: project_durations, show_archived: show_archived }
   end
 
   def activity_graph
@@ -151,7 +169,8 @@ class StaticPagesController < ApplicationController
 
     render partial: "activity_graph", locals: {
       daily_durations: daily_durations,
-      length_of_busiest_day: length_of_busiest_day
+      length_of_busiest_day: length_of_busiest_day,
+      user_tz: user_tz
     }
   end
 
@@ -265,10 +284,12 @@ class StaticPagesController < ApplicationController
     # Load filter options and apply filters with caching
     Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
       result = {}
+      archived_projects = current_user.project_repo_mappings.archived.pluck(:project_name)
       # Load filter options
       Time.use_zone(current_user.timezone) do
         filters.each do |filter|
           group_by_time = current_user.heartbeats.group(filter).duration_seconds
+          group_by_time = group_by_time.reject { |name, _| archived_projects.include?(name) } if filter == :project
           result[filter] = group_by_time.sort_by { |k, v| v }
                                         .reverse.map(&:first)
                                         .compact_blank
@@ -320,10 +341,9 @@ class StaticPagesController < ApplicationController
         result[:total_heartbeats] = filtered_heartbeats.count
 
         filters.each do |filter|
-          result["top_#{filter}"] = filtered_heartbeats.group(filter)
-                                                       .duration_seconds
-                                                       .max_by { |_, v| v }
-                                                       &.first
+          stats = filtered_heartbeats.group(filter).duration_seconds
+          stats = stats.reject { |name, _| archived_projects.include?(name) } if filter == :project
+          result["top_#{filter}"] = stats.max_by { |_, v| v }&.first
         end
 
         # Transform top editor, OS, and language names
@@ -335,6 +355,7 @@ class StaticPagesController < ApplicationController
         result[:project_durations] = filtered_heartbeats
           .group(:project)
           .duration_seconds
+          .reject { |project, _| archived_projects.include?(project) }
           .sort_by { |_, duration| -duration }
           .first(10)
           .to_h unless result["singular_project"]
@@ -411,6 +432,7 @@ class StaticPagesController < ApplicationController
             .where(time: week_start.to_f..week_end.to_f)
             .group(:project)
             .duration_seconds
+            .reject { |project, _| archived_projects.include?(project) }
 
           result[:weekly_project_stats][week_start.to_date.iso8601] = week_stats
         end
