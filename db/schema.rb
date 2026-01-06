@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_03_141942) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_05_230132) do
   create_schema "pganalyze"
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
@@ -384,6 +384,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_03_141942) do
   end
 
   create_table "project_repo_mappings", force: :cascade do |t|
+    t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.string "project_name", null: false
     t.string "repo_url", null: false
@@ -392,6 +393,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_03_141942) do
     t.bigint "user_id", null: false
     t.index ["project_name"], name: "index_project_repo_mappings_on_project_name"
     t.index ["repository_id"], name: "index_project_repo_mappings_on_repository_id"
+    t.index ["user_id", "archived_at"], name: "index_project_repo_mappings_on_user_id_and_archived_at"
     t.index ["user_id", "project_name"], name: "index_project_repo_mappings_on_user_id_and_project_name", unique: true
     t.index ["user_id"], name: "index_project_repo_mappings_on_user_id"
   end

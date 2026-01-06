@@ -9,7 +9,8 @@ class Cache::ActiveProjectsJob < Cache::ActivityJob
 
   def calculate
     # Get recent heartbeats with matching project_repo_mappings in a single SQL query
-    ProjectRepoMapping.joins("INNER JOIN heartbeats ON heartbeats.project = project_repo_mappings.project_name AND heartbeats.user_id = project_repo_mappings.user_id")
+    ProjectRepoMapping.active
+                      .joins("INNER JOIN heartbeats ON heartbeats.project = project_repo_mappings.project_name AND heartbeats.user_id = project_repo_mappings.user_id")
                       .joins("INNER JOIN users ON users.id = heartbeats.user_id")
                       .where("heartbeats.source_type = ?", Heartbeat.source_types[:direct_entry])
                       .where("heartbeats.time > ?", 5.minutes.ago.to_f)

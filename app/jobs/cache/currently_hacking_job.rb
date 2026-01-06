@@ -23,7 +23,8 @@ class Cache::CurrentlyHackingJob < Cache::ActivityJob
     active_projects = {}
     users.each do |user|
       recent_heartbeat = recent_heartbeats[user.id]
-      active_projects[user.id] = user.project_repo_mappings.find { |p| p.project_name == recent_heartbeat&.project }
+      mapping = user.project_repo_mappings.find { |p| p.project_name == recent_heartbeat&.project }
+      active_projects[user.id] = mapping&.archived? ? nil : mapping
     end
 
     users = users.sort_by do |user|

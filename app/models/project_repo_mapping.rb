@@ -22,8 +22,24 @@ class ProjectRepoMapping < ApplicationRecord
     "<<LAST PROJECT>>"
   ]
 
+  scope :active, -> { where(archived_at: nil) }
+  scope :archived, -> { where.not(archived_at: nil) }
+  scope :all_statuses, -> { unscoped.where(nil) }
+
   after_create :create_repository_and_sync
   after_update :sync_repository_if_url_changed
+
+  def archive!
+    update!(archived_at: Time.current)
+  end
+
+  def unarchive!
+    update!(archived_at: nil)
+  end
+
+  def archived?
+    archived_at.present?
+  end
 
   private
 

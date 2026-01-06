@@ -287,7 +287,8 @@ module Api
               last_heartbeat: stat.last_heartbeat,
               languages: stat.languages || [],
               repo: repo_mapping&.repo_url,
-              repo_mapping_id: repo_mapping&.id
+              repo_mapping_id: repo_mapping&.id,
+              archived: repo_mapping&.archived? || false
             }
           end
 
