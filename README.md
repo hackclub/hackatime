@@ -1,7 +1,7 @@
 # Hackatime
 
-[![Ping](https://status.hackatime.hackclub.com/api/badge/1/ping)](https://status.hackatime.hackclub.com/status/hackatime)
-[![Status](https://status.hackatime.hackclub.com/api/badge/1/status)](https://status.hackatime.hackclub.com/status/hackatime)
+[![Ping](https://uptime.hackclub.com/api/badge/4/ping)](https://uptime.hackclub.com/status/hackatime)
+[![Status](https://uptime.hackclub.com/api/badge/4/status)](https://uptime.hackclub.com/status/hackatime)
 [![Work time](https://hackatime-badge.hackclub.com/U0C7B14Q3/harbor)](https://hackatime-badge.hackclub.com)
 
 ## Local development
