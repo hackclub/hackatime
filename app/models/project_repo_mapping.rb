@@ -34,11 +34,11 @@ class ProjectRepoMapping < ApplicationRecord
   after_update :sync_repository_if_url_changed, if: :repo_url_required?
 
   def archive!
-    update!(archived_at: Time.current)
+    update_column(:archived_at, Time.current)
   end
 
   def unarchive!
-    update!(archived_at: nil)
+    update_column(:archived_at, nil)
   end
 
   def archived?
