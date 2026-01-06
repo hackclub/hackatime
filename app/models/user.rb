@@ -17,6 +17,7 @@ class User < ApplicationRecord
   validates :username,
     length: { maximum: USERNAME_MAX_LENGTH },
     format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
+    uniqueness: { case_sensitive: false, message: "has already been taken" },
     allow_nil: true
   validate :username_must_be_visible
 
@@ -93,8 +94,7 @@ class User < ApplicationRecord
   has_many :email_verification_requests, dependent: :destroy
   has_many :sign_in_tokens, dependent: :destroy
   has_many :project_repo_mappings
-  has_one :mailing_address, dependent: :destroy
-  has_many :physical_mails
+
 
   has_many :hackatime_heartbeats,
     foreign_key: :user_id,
@@ -200,12 +200,6 @@ class User < ApplicationRecord
                 .where("serialized_params->>'arguments' = ?", [ id ].to_json)
                 .where(finished_at: nil)
                 .exists?
-  end
-
-  def set_neighborhood_channel
-    return unless slack_uid.present?
-
-    self.slack_neighborhood_channel = SlackNeighborhood.find_by_id(slack_uid)&.dig("id")
   end
 
   def format_extension_text(duration)
@@ -489,8 +483,6 @@ class User < ApplicationRecord
     user.slack_access_token = data["authed_user"]["access_token"]
     user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
 
-    user.set_neighborhood_channel
-
     user.save!
     user
   rescue => e
@@ -566,7 +558,7 @@ class User < ApplicationRecord
   end
 
   def display_name
-    name = username || slack_username || github_username
+    name = slack_username || github_username
     return name if name.present?
 
     # "zach@hackclub.com" -> "zach (email sign-up)"

@@ -1,4 +1,17 @@
-<h1 class="text-3xl font-bold text-white mb-4">My Projects</h1>
+<div class="flex items-center gap-4 mb-4">
+  <div class="flex items-center gap-4">
+    <h1 class="text-3xl font-bold text-white">My Projects</h1>
+    <% archived_count = current_user.project_repo_mappings.archived.count %>
+    <% if archived_count > 0 %>
+      <div class="project-toggle-group">
+        <%= link_to "Active", my_projects_path(show_archived: false), 
+          class: "project-toggle-btn #{params[:show_archived] != 'true' ? 'active' : 'inactive'}" %>
+        <%= link_to "Archived", my_projects_path(show_archived: true), 
+          class: "project-toggle-btn #{params[:show_archived] == 'true' ? 'active' : 'inactive'}" %>
+      </div>
+    <% end %>
+  </div>
+</div>
 
 <% if current_user.github_uid.blank? %>
   <div class="notice">
@@ -9,6 +22,6 @@
 
 <%= render "shared/interval_selector" %>
 
-<%= turbo_frame_tag "project_durations", src: project_durations_static_pages_path(interval: params[:interval], from: params[:from], to: params[:to]), target: "_top" do %>
+<%= turbo_frame_tag "project_durations", src: project_durations_static_pages_path(interval: params[:interval], from: params[:from], to: params[:to], show_archived: params[:show_archived]), target: "_top" do %>
   <div class="loading-indicator">Loading projects...</div>
 <% end %>

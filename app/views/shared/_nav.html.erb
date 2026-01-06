@@ -70,11 +70,6 @@
             <% end %>
           </div>
           <div>
-            <%# link_to my_mailroom_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(my_mailroom_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
-<!--              Mailroom-->
-            <%# end %>
-          </div>
-          <div>
             <%= link_to my_settings_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(my_settings_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
               Settings
             <% end %>
@@ -140,6 +135,11 @@
             <%= link_to admin_admin_api_keys_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(admin_admin_api_keys_path) || request.path.start_with?('/admin/admin_api_keys') ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
               Admin API Keys
             <% end %>
+          <% end %>
+        <% end %>
+        <% superadmin_tool(nil, "div") do %>
+          <%= link_to admin_admin_users_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(admin_admin_users_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+            Admin Management
           <% end %>
         <% end %>
         <% superadmin_tool(nil, "div") do %>

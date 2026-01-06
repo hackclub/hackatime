@@ -22,7 +22,13 @@ Rails.application.routes.draw do
     mount AhoyCaptain::Engine => "/ahoy_captain"
     mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
 
-    # get "/my/mailing_address", to: "my/mailing_address#show", as: :my_mailing_address
+    namespace :admin do
+      resources :admin_users, only: [ :index, :update ] do
+        collection do
+          get :search
+        end
+      end
+    end
   end
 
   constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer) do
@@ -30,12 +36,6 @@ Rails.application.routes.draw do
       get "timeline", to: "timeline#show", as: :timeline
       get "timeline/search_users", to: "timeline#search_users"
       get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
-
-      get "post_reviews/:post_id", to: "post_reviews#show", as: :post_review
-      patch "post_reviews/:post_id", to: "post_reviews#update"
-      get "post_reviews/:post_id/date/:date", to: "post_reviews#show", as: :post_review_on_date
-
-      get "ysws_reviews/:record_id", to: "ysws_reviews#show", as: :ysws_review
 
       resources :trust_level_audit_logs, only: [ :index, :show ]
       resources :admin_api_keys, except: [ :edit, :update ]
@@ -121,7 +121,12 @@ Rails.application.routes.draw do
   post "my/settings/rotate_api_key", to: "users#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
-    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }
+    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
+      member do
+        patch :archive
+        patch :unarchive
+      end
+    end
     # resource :mailing_address, only: [ :show, :edit ]
     # get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
@@ -131,6 +136,8 @@ Rails.application.routes.draw do
       end
     end
   end
+
+
 
   get "deletion", to: "deletion_requests#show", as: :deletion
   post "deletion", to: "deletion_requests#create", as: :create_deletion
@@ -149,6 +156,10 @@ Rails.application.routes.draw do
   namespace :api do
     # This is our own API– don't worry about compatibility.
     namespace :v1 do
+      get "leaderboard", to: "leaderboard#daily"
+      get "leaderboard/daily", to: "leaderboard#daily"
+      get "leaderboard/weekly", to: "leaderboard#weekly"
+
       get "stats", to: "stats#show"
       get "users/:username/stats", to: "stats#user_stats"
       get "users/:username/heartbeats/spans", to: "stats#user_spans"
@@ -194,8 +205,9 @@ Rails.application.routes.draw do
         get "user/stats", to: "admin#user_stats"
         get "user/projects", to: "admin#user_projects"
         get "user/trust_logs", to: "admin#trust_logs"
+        post "user/get_user_by_email", to: "admin#get_user_by_email"
+        post "user/search_fuzzy", to: "admin#search_users_fuzzy"
         post "user/convict", to: "admin#user_convict"
-        post "execute", to: "admin#execute"
       end
     end
 
@@ -213,9 +225,12 @@ Rails.application.routes.draw do
     end
 
     namespace :internal do
+      post "revoke", to: "revocations#create"
       post "/can_i_have_a_magic_link_for/:id", to: "magic_links#create"
     end
   end
+
+  get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }
 
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }

@@ -307,6 +307,7 @@ class Api::V1::StatsController < ApplicationController
                  .pluck(:language)
 
       repo = @user.project_repo_mappings.find_by(project_name: name)
+      next if repo&.archived?
 
       data << {
         name: name,
