@@ -59,7 +59,7 @@ class My::ProjectRepoMappingsController < ApplicationController
 
   def set_project_repo_mapping
     decoded_project_name = CGI.unescape(params[:project_name])
-    @project_repo_mapping = current_user.project_repo_mappings.find_by!(
+    @project_repo_mapping = current_user.project_repo_mappings.find_or_create_by!(
       project_name: decoded_project_name
     )
   end

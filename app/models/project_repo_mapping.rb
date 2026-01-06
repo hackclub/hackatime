@@ -5,16 +5,20 @@ class ProjectRepoMapping < ApplicationRecord
   has_paper_trail
 
   validates :project_name, presence: true
-  validates :repo_url, presence: true
   validates :project_name, uniqueness: { scope: :user_id }
 
+  validates :repo_url, presence: true, if: :repo_url_required?
   validates :repo_url, format: {
     with: %r{\A(https?://[^/]+/[^/]+/[^/]+)\z},
     message: "must be a valid repository URL"
-  }
+  }, if: :repo_url_required?
 
-  validate :repo_host_supported
-  validate :repo_url_exists
+  validate :repo_host_supported, if: :repo_url_required?
+  validate :repo_url_exists, if: :repo_url_required?
+
+  def repo_url_required?
+    repo_url.present?
+  end
 
   IGNORED_PROJECTS = [
     nil,
@@ -26,8 +30,8 @@ class ProjectRepoMapping < ApplicationRecord
   scope :archived, -> { where.not(archived_at: nil) }
   scope :all_statuses, -> { unscoped.where(nil) }
 
-  after_create :create_repository_and_sync
-  after_update :sync_repository_if_url_changed
+  after_create :create_repository_and_sync, if: :repo_url_required?
+  after_update :sync_repository_if_url_changed, if: :repo_url_required?
 
   def archive!
     update!(archived_at: Time.current)
