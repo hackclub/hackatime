@@ -120,7 +120,12 @@ Rails.application.routes.draw do
   post "my/settings/rotate_api_key", to: "users#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
-    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }
+    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
+      member do
+        patch :archive
+        patch :unarchive
+      end
+    end
     # resource :mailing_address, only: [ :show, :edit ]
     # get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
@@ -130,6 +135,8 @@ Rails.application.routes.draw do
       end
     end
   end
+
+
 
   get "deletion", to: "deletion_requests#show", as: :deletion
   post "deletion", to: "deletion_requests#create", as: :create_deletion

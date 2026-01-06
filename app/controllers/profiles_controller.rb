@@ -42,7 +42,7 @@ class ProfilesController < ApplicationController
         .first(5)
         .to_h
 
-      project_repo_mappings = @user.project_repo_mappings.index_by(&:project_name)
+      project_repo_mappings = @user.project_repo_mappings.active.index_by(&:project_name)
 
       @top_projects_month = @user.heartbeats
         .where("time >= ?", 1.month.ago.to_f)
