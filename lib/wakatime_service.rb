@@ -126,6 +126,33 @@ class WakatimeService
     end
   end
 
+  def self.categorize_language(language)
+    # Stole this list of langs from some wikipidia page abt popular langs tehe
+    # Please double check this list and add others that i missed or added wrong
+    return nil if language.blank?
+
+    case language.downcase
+    when "java" then "Java"
+    when "javascript", "js" then "JavaScript"
+    when "typescript", "ts" then "TypeScript"
+    when "python", "py", "python3" then "Python"
+    when "c++", "cpp" then "C++"
+    when "c#", "csharp" then "C#"
+    when "html" then "HTML"
+    when "css" then "CSS"
+    when "json" then "JSON"
+    when "xml" then "XML"
+    when "yaml", "yml" then "YAML"
+    when "markdown", "md" then "Markdown"
+    when "shell", "bash", "sh" then "Shell"
+    when "ruby", "rb" then "Ruby"
+    when "go", "golang" then "Go"
+    when "rust", "rs" then "Rust"
+    when "php" then "PHP"
+    else language.capitalize
+    end
+  end
+
   private
 
   def convert_to_unix_timestamp(timestamp)
