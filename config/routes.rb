@@ -48,6 +48,12 @@ Rails.application.routes.draw do
     end
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
   end
+
+  constraints AdminLevelConstraint.new(:superadmin) do
+    namespace :admin do
+      resources :permissions, only: [ :index, :update ]
+    end
+  end
   get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
 
   if Rails.env.development?
@@ -120,12 +126,7 @@ Rails.application.routes.draw do
   post "my/settings/rotate_api_key", to: "users#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
-    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
-      member do
-        patch :archive
-        patch :unarchive
-      end
-    end
+    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ }
     # resource :mailing_address, only: [ :show, :edit ]
     # get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
@@ -135,8 +136,6 @@ Rails.application.routes.draw do
       end
     end
   end
-
-
 
   get "deletion", to: "deletion_requests#show", as: :deletion
   post "deletion", to: "deletion_requests#create", as: :create_deletion
@@ -207,6 +206,32 @@ Rails.application.routes.draw do
         post "user/get_user_by_email", to: "admin#get_user_by_email"
         post "user/search_fuzzy", to: "admin#search_users_fuzzy"
         post "user/convict", to: "admin#user_convict"
+
+        # Admin API Keys management
+        resources :admin_api_keys, only: [ :index, :show, :create, :destroy ]
+
+        # Trust level audit logs
+        resources :trust_level_audit_logs, only: [ :index, :show ]
+
+        # Deletion requests
+        resources :deletion_requests, only: [ :index, :show ] do
+          member do
+            post :approve
+            post :reject
+          end
+        end
+
+        # Permissions management
+        resources :permissions, only: [ :index ] do
+          collection do
+            patch ":id", to: "permissions#update", as: :update
+          end
+        end
+
+        # Timeline
+        get "timeline", to: "timeline#show"
+        get "timeline/search_users", to: "timeline#search_users"
+        get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
       end
     end
 

@@ -19,11 +19,9 @@ module Api
               true
             else
               @admin_api_key.revoke!
-              render json: { error: "lmao no perms" }, status: :unauthorized
               false
             end
           else
-            render json: { error: "lmao no perms" }, status: :unauthorized
             false
           end
         end
@@ -43,6 +41,12 @@ module Api
 
       def render_forbidden
         render json: { error: "lmao no perms" }, status: :forbidden
+      end
+
+      def require_superadmin
+        unless current_user&.admin_level_superadmin?
+          render json: { error: "lmao no perms" }, status: :unauthorized
+        end
       end
     end
   end
