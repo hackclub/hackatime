@@ -373,6 +373,163 @@ module Api
           }
         end
 
+        def user_info_batch
+          ids_param = params[:ids]
+
+          if ids_param.blank?
+            render json: { error: "ids parameter required" }, status: :unprocessable_entity
+            return
+          end
+
+          user_ids = ids_param.to_s.split(",").map(&:strip).map(&:to_i).uniq.take(2000)
+
+          if user_ids.empty?
+            render json: { error: "no valid ids provided" }, status: :unprocessable_entity
+            return
+          end
+
+          users = User.where(id: user_ids)
+
+          render json: {
+            users: users.map do |user|
+              {
+                id: user.id,
+                username: user.username,
+                display_name: user.display_name,
+                slack_uid: user.slack_uid,
+                slack_username: user.slack_username,
+                github_username: user.github_username,
+                timezone: user.timezone,
+                country_code: user.country_code,
+                trust_level: user.trust_level,
+                avatar_url: user.avatar_url,
+                slack_avatar_url: user.slack_avatar_url,
+                github_avatar_url: user.github_avatar_url
+              }
+            end
+          }
+        end
+
+        def user_heartbeats
+          user = find_user_by_id
+          return unless user
+
+          start_date = params[:start_date]
+          end_date = params[:end_date]
+          project = params[:project]
+          language = params[:language]
+          entity = params[:entity]
+          editor = params[:editor]
+          machine = params[:machine]
+          limit = (params[:limit] || 1000).to_i.clamp(1, 5_000)
+          offset = (params[:offset] || 0).to_i.clamp(0, Float::INFINITY)
+
+          query = user.heartbeats
+
+          if start_date.present?
+            start_timestamp = parse_timestamp(start_date)
+            query = query.where("time >= ?", start_timestamp) if start_timestamp
+          end
+
+          if end_date.present?
+            end_timestamp = parse_timestamp(end_date)
+            query = query.where("time <= ?", end_timestamp) if end_timestamp
+          end
+
+          query = query.where(project: project) if project.present?
+          query = query.where(language: language) if language.present?
+          query = query.where(entity: entity) if entity.present?
+          query = query.where(editor: editor) if editor.present?
+          query = query.where(machine: machine) if machine.present?
+
+          total_count = query.count
+
+          heartbeats = query.order(time: :asc).limit(limit).offset(offset)
+
+          render json: {
+            user_id: user.id,
+            heartbeats: heartbeats.map do |hb|
+              {
+                id: hb.id,
+                time: hb.time,
+                lineno: hb.lineno || 0,
+                cursorpos: hb.cursorpos || 0,
+                is_write: hb.is_write,
+                project: hb.project,
+                language: hb.language,
+                entity: hb.entity,
+                branch: hb.branch,
+                category: hb.category,
+                editor: hb.editor,
+                machine: hb.machine,
+                user_agent: hb.user_agent,
+                ip_address: hb.ip_address,
+                lines: hb.lines,
+                source_type: hb.source_type
+              }
+            end,
+            total_count: total_count,
+            has_more: (offset + limit) < total_count
+          }
+        end
+
+        def user_heartbeat_values
+          user = find_user_by_id
+          return unless user
+
+          field = params[:field]
+          start_date = params[:start_date]
+          end_date = params[:end_date]
+          limit = (params[:limit] || 5000).to_i.clamp(1, 5000)
+
+          unless %w[projects languages entities branches categories editors machines user_agents ips].include?(field)
+            render json: { error: "invalid field" }, status: :unprocessable_entity
+            return
+          end
+
+          column_map = {
+            "projects" => "project",
+            "languages" => "language",
+            "entities" => "entity",
+            "branches" => "branch",
+            "categories" => "category",
+            "editors" => "editor",
+            "machines" => "machine",
+            "user_agents" => "user_agent",
+            "ips" => "ip_address"
+          }
+
+          column_name = column_map[field]
+
+          query = user.heartbeats.select(
+            Arel.sql("DISTINCT COALESCE(#{Heartbeat.connection.quote_column_name(column_name)}, '') AS value")
+          )
+
+          if start_date.present?
+            start_timestamp = parse_timestamp(start_date)
+            query = query.where("time >= ?", start_timestamp) if start_timestamp
+          end
+
+          if end_date.present?
+            end_timestamp = parse_timestamp(end_date)
+            query = query.where("time <= ?", end_timestamp) if end_timestamp
+          end
+
+          values = query
+                   .where.not(column_name => nil)
+                   .order(column_name => :asc)
+                   .limit(limit)
+                   .pluck(:value)
+                   .reject(&:empty?)
+
+          render json: {
+            user_id: user.id,
+            field: field,
+            values: values,
+            count: values.count
+          }
+        end
+
         private
 
         def can_write!
@@ -407,6 +564,19 @@ module Api
         rescue Date::Error
           render json: { error: "tf is that date ya dumbass" }, status: :unprocessable_entity
           nil
+        end
+
+        def parse_timestamp(date_param)
+          if date_param.to_s.match?(/^\d+$/)
+            timestamp = date_param.to_i
+            return timestamp if timestamp.between?(0, 2147483647)
+          end
+
+          begin
+            Date.parse(date_param).beginning_of_day.to_i
+          rescue Date::Error
+            nil
+          end
         end
       end
     end

@@ -203,6 +203,9 @@ Rails.application.routes.draw do
       namespace :v1 do
         get "check", to: "admin#check"
         get "user/info", to: "admin#user_info"
+        get "user/info_batch", to: "admin#user_info_batch"
+        get "user/heartbeats", to: "admin#user_heartbeats"
+        get "user/heartbeat_values", to: "admin#user_heartbeat_values"
         get "user/get_users_by_ip", to: "admin#get_users_by_ip"
         get "user/get_users_by_machine", to: "admin#get_users_by_machine"
         get "user/stats", to: "admin#user_stats"
