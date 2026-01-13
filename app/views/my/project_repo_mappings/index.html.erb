@@ -4,9 +4,9 @@
     <% archived_count = current_user.project_repo_mappings.archived.count %>
     <% if archived_count > 0 %>
       <div class="project-toggle-group">
-        <%= link_to "Active", my_projects_path(show_archived: false), 
+        <%= link_to "Active", my_projects_path(show_archived: false),
           class: "project-toggle-btn #{params[:show_archived] != 'true' ? 'active' : 'inactive'}" %>
-        <%= link_to "Archived", my_projects_path(show_archived: true), 
+        <%= link_to "Archived", my_projects_path(show_archived: true),
           class: "project-toggle-btn #{params[:show_archived] == 'true' ? 'active' : 'inactive'}" %>
       </div>
     <% end %>

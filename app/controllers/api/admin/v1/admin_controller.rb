@@ -569,7 +569,7 @@ module Api
         def parse_timestamp(date_param)
           if date_param.to_s.match?(/^\d+$/)
             timestamp = date_param.to_i
-            return timestamp if timestamp.between?(0, 2147483647) 
+            return timestamp if timestamp.between?(0, 2147483647)
           end
 
           begin
