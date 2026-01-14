@@ -2,6 +2,15 @@
   <%
     max = project_durations.map { |p| p[:duration] }.max || 1
   %>
+  <p class="text-lg text-white mt-6">
+      <% total_time = project_durations.sum { |p| p[:duration].to_i } %>
+
+      <% if total_time > 0 %>
+        You've spent <span class="font-semibold"><%= short_time_detailed(total_time) %></span> coding across all projects.
+      <% else %>
+        You haven't logged any time yet. Start coding!
+      <% end %>
+  </p>
   <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mt-6">
     <% project_durations.each do |project| %>
       <% if current_user.github_uid.present? && project[:project].present? %>
