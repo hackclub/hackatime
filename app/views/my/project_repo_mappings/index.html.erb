@@ -14,14 +14,14 @@
 </div>
 
 <% if current_user.github_uid.blank? %>
-  <div class="notice">
-    You can't tie your projects to GitHub until you connect your GitHub account.
-    <%= link_to "Sign in with GitHub", github_auth_path, class: "btn btn-primary" %>
+  <div class="text-red-400 mb-4">
+    Heads up! You can't link your projects to GitHub until you connect your GitHub account.
+    <%= link_to "Sign in with GitHub", github_auth_path, class: "btn btn-primary text-white underline" %>
   </div>
 <% end %>
 
 <%= render "shared/interval_selector" %>
 
 <%= turbo_frame_tag "project_durations", src: project_durations_static_pages_path(interval: params[:interval], from: params[:from], to: params[:to], show_archived: params[:show_archived]), target: "_top" do %>
-  <div class="loading-indicator">Loading projects...</div>
+  <p class="text-lg font-semibold text-gray-500 mt-6">Loading projects, please wait...</p>
 <% end %>
