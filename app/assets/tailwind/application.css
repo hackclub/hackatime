@@ -60,22 +60,6 @@
 .border-purple { border-color: var(--color-purple) !important; }
 
 @layer base {
-  .nav-mobile-hidden {
-    @apply lg:block hidden;
-  }
-  
-  .nav-mobile-overlay {
-    @apply fixed inset-0 bg-black z-40 lg:hidden;
-  }
-  
-  .nav-mobile-slide {
-    @apply transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out;
-  }
-  
-  .nav-mobile-slide.open {
-    @apply translate-x-0;
-  }
-
   .project-toggle-group {
     @apply flex items-center gap-2 rounded-lg p-1;
     background-color: var(--color-darkless);
