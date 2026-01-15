@@ -103,4 +103,14 @@
   .project-toggle-btn.inactive {
     color: var(--color-secondary);
   }
+
+  .interval-selector-button {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
+  .interval-selector-button:hover {
+    background-color: var(--color-primary);
+    opacity: 0.9;
+  }
 }
