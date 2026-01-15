@@ -134,6 +134,10 @@ select {
   font-family: monospace;
 }
 
+turbo-frame#mini_leaderboard[aria-busy="true"]::before {
+  display: none !important;
+}
+
 #currently_hacking {
   display: none;
 }

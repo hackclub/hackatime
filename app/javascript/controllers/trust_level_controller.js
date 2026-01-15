@@ -40,14 +40,6 @@ export default class extends Controller {
       }
 
       event.target.dataset.currentTrustLevel = trustLevel;
-      const leaderboardEntry = event.target.closest(".leaderboard-entry");
-      if (leaderboardEntry) {
-        if (trustLevel === "red") {
-          leaderboardEntry.classList.add("omitted");
-        } else {
-          leaderboardEntry.classList.remove("omitted");
-        }
-      }
     } catch (error) {
       console.error("Error updating trust level:", error);
       // Revert the select to its previous value
