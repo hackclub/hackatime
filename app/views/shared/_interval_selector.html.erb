@@ -5,7 +5,7 @@
         <%= human_interval_name(params[:interval], from: params[:from], to: params[:to]) %>
       </span>
 
-      <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="w-5 h-5 text-gray-500">
+      <svg id="interval-dropdown-arrow" viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="w-5 h-5 text-gray-500 transition-transform duration-200">
         <path d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
       </svg>
     </button>
@@ -22,11 +22,11 @@
       
       <div class="flex flex-col gap-2 mt-2">
         <label class="flex items-center justify-between">Start:
-          <input type="date" class="ml-2 py-1 px-2 bg-[#181b20] border border-gray-700" id="custom-start" value="<%= params[:from] %>">
+          <input type="date" class="ml-2 py-1 px-2 bg-[#181b20] border border-gray-700 rounded" id="custom-start" value="<%= params[:from] %>">
         </label>
 
         <label class="flex items-center justify-between">End:
-          <input type="date" class="ml-2 py-1 px-2 bg-[#181b20] border border-gray-700" id="custom-end" value="<%= params[:to] %>">
+          <input type="date" class="ml-2 py-1 px-2 bg-[#181b20] border border-gray-700 rounded" id="custom-end" value="<%= params[:to] %>">
         </label>
 
         <button type="button" class="interval-selector-button px-3 py-2 mt-2 mb-1 rounded font-semibold transition cursor-pointer" onclick="applyCustomRange()">Apply</button>
@@ -109,15 +109,22 @@
 
     function toggleIntervalDropdown() {
       const menu = document.getElementById('interval-dropdown-menu');
-      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+      const arrow = document.getElementById('interval-dropdown-arrow');
+      const isOpen = menu.style.display === 'block';
+
+      menu.style.display = isOpen ? 'none' : 'block';
+      arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
       document.addEventListener('mousedown', closeDropdownOnClickOutside);
     }
 
     function closeDropdownOnClickOutside(e) {
       const menu = document.getElementById('interval-dropdown-menu');
       const trigger = document.getElementById('interval-dropdown-trigger');
+      const arrow = document.getElementById('interval-dropdown-arrow');
+
       if (!menu.contains(e.target) && !trigger.contains(e.target)) {
         menu.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
         document.removeEventListener('mousedown', closeDropdownOnClickOutside);
       }
     }
