@@ -1,11 +1,3 @@
-:root {
-  --text-color: #222;
-}
-
-.dark-mode {
-  --text-color: #f5f5f5;
-}
-
 .filter .options-container {
   position: absolute;
   top: 100%;
@@ -49,6 +41,7 @@
   overflow-y: auto;
   padding: 0;
   margin: 0;
+
   /* Hide the scroll bar for stupid browers that dont follow regular standereds (looking at u microsoft IE) */
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -58,8 +51,6 @@
 .filter .options-list::-webkit-scrollbar {
   display: none;
 }
-
-
 
 .filter .option {
   display: flex;
@@ -163,7 +154,7 @@
 
 .filter .search-input {
   border-bottom: 1px solid #eee;
-  color: var(--text-color);
+  color: #f5f5f5;
 }
 
 .filter .search-input::placeholder {
@@ -171,7 +162,7 @@
 }
 
 .filter .option {
-  color: var(--text-color);
+  color: #f5f5f5;
 }
 
 .filter .option:hover {
@@ -210,7 +201,6 @@
 .filter .option input[type="checkbox"]:hover {
   border-color: rgba(0, 0, 0, 0.4);
 }
-
 
 .dashboard-wrapper {
   display: flex;
