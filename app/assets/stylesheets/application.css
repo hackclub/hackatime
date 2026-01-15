@@ -134,6 +134,10 @@ select {
   font-family: monospace;
 }
 
+#currently_hacking {
+  display: none;
+}
+
 .clock-display {
 	width: 100%;
 	height: 1.5em;
