@@ -114,7 +114,7 @@ GEM
       smart_properties
     bigdecimal (4.0.1)
     bindex (0.8.1)
-    bootsnap (1.21.0)
+    bootsnap (1.21.1)
       msgpack (~> 1.2)
     brakeman (7.1.2)
       racc
@@ -336,14 +336,14 @@ GEM
       faraday-net_http_persistent
       net-http-persistent
     ostruct (0.6.3)
-    pagy (43.2.2)
+    pagy (43.2.6)
       json
       yaml
     paper_trail (17.0.0)
       activerecord (>= 7.1)
       request_store (~> 1.4)
     parallel (1.27.0)
-    parser (3.3.10.0)
+    parser (3.3.10.1)
       ast (~> 2.4.1)
       racc
     pg (1.6.3)
@@ -485,10 +485,10 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
-    sentry-rails (6.2.0)
+    sentry-rails (6.3.0)
       railties (>= 5.2.0)
-      sentry-ruby (~> 6.2.0)
-    sentry-ruby (6.2.0)
+      sentry-ruby (~> 6.3.0)
+    sentry-ruby (6.3.0)
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
     skylight (7.0.0)
@@ -544,7 +544,7 @@ GEM
     thruster (0.1.17-x86_64-linux)
     timeout (0.6.0)
     tsort (0.2.0)
-    turbo-rails (2.0.20)
+    turbo-rails (2.0.21)
       actionpack (>= 7.1.0)
       railties (>= 7.1.0)
     tzinfo (2.0.6)
@@ -556,9 +556,9 @@ GEM
     uniform_notifier (1.18.0)
     uri (1.1.1)
     useragent (0.16.11)
-    view_component (4.1.1)
-      actionview (>= 7.1.0, < 8.2)
-      activesupport (>= 7.1.0, < 8.2)
+    view_component (4.2.0)
+      actionview (>= 7.1.0)
+      activesupport (>= 7.1.0)
       concurrent-ruby (~> 1)
     web-console (4.2.1)
       actionview (>= 6.0.0)
