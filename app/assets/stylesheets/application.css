@@ -40,30 +40,27 @@
 @import "https://uchu.style/color.css";
 @import "settings.css";
 
-body,
-html {
+body, html {
   font-family: "Phantom Sans", "Segoe UI", sans-serif;
   overflow-x: hidden;
 }
 
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   font-family: inherit;
 }
 
-code,
-pre,
-kbd,
-samp {
+code, pre, kbd, samp {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 /* Ensure forms and inputs respect dark mode */
-input,
-textarea,
-select {
+input, textarea, select {
   color-scheme: dark;
+}
+
+select {
+  margin: 0.1rem 0;
+  padding: 0.1rem 0.5rem;
 }
 
 .superadmin-tool {
@@ -71,16 +68,19 @@ select {
   border: 1px dashed rgb(251, 44, 54);
   background-color: rgba(255, 255, 255, 0.02);
 }
+
 .admin-tool {
   border-radius: 5px;
   border: 1px dashed rgb(240, 177, 0);
   background-color: rgba(255, 255, 255, 0.02);
 }
+
 .viewer-tool {
   border-radius: 5px;
   border: 1px dashed rgb(43, 127, 255);
   background-color: rgba(255, 255, 255, 0.02);
 }
+
 .dev-tool {
   border-radius: 5px;
   border: 1px dashed var(--color-green);
@@ -102,17 +102,6 @@ select {
   color: #ccc;
 }
 
-.auto-scroll {
-  animation: flash 1s ease-in-out;
-  border: 2px solid var(--uchu-yellow);
-  border-radius: 5px;
-}
-
-select {
-  margin: 0.1rem 0;
-  padding: 0.1rem 0.5rem;
-}
-
 @keyframes flash {
   0% {
     background-color: var(--uchu-yellow);
@@ -132,6 +121,14 @@ select {
 
 .monospace {
   font-family: monospace;
+}
+
+turbo-frame#mini_leaderboard[aria-busy="true"]::before {
+  display: none !important;
+}
+
+#currently_hacking {
+  display: none;
 }
 
 .clock-display {
@@ -160,8 +157,7 @@ select {
 	transform: rotateX(180deg);
 }
 
-.clock-display-front,
-.clock-display-back {
+.clock-display-front, .clock-display-back {
 	position: absolute;
 	width: 100%;
 	height: 100%;
@@ -202,11 +198,6 @@ select {
   }
 }
 
-.why-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
-}
-
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -216,7 +207,7 @@ select {
   scrollbar-width: none;
 }
 
-.som-box {
+.project-desc {
   position: relative;
   background: linear-gradient(145deg, #f6dbba 0%, #e6d4be 100%);
   border-radius: clamp(6px, 1.5vw, 10px);
@@ -232,18 +223,4 @@ select {
   z-index: 2;
   margin-left: 20px;
   margin-right: 20px;
-}
-
-.bounce {
-  animation: bounce 1s infinite;
-}
-
-@keyframes bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
 }
