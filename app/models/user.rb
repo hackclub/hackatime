@@ -302,6 +302,7 @@ class User < ApplicationRecord
     self.slack_username = profile["display_name_normalized"].presence
     self.slack_username ||= profile["real_name_normalized"].presence
     self.slack_username ||= user_data["name"].presence
+    self.slack_synced_at = Time.current
   end
 
   def update_slack_status

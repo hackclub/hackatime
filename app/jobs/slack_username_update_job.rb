@@ -10,14 +10,17 @@ class SlackUsernameUpdateJob < ApplicationJob
   )
 
   def perform
-    # in batches of 100, update the slack info for each user
-    User.where.not(slack_uid: nil).find_each(batch_size: 100) do |user|
-      begin
-        user.update_from_slack
-        user.save!
-      rescue => e
-        Rails.logger.error "Failed to update Slack username and avatar for user #{user.id}: #{e.message}"
+    User
+      .where.not(slack_uid: nil)
+      .order(Arel.sql("slack_synced_at IS NOT NULL, slack_synced_at ASC"))
+      .limit(100)
+      .each do |user|
+        begin
+          user.update_from_slack
+          user.save!
+        rescue => e
+          Rails.logger.error "Failed to update Slack username and avatar for user #{user.id}: #{e.message}"
+        end
       end
-    end
   end
 end
