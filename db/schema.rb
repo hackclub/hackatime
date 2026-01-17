@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_06_143925) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_17_202656) do
   create_schema "pganalyze"
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
@@ -527,6 +527,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_06_143925) do
     t.text "slack_access_token"
     t.string "slack_avatar_url"
     t.string "slack_scopes", default: [], array: true
+    t.datetime "slack_synced_at"
     t.string "slack_uid"
     t.string "slack_username"
     t.string "timezone", default: "UTC"
