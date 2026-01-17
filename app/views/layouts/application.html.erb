@@ -38,6 +38,8 @@
     <meta name="twitter:image" content="<%= content_for(:twitter_image) || asset_path('favicon.png') %>">
 
     <%= csrf_meta_tags %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= csp_meta_tag %>
 
     <% if current_user %>

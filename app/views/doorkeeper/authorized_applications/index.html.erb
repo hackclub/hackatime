@@ -1,0 +1,46 @@
+<% content_for :title do %>
+  Authorized Applications
+<% end %>
+
+<div class="max-w-4xl mx-auto p-6 space-y-6">
+  <header class="text-center mb-8">
+    <h1 class="text-4xl font-bold text-white mb-2"><%= t('doorkeeper.authorized_applications.index.title') %></h1>
+    <p class="text-secondary text-lg">Applications that have access to your Hackatime account</p>
+  </header>
+
+  <% if @applications.any? %>
+    <div class="grid grid-cols-1 gap-4">
+      <% @applications.each do |application| %>
+        <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="p-3 bg-primary/10 rounded-lg">
+                <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-white"><%= application.name %></h3>
+                <p class="text-secondary text-sm">
+                  Authorized <%= time_ago_in_words(application.created_at) %> ago
+                </p>
+              </div>
+            </div>
+
+            <%= render 'delete_form', application: application %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="border border-primary rounded-xl p-12 bg-dark text-center">
+      <div class="p-4 bg-green/10 rounded-full inline-block mb-4">
+        <svg class="w-12 h-12 text-green" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      </div>
+      <h3 class="text-xl font-semibold text-white mb-2">No authorized applications</h3>
+      <p class="text-secondary">You haven't authorized any third-party applications to access your Hackatime account.</p>
+    </div>
+  <% end %>
+</div>
