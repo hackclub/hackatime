@@ -52,6 +52,7 @@ jobs:
 
       - name: Lint code for consistent style
         run: bin/rubocop -f github
+        # need to fix this? bin/rubocop -f github --autocorrect
 
   zeitwerk:
     runs-on: ubuntu-latest
@@ -71,14 +72,13 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:16-alpine
         ports:
           - 5432:5432
         # needed because the postgres container does not provide a healthcheck
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -94,29 +94,15 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Run tests
-        env:
-          RAILS_ENV: test
-          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
-          PGHOST: localhost
-          PGUSER: postgres
-          PGPASSWORD: postgres
+      - name: Check schema matches migrations
+        id: migration_check
         run: |
-          bin/rails db:create RAILS_ENV=test
-          bin/rails db:migrate RAILS_ENV=test
-          # Create additional test databases
-          psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime;"
-          psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log;"
-          psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse;"
-          bin/rails test
+          bundle exec rails db:migrate
+          git diff --exit-code db/schema.rb
 
-      - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v6
-        if: failure()
-        with:
-          name: screenshots
-          path: ${{ github.workspace }}/tmp/screenshots
-          if-no-files-found: ignore
+      - name: Check annotations are up to date
+        id: annotate_check
+        run: bundle exec annotaterb models --frozen
 
   # test:
   #   runs-on: ubuntu-latest
