@@ -10,7 +10,7 @@
       </svg>
     </button>
 
-    <div id="interval-dropdown-menu" class="w-full px-3 py-2 mt-2 bg-[#23272f] text-gray-100 border border-gray-700 rounded-lg absolute z-[1000] shadow-lg" style="display: none;">
+    <div id="interval-dropdown-menu" class="w-full px-3 py-2 mt-2 bg-[#23272f] text-gray-100 border border-gray-700 rounded-lg absolute z-1000 shadow-lg" style="display: none;">
       <ul class="list-none m-0 p-0 overflow-y-auto max-h-60">
         <% TimeRangeFilterable::RANGES.each do |key, config| %>
           <li class="py-1.5 px-2 cursor-pointer rounded bg-transparent hover:bg-[#2c313a] transition" onclick="selectInterval('<%= key %>', '<%= config[:human_name] %>')"><%= config[:human_name] %></li>
