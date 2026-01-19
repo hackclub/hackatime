@@ -1,6 +1,6 @@
 class Api::V1::StatsController < ApplicationController
   before_action :ensure_authenticated!, only: [ :show ], unless: -> { Rails.env.development? }
-  before_action :set_user, only: [ :user_stats, :user_spans, :trust_factor, :user_projects, :user_project, :user_projects_details ]
+  before_action :set_user, only: [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ]
 
   def show
     # take either user_id with a start date & end date
@@ -151,15 +151,17 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def trust_factor
-    return render json: { error: "User not found" }, status: :not_found unless @user
+    id = params[:username] || params[:username_or_id] || params[:user_id]
+    return render json: { error: "User not found" }, status: :not_found if id.blank?
 
-    trust_level = @user.trust_level
-    trust_level = "blue" if trust_level == "yellow"
-    trust_value = User.trust_levels[trust_level]
-    render json: {
-      trust_level: trust_level,
-      trust_value: trust_value
-    }
+    query = User.where(slack_uid: id).or(User.where(username: id))
+    query = query.or(User.where(id: id)) if id.match?(/^\d+$/)
+    level = query.pick(:trust_level)
+
+    return render json: { error: "User not found" }, status: :not_found unless level
+
+    level = "blue" if level == "yellow"
+    render json: { trust_level: level, trust_value: User.trust_levels[level] }
   end
 
   def user_projects
