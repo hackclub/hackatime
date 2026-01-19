@@ -481,7 +481,6 @@ class User < ApplicationRecord
 
     email = profile["email"]&.downcase
     email_address = EmailAddress.find_or_initialize_by(email: email)
-    email_address.source ||= :slack
     user = email_address.user
     user ||= begin
       u = User.find_or_initialize_by(slack_uid: data.dig("authed_user", "id"))
@@ -490,6 +489,9 @@ class User < ApplicationRecord
       end
       u
     end
+
+    user.email_addresses.source_slack.where.not(email: email).update_all(source: :signing_in)
+    email_address.source = :slack
 
     user.slack_uid = data.dig("authed_user", "id")
     user.slack_username = profile["display_name_normalized"].presence
