@@ -492,6 +492,7 @@ class User < ApplicationRecord
 
     user.email_addresses.source_slack.where.not(email: email).update_all(source: :signing_in)
     email_address.source = :slack
+    email_address.save! if email_address.persisted?
 
     user.slack_uid = data.dig("authed_user", "id")
     user.slack_username = profile["display_name_normalized"].presence
