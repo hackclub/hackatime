@@ -479,7 +479,7 @@ GEM
       crass (~> 1.0.2)
       nokogiri (>= 1.16.8)
     securerandom (0.4.1)
-    selenium-webdriver (4.39.0)
+    selenium-webdriver (4.40.0)
       base64 (~> 0.2)
       logger (~> 1.4)
       rexml (~> 3.2, >= 3.2.5)
@@ -649,4 +649,4 @@ DEPENDENCIES
   web-console
 
 BUNDLED WITH
-   2.6.9
+  4.0.4
