@@ -64,6 +64,7 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
       SQL
 
     Heartbeat
+      .unscoped
       .from(ranked, :ranked_heartbeats)
       .where("rn <= 10")
       .pluck(:user_id, :ip_address)
