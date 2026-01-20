@@ -74,6 +74,11 @@
               Settings
             <% end %>
           </div>
+          <div>
+            <%= link_to oauth_applications_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(oauth_applications_path) || request.path.start_with?('/oauth/applications') ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+              My OAuth Apps
+            <% end %>
+          </div>
             <div>
             <button
               type="button"
@@ -162,8 +167,8 @@
           <% end %>
         <% end %>
         <% superadmin_tool(nil, "div") do %>
-          <%= link_to oauth_applications_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(oauth_applications_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
-            OAuth2 apps
+          <%= link_to admin_oauth_applications_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(admin_oauth_applications_path) || request.path.start_with?('/admin/oauth_applications') ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
+            All OAuth Apps
           <% end %>
         <% end %>
         <% superadmin_tool(nil, "div") do %>

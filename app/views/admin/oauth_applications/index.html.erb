@@ -1,22 +1,12 @@
 <% content_for :title do %>
-  OAuth Applications
+  All OAuth Applications - Admin
 <% end %>
 
 <div class="max-w-6xl mx-auto p-6 space-y-6">
   <header class="text-center mb-8">
-    <h1 class="text-4xl font-bold text-white mb-2"><%= t('.title') %></h1>
-    <p class="text-secondary text-lg">Manage your OAuth applications that integrate with Hackatime</p>
+    <h1 class="text-4xl font-bold text-white mb-2">All OAuth Applications</h1>
+    <p class="text-secondary text-lg">Manage all OAuth applications across all users</p>
   </header>
-
-  <div class="flex justify-end mb-6">
-    <%= link_to new_oauth_application_path,
-        class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 hover:opacity-90" do %>
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-      </svg>
-      <%= t('.new') %>
-    <% end %>
-  </div>
 
   <% if @applications.any? %>
     <div class="grid grid-cols-1 gap-4">
@@ -31,7 +21,7 @@
                   </svg>
                 </div>
                 <div class="flex items-center gap-2">
-                  <%= link_to application.name, oauth_application_path(application),
+                  <%= link_to application.name, admin_oauth_application_path(application),
                       class: "text-xl font-semibold text-white hover:text-primary transition-colors" %>
                   <% if application.verified? %>
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-green/20 text-green border border-green/30 rounded text-xs">
@@ -45,38 +35,37 @@
               </div>
 
               <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-secondary text-sm">Owner:</span>
+                  <% if application.owner&.username.present? %>
+                    <%= link_to profile_path(application.owner.username), class: "text-white hover:text-primary" do %>
+                      @<%= application.owner.username %>
+                    <% end %>
+                  <% elsif application.owner %>
+                    <span class="text-white"><%= application.owner.display_name || "User ##{application.owner.id}" %></span>
+                  <% else %>
+                    <span class="text-yellow text-sm">No owner</span>
+                  <% end %>
+                </div>
+
                 <div class="flex items-start gap-2">
                   <span class="text-secondary text-sm shrink-0">Callback URLs:</span>
                   <div class="text-white/80 text-sm break-all">
-                    <% application.redirect_uri.to_s.split.each_with_index do |uri, index| %>
+                    <% application.redirect_uri.to_s.split.each do |uri| %>
                       <span class="inline-block bg-darkless px-2 py-0.5 rounded text-xs mb-1"><%= uri %></span>
                     <% end %>
                   </div>
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <span class="text-secondary text-sm">Confidential:</span>
-                  <% if application.confidential? %>
-                    <span class="inline-flex items-center gap-1 text-green text-sm">
-                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                      </svg>
-                      Yes
-                    </span>
-                  <% else %>
-                    <span class="inline-flex items-center gap-1 text-yellow text-sm">
-                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                      </svg>
-                      No
-                    </span>
-                  <% end %>
+                  <span class="text-secondary text-sm">Created:</span>
+                  <span class="text-white/80 text-sm"><%= application.created_at.strftime("%b %d, %Y") %></span>
                 </div>
               </div>
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
-              <%= link_to oauth_application_path(application),
+              <%= link_to admin_oauth_application_path(application),
                   class: "inline-flex items-center gap-1.5 px-3 py-2 bg-darkless hover:bg-secondary/20 text-white text-sm font-medium rounded transition-colors duration-200" do %>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -84,14 +73,21 @@
                 </svg>
                 View
               <% end %>
-              <%= link_to edit_oauth_application_path(application),
-                  class: "inline-flex items-center gap-1.5 px-3 py-2 bg-primary hover:opacity-90 text-white text-sm font-medium rounded transition-colors duration-200" do %>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit
+              <%= button_to toggle_verified_admin_oauth_application_path(application),
+                  method: :post,
+                  class: "inline-flex items-center gap-1.5 px-3 py-2 #{application.verified? ? 'bg-yellow hover:bg-yellow/80' : 'bg-green hover:bg-green/80'} text-white text-sm font-medium rounded transition-colors duration-200" do %>
+                <% if application.verified? %>
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                  Unverify
+                <% else %>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Verify
+                <% end %>
               <% end %>
-              <%= render 'delete_form', application: application %>
             </div>
           </div>
         </div>
@@ -104,15 +100,8 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       </div>
-      <h3 class="text-xl font-semibold text-white mb-2">No applications yet</h3>
-      <p class="text-secondary mb-6">Create your first OAuth application to start integrating with Hackatime.</p>
-      <%= link_to new_oauth_application_path,
-          class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 hover:opacity-90" do %>
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        Create Application
-      <% end %>
+      <h3 class="text-xl font-semibold text-white mb-2">No applications</h3>
+      <p class="text-secondary">No OAuth applications have been created yet.</p>
     </div>
   <% end %>
 </div>
