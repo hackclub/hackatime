@@ -1,6 +1,4 @@
 class Admin::AdminUsersController < Admin::BaseController
-  before_action :require_superadmin!
-
   def index
     @superadmins = User.where(admin_level: :superadmin).order(:slack_username)
     @admins = User.where(admin_level: :admin).order(:slack_username)
@@ -34,13 +32,5 @@ class Admin::AdminUsersController < Admin::BaseController
     end
 
     render partial: "search_results", locals: { users: @users }
-  end
-
-  private
-
-  def require_superadmin!
-    unless current_user&.admin_level_superadmin?
-      redirect_to root_path, alert: "no perms lmaoo"
-    end
   end
 end

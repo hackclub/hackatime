@@ -25,7 +25,7 @@
             <label class="block text-sm font-medium text-secondary mb-2"><%= t('.application_id') %></label>
             <div class="flex items-center gap-2">
               <code id="application_id" class="flex-1 px-3 py-2 bg-darkless border border-darkless rounded text-white font-mono text-sm break-all"><%= @application.uid %></code>
-              <button type="button" onclick="navigator.clipboard.writeText('<%= @application.uid %>')"
+              <button type="button" onclick="navigator.clipboard.writeText(<%= @application.uid.to_json %>)"
                   class="px-3 py-2 bg-darkless hover:bg-secondary/20 text-white rounded transition-colors" title="Copy">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -50,7 +50,7 @@
             <% else %>
               <div class="flex items-center gap-2">
                 <code id="secret" class="flex-1 px-3 py-2 bg-darkless border border-darkless rounded text-white font-mono text-sm break-all"><%= secret %></code>
-                <button type="button" onclick="navigator.clipboard.writeText('<%= secret %>')"
+                <button type="button" onclick="navigator.clipboard.writeText(<%= secret.to_json %>)"
                     class="px-3 py-2 bg-darkless hover:bg-secondary/20 text-white rounded transition-colors" title="Copy">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -99,6 +99,25 @@
               </span>
             <% end %>
           </div>
+
+          <div>
+            <label class="block text-sm font-medium text-secondary mb-2">Verified Status</label>
+            <% if @application.verified? %>
+              <span class="inline-flex items-center gap-1.5 px-2 py-1 bg-green/20 text-green border border-green/30 rounded text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Verified
+              </span>
+            <% else %>
+              <span class="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow/20 text-yellow border border-yellow/30 rounded text-sm">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                Unverified
+              </span>
+            <% end %>
+          </div>
         </div>
       </div>
 
@@ -144,6 +163,24 @@
           <% end %>
 
           <%= render 'delete_form', application: @application, submit_btn_css: 'danger' %>
+
+          <% if current_user&.admin_level_superadmin? %>
+            <%= button_to toggle_verified_admin_oauth_application_path(@application),
+                method: :post,
+                class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 #{@application.verified? ? 'bg-yellow hover:bg-yellow/80' : 'bg-green hover:bg-green/80'} text-white font-medium rounded transition-colors duration-200" do %>
+              <% if @application.verified? %>
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                Remove Verification
+              <% else %>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Verify Application
+              <% end %>
+            <% end %>
+          <% end %>
 
           <%= link_to oauth_applications_path,
               class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-darkless text-white font-medium rounded transition-colors duration-200 hover:bg-darkless" do %>

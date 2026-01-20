@@ -4,6 +4,7 @@
 
 Doorkeeper::Application.find_or_create_by(
   name: "Hackatime Desktop",
+  owner: User.find_by(id: 1),
   redirect_uri: "hackatime://auth/callback",
   uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ",
   scopes: [ "profile" ],
