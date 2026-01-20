@@ -1,5 +1,4 @@
 class Admin::OauthApplicationsController < Admin::BaseController
-  before_action :authenticate_superadmin!
   before_action :set_application, only: [ :show, :edit, :update, :toggle_verified ]
 
   def index
@@ -28,12 +27,6 @@ class Admin::OauthApplicationsController < Admin::BaseController
   end
 
   private
-
-  def authenticate_superadmin!
-    unless current_user&.admin_level_superadmin?
-      redirect_to root_path, alert: "Forbidden"
-    end
-  end
 
   def set_application
     @application = OauthApplication.find(params[:id])
