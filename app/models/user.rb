@@ -108,6 +108,7 @@ class User < ApplicationRecord
 
   has_many :api_keys
   has_many :admin_api_keys, dependent: :destroy
+  has_many :oauth_applications, as: :owner, dependent: :destroy
 
   has_one :sailors_log,
     foreign_key: :slack_uid,
