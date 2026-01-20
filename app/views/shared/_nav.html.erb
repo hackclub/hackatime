@@ -2,11 +2,11 @@
   <div class="space-y-4">
     <% flash.each do |name, msg| %>
       <% c = case name.to_sym
-      when :notice
-        "border-green text-green"
-      else
-        "border-primary text-primary"
-      end %>
+           when :notice
+             "border-green text-green"
+           else
+             "border-primary text-primary"
+           end %>
       <div>
       <div class="rounded-lg border text-center text-lg px-3 py-2 mb-2 <%= c %>"><%= msg %></div>
       </div>
@@ -79,7 +79,7 @@
               My OAuth Apps
             <% end %>
           </div>
-            <div>
+          <div>
             <button
               type="button"
               onclick="showLogout()"
@@ -89,7 +89,7 @@
               onmouseout="this.style.color=''"> <!-- sorry but what the fuck is this hover logic-->
               Logout
             </button>
-            </div>
+          </div>
         <% end %>
         <% dev_tool(nil, "div") do %>
           <%= link_to letter_opener_web_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(letter_opener_web_path) ? 'bg-primary/50 text-primary' : 'hover:bg-[#23272a]'}", data: { action: "click->nav#clickLink" } do %>
