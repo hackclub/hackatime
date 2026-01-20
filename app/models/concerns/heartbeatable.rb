@@ -109,6 +109,7 @@ module Heartbeatable
         return user_ids.index_with { |id| streak_cache["user_streak_#{id}"] || 0 }
       end
 
+      timeout = heartbeat_timeout_duration.to_i
       raw_durations = joins(:user)
         .where(user_id: uncached_users)
         .coding_only
@@ -118,7 +119,7 @@ module Heartbeatable
           :user_id,
           "users.timezone as user_timezone",
           Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone) as day_group"),
-          Arel.sql("LEAST(EXTRACT(EPOCH FROM (to_timestamp(time) - to_timestamp(LAG(time) OVER (PARTITION BY user_id, DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone) ORDER BY time)))), #{heartbeat_timeout_duration.to_i}) as diff")
+          Arel.sql("LEAST(time - LAG(time) OVER (PARTITION BY user_id, DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone) ORDER BY time), #{timeout}) as diff")
         )
 
       # Then aggregate the results
@@ -208,6 +209,7 @@ module Heartbeatable
 
     def duration_seconds(scope = all)
       scope = scope.with_valid_timestamps
+      timeout = heartbeat_timeout_duration.to_i
 
       if scope.group_values.any?
         if scope.group_values.length > 1
@@ -222,7 +224,7 @@ module Heartbeatable
         capped_diffs = scope
           .select("#{group_expr} as grouped_time, CASE
             WHEN LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(EXTRACT(EPOCH FROM (to_timestamp(time) - to_timestamp(LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time)))), #{heartbeat_timeout_duration.to_i})
+            ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time), #{timeout})
           END as diff")
           .where.not(time: nil)
           .unscope(:group)
@@ -239,7 +241,7 @@ module Heartbeatable
         capped_diffs = scope
           .select("CASE
             WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(EXTRACT(EPOCH FROM (to_timestamp(time) - to_timestamp(LAG(time) OVER (ORDER BY time)))), #{heartbeat_timeout_duration.to_i})
+            ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout})
           END as diff")
           .where.not(time: nil)
 
@@ -290,10 +292,11 @@ module Heartbeatable
       end
 
       # we calc w/ the boundary heartbeat, but we only sum within the orignal constraint
+      timeout = heartbeat_timeout_duration.to_i
       capped_diffs = combined_scope
         .select("time, CASE
           WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-          ELSE LEAST(EXTRACT(EPOCH FROM (to_timestamp(time) - to_timestamp(LAG(time) OVER (ORDER BY time)))), #{heartbeat_timeout_duration.to_i})
+          ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout})
         END as diff")
         .where.not(time: nil)
         .order(time: :asc)
