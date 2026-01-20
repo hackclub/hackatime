@@ -28,6 +28,11 @@ Rails.application.routes.draw do
           get :search
         end
       end
+      resources :oauth_applications, only: [ :index, :show, :edit, :update ] do
+        member do
+          post :toggle_verified
+        end
+      end
     end
   end
 
