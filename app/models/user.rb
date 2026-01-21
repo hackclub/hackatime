@@ -137,7 +137,7 @@ class User < ApplicationRecord
 
   has_many :trust_level_audit_logs, dependent: :destroy
   has_many :trust_level_changes_made, class_name: "TrustLevelAuditLog", foreign_key: "changed_by_id", dependent: :destroy
-  has_many :deletion_requests, dependent: :destroy
+  has_many :deletion_requests, dependent: :restrict_with_error
   has_many :deletion_approvals, class_name: "DeletionRequest", foreign_key: "admin_approved_by_id"
 
   has_many :access_grants,
