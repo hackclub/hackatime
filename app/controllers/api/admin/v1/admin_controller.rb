@@ -388,7 +388,7 @@ module Api
             return
           end
 
-          users = User.where(id: user_ids)
+          users = User.includes(:email_addresses).where(id: user_ids)
 
           render json: {
             users: users.map do |user|
