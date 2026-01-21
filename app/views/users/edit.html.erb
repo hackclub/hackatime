@@ -237,7 +237,10 @@
               <span class="text-green-400">✅</span>
               <span class="text-gray-200 text-sm">Connected: <%= link_to "@#{h(@user.github_username)}", "https://github.com/#{h(@user.github_username)}", target: "_blank", class: "text-primary hover:text-primary/80 underline" %></span>
             </div>
-            <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, class: "inline-flex items-center gap-2 px-3 py-2 bg-primary text-white text-sm font-medium rounded transition-colors duration-200" %>
+            <div class="flex items-center gap-2">
+              <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, class: "inline-flex items-center gap-2 px-3 py-2 bg-primary text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
+              <%= button_to "Unlink", github_unlink_path, method: :delete, data: { turbo_confirm: "Are you sure you want to unlink your GitHub account? This will remove your GitHub connection and you may need to re-link to use GitHub-dependent features." }, class: "inline-flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
+            </div>
           <% else %>
             <%= link_to "Link GitHub Account", github_auth_path, data: { turbo: "false" },
                 class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
