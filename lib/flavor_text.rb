@@ -220,7 +220,7 @@ class FlavorText
       "#{%w[est created inited].sample} <span id='init-time-ago'>#{Time.now.to_i - Time.parse("Sun Feb 16 03:21:30 2025 -0500").to_i}</span> seconds ago!<script>setInterval(()=>{document.getElementById('init-time-ago').innerHTML=parseInt(document.getElementById('init-time-ago').innerHTML)+1},1000)</script>".html_safe,
       "uptime: <span id='uptime'>#{Time.now.to_i - Rails.application.config.server_start_time.to_i}</span> seconds!<script>setInterval(()=>{document.getElementById('uptime').innerHTML=parseInt(document.getElementById('uptime').innerHTML)+1},1000)</script>".html_safe,
       "It takes a long time to build something good: <a href='https://github.com/hackclub/hackatime#readme' target='_blank'><img src='https://hackatime-badge.hackclub.com/U0C7B14Q3/harbor'></a>".html_safe,
-      "If you're seeing this, the page is currently <a href='https://status.hackatime.hackclub.com/status/hackatime' target='_blank'><img src='https://status.hackatime.hackclub.com/api/badge/1/status'></a>".html_safe,
+      "If you're seeing this, the page is currently <a href='https://uptime.hackclub.com/status/hackatime' target='_blank'><img src='https://uptime.hackclub.com/api/badge/4/status'></a>".html_safe,
       "time is money!",
       "in soviet russia, time tracks you!",
       "tick tock!",
