@@ -37,9 +37,6 @@
   font-weight: 400;
 }
 
-@import "https://uchu.style/color.css";
-@import "settings.css";
-
 body, html {
   font-family: "Phantom Sans", "Segoe UI", sans-serif;
   overflow-x: hidden;
@@ -104,7 +101,7 @@ select {
 
 @keyframes flash {
   0% {
-    background-color: var(--uchu-yellow);
+    background-color: oklch(90.92% 0.125 92.56);
   }
   100% {
     background-color: transparent;
