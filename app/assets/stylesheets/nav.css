@@ -5,21 +5,21 @@ body {
 }
 
 main {
-    @apply flex-1 p-5 mb-[100px] transition-[margin-left,max-width] duration-300 ease-[ease];
+    @apply flex-1 p-5 mb-[6.25rem] transition-[margin-left,max-width] duration-300 ease-[ease];
 }
 
 @media (max-width: 1023px) {
     main {
-        @apply ml-0 max-w-full p-5 pt-[60px];
+        @apply ml-0 max-w-full p-5 pt-[3.75rem];
     }
 }
 
 aside[data-nav-target="nav"] {
-    @apply fixed left-0 top-0 bottom-0 w-[250px] bg-[#181c23] text-[#f3f3f3] border-r border-[#222] z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-[ease];
+    @apply fixed left-0 top-0 bottom-0 w-[15.625rem] bg-[#181c23] text-[#f3f3f3] border-r border-[#222] z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-[ease];
 }
 
 aside[data-nav-target="nav"] a.block {
-    @apply block py-[10px] px-[15px] text-[#f3f3f3] rounded-[6px] transition-colors duration-150 no-underline;
+    @apply block py-[0.625rem] px-[0.938rem] text-[#f3f3f3] rounded-[0.375rem] transition-colors duration-150 no-underline;
 }
 
 aside[data-nav-target="nav"] a.block.bg-primary\/20 {
@@ -45,7 +45,7 @@ aside[data-nav-target="nav"] a.block:hover {
 .mobile-nav-button {
     background: var(--color-darkless);
     color: var(--primary-color);
-    @apply hidden fixed top-5 left-5 z-100 border-none rounded-[6px] p-3 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-[background-color] duration-200;
+    @apply hidden fixed top-5 left-5 z-100 border-none rounded-[0.375rem] p-3 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-[background-color] duration-200;
 }
 
 .mobile-nav-button:hover {
