@@ -1,19 +1,5 @@
 @import "tailwindcss";
 
-body {
-    @apply flex min-h-screen;
-}
-
-main {
-    @apply flex-1 p-5 mb-[6.25rem] transition-[margin-left,max-width] duration-300 ease-[ease];
-}
-
-@media (max-width: 1023px) {
-    main {
-        @apply ml-0 max-w-full p-5 pt-[3.75rem];
-    }
-}
-
 aside[data-nav-target="nav"] {
     @apply fixed left-0 top-0 bottom-0 w-[15.625rem] bg-[#181c23] text-[#f3f3f3] border-r border-[#222] z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-[ease];
 }

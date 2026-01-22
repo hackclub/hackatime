@@ -1,4 +1,19 @@
 @import "tailwindcss";
+@import "./nav.css";
+
+body {
+  @apply flex min-h-screen;
+}
+
+main {
+  @apply flex-1 p-5 mb-[6.25rem] transition-[margin-left,max-width] duration-300 ease-[ease];
+}
+
+@media (max-width: 1023px) {
+  main {
+    @apply ml-0 max-w-full p-5 pt-[3.75rem];
+  }
+}
 
 :root {
   --color-darker: #121217;
