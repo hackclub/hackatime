@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./main.css";
 @import "./nav.css";
+@import "./filterable_dashboard.css";
 
 body {
   @apply flex min-h-screen;
