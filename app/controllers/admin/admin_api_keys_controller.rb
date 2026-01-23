@@ -17,6 +17,7 @@ class Admin::AdminApiKeysController < Admin::BaseController
 
     if @admin_api_key.save
       flash[:notice] = "created! now go have fun with it"
+      flash[:api_key_token] = @admin_api_key.token
       redirect_to admin_admin_api_key_path(@admin_api_key)
     else
       render :new, status: :unprocessable_entity
