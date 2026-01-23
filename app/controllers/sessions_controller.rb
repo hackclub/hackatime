@@ -139,7 +139,7 @@ class SessionsController < ApplicationController
       return
     end
 
-    current_user.update!(github_access_token: nil)
+    current_user.update!(github_access_token: nil, github_uid: nil, github_username: nil)
     Rails.logger.info "GitHub account unlinked for User ##{current_user.id}"
     redirect_to my_settings_path, notice: "GitHub account unlinked successfully"
   end

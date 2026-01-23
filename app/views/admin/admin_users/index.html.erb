@@ -36,14 +36,14 @@
                   <div class="flex items-center gap-2">
                     <img src="<%= user.avatar_url %>" alt="Avatar" class="w-8 h-8 rounded-full">
                     <span class="text-white"><%= user.display_name %></span>
-                    <% if user == current_user %>
+                    <% if user.id == @current_user_id %>
                       <span class="px-2 py-0.5 text-xs rounded-full bg-blue-600/20 text-blue-400">(you)</span>
                     <% end %>
                   </div>
                 </td>
                 <td class="py-3 px-4 text-gray-300"><%= user.slack_uid || "N/A" %></td>
                 <td class="py-3 px-4">
-                  <% if user != current_user %>
+                  <% if user.id != @current_user_id %>
                     <div class="flex gap-2">
                       <%= button_to "→ Admin", admin_admin_user_path(user, admin_level: "admin"),
                           method: :patch,
