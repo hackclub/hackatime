@@ -6,6 +6,10 @@ class Admin::AdminApiKeysController < Admin::BaseController
   end
 
   def show
+    if session[:newkey] == @admin_api_key.id
+      @show_token = true
+      session.delete(:newkey)
+    end
   end
 
   def new
@@ -16,7 +20,7 @@ class Admin::AdminApiKeysController < Admin::BaseController
     @admin_api_key = current_user.admin_api_keys.build(admin_api_key_params)
 
     if @admin_api_key.save
-      flash[:notice] = "created! now go have fun with it"
+      session[:newkey] = @admin_api_key.id
       redirect_to admin_admin_api_key_path(@admin_api_key)
     else
       render :new, status: :unprocessable_entity
