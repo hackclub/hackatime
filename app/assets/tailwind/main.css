@@ -1,0 +1,179 @@
+@font-face {
+  font-family: "Phantom Sans";
+  src: url("/fonts/Regular.woff2") format("woff2"), url("/fonts/Regular.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Phantom Sans";
+  src: url("/fonts/Italic.woff2") format("woff2"), url("/fonts/Italic.woff") format("woff");
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Phantom Sans";
+  src: url("/fonts/Bold.woff2") format("woff2"), url("/fonts/Bold.woff") format("woff");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DS-Digital";
+  src: url("/fonts/DS-DIGIB.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "clockicons";
+  src: url("/fonts/clockicons.woff2") format("woff2"), url("/fonts/clockicons.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@keyframes flash {
+  0% {
+    background-color: oklch(90.92% 0.125 92.56);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes blink-anim {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+body, html {
+  font-family: "Phantom Sans", "Segoe UI", sans-serif;
+  overflow-x: hidden;
+}
+
+*, *::before, *::after {
+  font-family: inherit;
+}
+
+.ds-digital {
+  font-family: "DS-Digital", monospace;
+}
+
+.clockicons {
+  font-family: "clockicons", monospace;
+}
+
+.blink {
+  animation: blink-anim 1s infinite;
+}
+
+code, pre, kbd, samp {
+  @apply font-mono;
+}
+
+.monospace {
+  @apply font-mono;
+}
+
+/* Ensure forms and inputs respect dark mode */
+input, textarea, select {
+  color-scheme: dark;
+}
+
+select {
+  @apply mx-0 my-[0.1rem] px-[0.5rem] py-[0.1rem];
+}
+
+.superadmin-tool {
+  @apply rounded-[0.313rem] border border-[rgb(251,44,54)] border-dashed bg-[rgba(255,255,255,0.02)];
+}
+
+.admin-tool {
+  @apply rounded-[0.313rem] border border-[rgb(240,177,0)] border-dashed bg-[rgba(255,255,255,0.02)];
+}
+
+.viewer-tool {
+  @apply rounded-[0.313rem] border border-[rgb(43,127,255)] border-dashed bg-[rgba(255,255,255,0.02)];
+}
+
+.dev-tool {
+  @apply rounded-[0.313rem] border border-dashed bg-[rgba(255,255,255,0.02)];
+  border-color: var(--color-green);
+}
+
+.loading {
+  @apply grayscale;
+}
+
+.super {
+  @apply italic text-[0.9rem] text-[#ccc] mt-0 mb-[0.1rem] mx-0;
+}
+
+.super a {
+  @apply text-[#ccc];
+}
+
+turbo-frame#mini_leaderboard[aria-busy="true"]::before {
+  @apply hidden;
+}
+
+#currently_hacking {
+  @apply hidden;
+}
+
+.clock-display {
+  @apply w-full h-[1.5em] text-[15vmin] mx-auto my-8 relative perspective-[62.5rem];
+}
+
+.clock-display-inner {
+  @apply w-full h-full flex justify-center items-center rounded-[4rem] transform-3d transition-transform duration-300 ease-in-out relative;
+  border: 12px solid var(--color-primary);
+}
+
+.clock-display:hover .clock-display-inner {
+  @apply rotate-x-180;
+}
+
+.clock-display-front, .clock-display-back {
+  @apply absolute w-full h-full flex justify-center items-center backface-hidden;
+}
+
+.clock-display-front {
+  @apply rotate-x-0;
+}
+
+.clock-display-back {
+  @apply rotate-x-180;
+}
+
+.clock-display * {
+  @apply leading-normal;
+}
+
+@media (max-width: 87.5rem) {
+  .clock-display {
+    @apply text-[10vmin];
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  @apply hidden;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.project-desc {
+  @apply relative bg-[linear-gradient(145deg,#f6dbba_0%,#e6d4be_100%)] rounded-[clamp(6px,1.5vw,10px)] shadow-[0_4px_15px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.6),inset_3px_0_5px_rgba(0,0,0,0.05)] transition-all duration-300 ease-[ease] border-[2px] border-[rgba(89,47,49,0.3)] overflow-hidden text-black h-full cursor-pointer flex flex-col z-2 mx-5;
+}

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./main.css";
 @import "./nav.css";
 
 body {
