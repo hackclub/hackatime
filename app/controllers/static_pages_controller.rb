@@ -336,8 +336,7 @@ class StaticPagesController < ApplicationController
 
         result[:filtered_heartbeats] = filtered_heartbeats
 
-        # Calculate stats for filtered data
-        result[:total_time] = filtered_heartbeats.duration_seconds
+        result[:total_time] = filtered_heartbeats.group(:project).duration_seconds.values.sum
         result[:total_heartbeats] = filtered_heartbeats.count
 
         filters.each do |filter|
