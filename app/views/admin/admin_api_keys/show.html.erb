@@ -42,15 +42,15 @@
 
     <div class="bg-dark rounded-lg p-6">
       <h2 class="text-xl font-semibold text-white mb-4">deets</h2>
-      <% if flash[:api_key_token] %>
-        <div class="bg-green-900/30 border border-green-500/50 rounded-lg p-4">
+      <% if @show_token %>
+        <div class="bg-green-900/30 border border-green-500/50 rounded-lg p-4 mb-6">
           <h3 class="text-green-300 font-medium mb-2">heres ya key, copy it now!</h3>
           <p class="text-green-200 text-sm mb-3">
             copy it now, its not gonna be shown again silly
           </p>
-          <div class="bg-gray-800 rounded p-3 mb-3">
+          <div class="bg-gray-800 rounded p-3">
             <code class="block text-white text-sm break-all select-all">
-              <%= flash[:api_key_token] %>
+              <%= @admin_api_key.token %>
             </code>
           </div>
         </div>
