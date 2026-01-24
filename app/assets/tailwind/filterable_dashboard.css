@@ -3,7 +3,7 @@
 }
 
 .filter .search-input {
-  @apply w-full border-0 border-b border-[#eee] p-2 m-0 bg-transparent text-[#222] text-[0.813rem] rounded-none h-auto;
+  @apply w-full border-0 border-b border-[#eee] p-2 m-0 bg-transparent text-[#222] text-sm rounded-none h-auto;
 }
 
 .filter .search-input::placeholder {
@@ -15,22 +15,19 @@
 }
 
 .filter .options-list {
-  /* not 200 cause the search thingie is 35.5 px high */
-  @apply overflow-y-auto p-0 m-0;
-  max-height: 164.5px;
+  @apply overflow-y-auto p-0 m-0 max-h-[10.28rem];
 
   /* Hide the scroll bar for stupid browers that dont follow regular standereds (looking at u microsoft IE) */
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-/* Hide the scroll bar cause it looks terrible (sorry to eho ever made it) */
 .filter .options-list::-webkit-scrollbar {
   @apply hidden;
 }
 
 .filter .option {
-  @apply flex items-center px-2 py-1.5 cursor-pointer text-[13px] text-[#222] m-0 bg-transparent;
+  @apply flex items-center px-2 py-1.5 cursor-pointer text-sm text-[#222] m-0 bg-transparent;
 }
 
 .filter .option:hover {
@@ -38,7 +35,7 @@
 }
 
 .filter .option input[type="checkbox"] {
-  @apply mr-2 mb-0 h-3.5 w-3.5 min-w-3.5 appearance-none border border-[rgba(0,0,0,0.2)] rounded-[3px] bg-[rgba(0,0,0,0.05)] relative cursor-pointer p-0;
+  @apply mr-2 mb-0 h-3.5 w-3.5 min-w-3.5 appearance-none border border-[rgba(0,0,0,0.2)] rounded-sm bg-[rgba(0,0,0,0.05)] relative cursor-pointer p-0;
 }
 
 .filter .option input[type="checkbox"]:checked {
@@ -47,8 +44,7 @@
 
 .filter .option input[type="checkbox"]:checked::after {
   content: "";
-  @apply absolute left-1 top-0.25 w-1 h-2 border-white border-solid rotate-45;
-  border-width: 0 2px 2px 0;
+  @apply absolute left-1 top-0.25 w-1 h-2 border-white border-solid rotate-45 border-0 border-r-2 border-b-2;
 }
 
 .filter .option input[type="checkbox"]:hover {
@@ -60,7 +56,7 @@
 }
 
 .filter .select-header {
-  @apply flex-1 px-2 py-1.5 text-[13px] cursor-pointer select-none text-[#666] m-0 bg-transparent;
+  @apply flex-1 px-2 py-1.5 text-sm cursor-pointer select-none text-[#666] m-0 bg-transparent;
 }
 
 .filter .clear-button {
@@ -80,7 +76,7 @@
 }
 
 .dashboard-wrapper .loading-message {
-  @apply opacity-0 text-center transition-opacity duration-200 ease-[ease];
+  @apply opacity-0 text-center transition-opacity duration-200 ease-in-out;
 }
 
 .loading .dashboard-wrapper .loading-message {
@@ -88,7 +84,7 @@
 }
 
 .dashboard-wrapper .stats-section {
-  @apply grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4;
+  @apply grid grid-cols-[repeat(auto-fill,minmax(9.375rem,1fr))] gap-4;
 }
 
 .dashboard-wrapper .dashboard-grid {
@@ -96,11 +92,11 @@
 }
 
 .dashboard-wrapper .stat-card {
-  @apply bg-[rgba(255,255,255,0.05)] rounded-[6px] p-3 border border-[rgba(255,255,255,0.1)] transition-transform duration-200 ease-[ease] h-full;
+  @apply bg-[rgba(255,255,255,0.05)] rounded-md p-3 border border-[rgba(255,255,255,0.1)] transition-transform duration-200 ease-in-out h-full;
 }
 
 .dashboard-wrapper .stat-label {
-  @apply text-[rgba(255,255,255,0.5)] text-[0.5rem] mb-1 uppercase tracking-[0.02em];
+  @apply text-[rgba(255,255,255,0.5)] text-[0.5rem] mb-1 uppercase tracking-tight;
 }
 
 .dashboard-wrapper .stat-value {
@@ -112,11 +108,11 @@
 }
 
 .dashboard-wrapper .card h2 {
-  @apply mb-4 text-lg font-[1.1rem] text-[rgba(255,255,255,0.9)];
+  @apply mb-4 text-lg font-medium text-[rgba(255,255,255,0.9)];
 }
 
 .dashboard-wrapper .chart-container {
-  @apply flex-1 relative h-[140px];
+  @apply flex-1 relative h-36;
 }
 
 .dashboard-wrapper .chart-container canvas {
@@ -132,7 +128,7 @@
 }
 
 .dashboard-wrapper .bar-label {
-  @apply w-[150px] text-right pr-4 text-[0.9rem] text-[rgba(255,255,255,0.7)] whitespace-nowrap overflow-hidden text-ellipsis;
+  @apply w-[9.375rem] text-right pr-4 text-sm text-[rgba(255,255,255,0.7)] whitespace-nowrap overflow-hidden text-ellipsis;
 }
 
 .dashboard-wrapper .bar-container {
@@ -140,11 +136,11 @@
 }
 
 .dashboard-wrapper .bar {
-  @apply h-full bg-[#85e394] rounded relative transition-[width] duration-300 ease-[ease];
+  @apply h-full bg-[#85e394] rounded relative transition-[width] duration-300 ease-in-out;
 }
 
 .dashboard-wrapper .bar-value {
-  @apply absolute right-2 top-1/2 -translate-y-1/2 text-[0.8rem] text-[rgba(0,0,0,0.8)];
+  @apply absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[rgba(0,0,0,0.8)];
 }
 
 .dashboard-wrapper .no-data {
@@ -152,11 +148,11 @@
 }
 
 .container {
-  @apply max-w-[1200px] mx-auto my-0 px-4 py-8 pb-0;
+  @apply max-w-[75rem] mx-auto my-0 px-4 py-8 pb-0;
 }
 
 .content {
-  @apply max-w-[1200px] mx-auto my-0;
+  @apply max-w-[75rem] mx-auto my-0;
 }
 
 .filters-section {
@@ -172,11 +168,11 @@
 }
 
 .filter {
-  @apply flex-1 min-w-[150px] relative;
+  @apply flex-1 min-w-[9.375rem] relative;
 }
 
 .filter-label {
-  @apply block text-[0.9rem] mb-1 text-[#666];
+  @apply block text-sm mb-1 text-[#666];
 }
 
 .custom-select {
@@ -188,11 +184,11 @@
 }
 
 .select-header {
-  @apply flex-1 px-2 py-[0.4rem] text-[0.8rem] cursor-pointer select-none;
+  @apply flex-1 px-2 py-1.5 text-xs cursor-pointer select-none;
 }
 
 .clear-button {
-  @apply px-2 py-[0.4rem] text-base leading-none text-[#666] bg-transparent border-0 border-l border-[#ddd] cursor-pointer hidden;
+  @apply px-2 py-1.5 text-base leading-none text-[#666] bg-transparent border-0 border-l border-[#ddd] cursor-pointer hidden;
 }
 
 .clear-button:hover {
@@ -200,7 +196,7 @@
 }
 
 .options-container {
-  @apply hidden absolute top-full left-0 right-0 bg-white border border-[#ddd] rounded mt-1 max-h-[200px] overflow-y-hidden z-1000 shadow-[0_2px_4px_rgba(0,0,0,0.1)];
+  @apply hidden absolute top-full left-0 right-0 bg-white border border-[#ddd] rounded mt-1 max-h-[12.5rem] overflow-y-hidden z-1000 shadow-[0_2px_4px_rgba(0,0,0,0.1)];
 }
 
 .custom-select.active .options-container {
@@ -208,7 +204,7 @@
 }
 
 .option {
-  @apply flex items-center px-2 py-[0.35rem] cursor-pointer transition-colors duration-200 text-[0.8rem];
+  @apply flex items-center px-2 py-1.5 cursor-pointer transition-colors duration-200 text-xs;
 }
 
 .option:hover {
@@ -224,15 +220,15 @@
 }
 
 .calendar-icon {
-  @apply text-[1.1rem];
+  @apply text-lg;
 }
 
 #dashboard-content {
-  @apply min-h-[200px] w-full;
+  @apply min-h-[12.5rem] w-full;
 }
 
 #dashboard-content.loading .dashboard-wrapper {
-  @apply grayscale opacity-70 pointer-events-none transition-[filter] duration-200 ease-[ease];
+  @apply grayscale opacity-70 pointer-events-none transition-[filter] duration-200 ease-in-out;
 }
 
 .interval-selector {
@@ -250,11 +246,11 @@
 
 .preset-selector label,
 .custom-range label {
-  @apply block text-[0.9rem] mb-1 text-[#666];
+  @apply block text-sm mb-1 text-[#666];
 }
 
 .preset-selector select {
-  @apply w-full px-2 py-[0.4rem] border border-[#ddd] rounded bg-white text-[0.9rem];
+  @apply w-full px-2 py-1.5 border border-[#ddd] rounded bg-white text-sm;
 }
 
 .date-inputs {
@@ -262,9 +258,9 @@
 }
 
 .date-inputs input[type="date"] {
-  @apply px-2 py-[0.4rem] border border-[#ddd] rounded text-[0.9rem] bg-white;
+  @apply px-2 py-1.5 border border-[#ddd] rounded text-sm bg-white;
 }
 
 .date-inputs span {
-  @apply text-[#666] text-[0.9rem];
+  @apply text-[#666] text-sm;
 }

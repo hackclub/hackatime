@@ -90,23 +90,23 @@ input, textarea, select {
 }
 
 select {
-  @apply mx-0 my-[0.1rem] px-[0.5rem] py-[0.1rem];
+  @apply mx-0 my-0.5 px-2 py-0.5;
 }
 
 .superadmin-tool {
-  @apply rounded-[0.313rem] border border-[rgb(251,44,54)] border-dashed bg-[rgba(255,255,255,0.02)];
+  @apply rounded-md border border-[rgb(251,44,54)] border-dashed bg-[rgba(255,255,255,0.02)];
 }
 
 .admin-tool {
-  @apply rounded-[0.313rem] border border-[rgb(240,177,0)] border-dashed bg-[rgba(255,255,255,0.02)];
+  @apply rounded-md border border-[rgb(240,177,0)] border-dashed bg-[rgba(255,255,255,0.02)];
 }
 
 .viewer-tool {
-  @apply rounded-[0.313rem] border border-[rgb(43,127,255)] border-dashed bg-[rgba(255,255,255,0.02)];
+  @apply rounded-md border border-[rgb(43,127,255)] border-dashed bg-[rgba(255,255,255,0.02)];
 }
 
 .dev-tool {
-  @apply rounded-[0.313rem] border border-dashed bg-[rgba(255,255,255,0.02)];
+  @apply rounded-md border border-dashed bg-[rgba(255,255,255,0.02)];
   border-color: var(--color-green);
 }
 
@@ -115,7 +115,7 @@ select {
 }
 
 .super {
-  @apply italic text-[0.9rem] text-[#ccc] mt-0 mb-[0.1rem] mx-0;
+  @apply italic text-sm text-[#ccc] mt-0 mb-0.5 mx-0;
 }
 
 .super a {
@@ -175,5 +175,5 @@ turbo-frame#mini_leaderboard[aria-busy="true"]::before {
 }
 
 .project-desc {
-  @apply relative bg-[linear-gradient(145deg,#f6dbba_0%,#e6d4be_100%)] rounded-[clamp(6px,1.5vw,10px)] shadow-[0_4px_15px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.6),inset_3px_0_5px_rgba(0,0,0,0.05)] transition-all duration-300 ease-[ease] border-[2px] border-[rgba(89,47,49,0.3)] overflow-hidden text-black h-full cursor-pointer flex flex-col z-2 mx-5;
+  @apply relative bg-[linear-gradient(145deg,#f6dbba_0%,#e6d4be_100%)] rounded-[clamp(6px,1.5vw,10px)] shadow-[0_4px_15px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.6),inset_3px_0_5px_rgba(0,0,0,0.05)] transition-all duration-300 ease-in-out border-[2px] border-[rgba(89,47,49,0.3)] overflow-hidden text-black h-full cursor-pointer flex flex-col z-2 mx-5;
 }

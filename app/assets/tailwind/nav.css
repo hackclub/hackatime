@@ -1,9 +1,9 @@
 aside[data-nav-target="nav"] {
-    @apply fixed inset-y-0 left-0 w-[15.625rem] bg-[#181c23] text-[#f3f3f3] border-r border-r-[#222] z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-[ease];
+    @apply fixed inset-y-0 left-0 w-[15.625rem] bg-[#181c23] text-[#f3f3f3] border-r border-r-[#222] z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-in-out;
 }
 
 aside[data-nav-target="nav"] a.block {
-    @apply block py-2.5 px-[0.938rem] text-[#f3f3f3] rounded-md transition-colors duration-150 no-underline;
+    @apply block py-2.5 px-4 text-[#f3f3f3] rounded-md transition-colors duration-150 no-underline;
 }
 
 aside[data-nav-target="nav"] a.block.bg-primary\/20 {
@@ -47,7 +47,7 @@ aside[data-nav-target="nav"] a.block:hover {
 }
 
 .nav-overlay {
-    @apply hidden fixed inset-0 bg-[rgba(0,0,0,0.5)] backdrop-blur-xs z-9998 opacity-0 transition-opacity duration-300 ease-[ease];
+    @apply hidden fixed inset-0 bg-[rgba(0,0,0,0.5)] backdrop-blur-xs z-9998 opacity-0 transition-opacity duration-300 ease-in-out;
 }
 
 .nav-overlay.open {
