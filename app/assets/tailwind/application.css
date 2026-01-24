@@ -76,42 +76,40 @@ main {
 .border-blue { border-color: var(--color-blue) !important; }
 .border-purple { border-color: var(--color-purple) !important; }
 
-@layer base {
-  .project-toggle-group {
-    @apply flex items-center gap-2 rounded-lg p-1;
-    background-color: var(--color-darkless);
-  }
+.project-toggle-group {
+  @apply flex items-center gap-2 rounded-lg p-1;
+  background-color: var(--color-darkless);
+}
 
-  .project-toggle-btn {
-    @apply px-3 py-1 rounded transition-all duration-200 font-medium cursor-pointer;
-    color: var(--color-secondary);
-  }
+.project-toggle-btn {
+  @apply px-3 py-1 rounded transition-all duration-200 font-medium cursor-pointer;
+  color: var(--color-secondary);
+}
 
-  .project-toggle-btn:hover {
-    color: var(--color-cyan);
-  }
+.project-toggle-btn:hover {
+  color: var(--color-cyan);
+}
 
-  .project-toggle-btn.active {
-    background-color: var(--color-primary);
-    color: white;
-  }
+.project-toggle-btn.active {
+  background-color: var(--color-primary);
+  color: white;
+}
 
-  .project-toggle-btn.active:hover {
-    background-color: var(--color-primary);
-    opacity: 0.9;
-  }
+.project-toggle-btn.active:hover {
+  background-color: var(--color-primary);
+  opacity: 0.9;
+}
 
-  .project-toggle-btn.inactive {
-    color: var(--color-secondary);
-  }
+.project-toggle-btn.inactive {
+  color: var(--color-secondary);
+}
 
-  .interval-selector-button {
-    background-color: var(--color-primary);
-    color: white;
-  }
+.interval-selector-button {
+  background-color: var(--color-primary);
+  color: white;
+}
 
-  .interval-selector-button:hover {
-    background-color: var(--color-primary);
-    opacity: 0.9;
-  }
+.interval-selector-button:hover {
+  background-color: var(--color-primary);
+  opacity: 0.9;
 }
