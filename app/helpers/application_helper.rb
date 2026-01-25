@@ -36,9 +36,16 @@ module ApplicationHelper
   end
 
   def country_to_emoji(country_code)
-    # Hack to turn country code into the country's flag
-    # https://stackoverflow.com/a/50859942
-    country_code.tr("A-Z", "\u{1F1E6}-\u{1F1FF}")
+    return "" unless country_code.present?
+    c = country_code.upcase.chars.map { |c| (0x1F1E6 + c.ord - "A".ord).to_s(16) }
+    t = c.join("-")
+
+    image_tag(
+      "https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/#{t}.svg",
+      alt: "#{country_code} flag",
+      class: "inline-block w-5 h-5 align-middle",
+      loading: "lazy"
+    )
   end
 
   # infer country from timezone
