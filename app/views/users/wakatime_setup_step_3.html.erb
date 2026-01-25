@@ -337,9 +337,9 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
     }
 
     function check() {
-      fetch('<%= api_v1_my_heartbeats_most_recent_path %>', {
+      fetch(<%= api_v1_my_heartbeats_most_recent_path.to_json %>, {
         headers: {
-          'Authorization': 'Bearer <%= @current_user_api_key %>'
+          'Authorization': 'Bearer ' + <%= @current_user_api_key.to_json %>
         }
       })
       .then(response => response.json())
@@ -379,7 +379,7 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
     check();
 
     window.skipToNext = function() {
-      window.location.href = '<%= my_wakatime_setup_step_4_path %>';
+      window.location.href = <%= my_wakatime_setup_step_4_path.to_json %>;
     };
   });
 </script>

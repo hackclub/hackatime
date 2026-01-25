@@ -19,7 +19,7 @@
       <% if icon_svg %>
         <div class="mb-4 flex justify-center w-full">
           <svg class="w-12 h-12 <%= icon_color %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <%= icon_svg.html_safe %>
+            <%= sanitize icon_svg, tags: %w[path circle rect line polyline polygon], attributes: %w[d cx cy r x y x1 y1 x2 y2 points stroke-linecap stroke-linejoin stroke-width fill] %>
           </svg>
         </div>
       <% end %>
@@ -31,7 +31,7 @@
       <% end %>
 
       <% if custom.present? %>
-        <%= custom.html_safe %>
+        <%= sanitize custom, tags: %w[div p span a button form input label select option textarea h1 h2 h3 h4 h5 h6 ul ol li strong em code pre], attributes: %w[class id href type name value placeholder data-controller data-action data-target for method] %>
       <% end %>
 
       <% if buttons.any? %>
