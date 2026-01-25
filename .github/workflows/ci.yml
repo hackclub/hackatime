@@ -52,10 +52,6 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -66,21 +62,8 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Set up Code Scanning Rubocop
-        run: bundle add code-scanning-rubocop --version 0.3.0 --skip-install && bundle install
-
       - name: Lint code for consistent style
-        continue-on-error: true
-        run: |
-          bash -c "
-            bundle exec rubocop --require code_scanning --format CodeScanning::SarifFormatter -o rubocop.sarif
-            [[ \$? -ne 2 ]]
-          "
-
-      - name: Upload SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: rubocop.sarif
+        run: bin/rubocop -f github
 
   zeitwerk:
     runs-on: ubuntu-latest
