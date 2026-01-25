@@ -18,7 +18,7 @@
 
 <div class="bg-dark rounded-lg p-6 mb-8 border border-darkless">
   <p class="text-lg text-white mb-4">
-    <%= raw t('.prompt', client_name: content_tag(:strong, class: 'text-primary') { @pre_auth.client.name }) %>
+    <%= sanitize t('.prompt', client_name: content_tag(:strong, class: 'text-primary') { @pre_auth.client.name }), tags: %w[strong], attributes: %w[class] %>
   </p>
 
   <% if @pre_auth.scopes.count > 0 %>

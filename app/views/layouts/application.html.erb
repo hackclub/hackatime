@@ -49,7 +49,7 @@
     <%= yield :head %>
 
     <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json">
+    <script>
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
@@ -92,7 +92,7 @@
     </script>
 
     <!-- Organization Schema -->
-    <script type="application/ld+json">
+    <script>
     {
       "@context": "https://schema.org",
       "@type": "Organization",
@@ -107,7 +107,7 @@
     </script>
 
     <!-- WebSite Schema -->
-    <script type="application/ld+json">
+    <script>
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
@@ -119,7 +119,7 @@
 
     <!-- FAQ Schema for Homepage -->
     <% if request.path == "/" %>
-    <script type="application/ld+json">
+    <script>
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
@@ -172,7 +172,9 @@
     <%= stylesheet_link_tag :app %>
     <%= javascript_importmap_tags %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-    <%= Sentry.get_trace_propagation_meta.html_safe %>
+    <% if Sentry.get_trace_propagation_meta %>
+      <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
+    <% end %>
   </head>
 
   <body class="<%= content_for(:body_class) %> flex min-h-screen bg-darker" data-controller="nav">
