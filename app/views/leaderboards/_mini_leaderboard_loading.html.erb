@@ -4,10 +4,13 @@
   </p>
   <div class="space-y-2">
     <% (current_user ? 5 : 3).times do %>
-      <div class="flex items-center p-3 rounded-lg bg-dark opacity-70 animate-pulse">
-        <div class="w-8 text-center text-muted">...</div>
-        <div class="flex-1 mx-3 text-muted">Loading...</div>
-        <div class="flex-shrink-0 font-mono text-sm text-muted">...</div>
+      <div class="flex items-center p-3 rounded-lg bg-dark animate-pulse">
+        <div class="w-8 h-6 bg-darkless rounded"></div>
+        <div class="w-8 h-8 bg-darkless rounded-full mx-3"></div>
+        <div class="flex-1">
+          <div class="h-4 w-24 bg-darkless rounded"></div>
+        </div>
+        <div class="h-4 w-16 bg-darkless rounded"></div>
       </div>
     <% end %>
   </div>
