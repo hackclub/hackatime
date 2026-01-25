@@ -114,6 +114,14 @@ select {
   @apply grayscale;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 .super {
   @apply italic text-sm text-[#ccc] mt-0 mb-0.5 mx-0;
 }
