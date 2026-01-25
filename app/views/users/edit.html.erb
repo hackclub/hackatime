@@ -611,12 +611,12 @@
     buttons: [
       {
         text: "Cancel",
-        class: "border border-darkless text-gray-300 hover:bg-darkless",
+        class: "bg-dark hover:bg-darkless border border-darkless text-gray-300",
         action: "click->modal#close"
       },
       {
         text: "Rotate Now",
-        class: "bg-primary text-white hover:bg-primary/50 font-medium",
+        class: "bg-primary hover:bg-primary/80 text-white font-medium",
         action: "click->api-key-rotation#rotate"
       }
     ] %>
@@ -631,12 +631,12 @@
     buttons: [
       {
         text: "Close",
-        class: "border border-darkless text-gray-300 hover:bg-darkless",
+        class: "bg-dark hover:bg-darkless border border-darkless text-gray-300",
         action: "click->modal#close"
       },
       {
         text: "Copy Key",
-        class: "bg-primary text-white hover:bg-primary/50 font-medium",
+        class: "bg-primary hover:bg-primary/80 text-white font-medium",
         action: "click->api-key-rotation#copyKey"
       }
     ],
@@ -654,12 +654,12 @@
     buttons: [
       {
         text: "Cancel",
-        class: "border border-darkless text-gray-300 hover:bg-darkless",
+        class: "bg-dark hover:bg-darkless border border-darkless text-gray-300",
         action: "click->modal#close"
       },
       {
         text: "Delete My Account",
-        class: "bg-primary text-white hover:bg-primary/50 font-medium",
+        class: "bg-primary hover:bg-primary/80 text-white font-medium",
         form: true,
         url: create_deletion_path,
         method: "post"
