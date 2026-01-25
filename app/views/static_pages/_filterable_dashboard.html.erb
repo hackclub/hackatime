@@ -144,7 +144,7 @@
 
           // update content-frame url for Turbo
           const contentUrl = new URL(window.location);
-          contentUrl.pathname = <%= filterable_dashboard_content_static_pages_path.to_json %>;
+          contentUrl.pathname = <%== filterable_dashboard_content_static_pages_path.to_json %>;
           contentUrl.searchParams.set(param, selected.join(","));
           frame.src = contentUrl.toString();
 
