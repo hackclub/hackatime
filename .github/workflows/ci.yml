@@ -67,7 +67,7 @@ jobs:
           bundler-cache: true
 
       - name: Set up Code Scanning Rubocop
-        run: bundle add code-scanning-rubocop --version 0.3.0 --skip-install && bundle install
+        run: bundle add code-scanning-rubocop --skip-install && bundle install
 
       - name: Lint code for consistent style
         continue-on-error: true
