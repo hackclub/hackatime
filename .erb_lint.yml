@@ -5,6 +5,9 @@ exclude:
 linters:
   AllowedScriptType:
     enabled: true
+    allowed_types:
+      - "text/javascript"
+      - "application/ld+json"
   ClosingErbTagIndent:
     enabled: true
   CommentSyntax:
