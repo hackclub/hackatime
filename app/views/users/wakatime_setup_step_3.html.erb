@@ -61,7 +61,7 @@
                   Why is the extension called WakaTime?
                 </summary>
                 <div class="mt-3 pl-6">
-                  <p class="text-md mb-3">WakaTime is a popular protocol for tracking time spent coding. Think of Hackatime as a different app that uses the same protocol. Think of it like Gmail and Yahoo have different names, but they both use the same email protocol! You will often have to install a "WakaTime" extension for your editor or IDE, but you can always link it to Hackatime.</p>
+                  <p class="text-md mb-3">WakaTime is a popular time tracking service for developers. Hackatime is compatible with WakaTime&rsquo;s API, so you can install WakaTime plugins or extensions in your editor or IDE and configure them to send their data to Hackatime instead of the WakaTime service.</p>
                 </div>
               </details>
             </div>
@@ -83,9 +83,9 @@
                   <p class="text-secondary text-sm" id="status-message">Once you've installed the extension, open a file and start typing!</p>
                 </div>
 
-                <div class="bg-darkless rounded-lg p-3  ">
+                <div class="bg-darkless rounded-lg p-3">
                   <div class="flex items-center justify-center gap-2 text-secondary">
-                    <div class="x"></div>
+                    <div class="spin"></div>
                     <span class="text-sm" id="poll-status">Checking for heartbeats...</span>
                   </div>
                 </div>
@@ -385,16 +385,16 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
 </script>
 
 <style>
-  .x {
+  .spin {
     width: 16px;
     height: 16px;
     border: 2px solid var(--color-darkless);
     border-top: 2px solid var(--color-blue);
     border-radius: 50%;
-    animation: x 1s linear infinite;
+    animation: spin 1s linear infinite;
   }
 
-  @keyframes x {
+  @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
