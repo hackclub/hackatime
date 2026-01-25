@@ -49,7 +49,7 @@
     <%= yield :head %>
 
     <!-- JSON-LD Structured Data -->
-    <script>
+    <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
@@ -92,7 +92,7 @@
     </script>
 
     <!-- Organization Schema -->
-    <script>
+    <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",
@@ -107,7 +107,7 @@
     </script>
 
     <!-- WebSite Schema -->
-    <script>
+    <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
@@ -119,7 +119,7 @@
 
     <!-- FAQ Schema for Homepage -->
     <% if request.path == "/" %>
-    <script>
+    <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
