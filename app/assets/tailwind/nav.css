@@ -1,5 +1,5 @@
 aside[data-nav-target="nav"] {
-    @apply fixed inset-y-0 left-0 w-[15.625rem] bg-[#181c23] text-[#f3f3f3] border-r border-r-[#222] z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-in-out;
+    @apply fixed inset-y-0 left-0 w-[15.625rem] bg-dark text-[#f3f3f3] border-r border-r-darkless z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-in-out;
 }
 
 aside[data-nav-target="nav"] a.block {
@@ -7,13 +7,13 @@ aside[data-nav-target="nav"] a.block {
 }
 
 aside[data-nav-target="nav"] a.block.bg-primary\/20 {
-    color: var(--primary-color, #e13950);
+    @apply text-primary;
     @apply bg-[rgba(225,57,80,0.12)];
 }
 
 aside[data-nav-target="nav"] a.block:hover {
-    @apply bg-[#23272a];
-    color: var(--primary-color, #e13950);
+    @apply bg-darkless;
+    @apply text-primary;
 }
 
 @media (max-width: 1023px) {
@@ -33,7 +33,7 @@ aside[data-nav-target="nav"] a.block:hover {
 }
 
 .mobile-nav-button:hover {
-    @apply bg-[#23272a];
+    @apply bg-darkless;
 }
 
 .mobile-nav-button svg {
