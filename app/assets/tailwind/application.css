@@ -17,7 +17,7 @@ main {
   }
 }
 
-:root {
+@theme {
   --color-darker: #121217;
   --color-dark: #17171D;
   --color-darkless: #252429;
@@ -35,46 +35,6 @@ main {
 :root.development {
   --color-primary: var(--color-green);
 }
-
-/* for some reason tailwind just does not want to work, so lets make sure it does */
-.bg-darker { background-color: var(--color-darker) !important; }
-.bg-dark { background-color: var(--color-dark) !important; }
-.bg-darkless { background-color: var(--color-darkless) !important; }
-.bg-primary { background-color: var(--color-primary) !important; }
-.bg-secondary { background-color: var(--color-secondary) !important; }
-.bg-red { background-color: var(--color-red) !important; }
-.bg-orange { background-color: var(--color-orange) !important; }
-.bg-yellow { background-color: var(--color-yellow) !important; }
-.bg-green { background-color: var(--color-green) !important; }
-.bg-cyan { background-color: var(--color-cyan) !important; }
-.bg-blue { background-color: var(--color-blue) !important; }
-.bg-purple { background-color: var(--color-purple) !important; }
-
-.text-darker { color: var(--color-darker) !important; }
-.text-dark { color: var(--color-dark) !important; }
-.text-darkless { color: var(--color-darkless) !important; }
-.text-primary { color: var(--color-primary) !important; }
-.text-secondary { color: var(--color-secondary) !important; }
-.text-red { color: var(--color-red) !important; }
-.text-orange { color: var(--color-orange) !important; }
-.text-yellow { color: var(--color-yellow) !important; }
-.text-green { color: var(--color-green) !important; }
-.text-cyan { color: var(--color-cyan) !important; }
-.text-blue { color: var(--color-blue) !important; }
-.text-purple { color: var(--color-purple) !important; }
-
-.border-darker { border-color: var(--color-darker) !important; }
-.border-dark { border-color: var(--color-dark) !important; }
-.border-darkless { border-color: var(--color-darkless) !important; }
-.border-primary { border-color: var(--color-primary) !important; }
-.border-secondary { border-color: var(--color-secondary) !important; }
-.border-red { border-color: var(--color-red) !important; }
-.border-orange { border-color: var(--color-orange) !important; }
-.border-yellow { border-color: var(--color-yellow) !important; }
-.border-green { border-color: var(--color-green) !important; }
-.border-cyan { border-color: var(--color-cyan) !important; }
-.border-blue { border-color: var(--color-blue) !important; }
-.border-purple { border-color: var(--color-purple) !important; }
 
 .project-toggle-group {
   @apply flex items-center gap-2 rounded-lg p-1;

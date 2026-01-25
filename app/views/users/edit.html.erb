@@ -13,19 +13,19 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 md:col-span-2">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🚀</span>
         </div>
         <h2 class="text-xl font-semibold text-white">Time Tracking Wizard</h2>
       </div>
       <p class="text-gray-300 mb-4">Get started with tracking your coding time in just a few minutes.</p>
       <%= link_to "Set up time tracking", my_wakatime_setup_path,
-          class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
+          class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200" %>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🌍</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_timezone">Timezone</h2>
@@ -42,13 +42,13 @@
               { class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
         </div>
         <p class="text-xs text-gray-400">This affects how your activity graph and other time-based features are displayed.</p>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">⚙️</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_hackatime_extension">Extension Settings</h2>
@@ -64,13 +64,13 @@
               {},
               { class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
         </div>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🪪</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_username">Username</h2>
@@ -97,13 +97,13 @@
             Your profile is currently live at <%= link_to "hackati.me/#{@user.username}", "https://hackati.me/#{@user.username}", target: "_blank", class: "text-primary hover:underline" %>
           </p>
         <% end %>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">💬</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_slack_status">Slack Integration</h2>
@@ -126,7 +126,7 @@
               <%= f.label :uses_slack_status, "Update my Slack status automatically",
                   class: "text-sm text-gray-200" %>
             </div>
-            <%= f.submit "Save", class: "mt-3 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+            <%= f.submit "Save", class: "mt-3 px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
 
@@ -153,7 +153,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🔒</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_privacy">Privacy Settings</h2>
@@ -169,12 +169,12 @@
               class: "text-sm text-gray-200" %>
         </div>
         <p class="text-xs text-gray-400">When enabled, others can view your coding statistics through public APIs. Many Hack Club YSWS programs use this to track your progress. Disabling this can prevent you from participating in some programs.</p>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
 
       <div class="border-t border-gray-700 pt-4 mt-4 space-y-3">
         <div class="flex items-center gap-3">
-          <div class="p-2 bg-red-600/10 rounded">
+          <div class="p-2 bg-primary/10 rounded">
             <span class="text-2xl">🗑️</span>
           </div>
           <h3 class="text-lg font-semibold text-white" id="delete_account">Delete Account</h3>
@@ -187,7 +187,7 @@
           <button type="button"
                   data-controller="account-deletion"
                   data-action="click->account-deletion#confirm"
-                  class="w-full px-4 py-2 bg-primary text-white font-medium rounded cursor-pointer">
+                  class="w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer">
             Request Account Deletion
           </button>
         <% else %>
@@ -200,7 +200,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🔑</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_api_key">API Key</h2>
@@ -214,7 +214,7 @@
         <button type="button"
                 data-controller="api-key-rotation"
                 data-action="click->api-key-rotation#confirm"
-                class="w-full px-4 py-2 bg-primary hover:bg-red text-white font-medium rounded transition-colors duration-200 cursor-pointer">
+                class="w-full px-4 py-2 bg-primary hover:bg-primary/50 text-white font-medium rounded transition-colors duration-200 cursor-pointer">
           Rotate API Key
         </button>
       </div>
@@ -222,7 +222,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 md:col-span-2">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🔗</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_github_account">Connected Accounts</h2>
@@ -238,12 +238,12 @@
               <span class="text-gray-200 text-sm">Connected: <%= link_to "@#{h(@user.github_username)}", "https://github.com/#{h(@user.github_username)}", target: "_blank", class: "text-primary hover:text-primary/80 underline" %></span>
             </div>
             <div class="flex items-center gap-2">
-              <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, class: "inline-flex items-center gap-2 px-3 py-2 bg-primary text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
-              <%= button_to "Unlink", github_unlink_path, method: :delete, data: { turbo_confirm: "Are you sure you want to unlink your GitHub account? This will remove your GitHub connection and you may need to re-link to use GitHub-dependent features." }, class: "inline-flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
+              <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, class: "inline-flex items-center gap-2 px-3 py-2 bg-primary text-white hover:bg-primary/50 text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
+              <%= button_to "Unlink", github_unlink_path, method: :delete, data: { turbo_confirm: "Are you sure you want to unlink your GitHub account? This will remove your GitHub connection and you may need to re-link to use GitHub-dependent features." }, class: "inline-flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white hover:text-white/80 text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
             </div>
           <% else %>
             <%= link_to "Link GitHub Account", github_auth_path, data: { turbo: "false" },
-                class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
+                class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
 
@@ -265,7 +265,7 @@
                       method: :delete,
                       class: "space-y-4" do |f| %>
                       <%= f.hidden_field :email, value: email.email %>
-                      <%= f.submit "Unlink!", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+                      <%= f.submit "Unlink!", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
                     <% end %>
                   <% end %>
                 </div>
@@ -287,7 +287,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">📊</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_stats_badges">Stats Badges</h2>
@@ -361,7 +361,7 @@
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 space-y-6">
       <div>
         <div class="flex items-center gap-3 mb-4">
-          <div class="p-2 bg-red-600/10 rounded">
+          <div class="p-2 bg-primary/10 rounded">
             <span class="text-2xl">📄</span>
           </div>
           <h2 class="text-xl font-semibold text-white" id="user_config_file">Config File</h2>
@@ -378,7 +378,7 @@
 
       <div class="border-t border-gray-700 pt-6">
         <div class="flex items-center gap-3 mb-4">
-          <div class="p-2 bg-red-600/10 rounded">
+          <div class="p-2 bg-primary/10 rounded">
             <span class="text-2xl">🚚</span>
           </div>
           <h2 class="text-xl font-semibold text-white" id="user_migration_assistant">Migration Assistant</h2>
@@ -386,7 +386,7 @@
         <p class="text-gray-300 text-sm mb-4">This will migrate your heartbeats from waka.hackclub.com to this platform.</p>
 
         <%= button_to "Migrate heartbeats", my_settings_migrate_heartbeats_path, method: :post,
-            class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+            class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
 
         <% if @heartbeats_migration_jobs.any? %>
           <div class="mt-4 space-y-2">
@@ -403,7 +403,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 md:col-span-2">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">📝</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_markscribe">Markscribe Templates</h2>
@@ -431,23 +431,22 @@
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 md:col-span-2">
       <% if @user.trust_level == "red" %>
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">💾</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="download_user_data">Download Your Data</h2>
       </div>
-        <div class="bg-red-900 border border-red-700 rounded-lg p-4">
+        <div class="bg-red-500/20 border border-red-500 rounded-lg p-4">
           <div class="flex items-center gap-2">
-            <span class="text-red-400">⚠️</span>
-            <span class="text-red-300 font-medium">Export Restricted</span>
+            <span class="text-red-500 font-medium">⚠️ Export Restricted</span>
           </div>
-          <p class="text-red-200 text-sm mt-2">
+          <p class="text-red-500 text-sm mt-2">
             Sorry, due to your account standing, you are unable to perform this action.
           </p>
         </div>
       <% else %>
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">💾</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="download_user_data">Download Your Data</h2>
@@ -492,7 +491,7 @@
 
             <div class="space-y-2">
               <%= link_to export_my_heartbeats_path(format: :json, all_data: "true"),
-                  class: "w-full bg-primary hover:bg-red text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
+                  class: "w-full bg-primary hover:bg-primary/50 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
                   method: :get do %>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
@@ -501,7 +500,7 @@
               <% end %>
 
               <%= link_to "#",
-                  class: "w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
+                  class: "w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
                   data: {
                     controller: "heartbeat-export",
                     action: "click->heartbeat-export#handleExport"
@@ -542,7 +541,7 @@
 
                 <div class="flex gap-3">
                   <%= form.submit "Import Heartbeats",
-                      class: "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center gap-2",
+                      class: "w-full px-3 py-2 bg-primary hover:bg-primary/80 text-white text-md font-medium rounded transition-colors duration-200 cursor-pointer",
                       data: { confirm: "Are you sure you want to import heartbeats? This will add new data to your account." } %>
                 </div>
               <% end %>
@@ -556,7 +555,7 @@
     <% admin_tool do %>
       <div class="p-6 md:col-span-2">
         <div class="flex items-center gap-3 mb-4">
-          <div class="p-2 bg-red-600/10 rounded">
+          <div class="p-2 bg-primary/10 rounded">
             <span class="text-2xl">🔧</span>
           </div>
           <h2 class="text-xl font-semibold text-white">WakaTime Mirrors</h2>
@@ -609,7 +608,7 @@
       },
       {
         text: "Rotate Now",
-        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        class: "bg-primary text-white hover:bg-primary/50 font-medium",
         action: "click->api-key-rotation#rotate"
       }
     ] %>
@@ -629,7 +628,7 @@
       },
       {
         text: "Copy Key",
-        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        class: "bg-primary text-white hover:bg-primary/50 font-medium",
         action: "click->api-key-rotation#copyKey"
       }
     ],
@@ -652,7 +651,7 @@
       },
       {
         text: "Delete My Account",
-        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        class: "bg-primary text-white hover:bg-primary/50 font-medium",
         form: true,
         url: create_deletion_path,
         method: "post"
