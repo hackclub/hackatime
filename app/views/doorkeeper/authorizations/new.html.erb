@@ -38,7 +38,7 @@
 </div>
 
 <div class="space-y-3">
-  <%= form_tag oauth_authorization_path, method: :post, class: "w-full" do %>
+  <%= form_tag oauth_authorization_path, method: :post, class: "w-full", data: { turbo: false }, onsubmit: "let s=this.querySelector('.spinner'),t=this.querySelector('.btn-text');s.classList.remove('hidden');t.classList.add('hidden');this.querySelector('button').style.cssText='pointer-events:none;opacity:0.7'" do %>
     <%= hidden_field_tag :client_id, @pre_auth.client.uid, id: nil %>
     <%= hidden_field_tag :redirect_uri, @pre_auth.redirect_uri, id: nil %>
     <%= hidden_field_tag :state, @pre_auth.state, id: nil %>
@@ -47,9 +47,12 @@
     <%= hidden_field_tag :scope, @pre_auth.scope, id: nil %>
     <%= hidden_field_tag :code_challenge, @pre_auth.code_challenge, id: nil %>
     <%= hidden_field_tag :code_challenge_method, @pre_auth.code_challenge_method, id: nil %>
-    <%= submit_tag t('doorkeeper.authorizations.buttons.authorize'), class: "w-full px-4 py-3 bg-primary hover:bg-primary/80 text-white font-bold rounded transition-colors cursor-pointer" %>
+    <button type="submit" class="w-full px-4 py-3 bg-primary hover:bg-primary/80 text-white font-bold rounded transition-colors cursor-pointer flex items-center justify-center">
+      <span class="spinner hidden mr-2"><%= render "shared/spinner", class: "h-5 w-5" %></span>
+      <span class="btn-text"><%= t('doorkeeper.authorizations.buttons.authorize') %></span>
+    </button>
   <% end %>
-  <%= form_tag oauth_authorization_path, method: :delete, class: "w-full" do %>
+  <%= form_tag oauth_authorization_path, method: :delete, class: "w-full", data: { turbo: false }, onsubmit: "let s=this.querySelector('.spinner'),t=this.querySelector('.btn-text');s.classList.remove('hidden');t.classList.add('hidden');this.querySelector('button').style.cssText='pointer-events:none;opacity:0.7'" do %>
     <%= hidden_field_tag :client_id, @pre_auth.client.uid, id: nil %>
     <%= hidden_field_tag :redirect_uri, @pre_auth.redirect_uri, id: nil %>
     <%= hidden_field_tag :state, @pre_auth.state, id: nil %>
@@ -58,6 +61,9 @@
     <%= hidden_field_tag :scope, @pre_auth.scope, id: nil %>
     <%= hidden_field_tag :code_challenge, @pre_auth.code_challenge, id: nil %>
     <%= hidden_field_tag :code_challenge_method, @pre_auth.code_challenge_method, id: nil %>
-    <%= submit_tag t('doorkeeper.authorizations.buttons.deny'), class: "w-full px-4 py-3 bg-dark hover:bg-darkless border border-darkless text-gray-300 rounded transition-colors cursor-pointer" %>
+    <button type="submit" class="w-full px-4 py-3 bg-dark hover:bg-darkless border border-darkless text-gray-300 rounded transition-colors cursor-pointer flex items-center justify-center">
+      <span class="spinner hidden mr-2"><%= render "shared/spinner", class: "h-5 w-5" %></span>
+      <span class="btn-text"><%= t('doorkeeper.authorizations.buttons.deny') %></span>
+    </button>
   <% end %>
 </div>
