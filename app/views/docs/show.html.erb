@@ -11,10 +11,10 @@
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": <%= @title.to_json %>,
-      "description": <%= generate_doc_description(@content, @title).to_json %>,
-      "url": <%= doc_url(@doc_path).to_json %>,
-      "dateModified": <%= (File.mtime(safe_docs_path("#{@doc_path}.md")).iso8601 rescue Time.current.iso8601).to_json %>,
+      "headline": <%== @title.to_json %>,
+      "description": <%== generate_doc_description(@content, @title).to_json %>,
+      "url": <%== doc_url(@doc_path).to_json %>,
+      "dateModified": <%== (File.mtime(safe_docs_path("#{@doc_path}.md")).iso8601 rescue Time.current.iso8601).to_json %>,
       "author": {
         "@type": "Organization",
         "name": "Hack Club",
@@ -27,7 +27,7 @@
       },
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": <%= doc_url(@doc_path).to_json %>
+        "@id": <%== doc_url(@doc_path).to_json %>
       },
       "about": {
         "@type": "SoftwareApplication",
