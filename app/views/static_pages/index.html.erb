@@ -22,7 +22,7 @@
   <% if current_user %>
     <h1 class="font-bold mt-1 mb-4 text-5xl text-center">Keep Track of <span class="text-primary">Your</span> Coding Time</h1>
   <% else %>
-    <h1 class="font-bold mt-1 mb-1 text-5xl text-center">Track How Much You <span class="text-primary">Code</span></h1>
+    <h1 class="font-bold mt-1 mb-4 text-5xl text-center">Track How Much You <span class="text-primary">Code</span></h1>
     <div class="flex flex-col w-full max-w-[50vw] mx-auto mb-22">
       <%= link_to hca_auth_path(continue: @continue_param), class: "inline-flex items-center justify-center w-full px-6 py-3 rounded text-white font-bold bg-primary hover:bg-primary/80 transition-colors", data: { turbo: false }, onclick: "let s=this.querySelector('.spinner'),i=this.querySelector('.icon');s.classList.remove('hidden');i.classList.add('hidden');this.style.cssText='pointer-events:none;opacity:0.7'" do %>
         <span class="spinner mr-2 hidden"><%= render "shared/spinner", class: "h-6 w-6" %></span>
@@ -77,7 +77,7 @@
           ['Emacs', 'emacs'], ['Jupyter', 'jupyter'], ['OnShape', 'onshape']
         ] %>
         <% popular_editors.each do |name, slug| %>
-          <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center block hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20">
+          <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded-lg p-3 hover:bg-primary/20 transition-all duration-200 text-center block hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20">
             <img src="/images/editor-icons/<%= slug %>-128.png" alt="<%= name %>" class="w-12 h-12 mx-auto mb-2">
             <div class="text-sm text-white"><%= name %></div>
           </a>
@@ -97,11 +97,11 @@
         </p>
       <% end %>
       <div class="overflow-x-auto -mx-4 px-4 pb-4 no-scrollbar">
-        <div class="grid grid-cols-4 gap-4 mt-4 text-center h-30 min-w-[800px] select-none cursor-pointer">
-          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">100%</span><br>free</p>
-          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20">works<br><span class="text-green font-bold text-4xl">offline</span></p>
-          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20"><span class="text-green font-bold text-4xl">real time</span><br>stats</p>
-          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-all duration-200 text-center hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20">rise to the<br><span class="text-green font-bold text-4xl">top #1</span></p>
+        <div class="grid grid-cols-4 gap-4 mt-4 text-center h-30 min-w-[800px]">
+          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3"><span class="text-primary font-bold text-4xl">100%</span><br>free</p>
+          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3">works<br><span class="text-primary font-bold text-4xl">offline</span></p>
+          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3"><span class="text-primary font-bold text-4xl">real time</span><br>stats</p>
+          <p class="flex flex-col text-3xl justify-center bg-darkless rounded-lg p-3">rise to the<br><span class="text-primary font-bold text-4xl">top #1</span></p>
         </div>
       </div>
     </div>
@@ -112,8 +112,8 @@
 
     </div>
     <div class="mt-8 mb-8">
-      <h1 class="font-bold mt-1 mb-1 text-4xl">For your favourite <span class="text-primary">Hack Club</span> events!</span></h1>
-      <p class="text-primary monospace text-[20px]">Don't commit fraud lol ;)</p>
+      <h1 class="font-bold mt-1 mb-1 text-4xl">For your favorite <span class="text-primary">Hack Club</span> events!</h1>
+      <p class="text-primary monospace text-[20px]">First class support for Hack Club events, and more.</p>
       <div class="flex flex-col md:flex-row bg-[url('/images/som-bg.png')] mt-4 mb-4 rounded-lg">
         <div class="w-full md:w-1/2 p-8">
           <img src="/images/som.png" class="h-2/3 mx-auto md:mx-0 mb-6">
@@ -130,7 +130,7 @@
           </div>
         </div>
       </div>
-      <div class="flex flex-col md:flex-row bg-linear-to-r from-[#EFCCCC] to-[#D35648] mt-4 mb-4 rounded-lg">
+      <div class="flex flex-col md:flex-row bg-gradient-to-r from-[#EFCCCC] to-[#D35648] mt-4 mb-4 rounded-lg">
         <div class="w-full md:w-1/3 -translate-y-5">
           <img src="/images/athena.png" class="w-[400px]">
         </div>
@@ -194,7 +194,7 @@
           <div class="flex-1">
             <span class="text-white">Link your GitHub account to unlock project linking, show what you're working on, and qualify for leaderboards!</span>
           </div>
-          <%= link_to "Connect GitHub", "/auth/github", class: "bg-primary hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex-shrink-0", data: { turbo: false } %>
+          <%= link_to "Connect GitHub", "/auth/github", class: "bg-primary hover:bg-primary text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex-shrink-0", data: { turbo: false } %>
         </div>
       </div>
     <% end %>
@@ -245,13 +245,13 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 items-center">
-      <div class="w-full relative pb-[56.25%] h-0 overflow-hidden">
-        <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/eFVA_ZWnzDk?si=TcEVwiigFZh0Sp_Z&loop=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen class="absolute top-0 left-0 w-full h-full rounded-lg"></iframe>
-      </div>
-
       <div>
         <h1 class="font-bold mt-1 mb-1 text-5xl">Start hacking with <span class="text-primary">Hackatime</span> now!</h1>
-        <p class="text-primary monospace text-[20px]">Superrrrrr easy to setup :)</p>
+        <p class="text-primary monospace text-[20px]">It is super easy to setup, here is a quick guide!</p>
+      </div>
+
+      <div class="w-full relative pb-[56.25%] h-0 overflow-hidden">
+        <iframe width="1280" height="720" src="https://www.youtube-nocookie.com/embed/FSIxV4u77WQ?rel=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen class="absolute top-0 left-0 w-full h-full rounded-lg"></iframe>
       </div>
     </div>
   <% end %>
