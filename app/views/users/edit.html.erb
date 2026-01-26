@@ -20,7 +20,7 @@
       </div>
       <p class="text-gray-300 mb-4">Get started with tracking your coding time in just a few minutes.</p>
       <%= link_to "Set up time tracking", my_wakatime_setup_path,
-          class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200" %>
+          class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200" %>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
@@ -50,7 +50,7 @@
               { class: "w-full px-3 py-2 h-10 bg-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
         </div>
         <p class="text-xs text-secondary">This affects how your activity graph and other time-based features are displayed.</p>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
@@ -72,7 +72,7 @@
               {},
               { class: "w-full px-3 py-2 h-10 bg-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
         </div>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
@@ -105,7 +105,7 @@
             Your profile is currently live at <%= link_to "hackati.me/#{@user.username}", "https://hackati.me/#{@user.username}", target: "_blank", class: "underline" %>
           </p>
         <% end %>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
@@ -134,7 +134,7 @@
               <%= f.label :uses_slack_status, "Update my Slack status automatically",
                   class: "text-sm text-gray-200" %>
             </div>
-            <%= f.submit "Save", class: "mt-3 px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
+            <%= f.submit "Save", class: "mt-3 px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
 
@@ -177,7 +177,7 @@
               class: "text-sm text-gray-200" %>
         </div>
         <p class="text-xs text-secondary">When enabled, others can view your coding statistics through public APIs. Many Hack Club YSWS programs use this to track your progress. Disabling this can prevent you from participating in some programs.</p>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
 
       <div class="border-t border-darkless pt-4 mt-4 space-y-3">
@@ -195,7 +195,7 @@
           <button type="button"
                   data-controller="account-deletion"
                   data-action="click->account-deletion#confirm"
-                  class="w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer">
+                  class="w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer">
             Request Account Deletion
           </button>
         <% else %>
@@ -222,7 +222,7 @@
         <button type="button"
                 data-controller="api-key-rotation"
                 data-action="click->api-key-rotation#confirm"
-                class="w-full px-4 py-2 bg-primary hover:bg-primary/50 text-white font-medium rounded transition-colors duration-200 cursor-pointer">
+                class="w-full px-4 py-2 bg-primary hover:bg-primary/75 text-white font-medium rounded transition-colors duration-200 cursor-pointer">
           Rotate API Key
         </button>
       </div>
@@ -246,12 +246,12 @@
               <span class="text-gray-200 text-sm">Connected: <%= link_to "@#{h(@user.github_username)}", "https://github.com/#{h(@user.github_username)}", target: "_blank", class: "text-primary hover:text-primary/80 underline" %></span>
             </div>
             <div class="flex items-center gap-2">
-              <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, class: "inline-flex items-center gap-2 px-3 py-2 bg-primary text-white hover:bg-primary/50 text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
+              <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, class: "inline-flex items-center gap-2 px-3 py-2 bg-primary text-white hover:bg-primary/75 text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
               <%= button_to "Unlink", github_unlink_path, method: :delete, data: { turbo_confirm: "Are you sure you want to unlink your GitHub account? This will remove your GitHub connection and you may need to re-link to use GitHub-dependent features." }, class: "inline-flex items-center gap-2 px-3 py-2 bg-darkless hover:bg-darkless/50 text-white hover:text-white/80 text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
             </div>
           <% else %>
             <%= link_to "Link GitHub Account", github_auth_path, data: { turbo: "false" },
-                class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
+                class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
 
@@ -273,7 +273,7 @@
                       method: :delete,
                       class: "space-y-4" do |f| %>
                       <%= f.hidden_field :email, value: email.email %>
-                      <%= f.submit "Unlink!", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
+                      <%= f.submit "Unlink!", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
                     <% end %>
                   <% end %>
                 </div>
@@ -287,7 +287,7 @@
                 placeholder: "Add another email address",
                 required: true,
                 class: "w-full px-3 py-2 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary text-sm" %>
-            <%= submit_tag "Add Email", class: "w-full px-3 py-2 bg-primary hover:bg-primary/80 text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
+            <%= submit_tag "Add Email", class: "w-full px-3 py-2 bg-primary hover:bg-primary/75 text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
       </div>
@@ -394,7 +394,7 @@
         <p class="text-gray-300 text-sm mb-4">This will migrate your heartbeats from waka.hackclub.com to this platform.</p>
 
         <%= button_to "Migrate heartbeats", my_settings_migrate_heartbeats_path, method: :post,
-            class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/50 font-medium rounded transition-colors duration-200 cursor-pointer" %>
+            class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
 
         <% if @heartbeats_migration_jobs.any? %>
           <div class="mt-4 space-y-2">
@@ -499,7 +499,7 @@
 
             <div class="space-y-2">
               <%= link_to export_my_heartbeats_path(format: :json, all_data: "true"),
-                  class: "w-full bg-primary hover:bg-primary/50 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
+                  class: "w-full bg-primary hover:bg-primary/75 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
                   method: :get do %>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
@@ -549,7 +549,7 @@
 
                 <div class="flex gap-3">
                   <%= form.submit "Import Heartbeats",
-                      class: "w-full px-3 py-2 bg-primary hover:bg-primary/80 text-white text-md font-medium rounded transition-colors duration-200 cursor-pointer",
+                      class: "w-full px-3 py-2 bg-primary hover:bg-primary/75 text-white text-md font-medium rounded transition-colors duration-200 cursor-pointer",
                       data: { confirm: "Are you sure you want to import heartbeats? This will add new data to your account." } %>
                 </div>
               <% end %>
@@ -616,7 +616,7 @@
       },
       {
         text: "Rotate Now",
-        class: "bg-primary hover:bg-primary/80 text-white font-medium",
+        class: "bg-primary hover:bg-primary/75 text-white font-medium",
         action: "click->api-key-rotation#rotate"
       }
     ] %>
@@ -636,7 +636,7 @@
       },
       {
         text: "Copy Key",
-        class: "bg-primary hover:bg-primary/80 text-white font-medium",
+        class: "bg-primary hover:bg-primary/75 text-white font-medium",
         action: "click->api-key-rotation#copyKey"
       }
     ],
@@ -659,7 +659,7 @@
       },
       {
         text: "Delete My Account",
-        class: "bg-primary hover:bg-primary/80 text-white font-medium",
+        class: "bg-primary hover:bg-primary/75 text-white font-medium",
         form: true,
         url: create_deletion_path,
         method: "post"

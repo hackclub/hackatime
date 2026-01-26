@@ -6,7 +6,7 @@
       <h1 class="font-bold text-3xl text-white">Welcome to Hackatime</h1>
     </header>
 
-    <%= link_to hca_auth_path(continue: @continue_param), class: "inline-flex items-center justify-center w-full px-6 py-3 rounded text-white font-bold bg-primary hover:bg-primary/80 transition-colors", data: { turbo: false }, onclick: "let s=this.querySelector('.spinner'),i=this.querySelector('.icon');s.classList.remove('hidden');i.classList.add('hidden');this.style.cssText='pointer-events:none;opacity:0.7'" do %>
+    <%= link_to hca_auth_path(continue: @continue_param), class: "inline-flex items-center justify-center w-full px-6 py-3 rounded text-white font-bold bg-primary hover:bg-primary/75 transition-colors", data: { turbo: false }, onclick: "let s=this.querySelector('.spinner'),i=this.querySelector('.icon');s.classList.remove('hidden');i.classList.add('hidden');this.style.cssText='pointer-events:none;opacity:0.7'" do %>
       <span class="spinner mr-2 hidden"><%= render "shared/spinner", class: "h-6 w-6" %></span>
       <img src="/images/icon-rounded.png" class="icon h-6 w-6 mr-2">
       <span>Sign in with your Hack Club account</span>

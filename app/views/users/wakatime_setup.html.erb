@@ -52,7 +52,7 @@
 
             <div class="code-block bg-darkless rounded-lg p-4 mb-4">
               <code class="text-cyan text-sm">export HACKATIME_API_KEY="<%= @current_user_api_key %>" && export HACKATIME_API_URL="<%= api_hackatime_v1_url %>" && export SUCCESS_URL="<%= root_url %>/success.txt" && curl -sSL <%= root_url %>hackatime/setup.sh | bash</code>
-              <button class="copy-button bg-primary hover:bg-red border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
+              <button class="copy-button bg-primary hover:bg-primary/75 border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
             </div>
 
             <details class="mb-4 group">
@@ -68,8 +68,8 @@
             </details>
 
             <div class="flex gap-3 flex-wrap">
-              <button class="bg-blue hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('windows')">Using Windows?</button>
-              <button class="bg-purple hover:bg-darkless text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('advanced')">Custom Setup</button>
+              <button class="bg-blue hover:bg-blue/75 text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('windows')">Using Windows?</button>
+              <button class="bg-purple hover:bg-purple/75 text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('advanced')">Custom Setup</button>
             </div>
           </div>
 
@@ -86,7 +86,7 @@
 
             <div class="code-block bg-darkless rounded-lg p-4 mb-4">
               <code class="text-cyan text-sm">$env:HACKATIME_API_KEY="<%= @current_user_api_key %>"; $env:HACKATIME_API_URL="<%= api_hackatime_v1_url %>"; powershell -ExecutionPolicy Bypass -Command "& {iwr <%= root_url %>hackatime/setup.ps1 -UseBasicParsing | iex}"</code>
-              <button class="copy-button bg-primary hover:bg-red border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
+              <button class="copy-button bg-primary hover:bg-primary/75 border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
             </div>
 
             <details class="mb-4 group">
@@ -102,8 +102,8 @@
             </details>
 
             <div class="flex gap-3 flex-wrap">
-              <button class="bg-green hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('mac-linux')">Using Mac/Linux?</button>
-              <button class="bg-purple hover:bg-darkless text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('advanced')">Custom Setup</button>
+              <button class="bg-green hover:bg-green/75 text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('mac-linux')">Using Mac/Linux?</button>
+              <button class="bg-purple hover:bg-purple/75 text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('advanced')">Custom Setup</button>
             </div>
           </div>
 
@@ -112,16 +112,16 @@
             <div class="bg-purple/10 border border-purple/30 rounded-lg p-4 mb-4">
               <p class="text-sm">For advanced users who want to manually configure their setup.</p>
             </div>
-            <p class="text-lg mb-4">Create or edit <code class="bg-darkless px-2 py-1 rounded text-cyan">~/.wakatime.cfg</code> with:</p>
+            <p class="text-lg mb-4">Create or edit <span class="bg-darkless mx-2 px-2 py-1 rounded text-cyan text-md">~/.wakatime.cfg</span> with:</p>
 
             <div class="code-block bg-darkless rounded-lg p-4 mb-4">
               <code class="text-cyan text-sm">[settings]&#10;api_url = <%= api_hackatime_v1_url %>&#10;api_key = <%= @current_user_api_key %>&#10;heartbeat_rate_limit_seconds = 30</code>
-              <button class="copy-button bg-primary hover:bg-red border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
+              <button class="copy-button bg-primary hover:bg-primary/75 border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
             </div>
 
             <div class="flex gap-3 flex-wrap">
-              <button class="bg-green hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('mac-linux')">Using Mac/Linux?</button>
-              <button class="bg-blue hover:bg-cyan text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('windows')">Using Windows?</button>
+              <button class="bg-green hover:bg-green/75 text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('mac-linux')">Using Mac/Linux?</button>
+              <button class="bg-blue hover:bg-blue/75 text-white border-0 px-4 py-2 rounded transition-colors cursor-pointer text-sm" onclick="toggleSection('windows')">Using Windows?</button>
             </div>
           </div>
         </div>
@@ -160,7 +160,7 @@
                 <p class="text-secondary text-sm">Hackatime is configured and ready to go.</p>
               </div>
 
-              <%= link_to my_wakatime_setup_step_2_path, class: "block w-full bg-primary hover:bg-red text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors" do %>
+              <%= link_to my_wakatime_setup_step_2_path, class: "block w-full bg-primary hover:bg-primary/75 text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors" do %>
                 Continue →
               <% end %>
             </div>
