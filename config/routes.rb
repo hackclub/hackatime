@@ -275,6 +275,11 @@ Rails.application.routes.draw do
   end
 
   get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/time_stats", to: "profiles#time_stats", as: :profile_time_stats, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/projects", to: "profiles#projects", as: :profile_projects, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/languages", to: "profiles#languages", as: :profile_languages, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/editors", to: "profiles#editors", as: :profile_editors, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/activity", to: "profiles#activity", as: :profile_activity, constraints: { username: /[A-Za-z0-9_-]+/ }
 
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
