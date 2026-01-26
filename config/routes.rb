@@ -247,6 +247,11 @@ Rails.application.routes.draw do
         get "timeline", to: "timeline#show"
         get "timeline/search_users", to: "timeline#search_users"
         get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
+        get "users/:id/visualization/quantized", to: "admin#visualization_quantized"
+        get "alts/candidates", to: "admin#alt_candidates"
+        get "alts/shared_machines", to: "admin#shared_machines"
+        get "users/active", to: "admin#active_users"
+        post "audit_logs/counts", to: "admin#audit_logs_counts"
       end
     end
 
