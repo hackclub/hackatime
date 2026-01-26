@@ -14,7 +14,7 @@ RSpec.describe 'Slack Webhooks', type: :request do
       parameter name: :response_url, in: :formData, type: :string
 
       response(200, 'successful') do
-        let(:command) { '/timedump' }
+        let(:command) { '/sailorslog' }
         let(:text) { 'status update' }
         let(:user_id) { 'U123456' }
         let(:response_url) { 'https://hooks.slack.com/commands/1234/5678' }
@@ -46,7 +46,7 @@ RSpec.describe 'Slack Webhooks', type: :request do
       parameter name: :response_url, in: :formData, type: :string
 
       response(200, 'successful') do
-        let(:command) { '/sailorslog' }
+        let(:command) { '/timedump' }
         let(:text) { 'status update' }
         let(:user_id) { 'U123456' }
         let(:response_url) { 'https://hooks.slack.com/commands/1234/5678' }

@@ -3465,11 +3465,11 @@ components:
           example: CI/CD Key
         last_used_at:
           type: string
-          format: date_time
+          format: date-time
           nullable: true
         created_at:
           type: string
-          format: date_time
+          format: date-time
     DeletionRequest:
       type: object
       properties:
@@ -3489,7 +3489,7 @@ components:
           - completed
         created_at:
           type: string
-          format: date_time
+          format: date-time
     TrustLevelAuditLog:
       type: object
       properties:
@@ -3507,7 +3507,7 @@ components:
           example: upgraded_to_verified
         created_at:
           type: string
-          format: date_time
+          format: date-time
     Permission:
       type: object
       properties:
@@ -3534,7 +3534,7 @@ components:
           example: https://api.wakatime.com/api/v1/users/current/heartbeats
         last_sync_at:
           type: string
-          format: date_time
+          format: date-time
           nullable: true
         status:
           type: string
@@ -3581,11 +3581,11 @@ components:
           example: U123456
         from:
           type: string
-          format: date_time
+          format: date-time
           example: '2023-01-01T00:00:00Z'
         to:
           type: string
-          format: date_time
+          format: date-time
           example: '2023-01-31T23:59:59Z'
         projects:
           type: array

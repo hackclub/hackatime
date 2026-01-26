@@ -152,8 +152,8 @@ RSpec.configure do |config|
             properties: {
               id: { type: :integer, example: 1 },
               name: { type: :string, example: 'CI/CD Key' },
-              last_used_at: { type: :string, format: :date_time, nullable: true },
-              created_at: { type: :string, format: :date_time }
+              last_used_at: { type: :string, format: 'date-time', nullable: true },
+              created_at: { type: :string, format: 'date-time' }
             }
           },
           DeletionRequest: {
@@ -162,7 +162,7 @@ RSpec.configure do |config|
               id: { type: :integer, example: 101 },
               user_id: { type: :integer, example: 42 },
               status: { type: :string, example: 'pending', enum: [ 'pending', 'approved', 'cancelled', 'completed' ] },
-              created_at: { type: :string, format: :date_time }
+              created_at: { type: :string, format: 'date-time' }
             }
           },
           TrustLevelAuditLog: {
@@ -172,7 +172,7 @@ RSpec.configure do |config|
               user_id: { type: :integer, example: 42 },
               actor_id: { type: :integer, example: 1 },
               action: { type: :string, example: 'upgraded_to_verified' },
-              created_at: { type: :string, format: :date_time }
+              created_at: { type: :string, format: 'date-time' }
             }
           },
           Permission: {
@@ -189,7 +189,7 @@ RSpec.configure do |config|
             properties: {
               id: { type: :integer, example: 7 },
               target_url: { type: :string, example: 'https://api.wakatime.com/api/v1/users/current/heartbeats' },
-              last_sync_at: { type: :string, format: :date_time, nullable: true },
+              last_sync_at: { type: :string, format: 'date-time', nullable: true },
               status: { type: :string, example: 'active' }
             }
           },
@@ -220,8 +220,8 @@ RSpec.configure do |config|
             type: :object,
             properties: {
               user_id: { type: :string, nullable: true, example: 'U123456' },
-              from: { type: :string, format: :date_time, example: '2023-01-01T00:00:00Z' },
-              to: { type: :string, format: :date_time, example: '2023-01-31T23:59:59Z' },
+              from: { type: :string, format: 'date-time', example: '2023-01-01T00:00:00Z' },
+              to: { type: :string, format: 'date-time', example: '2023-01-31T23:59:59Z' },
               projects: {
                 type: :array,
                 items: {

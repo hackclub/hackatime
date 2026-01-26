@@ -76,6 +76,10 @@ class Api::V1::StatsController < ApplicationController
                      .with_valid_timestamps
                      .where(time: start_date..end_date)
 
+        if !@user.allow_public_stats_lookup && (!current_user || current_user != @user)
+          return render json: { error: "user has disabled public stats" }, status: :forbidden
+        end
+
         if params[:filter_by_project].present?
           filter_by_project = params[:filter_by_project].split(",")
           query = query.where(project: filter_by_project)
@@ -110,9 +114,7 @@ class Api::V1::StatsController < ApplicationController
       summary[:unique_total_seconds] = unique_seconds
     end
 
-    if !@user.allow_public_stats_lookup && (!current_user || current_user != @user)
-      return render json: { error: "user has disabled public stats" }, status: :forbidden
-    end
+
 
     trust_level = @user.trust_level
     trust_level = "blue" if trust_level == "yellow"
