@@ -519,7 +519,7 @@ module Api
                    .where.not(column_name => nil)
                    .order(Arel.sql("value ASC"))
                    .limit(limit)
-                   .map(&:value)
+                   .pluck(Arel.sql("value"))
                    .reject(&:empty?)
 
           render json: {
