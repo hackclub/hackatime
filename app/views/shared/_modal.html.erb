@@ -31,7 +31,7 @@
       <% end %>
 
       <% if custom.is_a?(String) %>
-        <%= sanitize custom, tags: %w[div p span a button form input label select option textarea h1 h2 h3 h4 h5 h6 ul ol li strong em code pre], attributes: %w[class id href type name value placeholder data-controller data-action data-target data-token for method required disabled readonly accept maxlength] %>
+        <%= sanitize custom, tags: %w[div p span a button form input label select option textarea h1 h2 h3 h4 h5 h6 ul ol li strong em code pre], attributes: %w[class id href type name value placeholder data-controller data-action data-target data-token for method required disabled readonly accept maxlength action] %>
       <% elsif custom.present? %>
         <%= custom %>
       <% end %>
