@@ -10,66 +10,41 @@ class StaticPagesController < ApplicationController
       flavor_texts += FlavorText.rare_motto if Random.rand(10) < 1
       @flavor_text = flavor_texts.sample
 
-      unless params[:date].blank?
-        # implement this later– for now just redirect to the projects page with the date
-        begin
-          date = Date.parse(params[:date])
-          redirect_to "/my/projects?interval=custom&from=#{date}&to=#{date}"
-        rescue ArgumentError
-        end
+      if params[:date].present?
+        d = Date.parse(params[:date]) rescue nil
+        return redirect_to "/my/projects?interval=custom&from=#{d}&to=#{d}" if d
       end
 
       if current_user.heartbeats.empty? || params[:show_wakatime_setup_notice]
         @show_wakatime_setup_notice = true
-
-        setup_social_proof = Cache::SetupSocialProofJob.perform_now
-        if setup_social_proof.present?
-          @ssp_message = setup_social_proof[:message]
-          @ssp_users_recent = setup_social_proof[:users_recent]
-          @ssp_users_size = setup_social_proof[:users_size]
+        if (ssp = Cache::SetupSocialProofJob.perform_now)
+          @ssp_message, @ssp_users_recent, @ssp_users_size = ssp.values_at(:message, :users_recent, :users_size)
         end
-
       end
 
-      # Get languages and editors in a single query using window functions
       Time.use_zone(current_user.timezone) do
-        results = current_user.heartbeats.today
-          .select(
-            :language,
-            :editor,
-            "COUNT(*) OVER (PARTITION BY language) as language_count",
-            "COUNT(*) OVER (PARTITION BY editor) as editor_count"
-          )
-          .distinct
-          .to_a
+        h = ApplicationController.helpers
+        rows = current_user.heartbeats.today
+          .select(:language, :editor,
+                  "COUNT(*) OVER (PARTITION BY language) as language_count",
+                  "COUNT(*) OVER (PARTITION BY editor) as editor_count")
+          .distinct.to_a
 
-        # Process results to get sorted languages and editors
-        language_counts = results
-          .map { |r| [ r.language&.categorize_language, r.language_count ] } # fix the bug where langs can have both upper and lower case like JAVA and java found here (https://github.com/hackclub/hackatime/issues/402)
-          .reject { |lang, _| lang.nil? || lang.empty? }
-          .group_by { |lang, _| lang }
-          .transform_values { |pairs| pairs.sum { |_, count| count } }
-          .uniq
-          .sort_by { |_, count| -count }
+        lang_counts = rows
+          .map { |r| [ r.language&.categorize_language, r.language_count ] }
+          .reject { |l, _| l.blank? }
+          .group_by(&:first).transform_values { |p| p.sum(&:last) }
+          .sort_by { |_, c| -c }
 
-        editor_counts = results
+        ed_counts = rows
           .map { |r| [ r.editor, r.editor_count ] }
-          .reject { |ed, _| ed.nil? || ed.empty? }
-          .uniq
-          .sort_by { |_, count| -count }
+          .reject { |e, _| e.blank? }.uniq
+          .sort_by { |_, c| -c }
 
-        @todays_languages = language_counts.map(&:first).map { |language| ApplicationController.helpers.display_language_name(language) }
-        @todays_editors = editor_counts.map(&:first).map { |editor| ApplicationController.helpers.display_editor_name(editor) }
+        @todays_languages = lang_counts.map { |l, _| h.display_language_name(l) }
+        @todays_editors = ed_counts.map { |e, _| h.display_editor_name(e) }
         @todays_duration = current_user.heartbeats.today.duration_seconds
-
-        if @todays_duration > 1.minute
-          @show_logged_time_sentence = @todays_languages.any? || @todays_editors.any?
-        end
-      end
-
-      cached_data = filterable_dashboard_data
-      cached_data.entries.each do |key, value|
-        instance_variable_set("@#{key}", value)
+        @show_logged_time_sentence = @todays_duration > 1.minute && (@todays_languages.any? || @todays_editors.any?)
       end
     else
       # Set homepage SEO content for logged-out users only
@@ -82,135 +57,82 @@ class StaticPagesController < ApplicationController
   end
 
   def minimal_login
-    @continue_param = params[:continue] if params[:continue].present?
+    @continue_param = params[:continue].presence
     render :minimal_login, layout: "doorkeeper/application"
   end
 
   def what_is_hackatime
-    @page_title = "What is Hackatime? - Free Coding Time Tracker"
-    @meta_description = "Hackatime is a free, open-source coding time tracker built by Hack Club for high school students. Track your programming time across 75+ editors and see your coding statistics."
+    @page_title = @og_title = @twitter_title = "What is Hackatime? - Free Coding Time Tracker"
+    @meta_description = @og_description = @twitter_description = "Hackatime is a free, open-source coding time tracker built by Hack Club for high school students. Track your programming time across 75+ editors and see your coding statistics."
     @meta_keywords = "what is hackatime, hackatime definition, hack club time tracker, coding time tracker, programming statistics"
-    @og_title = @page_title
-    @og_description = @meta_description
-    @twitter_title = @page_title
-    @twitter_description = @meta_description
   end
 
   def mini_leaderboard
-    @leaderboard = LeaderboardService.get(
-      period: :daily,
-      date: Date.current
-    )
-
+    @leaderboard = LeaderboardService.get(period: :daily, date: Date.current)
     @active_projects = Cache::ActiveProjectsJob.perform_now
-
-    render partial: "leaderboards/mini_leaderboard", locals: {
-      leaderboard: @leaderboard,
-      current_user: current_user
-    }
+    render partial: "leaderboards/mini_leaderboard", locals: { leaderboard: @leaderboard, current_user: current_user }
   end
 
   def project_durations
     return unless current_user
 
-    show_archived = params[:show_archived] == "true"
+    archived = params[:show_archived] == "true"
+    mappings = current_user.project_repo_mappings
+    @project_repo_mappings = archived ? mappings.archived.includes(:repository) : mappings.active.includes(:repository)
+    archived_names = mappings.archived.pluck(:project_name)
 
-    if show_archived
-      @project_repo_mappings = current_user.project_repo_mappings.archived.includes(:repository)
-    else
-      @project_repo_mappings = current_user.project_repo_mappings.active.includes(:repository)
-    end
-    archived_projects = current_user.project_repo_mappings.archived.pluck(:project_name)
+    key = "user_#{current_user.id}_project_durations_#{params[:interval]}_v2"
+    key += "_#{params[:from]}_#{params[:to]}" if params[:interval] == "custom"
+    key += "_archived" if archived
 
-    cache_key = "user_#{current_user.id}_project_durations_#{params[:interval]}_v2"
-    cache_key += "_#{params[:from]}_#{params[:to]}" if params[:interval] == "custom"
-    cache_key += "_archived" if show_archived
-
-    project_durations = Rails.cache.fetch(cache_key, expires_in: 1.minute) do
-      heartbeats = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
-      project_times = heartbeats.group(:project).duration_seconds
-      project_labels = current_user.project_labels
-      project_times.map do |project, duration|
-        mapping = @project_repo_mappings.find { |p| p.project_name == project }
-        {
-          project: project_labels.find { |p| p.project_key == project }&.label || project || "Unknown",
-          project_key: project,
-          repo_url: mapping&.repo_url,
-          repository: mapping&.repository,
-          has_mapping: mapping.present?,
-          duration: duration
-        }
-      end.filter { |p| p[:duration].positive? }.sort_by { |p| p[:duration] }.reverse
+    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
+      hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
+      labels = current_user.project_labels
+      hb.group(:project).duration_seconds.filter_map do |proj, dur|
+        next if dur <= 0
+        m = @project_repo_mappings.find { |p| p.project_name == proj }
+        { project: labels.find { |p| p.project_key == proj }&.label || proj || "Unknown",
+          project_key: proj, repo_url: m&.repo_url, repository: m&.repository,
+          has_mapping: m.present?, duration: dur }
+      end.sort_by { |p| -p[:duration] }
     end
 
-    if show_archived
-      project_durations = project_durations.select { |p| archived_projects.include?(p[:project_key]) }
-    else
-      project_durations = project_durations.reject { |p| archived_projects.include?(p[:project_key]) }
-    end
-
-    render partial: "project_durations", locals: { project_durations: project_durations, show_archived: show_archived }
+    durations = durations.select { |p| archived_names.include?(p[:project_key]) == archived }
+    render partial: "project_durations", locals: { project_durations: durations, show_archived: archived }
   end
 
   def activity_graph
     return unless current_user
 
-    user_tz = current_user.timezone
-    cache_key = "user_#{current_user.id}_daily_durations_#{user_tz}"
-
-    daily_durations = Rails.cache.fetch(cache_key, expires_in: 1.minute) do
-      Time.use_zone(user_tz) do
-        current_user.heartbeats.daily_durations(user_timezone: user_tz).to_h
-      end
+    tz = current_user.timezone
+    key = "user_#{current_user.id}_daily_durations_#{tz}"
+    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
+      Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
     end
 
-    # Consider 8 hours as a "full" day of coding
-    length_of_busiest_day = 8.hours.to_i  # 28800 seconds
-
-    render partial: "activity_graph", locals: {
-      daily_durations: daily_durations,
-      length_of_busiest_day: length_of_busiest_day,
-      user_tz: user_tz
-    }
+    render partial: "activity_graph", locals: { daily_durations: durations, length_of_busiest_day: 8.hours.to_i, user_tz: tz }
   end
 
   def currently_hacking
-    locals = Cache::CurrentlyHackingJob.perform_now
-
+    data = Cache::CurrentlyHackingJob.perform_now
     respond_to do |format|
-      format.html { render partial: "currently_hacking", locals: locals }
+      format.html { render partial: "currently_hacking", locals: data }
       format.json do
-        json_response = locals[:users].map do |user|
-          {
-            id: user.id,
-            username: user.display_name,
-            slack_username: user.slack_username,
-            github_username: user.github_username,
-            display_name: user.display_name,
-            avatar_url: user.avatar_url,
-            slack_uid: user.slack_uid,
-            active_project: locals[:active_projects][user.id]&.then do |project|
-              {
-                name: project.project_name,
-                repo_url: project.repo_url
-              }
-            end
-          }
+        users = data[:users].map do |u|
+          proj = data[:active_projects][u.id]
+          { id: u.id, username: u.display_name, slack_username: u.slack_username,
+            github_username: u.github_username, display_name: u.display_name,
+            avatar_url: u.avatar_url, slack_uid: u.slack_uid,
+            active_project: proj && { name: proj.project_name, repo_url: proj.repo_url } }
         end
-
-        render json: {
-          count: locals[:users].count,
-          users: json_response
-        }
+        render json: { count: users.size, users: users }
       end
     end
   end
 
   def currently_hacking_count
-    result = Cache::CurrentlyHackingCountJob.perform_now
-
     respond_to do |format|
-      format.json { render json: { count: result[:count] } }
+      format.json { render json: { count: Cache::CurrentlyHackingCountJob.perform_now[:count] } }
     end
   end
 
@@ -219,224 +141,109 @@ class StaticPagesController < ApplicationController
   end
 
   def filterable_dashboard
-    cached_data = filterable_dashboard_data
-    cached_data.entries.each do |key, value|
-      instance_variable_set("@#{key}", value)
+    load_dashboard_data
+    %i[project language operating_system editor category].each do |f|
+      instance_variable_set("@selected_#{f}", params[f]&.split(",") || [])
     end
-
     render partial: "filterable_dashboard"
   end
 
   def filterable_dashboard_content
-    cached_data = filterable_dashboard_data
-    cached_data.entries.each do |key, value|
-      instance_variable_set("@#{key}", value)
-    end
-
+    load_dashboard_data
     render partial: "filterable_dashboard_content"
   end
 
   private
 
+  def load_dashboard_data
+    filterable_dashboard_data.each { |k, v| instance_variable_set("@#{k}", v) }
+  end
+
   def ensure_current_user
-    redirect_to root_path, alert: "You must be logged in to view this page" unless current_user
+    redirect_to(root_path, alert: "You must be logged in to view this page") unless current_user
   end
 
   def set_homepage_seo_content
-    title = "Hackatime - See How Much You Code"
-    desc = "Free and open source. Works with VS Code, JetBrains IDEs, vim, emacs, and 70+ other editors. Built and made free for teenagers by Hack Club."
-
-    @page_title = title
-    @meta_description = desc
+    @page_title = @og_title = @twitter_title = "Hackatime - See How Much You Code"
+    @meta_description = @og_description = @twitter_description = "Free and open source. Works with VS Code, JetBrains IDEs, vim, emacs, and 70+ other editors. Built and made free for teenagers by Hack Club."
     @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
-    @og_title = title
-    @og_description = desc
-    @twitter_title = title
-    @twitter_description = desc
   end
 
   def filterable_dashboard_data
     filters = %i[project language operating_system editor category]
+    key = [ current_user ] + filters.map { |f| params[f] }
+    hb = current_user.heartbeats
+    h = ApplicationController.helpers
 
-    # Cache key based on user and filter parameters
-    cache_key = []
-    cache_key << current_user
-    filters.each do |filter|
-      cache_key << params[filter]
-    end
-
-  def dashboard
-    @project          = Project.distinct.pluck(:name)
-    @language         = Language.distinct.pluck(:name)
-    @operating_system = OperatingSystem.distinct.pluck(:name)
-    @editor           = Editor.distinct.pluck(:name)
-    @category         = Category.distinct.pluck(:name)
-
-    # Parse filter selections from params for initial load and deep-linking
-    @selected_project          = params[:project]&.split(",") || []
-    @selected_language         = params[:language]&.split(",") || []
-    @selected_operating_system = params[:operating_system]&.split(",") || []
-    @selected_editor           = params[:editor]&.split(",") || []
-    @selected_category         = params[:category]&.split(",") || []
-  end
-
-    filtered_heartbeats = current_user.heartbeats
-    # Load filter options and apply filters with caching
-    Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+    Rails.cache.fetch(key, expires_in: 5.minutes) do
+      archived = current_user.project_repo_mappings.archived.pluck(:project_name)
       result = {}
-      archived_projects = current_user.project_repo_mappings.archived.pluck(:project_name)
-      # Load filter options
+
       Time.use_zone(current_user.timezone) do
-        filters.each do |filter|
-          group_by_time = current_user.heartbeats.group(filter).duration_seconds
-          group_by_time = group_by_time.reject { |name, _| archived_projects.include?(name) } if filter == :project
-          result[filter] = group_by_time.sort_by { |k, v| v }
-                                        .reverse.map(&:first)
-                                        .compact_blank
-                                        .map { |k|
-                                          if filter == :language
-                                            k.categorize_language
-                                          elsif %i[operating_system editor].include?(filter)
-                                            k.capitalize
-                                          else
-                                            k
-                                          end
-                                        }
-                                        .uniq
+        filters.each do |f|
+          durations = current_user.heartbeats.group(f).duration_seconds
+          durations = durations.reject { |n, _| archived.include?(n) } if f == :project
+          result[f] = durations.sort_by { |_, v| -v }.map(&:first).compact_blank.map { |k|
+            f == :language ? k.categorize_language : (%i[operating_system editor].include?(f) ? k.capitalize : k)
+          }.uniq
 
-          if params[filter].present?
-            filter_arr = params[filter].split(",")
-            if %i[operating_system editor].include?(filter)
-              # search for both lowercase and capitalized versions
-              normalized_arr = filter_arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq
-              filtered_heartbeats = filtered_heartbeats.where(filter => normalized_arr)
-            elsif filter == :language
-              # find the real name, not the pretty one cause some edditors are stupid and return stuff like JAVASCRIPT and javascript and i need to add stuff to make them both fit the lookup
-              raw_language_values = []
-              current_user.heartbeats.distinct.pluck(filter).compact_blank.each do |raw_lang|
-                categorized = raw_lang.categorize_language
-                if filter_arr.include?(categorized)
-                  raw_language_values << raw_lang
-                end
-              end
-               Rails.logger.debug "lang filter: selected=#{filter_arr}, raw_language_values=#{raw_language_values}" # Debug line
-
-              filtered_heartbeats = filtered_heartbeats.where(filter => raw_language_values) if raw_language_values.any?
-            else
-              filtered_heartbeats = filtered_heartbeats.where(filter => filter_arr)
-            end
-
-
-            result["singular_#{filter}"] = filter_arr.length == 1
+          next unless params[f].present?
+          arr = params[f].split(",")
+          hb = if %i[operating_system editor].include?(f)
+            hb.where(f => arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq)
+          elsif f == :language
+            raw = current_user.heartbeats.distinct.pluck(f).compact_blank.select { |l| arr.include?(l.categorize_language) }
+            raw.any? ? hb.where(f => raw) : hb
+          else
+            hb.where(f => arr)
           end
+          result["singular_#{f}"] = arr.length == 1
         end
 
-        # Only use the concern for time filtering
-        filtered_heartbeats = filtered_heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
+        hb = hb.filter_by_time_range(params[:interval], params[:from], params[:to])
+        result[:filtered_heartbeats] = hb
+        result[:total_time] = hb.group(:project).duration_seconds.values.sum
+        result[:total_heartbeats] = hb.count
 
-        result[:filtered_heartbeats] = filtered_heartbeats
-
-        result[:total_time] = filtered_heartbeats.group(:project).duration_seconds.values.sum
-        result[:total_heartbeats] = filtered_heartbeats.count
-
-        filters.each do |filter|
-          stats = filtered_heartbeats.group(filter).duration_seconds
-          stats = stats.reject { |name, _| archived_projects.include?(name) } if filter == :project
-          result["top_#{filter}"] = stats.max_by { |_, v| v }&.first
+        filters.each do |f|
+          stats = hb.group(f).duration_seconds
+          stats = stats.reject { |n, _| archived.include?(n) } if f == :project
+          result["top_#{f}"] = stats.max_by { |_, v| v }&.first
         end
 
-        # Transform top editor, OS, and language names
-        result["top_editor"] = ApplicationController.helpers.display_editor_name(result["top_editor"]) if result["top_editor"]
-        result["top_operating_system"] = ApplicationController.helpers.display_os_name(result["top_operating_system"]) if result["top_operating_system"]
-        result["top_language"] = ApplicationController.helpers.display_language_name(result["top_language"]) if result["top_language"]
+        result["top_editor"] &&= h.display_editor_name(result["top_editor"])
+        result["top_operating_system"] &&= h.display_os_name(result["top_operating_system"])
+        result["top_language"] &&= h.display_language_name(result["top_language"])
 
-        # Prepare project durations data
-        result[:project_durations] = filtered_heartbeats
-          .group(:project)
-          .duration_seconds
-          .reject { |project, _| archived_projects.include?(project) }
-          .sort_by { |_, duration| -duration }
-          .first(10)
-          .to_h unless result["singular_project"]
+        unless result["singular_project"]
+          result[:project_durations] = hb.group(:project).duration_seconds
+            .reject { |p, _| archived.include?(p) }.sort_by { |_, d| -d }.first(10).to_h
+        end
 
-        # Prepare pie chart data
-        %i[language editor operating_system category].each do |filter|
-          # If the filter is editor or operating_system, normalize and sum the durations
-          stats = filtered_heartbeats
-            .group(filter)
-            .duration_seconds
-            .each_with_object({}) do |(raw_key, duration), agg|
-              key = raw_key.to_s.presence || "Unknown"
-              # fix the bug where langs can have both upper and lower case like JAVA and java found here (https://github.com/hackclub/hackatime/issues/402)
-              if filter == :language
-                key = key.categorize_language unless key == "Unknown"
-              elsif %i[editor operating_system].include?(filter)
-                key = key.downcase
-              end
-              agg[key] = (agg[key] || 0) + duration
+        %i[language editor operating_system category].each do |f|
+          next if result["singular_#{f}"]
+          stats = hb.group(f).duration_seconds.each_with_object({}) do |(raw, dur), agg|
+            k = raw.to_s.presence || "Unknown"
+            k = f == :language ? (k == "Unknown" ? k : k.categorize_language) : (%i[editor operating_system].include?(f) ? k.downcase : k)
+            agg[k] = (agg[k] || 0) + dur
+          end
+          result["#{f}_stats"] = stats.sort_by { |_, d| -d }.first(10).map { |k, v|
+            label = case f
+            when :editor then h.display_editor_name(k)
+            when :operating_system then h.display_os_name(k)
+            when :language then h.display_language_name(k)
+            else k
             end
-
-          result["#{filter}_stats"] =
-            stats
-              .sort_by { |_, duration| -duration }
-              .first(10)
-              .map { |k, v|
-                label = case filter
-                when :editor then ApplicationController.helpers.display_editor_name(k)
-                when :operating_system then ApplicationController.helpers.display_os_name(k)
-                when :language then ApplicationController.helpers.display_language_name(k)
-                when :category then k
-                else k.capitalize
-                end
-                [ label, v ]
-              }
-              .to_h unless result["singular_#{filter}"]
+            [ label, v ]
+          }.to_h
         end
-        # result[:language_stats] = filtered_heartbeats
-        #   .group(:language)
-        #   .duration_seconds
-        #   .sort_by { |_, duration| -duration }
-        #   .first(10)
-        #   .map { |k, v| [ k.presence || "Unknown", v ] }
-        #   .to_h unless result["singular_language"]
 
-        # result[:editor_stats] = filtered_heartbeats
-        #   .group(:editor)
-        #   .duration_seconds
-        #   .sort_by { |_, duration| -duration }
-        #   .map { |k, v| [ k.presence || "Unknown", v ] }
-        #   .to_h unless result["singular_editor"]
-
-        # result[:operating_system_stats] = filtered_heartbeats
-        #   .group(:operating_system)
-        #   .duration_seconds
-        #   .sort_by { |_, duration| -duration }
-        #   .map { |k, v| [ k.presence || "Unknown", v ] }
-        #   .to_h unless result["singular_operating_system"]
-
-        # result[:category_stats] = filtered_heartbeats
-        #   .group(:category)
-        #   .duration_seconds
-        #   .sort_by { |_, duration| -duration }
-        #   .map { |k, v| [ k.presence || "Unknown", v ] }
-        #   .to_h unless result["singular_category"]
-
-        # Calculate weekly project stats for the last 6 months
-        result[:weekly_project_stats] = {}
-        (0..25).each do |week_offset|  # 26 weeks = 6 months
-          week_start = week_offset.weeks.ago.beginning_of_week
-          week_end = week_offset.weeks.ago.end_of_week
-
-          week_stats = filtered_heartbeats
-            .where(time: week_start.to_f..week_end.to_f)
-            .group(:project)
-            .duration_seconds
-            .reject { |project, _| archived_projects.include?(project) }
-
-          result[:weekly_project_stats][week_start.to_date.iso8601] = week_stats
+        result[:weekly_project_stats] = (0..25).to_h do |w|
+          ws = w.weeks.ago.beginning_of_week
+          [ ws.to_date.iso8601, hb.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
+              .group(:project).duration_seconds.reject { |p, _| archived.include?(p) } ]
         end
       end
-
       result
     end
   end
