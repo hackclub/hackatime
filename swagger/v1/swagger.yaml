@@ -2546,7 +2546,8 @@ paths:
         content:
           multipart/form-data:
             schema:
-              type: file
+              type: string
+              format: binary
         description: JSON file containing heartbeats
   "/my/projects":
     get:
