@@ -30,8 +30,8 @@ export default class extends Controller {
     if (new Date(start) > new Date(end)) return alert("Start date must be before end date")
 
     const a = document.createElement("a")
-    a.href = `/my/heartbeats/export.json?start_date=${start}&end_date=${end}`
-    a.download = `heartbeats_${start}_${end}.json`
+    a.href = `/my/heartbeats/export.json?start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`
+    a.download = `heartbeats_${encodeURIComponent(start)}_${encodeURIComponent(end)}.json`
     document.body.appendChild(a)
     a.click()
     a.remove()
