@@ -1,0 +1,20 @@
+<%= turbo_frame_tag "profile_languages" do %>
+  <% if languages.present? && languages.size > 0 %>
+    <div class="border border-primary rounded-xl p-5">
+      <h2 class="text-xl font-bold mb-4">Top Languages</h2>
+      <div class="flex flex-col gap-3">
+        <% max_duration = languages.values.map(&:to_f).select { |d| d.finite? && d > 0 }.max || 1 %>
+        <% languages.each do |language, duration| %>
+          <div class="flex items-center gap-3">
+            <div class="w-24 text-sm text-gray-300 truncate"><%= ApplicationController.helpers.display_language_name(language) || "Unknown" %></div>
+            <div class="flex-1 h-6 bg-darkless rounded-full overflow-hidden relative">
+              <div class="h-full bg-primary rounded-full flex items-center justify-end pr-2" style="width: <%= [(duration.to_f.finite? ? duration.to_f : 0) / max_duration * 100, 100].min.round %>%">
+                <span class="text-xs font-medium text-white"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+<% end %>

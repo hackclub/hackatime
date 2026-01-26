@@ -13,42 +13,50 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 md:col-span-2">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🚀</span>
         </div>
         <h2 class="text-xl font-semibold text-white">Time Tracking Wizard</h2>
       </div>
       <p class="text-gray-300 mb-4">Get started with tracking your coding time in just a few minutes.</p>
       <%= link_to "Set up time tracking", my_wakatime_setup_path,
-          class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
+          class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200" %>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🌍</span>
         </div>
-        <h2 class="text-xl font-semibold text-white" id="user_timezone">Timezone</h2>
+        <h2 class="text-xl font-semibold text-white" id="user_region">Region</h2>
       </div>
       <%= form_with model: @user,
         url: @is_own_settings ? my_settings_path : settings_user_path(@user),
         method: :patch, local: false,
         class: "space-y-4" do |f| %>
         <div>
-          <%= f.label :timezone, "Your timezone", class: "block text-sm font-medium text-gray-200 mb-2" %>
+          <%= f.label :country_code, "Country flag", class: "block text-sm font-medium text-gray-200 mb-2" %>
+          <%= f.select :country_code,
+              ISO3166::Country.all.map { |c| [c.common_name, c.alpha2] }.sort_by(&:first),
+              { include_blank: "Select a country" },
+              { class: "w-full px-3 py-2 h-10 bg-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
+        </div>
+        <p class="text-xs text-secondary">Your country flag will be displayed on your profile and leaderboards.</p>
+        <div>
+          <%= f.label :timezone, "Timezone", class: "block text-sm font-medium text-gray-200 mb-2" %>
           <%= f.select :timezone,
               TZInfo::Timezone.all.map(&:identifier).sort,
               { include_blank: @user.timezone.blank? },
-              { class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
+              { class: "w-full px-3 py-2 h-10 bg-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
         </div>
-        <p class="text-xs text-gray-400">This affects how your activity graph and other time-based features are displayed.</p>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <p class="text-xs text-secondary">This affects how your activity graph and other time-based features are displayed.</p>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">⚙️</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_hackatime_extension">Extension Settings</h2>
@@ -62,15 +70,15 @@
           <%= f.select :hackatime_extension_text_type,
               User.hackatime_extension_text_types.keys.map { |key| [key.humanize, key] },
               {},
-              { class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
+              { class: "w-full px-3 py-2 h-10 bg-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" } %>
         </div>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🪪</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_username">Username</h2>
@@ -82,28 +90,28 @@
         <div>
           <%= f.label :username, "Custom username", class: "block text-sm font-medium text-gray-200 mb-2" %>
         <%= f.text_field :username,
-          class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary",
+          class: "w-full px-3 py-2 bg-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary",
           placeholder: "HackClubber",
           maxlength: User::USERNAME_MAX_LENGTH %>
           <% if @user.errors[:username].present? %>
             <p class="mt-1 text-xs text-red-400"><%= @user.errors[:username].to_sentence %></p>
           <% end %>
         </div>
-        <p class="text-xs text-gray-400">
+        <p class="text-xs text-secondary">
           Choose a name to use in Hackatime. Only letters, numbers, "-" and "_" are allowed, max <%= User::USERNAME_MAX_LENGTH %> characters.
         </p>
         <% if @user.username.present? %>
-          <p class="text-md text-gray-400">
-            Your profile is currently live at <%= link_to "hackati.me/#{@user.username}", "https://hackati.me/#{@user.username}", target: "_blank", class: "text-primary hover:underline" %>
+          <p class="text-md text-green">
+            Your profile is currently live at <%= link_to "hackati.me/#{@user.username}", "https://hackati.me/#{@user.username}", target: "_blank", class: "underline" %>
           </p>
         <% end %>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
     </div>
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">💬</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_slack_status">Slack Integration</h2>
@@ -115,28 +123,28 @@
           <p class="text-gray-300 text-sm mb-3">When you're hacking on a project, Hackatime can update your Slack status so you can show it off!</p>
           <% unless @can_enable_slack_status %>
             <%= link_to "Re-authorize with Slack", slack_auth_path,
-                class: "inline-flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-medium rounded transition-colors duration-200 mb-3" %>
+                class: "inline-flex items-center gap-2 px-3 py-2 bg-darkless hover:bg-dark text-gray-200 text-sm font-medium rounded transition-colors duration-200 mb-3" %>
           <% end %>
           <%= form_with model: @user,
             url: @is_own_settings ? my_settings_path : settings_user_path(@user),
             method: :patch, local: false do |f| %>
             <div class="flex items-center gap-3">
               <%= f.check_box :uses_slack_status,
-                  class: "w-4 h-4 text-primary border-gray-600 rounded focus:ring-primary bg-gray-800" %>
+                  class: "w-4 h-4 text-primary border-darkless rounded focus:ring-primary bg-darkless" %>
               <%= f.label :uses_slack_status, "Update my Slack status automatically",
                   class: "text-sm text-gray-200" %>
             </div>
-            <%= f.submit "Save", class: "mt-3 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+            <%= f.submit "Save", class: "mt-3 px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
 
-        <div class="border-t border-gray-700 pt-4">
+        <div class="border-t border-darkless pt-4">
           <h3 class="text-lg font-medium text-white mb-2" id="user_slack_notifications">Channel Notifications</h3>
           <% if @enabled_sailors_logs.any? %>
             <p class="text-gray-300 text-sm mb-2">You have notifications enabled for the following channels:</p>
             <ul class="space-y-1 mb-3">
               <% @enabled_sailors_logs.each do |sl| %>
-                <li class="text-xs text-gray-300 px-2 py-1 bg-gray-800 rounded">
+                <li class="text-xs text-gray-300 px-2 py-1 bg-darkless rounded">
                   <%= render "shared/slack_channel_mention", channel_id: sl.slack_channel_id %>
                 </li>
               <% end %>
@@ -144,8 +152,8 @@
           <% else %>
             <p class="text-gray-300 text-sm mb-3">You have no notifications enabled.</p>
           <% end %>
-          <p class="text-xs text-gray-400">
-            You can enable notifications for specific channels by running <code class="px-1 py-0.5 bg-gray-800 rounded text-gray-200">/sailorslog on</code> in the Slack channel.
+          <p class="text-xs text-secondary">
+            You can enable notifications for specific channels by running <code class="px-1 py-0.5 bg-darkless rounded text-gray-200">/sailorslog on</code> in the Slack channel.
           </p>
         </div>
       </div>
@@ -153,7 +161,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🔒</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_privacy">Privacy Settings</h2>
@@ -164,17 +172,17 @@
         class: "space-y-4" do |f| %>
         <div class="flex items-center gap-3">
           <%= f.check_box :allow_public_stats_lookup,
-              class: "w-4 h-4 text-primary border-gray-600 rounded focus:ring-primary bg-gray-800" %>
+              class: "w-4 h-4 text-primary border-darkless rounded focus:ring-primary bg-darkless" %>
           <%= f.label :allow_public_stats_lookup, "Allow public stats lookup",
               class: "text-sm text-gray-200" %>
         </div>
-        <p class="text-xs text-gray-400">When enabled, others can view your coding statistics through public APIs. Many Hack Club YSWS programs use this to track your progress. Disabling this can prevent you from participating in some programs.</p>
-        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+        <p class="text-xs text-secondary">When enabled, others can view your coding statistics through public APIs. Many Hack Club YSWS programs use this to track your progress. Disabling this can prevent you from participating in some programs.</p>
+        <%= f.submit "Save Settings", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
       <% end %>
 
-      <div class="border-t border-gray-700 pt-4 mt-4 space-y-3">
+      <div class="border-t border-darkless pt-4 mt-4 space-y-3">
         <div class="flex items-center gap-3">
-          <div class="p-2 bg-red-600/10 rounded">
+          <div class="p-2 bg-primary/10 rounded">
             <span class="text-2xl">🗑️</span>
           </div>
           <h3 class="text-lg font-semibold text-white" id="delete_account">Delete Account</h3>
@@ -187,7 +195,7 @@
           <button type="button"
                   data-controller="account-deletion"
                   data-action="click->account-deletion#confirm"
-                  class="w-full px-4 py-2 bg-primary text-white font-medium rounded cursor-pointer">
+                  class="w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer">
             Request Account Deletion
           </button>
         <% else %>
@@ -200,7 +208,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🔑</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_api_key">API Key</h2>
@@ -214,7 +222,7 @@
         <button type="button"
                 data-controller="api-key-rotation"
                 data-action="click->api-key-rotation#confirm"
-                class="w-full px-4 py-2 bg-primary hover:bg-red text-white font-medium rounded transition-colors duration-200 cursor-pointer">
+                class="w-full px-4 py-2 bg-primary hover:bg-primary/75 text-white font-medium rounded transition-colors duration-200 cursor-pointer">
           Rotate API Key
         </button>
       </div>
@@ -222,7 +230,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 md:col-span-2">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">🔗</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_github_account">Connected Accounts</h2>
@@ -233,17 +241,17 @@
           <h3 class="text-lg font-medium text-white">GitHub Account</h3>
           <p class="text-gray-300 text-sm">This is used to show your active projects on the leaderboard & current hacking activity on the dashboard.</p>
           <% if @user.github_uid.present? %>
-            <div class="flex items-center gap-2 p-3 bg-gray-800 border border-gray-600 rounded">
+            <div class="flex items-center gap-2 p-3 bg-darkless border border-darkless rounded">
               <span class="text-green-400">✅</span>
               <span class="text-gray-200 text-sm">Connected: <%= link_to "@#{h(@user.github_username)}", "https://github.com/#{h(@user.github_username)}", target: "_blank", class: "text-primary hover:text-primary/80 underline" %></span>
             </div>
             <div class="flex items-center gap-2">
-              <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, class: "inline-flex items-center gap-2 px-3 py-2 bg-primary text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
-              <%= button_to "Unlink", github_unlink_path, method: :delete, data: { turbo_confirm: "Are you sure you want to unlink your GitHub account? This will remove your GitHub connection and you may need to re-link to use GitHub-dependent features." }, class: "inline-flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
+              <%= link_to "Relink GitHub Account", github_auth_path, data: { turbo: "false" }, class: "inline-flex items-center gap-2 px-3 py-2 bg-primary text-white hover:bg-primary/75 text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
+              <%= button_to "Unlink", github_unlink_path, method: :delete, data: { turbo_confirm: "Are you sure you want to unlink your GitHub account? This will remove your GitHub connection and you may need to re-link to use GitHub-dependent features." }, class: "inline-flex items-center gap-2 px-3 py-2 bg-darkless hover:bg-darkless/50 text-white hover:text-white/80 text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
             </div>
           <% else %>
             <%= link_to "Link GitHub Account", github_auth_path, data: { turbo: "false" },
-                class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
+                class: "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
 
@@ -254,9 +262,9 @@
             <div class="space-y-2">
               <% @user.email_addresses.each do |email| %>
                 <div class="flex gap-2 items-center">
-                  <div class="flex items-center gap-2 p-2 bg-gray-800 border border-gray-600 rounded grow">
+                  <div class="flex items-center gap-2 p-2 bg-darkless border border-darkless rounded grow">
                     <span class="text-gray-300 text-sm"><%= email.email %></span>
-                    <span class="text-xs px-2 py-1 bg-gray-700 text-gray-200 rounded">
+                    <span class="text-xs px-2 py-1 bg-dark text-secondary rounded">
                       <%= email.source&.humanize || "Unknown" %>
                     </span>
                   </div>
@@ -265,21 +273,21 @@
                       method: :delete,
                       class: "space-y-4" do |f| %>
                       <%= f.hidden_field :email, value: email.email %>
-                      <%= f.submit "Unlink!", class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+                      <%= f.submit "Unlink!", class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
                     <% end %>
                   <% end %>
                 </div>
               <% end %>
             </div>
           <% else %>
-            <p class="text-gray-400 text-sm">No email addresses found.</p>
+            <p class="text-secondary text-sm">No email addresses found.</p>
           <% end %>
           <%= form_tag add_email_auth_path, data: { turbo: false }, class: "space-y-2" do %>
             <%= email_field_tag :email, nil,
                 placeholder: "Add another email address",
                 required: true,
-                class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary text-sm" %>
-            <%= submit_tag "Add Email", class: "w-full px-3 py-2 bg-primary hover:bg-primary/80 text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
+                class: "w-full px-3 py-2 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary text-sm" %>
+            <%= submit_tag "Add Email", class: "w-full px-3 py-2 bg-primary hover:bg-primary/75 text-white text-sm font-medium rounded transition-colors duration-200 cursor-pointer" %>
           <% end %>
         </div>
       </div>
@@ -287,7 +295,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">📊</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_stats_badges">Stats Badges</h2>
@@ -302,7 +310,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-200 mb-2">Theme</label>
               <select name="theme" id="theme-select" onchange="up1(this.value)"
-                      class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary">
+                      class="w-full px-3 py-2 h-10 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary">
                 <% GithubReadmeStats.themes.each do |theme| %>
                   <option value="<%= theme %>"><%= theme.humanize %></option>
                 <% end %>
@@ -310,27 +318,27 @@
             </div>
 
             <% gh_badge = GithubReadmeStats.new(current_user.id, "darcula") %>
-            <div class="p-4 bg-gray-800 border border-gray-600 rounded">
+            <div class="p-4 bg-darkless border border-darkless rounded">
               <img id="badge-preview" src="<%= gh_badge.generate_badge_url %>" data-url="<%= gh_badge.generate_badge_url %>" class="mb-3 rounded">
-              <pre id="badge-url" class="text-xs text-gray-300 bg-gray-900 p-2 rounded overflow-x-auto"><%= gh_badge.generate_badge_url %></pre>
+              <pre id="badge-url" class="text-xs text-white bg-darker p-2 rounded overflow-x-auto"><%= gh_badge.generate_badge_url %></pre>
             </div>
           </div>
         </div>
 
         <% if @projects.any? && @user.slack_uid.present? %>
-          <div class="border-t border-gray-700 pt-4">
+          <div class="border-t border-darkless pt-4">
             <h3 class="text-lg font-medium text-white mb-2">Project Stats Badge</h3>
             <div class="space-y-2">
               <label class="block text-sm font-medium text-gray-200">Project</label>
               <select name="project" id="project-select" onchange="up2(this.value)"
-                      class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary">
+                      class="w-full px-3 py-2 h-10 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary">
                 <% @projects.each do |project| %>
                   <option value="<%= h(project) %>"><%= h(project) %></option>
                 <% end %>
               </select>
-              <div class="mt-3 p-4 bg-gray-800 border border-gray-600 rounded">
+              <div class="mt-3 p-4 bg-darkless border border-darkless rounded">
                 <img id="project-badge-preview" src="<%= @work_time_stats_url %>" class="mb-3 rounded">
-                <pre id="project-badge-url" class="text-xs text-gray-300 bg-gray-900 p-2 rounded overflow-x-auto"><%= @work_time_stats_url %></pre>
+                <pre id="project-badge-url" class="text-xs text-gray-300 bg-darker p-2 rounded overflow-x-auto"><%= @work_time_stats_url %></pre>
               </div>
             </div>
           </div>
@@ -350,7 +358,7 @@
         function up2(project) {
           const preview = document.getElementById('project-badge-preview');
           const url = document.getElementById('project-badge-url');
-          const baseUrl = '<%= @work_time_stats_url.gsub(@projects.first || 'example', '') %>';
+          const baseUrl = <%== (@work_time_stats_url.gsub(@projects.first || 'example', '')).to_json %>;
           const newUrl = baseUrl + project;
           preview.src = newUrl;
           url.textContent = newUrl;
@@ -361,24 +369,24 @@
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 space-y-6">
       <div>
         <div class="flex items-center gap-3 mb-4">
-          <div class="p-2 bg-red-600/10 rounded">
+          <div class="p-2 bg-primary/10 rounded">
             <span class="text-2xl">📄</span>
           </div>
           <h2 class="text-xl font-semibold text-white" id="user_config_file">Config File</h2>
         </div>
         <p class="text-gray-300 text-sm mb-4">Your Wakatime configuration file for tracking coding time.</p>
 
-        <div class="bg-gray-800 border border-gray-600 rounded p-4 overflow-x-auto">
+        <div class="bg-darkless border border-darkless rounded p-4 overflow-x-auto">
           <%= render "wakatime_config_display" %>
         </div>
-        <p class="text-xs text-gray-400 mt-2">
+        <p class="text-xs text-secondary mt-2">
           This configuration file is automatically generated and updated when you make changes to your settings.
         </p>
       </div>
 
-      <div class="border-t border-gray-700 pt-6">
+      <div class="border-t border-darkless pt-6">
         <div class="flex items-center gap-3 mb-4">
-          <div class="p-2 bg-red-600/10 rounded">
+          <div class="p-2 bg-primary/10 rounded">
             <span class="text-2xl">🚚</span>
           </div>
           <h2 class="text-xl font-semibold text-white" id="user_migration_assistant">Migration Assistant</h2>
@@ -386,13 +394,13 @@
         <p class="text-gray-300 text-sm mb-4">This will migrate your heartbeats from waka.hackclub.com to this platform.</p>
 
         <%= button_to "Migrate heartbeats", my_settings_migrate_heartbeats_path, method: :post,
-            class: "w-full px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 cursor-pointer" %>
+            class: "w-full px-4 py-2 bg-primary text-white hover:bg-primary/75 font-medium rounded transition-colors duration-200 cursor-pointer" %>
 
         <% if @heartbeats_migration_jobs.any? %>
           <div class="mt-4 space-y-2">
             <h3 class="text-sm font-medium text-white">Migration Status</h3>
             <% @heartbeats_migration_jobs.each do |job| %>
-              <div class="p-2 bg-gray-800 border border-gray-600 rounded text-xs text-gray-300">
+              <div class="p-2 bg-darkless border border-darkless rounded text-xs text-gray-300">
                 Job ID: <%= job.id %> - Status: <%= job.status %>
               </div>
             <% end %>
@@ -403,7 +411,7 @@
 
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 md:col-span-2">
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">📝</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="user_markscribe">Markscribe Templates</h2>
@@ -412,16 +420,16 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <div class="p-4 bg-gray-800 border border-gray-600 rounded mb-4 overflow-x-auto">
+          <div class="p-4 bg-darkless border border-darkless rounded mb-4 overflow-x-auto">
             <pre class="text-sm text-gray-200 whitespace-pre-wrap break-all"><code>{{ wakatimeDoubleCategoryBar "💾 Languages:" wakatimeData.Languages "💼 Projects:" wakatimeData.Projects 5 }}</code></pre>
           </div>
           <p class="text-gray-300 text-sm mb-2">Add this to your GitHub profile README template to display your top languages and projects.</p>
-          <p class="text-xs text-gray-400">See the <a href="https://github.com/taciturnaxolotl/markscribe#your-wakatime-languages-formated-as-a-bar" target="_blank" class="text-primary hover:text-primary/80 underline">markscribe documentation</a> for more template options.</p>
+          <p class="text-xs text-secondary">See the <a href="https://github.com/taciturnaxolotl/markscribe#your-wakatime-languages-formated-as-a-bar" target="_blank" class="text-primary hover:text-primary/80 underline">markscribe documentation</a> for more template options.</p>
         </div>
         <div>
           <img src="https://cdn.fluff.pw/slackcdn/524e293aa09bc5f9115c0c29c18fb4bc.png"
                alt="Example of markscribe output showing coding language and project statistics"
-               class="w-full rounded border border-gray-600">
+               class="w-full rounded border border-darkless">
         </div>
       </div>
     </div>
@@ -431,23 +439,22 @@
     <div class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 md:col-span-2">
       <% if @user.trust_level == "red" %>
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">💾</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="download_user_data">Download Your Data</h2>
       </div>
-        <div class="bg-red-900 border border-red-700 rounded-lg p-4">
+        <div class="bg-red-500/20 border border-red-500 rounded-lg p-4">
           <div class="flex items-center gap-2">
-            <span class="text-red-400">⚠️</span>
-            <span class="text-red-300 font-medium">Export Restricted</span>
+            <span class="text-red-500 font-medium">⚠️ Export Restricted</span>
           </div>
-          <p class="text-red-200 text-sm mt-2">
+          <p class="text-red-500 text-sm mt-2">
             Sorry, due to your account standing, you are unable to perform this action.
           </p>
         </div>
       <% else %>
       <div class="flex items-center gap-3 mb-4">
-        <div class="p-2 bg-red-600/10 rounded">
+        <div class="p-2 bg-primary/10 rounded">
           <span class="text-2xl">💾</span>
         </div>
         <h2 class="text-xl font-semibold text-white" id="download_user_data">Download Your Data</h2>
@@ -457,19 +464,19 @@
         <div class="space-y-3">
           <h3 class="text-lg font-medium text-white">Your Data Overview</h3>
           <div class="grid grid-cols-1 gap-4">
-            <div class="bg-gray-800 border border-gray-600 rounded p-4">
+            <div class="bg-darkless border border-darkless rounded p-4">
               <div class="text-center">
                 <div class="text-2xl font-bold text-primary mb-1"><%= number_with_delimiter(@user.heartbeats.count) %></div>
                 <div class="text-sm text-gray-300">Total Heartbeats</div>
               </div>
             </div>
-            <div class="bg-gray-800 border border-gray-600 rounded p-4">
+            <div class="bg-darkless border border-darkless rounded p-4">
               <div class="text-center">
                 <div class="text-2xl font-bold text-orange mb-1"><%= @user.heartbeats.duration_simple %></div>
                 <div class="text-sm text-gray-300">Total Coding Time</div>
               </div>
             </div>
-            <div class="bg-gray-800 border border-gray-600 rounded p-4">
+            <div class="bg-darkless border border-darkless rounded p-4">
               <div class="text-center">
                 <div class="text-2xl font-bold text-primary mb-1"><%= @user.heartbeats.where("time >= ?", 7.days.ago.to_f).count %></div>
                 <div class="text-sm text-gray-300">Heartbeats in the Last 7 Days</div>
@@ -481,7 +488,7 @@
         <div class="space-y-4">
           <h3 class="text-lg font-medium text-white">Export Options</h3>
 
-          <div class="bg-gray-800 border border-gray-600 rounded p-4">
+          <div class="bg-darkless border border-darkless rounded p-4">
             <div class="flex items-center gap-2 mb-3">
               <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
@@ -492,7 +499,7 @@
 
             <div class="space-y-2">
               <%= link_to export_my_heartbeats_path(format: :json, all_data: "true"),
-                  class: "w-full bg-primary hover:bg-red text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
+                  class: "w-full bg-primary hover:bg-primary/75 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
                   method: :get do %>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
@@ -500,27 +507,25 @@
                 Export All Heartbeats
               <% end %>
 
-              <%= link_to "#",
-                  class: "w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2",
-                  data: {
-                    controller: "heartbeat-export",
-                    action: "click->heartbeat-export#handleExport"
-                  } do %>
+              <button type="button"
+                  class="w-full bg-dark hover:bg-dark/75 border border-darkless text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center justify-center gap-2 cursor-pointer"
+                  data-controller="heartbeat-export"
+                  data-action="click->heartbeat-export#openModal">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 4l6 6m0 0l6-6m-6 6V9" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 Export Date Range
-              <% end %>
+              </button>
             </div>
 
-            <div class="mt-3 text-xs text-gray-400">
+            <div class="mt-3 text-xs text-secondary">
               <p><strong>All Heartbeats:</strong> Downloads your complete coding history, from the very start to your last heartbeat</p>
               <p><strong>Date Range:</strong> Choose specific dates to export</p>
             </div>
           </div>
 
           <% dev_tool do %>
-            <div class="p-6 bg-gray-800 border border-gray-600 rounded">
+            <div class="p-6 bg-darkless border border-darkless rounded">
               <div class="flex items-center gap-3 mb-3">
                 <div class="p-2 bg-green-600/10 rounded">
                   <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -530,19 +535,18 @@
                 <h4 class="text-white font-medium">Import Heartbeat Data</h4>
               </div>
               <p class="text-gray-300 text-sm mb-4">Import ur data from real hackatime to test stuff with.</p>
-              <p class="text-gray-300 text-sm mb-4">PS: your console will be spammed and might crash ur dev env so be carefull if the file is very big</p>
+              <p class="text-gray-300 text-sm mb-4">PS: your console will be spammed and might crash ur dev env so be careful if the file is very big</p>
               <%= form_with url: import_my_heartbeats_path, method: :post, multipart: true, local: true, class: "space-y-4" do |form| %>
                 <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-2">Select JSON File</label>
                   <%= form.file_field :heartbeat_file,
                       accept: ".json,application/json",
-                      class: "w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-red transition-colors",
+                      class: "w-full px-3 py-2 bg-dark border border-darkless rounded text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/75 transition-colors cursor-pointer",
                       required: true %>
                 </div>
 
                 <div class="flex gap-3">
                   <%= form.submit "Import Heartbeats",
-                      class: "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition-colors inline-flex items-center gap-2",
+                      class: "w-full px-3 py-2 bg-primary hover:bg-primary/75 text-white text-md font-medium rounded transition-colors duration-200 cursor-pointer",
                       data: { confirm: "Are you sure you want to import heartbeats? This will add new data to your account." } %>
                 </div>
               <% end %>
@@ -556,7 +560,7 @@
     <% admin_tool do %>
       <div class="p-6 md:col-span-2">
         <div class="flex items-center gap-3 mb-4">
-          <div class="p-2 bg-red-600/10 rounded">
+          <div class="p-2 bg-primary/10 rounded">
             <span class="text-2xl">🔧</span>
           </div>
           <h2 class="text-xl font-semibold text-white">WakaTime Mirrors</h2>
@@ -566,9 +570,9 @@
           <% grid_cols = current_user.wakatime_mirrors.size > 1 ? "md:grid-cols-2" : "" %>
           <div class="grid grid-cols-1 <%= grid_cols %> gap-4 mb-4">
             <% current_user.wakatime_mirrors.each do |mirror| %>
-              <div class="p-4 bg-gray-800 border border-gray-600 rounded">
+              <div class="p-4 bg-darkless border border-darkless rounded">
                 <h3 class="text-white font-medium"><%= mirror.endpoint_url %></h3>
-                <p class="text-gray-400 text-sm">
+                <p class="text-secondary text-sm">
                   Last synced: <%= mirror.last_synced_at ? time_ago_in_words(mirror.last_synced_at) + " ago" : "Never" %>
                 </p>
               </div>
@@ -580,11 +584,11 @@
           <div class="grid grid-cols-1 gap-4">
             <div>
               <%= f.label :endpoint_url, class: "block text-sm font-medium text-gray-200 mb-2" %>
-              <%= f.url_field :endpoint_url, value: "https://wakatime.com/api/v1", class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" %>
+              <%= f.url_field :endpoint_url, value: "https://wakatime.com/api/v1", class: "w-full px-3 py-2 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" %>
             </div>
             <div>
               <%= f.label :encrypted_api_key, "WakaTime API Key", class: "block text-sm font-medium text-gray-200 mb-2" %>
-              <%= f.password_field :encrypted_api_key, placeholder: "Enter your WakaTime API key", class: "w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" %>
+              <%= f.password_field :encrypted_api_key, placeholder: "Enter your WakaTime API key", class: "w-full px-3 py-2 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" %>
             </div>
           </div>
           <%= f.submit "Add Mirror", class: "px-4 py-2 bg-primary text-white font-medium rounded transition-colors duration-200" %>
@@ -604,12 +608,12 @@
     buttons: [
       {
         text: "Cancel",
-        class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+        class: "bg-dark hover:bg-darkless border border-darkless text-gray-300",
         action: "click->modal#close"
       },
       {
         text: "Rotate Now",
-        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        class: "bg-primary hover:bg-primary/75 text-white font-medium",
         action: "click->api-key-rotation#rotate"
       }
     ] %>
@@ -624,12 +628,12 @@
     buttons: [
       {
         text: "Close",
-        class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+        class: "bg-dark hover:bg-darkless border border-darkless text-gray-300",
         action: "click->modal#close"
       },
       {
         text: "Copy Key",
-        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        class: "bg-primary hover:bg-primary/75 text-white font-medium",
         action: "click->api-key-rotation#copyKey"
       }
     ],
@@ -647,12 +651,12 @@
     buttons: [
       {
         text: "Cancel",
-        class: "border border-gray-600 text-gray-300 hover:bg-darkless",
+        class: "bg-dark hover:bg-darkless border border-darkless text-gray-300",
         action: "click->modal#close"
       },
       {
         text: "Delete My Account",
-        class: "bg-primary text-white hover:bg-red-600 font-medium",
+        class: "bg-primary hover:bg-primary/75 text-white font-medium",
         form: true,
         url: create_deletion_path,
         method: "post"
@@ -660,3 +664,37 @@
     ] %>
     </div>
 <% end %>
+
+<%= render "shared/modal",
+  modal_id: "export-date-range-modal",
+  title: "Export Date Range",
+  description: "Choose specific dates to export your coding activity.",
+  icon_svg: '<path fill="currentColor" d="M19 4h-1V3c0-.55-.45-1-1-1s-1 .45-1 1v1H8V3c0-.55-.45-1-1-1s-1 .45-1 1v1H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 15c0 .55-.45 1-1 1H6c-.55 0-1-.45-1-1V9h14zM7 11h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/>',
+  icon_color: "text-primary",
+  max_width: "max-w-lg",
+  custom: '
+    <form id="export-date-range-form" class="w-full space-y-4">
+      <div class="space-y-2">
+        <label for="export-start-date" class="block text-sm font-semibold text-white">Start Date</label>
+        <input type="date" id="export-start-date" name="start_date"
+          class="w-full px-4 py-3 bg-darkless text-white border border-darkless rounded-lg focus:border-primary focus:outline-none transition-colors">
+      </div>
+      <div class="space-y-2 mb-4">
+        <label for="export-end-date" class="block text-sm font-semibold text-white">End Date</label>
+        <input type="date" id="export-end-date" name="end_date"
+          class="w-full px-4 py-3 bg-darkless text-white border border-darkless rounded-lg focus:border-primary focus:outline-none transition-colors">
+      </div>
+    </form>',
+  buttons: [
+    {
+      text: "Cancel",
+      class: "bg-dark hover:bg-darkless border border-darkless text-gray-300",
+      action: "click->modal#close"
+    },
+    {
+      text: "Export",
+      class: "bg-primary hover:bg-primary/75 text-white font-medium",
+      form: true,
+      form_id: "export-date-range-form"
+    }
+  ] %>

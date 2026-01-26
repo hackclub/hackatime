@@ -159,6 +159,7 @@ class UsersController < ApplicationController
       :uses_slack_status,
       :hackatime_extension_text_type,
       :timezone,
+      :country_code,
       :allow_public_stats_lookup,
       :username,
     )

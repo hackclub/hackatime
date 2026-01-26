@@ -19,7 +19,7 @@
       <% if icon_svg %>
         <div class="mb-4 flex justify-center w-full">
           <svg class="w-12 h-12 <%= icon_color %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <%= icon_svg.html_safe %>
+            <%= sanitize icon_svg, tags: %w[path circle rect line polyline polygon], attributes: %w[d cx cy r x y x1 y1 x2 y2 points stroke-linecap stroke-linejoin stroke-width fill] %>
           </svg>
         </div>
       <% end %>
@@ -30,39 +30,43 @@
         <p class="text-gray-300 mb-6 text-center w-full"><%= description %></p>
       <% end %>
 
-      <% if custom.present? %>
-        <%= custom.html_safe %>
+      <% if custom.is_a?(String) %>
+        <%= sanitize custom, tags: %w[div p span a button form input label select option textarea h1 h2 h3 h4 h5 h6 ul ol li strong em code pre], attributes: %w[class id href type name value placeholder data-controller data-action data-target data-token for method required disabled readonly accept maxlength action] %>
+      <% elsif custom.present? %>
+        <%= custom %>
       <% end %>
 
       <% if buttons.any? %>
-        <div class="flex w-full gap-2 items-center justify-center">
+        <div class="flex w-full gap-3">
           <% buttons.each do |button| %>
-            <% if button[:form] %>
-              <% if button[:form_id] %>
-                <button type="submit"
-                        form="<%= button[:form_id] %>"
-                        class="flex-1 basis-1/2 items-center justify-center w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 <%= button[:class] %>">
-                  <%= button[:text] %>
-                </button>
-              <% else %>
-                <form method="post" action="<%= button[:url] %>" class="flex-1 basis-1/2 items-center justify-center w-full h-10 m-0">
-                  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-                  <% if button[:method] && button[:method] != 'post' %>
-                    <input type="hidden" name="_method" value="<%= button[:method] %>">
-                  <% end %>
+            <div class="flex-1 min-w-0">
+              <% if button[:form] %>
+                <% if button[:form_id] %>
                   <button type="submit"
+                          form="<%= button[:form_id] %>"
                           class="w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 <%= button[:class] %>">
                     <%= button[:text] %>
                   </button>
-                </form>
+                <% else %>
+                  <form method="post" action="<%= button[:url] %>" class="m-0">
+                    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+                    <% if button[:method] && button[:method] != 'post' %>
+                      <input type="hidden" name="_method" value="<%= button[:method] %>">
+                    <% end %>
+                    <button type="submit"
+                            class="w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 <%= button[:class] %>">
+                      <%= button[:text] %>
+                    </button>
+                  </form>
+                <% end %>
+              <% else %>
+                <button type="button"
+                        data-action="<%= button[:action] || 'click->modal#close' %>"
+                        class="w-full h-10 px-4 rounded-lg transition-colors duration-200 cursor-pointer m-0 <%= button[:class] %>">
+                  <%= button[:text] %>
+                </button>
               <% end %>
-            <% else %>
-              <button type="button"
-                      data-action="<%= button[:action] || 'click->modal#close' %>"
-                      class="flex-1 basis-1/2 items-center justify-center w-full h-10 px-4 rounded-lg transition-colors duration-200 cursor-pointer m-0 <%= button[:class] %>">
-                <%= button[:text] %>
-              </button>
-            <% end %>
+            </div>
           <% end %>
         </div>
       <% end %>

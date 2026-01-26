@@ -1,0 +1,32 @@
+<% entries.each_with_index do |e, i| %>
+  <div class="flex items-center p-2 hover:bg-dark transition-colors duration-200 <%= 'bg-dark border-l-4 border-l-primary' if e.user_id == current_user&.id %> <%= 'opacity-40 hover:opacity-60' if e.user.red? && current_user&.admin_level.in?(%w[admin superadmin]) %>">
+    <div class="w-12 shrink-0 text-center font-medium text-muted">
+      <% idx = offset + i %>
+      <%= case idx
+          when 0 then '<span class="text-2xl">🥇</span>'.html_safe
+          when 1 then '<span class="text-2xl">🥈</span>'.html_safe
+          when 2 then '<span class="text-2xl">🥉</span>'.html_safe
+          else "<span class=\"text-lg\">#{idx + 1}</span>".html_safe
+          end %>
+    </div>
+    <div class="flex-1 mx-4 min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <%= render "shared/user_mention", user: e.user, show: [:profile_link, :verified_badge] %>
+        <% if (proj = active_projects&.dig(e.user_id)).present? %>
+          <span class="text-xs italic text-muted">
+            working on <%= link_to h(proj.project_name), proj.repo_url, target: "_blank", class: "text-accent hover:text-cyan-400 transition-colors" %>
+            <% dev_tool(nil, 'span') do %>
+              <%= link_to "🌌", visualize_git_url(proj.repo_url), target: "_blank", class: "ml-1" %>
+            <% end %>
+          </span>
+        <% end %>
+        <% if e.streak_count > 0 %>
+          <%= render "static_pages/streak", user: e.user, streak_count: e.streak_count, turbo_frame: false, icon_size: 16, show_super_class: true %>
+        <% end %>
+      </div>
+    </div>
+    <div class="shrink-0 font-mono text-sm text-white font-medium">
+      <%= short_time_detailed e.total_seconds %>
+    </div>
+  </div>
+<% end %>

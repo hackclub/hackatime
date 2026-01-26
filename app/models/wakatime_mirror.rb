@@ -1,4 +1,6 @@
 class WakatimeMirror < ApplicationRecord
+  require "uri"
+
   belongs_to :user
   has_many :heartbeats, through: :user
 
@@ -50,9 +52,12 @@ class WakatimeMirror < ApplicationRecord
   private
 
   def endpoint_url_not_hackatime
-    if endpoint_url.present? && endpoint_url.include?("hackatime.hackclub.com")
-      errors.add(:endpoint_url, "cannot be hackatime.hackclub.com")
-    end
+    return unless endpoint_url.present?
+
+    uri = URI.parse(endpoint_url)
+    errors.add(:endpoint_url, "cannot be hackatime.hackclub.com") if uri.host == "hackatime.hackclub.com"
+  rescue URI::InvalidURIError
+    # other validations will handle invalid URLs
   end
 
   def schedule_initial_sync

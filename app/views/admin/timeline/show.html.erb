@@ -189,7 +189,7 @@
               </div>
               <% if current_user && current_user.admin_level.in?(["admin", "superadmin"]) && user != current_user %>
               <div>
-                <button onclick="setTrust(<%= user.id %>)"
+                <button onclick="setTrust(<%= user.id.to_json %>)"
                   class="text-xs text-gray-300 hover:text-white"
                   title="Set trust level">🔨</button>
               </div>

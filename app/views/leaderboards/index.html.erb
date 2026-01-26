@@ -4,14 +4,14 @@
 
     <div class="inline-flex rounded-full p-1 mb-4">
       <%= link_to "Last 24 Hours", leaderboards_path(period_type: 'daily'),
-        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@period_type == :daily ? 'bg-primary text-white' : 'text-muted bg-darkless hover:text-white'}", style: "background:none; border:none;" %>
+        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@period_type == :daily ? 'bg-primary text-white' : 'text-muted bg-darkless hover:text-white'}" %>
       <%= link_to "Last 7 Days", leaderboards_path(period_type: 'last_7_days'),
-        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@period_type == :last_7_days ? 'bg-primary text-white' : 'text-muted bg-darkless hover:text-white'}", style: "background:none; border:none;" %>
+        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@period_type == :last_7_days ? 'bg-primary text-white' : 'text-muted bg-darkless hover:text-white'}" %>
     </div>
 
     <% if current_user && current_user.github_uid.blank? %>
-      <div class="bg-dark border border-primary rounded-lg p-4 mb-6">
-        <%= link_to "Connect your GitHub", "/auth/github", class: "bg-primary hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200" %> to qualify for the leaderboard.
+      <div class="bg-darker border border-primary rounded-lg p-4 mb-6">
+        <%= link_to "Connect your GitHub", "/auth/github", class: "bg-primary hover:bg-primary/75 text-white font-medium mr-2 px-4 py-2 rounded-lg transition-colors duration-200" %> to qualify for the leaderboard.
       </div>
     <% end %>
 
@@ -37,49 +37,17 @@
   </div>
 
   <div class="bg-elevated rounded-xl border border-primary overflow-hidden">
-    <% if @entries&.any? %>
-      <div class="divide-y divide-gray-800">
-        <% @entries.each_with_index do |entry, index| %>
-          <div class="flex items-center p-2 hover:bg-dark transition-colors duration-200 <%= 'bg-dark border-l-4 border-l-primary' if entry.user_id == current_user&.id %> <%= 'opacity-40 hover:opacity-60' if entry.user.red? && current_user&.admin_level.in?([ "admin", "superadmin" ]) %>">
-            <div class="w-12 flex-shrink-0 text-center font-medium text-muted">
-              <% case index %>
-              <% when 0 then %>
-                <span class="text-2xl">🥇</span>
-              <% when 1 then %>
-                <span class="text-2xl">🥈</span>
-              <% when 2 then %>
-                <span class="text-2xl">🥉</span>
-              <% else %>
-                <span class="text-lg"><%= index + 1 %></span>
-              <% end %>
-            </div>
-            <div class="flex-1 mx-4 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <%= render "shared/user_mention", user: entry.user, show: [:profile_link, :verified_badge] %>
-                <% if @active_projects&.dig(entry.user_id).present? %>
-                  <span class="text-xs italic text-muted">
-                    working on <%= link_to h(@active_projects[entry.user_id].project_name), @active_projects[entry.user_id].repo_url, target: "_blank", class: "text-accent hover:text-cyan-400 transition-colors" %>
-                    <% dev_tool(nil, 'span') do %>
-                      <%= link_to "🌌", visualize_git_url(@active_projects[entry.user_id].repo_url), target: "_blank", class: "ml-1" %>
-                    <% end %>
-                  </span>
-                <% end %>
-                <% if entry.streak_count > 0 %>
-                  <%= render "static_pages/streak",
-                        user: entry.user,
-                        streak_count: entry.streak_count,
-                        turbo_frame: false,
-                        icon_size: 16,
-                        show_super_class: true %>
-                <% end %>
-              </div>
-            </div>
-            <div class="flex-shrink-0 font-mono text-sm text-white font-medium">
-              <%= short_time_detailed entry.total_seconds %>
-            </div>
-          </div>
-        <% end %>
-      </div>
+    <% if @leaderboard&.persisted? %>
+      <% if @total_entries && @total_entries > 0 %>
+        <div id="leaderboard-entries" class="divide-y divide-gray-800" data-controller="infinite-scroll" data-infinite-scroll-url-value="<%= entries_leaderboards_path(period_type: @period_type) %>" data-infinite-scroll-page-value="1" data-infinite-scroll-total-value="<%= @total_entries %>">
+          <%= render "loading" %>
+        </div>
+      <% else %>
+        <div class="py-16 text-center">
+          <h3 class="text-xl font-medium text-white mb-2">No data available</h3>
+          <p class="text-muted">Check back later for <%= @period_type == :last_7_days ? "the last 7 days" : "the last 24 hours" %> results!</p>
+        </div>
+      <% end %>
       <% unless @user_on_leaderboard && @untracked_entries != 0 %>
         <div class="px-4 py-3 text-sm text-muted border-t border-primary">
           Don't see yourself on the leaderboard? You're probably one of the
@@ -88,12 +56,11 @@
           <%= link_to "updated their wakatime config", my_settings_path, target: "_blank", class: "text-accent hover:text-cyan-400 transition-colors" %>.
         </div>
       <% end %>
-      <% if @leaderboard.finished_generating? && @leaderboard.persisted? %>
+      <% if @leaderboard.finished_generating? %>
         <div class="px-4 py-2 text-xs italic text-muted border-t border-primary">
           Generated in <%= @leaderboard.finished_generating_at - @leaderboard.created_at %> seconds
         </div>
       <% end %>
-
     <% else %>
       <div class="py-16 text-center">
         <h3 class="text-xl font-medium text-white mb-2">No data available</h3>

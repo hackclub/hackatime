@@ -105,7 +105,9 @@ Rails.application.routes.draw do
   get "/auth/close_window", to: "sessions#close_window", as: :close_window
   delete "signout", to: "sessions#destroy", as: "signout"
 
-  resources :leaderboards, only: [ :index ]
+  resources :leaderboards, only: [ :index ] do
+    get :entries, on: :collection
+  end
 
   # Docs routes
   get "docs", to: "docs#index", as: :docs
@@ -245,6 +247,11 @@ Rails.application.routes.draw do
         get "timeline", to: "timeline#show"
         get "timeline/search_users", to: "timeline#search_users"
         get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
+        get "users/:id/visualization/quantized", to: "admin#visualization_quantized"
+        get "alts/candidates", to: "admin#alt_candidates"
+        get "alts/shared_machines", to: "admin#shared_machines"
+        get "users/active", to: "admin#active_users"
+        post "audit_logs/counts", to: "admin#audit_logs_counts"
       end
     end
 
@@ -268,6 +275,11 @@ Rails.application.routes.draw do
   end
 
   get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/time_stats", to: "profiles#time_stats", as: :profile_time_stats, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/projects", to: "profiles#projects", as: :profile_projects, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/languages", to: "profiles#languages", as: :profile_languages, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/editors", to: "profiles#editors", as: :profile_editors, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/activity", to: "profiles#activity", as: :profile_activity, constraints: { username: /[A-Za-z0-9_-]+/ }
 
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
