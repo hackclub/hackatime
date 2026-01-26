@@ -28,6 +28,7 @@ class ErrorsController < ApplicationController
     @status_code = 500
     @title = "Internal Server Error"
     @message = "Something went wrong on our end, but we are looking into it!"
+    @sentry_event_id = Sentry.last_event_id
     render_error
   end
 
