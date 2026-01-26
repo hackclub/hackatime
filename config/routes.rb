@@ -105,7 +105,9 @@ Rails.application.routes.draw do
   get "/auth/close_window", to: "sessions#close_window", as: :close_window
   delete "signout", to: "sessions#destroy", as: "signout"
 
-  resources :leaderboards, only: [ :index ]
+  resources :leaderboards, only: [ :index ] do
+    get :entries, on: :collection
+  end
 
   # Docs routes
   get "docs", to: "docs#index", as: :docs
