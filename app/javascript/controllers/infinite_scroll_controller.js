@@ -53,7 +53,7 @@ export default class extends Controller {
   }
 
   hasMore() {
-    return this.pageValue * 100 < this.totalValue
+    return (this.pageValue - 1) * 100 < this.totalValue
   }
 
   skeleton() {
