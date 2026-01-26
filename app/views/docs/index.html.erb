@@ -129,7 +129,7 @@
           ['Emacs', 'emacs'], ['Jupyter', 'jupyter'], ['OnShape', 'onshape']
         ] %>
         <% popular_editors.each do |name, slug| %>
-          <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded-lg p-3 hover:bg-primary/10 transition-colors text-center block">
+          <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded-lg p-3 hover:bg-primary/75 transition-colors text-center block">
             <img src="/images/editor-icons/<%= slug %>-128.png" alt="<%= name %>" class="w-12 h-12 mx-auto mb-2">
             <div class="text-sm text-white"><%= name %></div>
           </a>
@@ -167,7 +167,7 @@
         ].sort_by { |editor| editor[0] }
       %>
         <% all_editors.each do |name, slug| %>
-          <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded p-2 hover:bg-primary/10 transition-colors text-center block">
+          <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded p-2 hover:bg-primary/75 transition-colors text-center block">
             <img src="/images/editor-icons/<%= slug %>-128.png" alt="<%= name %>" class="w-8 h-8 mx-auto mb-1">
             <div class="text-xs text-white leading-tight"><%= name %></div>
           </a>

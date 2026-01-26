@@ -11,7 +11,7 @@
 
     <% if current_user && current_user.github_uid.blank? %>
       <div class="bg-darker border border-primary rounded-lg p-4 mb-6">
-        <%= link_to "Connect your GitHub", "/auth/github", class: "bg-primary hover:bg-primary/50 text-white font-medium mr-2 px-4 py-2 rounded-lg transition-colors duration-200" %> to qualify for the leaderboard.
+        <%= link_to "Connect your GitHub", "/auth/github", class: "bg-primary hover:bg-primary/75 text-white font-medium mr-2 px-4 py-2 rounded-lg transition-colors duration-200" %> to qualify for the leaderboard.
       </div>
     <% end %>
 

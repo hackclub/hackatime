@@ -30,12 +30,12 @@
     </div>
 
     <div class="text-center mb-8 mt-4 max-w-5xl mx-auto">
-      <h2 class="text-3xl font-bold text-green mt-4 mb-4">Oh, and one more thing...</h2>
+      <h2 class="text-3xl font-bold mt-4 mb-4">Oh, and one more thing...</h2>
       <p class="text-xl text-white mb-2">
         <b>Please do not try to cheat the system!</b> We have measures in place to detect and prevent cheating. If you attempt to manipulate Hackatime, you will be banned from Hackatime and other participating YSWS / events / programs, so please play fair! We are a non-profit organization and we run off of donations.
       </p>
       <label class="flex items-center justify-center gap-2 cursor-pointer select-none mt-2">
-        <input type="checkbox" id="o" class="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary bg-white text-black">
+        <input type="checkbox" id="o" class="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary bg-white">
         <span class="text-xl text-primary">I agree and I understand the rules.</span>
       </label>
 
@@ -52,16 +52,16 @@
     </div>
 
     <div class="flex gap-4 flex-wrap justify-center">
-      <%= link_to my_wakatime_setup_step_2_path, class: "bg-secondary hover:bg-darkless text-white px-6 py-3 rounded-lg transition-colors" do %>
+      <%= link_to my_wakatime_setup_step_2_path, class: "px-4 py-3 bg-dark hover:bg-darkless border border-darkless text-gray-300 rounded transition-colors cursor-pointer flex items-center justify-center" do %>
         Set up another editor
       <% end %>
 
       <% if (url = session.dig(:return_data, "url")) %>
-        <%= link_to url, id: "s", class: "bg-primary hover:bg-red text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg opacity-50 pointer-events-none" do %>
+        <%= link_to url, id: "s", class: "px-4 py-3 bg-primary hover:bg-primary/75 border border-darkless text-white rounded transition-colors cursor-pointer flex items-center justify-center" do %>
           <%= session.dig(:return_data, "button_text") || "Done" %>
         <% end %>
       <% else %>
-        <%= link_to root_path, id: "s", class: "bg-primary hover:bg-red text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg opacity-50 pointer-events-none" do %>
+        <%= link_to root_path, id: "s", class: "px-4 py-3 bg-primary hover:bg-primary/75 border border-darkless text-white rounded transition-colors cursor-pointer flex items-center justify-center" do %>
           I agree, Get started!
         <% end %>
       <% end %>
@@ -70,10 +70,10 @@
         document.getElementById('o').addEventListener('change', function() {
           const x = document.getElementById('s');
           if (this.checked) {
-            x.classList.remove('opacity-50', 'pointer-events-none');
+            x.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
             x.disabled = false;
           } else {
-            x.classList.add('opacity-50', 'pointer-events-none');
+            x.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
             x.disabled = true;
           }
         });
