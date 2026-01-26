@@ -30,8 +30,10 @@
         <p class="text-gray-300 mb-6 text-center w-full"><%= description %></p>
       <% end %>
 
-      <% if custom.present? %>
-        <%= sanitize custom, tags: %w[div p span a button form input label select option textarea h1 h2 h3 h4 h5 h6 ul ol li strong em code pre], attributes: %w[class id href type name value placeholder data-controller data-action data-target for method] %>
+      <% if custom.is_a?(String) %>
+        <%= sanitize custom, tags: %w[div p span a button form input label select option textarea h1 h2 h3 h4 h5 h6 ul ol li strong em code pre], attributes: %w[class id href type name value placeholder data-controller data-action data-target data-token for method required disabled readonly accept maxlength] %>
+      <% elsif custom.present? %>
+        <%= custom %>
       <% end %>
 
       <% if buttons.any? %>
