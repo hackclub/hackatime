@@ -340,7 +340,7 @@ GEM
       faraday-net_http_persistent
       net-http-persistent
     ostruct (0.6.3)
-    pagy (43.2.7)
+    pagy (43.2.8)
       json
       yaml
     paper_trail (17.0.0)

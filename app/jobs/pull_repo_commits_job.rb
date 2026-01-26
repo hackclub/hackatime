@@ -44,7 +44,7 @@ class PullRepoCommitsJob < ApplicationJob
         process_commits(user, commits_data, repository)
 
       elsif response.status.code == 401 # Unauthorized
-        Rails.logger.error "[PullRepoCommitsJob] Unauthorized (401) for User ##{user.id}. GitHub token expired/invalid. URL: #{commit_api_url}"
+        Rails.logger.error "[PullRepoCommitsJob] Unauthorized (401) for User ##{user.id}. GitHub token expired/invalid. URL: #{api_url}"
         user.update!(github_access_token: nil)
         Rails.logger.info "[PullRepoCommitsJob] Cleared invalid GitHub token for User ##{user.id}. User will need to re-authenticate."
       elsif response.status.code == 404
