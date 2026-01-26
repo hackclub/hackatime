@@ -127,14 +127,11 @@ RSpec.describe 'Api::V1::My', type: :request do
       tags 'My Projects'
       description 'List mappings between local project names and Git repositories.'
       security [ Bearer: [], ApiKeyAuth: [] ]
-      produces 'application/json'
+      produces 'application/json', 'text/html'
 
       parameter name: :interval, in: :query, type: :string, description: 'Time interval (e.g., daily, weekly). Default: daily'
       parameter name: :from, in: :query, type: :string, format: :date, description: 'Start date (YYYY-MM-DD)'
       parameter name: :to, in: :query, type: :string, format: :date, description: 'End date (YYYY-MM-DD)'
-
-      produces 'text/html'
-
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
