@@ -105,7 +105,10 @@ RSpec.describe 'Api::V1::My', type: :request do
       consumes 'multipart/form-data'
       produces 'application/json'
 
-      parameter name: :heartbeat_file, in: :formData, type: :file, description: 'JSON file containing heartbeats'
+      parameter name: :heartbeat_file,
+                in: :formData,
+                schema: { type: :string, format: :binary },
+                description: 'JSON file containing heartbeats'
 
       response(302, 'redirect') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
