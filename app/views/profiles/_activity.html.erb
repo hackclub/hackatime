@@ -1,0 +1,8 @@
+<%= turbo_frame_tag "profile_activity" do %>
+  <% if daily_durations.present? %>
+    <div>
+      <h2 class="text-xl font-bold mb-4">Activity</h2>
+      <%= render "static_pages/activity_graph", daily_durations: daily_durations, length_of_busiest_day: 8.hours.to_i, user_tz: user_tz %>
+    </div>
+  <% end %>
+<% end %>

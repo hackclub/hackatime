@@ -24,74 +24,26 @@
   </div>
 
   <% if @profile_visible %>
+    <%= turbo_frame_tag "profile_time_stats", src: profile_time_stats_path(@user.username), loading: :lazy do %>
+      <%= render "profiles/time_stats_skeleton" %>
+    <% end %>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <div class="border border-primary rounded-xl p-5 text-center">
-        <div class="text-sm text-gray-400 uppercase tracking-wide mb-1">Today</div>
-        <div class="text-2xl font-bold text-primary"><%= ApplicationController.helpers.short_time_simple(@total_time_today) %></div>
-      </div>
-      <div class="border border-primary rounded-xl p-5 text-center">
-        <div class="text-sm text-gray-400 uppercase tracking-wide mb-1">This Week</div>
-        <div class="text-2xl font-bold text-primary"><%= ApplicationController.helpers.short_time_simple(@total_time_week) %></div>
-      </div>
-      <div class="border border-primary rounded-xl p-5 text-center">
-        <div class="text-sm text-gray-400 uppercase tracking-wide mb-1">All Time</div>
-        <div class="text-2xl font-bold text-primary"><%= ApplicationController.helpers.short_time_simple(@total_time_all) %></div>
-      </div>
-    </div>
-
-    <% if @top_projects_month.present? && @top_projects_month.size > 0 %>
-      <div class="mb-6">
-        <h2 class="text-xl font-bold mb-4">Top Projects <span class="text-gray-400 font-normal text-base">(Past Month)</span></h2>
-        <%= render "profiles/project_cards", projects: @top_projects_month %>
-      </div>
+    <%= turbo_frame_tag "profile_projects", src: profile_projects_path(@user.username), loading: :lazy do %>
+      <%= render "profiles/projects_skeleton" %>
     <% end %>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <% if @top_languages.present? && @top_languages.size > 0 %>
-        <div class="border border-primary rounded-xl p-5">
-          <h2 class="text-xl font-bold mb-4">Top Languages</h2>
-          <div class="flex flex-col gap-3">
-            <% max_duration = @top_languages.values.map(&:to_f).select { |d| d.finite? && d > 0 }.max || 1 %>
-            <% @top_languages.each do |language, duration| %>
-              <div class="flex items-center gap-3">
-                <div class="w-24 text-sm text-gray-300 truncate"><%= ApplicationController.helpers.display_language_name(language) || "Unknown" %></div>
-                <div class="flex-1 h-6 bg-darkless rounded-full overflow-hidden relative">
-                  <div class="h-full bg-primary rounded-full flex items-center justify-end pr-2" style="width: <%= [(duration.to_f.finite? ? duration.to_f : 0) / max_duration * 100, 100].min.round %>%">
-                    <span class="text-xs font-medium text-white"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        </div>
+      <%= turbo_frame_tag "profile_languages", src: profile_languages_path(@user.username), loading: :lazy do %>
+        <%= render "profiles/languages_skeleton" %>
       <% end %>
 
-      <% if @top_editors.present? && @top_editors.size > 0 %>
-        <div class="border border-primary rounded-xl p-5">
-          <h2 class="text-xl font-bold mb-4">Favorite Editors</h2>
-          <div class="flex flex-col gap-3">
-            <% max_duration = @top_editors.values.map(&:to_f).select { |d| d.finite? && d > 0 }.max || 1 %>
-            <% @top_editors.each do |editor, duration| %>
-              <div class="flex items-center gap-3">
-                <div class="w-24 text-sm text-gray-300 truncate"><%= editor %></div>
-                <div class="flex-1 h-6 bg-darkless rounded-full overflow-hidden relative">
-                  <div class="h-full bg-primary rounded-full flex items-center justify-end pr-2" style="width: <%= [(duration.to_f.finite? ? duration.to_f : 0) / max_duration * 100, 100].min.round %>%">
-                    <span class="text-xs font-medium text-white"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        </div>
+      <%= turbo_frame_tag "profile_editors", src: profile_editors_path(@user.username), loading: :lazy do %>
+        <%= render "profiles/editors_skeleton" %>
       <% end %>
     </div>
 
-    <% if @daily_durations.present? %>
-      <div class="mt-6">
-        <h2 class="text-xl font-bold mb-4">Activity</h2>
-        <%= render "static_pages/activity_graph", daily_durations: @daily_durations, length_of_busiest_day: 8.hours.to_i, user_tz: @user.timezone %>
-      </div>
+    <%= turbo_frame_tag "profile_activity", src: profile_activity_path(@user.username), loading: :lazy do %>
+      <%= render "profiles/activity_skeleton" %>
     <% end %>
   <% else %>
     <div class="text-center py-16">

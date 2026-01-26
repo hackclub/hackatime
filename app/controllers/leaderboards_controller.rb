@@ -1,73 +1,48 @@
 class LeaderboardsController < ApplicationController
+  PER_PAGE = 100
+
   def index
-    set_params
+    @period_type = validated_period_type
+    @leaderboard = LeaderboardService.get(period: @period_type, date: start_date)
+    @leaderboard.nil? ? flash.now[:notice] = "Leaderboard is being updated..." : load_metadata
+  end
 
-    @leaderboard = find_or_generate_leaderboard
+  def entries
+    @period_type = validated_period_type
+    @leaderboard = LeaderboardService.get(period: @period_type, date: start_date)
+    return head :no_content unless @leaderboard&.persisted?
 
-    if @leaderboard.nil?
-      flash.now[:notice] = "Leaderboard is being updated..."
-    else
-      load_entries_and_metadata
-    end
+    page = (params[:page] || 1).to_i
+    @entries = @leaderboard.entries.includes(:user).order(total_seconds: :desc)
+                           .offset((page - 1) * PER_PAGE).limit(PER_PAGE)
+    @active_projects = Cache::ActiveProjectsJob.perform_now
+    @offset = (page - 1) * PER_PAGE
+
+    render partial: "entries", locals: { entries: @entries, active_projects: @active_projects, offset: @offset }
   end
 
   private
 
-  def set_params
-    @period_type = validated_period_type
-  end
-
   def validated_period_type
-    period = (params[:period_type] || "daily").to_sym
-    valid_periods = [ :daily, :last_7_days ]
-    valid_periods.include?(period) ? period : :daily
-  end
-
-  def find_or_generate_leaderboard
-    LeaderboardService.get(
-      period: @period_type,
-      date: start_date
-    )
+    p = (params[:period_type] || "daily").to_sym
+    %i[daily last_7_days].include?(p) ? p : :daily
   end
 
   def start_date
-    @start_date ||= case @period_type
-    when :last_7_days then Date.current
-    else Date.current
-    end
+    @start_date ||= Date.current
   end
 
-  def load_entries_and_metadata
-    @entries = @leaderboard.entries
+  def load_metadata
+    return unless @leaderboard.persisted?
 
-    if @leaderboard.persisted?
-      @entries = @entries.includes(:user).order(total_seconds: :desc)
-      load_user_tracking_data
-    end
-
-    @active_projects = Cache::ActiveProjectsJob.perform_now
+    ids = @leaderboard.entries.distinct.pluck(:user_id)
+    @user_on_leaderboard = current_user && ids.include?(current_user.id)
+    @untracked_entries = calculate_untracked_entries(ids) unless @user_on_leaderboard
+    @total_entries = @leaderboard.entries.count
   end
 
-  def load_user_tracking_data
-    tracked_user_ids = @leaderboard.entries.distinct.pluck(:user_id)
-    @user_on_leaderboard = current_user && tracked_user_ids.include?(current_user.id)
-
-    unless @user_on_leaderboard
-      @untracked_entries = calculate_untracked_entries(tracked_user_ids)
-    end
-  end
-
-  def calculate_untracked_entries(tracked_user_ids)
-    time_range = case @period_type
-    when :last_7_days
-                   ((Date.current - 6.days).beginning_of_day...Date.current.end_of_day)
-    else
-                   Date.current.all_day
-    end
-
-    Hackatime::Heartbeat.where(time: time_range)
-                        .distinct
-                        .pluck(:user_id)
-                        .count { |user_id| !tracked_user_ids.include?(user_id) }
+  def calculate_untracked_entries(ids)
+    r = @period_type == :last_7_days ? ((Date.current - 6.days).beginning_of_day...Date.current.end_of_day) : Date.current.all_day
+    Hackatime::Heartbeat.where(time: r).distinct.pluck(:user_id).count { |uid| !ids.include?(uid) }
   end
 end
