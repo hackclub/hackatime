@@ -57,11 +57,11 @@
       <% end %>
 
       <% if (url = session.dig(:return_data, "url")) %>
-        <%= link_to url, id: "s", class: "px-4 py-3 bg-primary hover:bg-primary/75 border border-darkless text-white rounded transition-colors cursor-pointer flex items-center justify-center" do %>
+        <%= link_to url, id: "s", class: "px-4 py-3 bg-primary hover:bg-primary/75 border border-darkless text-white rounded transition-colors cursor-pointer flex items-center justify-center opacity-50 cursor-not-allowed pointer-events-none" do %>
           <%= session.dig(:return_data, "button_text") || "Done" %>
         <% end %>
       <% else %>
-        <%= link_to root_path, id: "s", class: "px-4 py-3 bg-primary hover:bg-primary/75 border border-darkless text-white rounded transition-colors cursor-pointer flex items-center justify-center" do %>
+        <%= link_to root_path, id: "s", class: "px-4 py-3 bg-primary hover:bg-primary/75 border border-darkless text-white rounded transition-colors cursor-pointer flex items-center justify-center opacity-50 cursor-not-allowed pointer-events-none" do %>
           I agree, Get started!
         <% end %>
       <% end %>
