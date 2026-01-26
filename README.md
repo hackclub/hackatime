@@ -46,6 +46,7 @@ app# bin/dev
 # Want to do other things?
 app# bin/rails c # start an interactive irb!
 app# bin/rails db:migrate # migrate the database
+app# bin/rails rswag:specs:swaggerize # generate API documentation
 ```
 
 You can now access the app at <http://localhost:3000/>

@@ -110,6 +110,17 @@ jobs:
           psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse;"
           bin/rails test
 
+      - name: Ensure Swagger docs are up to date
+        env:
+          RAILS_ENV: test
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: |
+          bin/rails rswag:specs:swaggerize
+          git diff --exit-code swagger/v1/swagger.yaml
+
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v6
         if: failure()

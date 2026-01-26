@@ -517,9 +517,9 @@ module Api
 
           values = query
                    .where.not(column_name => nil)
-                   .order(column_name => :asc)
+                   .order(Arel.sql("value ASC"))
                    .limit(limit)
-                   .pluck(:value)
+                   .map(&:value)
                    .reject(&:empty?)
 
           render json: {
@@ -540,7 +540,7 @@ module Api
         end
 
         def find_user_by_id
-          user_id = params[:id]
+          user_id = params[:id] || params[:user_id]
 
           if user_id.blank?
             render json: { error: "who?" }, status: :unprocessable_entity
