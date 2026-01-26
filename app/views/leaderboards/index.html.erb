@@ -4,14 +4,14 @@
 
     <div class="inline-flex rounded-full p-1 mb-4">
       <%= link_to "Last 24 Hours", leaderboards_path(period_type: 'daily'),
-        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@period_type == :daily ? 'bg-primary text-white' : 'text-muted bg-darkless hover:text-white'}", style: "background:none; border:none;" %>
+        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@period_type == :daily ? 'bg-primary text-white' : 'text-muted bg-darkless hover:text-white'}" %>
       <%= link_to "Last 7 Days", leaderboards_path(period_type: 'last_7_days'),
-        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@period_type == :last_7_days ? 'bg-primary text-white' : 'text-muted bg-darkless hover:text-white'}", style: "background:none; border:none;" %>
+        class: "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 #{@period_type == :last_7_days ? 'bg-primary text-white' : 'text-muted bg-darkless hover:text-white'}" %>
     </div>
 
     <% if current_user && current_user.github_uid.blank? %>
-      <div class="bg-dark border border-primary rounded-lg p-4 mb-6">
-        <%= link_to "Connect your GitHub", "/auth/github", class: "bg-primary hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200" %> to qualify for the leaderboard.
+      <div class="bg-darker border border-primary rounded-lg p-4 mb-6">
+        <%= link_to "Connect your GitHub", "/auth/github", class: "bg-primary hover:bg-primary/50 text-white font-medium mr-2 px-4 py-2 rounded-lg transition-colors duration-200" %> to qualify for the leaderboard.
       </div>
     <% end %>
 
@@ -41,7 +41,7 @@
       <div class="divide-y divide-gray-800">
         <% @entries.each_with_index do |entry, index| %>
           <div class="flex items-center p-2 hover:bg-dark transition-colors duration-200 <%= 'bg-dark border-l-4 border-l-primary' if entry.user_id == current_user&.id %> <%= 'opacity-40 hover:opacity-60' if entry.user.red? && current_user&.admin_level.in?([ "admin", "superadmin" ]) %>">
-            <div class="w-12 flex-shrink-0 text-center font-medium text-muted">
+            <div class="w-12 shrink-0 text-center font-medium text-muted">
               <% case index %>
               <% when 0 then %>
                 <span class="text-2xl">🥇</span>
@@ -74,7 +74,7 @@
                 <% end %>
               </div>
             </div>
-            <div class="flex-shrink-0 font-mono text-sm text-white font-medium">
+            <div class="shrink-0 font-mono text-sm text-white font-medium">
               <%= short_time_detailed entry.total_seconds %>
             </div>
           </div>

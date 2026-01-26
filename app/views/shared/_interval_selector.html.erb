@@ -1,6 +1,6 @@
 <%= turbo_frame_tag "interval_selector" do %>
   <div class="relative inline-block w-full max-w-xs">
-    <button type="button" id="interval-dropdown-trigger" class="w-full px-4 py-2 bg-[#23272f] text-gray-100 border border-gray-700 rounded cursor-pointer text-left flex items-center justify-between shadow-lg" onclick="toggleIntervalDropdown()">
+    <button type="button" id="interval-dropdown-trigger" class="w-full px-4 py-2 bg-darkless text-gray-100 border border-gray-700 rounded cursor-pointer text-left flex items-center justify-between shadow-lg" onclick="toggleIntervalDropdown()">
       <span id="interval-dropdown-label">
         <%= human_interval_name(params[:interval], from: params[:from], to: params[:to]) %>
       </span>
@@ -10,10 +10,10 @@
       </svg>
     </button>
 
-    <div id="interval-dropdown-menu" class="w-full px-3 py-2 mt-2 bg-[#23272f] text-gray-100 border border-gray-700 rounded-lg absolute z-1000 shadow-lg" style="display: none;">
+    <div id="interval-dropdown-menu" class="w-full px-3 py-2 mt-2 bg-darkless text-gray-100 border border-gray-700 rounded-lg absolute z-1000 shadow-lg" style="display: none;">
       <ul class="list-none m-0 p-0 overflow-y-auto max-h-60">
         <% TimeRangeFilterable::RANGES.each do |key, config| %>
-          <li class="py-1.5 px-2 cursor-pointer rounded bg-transparent hover:bg-[#2c313a] transition" onclick="selectInterval('<%= key %>', '<%= config[:human_name] %>')"><%= config[:human_name] %></li>
+          <li class="py-1.5 px-2 cursor-pointer rounded bg-transparent hover:bg-[#2c313a] transition" onclick="selectInterval(<%= key.to_json %>, <%= config[:human_name].to_json %>)"><%= config[:human_name] %></li>
         <% end %>
         <li class="py-1.5 px-2 cursor-pointer rounded bg-transparent hover:bg-[#2c313a] transition" onclick="selectInterval('', 'All Time')">All Time</li>
       </ul>
@@ -22,11 +22,11 @@
 
       <div class="flex flex-col gap-2 mt-2">
         <label class="flex items-center justify-between">Start:
-          <input type="date" class="ml-2 py-1 px-2 bg-[#181b20] border border-gray-700 rounded" id="custom-start" value="<%= params[:from] %>">
+          <input type="date" class="ml-2 py-1 px-2 bg-dark border border-gray-700 rounded" id="custom-start" value="<%= params[:from] %>">
         </label>
 
         <label class="flex items-center justify-between">End:
-          <input type="date" class="ml-2 py-1 px-2 bg-[#181b20] border border-gray-700 rounded" id="custom-end" value="<%= params[:to] %>">
+          <input type="date" class="ml-2 py-1 px-2 bg-dark border border-gray-700 rounded" id="custom-end" value="<%= params[:to] %>">
         </label>
 
         <button type="button" class="interval-selector-button px-3 py-2 mt-2 mb-1 rounded font-semibold transition cursor-pointer" onclick="applyCustomRange()">Apply</button>
@@ -53,7 +53,7 @@
     }
 
     function updateProjectsFrame(url) {
-      let baseUrl = '<%= project_durations_static_pages_path %>';
+      let baseUrl = <%== project_durations_static_pages_path.to_json %>;
       const params = new URLSearchParams(new URL(url).search);
       const frameUrl = baseUrl + '?' + params.toString();
 
