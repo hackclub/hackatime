@@ -9,7 +9,7 @@
   </div>
 
   <div class="flex flex-col sm:flex-row gap-4">
-    <%= link_to "Go Home", root_path, class: "px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-red-600 transition-colors" %>
+    <%= link_to "Go Home", root_path, class: "px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/75 transition-colors" %>
     <button onclick="history.back()" class="px-6 py-3 bg-dark text-white rounded-lg font-medium hover:bg-darkless transition-colors border border-darkless cursor-pointer">
       Go Back
     </button>
@@ -19,4 +19,12 @@
     If this problem persists, please contact us on
     <%= link_to "Slack", "https://hackclub.slack.com", class: "text-primary hover:underline", target: "_blank" %>.
   </p>
+
+  <% if @sentry_event_id.present? %>
+    <div class="mt-4 p-3 bg-darkless rounded-lg border border-dark">
+      <p class="text-xs text-muted">
+        Error ID: <code class="text-primary select-all"><%= @sentry_event_id %></code>
+      </p>
+    </div>
+  <% end %>
 </div>
