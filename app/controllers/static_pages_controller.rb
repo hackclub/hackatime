@@ -98,6 +98,12 @@ class StaticPagesController < ApplicationController
     end
 
     durations = durations.select { |p| archived_names.include?(p[:project_key]) == archived }
+
+    durations = durations.map do |p|
+      m = @project_repo_mappings.find { |mapping| mapping.project_name == p[:project_key] }
+      p.merge(repo_url: m&.repo_url, repository: m&.repository)
+    end
+
     render partial: "project_durations", locals: { project_durations: durations, show_archived: archived }
   end
 
