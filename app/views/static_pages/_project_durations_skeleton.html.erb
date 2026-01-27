@@ -1,5 +1,4 @@
-<% count = local_assigns[:count] || 6 %>
-<% count = [count, 1].max %>
+<% count = [local_assigns[:count] || 6, 1].max %>
 <%= turbo_frame_tag "project_durations" do %>
   <div class="animate-pulse">
     <div class="h-7 w-80 bg-darkless rounded mt-6 mb-6"></div>
