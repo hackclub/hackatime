@@ -26,28 +26,28 @@
                     <span class="text-white"><%= request.user.display_name %></span>
                   </div>
                 </td>
-                <td class="py-3 px-4 text-gray-300"><%= request.user.email_addresses.first&.email || "N/A" %></td>
+                <td class="py-3 px-4 text-gray-300"><%= request.user.email_addresses.first&.email || 'N/A' %></td>
                 <td class="py-3 px-4 text-gray-300"><%= time_ago_in_words(request.requested_at) %> ago</td>
                 <td class="py-3 px-4">
-                  <span class="px-2 py-1 rounded text-xs font-medium
+                  <span
+                    class="px-2 py-1 rounded text-xs font-medium
                     <%= case request.user.trust_level
-                        when 'green' then 'bg-green-600/20 text-green-400'
-                        when 'yellow' then 'bg-yellow-600/20 text-yellow-400'
-                        when 'red' then 'bg-red-600/20 text-red-400'
-                        else 'bg-blue-600/20 text-blue-400'
+                        when 'green'
+                          'bg-green-600/20 text-green-400'
+                        when 'yellow'
+                          'bg-yellow-600/20 text-yellow-400'
+                        when 'red'
+                          'bg-red-600/20 text-red-400'
+                        else
+                          'bg-blue-600/20 text-blue-400'
                         end %>">
                     <%= request.user.trust_level %>
                   </span>
                 </td>
                 <td class="py-3 px-4">
                   <div class="flex gap-2">
-                    <%= button_to "yuh", approve_admin_deletion_request_path(request),
-                        method: :post,
-                        class: "px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded transition-colors cursor-pointer" %>
-                    <%= button_to "nah", reject_admin_deletion_request_path(request),
-                        method: :post,
-                        class: "px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                        data: { confirm: "yo " } %>
+                    <%= button_to 'yuh', approve_admin_deletion_request_path(request), method: :post, class: 'px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded transition-colors cursor-pointer' %>
+                    <%= button_to 'nah', reject_admin_deletion_request_path(request), method: :post, class: 'px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: 'yo ' } %>
                   </div>
                 </td>
               </tr>
@@ -83,13 +83,11 @@
                     <span class="text-white"><%= request.user.display_name %></span>
                   </div>
                 </td>
-                <td class="py-3 px-4 text-gray-300"><%= request.admin_approved_by&.display_name || "N/A" %></td>
-                <td class="py-3 px-4 text-gray-300"><%= request.admin_approved_at&.strftime("%b %d, %Y") %></td>
-                <td class="py-3 px-4 text-red-400"><%= request.scheduled_deletion_at&.strftime("%b %d, %Y") %></td>
+                <td class="py-3 px-4 text-gray-300"><%= request.admin_approved_by&.display_name || 'N/A' %></td>
+                <td class="py-3 px-4 text-gray-300"><%= request.admin_approved_at&.strftime('%b %d, %Y') %></td>
+                <td class="py-3 px-4 text-red-400"><%= request.scheduled_deletion_at&.strftime('%b %d, %Y') %></td>
                 <td class="py-3 px-4">
-                  <span class="px-2 py-1 rounded text-xs font-medium bg-red-600/20 text-red-400">
-                    <%= request.days_until_deletion %> days
-                  </span>
+                  <span class="px-2 py-1 rounded text-xs font-medium bg-red-600/20 text-red-400"> <%= request.days_until_deletion %> days </span>
                 </td>
               </tr>
             <% end %>
@@ -117,8 +115,8 @@
             <% @done.each do |request| %>
               <tr class="border-b border-gray-800 hover:bg-gray-800/50">
                 <td class="py-3 px-4 text-gray-300">#<%= request.user_id %></td>
-                <td class="py-3 px-4 text-gray-300"><%= request.admin_approved_by&.display_name || "N/A" %></td>
-                <td class="py-3 px-4 text-gray-300"><%= request.completed_at&.strftime("%b %d, %Y at %I:%M %p") %></td>
+                <td class="py-3 px-4 text-gray-300"><%= request.admin_approved_by&.display_name || 'N/A' %></td>
+                <td class="py-3 px-4 text-gray-300"><%= request.completed_at&.strftime('%b %d, %Y at %I:%M %p') %></td>
               </tr>
             <% end %>
           </tbody>

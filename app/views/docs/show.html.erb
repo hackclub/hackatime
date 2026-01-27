@@ -102,8 +102,7 @@
                 [&_img[src*='/images/editor-icons/']]:w-16 [&_img[src*='/images/editor-icons/']]:h-16 [&_img[src*='/images/editor-icons/']]:mx-auto [&_img[src*='/images/editor-icons/']]:block [&_img[src*='/images/editor-icons/']]:my-4
                 [&_.editor-steps]:bg-darkless [&_.editor-steps]:p-6 [&_.editor-steps]:rounded-lg [&_.editor-steps]:my-4
                 [&_.editor-steps_ol]:m-0
-                [&_.editor-steps_li]:mb-2"
-    >
+                [&_.editor-steps_li]:mb-2">
       <%= sanitize @rendered_content, tags: %w[h1 h2 h3 h4 h5 h6 p a ul ol li code pre strong em img div span table thead tbody tr th td hr br blockquote], attributes: %w[href src alt title class id] %>
     </div>
     <div class="text-center bg-darkless rounded-lg p-6">
