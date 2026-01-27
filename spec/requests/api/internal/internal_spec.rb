@@ -4,7 +4,7 @@ RSpec.describe 'Api::Internal', type: :request do
   path '/api/internal/revoke' do
     post('Revoke access') do
       tags 'Internal'
-      description 'Internal endpoint to revoke access tokens. Use with caution. Requires HKA_REVOCATION_KEY environment variable authentication.'
+      description 'Internal endpoint to revoke access tokens. Use with caution. Requires HKA_REVOCATION_KEY environment variable authentication. This is used for Revoker to allow security researchers to revoke compromised tokens.'
       security [ InternalToken: [] ]
       consumes 'application/json'
       produces 'application/json'
