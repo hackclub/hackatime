@@ -62,7 +62,6 @@
         <div class="bar-graph">
           <%
             max_duration = @project_durations.values.max
-            min_duration = @project_durations.values.min
 
             # Use logarithmic scale for better visibility of smaller values
             # Add 1 to avoid log(0), scale to 15-100 range
