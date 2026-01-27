@@ -53,23 +53,15 @@
     }
 
     function updateProjectsFrame(url) {
-      let baseUrl = <%= project_durations_static_pages_path.to_json %>;
+      let baseUrl = <%== project_durations_static_pages_path.to_json %>;
       const params = new URLSearchParams(new URL(url).search);
       const frameUrl = baseUrl + "?" + params.toString();
 
       const frame = document.getElementById("project_durations");
       if (frame) {
-        console.log("Updating frame with URL:", frameUrl);
         frame.src = frameUrl;
-        try {
-          frame.reload();
-          console.log("Frame reload called successfully");
-        } catch (e) {
-          console.error("Error reloading frame:", e);
-        }
         history.replaceState({}, "", url);
       } else {
-        console.error('Frame with ID "project_durations" not found');
         window.location.href = url;
       }
     }
