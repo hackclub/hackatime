@@ -9,6 +9,9 @@ class My::ProjectRepoMappingsController < ApplicationController
     @interval = params[:interval] || "daily"
     @from = params[:from]
     @to = params[:to]
+
+    archived = params[:show_archived] == "true"
+    @project_count = project_count(archived)
   end
 
   def edit
@@ -68,5 +71,12 @@ class My::ProjectRepoMappingsController < ApplicationController
 
   def project_repo_mapping_params
     params.require(:project_repo_mapping).permit(:repo_url)
+  end
+
+  def project_count(archived)
+    archived_names = current_user.project_repo_mappings.archived.pluck(:project_name)
+    hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
+    projects = hb.select(:project).distinct.pluck(:project)
+    projects.count { |proj| archived_names.include?(proj) == archived }
   end
 end

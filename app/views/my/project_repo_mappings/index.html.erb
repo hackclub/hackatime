@@ -23,5 +23,5 @@
 <%= render "shared/interval_selector" %>
 
 <%= turbo_frame_tag "project_durations", src: project_durations_static_pages_path(interval: params[:interval], from: params[:from], to: params[:to], show_archived: params[:show_archived]), target: "_top" do %>
-  <p class="text-lg font-semibold text-gray-500 mt-6">Loading projects, please wait...</p>
+  <%= render "static_pages/project_durations_skeleton", count: @project_count %>
 <% end %>
