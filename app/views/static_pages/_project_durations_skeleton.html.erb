@@ -1,0 +1,33 @@
+<% count = [local_assigns[:count] || 6, 1].max %>
+<%= turbo_frame_tag "project_durations" do %>
+  <div class="animate-pulse">
+    <div class="h-7 w-80 bg-darkless rounded mt-6 mb-6"></div>
+
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+      <% count.times do %>
+        <div class="bg-dark border border-primary rounded-xl p-6 shadow-lg flex flex-col gap-4">
+          <div class="flex justify-between items-start gap-3">
+            <div class="flex flex-col gap-4 flex-1 min-w-0">
+              <div class="h-7 w-32 bg-darkless rounded"></div>
+              <div class="h-6 w-12 bg-darkless rounded"></div>
+            </div>
+            <div class="flex gap-2">
+              <div class="w-8 h-8 bg-darkless rounded-lg"></div>
+              <div class="w-8 h-8 bg-darkless rounded-lg"></div>
+            </div>
+          </div>
+
+          <div class="h-8 w-24 bg-darkless rounded"></div>
+
+          <div class="h-4 w-full bg-darkless rounded"></div>
+          <div class="h-4 w-3/4 bg-darkless rounded"></div>
+
+          <div class="flex items-center gap-1">
+            <div class="w-4 h-4 bg-darkless rounded"></div>
+            <div class="h-4 w-28 bg-darkless rounded"></div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
