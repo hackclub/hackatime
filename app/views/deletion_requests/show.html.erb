@@ -15,37 +15,34 @@
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <span class="text-gray-300">Status</span>
-          <span class="px-3 py-1 rounded-full text-sm font-medium
-            <%= @deletion_request.approved? ? 'bg-green-600/20 text-green-400' : 'bg-yellow-600/20 text-yellow-400' %>">
+          <span
+            class="px-3 py-1 rounded-full text-sm font-medium
+            <%= @deletion_request.approved? ? 'bg-green-600/20 text-green-400' : 'bg-yellow-600/20 text-yellow-400' %>"
+          >
             <%= @deletion_request.status.humanize %>
           </span>
         </div>
 
         <div class="flex items-center justify-between ">
           <span class="text-gray-300">Requested</span>
-          <span class="text-white"><%= @deletion_request.requested_at.strftime("%B %d, %Y at %I:%M %p") %></span>
+          <span class="text-white"><%= @deletion_request.requested_at.strftime('%B %d, %Y at %I:%M %p') %></span>
         </div>
 
         <% if @deletion_request.pending? %>
           <div class="p-4 bg-yellow-900/30 border border-yellow-700 rounded">
-            <p class="text-yellow-200">
-              Your deletion request is pending approval. During this time, we will review your request and get back to you as soon as possible.
-            </p>
+            <p class="text-yellow-200">Your deletion request is pending approval. During this time, we will review your request and get back to you as soon as possible.</p>
           </div>
         <% elsif @deletion_request.approved? %>
           <div class="flex items-center justify-between">
             <span class="text-gray-300">Deletion Date</span>
             <span class="text-red-400 font-semibold">
-              <%= @deletion_request.scheduled_deletion_at.strftime("%B %d, %Y") %>
+              <%= @deletion_request.scheduled_deletion_at.strftime('%B %d, %Y') %>
               (<%= @deletion_request.days_until_deletion %> days remaining)
             </span>
           </div>
 
           <div class="p-4 bg-red-900/30 border border-red-700 rounded">
-            <p class="text-red-200">
-              Your account will be permanently deleted on <%= @deletion_request.scheduled_deletion_at.strftime("%B %d, %Y") %>.
-              After deletion, your email address will be retained on file, but all other personal information will be removed or anonymized.
-            </p>
+            <p class="text-red-200">Your account will be permanently deleted on <%= @deletion_request.scheduled_deletion_at.strftime('%B %d, %Y') %>. After deletion, your email address will be retained on file, but all other personal information will be removed or anonymized.</p>
           </div>
         <% end %>
 
@@ -63,11 +60,7 @@
         <% end %>
 
         <% if @deletion_request.can_be_cancelled? %>
-          <%= button_to "I changed my mind",
-            cancel_deletion_path,
-            method: :delete,
-            form: { class: "w-full" },
-            class: "w-full px-4 py-3 bg-primary hover:bg-red-600 text-white font-medium rounded text-center transition-colors duration-200 cursor-pointer" %>
+          <%= button_to "I changed my mind", cancel_deletion_path, method: :delete, form: { class: "w-full" }, class: "w-full px-4 py-3 bg-primary hover:bg-red-600 text-white font-medium rounded text-center transition-colors duration-200 cursor-pointer" %>
         <% else %>
           <div class="w-full"></div>
         <% end %>

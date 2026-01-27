@@ -1,40 +1,11 @@
 <%= turbo_frame_tag "filterable_dashboard" do %>
   <div class="content">
     <div class="filters-section">
-      <%= render partial: "shared/multi_select", locals: {
-        label: "Project",
-        param: "project",
-        values: @project,
-        selected: @selected_project
-      } %>
-
-      <%= render partial: "shared/multi_select", locals: {
-        label: "Language",
-        param: "language",
-        values: @language,
-        selected: @selected_language
-      } %>
-
-      <%= render partial: "shared/multi_select", locals: {
-        label: "OS",
-        param: "operating_system",
-        values: @operating_system,
-        selected: @selected_operating_system
-      } %>
-
-      <%= render partial: "shared/multi_select", locals: {
-        label: "Editor",
-        param: "editor",
-        values: @editor,
-        selected: @selected_editor
-      } %>
-
-      <%= render partial: "shared/multi_select", locals: {
-        label: "Category",
-        param: "category",
-        values: @category,
-        selected: @selected_category
-      } %>
+      <%= render partial: "shared/multi_select", locals: { label: "Project", param: "project", values: @project, selected: @selected_project } %>
+      <%= render partial: "shared/multi_select", locals: { label: "Language", param: "language", values: @language, selected: @selected_language } %>
+      <%= render partial: "shared/multi_select", locals: { label: "OS", param: "operating_system", values: @operating_system, selected: @selected_operating_system } %>
+      <%= render partial: "shared/multi_select", locals: { label: "Editor", param: "editor", values: @editor, selected: @selected_editor } %>
+      <%= render partial: "shared/multi_select", locals: { label: "Category", param: "category", values: @category, selected: @selected_category } %>
     </div>
   </div>
 
@@ -43,321 +14,324 @@
   </div>
 
   <script>
-      // UI only: handle dropdown behavior, clear buttons, etc.
-      window.initializeMultiSelect = window.initializeMultiSelect || function(selectId) {
-          const select = document.getElementById(selectId);
-          if (!select || select.dataset.initialized) return;
+    // UI only: handle dropdown behavior, clear buttons, etc.
+    window.initializeMultiSelect =
+      window.initializeMultiSelect ||
+      function (selectId) {
+        const select = document.getElementById(selectId);
+        if (!select || select.dataset.initialized) return;
 
-          select.dataset.initialized = "true";
-          const header = select.querySelector(".select-header");
-          const container = select.querySelector(".options-container");
-          const checkboxes = select.querySelectorAll('input[type="checkbox"]');
-          const clearButton = select.querySelector(".clear-button");
-          const searchInput = select.querySelector(".search-input");
+        select.dataset.initialized = "true";
+        const header = select.querySelector(".select-header");
+        const container = select.querySelector(".options-container");
+        const checkboxes = select.querySelectorAll('input[type="checkbox"]');
+        const clearButton = select.querySelector(".clear-button");
+        const searchInput = select.querySelector(".search-input");
 
-          // Header and clear button visibility
-          const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
-          if (checkedBoxes.length > 0 && clearButton) {
-              clearButton.style.display = "block";
-              if (checkedBoxes.length === 1) {
-                  header.textContent = checkedBoxes[0].value;
-              } else {
-                  header.textContent = `${checkedBoxes.length} selected`;
-              }
+        // Header and clear button visibility
+        const checkedBoxes = Array.from(checkboxes).filter((cb) => cb.checked);
+        if (checkedBoxes.length > 0 && clearButton) {
+          clearButton.style.display = "block";
+          if (checkedBoxes.length === 1) {
+            header.textContent = checkedBoxes[0].value;
+          } else {
+            header.textContent = `${checkedBoxes.length} selected`;
           }
+        }
 
-          // Toggle dropdown
-          header.addEventListener("click", function(e) {
-              e.stopPropagation();
-              const isVisible = container.style.display === "block";
-              document.querySelectorAll(".options-container").forEach(c => {
-                  if (c !== container) c.style.display = "none";
-              });
-              container.style.display = isVisible ? "none" : "block";
-              if (!isVisible && searchInput) searchInput.focus();
+        // Toggle dropdown
+        header.addEventListener("click", function (e) {
+          e.stopPropagation();
+          const isVisible = container.style.display === "block";
+          document.querySelectorAll(".options-container").forEach((c) => {
+            if (c !== container) c.style.display = "none";
           });
+          container.style.display = isVisible ? "none" : "block";
+          if (!isVisible && searchInput) searchInput.focus();
+        });
 
-          // Clear filter
-          if (clearButton) {
-              clearButton.addEventListener("click", function(e) {
-                  e.stopPropagation();
-                  checkboxes.forEach(cb => cb.checked = false);
-                  updateSelect(select);
-              });
-          }
+        // Clear filter
+        if (clearButton) {
+          clearButton.addEventListener("click", function (e) {
+            e.stopPropagation();
+            checkboxes.forEach((cb) => (cb.checked = false));
+            updateSelect(select);
+          });
+        }
 
-          // Handle search input
-          if (searchInput) {
-              searchInput.addEventListener("input", function(e) {
-                  const searchTerm = e.target.value.toLowerCase().trim();
-                  const options = select.querySelectorAll(".option");
-                  options.forEach(option => {
-                      const text = option.querySelector("span").textContent.toLowerCase().trim();
-                      option.style.display = text.includes(searchTerm) ? "" : "none";
-                  });
-              });
-              searchInput.addEventListener("click", function(e) {
-                  e.stopPropagation();
-              });
-          }
+        // Handle search input
+        if (searchInput) {
+          searchInput.addEventListener("input", function (e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            const options = select.querySelectorAll(".option");
+            options.forEach((option) => {
+              const text = option.querySelector("span").textContent.toLowerCase().trim();
+              option.style.display = text.includes(searchTerm) ? "" : "none";
+            });
+          });
+          searchInput.addEventListener("click", function (e) {
+            e.stopPropagation();
+          });
+        }
 
-          // Update header text and URL when checkboxes change
-          checkboxes.forEach(checkbox => {
-              checkbox.addEventListener("change", function() {
-                  updateSelect(select);
-              });
+        // Update header text and URL when checkboxes change
+        checkboxes.forEach((checkbox) => {
+          checkbox.addEventListener("change", function () {
+            updateSelect(select);
+          });
+        });
+      };
+
+    window.updateSelect =
+      window.updateSelect ||
+      function (select) {
+        const header = select.querySelector(".select-header");
+        const clearButton = select.querySelector(".clear-button");
+        const checkboxes = select.querySelectorAll('input[type="checkbox"]');
+        const param = select.dataset.param;
+        const frame = document.querySelector("#filterable_dashboard_content");
+        frame.classList.add("loading");
+
+        const selected = Array.from(checkboxes)
+          .filter((cb) => cb.checked)
+          .map((cb) => cb.value);
+
+        // Header text, clear button
+        if (selected.length === 0) {
+          header.textContent = `Filter by ${header.closest(".filter").querySelector(".filter-label").textContent.slice(2).toLowerCase()}...`;
+          if (clearButton) clearButton.style.display = "none";
+        } else if (selected.length === 1) {
+          header.textContent = selected[0];
+          if (clearButton) clearButton.style.display = "block";
+        } else {
+          header.textContent = `${selected.length} selected`;
+          if (clearButton) clearButton.style.display = "block";
+        }
+
+        // Update URL params
+        const rootUrl = new URL(window.location);
+        if (selected.length > 0) {
+          rootUrl.searchParams.set(param, selected.join(","));
+        } else {
+          rootUrl.searchParams.delete(param);
+        }
+        window.history.pushState({}, "", rootUrl);
+
+        // update content-frame url for Turbo
+        const contentUrl = new URL(window.location);
+        contentUrl.pathname = <%= filterable_dashboard_content_static_pages_path.to_json %>;
+        contentUrl.searchParams.set(param, selected.join(","));
+        frame.src = contentUrl.toString();
+
+        const requestTimestamp = Date.now();
+        window.lastRequestTimestamp = requestTimestamp;
+
+        fetch(contentUrl.toString(), {
+          headers: { Accept: "text/html" },
+        })
+          .then((response) => response.text())
+          .then((html) => {
+            if (requestTimestamp === window.lastRequestTimestamp) {
+              frame.innerHTML = html;
+              frame.classList.remove("loading");
+              window.hackatimeCharts?.initializeCharts();
+            }
           });
       };
 
-      window.updateSelect = window.updateSelect || function(select) {
-          const header = select.querySelector(".select-header");
-          const clearButton = select.querySelector(".clear-button");
-          const checkboxes = select.querySelectorAll('input[type="checkbox"]');
-          const param = select.dataset.param;
-          const frame = document.querySelector("#filterable_dashboard_content");
-          frame.classList.add("loading");
-
-          const selected = Array.from(checkboxes)
-              .filter(cb => cb.checked)
-              .map(cb => cb.value);
-
-          // Header text, clear button
-          if (selected.length === 0) {
-              header.textContent = `Filter by ${header.closest(".filter").querySelector(".filter-label").textContent.slice(2).toLowerCase()}...`;
-              if (clearButton) clearButton.style.display = "none";
-          } else if (selected.length === 1) {
-              header.textContent = selected[0];
-              if (clearButton) clearButton.style.display = "block";
-          } else {
-              header.textContent = `${selected.length} selected`;
-              if (clearButton) clearButton.style.display = "block";
+    document.addEventListener("turbo:frame-load", function (event) {
+      if (event.target.id === "filterable_dashboard") {
+        ["project", "language", "editor", "operating_system", "category"].forEach((type) => {
+          window.initializeMultiSelect(`${type}-select`);
+        });
+        document.addEventListener("click", function (e) {
+          if (!e.target.closest(".custom-select")) {
+            document.querySelectorAll(".options-container").forEach((container) => {
+              container.style.display = "none";
+            });
           }
-
-          // Update URL params
-          const rootUrl = new URL(window.location);
-          if (selected.length > 0) {
-              rootUrl.searchParams.set(param, selected.join(","));
-          } else {
-              rootUrl.searchParams.delete(param);
-          }
-          window.history.pushState({}, "", rootUrl);
-
-          // update content-frame url for Turbo
-          const contentUrl = new URL(window.location);
-          contentUrl.pathname = <%== filterable_dashboard_content_static_pages_path.to_json %>;
-          contentUrl.searchParams.set(param, selected.join(","));
-          frame.src = contentUrl.toString();
-
-          const requestTimestamp = Date.now();
-          window.lastRequestTimestamp = requestTimestamp;
-
-          fetch(contentUrl.toString(), {
-              headers: { "Accept": "text/html" }
-          }).then(response => response.text()).then(html => {
-              if (requestTimestamp === window.lastRequestTimestamp) {
-                  frame.innerHTML = html;
-                  frame.classList.remove("loading");
-                  window.hackatimeCharts?.initializeCharts();
-              }
-          });
-      };
-
-      document.addEventListener("turbo:frame-load", function(event) {
-          if (event.target.id === "filterable_dashboard") {
-              ["project", "language", "editor", "operating_system", "category"].forEach(type => {
-                  window.initializeMultiSelect(`${type}-select`);
-              });
-              document.addEventListener("click", function(e) {
-                  if (!e.target.closest(".custom-select")) {
-                      document.querySelectorAll(".options-container").forEach(container => {
-                          container.style.display = "none";
-                      });
-                  }
-              });
-          }
-      });
+        });
+      }
+    });
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" data-turbo-track="reload"></script>
   <script>
-      window.chartInstances = window.chartInstances || {};
+    window.chartInstances = window.chartInstances || {};
 
-      if (!window.hackatimeCharts) {
-          window.hackatimeCharts = {
-              formatDuration(seconds) {
-                  const hours = Math.floor(seconds / 3600);
-                  const minutes = Math.floor((seconds % 3600) / 60);
-                  if (hours > 0) { return `${hours}h ${minutes}m`; }
-                  else { return `${minutes}m`; }
+    if (!window.hackatimeCharts) {
+      window.hackatimeCharts = {
+        formatDuration(seconds) {
+          const hours = Math.floor(seconds / 3600);
+          const minutes = Math.floor((seconds % 3600) / 60);
+          if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+          } else {
+            return `${minutes}m`;
+          }
+        },
+
+        createPieChart(elementId) {
+          const canvas = document.getElementById(elementId);
+          if (!canvas) return;
+          const stats = JSON.parse(canvas.dataset.stats);
+          const labels = Object.keys(stats);
+          const data = Object.values(stats);
+          if (window.chartInstances[elementId]) {
+            window.chartInstances[elementId].destroy();
+          }
+          const ctx = canvas.getContext("2d");
+          const pieColors = ["#60a5fa", "#f472b6", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#a78bfa", "#f87171", "#38bdf8", "#e879f9", "#34d399", "#fbbf24", "#818cf8", "#fb7185", "#22d3ee", "#a3e635", "#c084fc", "#f97316", "#14b8a6", "#8b5cf6", "#ec4899", "#84cc16", "#06b6d4", "#d946ef", "#10b981"];
+          const backgroundColors = labels.map((_, i) => pieColors[i % pieColors.length]);
+          window.chartInstances[elementId] = new Chart(ctx, {
+            type: "pie",
+            data: { labels, datasets: [{ data, backgroundColor: backgroundColors, borderWidth: 1 }] },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              aspectRatio: 1.2,
+              plugins: {
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      const label = context.label || "";
+                      const value = context.raw || 0;
+                      const duration = window.hackatimeCharts.formatDuration(value);
+                      const percentage = ((value / data.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
+                      return `${label}: ${duration} (${percentage}%)`;
+                    },
+                  },
+                },
+                legend: {
+                  position: "right",
+                  align: "center",
+                  labels: {
+                    boxWidth: 10,
+                    padding: 8,
+                    font: { size: 10 },
+                  },
+                },
               },
-
-              createPieChart(elementId) {
-                  const canvas = document.getElementById(elementId);
-                  if (!canvas) return;
-                  const stats = JSON.parse(canvas.dataset.stats);
-                  const labels = Object.keys(stats);
-                  const data = Object.values(stats);
-                  if (window.chartInstances[elementId]) {
-                      window.chartInstances[elementId].destroy();
-                  }
-                  const ctx = canvas.getContext("2d");
-                  const pieColors = [
-                      '#60a5fa', '#f472b6', '#fb923c', '#facc15', '#4ade80',
-                      '#2dd4bf', '#a78bfa', '#f87171', '#38bdf8', '#e879f9',
-                      '#34d399', '#fbbf24', '#818cf8', '#fb7185', '#22d3ee',
-                      '#a3e635', '#c084fc', '#f97316', '#14b8a6', '#8b5cf6',
-                      '#ec4899', '#84cc16', '#06b6d4', '#d946ef', '#10b981'
-                  ];
-                  const backgroundColors = labels.map((_, i) => pieColors[i % pieColors.length]);
-                  window.chartInstances[elementId] = new Chart(ctx, {
-                      type: "pie",
-                      data: { labels, datasets: [{data, backgroundColor: backgroundColors, borderWidth: 1 }] },
-                      options: {
-                          responsive: true,
-                          maintainAspectRatio: true,
-                          aspectRatio: 1.2,
-                          plugins: {
-                              tooltip: {
-                                  callbacks: {
-                                      label: function(context) {
-                                          const label = context.label || "";
-                                          const value = context.raw || 0;
-                                          const duration = window.hackatimeCharts.formatDuration(value);
-                                          const percentage = ((value / data.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
-                                          return `${label}: ${duration} (${percentage}%)`;
-                                      }
-                                  }
-                              },
-                              legend: {
-                                  position: "right",
-                                  align: "center",
-                                  labels: {
-                                      boxWidth: 10,
-                                      padding: 8,
-                                      font: { size: 10 }
-                                  }
-                              }
-                          }
-                      }
-                  });
-              },
-
-              createProjectTimelineChart() {
-                  const canvas = document.getElementById("projectTimelineChart");
-                  if (!canvas) return;
-
-                  const weeklyStats = JSON.parse(canvas.dataset.stats);
-                  const allProjects = new Set();
-                  Object.values(weeklyStats).forEach(weekData => {
-                      Object.keys(weekData).forEach(project => allProjects.add(project));
-                  });
-                  const sortedWeeks = Object.keys(weeklyStats).sort();
-                  const datasets = Array.from(allProjects).map((project) => ({
-                      label: project,
-                      data: sortedWeeks.map(week => weeklyStats[week][project] || 0),
-                      stack: "stack0",
-                  }));
-
-                  datasets.sort((a, b) => {
-                      const sumA = a.data.reduce((acc, val) => acc + val, 0);
-                      const sumB = b.data.reduce((acc, val) => acc + val, 0);
-                      return sumB - sumA;
-                  });
-
-                  if (window.chartInstances["projectTimelineChart"]) {
-                      window.chartInstances["projectTimelineChart"].destroy();
-                  }
-                  const ctx = canvas.getContext("2d");
-                  window.chartInstances["projectTimelineChart"] = new Chart(ctx, {
-                      type: "bar",
-                      data: {
-                          labels: sortedWeeks.map(week => {
-                              const date = new Date(week);
-                              return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                          }),
-                          datasets: datasets
-                      },
-                      options: {
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          scales: {
-                              x: {
-                                  stacked: true,
-                                  grid: { display: false }
-                              },
-                              y: {
-                                  stacked: true,
-                                  type: "linear",
-                                  grid: {
-                                      color: (ctx) => {
-                                          if (ctx.tick.value === 0) return "transparent";
-                                          return ctx.tick.value % 1 === 0 ? "rgba(0, 0, 0, 0.1)" : "rgba(0, 0, 0, 0.05)";
-                                      }
-                                  },
-                                  ticks: {
-                                      callback: function(value) {
-                                          if (value === 0) return "0s";
-                                          const hours = Math.floor(value / 3600);
-                                          const minutes = Math.floor((value % 3600) / 60);
-                                          if (hours > 0) return `${hours}h`;
-                                          return `${minutes}m`;
-                                      }
-                                  }
-                              }
-                          },
-                          plugins: {
-                              legend: {
-                                  position: "right",
-                                  labels: {
-                                      boxWidth: 12,
-                                      padding: 15
-                                  }
-                              },
-                              tooltip: {
-                                  callbacks: {
-                                      label: function(context) {
-                                          const value = context.raw;
-                                          const hours = Math.floor(value / 3600);
-                                          const minutes = Math.floor((value % 3600) / 60);
-                                          if (hours > 0) {
-                                              return `${context.dataset.label}: ${hours}h ${minutes}m`;
-                                          }
-                                          return `${context.dataset.label}: ${minutes}m`;
-                                      }
-                                  }
-                              }
-                          }
-                      }
-                  });
-              },
-
-              initializeCharts() {
-                  this.createPieChart("languageChart");
-                  this.createPieChart("editorChart");
-                  this.createPieChart("operatingSystemChart");
-                  this.createProjectTimelineChart();
-              }
-          };
-      }
-
-      if (!window.chartListenersInitialized) {
-          window.chartListenersInitialized = true;
-          document.addEventListener("turbo:frame-load", () => {
-              if (typeof Chart === "undefined") {
-                  const checkChart = setInterval(() => {
-                      if (typeof Chart !== "undefined") {
-                          clearInterval(checkChart);
-                          window.hackatimeCharts.initializeCharts();
-                      }
-                  }, 50);
-                  setTimeout(() => clearInterval(checkChart), 5000);
-              } else {
-                  window.hackatimeCharts.initializeCharts();
-              }
+            },
           });
-      }
-      if (typeof Chart !== "undefined") {
+        },
+
+        createProjectTimelineChart() {
+          const canvas = document.getElementById("projectTimelineChart");
+          if (!canvas) return;
+
+          const weeklyStats = JSON.parse(canvas.dataset.stats);
+          const allProjects = new Set();
+          Object.values(weeklyStats).forEach((weekData) => {
+            Object.keys(weekData).forEach((project) => allProjects.add(project));
+          });
+          const sortedWeeks = Object.keys(weeklyStats).sort();
+          const datasets = Array.from(allProjects).map((project) => ({
+            label: project,
+            data: sortedWeeks.map((week) => weeklyStats[week][project] || 0),
+            stack: "stack0",
+          }));
+
+          datasets.sort((a, b) => {
+            const sumA = a.data.reduce((acc, val) => acc + val, 0);
+            const sumB = b.data.reduce((acc, val) => acc + val, 0);
+            return sumB - sumA;
+          });
+
+          if (window.chartInstances["projectTimelineChart"]) {
+            window.chartInstances["projectTimelineChart"].destroy();
+          }
+          const ctx = canvas.getContext("2d");
+          window.chartInstances["projectTimelineChart"] = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: sortedWeeks.map((week) => {
+                const date = new Date(week);
+                return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+              }),
+              datasets: datasets,
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                x: {
+                  stacked: true,
+                  grid: { display: false },
+                },
+                y: {
+                  stacked: true,
+                  type: "linear",
+                  grid: {
+                    color: (ctx) => {
+                      if (ctx.tick.value === 0) return "transparent";
+                      return ctx.tick.value % 1 === 0 ? "rgba(0, 0, 0, 0.1)" : "rgba(0, 0, 0, 0.05)";
+                    },
+                  },
+                  ticks: {
+                    callback: function (value) {
+                      if (value === 0) return "0s";
+                      const hours = Math.floor(value / 3600);
+                      const minutes = Math.floor((value % 3600) / 60);
+                      if (hours > 0) return `${hours}h`;
+                      return `${minutes}m`;
+                    },
+                  },
+                },
+              },
+              plugins: {
+                legend: {
+                  position: "right",
+                  labels: {
+                    boxWidth: 12,
+                    padding: 15,
+                  },
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      const value = context.raw;
+                      const hours = Math.floor(value / 3600);
+                      const minutes = Math.floor((value % 3600) / 60);
+                      if (hours > 0) {
+                        return `${context.dataset.label}: ${hours}h ${minutes}m`;
+                      }
+                      return `${context.dataset.label}: ${minutes}m`;
+                    },
+                  },
+                },
+              },
+            },
+          });
+        },
+
+        initializeCharts() {
+          this.createPieChart("languageChart");
+          this.createPieChart("editorChart");
+          this.createPieChart("operatingSystemChart");
+          this.createProjectTimelineChart();
+        },
+      };
+    }
+
+    if (!window.chartListenersInitialized) {
+      window.chartListenersInitialized = true;
+      document.addEventListener("turbo:frame-load", () => {
+        if (typeof Chart === "undefined") {
+          const checkChart = setInterval(() => {
+            if (typeof Chart !== "undefined") {
+              clearInterval(checkChart);
+              window.hackatimeCharts.initializeCharts();
+            }
+          }, 50);
+          setTimeout(() => clearInterval(checkChart), 5000);
+        } else {
           window.hackatimeCharts.initializeCharts();
-      }
+        }
+      });
+    }
+    if (typeof Chart !== "undefined") {
+      window.hackatimeCharts.initializeCharts();
+    }
   </script>
 <% end %>

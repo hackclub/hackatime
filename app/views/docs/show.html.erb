@@ -44,7 +44,6 @@
     }
     .prose a:hover {
       color: var(--color-red) !important;
-
     }
   </style>
 <% end %>
@@ -65,7 +64,8 @@
         <% end %>
       <% end %>
     </nav>
-    <div class="bg-dark rounded-lg p-8 mb-8 prose prose-invert prose-lg max-w-none
+    <div
+      class="bg-dark rounded-lg p-8 mb-8 prose prose-invert prose-lg max-w-none
                 prose-headings:text-primary prose-headings:font-bold prose-headings:leading-tight
                 prose-h1:text-4xl prose-h1:mb-6 prose-h1:text-primary prose-h1:mt-0
                 prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:text-primary prose-h2:border-b prose-h2:border-primary/20 prose-h2:pb-2
@@ -102,7 +102,8 @@
                 [&_img[src*='/images/editor-icons/']]:w-16 [&_img[src*='/images/editor-icons/']]:h-16 [&_img[src*='/images/editor-icons/']]:mx-auto [&_img[src*='/images/editor-icons/']]:block [&_img[src*='/images/editor-icons/']]:my-4
                 [&_.editor-steps]:bg-darkless [&_.editor-steps]:p-6 [&_.editor-steps]:rounded-lg [&_.editor-steps]:my-4
                 [&_.editor-steps_ol]:m-0
-                [&_.editor-steps_li]:mb-2">
+                [&_.editor-steps_li]:mb-2"
+    >
       <%= sanitize @rendered_content, tags: %w[h1 h2 h3 h4 h5 h6 p a ul ol li code pre strong em img div span table thead tbody tr th td hr br blockquote], attributes: %w[href src alt title class id] %>
     </div>
     <div class="text-center bg-darkless rounded-lg p-6">
