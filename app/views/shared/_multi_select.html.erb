@@ -2,9 +2,7 @@
   <label class="filter-label">▼ <%= label %></label>
   <div class="custom-select" id="<%= param %>-select" data-param="<%= param %>">
     <div class="select-header-container">
-      <div class="select-header">
-        Filter by <%= label.downcase %>...
-      </div>
+      <div class="select-header">Filter by <%= label.downcase %>...</div>
       <button class="clear-button">×</button>
     </div>
     <div class="options-container">
@@ -12,10 +10,7 @@
       <div class="options-list">
         <% values.reject(&:blank?).each do |value| %>
           <label class="option">
-            <input
-              type="checkbox"
-              value="<%= value %>"
-              <%= 'checked' if selected&.include?(value) %>>
+            <input type="checkbox" value="<%= value %>" <%= 'checked' if selected&.include?(value) %>>
             <span><%= value %></span>
           </label>
         <% end %>

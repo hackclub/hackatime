@@ -7,12 +7,7 @@
   <div class="border border-primary rounded-xl p-6 bg-dark">
     <h2 class="text-2xl font-semibold text-green-400 mb-4">Promote</h2>
     <div class="mb-4">
-      <input type="text"
-             id="user-search"
-             placeholder="Search by name or Slack ID..."
-             class="w-full px-4 py-2 bg-darker border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary"
-             data-controller="admin-user-search"
-             data-action="input->admin-user-search#search">
+      <input type="text" id="user-search" placeholder="Search by name or Slack ID..." class="w-full px-4 py-2 bg-darker border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary" data-controller="admin-user-search" data-action="input->admin-user-search#search">
     </div>
     <div id="search-results" class="space-y-2"></div>
   </div>
@@ -41,22 +36,13 @@
                     <% end %>
                   </div>
                 </td>
-                <td class="py-3 px-4 text-gray-300"><%= user.slack_uid || "N/A" %></td>
+                <td class="py-3 px-4 text-gray-300"><%= user.slack_uid || 'N/A' %></td>
                 <td class="py-3 px-4">
                   <% if user.id != @current_user_id %>
                     <div class="flex gap-2">
-                      <%= button_to "→ Admin", admin_admin_user_path(user, admin_level: "admin"),
-                          method: :patch,
-                          class: "px-3 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                          data: { confirm: "Demote #{user.display_name} to Admin?" } %>
-                      <%= button_to "→ Viewer", admin_admin_user_path(user, admin_level: "viewer"),
-                          method: :patch,
-                          class: "px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                          data: { confirm: "Demote #{user.display_name} to Viewer?" } %>
-                      <%= button_to "→ Default", admin_admin_user_path(user, admin_level: "default"),
-                          method: :patch,
-                          class: "px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                          data: { confirm: "Remove #{user.display_name}'s admin privileges?" } %>
+                      <%= button_to '→ Admin', admin_admin_user_path(user, admin_level: 'admin'), method: :patch, class: 'px-3 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Demote #{user.display_name} to Admin?" } %>
+                      <%= button_to '→ Viewer', admin_admin_user_path(user, admin_level: 'viewer'), method: :patch, class: 'px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Demote #{user.display_name} to Viewer?" } %>
+                      <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s admin privileges?" } %>
                     </div>
                   <% else %>
                     <span class="text-gray-500 text-sm">Cannot modify yourself</span>
@@ -93,21 +79,12 @@
                     <span class="text-white"><%= user.display_name %></span>
                   </div>
                 </td>
-                <td class="py-3 px-4 text-gray-300"><%= user.slack_uid || "N/A" %></td>
+                <td class="py-3 px-4 text-gray-300"><%= user.slack_uid || 'N/A' %></td>
                 <td class="py-3 px-4">
                   <div class="flex gap-2">
-                    <%= button_to "→ Superadmin", admin_admin_user_path(user, admin_level: "superadmin"),
-                        method: :patch,
-                        class: "px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                        data: { confirm: "Promote #{user.display_name} to Superadmin?" } %>
-                    <%= button_to "→ Viewer", admin_admin_user_path(user, admin_level: "viewer"),
-                        method: :patch,
-                        class: "px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                        data: { confirm: "Demote #{user.display_name} to Viewer?" } %>
-                    <%= button_to "→ Default", admin_admin_user_path(user, admin_level: "default"),
-                        method: :patch,
-                        class: "px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                        data: { confirm: "Remove #{user.display_name}'s admin privileges?" } %>
+                    <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Promote #{user.display_name} to Superadmin?" } %>
+                    <%= button_to '→ Viewer', admin_admin_user_path(user, admin_level: 'viewer'), method: :patch, class: 'px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Demote #{user.display_name} to Viewer?" } %>
+                    <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s admin privileges?" } %>
                   </div>
                 </td>
               </tr>
@@ -141,21 +118,12 @@
                     <span class="text-white"><%= user.display_name %></span>
                   </div>
                 </td>
-                <td class="py-3 px-4 text-gray-300"><%= user.slack_uid || "N/A" %></td>
+                <td class="py-3 px-4 text-gray-300"><%= user.slack_uid || 'N/A' %></td>
                 <td class="py-3 px-4">
                   <div class="flex gap-2">
-                    <%= button_to "→ Superadmin", admin_admin_user_path(user, admin_level: "superadmin"),
-                        method: :patch,
-                        class: "px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                        data: { confirm: "Promote #{user.display_name} to Superadmin?" } %>
-                    <%= button_to "→ Admin", admin_admin_user_path(user, admin_level: "admin"),
-                        method: :patch,
-                        class: "px-3 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                        data: { confirm: "Promote #{user.display_name} to Admin?" } %>
-                    <%= button_to "→ Default", admin_admin_user_path(user, admin_level: "default"),
-                        method: :patch,
-                        class: "px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium rounded transition-colors cursor-pointer",
-                        data: { confirm: "Remove #{user.display_name}'s viewer privileges?" } %>
+                    <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Promote #{user.display_name} to Superadmin?" } %>
+                    <%= button_to '→ Admin', admin_admin_user_path(user, admin_level: 'admin'), method: :patch, class: 'px-3 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Promote #{user.display_name} to Admin?" } %>
+                    <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s viewer privileges?" } %>
                   </div>
                 </td>
               </tr>
@@ -170,29 +138,29 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const input = document.getElementById('user-search');
-    const res = document.getElementById('search-results');
+  document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("user-search");
+    const res = document.getElementById("search-results");
     let d;
 
     if (input) {
-      input.addEventListener('input', function() {
+      input.addEventListener("input", function () {
         clearTimeout(d);
         const query = this.value.trim();
 
         if (query.length < 2) {
-          res.innerHTML = '';
+          res.innerHTML = "";
           return;
         }
 
-        d = setTimeout(function() {
-          fetch('/admin/admin_users/search?q=' + encodeURIComponent(query), {
-            headers: { 'Accept': 'text/html' }
+        d = setTimeout(function () {
+          fetch("/admin/admin_users/search?q=" + encodeURIComponent(query), {
+            headers: { Accept: "text/html" },
           })
-          .then(r => r.text())
-          .then(html => {
-            res.innerHTML = html;
-          });
+            .then((r) => r.text())
+            .then((html) => {
+              res.innerHTML = html;
+            });
         }, 100);
       });
     }

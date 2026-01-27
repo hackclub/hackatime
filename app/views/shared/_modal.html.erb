@@ -1,20 +1,16 @@
 <%
   modal_id ||= "modal-#{SecureRandom.hex(4)}"
   icon_svg ||= nil
-  icon_color ||= "text-primary"
-  title ||= "Confirm"
+  icon_color ||= 'text-primary'
+  title ||= 'Confirm'
   description ||= nil
   buttons ||= []
-  max_width ||= "max-w-md"
+  max_width ||= 'max-w-md'
   custom ||= nil
 %>
 
-<div id="<%= modal_id %>"
-     class="fixed inset-0 flex items-center justify-center z-9999 opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out hidden"
-     style="background-color: rgba(0, 0, 0, 0.5);backdrop-filter: blur(4px);"
-     data-controller="modal">
-  <div class="bg-dark border border-primary rounded-lg p-6 <%= max_width %> w-full mx-4 flex flex-col items-center justify-center transform scale-95 transition-transform duration-300 ease-in-out"
-       data-modal-target="content">
+<div id="<%= modal_id %>" class="fixed inset-0 flex items-center justify-center z-9999 opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out hidden" style="background-color: rgba(0, 0, 0, 0.5);backdrop-filter: blur(4px);" data-controller="modal">
+  <div class="bg-dark border border-primary rounded-lg p-6 <%= max_width %> w-full mx-4 flex flex-col items-center justify-center transform scale-95 transition-transform duration-300 ease-in-out" data-modal-target="content">
     <div class="flex flex-col items-center w-full">
       <% if icon_svg %>
         <div class="mb-4 flex justify-center w-full">
@@ -42,9 +38,7 @@
             <div class="flex-1 min-w-0">
               <% if button[:form] %>
                 <% if button[:form_id] %>
-                  <button type="submit"
-                          form="<%= button[:form_id] %>"
-                          class="w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 <%= button[:class] %>">
+                  <button type="submit" form="<%= button[:form_id] %>" class="w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 <%= button[:class] %>">
                     <%= button[:text] %>
                   </button>
                 <% else %>
@@ -53,16 +47,13 @@
                     <% if button[:method] && button[:method] != 'post' %>
                       <input type="hidden" name="_method" value="<%= button[:method] %>">
                     <% end %>
-                    <button type="submit"
-                            class="w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 <%= button[:class] %>">
+                    <button type="submit" class="w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 <%= button[:class] %>">
                       <%= button[:text] %>
                     </button>
                   </form>
                 <% end %>
               <% else %>
-                <button type="button"
-                        data-action="<%= button[:action] || 'click->modal#close' %>"
-                        class="w-full h-10 px-4 rounded-lg transition-colors duration-200 cursor-pointer m-0 <%= button[:class] %>">
+                <button type="button" data-action="<%= button[:action] || 'click->modal#close' %>" class="w-full h-10 px-4 rounded-lg transition-colors duration-200 cursor-pointer m-0 <%= button[:class] %>">
                   <%= button[:text] %>
                 </button>
               <% end %>

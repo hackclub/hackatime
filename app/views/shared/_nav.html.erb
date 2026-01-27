@@ -1,27 +1,30 @@
 <aside class="flex flex-col min-h-screen w-[250px] bg-dark text-white px-2 py-4 rounded-r-lg overflow-y-auto lg:block" data-nav-target="nav" style="scrollbar-width: none; -ms-overflow-style: none;">
   <div class="space-y-4">
     <% flash.each do |name, msg| %>
-      <% c = case name.to_sym
-           when :notice
-             "border-green text-green"
-           else
-             "border-primary text-primary"
-           end %>
+      <%
+        c =
+          case name.to_sym
+          when :notice
+            'border-green text-green'
+          else
+            'border-primary text-primary'
+          end
+      %>
       <div>
-      <div class="rounded-lg border text-center text-lg px-3 py-2 mb-2 <%= c %>"><%= msg %></div>
+        <div class="rounded-lg border text-center text-lg px-3 py-2 mb-2 <%= c %>"><%= msg %></div>
       </div>
     <% end %>
     <% if current_user %>
       <div class="px-2 rounded-lg flex flex-col items-center gap-2">
-        <%= render "shared/user_mention", user: current_user %>
-        <%= render "static_pages/streak", user: current_user, show_text: true, turbo_frame: false %>
+        <%= render 'shared/user_mention', user: current_user %>
+        <%= render 'static_pages/streak', user: current_user, show_text: true, turbo_frame: false %>
         <% if current_user.admin_level != 0 %>
-          <%= render "static_pages/admin_level", user: current_user %>
+          <%= render 'static_pages/admin_level', user: current_user %>
         <% end %>
       </div>
     <% else %>
       <div class="mb-1">
-        <%= link_to "Login", slack_auth_path, class: "block px-2 py-1 rounded-lg transition text-white font-bold bg-primary hover:bg-secondary text-lg" %>
+        <%= link_to 'Login', slack_auth_path, class: 'block px-2 py-1 rounded-lg transition text-white font-bold bg-primary hover:bg-secondary text-lg' %>
       </div>
     <% end %>
     <div>
@@ -80,12 +83,7 @@
             <% end %>
           </div>
           <div>
-            <button
-              type="button"
-              onclick="showLogout()"
-              class="w-full text-left cursor-pointer block px-[15px] py-2.5 rounded-lg transition hover:text-primary hover:bg-darkless"
-              >Logout
-            </button>
+            <button type="button" onclick="showLogout()" class="w-full text-left cursor-pointer block px-[15px] py-2.5 rounded-lg transition hover:text-primary hover:bg-darkless">Logout</button>
           </div>
         <% end %>
         <% dev_tool(nil, "div") do %>

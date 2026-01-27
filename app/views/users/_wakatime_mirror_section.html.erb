@@ -18,15 +18,15 @@
 
   <%= form_with(model: [current_user, WakatimeMirror.new], local: true) do |f| %>
     <div class="field">
-      <%= f.label :endpoint_url, "WakaTime API Endpoint" %>
-      <%= f.text_field :endpoint_url, value: "https://wakatime.com/api/v1", placeholder: "https://wakatime.com/api/v1" %>
+      <%= f.label :endpoint_url, 'WakaTime API Endpoint' %>
+      <%= f.text_field :endpoint_url, value: 'https://wakatime.com/api/v1', placeholder: 'https://wakatime.com/api/v1' %>
     </div>
 
     <div class="field">
-      <%= f.label :encrypted_api_key, "WakaTime API Key" %>
-      <%= f.password_field :encrypted_api_key, placeholder: "Enter your WakaTime API key" %>
+      <%= f.label :encrypted_api_key, 'WakaTime API Key' %>
+      <%= f.password_field :encrypted_api_key, placeholder: 'Enter your WakaTime API key' %>
     </div>
 
-    <%= f.submit "Add Mirror", class: "button" %>
+    <%= f.submit 'Add Mirror', class: 'button' %>
   <% end %>
 </section>

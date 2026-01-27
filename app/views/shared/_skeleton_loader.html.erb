@@ -11,7 +11,6 @@
       <div class="h-8 w-24 bg-darkless rounded mt-2"></div>
     </div>
   </div>
-
 <% when :stat_cards %>
   <div class="stats-section">
     <% 6.times do %>
@@ -25,7 +24,6 @@
       </div>
     <% end %>
   </div>
-
 <% when :bar_graph %>
   <div class="card animate-pulse">
     <div class="h-6 w-40 bg-darkless rounded mb-4"></div>
@@ -40,7 +38,6 @@
       <% end %>
     </div>
   </div>
-
 <% when :pie_chart %>
   <div class="card animate-pulse">
     <div class="h-6 w-32 bg-darkless rounded mb-4"></div>
@@ -56,7 +53,6 @@
       </div>
     </div>
   </div>
-
 <% when :activity_graph %>
   <div class="w-full overflow-x-auto mt-6 pb-2.5 animate-pulse">
     <div class="grid grid-rows-7 grid-flow-col gap-1 w-full lg:w-1/2">
@@ -66,12 +62,10 @@
     </div>
     <div class="h-3 w-48 bg-darkless rounded mt-2"></div>
   </div>
-
 <% when :text_line %>
   <% count.times do %>
     <div class="h-4 bg-darkless rounded animate-pulse mb-2" style="width: <%= rand(60..100) %>%"></div>
   <% end %>
-
 <% when :filters %>
   <div class="filters-section animate-pulse">
     <% 5.times do %>
@@ -81,5 +75,4 @@
       </div>
     <% end %>
   </div>
-
 <% end %>

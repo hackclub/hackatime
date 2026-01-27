@@ -4,9 +4,7 @@
   <div class="mb-8">
     <div class="flex items-center justify-between">
       <h1 class="text-3xl font-bold text-white">looking at a single audit log</h1>
-      <%= link_to "get me outta here",
-          admin_trust_level_audit_logs_path,
-          class: "bg-darkless text-white px-4 py-2 rounded-lg" %>
+      <%= link_to "get me outta here", admin_trust_level_audit_logs_path, class: "bg-darkless text-white px-4 py-2 rounded-lg" %>
     </div>
   </div>
 
@@ -17,15 +15,11 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <%= render "shared/user_mention", user: @audit_log.user %>
-            <div class="text-sm text-gray-400">
-              id: <%= @audit_log.user.id %>
-            </div>
+            <div class="text-sm text-gray-400">id: <%= @audit_log.user.id %></div>
           </div>
 
           <div class="pt-4">
-            <%= link_to "actions on this goober",
-                admin_trust_level_audit_logs_path(user_id: @audit_log.user.id),
-                class: "text-blue-400 hover:text-blue-300" %>
+            <%= link_to "actions on this goober", admin_trust_level_audit_logs_path(user_id: @audit_log.user.id), class: "text-blue-400 hover:text-blue-300" %>
           </div>
         </div>
       </div>
@@ -37,28 +31,18 @@
             <div class="flex items-center">
               <%= render "shared/user_mention", user: @audit_log.changed_by %>
               <% if @audit_log.changed_by.admin_level == "superadmin" %>
-                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-red-950 text-red-500">
-                  supa admin
-                </span>
+                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-red-950 text-red-500">supa admin</span>
               <% elsif @audit_log.changed_by.admin_level == "admin" %>
-                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-yellow-950 text-yellow-500 ml-2">
-                  admin
-                </span>
+                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-yellow-950 text-yellow-500 ml-2">admin</span>
               <% elsif @audit_log.changed_by.admin_level == "viewer" %>
-                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-blue-950 text-blue-500 ml-2">
-                  viewer
-                </span>
+                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-blue-950 text-blue-500 ml-2">viewer</span>
               <% end %>
             </div>
-            <div class="text-sm text-gray-400">
-              id: <%= @audit_log.changed_by.id %>
-            </div>
+            <div class="text-sm text-gray-400">id: <%= @audit_log.changed_by.id %></div>
           </div>
 
           <div class="pt-4">
-            <%= link_to "changes by this goober",
-                admin_trust_level_audit_logs_path(admin_id: @audit_log.changed_by.id),
-                class: "text-blue-400 hover:text-blue-300" %>
+            <%= link_to 'changes by this goober', admin_trust_level_audit_logs_path(admin_id: @audit_log.changed_by.id), class: 'text-blue-400 hover:text-blue-300' %>
           </div>
         </div>
       </div>
@@ -71,7 +55,7 @@
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-2">executed at</label>
           <div class="text-white">
-            <%= @audit_log.created_at.strftime("%B %d, %Y at %I:%M %p %Z") %>
+            <%= @audit_log.created_at.strftime('%B %d, %Y at %I:%M %p %Z') %>
           </div>
         </div>
 
@@ -79,12 +63,17 @@
           <label class="block text-sm font-medium text-gray-400 mb-2">before</label>
           <div class="text-white text-lg">
             <%
-              a = case @audit_log.previous_trust_level
-              when "blue" then "🔵"
-              when "red" then "🔴"
-              when "green" then "🟢"
-              when "yellow" then "🟡"
-              end
+              a =
+                case @audit_log.previous_trust_level
+                when 'blue'
+                  '🔵'
+                when 'red'
+                  '🔴'
+                when 'green'
+                  '🟢'
+                when 'yellow'
+                  '🟡'
+                end
             %>
             <%= a %> <strong><%= @audit_log.previous_trust_level.capitalize %></strong>
           </div>
@@ -94,12 +83,17 @@
           <label class="block text-sm font-medium text-gray-400 mb-2">after</label>
           <div class="text-white text-lg">
             <%
-              b = case @audit_log.new_trust_level
-              when "blue" then "🔵"
-              when "red" then "🔴"
-              when "green" then "🟢"
-              when "yellow" then "🟡"
-              end
+              b =
+                case @audit_log.new_trust_level
+                when 'blue'
+                  '🔵'
+                when 'red'
+                  '🔴'
+                when 'green'
+                  '🟢'
+                when 'yellow'
+                  '🟡'
+                end
             %>
             <%= b %> <strong><%= @audit_log.new_trust_level.capitalize %></strong>
           </div>

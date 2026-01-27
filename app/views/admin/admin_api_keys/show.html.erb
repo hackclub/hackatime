@@ -1,4 +1,4 @@
-<% content_for :title, "Admin API Key Details" %>
+<% content_for :title, 'Admin API Key Details' %>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="mb-8">
@@ -7,9 +7,7 @@
         <h1 class="text-3xl font-bold text-white mb-2">lookin at <%= @admin_api_key.name %></h1>
         <p class="text-gray-400">get the deets</p>
       </div>
-      <%= link_to "← Back to API Keys",
-        admin_admin_api_keys_path,
-        class: "text-gray-400 hover:text-white" %>
+      <%= link_to '← Back to API Keys', admin_admin_api_keys_path, class: 'text-gray-400 hover:text-white' %>
     </div>
   </div>
 
@@ -19,23 +17,15 @@
       <div class="space-y-4">
         <div>
           <label class="block text-md font-medium text-gray-400 mb-2">what was it again?</label>
-          <code class="block bg-darkless px-3 py-2 rounded text-white text-sm">
-            <%= @admin_api_key.token[0..20] %>...
-          </code>
+          <code class="block bg-darkless px-3 py-2 rounded text-white text-sm"> <%= @admin_api_key.token[0..20] %>... </code>
           <% unless flash[:api_key_token] %>
-            <p class="text-md text-gray-400 mt-1">
-              you cant see the full thing again, we showed it when you created it ya doofus
-            </p>
+            <p class="text-md text-gray-400 mt-1">you cant see the full thing again, we showed it when you created it ya doofus</p>
           <% end %>
         </div>
         <div>
           <label class="block text-md font-bold text-white mb-2">how to use it?</label>
-          <p class="text-md text-gray-400 mb-2">
-            most likely you are not crazy enough to build your own api client but you can use rowan's fraud check tool to use the admin api.
-          </p>
-          <p class="text-md text-gray-400">
-            if you are building your own client, just use the token as a bearer token in the auth header of your requests, check the actual source code for more details. or you could just be normal and use the fraud check tool i already made for you.
-          </p>
+          <p class="text-md text-gray-400 mb-2">most likely you are not crazy enough to build your own api client but you can use rowan's fraud check tool to use the admin api.</p>
+          <p class="text-md text-gray-400">if you are building your own client, just use the token as a bearer token in the auth header of your requests, check the actual source code for more details. or you could just be normal and use the fraud check tool i already made for you.</p>
         </div>
       </div>
     </div>
@@ -45,13 +35,9 @@
       <% if @show_token %>
         <div class="bg-green-900/30 border border-green-500/50 rounded-lg p-4 mb-6">
           <h3 class="text-green-300 font-medium mb-2">heres ya key, copy it now!</h3>
-          <p class="text-green-200 text-sm mb-3">
-            copy it now, its not gonna be shown again silly
-          </p>
+          <p class="text-green-200 text-sm mb-3">copy it now, its not gonna be shown again silly</p>
           <div class="bg-gray-800 rounded p-3">
-            <code class="block text-white text-sm break-all select-all">
-              <%= @admin_api_key.token %>
-            </code>
+            <code class="block text-white text-sm break-all select-all"> <%= @admin_api_key.token %> </code>
           </div>
         </div>
       <% end %>
@@ -76,7 +62,7 @@
 
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1">spawned at</label>
-          <div class="text-white"><%= @admin_api_key.created_at.strftime("%B %d, %Y at %I:%M %p") %></div>
+          <div class="text-white"><%= @admin_api_key.created_at.strftime('%B %d, %Y at %I:%M %p') %></div>
         </div>
 
         <div>
@@ -85,10 +71,7 @@
         </div>
       </div>
       <div class="mt-6"></div>
-      <%= link_to "nuke it",
-        admin_admin_api_key_path(@admin_api_key),
-        data: { "turbo-method": :delete },
-        class: "bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" %>
+      <%= link_to 'nuke it', admin_admin_api_key_path(@admin_api_key), data: { 'turbo-method': :delete }, class: 'bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors' %>
     </div>
   </div>
 </div>

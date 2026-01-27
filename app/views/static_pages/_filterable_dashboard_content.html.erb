@@ -57,45 +57,44 @@
 
   <div class="dashboard-grid">
     <% if @project_durations&.size&.> 1 %>
-    <div class="card">
-      <h2>Project Durations</h2>
-      <div class="bar-graph">
-        <%
-          max_duration = @project_durations.values.max
-          min_duration = @project_durations.values.min
+      <div class="card">
+        <h2>Project Durations</h2>
+        <div class="bar-graph">
+          <%
+            max_duration = @project_durations.values.max
 
-          # Use logarithmic scale for better visibility of smaller values
-          # Add 1 to avoid log(0), scale to 15-100 range
-          def log_scale(value, max_val)
-            return 0 if value == 0
-            min_percent = 5  # Minimum bar width percentage
-            max_percent = 100 # Maximum bar width percentage
+            # Use logarithmic scale for better visibility of smaller values
+            # Add 1 to avoid log(0), scale to 15-100 range
+            def log_scale(value, max_val)
+              return 0 if value == 0
+              min_percent = 5 # Minimum bar width percentage
+              max_percent = 100 # Maximum bar width percentage
 
-            # Mix linear and logarithmic scaling
-            # 80% linear, 20% logarithmic
-            linear_ratio = value.to_f / max_val
-            log_ratio = Math.log(value + 1) / Math.log(max_val + 1)
+              # Mix linear and logarithmic scaling
+              # 80% linear, 20% logarithmic
+              linear_ratio = value.to_f / max_val
+              log_ratio = Math.log(value + 1) / Math.log(max_val + 1)
 
-            linear_weight = 0.8
-            log_weight = 0.2
+              linear_weight = 0.8
+              log_weight = 0.2
 
-            scaled = min_percent + (linear_weight * linear_ratio + log_weight * log_ratio) * (max_percent - min_percent)
-            [scaled, max_percent].min.round
-          end
-        %>
+              scaled = min_percent + (linear_weight * linear_ratio + log_weight * log_ratio) * (max_percent - min_percent)
+              [scaled, max_percent].min.round
+            end
+          %>
 
-        <% @project_durations.each do |project, duration| %>
-          <div class="bar-row">
-            <div class="bar-label"><%= h(project.presence || "Unknown") %></div>
-            <div class="bar-container">
-              <div class="bar" style="width: <%= log_scale(duration, max_duration) %>%">
-                <span class="bar-value"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
+          <% @project_durations.each do |project, duration| %>
+            <div class="bar-row">
+              <div class="bar-label"><%= h(project.presence || 'Unknown') %></div>
+              <div class="bar-container">
+                <div class="bar" style="width: <%= log_scale(duration, max_duration) %>%">
+                  <span class="bar-value"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
+                </div>
               </div>
             </div>
-          </div>
-        <% end %>
+          <% end %>
+        </div>
       </div>
-    </div>
     <% end %>
 
     <%# Language distribution %>

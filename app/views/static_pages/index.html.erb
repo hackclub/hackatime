@@ -17,8 +17,7 @@
       <%= @flavor_text %>
     </p>
   </div>
-  <div id="clock" class="clockicons clock-display">
-  </div>
+  <div id="clock" class="clockicons clock-display"></div>
   <% if current_user %>
     <h1 class="font-bold mt-1 mb-4 text-5xl text-center">Keep Track of <span class="text-primary">Your</span> Coding Time</h1>
   <% else %>
@@ -46,36 +45,25 @@
           </div>
         <% end %>
         <%= link_to slack_auth_path, class: "flex items-center justify-center px-4 py-3 rounded text-white cursor-pointer bg-dark hover:bg-darkless border border-darkless text-gray-300 transition-colors w-1/4 gap-2" do %>
-            <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-6 h-6"><path fill="currentColor" d="M6 15a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2h2zm1 0a2 2 0 0 1 2-2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2a2 2 0 0 1-2-2zm2-8a2 2 0 0 1-2-2a2 2 0 0 1 2-2a2 2 0 0 1 2 2v2zm0 1a2 2 0 0 1 2 2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2a2 2 0 0 1 2-2zm8 2a2 2 0 0 1 2-2a2 2 0 0 1 2 2a2 2 0 0 1-2 2h-2zm-1 0a2 2 0 0 1-2 2a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2a2 2 0 0 1 2 2zm-2 8a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2v-2zm0-1a2 2 0 0 1-2-2a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2a2 2 0 0 1-2 2z" /></svg></span>
-            <span class="hidden xl:inline">Slack Sign In</span>
+          <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-6 h-6"><path fill="currentColor" d="M6 15a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2h2zm1 0a2 2 0 0 1 2-2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2a2 2 0 0 1-2-2zm2-8a2 2 0 0 1-2-2a2 2 0 0 1 2-2a2 2 0 0 1 2 2v2zm0 1a2 2 0 0 1 2 2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2a2 2 0 0 1 2-2zm8 2a2 2 0 0 1 2-2a2 2 0 0 1 2 2a2 2 0 0 1-2 2h-2zm-1 0a2 2 0 0 1-2 2a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2a2 2 0 0 1 2 2zm-2 8a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2v-2zm0-1a2 2 0 0 1-2-2a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2a2 2 0 0 1-2 2z" /></svg></span>
+          <span class="hidden xl:inline">Slack Sign In</span>
         <% end %>
       </div>
     </div>
     <% if params[:sign_in_email] %>
-      <div class="text-green-500 mt-4 text-center max-w-[50vw] mx-auto">
-        Check your email for a sign-in link!
-      </div>
+      <div class="text-green-500 mt-4 text-center max-w-[50vw] mx-auto">Check your email for a sign-in link!</div>
       <% dev_tool class: "text-center max-w-[50vw] mx-auto mb-4" do %>
         Because you're on localhost, <%= link_to "click here to view the email", letter_opener_web_path %>
       <% end %>
     <% end %>
     <div class="w-full flex justify-center overflow-x-none">
-      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
-        ==============================================/ h a c k /=============================================
-      </p>
+      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">==============================================/ h a c k /=============================================</p>
     </div>
     <div class="mt-8 mb-8">
       <h1 class="font-bold mt-1 mb-1 text-4xl">Compatible with your favourite IDEs</h1>
       <p class="text-primary monospace text-[20px]">Hackatime works with these code editors and more!</p>
       <div id="supported-editors" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-4">
-        <% popular_editors = [
-          ['VS Code', 'vs-code'], ['PyCharm', 'pycharm'], ['IntelliJ IDEA', 'intellij-idea'],
-          ['Sublime Text', 'sublime-text'], ['Vim', 'vim'], ['Neovim', 'neovim'],
-          ['Android Studio', 'android-studio'], ['Xcode', 'xcode'], ['Unity', 'unity'],
-          ['Godot', 'godot'], ['Cursor', 'cursor'], ['Zed', 'zed'],
-          ['Terminal', 'terminal'], ['WebStorm', 'webstorm'], ['Eclipse', 'eclipse'],
-          ['Emacs', 'emacs'], ['Jupyter', 'jupyter'], ['OnShape', 'onshape']
-        ] %>
+        <% popular_editors = [['VS Code', 'vs-code'], %w[PyCharm pycharm], ['IntelliJ IDEA', 'intellij-idea'], ['Sublime Text', 'sublime-text'], %w[Vim vim], %w[Neovim neovim], ['Android Studio', 'android-studio'], %w[Xcode xcode], %w[Unity unity], %w[Godot godot], %w[Cursor cursor], %w[Zed zed], %w[Terminal terminal], %w[WebStorm webstorm], %w[Eclipse eclipse], %w[Emacs emacs], %w[Jupyter jupyter], %w[OnShape onshape]] %>
         <% popular_editors.each do |name, slug| %>
           <a href="<%= doc_path("editors/#{slug}") %>" class="bg-darkless rounded-lg p-3 hover:bg-primary/20 transition-all duration-200 text-center block hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20">
             <img src="/images/editor-icons/<%= slug %>-128.png" alt="<%= name %>" class="w-12 h-12 mx-auto mb-2">
@@ -85,15 +73,13 @@
       </div>
     </div>
     <div class="w-full flex justify-center overflow-x-none">
-      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
-        -----------------------------------------------------------------------------------------------
-      </p>
+      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">-----------------------------------------------------------------------------------------------</p>
     </div>
     <div class="mt-8 mb-8">
       <h1 class="font-bold mt-1 mb-1 text-4xl">Why Hackatime?</h1>
       <% if @home_stats&.[](:seconds_tracked) && @home_stats&.[](:users_tracked) %>
         <p class="text-primary monospace text-[20px]">
-          We've tracked over <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %></span> of coding time across <span class="text-primary"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %></span> since <span class="text-primary">2025</span>!
+          We've tracked over <span class="text-primary"><%= number_with_delimiter(@home_stats[:seconds_tracked] / 3600) %> <%= 'hour'.pluralize(@home_stats[:seconds_tracked] / 3600) %> </span> of coding time across <span class="text-primary"><%= number_with_delimiter(@home_stats[:users_tracked]) %> <%= 'high schooler'.pluralize(@home_stats[:users_tracked]) %> </span> since <span class="text-primary">2025</span>!
         </p>
       <% end %>
       <div class="overflow-x-auto -mx-4 px-4 pb-4 no-scrollbar">
@@ -106,10 +92,7 @@
       </div>
     </div>
     <div class="w-full flex justify-center overflow-x-none">
-      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
-        --------------------------------| #hackclub | #hackclub | #hackclub |--------------------------------
-      </p>
-
+      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">--------------------------------| #hackclub | #hackclub | #hackclub |--------------------------------</p>
     </div>
     <div class="mt-8 mb-8">
       <h1 class="font-bold mt-1 mb-1 text-4xl">For your favorite <span class="text-primary">Hack Club</span> events!</h1>
@@ -130,7 +113,7 @@
           </div>
         </div>
       </div>
-      <div class="flex flex-col md:flex-row bg-gradient-to-r from-[#EFCCCC] to-[#D35648] mt-4 mb-4 rounded-lg">
+      <div class="flex flex-col md:flex-row bg-linear-to-r from-[#EFCCCC] to-[#D35648] mt-4 mb-4 rounded-lg">
         <div class="w-full md:w-1/3 -translate-y-5">
           <img src="/images/athena.png" class="w-[400px]">
         </div>
@@ -145,9 +128,7 @@
   <% if current_user %>
     <% if @show_wakatime_setup_notice %>
       <div class="text-left my-8 flex flex-col">
-        <p class="mb-4 text-xl text-primary">
-          Hello friend! Looks like you are new around here, let's get you set up so you can start tracking your coding time.
-        </p>
+        <p class="mb-4 text-xl text-primary">Hello friend! Looks like you are new around here, let's get you set up so you can start tracking your coding time.</p>
         <%= link_to "Let's setup Hackatime! Click me :D", my_wakatime_setup_path, class: "inline-block w-auto text-3xl font-bold px-8 py-4 bg-primary text-white rounded shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-pulse" %>
         <div class="flex items-center mt-4 flex-nowrap">
           <% if @ssp_users_recent&.any? %>
@@ -230,7 +211,7 @@
       <%= render "static_pages/filterable_dashboard_loading" %>
     <% end %>
     <%= turbo_frame_tag "activity_graph", src: activity_graph_static_pages_path, loading: :lazy do %>
-      <%= render "static_pages/activity_graph_loading" %>
+      <%= render 'static_pages/activity_graph_loading' %>
     <% end %>
   <% else %>
     <% if @leaderboard %>
@@ -239,9 +220,7 @@
     <% end %>
 
     <div class="w-full flex justify-center overflow-x-none">
-      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">
-      ==============================================/ h a c k /=============================================
-      </p>
+      <p class="monospace text-center text-primary text-[22px] select-none whitespace-nowrap">==============================================/ h a c k /=============================================</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8 items-center">

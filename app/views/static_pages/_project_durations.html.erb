@@ -1,31 +1,29 @@
 <%= turbo_frame_tag "project_durations" do %>
-  <%
-    max = project_durations.map { |p| p[:duration] }.max || 1
-  %>
+  <% max = project_durations.map { |p| p[:duration] }.max || 1 %>
   <p class="text-lg text-white mt-6">
-      <% total_time = project_durations.sum { |p| p[:duration].to_i } %>
+    <% total_time = project_durations.sum { |p| p[:duration].to_i } %>
 
-      <% if total_time > 0 %>
-        You've spent <span class="font-semibold"><%= short_time_detailed(total_time) %></span> coding across all projects.
-      <% else %>
-        You haven't logged any time yet. Start coding!
-      <% end %>
+    <% if total_time > 0 %>
+      You've spent <span class="font-semibold"><%= short_time_detailed(total_time) %></span> coding across all projects.
+    <% else %>
+      You haven't logged any time yet. Start coding!
+    <% end %>
   </p>
   <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mt-6">
     <% project_durations.each do |project| %>
       <% if current_user.github_uid.present? && project[:project].present? %>
-        <%= render "my/project_repo_mappings/edit_modal", project: project %>
+        <%= render 'my/project_repo_mappings/edit_modal', project: project %>
         <% if show_archived %>
-          <%= render "my/project_repo_mappings/unarchive_modal", project: project %>
+          <%= render 'my/project_repo_mappings/unarchive_modal', project: project %>
         <% else %>
-          <%= render "my/project_repo_mappings/archive_modal", project: project %>
+          <%= render 'my/project_repo_mappings/archive_modal', project: project %>
         <% end %>
       <% end %>
       <div class="bg-dark border border-primary rounded-xl p-6 shadow-lg transition-all duration-300 flex flex-col gap-4 hover:border-primary/40 hover:-translate-y-1 hover:shadow-xl backdrop-blur-sm">
         <div class="flex justify-between items-start gap-3">
           <div class="flex flex-col gap-2 flex-1 min-w-0">
             <h3 class="text-lg font-semibold text-white truncate" title="<%= h(project[:project]) %>">
-              <%= h(project[:project].presence || "Unknown") %>
+              <%= h(project[:project].presence || 'Unknown') %>
             </h3>
             <% if project[:repository]&.stars.present? %>
               <div class="flex items-center gap-1 text-sm text-yellow-400">
@@ -53,30 +51,21 @@
             <% end %>
             <% if current_user.github_uid.present? && project[:project].present? %>
               <% modal_id = "edit-project-modal-#{project[:project]&.parameterize || 'unknown'}" %>
-              <button type="button"
-                onclick="document.getElementById(<%= modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))"
-                class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 cursor-pointer"
-                title="Edit mapping">
+              <button type="button" onclick="document.getElementById(<%= modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 cursor-pointer" title="Edit mapping">
                 <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83l3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z" />
                 </svg>
               </button>
               <% if show_archived %>
                 <% unarchive_modal_id = "unarchive-project-modal-#{project[:project]&.parameterize || 'unknown'}" %>
-                <button type="button"
-                  onclick="document.getElementById(<%= unarchive_modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))"
-                  class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 cursor-pointer"
-                  title="Restore project">
+                <button type="button" onclick="document.getElementById(<%= unarchive_modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 cursor-pointer" title="Restore project">
                   <svg class="w-4 h-4 text-white/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path fill="currentColor" d="m20.55 5.22l-1.39-1.68A1.51 1.51 0 0 0 18 3H6c-.47 0-.88.21-1.15.55L3.46 5.22C3.17 5.57 3 6.01 3 6.5V19a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6.5c0-.49-.17-.93-.45-1.28m-8.2 4.63L17.5 15H14v2h-4v-2H6.5l5.15-5.15c.19-.19.51-.19.7 0M5.12 5l.82-1h12l.93 1z" />
                   </svg>
                 </button>
               <% else %>
                 <% archive_modal_id = "archive-project-modal-#{project[:project]&.parameterize || 'unknown'}" %>
-                <button type="button"
-                  onclick="document.getElementById(<%= archive_modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))"
-                  class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 cursor-pointer"
-                  title="Archive project">
+                <button type="button" onclick="document.getElementById(<%= archive_modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 cursor-pointer" title="Archive project">
                   <svg class="w-4 h-4 text-white/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path fill="currentColor" d="m20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27m-8.89 11.92L6.5 12H10v-2h4v2h3.5l-5.15 5.15c-.19.19-.51.19-.7 0M5.12 5l.81-1h12l.94 1z" />
                   </svg>
@@ -90,9 +79,7 @@
           <span class="text-2xl font-bold text-primary"><%= short_time_detailed project[:duration] %></span>
           <div class="flex items-center gap-2 hidden">
             <div class="w-16 h-2 bg-white/10 rounded-full overflow-hidden">
-              <div
-                class="h-full bg-primary transition-all duration-500 rounded-full"
-                style="width: <%= [project[:duration].to_f / max.to_f * 100, 100].min %>%;"></div>
+              <div class="h-full bg-primary transition-all duration-500 rounded-full" style="width: <%= [project[:duration].to_f / max.to_f * 100, 100].min %>%;"></div>
             </div>
             <span class="text-xs text-white/40"><%= number_to_percentage([project[:duration].to_f / max.to_f * 100, 100].min, precision: 0) %></span>
           </div>
