@@ -310,7 +310,7 @@
         function up2(project) {
           const preview = document.getElementById("project-badge-preview");
           const url = document.getElementById("project-badge-url");
-          const baseUrl = <%= (@work_time_stats_url.gsub(@projects.first || 'example', '')).to_json %>;
+          const baseUrl = <%== (@work_time_stats_url.gsub(@projects.first || 'example', '')).to_json %>;
           const newUrl = baseUrl + project;
           preview.src = newUrl;
           url.textContent = newUrl;
