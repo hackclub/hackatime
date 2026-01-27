@@ -53,7 +53,7 @@
     }
 
     function updateProjectsFrame(url) {
-      let baseUrl = <%= = project_durations_static_pages_path.to_json %>;
+      let baseUrl = <%= project_durations_static_pages_path.to_json %>;
       const params = new URLSearchParams(new URL(url).search);
       const frameUrl = baseUrl + "?" + params.toString();
 
