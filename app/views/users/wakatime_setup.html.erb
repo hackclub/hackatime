@@ -230,9 +230,9 @@
     }
 
     function check() {
-      fetch(<%= api_v1_my_heartbeats_most_recent_path(source_type: "test_entry").to_json %>, {
+      fetch(<%== api_v1_my_heartbeats_most_recent_path(source_type: "test_entry").to_json %>, {
         headers: {
-          Authorization: "Bearer " + <%= @current_user_api_key.to_json %>,
+          Authorization: "Bearer " + <%== @current_user_api_key.to_json %>,
         },
       })
         .then((response) => response.json())
@@ -272,7 +272,7 @@
     check();
 
     window.skipToNext = function () {
-      window.location.href = <%= my_wakatime_setup_step_2_path.to_json %>;
+      window.location.href = <%== my_wakatime_setup_step_2_path.to_json %>;
     };
   });
 
