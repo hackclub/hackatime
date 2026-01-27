@@ -1,17 +1,10 @@
-<div class="user-info flex items-center gap-2" title="<%= if user == current_user
-  FlavorText.same_user.sample
-else
-  user.github_username.presence || user.slack_username.presence
-end %>">
-  <%= image_tag user.avatar_url,
-                size: "32x32",
-                class: "rounded-full aspect-square border border-gray-300",
-                alt: "#{h(user.display_name)}'s avatar" if user.avatar_url %>
+<div class="user-info flex items-center gap-2" title="<%= user == current_user ? FlavorText.same_user.sample : user.github_username.presence || user.slack_username.presence %>">
+  <%= image_tag user.avatar_url, size: '32x32', class: 'rounded-full aspect-square border border-gray-300', alt: "#{h(user.display_name)}'s avatar" if user.avatar_url %>
   <span class="inline-flex items-center gap-1">
     <% if local_assigns.fetch(:show, []).include?(:profile_link) && user.username.present? %>
-      <%= link_to h(user.display_name), profile_path(user.username), class: "text-blue-500 hover:underline" %>
+      <%= link_to h(user.display_name), profile_path(user.username), class: 'text-blue-500 hover:underline' %>
     <% elsif local_assigns.fetch(:show, []).include?(:slack) && user.slack_uid.present? %>
-      <%= link_to "@#{h(user.display_name)}", "https://hackclub.slack.com/team/#{user.slack_uid}", target: "_blank", class: "text-blue-500 hover:underline" %>
+      <%= link_to "@#{h(user.display_name)}", "https://hackclub.slack.com/team/#{user.slack_uid}", target: '_blank', class: 'text-blue-500 hover:underline' %>
     <% else %>
       <%= h(user.display_name) %>
     <% end %>

@@ -17,8 +17,7 @@
           <span class="text-gray-300">Status</span>
           <span
             class="px-3 py-1 rounded-full text-sm font-medium
-            <%= @deletion_request.approved? ? 'bg-green-600/20 text-green-400' : 'bg-yellow-600/20 text-yellow-400' %>"
-          >
+            <%= @deletion_request.approved? ? 'bg-green-600/20 text-green-400' : 'bg-yellow-600/20 text-yellow-400' %>">
             <%= @deletion_request.status.humanize %>
           </span>
         </div>

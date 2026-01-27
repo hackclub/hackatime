@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html class="<%= Rails.env == "production" ? "production" : "development" %>" data-theme="dark">
+<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="dark">
   <head>
-    <title><%= @page_title || content_for(:title) || "Hackatime" %></title>
+    <title><%= @page_title || content_for(:title) || 'Hackatime' %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -41,124 +41,112 @@
     <%= csp_meta_tag %>
 
     <% if current_user %>
-      <meta name="user-is-superadmin" content="<%= current_user.admin_level == "superadmin" %>">
-      <meta name="user-is-admin" content="<%= current_user.admin_level == "admin" %>">
-      <meta name="user-is-viewer" content="<%= current_user.admin_level == "viewer" %>">
+      <meta name="user-is-superadmin" content="<%= current_user.admin_level == 'superadmin' %>">
+      <meta name="user-is-admin" content="<%= current_user.admin_level == 'admin' %>">
+      <meta name="user-is-viewer" content="<%= current_user.admin_level == 'viewer' %>">
     <% end %>
 
     <%= yield :head %>
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Hackatime",
-      "alternateName": "Hack Club Hackatime",
-      "applicationCategory": "DeveloperApplication",
-      "operatingSystem": "Any",
-      "description": "Track your coding time easily with Hackatime. A free tool to see how much time you spend programming in different languages and editors.",
-      "url": "https://hackatime.hackclub.com",
-      "downloadUrl": "https://hackatime.hackclub.com",
-      "sameAs": [
-        "https://github.com/hackclub/hackatime",
-        "https://hackatime.hackclub.com/docs"
-      ],
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock"
-      },
-      "author": {
-        "@type": "Organization",
-        "name": "Hack Club",
-        "url": "https://hackclub.com"
-      },
-      "softwareVersion": "2.0",
-      "datePublished": "2025-01-01",
-      "license": "https://opensource.org/licenses/MIT",
-      "programmingLanguage": "Ruby",
-      "codeRepository": "https://github.com/hackclub/hackatime",
-      "supportingData": "Free coding time tracker",
-      "featureList": [
-        "Track coding time across 75+ editors",
-        "See which languages you use most",
-        "View daily coding statistics",
-        "Compare with other high schoolers",
-        "Free and open source"
-      ]
-    }
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Hackatime",
+        "alternateName": "Hack Club Hackatime",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "description": "Track your coding time easily with Hackatime. A free tool to see how much time you spend programming in different languages and editors.",
+        "url": "https://hackatime.hackclub.com",
+        "downloadUrl": "https://hackatime.hackclub.com",
+        "sameAs": ["https://github.com/hackclub/hackatime", "https://hackatime.hackclub.com/docs"],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        },
+        "author": {
+          "@type": "Organization",
+          "name": "Hack Club",
+          "url": "https://hackclub.com"
+        },
+        "softwareVersion": "2.0",
+        "datePublished": "2025-01-01",
+        "license": "https://opensource.org/licenses/MIT",
+        "programmingLanguage": "Ruby",
+        "codeRepository": "https://github.com/hackclub/hackatime",
+        "supportingData": "Free coding time tracker",
+        "featureList": ["Track coding time across 75+ editors", "See which languages you use most", "View daily coding statistics", "Compare with other high schoolers", "Free and open source"]
+      }
     </script>
 
     <!-- Organization Schema -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "Hack Club",
-      "url": "https://hackclub.com",
-      "logo": "https://hackclub.com/logo.png",
-      "sameAs": [
-        "https://twitter.com/hackclub",
-        "https://github.com/hackclub"
-      ]
-    }
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Hack Club",
+        "url": "https://hackclub.com",
+        "logo": "https://hackclub.com/logo.png",
+        "sameAs": ["https://twitter.com/hackclub", "https://github.com/hackclub"]
+      }
     </script>
 
     <!-- WebSite Schema -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Hackatime",
-      "alternateName": "Hack Club Hackatime",
-      "url": "https://hackatime.hackclub.com"
-    }
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Hackatime",
+        "alternateName": "Hack Club Hackatime",
+        "url": "https://hackatime.hackclub.com"
+      }
     </script>
 
     <!-- FAQ Schema for Homepage -->
     <% if request.path == "/" %>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
+      <script type="application/ld+json">
         {
-          "@type": "Question",
-          "name": "What is Hackatime?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Hackatime is a free coding time tracker that helps you see how much time you spend programming. It tracks your coding time across different languages and editors."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is Hackatime free?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes! Hackatime is completely free to use. There are no paid plans or hidden costs."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How is Hackatime different from WakaTime?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Hackatime is free and open source, while WakaTime has paid plans. Hackatime gives you all features for free and you can host it yourself."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is Hackatime the same as WakaTime?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "No. Hackatime is a separate, independent open-source project built by Hack Club. While both track coding time, Hackatime is completely free and designed for high school students in the Hack Club community."
-          }
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Hackatime?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Hackatime is a free coding time tracker that helps you see how much time you spend programming. It tracks your coding time across different languages and editors."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is Hackatime free?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes! Hackatime is completely free to use. There are no paid plans or hidden costs."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How is Hackatime different from WakaTime?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Hackatime is free and open source, while WakaTime has paid plans. Hackatime gives you all features for free and you can host it yourself."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is Hackatime the same as WakaTime?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. Hackatime is a separate, independent open-source project built by Hack Club. While both track coding time, Hackatime is completely free and designed for high school students in the Hack Club community."
+              }
+            }
+          ]
         }
-      ]
-    }
-    </script>
+      </script>
     <% end %>
 
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
@@ -171,7 +159,7 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
     <%= javascript_importmap_tags %>
-    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>
@@ -179,17 +167,13 @@
 
   <body class="<%= content_for(:body_class) %> flex min-h-screen bg-darker" data-controller="nav">
     <% unless content_for?(:hide_nav) %>
-      <button class="mobile-nav-button"
-              data-action="click->nav#toggle"
-              data-nav-target="button"
-              aria-label="Toggle navigation menu"
-              aria-expanded="false">
+      <button class="mobile-nav-button" data-action="click->nav#toggle" data-nav-target="button" aria-label="Toggle navigation menu" aria-expanded="false">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
       <div class="nav-overlay" data-nav-target="overlay" data-action="click->nav#close"></div>
-      <%= render "shared/nav" %>
+      <%= render 'shared/nav' %>
     <% end %>
 
     <!-- 250px is defined in nav.css -->
@@ -198,29 +182,19 @@
       <footer class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-gray-600 hover:text-gray-300 transition-colors duration-200">
         <div class="container">
           <p>
-            Build <%= link_to Rails.application.config.git_version, Rails.application.config.commit_link, class: "text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200" %>
-            from <%= time_ago_in_words(Rails.application.config.server_start_time) %> ago.
+            Build <%= link_to Rails.application.config.git_version, Rails.application.config.commit_link, class: 'text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200' %> from <%= time_ago_in_words(Rails.application.config.server_start_time) %> ago.
             <%= pluralize(Heartbeat.recent_count, 'heartbeat') %>
-            (<%= Heartbeat.recent_imported_count %> imported)
-            in the past 24 hours.
-            (DB: <%= pluralize(QueryCount::Counter.counter, "query") %>, <%= QueryCount::Counter.counter_cache %> cached)
-            (CACHE: <%= cache_stats[:hits] %> hits, <%= cache_stats[:misses] %> misses)
-            (<%= requests_per_second %>)
+            (<%= Heartbeat.recent_imported_count %> imported) in the past 24 hours. (DB: <%= pluralize(QueryCount::Counter.counter, 'query') %>, <%= QueryCount::Counter.counter_cache %> cached) (CACHE: <%= cache_stats[:hits] %> hits, <%= cache_stats[:misses] %> misses) (<%= requests_per_second %>)
           </p>
           <% if session[:impersonater_user_id] %>
-            <%= link_to "Stop impersonating", stop_impersonating_path, class: "text-primary font-bold hover:text-red-300 transition-colors duration-200", data: { turbo_prefetch: "false" } %>
+            <%= link_to 'Stop impersonating', stop_impersonating_path, class: 'text-primary font-bold hover:text-red-300 transition-colors duration-200', data: { turbo_prefetch: 'false' } %>
           <% end %>
         </div>
-        <%= render "static_pages/active_users_graph", hours: active_users_graph_data %>
+        <%= render 'static_pages/active_users_graph', hours: active_users_graph_data %>
       </footer>
     </main>
 
-    <div class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-elevated border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform -translate-y-full transition-transform duration-300 ease-out hidden"
-         data-controller="currently-hacking"
-         data-currently-hacking-target="container"
-         data-currently-hacking-count-url-value="<%= currently_hacking_count_static_pages_path %>"
-         data-currently-hacking-full-url-value="<%= currently_hacking_static_pages_path %>"
-         data-currently-hacking-interval-value="60000">
+    <div class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-elevated border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform -translate-y-full transition-transform duration-300 ease-out hidden" data-controller="currently-hacking" data-currently-hacking-target="container" data-currently-hacking-count-url-value="<%= currently_hacking_count_static_pages_path %>" data-currently-hacking-full-url-value="<%= currently_hacking_static_pages_path %>" data-currently-hacking-interval-value="60000">
       <div class="currently-hacking p-3 bg-elevated cursor-pointer select-none bg-dark flex items-center justify-between">
         <div class="text-white text-sm font-medium">
           <div class="flex items-center">
@@ -229,28 +203,8 @@
           </div>
         </div>
       </div>
-      <div data-currently-hacking-target="content" style="display: none;">
-      </div>
+      <div data-currently-hacking-target="content" style="display: none;"></div>
     </div>
-    <%= render "shared/modal",
-      modal_id: "logout-modal",
-      title: "Woah hold on a sec",
-      description: "You sure you want to log out? You can sign back in later but that is a bit of a hassle...",
-      icon_svg: '<path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"/>',
-      icon_color: "text-primary",
-      buttons: [
-        {
-          text: "Go back",
-          class: "bg-dark hover:bg-darkless border border-darkless text-gray-300",
-          action: "click->modal#close"
-        },
-        {
-          text: "Log out now",
-          class: "bg-primary hover:bg-primary/75 text-white font-medium",
-          form: true,
-          url: signout_path,
-          method: "delete"
-        }
-      ] %>
+    <%= render 'shared/modal', modal_id: 'logout-modal', title: 'Woah hold on a sec', description: 'You sure you want to log out? You can sign back in later but that is a bit of a hassle...', icon_svg: '<path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"/>', icon_color: 'text-primary', buttons: [{ text: 'Go back', class: 'bg-dark hover:bg-darkless border border-darkless text-gray-300', action: 'click->modal#close' }, { text: 'Log out now', class: 'bg-primary hover:bg-primary/75 text-white font-medium', form: true, url: signout_path, method: 'delete' }] %>
   </body>
 </html>
