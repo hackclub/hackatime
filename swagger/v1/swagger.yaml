@@ -197,17 +197,16 @@ paths:
           type: string
       - name: trust_level_filter
         in: query
-        enum:
-        - all
-        - to_convicted
-        - to_trusted
-        - to_suspected
-        - to_unscored
-        description: "Filter by trust level change:\n * `all` \n * `to_convicted`
-          \n * `to_trusted` \n * `to_suspected` \n * `to_unscored` \n "
-        required: false
         schema:
           type: string
+          enum:
+          - all
+          - to_convicted
+          - to_trusted
+          - to_suspected
+          - to_unscored
+        description: Filter by trust level change
+        required: false
       responses:
         '200':
           description: successful
@@ -522,10 +521,10 @@ paths:
       parameters:
       - name: date
         in: query
-        format: date
-        description: Date for the timeline (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: Date for the timeline (YYYY-MM-DD)
       - name: user_ids
         in: query
         description: Comma-separated list of User IDs
@@ -688,12 +687,12 @@ paths:
       parameters:
       - name: period
         in: query
-        enum:
-        - daily
-        - last_7_days
-        description: "Leaderboard period:\n * `daily` \n * `last_7_days` \n "
         schema:
           type: string
+          enum:
+          - daily
+          - last_7_days
+        description: Leaderboard period
       responses:
         '200':
           description: successful
@@ -726,11 +725,11 @@ paths:
       parameters:
       - name: ids
         in: query
-        items:
-          type: integer
-        description: User IDs
         schema:
           type: array
+          items:
+            type: integer
+        description: User IDs
       responses:
         '200':
           description: successful
@@ -874,10 +873,10 @@ paths:
           type: string
       - name: date
         in: query
-        format: date
-        description: Date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: Date (YYYY-MM-DD)
       responses:
         '200':
           description: successful
@@ -1919,16 +1918,16 @@ paths:
       parameters:
       - name: start
         in: query
-        format: date
-        description: Start date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: Start date (YYYY-MM-DD)
       - name: end
         in: query
-        format: date
-        description: End date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: End date (YYYY-MM-DD)
       - name: interval
         in: query
         description: Interval (e.g. today, yesterday, week, month)
@@ -2053,16 +2052,16 @@ paths:
       parameters:
       - name: start_date
         in: query
-        format: date
-        description: Start date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: Start date (YYYY-MM-DD)
       - name: end_date
         in: query
-        format: date
-        description: End date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: End date (YYYY-MM-DD)
       responses:
         '200':
           description: successful
@@ -2305,6 +2304,8 @@ paths:
                     type: array
                     items:
                       type: array
+                      items:
+                        type: string
       requestBody:
         content:
           application/json:
@@ -2485,16 +2486,16 @@ paths:
       parameters:
       - name: start_time
         in: query
-        format: date_time
-        description: Start time (ISO 8601)
         schema:
           type: string
+          format: date_time
+        description: Start time (ISO 8601)
       - name: end_time
         in: query
-        format: date_time
-        description: End time (ISO 8601)
         schema:
           type: string
+          format: date_time
+        description: End time (ISO 8601)
       responses:
         '200':
           description: successful
@@ -2517,16 +2518,16 @@ paths:
           type: boolean
       - name: start_date
         in: query
-        format: date
-        description: Start date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: Start date (YYYY-MM-DD)
       - name: end_date
         in: query
-        format: date
-        description: End date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: End date (YYYY-MM-DD)
       responses:
         '200':
           description: successful
@@ -2567,16 +2568,16 @@ paths:
           type: string
       - name: from
         in: query
-        format: date
-        description: Start date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: Start date (YYYY-MM-DD)
       - name: to
         in: query
-        format: date
-        description: End date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: End date (YYYY-MM-DD)
       responses:
         '200':
           description: successful
@@ -2710,16 +2711,16 @@ paths:
       parameters:
       - name: start_date
         in: query
-        format: date
-        description: Start date (YYYY-MM-DD), defaults to 10 years ago
         schema:
           type: string
+          format: date
+        description: Start date (YYYY-MM-DD), defaults to 10 years ago
       - name: end_date
         in: query
-        format: date
-        description: End date (YYYY-MM-DD), defaults to today
         schema:
           type: string
+          format: date
+        description: End date (YYYY-MM-DD), defaults to today
       - name: username
         in: query
         description: Filter by username (optional)
@@ -2761,16 +2762,16 @@ paths:
           type: string
       - name: start_date
         in: query
-        format: date
-        description: Start date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: Start date (YYYY-MM-DD)
       - name: end_date
         in: query
-        format: date
-        description: End date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: End date (YYYY-MM-DD)
       - name: project
         in: query
         description: Filter by specific project
@@ -2896,16 +2897,16 @@ paths:
           type: string
       - name: start_date
         in: query
-        format: date_time
-        description: Start date (ISO 8601) for stats calculation
         schema:
           type: string
+          format: date_time
+        description: Start date (ISO 8601) for stats calculation
       - name: end_date
         in: query
-        format: date_time
-        description: End date (ISO 8601) for stats calculation
         schema:
           type: string
+          format: date_time
+        description: End date (ISO 8601) for stats calculation
       responses:
         '200':
           description: successful
@@ -2958,28 +2959,28 @@ paths:
           type: string
       - name: since
         in: query
-        format: date_time
-        description: Start time (ISO 8601) for project discovery
         schema:
           type: string
+          format: date_time
+        description: Start time (ISO 8601) for project discovery
       - name: until_date
         in: query
-        format: date_time
-        description: End time (ISO 8601) for project discovery
         schema:
           type: string
+          format: date_time
+        description: End time (ISO 8601) for project discovery
       - name: start_date
         in: query
-        format: date_time
-        description: Start date (ISO 8601) for stats calculation
         schema:
           type: string
+          format: date_time
+        description: Start date (ISO 8601) for stats calculation
       - name: end_date
         in: query
-        format: date_time
-        description: End date (ISO 8601) for stats calculation
         schema:
           type: string
+          format: date_time
+        description: End date (ISO 8601) for stats calculation
       responses:
         '200':
           description: successful
@@ -3035,16 +3036,16 @@ paths:
           type: string
       - name: start_date
         in: query
-        format: date
-        description: Start date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: Start date (YYYY-MM-DD)
       - name: end_date
         in: query
-        format: date
-        description: End date (YYYY-MM-DD)
         schema:
           type: string
+          format: date
+        description: End date (YYYY-MM-DD)
       - name: limit
         in: query
         description: Limit number of results

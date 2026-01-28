@@ -155,7 +155,7 @@ RSpec.describe 'Api::V1::External', type: :request do
         schema type: :object,
           properties: {
             error: { type: :string },
-            conflicts: { type: :array, items: { type: :array } }
+            conflicts: { type: :array, items: { type: :array, items: { type: :string } } }
           }
         run_test!
       end

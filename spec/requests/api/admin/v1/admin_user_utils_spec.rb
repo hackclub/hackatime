@@ -8,7 +8,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :ids, in: :query, type: :array, items: { type: :integer }, description: 'User IDs'
+      parameter name: :ids, in: :query, schema: { type: :array, items: { type: :integer } }, description: 'User IDs'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }

@@ -148,8 +148,8 @@ RSpec.describe 'Api::V1::Users', type: :request do
 
       parameter name: :username, in: :path, type: :string, description: 'Username'
       parameter name: :project_name, in: :path, type: :string, description: 'Project Name'
-      parameter name: :start_date, in: :query, type: :string, format: :date_time, description: 'Start date (ISO 8601) for stats calculation'
-      parameter name: :end_date, in: :query, type: :string, format: :date_time, description: 'End date (ISO 8601) for stats calculation'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Start date (ISO 8601) for stats calculation'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date_time }, description: 'End date (ISO 8601) for stats calculation'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
@@ -172,10 +172,10 @@ RSpec.describe 'Api::V1::Users', type: :request do
 
       parameter name: :username, in: :path, type: :string, description: 'Username'
       parameter name: :projects, in: :query, type: :string, description: 'Comma-separated list of projects to filter'
-      parameter name: :since, in: :query, type: :string, format: :date_time, description: 'Start time (ISO 8601) for project discovery'
-      parameter name: :until_date, in: :query, type: :string, format: :date_time, description: 'End time (ISO 8601) for project discovery'
-      parameter name: :start_date, in: :query, type: :string, format: :date_time, description: 'Start date (ISO 8601) for stats calculation'
-      parameter name: :end_date, in: :query, type: :string, format: :date_time, description: 'End date (ISO 8601) for stats calculation'
+      parameter name: :since, in: :query, schema: { type: :string, format: :date_time }, description: 'Start time (ISO 8601) for project discovery'
+      parameter name: :until_date, in: :query, schema: { type: :string, format: :date_time }, description: 'End time (ISO 8601) for project discovery'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Start date (ISO 8601) for stats calculation'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date_time }, description: 'End date (ISO 8601) for stats calculation'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
@@ -199,8 +199,8 @@ RSpec.describe 'Api::V1::Users', type: :request do
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username'
-      parameter name: :start_date, in: :query, type: :string, format: :date, description: 'Start date (YYYY-MM-DD)'
-      parameter name: :end_date, in: :query, type: :string, format: :date, description: 'End date (YYYY-MM-DD)'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
       parameter name: :project, in: :query, type: :string, description: 'Filter by specific project'
       parameter name: :filter_by_project, in: :query, type: :string, description: 'Filter by multiple projects (comma-separated)'
 
