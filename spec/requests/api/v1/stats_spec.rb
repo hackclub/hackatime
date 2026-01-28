@@ -8,8 +8,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
       security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'text/plain'
 
-      parameter name: :start_date, in: :query, type: :string, format: :date, description: 'Start date (YYYY-MM-DD), defaults to 10 years ago'
-      parameter name: :end_date, in: :query, type: :string, format: :date, description: 'End date (YYYY-MM-DD), defaults to today'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD), defaults to 10 years ago'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD), defaults to today'
       parameter name: :username, in: :query, type: :string, description: 'Filter by username (optional)'
       parameter name: :user_email, in: :query, type: :string, description: 'Filter by user email (optional)'
 
@@ -59,8 +59,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         produces 'application/json'
 
         parameter name: :username, in: :path, type: :string
-        parameter name: :start_date, in: :query, type: :string, format: :date
-        parameter name: :end_date, in: :query, type: :string, format: :date
+        parameter name: :start_date, in: :query, schema: { type: :string, format: :date }
+        parameter name: :end_date, in: :query, schema: { type: :string, format: :date }
         parameter name: :project, in: :query, type: :string, description: 'Filter by single project'
         parameter name: :filter_by_project, in: :query, type: :string, description: 'Filter by multiple projects (comma separated)'
 
@@ -142,8 +142,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
         parameter name: :username, in: :path, type: :string
         parameter name: :project_name, in: :path, type: :string
-        parameter name: :start_date, in: :query, type: :string, format: :date
-        parameter name: :end_date, in: :query, type: :string, format: :date
+        parameter name: :start_date, in: :query, schema: { type: :string, format: :date }
+        parameter name: :end_date, in: :query, schema: { type: :string, format: :date }
 
         response(200, 'successful') do
           let(:username) { 'testuser' }
@@ -174,10 +174,10 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
         parameter name: :username, in: :path, type: :string
         parameter name: :projects, in: :query, type: :string, description: 'Comma-separated project names'
-        parameter name: :since, in: :query, type: :string, format: :date_time
-        parameter name: :until, in: :query, type: :string, format: :date_time
-        parameter name: :start_date, in: :query, type: :string, format: :date
-        parameter name: :end_date, in: :query, type: :string, format: :date
+        parameter name: :since, in: :query, schema: { type: :string, format: :date_time }
+        parameter name: :until, in: :query, schema: { type: :string, format: :date_time }
+        parameter name: :start_date, in: :query, schema: { type: :string, format: :date }
+        parameter name: :end_date, in: :query, schema: { type: :string, format: :date }
 
         response(200, 'successful') do
           let(:username) { 'testuser' }
@@ -219,8 +219,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
-      parameter name: :start_date, in: :query, type: :string, format: :date, description: 'Start date (YYYY-MM-DD)'
-      parameter name: :end_date, in: :query, type: :string, format: :date, description: 'End date (YYYY-MM-DD)'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
       parameter name: :limit, in: :query, type: :integer, description: 'Limit number of results'
       parameter name: :features, in: :query, type: :string, description: 'Comma-separated list of features to include (e.g., languages,projects)'
       parameter name: :filter_by_project, in: :query, type: :string, description: 'Filter results by specific project names (comma-separated)'

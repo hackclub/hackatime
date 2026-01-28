@@ -8,8 +8,8 @@ RSpec.describe 'Api::Summary', type: :request do
       security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
-      parameter name: :start, in: :query, type: :string, format: :date, description: 'Start date (YYYY-MM-DD)'
-      parameter name: :end, in: :query, type: :string, format: :date, description: 'End date (YYYY-MM-DD)'
+      parameter name: :start, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
+      parameter name: :end, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
       parameter name: :interval, in: :query, type: :string, description: 'Interval (e.g. today, yesterday, week, month)'
       parameter name: :project, in: :query, type: :string, description: 'Project name (optional)'
       parameter name: :user, in: :query, type: :string, description: 'Slack UID of the user (optional, for admin use)'

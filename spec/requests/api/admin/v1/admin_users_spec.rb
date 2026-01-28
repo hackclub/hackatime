@@ -27,7 +27,7 @@ RSpec.describe 'Api::Admin::V1::AdminUsers', type: :request do
       produces 'application/json'
 
       parameter name: :user_id, in: :query, type: :string, description: 'User ID'
-      parameter name: :date, in: :query, type: :string, format: :date, description: 'Date (YYYY-MM-DD)'
+      parameter name: :date, in: :query, schema: { type: :string, format: :date }, description: 'Date (YYYY-MM-DD)'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }

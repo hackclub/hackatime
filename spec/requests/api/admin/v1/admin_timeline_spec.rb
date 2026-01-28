@@ -8,7 +8,7 @@ RSpec.describe 'Admin::Timeline', type: :request do
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :date, in: :query, type: :string, format: :date, description: 'Date for the timeline (YYYY-MM-DD)'
+      parameter name: :date, in: :query, schema: { type: :string, format: :date }, description: 'Date for the timeline (YYYY-MM-DD)'
       parameter name: :user_ids, in: :query, type: :string, description: 'Comma-separated list of User IDs'
       parameter name: :slack_uids, in: :query, type: :string, description: 'Comma-separated list of Slack User IDs'
 
@@ -195,7 +195,7 @@ RSpec.describe 'Admin::Timeline', type: :request do
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :period, in: :query, type: :string, enum: [ 'daily', 'last_7_days' ], description: 'Leaderboard period'
+      parameter name: :period, in: :query, schema: { type: :string, enum: [ 'daily', 'last_7_days' ] }, description: 'Leaderboard period'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }

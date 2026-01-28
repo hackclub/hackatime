@@ -51,8 +51,8 @@ RSpec.describe 'Api::V1::My', type: :request do
       security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
-      parameter name: :start_time, in: :query, type: :string, format: :date_time, description: 'Start time (ISO 8601)'
-      parameter name: :end_time, in: :query, type: :string, format: :date_time, description: 'End time (ISO 8601)'
+      parameter name: :start_time, in: :query, schema: { type: :string, format: :date_time }, description: 'Start time (ISO 8601)'
+      parameter name: :end_time, in: :query, schema: { type: :string, format: :date_time }, description: 'End time (ISO 8601)'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
@@ -81,8 +81,8 @@ RSpec.describe 'Api::V1::My', type: :request do
       produces 'application/json'
 
       parameter name: :all_data, in: :query, type: :boolean, description: 'Export all data (true/false)'
-      parameter name: :start_date, in: :query, type: :string, format: :date, description: 'Start date (YYYY-MM-DD)'
-      parameter name: :end_date, in: :query, type: :string, format: :date, description: 'End date (YYYY-MM-DD)'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
@@ -133,8 +133,8 @@ RSpec.describe 'Api::V1::My', type: :request do
       produces 'application/json', 'text/html'
 
       parameter name: :interval, in: :query, type: :string, description: 'Time interval (e.g., daily, weekly). Default: daily'
-      parameter name: :from, in: :query, type: :string, format: :date, description: 'Start date (YYYY-MM-DD)'
-      parameter name: :to, in: :query, type: :string, format: :date, description: 'End date (YYYY-MM-DD)'
+      parameter name: :from, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
+      parameter name: :to, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }

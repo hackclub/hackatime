@@ -44,8 +44,8 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
       security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
-      parameter name: :start_date, in: :query, type: :string, format: :date, description: 'Start date (YYYY-MM-DD)'
-      parameter name: :end_date, in: :query, type: :string, format: :date, description: 'End date (YYYY-MM-DD)'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }

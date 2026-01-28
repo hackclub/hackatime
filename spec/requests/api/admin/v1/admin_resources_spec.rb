@@ -150,7 +150,7 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request do
       parameter name: :admin_id, in: :query, type: :string, description: 'Filter by Admin ID', required: false
       parameter name: :user_search, in: :query, type: :string, description: 'Search user (fuzzy)', required: false
       parameter name: :admin_search, in: :query, type: :string, description: 'Search admin (fuzzy)', required: false
-      parameter name: :trust_level_filter, in: :query, type: :string, enum: %w[all to_convicted to_trusted to_suspected to_unscored], description: 'Filter by trust level change', required: false
+      parameter name: :trust_level_filter, in: :query, schema: { type: :string, enum: %w[all to_convicted to_trusted to_suspected to_unscored] }, description: 'Filter by trust level change', required: false
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
