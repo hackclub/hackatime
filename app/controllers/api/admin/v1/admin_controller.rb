@@ -864,6 +864,22 @@ module Api
             nil
           end
         end
+
+        def banned_users
+          banned = User.where(trust_level: User.trust_levels[:red])
+            .joins("LEFT JOIN email_addresses ON users.id = email_addresses.user_id")
+            .select("users.id, users.username, array_agg(email_addresses.email) as emails")
+            .group("users.id, users.username")
+            .map do |user|
+              {
+                id: user.id,
+                username: user.username,
+                email: user.emails&.compact&.first || "no email"
+              }
+            end
+
+          render json: { banned_users: banned }
+        end
       end
     end
   end
