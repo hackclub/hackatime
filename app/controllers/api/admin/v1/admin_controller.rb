@@ -818,6 +818,25 @@ module Api
           render json: { counts: counts }
         end
 
+        def banned_users
+          limit = [ params.fetch(:limit, 200).to_i, 1000 ].min
+          offset = [ params.fetch(:offset, 0).to_i, 0 ].max
+
+          banned = User.where(trust_level: User.trust_levels[:red])
+            .left_joins(:email_addresses)
+            .select("users.id, users.username, MIN(email_addresses.email) AS email")
+            .group("users.id, users.username")
+            .order("users.id")
+            .limit(limit)
+            .offset(offset)
+
+          render json: {
+            banned_users: banned.map { |u|
+              { id: u.id, username: u.username, email: u.email || "no email" }
+            }
+          }
+        end
+
         private
 
         def can_write!
