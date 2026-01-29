@@ -531,11 +531,13 @@ module Api
         end
 
         def visualization_quantized
-          user_id = params[:id]
+          user = find_user_by_id
+          return unless user
+
           year = params[:year]&.to_i
           month = params[:month]&.to_i
 
-          if user_id.blank? || year.nil? || month.nil? || month < 1 || month > 12
+          if year.nil? || month.nil? || month < 1 || month > 12
             render json: { error: "invalid parameters" }, status: :unprocessable_entity
             return
           end
@@ -615,11 +617,11 @@ module Api
           SQL
 
           quantized_result = ActiveRecord::Base.connection.execute(
-            ActiveRecord::Base.sanitize_sql([ quantized_query, user_id, start_epoch, end_epoch ])
+            ActiveRecord::Base.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ])
           )
 
           daily_totals_result = ActiveRecord::Base.connection.execute(
-            ActiveRecord::Base.sanitize_sql([ daily_totals_query, user_id, start_epoch, end_epoch ])
+            ActiveRecord::Base.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ])
           )
 
           daily_totals = daily_totals_result.each_with_object({}) do |row, hash|
