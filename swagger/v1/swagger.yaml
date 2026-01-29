@@ -1439,6 +1439,52 @@ paths:
       responses:
         '200':
           description: successful
+  "/api/admin/v1/banned_users":
+    get:
+      summary: Get banned users
+      tags:
+      - Admin
+      description: 'Get a list of banned users (trust_level: red). Requires admin/superadmin
+        privileges (viewers excluded).'
+      security:
+      - AdminToken: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results to return (default: 200, max: 1000)'
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        required: false
+        description: 'Number of results to skip for pagination (default: 0)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  banned_users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: User ID
+                        username:
+                          type: string
+                          description: Username
+                        email:
+                          type: string
+                          description: Primary email or "no email"
+        '403':
+          description: forbidden - viewers cannot access
   "/api/admin/v1/permissions":
     get:
       summary: List Permissions
