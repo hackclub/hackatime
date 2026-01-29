@@ -1444,8 +1444,7 @@ paths:
       summary: Get banned users
       tags:
       - Admin
-      description: 'Get a list of banned users (trust_level: red). Requires admin/superadmin
-        privileges (viewers excluded).'
+      description: Get a list of banned users.
       security:
       - AdminToken: []
       parameters:
@@ -1484,7 +1483,7 @@ paths:
                           type: string
                           description: Primary email or "no email"
         '403':
-          description: forbidden - viewers cannot access
+          description: forbidden
   "/api/admin/v1/permissions":
     get:
       summary: List Permissions
