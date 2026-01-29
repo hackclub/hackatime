@@ -35,7 +35,21 @@ class ErrorsController < ApplicationController
   private
 
   def render_error
-    render "errors/show", status: @status_code, layout: error_layout
+    respond_to do |format|
+      format.html { render "errors/show", status: @status_code, layout: error_layout }
+      format.json { render json: error_json, status: @status_code }
+      format.any { render json: error_json, status: @status_code }
+    end
+  end
+
+  def error_json
+    response = {
+      error: @title,
+      message: @message,
+      status: @status_code
+    }
+    response[:sentry_event_id] = @sentry_event_id if @sentry_event_id.present?
+    response
   end
 
   def error_layout
