@@ -89,7 +89,6 @@ class Heartbeat < ApplicationRecord
 
   belongs_to :user
   belongs_to :raw_heartbeat_upload, optional: true
-  has_many :wakatime_mirrors, dependent: :destroy
 
   validates :time, presence: true
 
