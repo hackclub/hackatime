@@ -9,7 +9,9 @@ Doorkeeper.configure do
   enforce_configured_scopes
 
   resource_owner_authenticator do
-    current_user || redirect_to(minimal_login_path(continue: request.fullpath))
+    if respond_to?(:current_user, true)
+      send(:current_user) || redirect_to(minimal_login_path(continue: request.fullpath))
+    end
   end
 
   admin_authenticator do
