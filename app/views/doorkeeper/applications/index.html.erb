@@ -21,7 +21,7 @@
   <% if @applications.any? %>
     <div class="grid grid-cols-1 gap-4">
       <% @applications.each do |application| %>
-        <div id="application_<%= application.id %>" class="border border-primary rounded-xl p-6 bg-dark transition-all duration-200 hover:border-red">
+        <div id="application_<%= application.id %>" class="border border-primary rounded-xl p-6 bg-dark">
           <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-3">
@@ -31,8 +31,7 @@
                   </svg>
                 </div>
                 <div class="flex items-center gap-2">
-                  <%= link_to application.name, oauth_application_path(application),
-                      class: "text-xl font-semibold text-white hover:text-primary transition-colors" %>
+                  <%= link_to application.name, oauth_application_path(application), class: "text-xl font-semibold text-white hover:text-primary transition-colors" %>
                   <% if application.verified? %>
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-green/20 text-green border border-green/30 rounded text-xs">
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

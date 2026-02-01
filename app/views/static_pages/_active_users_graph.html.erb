@@ -1,9 +1,6 @@
 <div class="flex flex-row gap-2 mt-4">
   <!-- "nihil boni sine labore" -->
   <% hours.each_with_index do |h, i| %>
-    <div class="bg-white opacity-10 flex-grow min-w-[10px]"
-      title="<%= pluralize(i + 1, 'hour') %> ago, <%= pluralize(h[:users], 'people') %> logged time. '<%= FlavorText.latin_phrases.sample %>.'"
-      style="height: <%= h[:height] %>px;">
-    </div>
+    <div class="bg-white opacity-10 grow min-w-2.5" title="<%= pluralize(i + 1, 'hour') %> ago, <%= pluralize(h[:users], 'people') %> logged time. '<%= FlavorText.latin_phrases.sample %>.'" style="height: <%= h[:height] %>px;"></div>
   <% end %>
 </div>

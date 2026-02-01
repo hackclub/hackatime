@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="<%= Rails.env == "production" ? "production" : "development" %>" data-theme="dark">
+<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="dark">
   <head>
     <title><%= t('doorkeeper.layouts.admin.title') %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -11,21 +11,17 @@
     <%= favicon_link_tag asset_path('favicon.png'), type: 'image/png' %>
     <%= stylesheet_link_tag :app %>
     <%= javascript_importmap_tags %>
-    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
   </head>
 
   <body class="flex min-h-screen bg-darker" data-controller="nav">
-    <button class="mobile-nav-button"
-            data-action="click->nav#toggle"
-            data-nav-target="button"
-            aria-label="Toggle navigation menu"
-            aria-expanded="false">
+    <button class="mobile-nav-button" data-action="click->nav#toggle" data-nav-target="button" aria-label="Toggle navigation menu" aria-expanded="false">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
       </svg>
     </button>
     <div class="nav-overlay" data-nav-target="overlay" data-action="click->nav#close"></div>
-    <%= render "shared/nav" %>
+    <%= render 'shared/nav' %>
 
     <main class="flex-1 lg:ml-[250px] lg:max-w-[calc(100%-250px)] p-5 mb-[100px] pt-16 lg:pt-5 transition-all duration-300 ease-in-out">
       <%- if flash[:notice].present? %>

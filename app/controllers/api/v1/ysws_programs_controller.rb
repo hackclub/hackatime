@@ -59,7 +59,7 @@ module Api
 
         scope = Heartbeat.where(
           user_id: user.id,
-          time: params[:start_time]..params[:end_time]
+          time: Time.parse(params[:start_time]).to_f..Time.parse(params[:end_time]).to_f
         )
 
         if params[:project].present?

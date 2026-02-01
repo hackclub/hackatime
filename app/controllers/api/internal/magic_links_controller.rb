@@ -38,7 +38,7 @@ module Api
 
           render json: {
             magic_link: auth_token_url(sign_in_token.token),
-            existing:
+            existing: existing
           }
         rescue => e
           Sentry.capture_exception(e, extra: { slack_uid: slack_uid, email: email, params: params.to_unsafe_h })

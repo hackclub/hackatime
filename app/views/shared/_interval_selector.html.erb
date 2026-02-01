@@ -40,9 +40,9 @@
       const url = new URL(window.location.href);
 
       // Clear existing parameters
-      url.searchParams.delete('interval');
-      url.searchParams.delete('from');
-      url.searchParams.delete('to');
+      url.searchParams.delete("interval");
+      url.searchParams.delete("from");
+      url.searchParams.delete("to");
 
       // Add new parameters
       Object.entries(params).forEach(([key, value]) => {
@@ -55,27 +55,19 @@
     function updateProjectsFrame(url) {
       let baseUrl = <%== project_durations_static_pages_path.to_json %>;
       const params = new URLSearchParams(new URL(url).search);
-      const frameUrl = baseUrl + '?' + params.toString();
+      const frameUrl = baseUrl + "?" + params.toString();
 
-      const frame = document.getElementById('project_durations');
+      const frame = document.getElementById("project_durations");
       if (frame) {
-        console.log('Updating frame with URL:', frameUrl);
         frame.src = frameUrl;
-        try {
-          frame.reload();
-          console.log('Frame reload called successfully');
-        } catch (e) {
-          console.error('Error reloading frame:', e);
-        }
-        history.replaceState({}, '', url);
+        history.replaceState({}, "", url);
       } else {
-        console.error('Frame with ID "project_durations" not found');
         window.location.href = url;
       }
     }
 
     function updateDropdownLabel(label) {
-      const labelElement = document.getElementById('interval-dropdown-label');
+      const labelElement = document.getElementById("interval-dropdown-label");
       if (labelElement) {
         labelElement.textContent = label;
       }
@@ -83,16 +75,16 @@
 
     function selectInterval(interval, label) {
       updateDropdownLabel(label);
-      document.getElementById('interval-dropdown-menu').style.display = 'none';
+      document.getElementById("interval-dropdown-menu").style.display = "none";
       updateWithParams({ interval });
     }
 
     function applyCustomRange() {
-      const start = document.getElementById('custom-start').value;
-      const end = document.getElementById('custom-end').value;
+      const start = document.getElementById("custom-start").value;
+      const end = document.getElementById("custom-end").value;
 
       if (start || end) {
-        let label = 'Custom Range';
+        let label = "Custom Range";
         if (start && end) {
           label = `${start} to ${end}`;
         } else if (start) {
@@ -102,30 +94,30 @@
         }
 
         updateDropdownLabel(label);
-        document.getElementById('interval-dropdown-menu').style.display = 'none';
-        updateWithParams({ interval: 'custom', from: start, to: end });
+        document.getElementById("interval-dropdown-menu").style.display = "none";
+        updateWithParams({ interval: "custom", from: start, to: end });
       }
     }
 
     function toggleIntervalDropdown() {
-      const menu = document.getElementById('interval-dropdown-menu');
-      const arrow = document.getElementById('interval-dropdown-arrow');
-      const isOpen = menu.style.display === 'block';
+      const menu = document.getElementById("interval-dropdown-menu");
+      const arrow = document.getElementById("interval-dropdown-arrow");
+      const isOpen = menu.style.display === "block";
 
-      menu.style.display = isOpen ? 'none' : 'block';
-      arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-      document.addEventListener('mousedown', closeDropdownOnClickOutside);
+      menu.style.display = isOpen ? "none" : "block";
+      arrow.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
+      document.addEventListener("mousedown", closeDropdownOnClickOutside);
     }
 
     function closeDropdownOnClickOutside(e) {
-      const menu = document.getElementById('interval-dropdown-menu');
-      const trigger = document.getElementById('interval-dropdown-trigger');
-      const arrow = document.getElementById('interval-dropdown-arrow');
+      const menu = document.getElementById("interval-dropdown-menu");
+      const trigger = document.getElementById("interval-dropdown-trigger");
+      const arrow = document.getElementById("interval-dropdown-arrow");
 
       if (!menu.contains(e.target) && !trigger.contains(e.target)) {
-        menu.style.display = 'none';
-        arrow.style.transform = 'rotate(0deg)';
-        document.removeEventListener('mousedown', closeDropdownOnClickOutside);
+        menu.style.display = "none";
+        arrow.style.transform = "rotate(0deg)";
+        document.removeEventListener("mousedown", closeDropdownOnClickOutside);
       }
     }
   </script>

@@ -21,9 +21,7 @@
 
     <% if mini_leaderboard_entries&.any? %>
       <div class="bg-elevated rounded-xl border border-primary p-4 shadow-lg">
-        <p class="text-xs italic text-muted mb-4">
-          This leaderboard shows time logged in the last 24 hours (UTC time).
-        </p>
+        <p class="text-xs italic text-muted mb-4">This leaderboard shows time logged in the last 24 hours (UTC time).</p>
         <div class="space-y-2">
           <% mini_leaderboard_entries.each_with_index do |entry, idx| %>
             <%
@@ -32,36 +30,38 @@
             %>
 
             <div class="flex items-center p-3 rounded-lg bg-dark transition-colors duration-200 <%= 'bg-dark border border-primary' if entry.user_id == current_user&.id %>">
-              <% rank_emoji = case actual_rank
-                   when 0 then "🥇"
-                   when 1 then "🥈"
-                   when 2 then "🥉"
-                   else actual_rank + 1
-                   end %>
+              <%
+                rank_emoji =
+                  case actual_rank
+                  when 0
+                    '🥇'
+                  when 1
+                    '🥈'
+                  when 2
+                    '🥉'
+                  else
+                    actual_rank + 1
+                  end
+              %>
               <div class="w-8 text-center text-lg"><%= rank_emoji %></div>
               <div class="flex-1 mx-3 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <%= render "shared/user_mention", user: entry.user %>
+                  <%= render 'shared/user_mention', user: entry.user %>
                   <% if entry.user == current_user && current_user.github_username.blank? %>
                     <span class="text-xs italic text-muted">
-                      <%= link_to "Link active projects", my_settings_path(anchor: "user_github_account"), target: "_blank", class: "text-accent hover:text-cyan-400 transition-colors" %>
+                      <%= link_to 'Link active projects', my_settings_path(anchor: 'user_github_account'), target: '_blank', class: 'text-accent hover:text-cyan-400 transition-colors' %>
                     </span>
                   <% end %>
                   <% if @active_projects&.dig(entry.user_id).present? %>
                     <span class="text-xs italic text-muted">
-                      working on <%= link_to h(@active_projects[entry.user_id].project_name), @active_projects[entry.user_id].repo_url, target: "_blank", class: "text-accent hover:text-cyan-400 transition-colors" %>
+                      working on <%= link_to h(@active_projects[entry.user_id].project_name), @active_projects[entry.user_id].repo_url, target: '_blank', class: 'text-accent hover:text-cyan-400 transition-colors' %>
                       <% dev_tool(nil, 'span') do %>
-                        <%= link_to "🌌", visualize_git_url(@active_projects[entry.user_id].repo_url), target: "_blank", class: "ml-1" %>
+                        <%= link_to '🌌', visualize_git_url(@active_projects[entry.user_id].repo_url), target: '_blank', class: 'ml-1' %>
                       <% end %>
                     </span>
                   <% end %>
                   <% if entry.streak_count > 0 %>
-                    <%= render "static_pages/streak",
-                          user: entry.user,
-                          streak_count: entry.streak_count,
-                          turbo_frame: false,
-                          icon_size: 16,
-                          show_super_class: true %>
+                    <%= render 'static_pages/streak', user: entry.user, streak_count: entry.streak_count, turbo_frame: false, icon_size: 16, show_super_class: true %>
                   <% end %>
                 </div>
               </div>

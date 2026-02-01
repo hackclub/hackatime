@@ -517,9 +517,9 @@ module Api
 
           values = query
                    .where.not(column_name => nil)
-                   .order(column_name => :asc)
+                   .order(Arel.sql("value ASC"))
                    .limit(limit)
-                   .pluck(:value)
+                   .pluck(Arel.sql("value"))
                    .reject(&:empty?)
 
           render json: {
@@ -531,11 +531,13 @@ module Api
         end
 
         def visualization_quantized
-          user_id = params[:id]
+          user = find_user_by_id
+          return unless user
+
           year = params[:year]&.to_i
           month = params[:month]&.to_i
 
-          if user_id.blank? || year.nil? || month.nil? || month < 1 || month > 12
+          if year.nil? || month.nil? || month < 1 || month > 12
             render json: { error: "invalid parameters" }, status: :unprocessable_entity
             return
           end
@@ -615,11 +617,11 @@ module Api
           SQL
 
           quantized_result = ActiveRecord::Base.connection.execute(
-            ActiveRecord::Base.sanitize_sql([ quantized_query, user_id, start_epoch, end_epoch ])
+            ActiveRecord::Base.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ])
           )
 
           daily_totals_result = ActiveRecord::Base.connection.execute(
-            ActiveRecord::Base.sanitize_sql([ daily_totals_query, user_id, start_epoch, end_epoch ])
+            ActiveRecord::Base.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ])
           )
 
           daily_totals = daily_totals_result.each_with_object({}) do |row, hash|
@@ -816,6 +818,25 @@ module Api
           render json: { counts: counts }
         end
 
+        def banned_users
+          limit = [ params.fetch(:limit, 200).to_i, 1000 ].min
+          offset = [ params.fetch(:offset, 0).to_i, 0 ].max
+
+          banned = User.where(trust_level: User.trust_levels[:red])
+            .left_joins(:email_addresses)
+            .select("users.id, users.username, MIN(email_addresses.email) AS email")
+            .group("users.id, users.username")
+            .order("users.id")
+            .limit(limit)
+            .offset(offset)
+
+          render json: {
+            banned_users: banned.map { |u|
+              { id: u.id, username: u.username, email: u.email || "no email" }
+            }
+          }
+        end
+
         private
 
         def can_write!
@@ -826,7 +847,7 @@ module Api
         end
 
         def find_user_by_id
-          user_id = params[:id]
+          user_id = params[:id] || params[:user_id]
 
           if user_id.blank?
             render json: { error: "who?" }, status: :unprocessable_entity

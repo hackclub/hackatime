@@ -27,9 +27,7 @@
           <section class="bg-dark rounded-lg p-6">
             <h3 class="text-2xl font-bold text-blue mb-4">💻 Install the VS Code Extension</h3>
             <div class="space-y-4">
-              <p class="text-lg">
-                Install the <a href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime" target="_blank" rel="noopener noreferrer" class="text-cyan hover:text-blue underline font-semibold">WakaTime extension from the marketplace</a>.
-              </p>
+              <p class="text-lg">Install the <a href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime" target="_blank" rel="noopener noreferrer" class="text-cyan hover:text-blue underline font-semibold">WakaTime extension from the marketplace</a>.</p>
 
               <h4 class="font-bold mb-2">Step-by-step:</h4>
               <ol class="list-decimal list-inside space-y-1">
@@ -109,20 +107,15 @@
               </div>
             </section>
 
-            <p class="text-center text-secondary text-xs mt-3">
-              Already set up? <a href="<%= my_wakatime_setup_step_4_path %>" class="text-cyan hover:underline">Skip to finish</a>
-            </p>
+            <p class="text-center text-secondary text-xs mt-3">Already set up? <a href="<%= my_wakatime_setup_step_4_path %>" class="text-cyan hover:underline">Skip to finish</a></p>
           </div>
         </div>
       </div>
-
     <% elsif params[:editor] == "vim" %>
       <section id="vim" class="bg-dark rounded-lg p-6 mb-6">
         <h3 class="text-2xl font-bold text-green mb-4">📟 Vim</h3>
         <div class="space-y-6">
-          <p class="text-lg">
-            Install the WakaTime plugin using your preferred plugin manager:
-          </p>
+          <p class="text-lg">Install the WakaTime plugin using your preferred plugin manager:</p>
 
           <div class="space-y-4">
             <div class="bg-green/10 border border-green/30 rounded-lg p-4">
@@ -151,14 +144,11 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
           Next Step
         <% end %>
       </div>
-
     <% elsif params[:editor] == "neovim" %>
       <section id="neovim" class="bg-dark rounded-lg p-6 mb-6">
         <h3 class="text-2xl font-bold text-green mb-4">📟 Neovim</h3>
         <div class="space-y-6">
-          <p class="text-lg">
-            Install the WakaTime plugin using your preferred plugin manager:
-          </p>
+          <p class="text-lg">Install the WakaTime plugin using your preferred plugin manager:</p>
 
           <div class="space-y-4">
             <div class="bg-green/10 border border-green/30 rounded-lg p-4">
@@ -185,14 +175,11 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
           Next Step
         <% end %>
       </div>
-
     <% elsif params[:editor] == "emacs" %>
       <section id="emacs" class="bg-dark rounded-lg p-6 mb-6">
         <h3 class="text-2xl font-bold text-purple mb-4">🔮 Emacs</h3>
         <div class="space-y-6">
-          <p class="text-lg">
-            Install the WakaTime package using your preferred method:
-          </p>
+          <p class="text-lg">Install the WakaTime package using your preferred method:</p>
 
           <div class="space-y-4">
             <div class="bg-purple/10 border border-purple/30 rounded-lg p-4">
@@ -217,14 +204,11 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
           Next Step
         <% end %>
       </div>
-
     <% elsif params[:editor] == "godot" %>
       <section id="godot" class="bg-dark rounded-lg p-6 mb-6">
         <h3 class="text-2xl font-bold text-cyan mb-4">🎮 Godot</h3>
         <div class="space-y-6">
-          <p class="text-lg">
-            Follow our comprehensive <a href="/docs/editors/godot" class="text-cyan hover:text-blue underline">Godot & Hackatime Setup guide</a> with video tutorial!
-          </p>
+          <p class="text-lg">Follow our comprehensive <a href="/docs/editors/godot" class="text-cyan hover:text-blue underline">Godot & Hackatime Setup guide</a> with video tutorial!</p>
 
           <div class="bg-cyan/10 border border-cyan/30 rounded-lg p-4">
             <h4 class="font-bold mb-2">Quick steps:</h4>
@@ -235,15 +219,11 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
               <li>Click <strong>Download</strong> and <strong>Install</strong></li>
               <li>Enable in <strong>Project → Project Settings → Plugins</strong></li>
             </ol>
-            <p class="text-sm mt-3 text-cyan">
-              📺 <a href="https://www.youtube.com/watch?v=a938RgsBzNg&t=29s" target="_blank" class="underline">Watch the workshop recording</a> for a complete walkthrough!
-            </p>
+            <p class="text-sm mt-3 text-cyan">📺 <a href="https://www.youtube.com/watch?v=a938RgsBzNg&t=29s" target="_blank" class="underline">Watch the workshop recording</a> for a complete walkthrough!</p>
           </div>
 
           <div class="bg-yellow/10 border border-yellow/30 rounded-lg p-4">
-            <p class="text-yellow text-sm">
-              <strong>Note:</strong> You need to install the plugin for each Godot project separately (it's a Godot limitation).
-            </p>
+            <p class="text-yellow text-sm"><strong>Note:</strong> You need to install the plugin for each Godot project separately (it's a Godot limitation).</p>
           </div>
         </div>
       </section>
@@ -253,14 +233,11 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
           Next Step
         <% end %>
       </div>
-
     <% else %>
       <section class="bg-dark rounded-lg p-6 mb-6">
         <h3 class="text-2xl font-bold text-orange mb-4">🔧 Setup your Editor</h3>
         <div class="bg-orange/10 border border-orange/30 rounded-lg p-4 mb-4">
-          <p class="mb-4">
-            <strong>Hackatime works with any editor that supports WakaTime!</strong> This includes PyCharm, IntelliJ, Sublime Text, Atom, Neovim, Unity, Godot, and <a href="https://hackatime.hackclub.com/docs#supported-editors" class="text-cyan hover:text-blue underline">77+ more editors</a>.
-          </p>
+          <p class="mb-4"><strong>Hackatime works with any editor that supports WakaTime!</strong> This includes PyCharm, IntelliJ, Sublime Text, Atom, Neovim, Unity, Godot, and <a href="https://hackatime.hackclub.com/docs#supported-editors" class="text-cyan hover:text-blue underline">77+ more editors</a>.</p>
         </div>
 
         <div class="space-y-4">
@@ -303,100 +280,98 @@ git clone https://github.com/wakatime/vim-wakatime.git</code></pre>
 </div>
 
 <% if params[:editor] == "vscode" %>
-<script>
-  document.addEventListener('turbo:load', function() {
-    const waitingState = document.getElementById('waiting-state');
-    const successState = document.getElementById('success-state');
-    const statusMessage = document.getElementById('status-message');
-    const pollStatus = document.getElementById('poll-status');
-    const statusPanel = document.getElementById('status-panel');
+  <script>
+    document.addEventListener("turbo:load", function () {
+      const waitingState = document.getElementById("waiting-state");
+      const successState = document.getElementById("success-state");
+      const statusMessage = document.getElementById("status-message");
+      const pollStatus = document.getElementById("poll-status");
+      const statusPanel = document.getElementById("status-panel");
 
-    let checkCount = 0;
-    const maxChecks = 120; // 10m (5s)
+      let checkCount = 0;
+      const maxChecks = 120; // 10m (5s)
 
-    const msg = [
-      "Open any code file and start typing!",
-      "Try editing some code in VS Code...",
-      "Type a few characters in your editor!",
-      "We're watching for your first keystroke...",
-      "Make any edit in VS Code to continue!"
-    ];
+      const msg = ["Open any code file and start typing!", "Try editing some code in VS Code...", "Type a few characters in your editor!", "We're watching for your first keystroke...", "Make any edit in VS Code to continue!"];
 
-    function showSuccess(timeAgo, detectedEditor) {
-      waitingState.classList.add('hidden');
-      successState.classList.remove('hidden');
-      statusPanel.classList.remove('border-darkless');
-      statusPanel.classList.add('border-green');
-      document.getElementById('heartbeat-time-ago').textContent = timeAgo;
+      function showSuccess(timeAgo, detectedEditor) {
+        waitingState.classList.add("hidden");
+        successState.classList.remove("hidden");
+        statusPanel.classList.remove("border-darkless");
+        statusPanel.classList.add("border-green");
+        document.getElementById("heartbeat-time-ago").textContent = timeAgo;
 
-      if (detectedEditor && detectedEditor.toLowerCase() !== 'vscode' && detectedEditor.toLowerCase() !== 'vs code') {
-        const mismatchMessage = document.getElementById('editor-mismatch-message');
-        mismatchMessage.textContent = `We detected a heartbeat from ${detectedEditor}. If this is intended, you're all set!`;
-        mismatchMessage.classList.remove('hidden');
+        if (detectedEditor && detectedEditor.toLowerCase() !== "vscode" && detectedEditor.toLowerCase() !== "vs code") {
+          const mismatchMessage = document.getElementById("editor-mismatch-message");
+          mismatchMessage.textContent = `We detected a heartbeat from ${detectedEditor}. If this is intended, you're all set!`;
+          mismatchMessage.classList.remove("hidden");
+        }
+      }
+
+      function check() {
+        fetch(<%== api_v1_my_heartbeats_most_recent_path.to_json %>, {
+          headers: {
+            Authorization: "Bearer " + <%== @current_user_api_key.to_json %>,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.has_heartbeat) {
+              const heartbeatTime = new Date(data.heartbeat.created_at);
+              const now = new Date();
+              const secondsAgo = (now - heartbeatTime) / 1000;
+              const recentThreshold = 86400;
+
+              if (secondsAgo <= recentThreshold) {
+                showSuccess(data.time_ago, data.editor);
+                return;
+              }
+            }
+            throw new Error("No recent heartbeats");
+          })
+          .catch((error) => {
+            checkCount++;
+
+            if (checkCount % 3 === 0) {
+              const msgIndex = Math.floor(checkCount / 3) % msg.length;
+              statusMessage.textContent = msg[msgIndex];
+            }
+
+            pollStatus.textContent = `Checked ${checkCount} time${checkCount === 1 ? "" : "s"}...`;
+
+            if (checkCount >= maxChecks) {
+              pollStatus.textContent = "Still waiting... Make sure the extension is installed!";
+              return;
+            }
+
+            setTimeout(check, 5000);
+          });
+      }
+
+      check();
+
+      window.skipToNext = function () {
+        window.location.href = <%== my_wakatime_setup_step_4_path.to_json %>;
+      };
+    });
+  </script>
+
+  <style>
+    .spin {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--color-darkless);
+      border-top: 2px solid var(--color-blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
       }
     }
-
-    function check() {
-      fetch(<%== api_v1_my_heartbeats_most_recent_path.to_json %>, {
-        headers: {
-          'Authorization': 'Bearer ' + <%== @current_user_api_key.to_json %>
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.has_heartbeat) {
-          const heartbeatTime = new Date(data.heartbeat.created_at);
-          const now = new Date();
-          const secondsAgo = (now - heartbeatTime) / 1000;
-          const recentThreshold = 86400;
-
-          if (secondsAgo <= recentThreshold) {
-            showSuccess(data.time_ago, data.editor);
-            return;
-          }
-        }
-        throw new Error('No recent heartbeats');
-      })
-      .catch(error => {
-        checkCount++;
-
-        if (checkCount % 3 === 0) {
-          const msgIndex = Math.floor(checkCount / 3) % msg.length;
-          statusMessage.textContent = msg[msgIndex];
-        }
-
-        pollStatus.textContent = `Checked ${checkCount} time${checkCount === 1 ? '' : 's'}...`;
-
-        if (checkCount >= maxChecks) {
-          pollStatus.textContent = "Still waiting... Make sure the extension is installed!";
-          return;
-        }
-
-        setTimeout(check, 5000);
-      });
-    }
-
-    check();
-
-    window.skipToNext = function() {
-      window.location.href = <%== my_wakatime_setup_step_4_path.to_json %>;
-    };
-  });
-</script>
-
-<style>
-  .spin {
-    width: 16px;
-    height: 16px;
-    border: 2px solid var(--color-darkless);
-    border-top: 2px solid var(--color-blue);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-</style>
+  </style>
 <% end %>

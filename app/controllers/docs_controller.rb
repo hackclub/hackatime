@@ -7,6 +7,11 @@ class DocsController < ApplicationController
 
   def show
     @doc_path = sanitize_path(params[:path] || "index")
+
+    if @doc_path.start_with?("api")
+      redirect_to "/api-docs", allow_other_host: false and return
+    end
+
     @breadcrumbs = build_breadcrumbs(@doc_path)
 
     file_path = safe_docs_path("#{@doc_path}.md")

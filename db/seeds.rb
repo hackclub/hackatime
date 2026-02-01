@@ -2,23 +2,14 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-Doorkeeper::Application.find_or_create_by(
-  name: "Hackatime Desktop",
-  owner: User.find_by(id: 1),
-  redirect_uri: "hackatime://auth/callback",
-  uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ",
-  scopes: [ "profile" ],
-  confidential: false,
-)
-
 # Only seed test data in development environment
-if Rails.env.development?
+test_user = nil
+if Rails.env.development? || Rails.env.test?
   # Creating test user
   test_user = User.find_or_create_by(slack_uid: 'TEST123456') do |user|
     user.username = 'testuser'
     user.slack_username = 'testuser'
 
-    # Before you had user.is_admin = true, does not work, changed it to that, looks like it works but idk how to use the admin pages so pls check this, i just guess coded this, the cmd to seed the db works without errors
     user.set_admin_level(:superadmin)
     # Ensure timezone is set to avoid nil timezone issues
     user.timezone = 'America/New_York'
@@ -33,6 +24,12 @@ if Rails.env.development?
     key.token = 'dev-api-key-12345'
   end
 
+  # Create Admin API Key
+  admin_api_key = AdminApiKey.find_or_create_by(name: 'Development Admin Key') do |key|
+    key.user = test_user
+    key.token = 'dev-admin-api-key-12345'
+  end
+
   # Create a sign-in token that doesn't expire
   token = test_user.sign_in_tokens.find_or_create_by(token: 'testing-token') do |t|
     t.expires_at = 1.year.from_now
@@ -43,6 +40,7 @@ if Rails.env.development?
   puts "  Username: #{test_user.display_name}"
   puts "  Email: #{email.email}"
   puts "  API Key: #{api_key.token}"
+  puts "  Admin API Key: #{admin_api_key.token}"
   puts "  Sign-in Token: #{token.token}"
 
   # Create sample heartbeats for last 7 days with variety of data
@@ -110,4 +108,41 @@ if Rails.env.development?
   end
 else
   puts "Skipping development seed data in #{Rails.env} environment"
+end
+
+# Use the test user if we have one, otherwise fall back to User ID 1 (for other envs or if test user logic changes)
+app_owner = test_user || User.find_by(id: 1)
+
+OauthApplication.find_or_create_by(
+  name: "Hackatime Desktop",
+  owner: app_owner,
+  redirect_uri: "hackatime://auth/callback",
+  uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ",
+  scopes: [ "profile" ],
+  confidential: false,
+)
+
+if test_user && defined?(Doorkeeper)
+  app = OauthApplication.find_by(name: "Hackatime Desktop")
+
+  existing_token = Doorkeeper::AccessToken.find_by(token: 'dev-api-key-12345')
+
+  if existing_token
+    existing_token.update_columns(
+      application_id: app.id,
+      resource_owner_id: test_user.id,
+      expires_in: nil,
+      scopes: 'profile'
+    )
+  else
+    token = Doorkeeper::AccessToken.find_or_create_by(
+      application_id: app.id,
+      resource_owner_id: test_user.id
+    ) do |t|
+      t.expires_in = nil
+      t.scopes = 'profile'
+    end
+
+    token.update_column(:token, 'dev-api-key-12345')
+  end
 end

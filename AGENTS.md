@@ -12,6 +12,7 @@ We do development using docker-compose. Run `docker-compose ps` to see if the de
 - **Security**: `docker compose run web bundle exec brakeman` (security audit)
 - **JS Security**: `docker compose run web bin/importmap audit` (JS dependency scan)
 - **Zeitwerk**: `docker compose run web bin/rails zeitwerk:check` (autoloader check)
+- **Swagger**: `docker compose run web bin/rails rswag:specs:swaggerize` (generate API docs)
 
 ## CI/Testing Requirements
 
@@ -22,6 +23,13 @@ We do development using docker-compose. Run `docker-compose ps` to see if the de
 3. `docker compose run web bin/importmap audit` (JS security)
 4. `docker compose run web bin/rails zeitwerk:check` (autoloader)
 5. `docker compose run web rails test` (full test suite)
+6. `docker compose run web bin/rails rswag:specs:swaggerize` (ensure docs are up to date)
+
+## API Documentation
+
+- **Specs**: All new API endpoints MUST include Rswag specs in `spec/requests/api/...`.
+- **Generation**: After changing specs, run `bundle exec rake rswag:specs:swaggerize` to update `swagger/v1/swagger.yaml`.
+- **Validation**: CI will fail if `swagger.yaml` is out of sync with the specs (meaning you forgot to run the generation command).
 
 ## Docker Development
 

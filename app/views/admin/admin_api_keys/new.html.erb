@@ -7,9 +7,7 @@
         <h1 class="text-3xl font-bold text-white mb-2">spawn in a new key</h1>
         <p class="text-gray-400">its geting real</p>
       </div>
-      <%= link_to "← get me outta here",
-          admin_admin_api_keys_path,
-          class: "text-gray-400 hover:text-white" %>
+      <%= link_to "← get me outta here", admin_admin_api_keys_path, class: "text-gray-400 hover:text-white" %>
     </div>
   </div>
 
@@ -28,9 +26,7 @@
 
       <div>
         <%= f.label :name, class: "block text-md font-medium text-white mb-2" %>
-        <%= f.text_field :name,
-            placeholder: "put down something good please",
-            class: "w-full px-3 py-2 bg-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" %>
+        <%= f.text_field :name, placeholder: "put down something good please", class: "w-full px-3 py-2 bg-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary" %>
       </div>
 
       <div class="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4">
@@ -38,11 +34,8 @@
       </div>
 
       <div class="flex justify-end space-x-4">
-        <%= link_to "fuck no imma head out",
-            admin_admin_api_keys_path,
-            class: "px-4 py-2 text-gray-400 hover:text-white" %>
-        <%= f.submit "okay lets do this thing",
-            class: "px-6 py-2 bg-primary hover:bg-red text-white rounded-lg font-medium transition-colors" %>
+        <%= link_to "fuck no imma head out", admin_admin_api_keys_path, class: "px-4 py-2 text-gray-400 hover:text-white" %>
+        <%= f.submit "okay lets do this thing", class: "px-6 py-2 bg-primary hover:bg-red text-white rounded-lg font-medium transition-colors" %>
       </div>
     <% end %>
   </div>

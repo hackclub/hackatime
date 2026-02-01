@@ -166,9 +166,7 @@
             </div>
           </section>
 
-          <p class="text-center text-secondary text-xs mt-3">
-            Already configured? <a href="<%= my_wakatime_setup_step_2_path %>" class="text-cyan hover:underline">Skip to next step</a>
-          </p>
+          <p class="text-center text-secondary text-xs mt-3">Already configured? <a href="<%= my_wakatime_setup_step_2_path %>" class="text-cyan hover:underline">Skip to next step</a></p>
         </div>
       </div>
     </div>
@@ -178,108 +176,102 @@
 <script>
   function a() {
     const ua = window.navigator.userAgent;
-    const mac = document.getElementById('mac-linux');
-    const windows = document.getElementById('windows');
+    const mac = document.getElementById("mac-linux");
+    const windows = document.getElementById("windows");
 
-    mac.style.display = 'none';
-    windows.style.display = 'none';
+    mac.style.display = "none";
+    windows.style.display = "none";
 
-    if (ua.indexOf('Windows') !== -1) {
-      windows.style.display = 'block';
+    if (ua.indexOf("Windows") !== -1) {
+      windows.style.display = "block";
     } else {
-      mac.style.display = 'block';
+      mac.style.display = "block";
     }
   }
 
-  document.addEventListener('turbo:load', function() {
+  document.addEventListener("turbo:load", function () {
     a();
 
-    window.toggleSection = function(section) {
-      const mac = document.getElementById('mac-linux');
-      const windows = document.getElementById('windows');
-      const advanced = document.getElementById('advanced');
+    window.toggleSection = function (section) {
+      const mac = document.getElementById("mac-linux");
+      const windows = document.getElementById("windows");
+      const advanced = document.getElementById("advanced");
 
-      mac.style.display = 'none';
-      windows.style.display = 'none';
-      advanced.style.display = 'none';
+      mac.style.display = "none";
+      windows.style.display = "none";
+      advanced.style.display = "none";
 
-      if (section === 'windows') {
-        windows.style.display = 'block';
-      } else if (section === 'advanced') {
-        advanced.style.display = 'block';
+      if (section === "windows") {
+        windows.style.display = "block";
+      } else if (section === "advanced") {
+        advanced.style.display = "block";
       } else {
-        mac.style.display = 'block';
+        mac.style.display = "block";
       }
-    }
+    };
 
-    const waitingState = document.getElementById('waiting-state');
-    const successState = document.getElementById('success-state');
-    const statusMessage = document.getElementById('status-message');
-    const pollStatus = document.getElementById('poll-status');
-    const statusPanel = document.getElementById('status-panel');
+    const waitingState = document.getElementById("waiting-state");
+    const successState = document.getElementById("success-state");
+    const statusMessage = document.getElementById("status-message");
+    const pollStatus = document.getElementById("poll-status");
+    const statusPanel = document.getElementById("status-panel");
 
     let checkCount = 0;
     const maxChecks = 120;
 
-    const msg = [
-      "Copy the command on the left and run it in your terminal!",
-      "Paste the command and press Enter...",
-      "The script will configure everything automatically!",
-      "Almost there - just run the command!",
-      "We'll detect it as soon as the script runs!"
-    ];
+    const msg = ["Copy the command on the left and run it in your terminal!", "Paste the command and press Enter...", "The script will configure everything automatically!", "Almost there - just run the command!", "We'll detect it as soon as the script runs!"];
 
     function showSuccess(timeAgo) {
-      waitingState.classList.add('hidden');
-      successState.classList.remove('hidden');
-      statusPanel.classList.remove('border-darkless');
-      statusPanel.classList.add('border-green');
-      document.getElementById('heartbeat-time-ago').textContent = timeAgo;
+      waitingState.classList.add("hidden");
+      successState.classList.remove("hidden");
+      statusPanel.classList.remove("border-darkless");
+      statusPanel.classList.add("border-green");
+      document.getElementById("heartbeat-time-ago").textContent = timeAgo;
     }
 
     function check() {
       fetch(<%== api_v1_my_heartbeats_most_recent_path(source_type: "test_entry").to_json %>, {
         headers: {
-          'Authorization': 'Bearer ' + <%== @current_user_api_key.to_json %>
-        }
+          Authorization: "Bearer " + <%== @current_user_api_key.to_json %>,
+        },
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.has_heartbeat) {
-          const heartbeatTime = new Date(data.heartbeat.created_at);
-          const now = new Date();
-          const secondsAgo = (now - heartbeatTime) / 1000;
-          const recentThreshold = 300;
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.has_heartbeat) {
+            const heartbeatTime = new Date(data.heartbeat.created_at);
+            const now = new Date();
+            const secondsAgo = (now - heartbeatTime) / 1000;
+            const recentThreshold = 300;
 
-          if (secondsAgo <= recentThreshold) {
-            showSuccess(data.time_ago);
+            if (secondsAgo <= recentThreshold) {
+              showSuccess(data.time_ago);
+              return;
+            }
+          }
+          throw new Error("No heartbeats yet");
+        })
+        .catch((error) => {
+          checkCount++;
+
+          if (checkCount % 3 === 0) {
+            const msgIndex = Math.floor(checkCount / 3) % msg.length;
+            statusMessage.textContent = msg[msgIndex];
+          }
+
+          pollStatus.textContent = `Checked ${checkCount} time${checkCount === 1 ? "" : "s"}...`;
+
+          if (checkCount >= maxChecks) {
+            pollStatus.textContent = "Still waiting... Make sure you've run the command!";
             return;
           }
-        }
-        throw new Error('No heartbeats yet');
-      })
-      .catch(error => {
-        checkCount++;
 
-        if (checkCount % 3 === 0) {
-          const msgIndex = Math.floor(checkCount / 3) % msg.length;
-          statusMessage.textContent = msg[msgIndex];
-        }
-
-        pollStatus.textContent = `Checked ${checkCount} time${checkCount === 1 ? '' : 's'}...`;
-
-        if (checkCount >= maxChecks) {
-          pollStatus.textContent = "Still waiting... Make sure you've run the command!";
-          return;
-        }
-
-        setTimeout(check, 5000);
-      });
+          setTimeout(check, 5000);
+        });
     }
 
     check();
 
-    window.skipToNext = function() {
+    window.skipToNext = function () {
       window.location.href = <%== my_wakatime_setup_step_2_path.to_json %>;
     };
   });
@@ -289,13 +281,13 @@
     const text = codeBlock.textContent;
     navigator.clipboard.writeText(text).then(() => {
       const originalText = button.textContent;
-      button.textContent = '✅ Copied!';
-      button.classList.add('bg-green');
-      button.classList.remove('bg-primary');
+      button.textContent = "✅ Copied!";
+      button.classList.add("bg-green");
+      button.classList.remove("bg-primary");
       setTimeout(() => {
         button.textContent = originalText;
-        button.classList.remove('bg-green');
-        button.classList.add('bg-primary');
+        button.classList.remove("bg-green");
+        button.classList.add("bg-primary");
       }, 2000);
     });
   }
@@ -312,8 +304,12 @@
   }
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .setup-instructions {
@@ -332,7 +328,7 @@
     min-width: 0;
     white-space: pre-wrap;
     word-break: break-all;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
     line-height: 1.4;
   }
 

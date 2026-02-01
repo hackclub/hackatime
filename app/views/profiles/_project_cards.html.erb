@@ -1,13 +1,11 @@
 <% if projects.present? && projects.size > 0 %>
-  <%
-    max = projects.map { |p| p[:duration].to_f }.select { |d| d.finite? && d > 0 }.max || 1
-  %>
+  <% max = projects.map { |p| p[:duration].to_f }.select { |d| d.finite? && d > 0 }.max || 1 %>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     <% projects.each do |project| %>
       <div class="border border-primary rounded-xl p-5 transition-all duration-300 flex flex-col gap-3">
         <div class="flex justify-between items-start gap-2">
           <h3 class="text-lg font-semibold text-white truncate flex-1" title="<%= h(project[:project]) %>">
-            <%= h(project[:project].presence || "Unknown") %>
+            <%= h(project[:project].presence || 'Unknown') %>
           </h3>
           <% if project[:repo_url].present? %>
             <%= link_to project[:repo_url], target: "_blank", title: "View repository", class: "p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 shrink-0" do %>
@@ -23,9 +21,7 @@
         </div>
 
         <div class="w-full h-2 bg-darkless rounded-full overflow-hidden">
-          <div
-            class="h-full bg-primary rounded-full"
-            style="width: <%= [(project[:duration].to_f.finite? ? project[:duration].to_f : 0) / max.to_f * 100, 100].min %>%;"></div>
+          <div class="h-full bg-primary rounded-full" style="width: <%= [(project[:duration].to_f.finite? ? project[:duration].to_f : 0) / max.to_f * 100, 100].min %>%;"></div>
         </div>
       </div>
     <% end %>

@@ -7,9 +7,7 @@
         <h1 class="text-3xl font-bold text-white mb-2">admin api keys</h1>
         <p class="text-gray-400">fraud team is gonna foam at the mouth for this shit</p>
       </div>
-      <%= link_to "spawn in a new key",
-          new_admin_admin_api_key_path,
-          class: "bg-primary hover:bg-red text-white px-4 py-2 rounded-lg font-medium transition-colors" %>
+      <%= link_to "spawn in a new key", new_admin_admin_api_key_path, class: "bg-primary hover:bg-red text-white px-4 py-2 rounded-lg font-medium transition-colors" %>
     </div>
   </div>
 
@@ -36,7 +34,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <% if api_key.user.avatar_url %>
-                    <img class="h-6 w-6 rounded-full mr-2" src="<%= api_key.user.avatar_url %>" alt="">
+                    <img class="h-6 w-6 rounded-full mr-2" src="<%= api_key.user.avatar_url %>" alt="key creator avatar">
                   <% end %>
                   <div>
                     <div class="text-sm text-white"><%= h(api_key.user.display_name) %></div>
@@ -48,18 +46,11 @@
                 <%= api_key.created_at.strftime("%b %d, %Y at %I:%M %p") %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <code class="text-xs text-white">
-                  <%= api_key.token[0..12] %>...
-                </code>
+                <code class="text-xs text-white"> <%= api_key.token[0..12] %>... </code>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                <%= link_to "inspect",
-                    admin_admin_api_key_path(api_key),
-                    class: "text-blue-400 hover:text-blue-300" %>
-                <%= link_to "nuke",
-                  admin_admin_api_key_path(api_key),
-                  data: { "turbo-method": :delete },
-                  class: "text-red-400 hover:text-red-300" %>
+                <%= link_to "inspect", admin_admin_api_key_path(api_key), class: "text-blue-400 hover:text-blue-300" %>
+                <%= link_to "nuke", admin_admin_api_key_path(api_key), data: { "turbo-method": :delete }, class: "text-red-400 hover:text-red-300" %>
               </td>
             </tr>
           <% end %>

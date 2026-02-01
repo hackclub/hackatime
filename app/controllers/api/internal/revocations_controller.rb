@@ -1,6 +1,6 @@
 module Api
   module Internal
-    class RevocationsController < ApplicationController
+    class RevocationsController < Api::Internal::ApplicationController
       def create
         token = params[:token]
 

@@ -11,11 +11,10 @@ class Api::V1::StatsController < ApplicationController
 
     query = Heartbeat.where(time: start_date..end_date)
     if params[:username].present?
-      user_id = params[:username]
+      user = User.find_by(username: params[:username]) || User.find_by(slack_uid: params[:username])
+      return render json: { error: "User not found" }, status: :not_found unless user
 
-      return render json: { error: "User not found" }, status: :not_found unless user_id.present?
-
-      query = query.where(user_id: user_id)
+      query = query.where(user_id: user.id)
     end
 
     if params[:user_email].present?
@@ -26,7 +25,7 @@ class Api::V1::StatsController < ApplicationController
       query = query.where(user_id: user_id)
     end
 
-    render plain: query.duration_seconds
+    render plain: query.duration_seconds.to_s
   end
 
   def user_stats
@@ -115,6 +114,8 @@ class Api::V1::StatsController < ApplicationController
       summary[:unique_total_seconds] = unique_seconds
     end
 
+
+
     trust_level = @user.trust_level
     trust_level = "blue" if trust_level == "yellow"
     trust_value = User.trust_levels[trust_level]
@@ -196,7 +197,7 @@ class Api::V1::StatsController < ApplicationController
       params[:projects].split(",").map(&:strip)
     else
       since = params[:since]&.to_datetime || 30.days.ago.beginning_of_day
-      until_date = params[:until]&.to_datetime || Time.current
+      until_date = (params[:until] || params[:until_date])&.to_datetime || Time.current
 
       @user.heartbeats
            .where(time: since..until_date)
@@ -255,7 +256,8 @@ class Api::V1::StatsController < ApplicationController
     token = request.headers["Authorization"]&.split(" ")&.last
     token ||= params[:api_key]
 
-    render plain: "Unauthorized", status: :unauthorized unless token == ENV["STATS_API_KEY"]
+    # Rails.logger.info "Auth Debug: Token=#{token.inspect}, Expected=#{ENV['STATS_API_KEY'].inspect}"
+    render json: { error: "Unauthorized" }, status: :unauthorized unless token == ENV["STATS_API_KEY"]
   end
 
   def find_by_email(email)

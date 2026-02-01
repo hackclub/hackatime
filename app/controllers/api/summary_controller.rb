@@ -4,7 +4,7 @@ module Api
 
     def index
       # Parse interval or date range
-      date_range = determine_date_range(params[:interval], params[:range], params[:from], params[:to])
+      date_range = determine_date_range(params[:interval], params[:range], params[:from] || params[:start], params[:to] || params[:end])
       return render json: { error: "Invalid date range" }, status: :bad_request unless date_range
 
       # Create parameters for WakatimeService

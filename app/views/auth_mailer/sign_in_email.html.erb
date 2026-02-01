@@ -1,21 +1,15 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
   </head>
   <body>
     <h1>Welcome back to Hackatime!</h1>
-    <p>
-      Click the link below to sign in to your account:
-    </p>
+    <p>Click the link below to sign in to your account:</p>
     <p>
       <%= link_to 'Sign in to Hackatime', auth_token_url(@token.token) %>
     </p>
-    <p>
-      This link will expire in 30 minutes and can only be used once.
-    </p>
-    <p>
-      If you didn't request this email, you can safely ignore it.
-    </p>
+    <p>This link will expire in 30 minutes and can only be used once.</p>
+    <p>If you didn't request this email, you can safely ignore it.</p>
   </body>
 </html>
