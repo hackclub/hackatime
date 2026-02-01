@@ -12,8 +12,11 @@ class AnonymizeUserService
       preserve_emails_for_ban_tracking
       anonymize_user_data
       destroy_associated_records
-      invalidate_sessions
     end
+  rescue StandardError => e
+    Sentry.capture_exception(e, extra: { user_id: user.id })
+    Rails.logger.error "AnonymizeUserService failed for user #{user.id}: #{e.message}"
+    raise
   end
 
   private
@@ -57,13 +60,14 @@ class AnonymizeUserService
     user.wakatime_mirrors.destroy_all
     user.project_repo_mappings.destroy_all
 
-    user.heartbeats.destroy_all
+    # tombstone
+    Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)
+
+    WakatimeMirror.joins("INNER JOIN heartbeats ON heartbeats.id = wakatime_mirrors.heartbeat_id")
+                  .where(heartbeats: { user_id: user.id })
+                  .delete_all
 
     user.access_grants.destroy_all
     user.access_tokens.destroy_all
-  end
-
-  def invalidate_sessions
-    user.sign_in_tokens.destroy_all
   end
 end
