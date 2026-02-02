@@ -23,7 +23,6 @@ Rails.application.routes.draw do
     mount GoodJob::Engine => "good_job"
     mount AhoyCaptain::Engine => "/ahoy_captain"
     mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
-    mount PgHero::Engine => "pghero"
 
     namespace :admin do
       resources :admin_users, only: [ :index, :update ] do

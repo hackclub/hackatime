@@ -228,24 +228,6 @@ GEM
       fugit (>= 1.11.0)
       railties (>= 6.1.0)
       thor (>= 1.0.0)
-    google-protobuf (4.33.4)
-      bigdecimal
-      rake (>= 13)
-    google-protobuf (4.33.4-aarch64-linux-gnu)
-      bigdecimal
-      rake (>= 13)
-    google-protobuf (4.33.4-aarch64-linux-musl)
-      bigdecimal
-      rake (>= 13)
-    google-protobuf (4.33.4-arm64-darwin)
-      bigdecimal
-      rake (>= 13)
-    google-protobuf (4.33.4-x86_64-linux-gnu)
-      bigdecimal
-      rake (>= 13)
-    google-protobuf (4.33.4-x86_64-linux-musl)
-      bigdecimal
-      rake (>= 13)
     groupdate (6.7.0)
       activesupport (>= 7.1)
     hashie (5.1.0)
@@ -376,10 +358,6 @@ GEM
     pg (1.6.3-arm64-darwin)
     pg (1.6.3-x86_64-linux)
     pg (1.6.3-x86_64-linux-musl)
-    pg_query (6.2.2)
-      google-protobuf (>= 3.25.3)
-    pghero (3.7.0)
-      activerecord (>= 7.1)
     pp (0.6.3)
       prettyprint
     prettyprint (0.2.0)
@@ -677,8 +655,6 @@ DEPENDENCIES
   pagy (~> 43.2)
   paper_trail
   pg
-  pg_query (>= 2)
-  pghero
   propshaft
   public_activity
   puma (>= 5.0)
