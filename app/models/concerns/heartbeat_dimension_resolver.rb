@@ -1,15 +1,24 @@
 module HeartbeatDimensionResolver
   extend ActiveSupport::Concern
 
+  DIMENSIONS = {
+    language:         { model: "Heartbeats::Language",        value_attr: :language,         fk: :language_id,         lookup: :name,  scope: :global },
+    category:         { model: "Heartbeats::Category",        value_attr: :category,         fk: :category_id,         lookup: :name,  scope: :global },
+    editor:           { model: "Heartbeats::Editor",          value_attr: :editor,           fk: :editor_id,           lookup: :name,  scope: :global },
+    operating_system: { model: "Heartbeats::OperatingSystem", value_attr: :operating_system, fk: :operating_system_id, lookup: :name,  scope: :global },
+    user_agent:       { model: "Heartbeats::UserAgent",       value_attr: :user_agent,       fk: :user_agent_id,       lookup: :value, scope: :global },
+    project:          { model: "Heartbeats::Project",         value_attr: :project,          fk: :project_id,          lookup: :name,  scope: :user },
+    branch:           { model: "Heartbeats::Branch",          value_attr: :branch,           fk: :branch_id,           lookup: :name,  scope: :user },
+    machine:          { model: "Heartbeats::Machine",         value_attr: :machine,          fk: :machine_id,          lookup: :name,  scope: :user }
+  }.freeze
+
   included do
-    belongs_to :heartbeat_language, class_name: "Heartbeats::Language", foreign_key: :language_id, optional: true
-    belongs_to :heartbeat_category, class_name: "Heartbeats::Category", foreign_key: :category_id, optional: true
-    belongs_to :heartbeat_editor, class_name: "Heartbeats::Editor", foreign_key: :editor_id, optional: true
-    belongs_to :heartbeat_operating_system, class_name: "Heartbeats::OperatingSystem", foreign_key: :operating_system_id, optional: true
-    belongs_to :heartbeat_user_agent, class_name: "Heartbeats::UserAgent", foreign_key: :user_agent_id, optional: true
-    belongs_to :heartbeat_project, class_name: "Heartbeats::Project", foreign_key: :project_id, optional: true
-    belongs_to :heartbeat_branch, class_name: "Heartbeats::Branch", foreign_key: :branch_id, optional: true
-    belongs_to :heartbeat_machine, class_name: "Heartbeats::Machine", foreign_key: :machine_id, optional: true
+    DIMENSIONS.each do |key, spec|
+      belongs_to :"heartbeat_#{key}",
+        class_name: spec[:model],
+        foreign_key: spec[:fk],
+        optional: true
+    end
 
     before_save :resolve_dimension_ids, if: :should_resolve_dimensions?
   end
@@ -21,28 +30,40 @@ module HeartbeatDimensionResolver
   end
 
   def resolve_dimension_ids
-    self.language_id ||= Heartbeats::Language.resolve(language)&.id if language.present?
-    self.category_id ||= Heartbeats::Category.resolve(category)&.id if category.present?
-    self.editor_id ||= Heartbeats::Editor.resolve(editor)&.id if editor.present?
-    self.operating_system_id ||= Heartbeats::OperatingSystem.resolve(operating_system)&.id if operating_system.present?
-    self.user_agent_id ||= Heartbeats::UserAgent.resolve(user_agent)&.id if user_agent.present?
-    self.project_id ||= Heartbeats::Project.resolve(user_id, project)&.id if project.present? && user_id.present?
-    self.branch_id ||= Heartbeats::Branch.resolve(user_id, branch)&.id if branch.present? && user_id.present?
-    self.machine_id ||= Heartbeats::Machine.resolve(user_id, machine)&.id if machine.present? && user_id.present?
+    DIMENSIONS.each_value do |spec|
+      next if self[spec[:fk]].present?
+
+      value = self[spec[:value_attr]]
+      next if value.blank?
+
+      model = spec[:model].constantize
+      resolved_id = if spec[:scope] == :global
+        model.resolve(value)&.id
+      else
+        model.resolve(user_id, value)&.id if user_id.present?
+      end
+
+      self[spec[:fk]] = resolved_id if resolved_id
+    end
   end
 
   class_methods do
     def resolve_dimensions_for_attributes(attrs)
       user_id = attrs[:user_id]
 
-      attrs[:language_id] ||= Heartbeats::Language.resolve(attrs[:language])&.id if attrs[:language].present?
-      attrs[:category_id] ||= Heartbeats::Category.resolve(attrs[:category])&.id if attrs[:category].present?
-      attrs[:editor_id] ||= Heartbeats::Editor.resolve(attrs[:editor])&.id if attrs[:editor].present?
-      attrs[:operating_system_id] ||= Heartbeats::OperatingSystem.resolve(attrs[:operating_system])&.id if attrs[:operating_system].present?
-      attrs[:user_agent_id] ||= Heartbeats::UserAgent.resolve(attrs[:user_agent])&.id if attrs[:user_agent].present?
-      attrs[:project_id] ||= Heartbeats::Project.resolve(user_id, attrs[:project])&.id if attrs[:project].present? && user_id.present?
-      attrs[:branch_id] ||= Heartbeats::Branch.resolve(user_id, attrs[:branch])&.id if attrs[:branch].present? && user_id.present?
-      attrs[:machine_id] ||= Heartbeats::Machine.resolve(user_id, attrs[:machine])&.id if attrs[:machine].present? && user_id.present?
+      DIMENSIONS.each_value do |spec|
+        next if attrs[spec[:fk]].present?
+
+        value = attrs[spec[:value_attr]]
+        next if value.blank?
+
+        model = spec[:model].constantize
+        attrs[spec[:fk]] = if spec[:scope] == :global
+          model.resolve(value)&.id
+        else
+          model.resolve(user_id, value)&.id if user_id.present?
+        end
+      end
 
       attrs
     end
@@ -50,36 +71,35 @@ module HeartbeatDimensionResolver
     def batch_resolve_dimensions(records_attrs)
       return records_attrs unless Flipper.enabled?(:heartbeat_dimension_dual_write)
 
-      global_languages = records_attrs.map { |r| r[:language] }.compact.uniq
-      global_categories = records_attrs.map { |r| r[:category] }.compact.uniq
-      global_editors = records_attrs.map { |r| r[:editor] }.compact.uniq
-      global_operating_systems = records_attrs.map { |r| r[:operating_system] }.compact.uniq
-      global_user_agents = records_attrs.map { |r| r[:user_agent] }.compact.uniq
+      global_specs = DIMENSIONS.select { |_, s| s[:scope] == :global }
+      user_specs = DIMENSIONS.select { |_, s| s[:scope] == :user }
 
-      language_map = batch_resolve_global(Heartbeats::Language, :name, global_languages)
-      category_map = batch_resolve_global(Heartbeats::Category, :name, global_categories)
-      editor_map = batch_resolve_global(Heartbeats::Editor, :name, global_editors)
-      os_map = batch_resolve_global(Heartbeats::OperatingSystem, :name, global_operating_systems)
-      ua_map = batch_resolve_global(Heartbeats::UserAgent, :value, global_user_agents)
+      global_maps = global_specs.transform_values do |spec|
+        values = records_attrs.filter_map { |r| r[spec[:value_attr]] }.uniq
+        batch_resolve_global(spec[:model].constantize, spec[:lookup], values)
+      end
 
-      user_projects = records_attrs.map { |r| [ r[:user_id], r[:project] ] }.select { |u, p| u && p }.uniq
-      user_branches = records_attrs.map { |r| [ r[:user_id], r[:branch] ] }.select { |u, b| u && b }.uniq
-      user_machines = records_attrs.map { |r| [ r[:user_id], r[:machine] ] }.select { |u, m| u && m }.uniq
-
-      project_map = batch_resolve_user_scoped(Heartbeats::Project, user_projects)
-      branch_map = batch_resolve_user_scoped(Heartbeats::Branch, user_branches)
-      machine_map = batch_resolve_user_scoped(Heartbeats::Machine, user_machines)
+      user_maps = user_specs.transform_values do |spec|
+        pairs = records_attrs.filter_map { |r|
+          uid, val = r[:user_id], r[spec[:value_attr]]
+          [ uid, val ] if uid && val
+        }.uniq
+        batch_resolve_user_scoped(spec[:model].constantize, pairs)
+      end
 
       records_attrs.map do |attrs|
         attrs = attrs.dup
-        attrs[:language_id] ||= language_map[attrs[:language]] if attrs[:language]
-        attrs[:category_id] ||= category_map[attrs[:category]] if attrs[:category]
-        attrs[:editor_id] ||= editor_map[attrs[:editor]] if attrs[:editor]
-        attrs[:operating_system_id] ||= os_map[attrs[:operating_system]] if attrs[:operating_system]
-        attrs[:user_agent_id] ||= ua_map[attrs[:user_agent]] if attrs[:user_agent]
-        attrs[:project_id] ||= project_map[[ attrs[:user_id], attrs[:project] ]] if attrs[:project] && attrs[:user_id]
-        attrs[:branch_id] ||= branch_map[[ attrs[:user_id], attrs[:branch] ]] if attrs[:branch] && attrs[:user_id]
-        attrs[:machine_id] ||= machine_map[[ attrs[:user_id], attrs[:machine] ]] if attrs[:machine] && attrs[:user_id]
+
+        global_specs.each do |key, spec|
+          next if attrs[spec[:fk]].present?
+          attrs[spec[:fk]] = global_maps[key][attrs[spec[:value_attr]]] if attrs[spec[:value_attr]]
+        end
+
+        user_specs.each do |key, spec|
+          next if attrs[spec[:fk]].present?
+          attrs[spec[:fk]] = user_maps[key][[ attrs[:user_id], attrs[spec[:value_attr]] ]] if attrs[spec[:value_attr]] && attrs[:user_id]
+        end
+
         attrs
       end
     end
@@ -103,11 +123,9 @@ module HeartbeatDimensionResolver
       rows = user_value_pairs.map { |user_id, name| { user_id: user_id, name: name, created_at: now, updated_at: now } }
       model.upsert_all(rows, unique_by: [ :user_id, :name ], returning: [ :id, :user_id, :name ])
 
-      model.where(
-        user_value_pairs.map { |uid, name| "(user_id = #{uid} AND name = #{model.connection.quote(name)})" }.join(" OR ")
-      ).pluck(:user_id, :name, :id).each_with_object({}) do |(uid, name, id), h|
-        h[[ uid, name ]] = id
-      end
+      model.where([ "(user_id, name) IN (?)", user_value_pairs ])
+           .pluck(:user_id, :name, :id)
+           .each_with_object({}) { |(uid, name, id), h| h[[ uid, name ]] = id }
     end
   end
 end
