@@ -5,15 +5,6 @@
       <div class="text-lg font-semibold text-white" data-stat="total_time"><%= ApplicationController.helpers.short_time_simple(@total_time) %></div>
     </div>
 
-    <% dev_tool(class: "") do %>
-      <div class="bg-dark p-4 rounded-xl border border-green border-dashed transition-all duration-200 h-full">
-        <div class="text-secondary text-xs mb-1 uppercase tracking-tight">TOTAL HEARTBEATS</div>
-        <div class="text-lg font-semibold text-white" data-stat="total_heartbeats">
-          <%= number_with_delimiter(@total_heartbeats) %>
-        </div>
-      </div>
-    <% end %>
-
     <div class="bg-dark border border-primary rounded-xl p-4 transition-all duration-200 h-full">
       <div class="text-secondary text-xs mb-1 uppercase tracking-tight">TOP PROJECT</div>
       <div class="text-lg font-semibold text-white" data-stat="top_project">
@@ -49,6 +40,16 @@
       <div class="text-lg font-semibold text-white" data-stat="top_editor">
         <%= display_editor_name(@top_editor) || "Unknown" %>
         <% if @singular_editor %>
+          <span class="super"><%= FlavorText.obvious.sample %></span>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="bg-dark border border-primary rounded-xl p-4 transition-all duration-200 h-full">
+      <div class="text-secondary text-xs mb-1 uppercase tracking-tight">TOP CATEGORY</div>
+      <div class="text-lg font-semibold text-white" data-stat="top_category">
+        <%= @top_category.capitalize || "Unknown" %>
+        <% if @singular_category %>
           <span class="super"><%= FlavorText.obvious.sample %></span>
         <% end %>
       </div>
