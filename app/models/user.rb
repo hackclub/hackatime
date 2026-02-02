@@ -117,6 +117,10 @@ class User < ApplicationRecord
 
   has_many :wakatime_mirrors, dependent: :destroy
 
+  has_many :heartbeat_projects, class_name: "Heartbeats::Project", dependent: :delete_all
+  has_many :heartbeat_branches, class_name: "Heartbeats::Branch", dependent: :delete_all
+  has_many :heartbeat_machines, class_name: "Heartbeats::Machine", dependent: :delete_all
+
   scope :search_identity, ->(term) {
     term = term.to_s.strip.downcase
     return none if term.blank?

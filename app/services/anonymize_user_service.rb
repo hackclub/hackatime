@@ -69,5 +69,9 @@ class AnonymizeUserService
 
     user.access_grants.destroy_all
     user.access_tokens.destroy_all
+
+    user.heartbeat_projects.delete_all
+    user.heartbeat_branches.delete_all
+    user.heartbeat_machines.delete_all
   end
 end
