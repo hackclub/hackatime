@@ -581,7 +581,7 @@ class User < ApplicationRecord
   end
 
   def display_name
-    name = slack_username || github_username
+    name = slack_username || github_username || username
     return name if name.present?
 
     # "zach@hackclub.com" -> "zach (email sign-up)"

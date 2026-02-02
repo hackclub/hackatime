@@ -96,6 +96,9 @@ gem "norairrecord", "~> 0.5.1"
 # Country codes
 gem "countries"
 
+# Random data generation
+gem "faker"
+
 # Markdown parsing
 gem "redcarpet"
 
