@@ -171,11 +171,6 @@
             Feature Flags
           <% end %>
         <% end %>
-        <% superadmin_tool(nil, "div") do %>
-          <%= link_to pghero_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(pghero_path) ? 'bg-primary text-primary' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
-            PgHero
-          <% end %>
-        <% end %>
 
         <%= render_activities(@activities) if defined?(@activities) %>
       </div>
