@@ -144,7 +144,8 @@ RSpec.configure do |config|
                      percent: { type: :number, example: 100.0 }
                    }
                  }
-              }
+              },
+              streak: { type: :integer, example: 7, description: 'Number of consecutive days the user has coded' }
             }
           },
           AdminApiKey: {

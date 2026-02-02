@@ -124,10 +124,11 @@ class Api::V1::StatsController < ApplicationController
       trust_value: trust_value
     }
 
+    summary[:streak] = @user.streak_days
+
     render json: {
       data: summary,
-      trust_factor: trust_info,
-      streak: @user.streak_days
+      trust_factor: trust_info
     }
   end
 
