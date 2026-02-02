@@ -126,7 +126,8 @@ class Api::V1::StatsController < ApplicationController
 
     render json: {
       data: summary,
-      trust_factor: trust_info
+      trust_factor: trust_info,
+      streak: @user.streak_days
     }
   end
 
