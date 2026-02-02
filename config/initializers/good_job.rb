@@ -123,6 +123,23 @@ Rails.application.configure do
       cron: "0 2 * * *",
       class: "ProcessAccountDeletionsJob",
       description: "nuke accounts after 30 days"
+    },
+
+    # PgHero stats
+    pghero_capture_query_stats: {
+      cron: "*/5 * * * *",
+      class: "Pghero::CaptureQueryStatsJob",
+      description: "Capture query stats for PgHero historical tracking"
+    },
+    pghero_capture_space_stats: {
+      cron: "0 4 * * *",
+      class: "Pghero::CaptureSpaceStatsJob",
+      description: "Capture space stats for PgHero historical tracking (daily)"
+    },
+    pghero_clean_stats: {
+      cron: "0 5 * * *",
+      class: "Pghero::CleanStatsJob",
+      description: "Clean PgHero stats older than 30 days"
     }
     # sync_stale_repo_metadata: {
     #   cron: "0 4 * * *", # Daily at 4 AM
