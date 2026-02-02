@@ -46,7 +46,7 @@
               <div class="w-8 text-center text-lg"><%= rank_emoji %></div>
               <div class="flex-1 mx-3 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <%= render 'shared/user_mention', user: entry.user %>
+                  <%= render 'shared/user_mention', user: entry.user, show: [:profile_link] %>
                   <% if entry.user == current_user && current_user.github_username.blank? %>
                     <span class="text-xs italic text-muted">
                       <%= link_to 'Link active projects', my_settings_path(anchor: 'user_github_account'), target: '_blank', class: 'text-accent hover:text-cyan-400 transition-colors' %>
@@ -65,11 +65,14 @@
                   <% end %>
                 </div>
               </div>
-              <div class="flex-shrink-0 font-mono text-sm text-white font-medium">
+              <div class="shrink-0 font-mono text-sm text-white font-medium">
                 <%= short_time_detailed entry.total_seconds %>
               </div>
             </div>
           <% end %>
+        </div>
+        <div class="mt-4 text-right">
+          <%= link_to 'View full leaderboard', leaderboards_path, class: 'text-sm text-secondary hover:text-cyan-400 transition-colors', data: { turbo_frame: "_top" } %>
         </div>
       </div>
     <% end %>
