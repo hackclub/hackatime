@@ -4,7 +4,6 @@ class Heartbeats::UserScopedLookupBase < ApplicationRecord
   belongs_to :user
 
   validates :name, presence: true
-  validates :user_id, uniqueness: { scope: :name }
 
   def self.resolve(user_id, name)
     return nil if user_id.blank? || name.blank?
