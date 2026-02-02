@@ -1,8 +1,8 @@
 <%= turbo_frame_tag "filterable_dashboard" do %>
-  <div class="content animate-pulse">
-    <div class="filters-section">
+  <div class="max-w-6xl mx-auto my-0 animate-pulse">
+    <div class="flex gap-4 mt-2 mb-6 flex-wrap">
       <% 5.times do %>
-        <div class="filter">
+        <div class="flex-1 min-w-37.5 relative">
           <div class="h-4 w-16 bg-darkless rounded mb-2"></div>
           <div class="h-10 w-full bg-darkless rounded"></div>
         </div>
@@ -10,29 +10,29 @@
     </div>
   </div>
 
-  <div class="dashboard-wrapper">
-    <div class="stats-section">
+  <div class="flex flex-col gap-6 w-full">
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(9.375rem,1fr))] gap-4">
       <% 6.times do %>
-        <div class="stat-card animate-pulse">
-          <div class="stat-label">
+        <div class="bg-dark border border-primary rounded-xl p-4 transition-all duration-200 h-full animate-pulse">
+          <div class="text-secondary text-xs mb-1 uppercase tracking-tight">
             <div class="h-3 w-20 bg-darkless rounded"></div>
           </div>
-          <div class="stat-value">
+          <div class="text-lg font-semibold text-white">
             <div class="h-8 w-24 bg-darkless rounded mt-2"></div>
           </div>
         </div>
       <% end %>
     </div>
 
-    <div class="dashboard-grid">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
       <%# Project Durations skeleton %>
-      <div class="card animate-pulse">
+      <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col animate-pulse">
         <div class="h-6 w-40 bg-darkless rounded mb-4"></div>
-        <div class="bar-graph space-y-3">
+        <div class="mt-2 space-y-3">
           <% 5.times do |i| %>
-            <div class="bar-row flex items-center gap-3">
+            <div class="flex items-center mb-3 gap-3">
               <div class="h-4 w-24 bg-darkless rounded"></div>
-              <div class="bar-container flex-1">
+              <div class="flex-1 h-7 bg-darkless rounded-lg overflow-hidden">
                 <div class="h-6 bg-darkless rounded" style="width: <%= 100 - (i * 15) %>%"></div>
               </div>
             </div>
@@ -41,25 +41,25 @@
       </div>
 
       <%# Language pie chart skeleton %>
-      <div class="card animate-pulse">
+      <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col animate-pulse">
         <div class="h-6 w-32 bg-darkless rounded mb-4"></div>
-        <div class="chart-container flex items-center justify-center py-8">
+        <div class="flex-1 relative min-h-48 flex items-center justify-center py-8">
           <div class="w-32 h-32 bg-darkless rounded-full"></div>
         </div>
       </div>
 
       <%# Editor pie chart skeleton %>
-      <div class="card animate-pulse">
+      <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col animate-pulse">
         <div class="h-6 w-24 bg-darkless rounded mb-4"></div>
-        <div class="chart-container flex items-center justify-center py-8">
+        <div class="flex-1 relative min-h-48 flex items-center justify-center py-8">
           <div class="w-32 h-32 bg-darkless rounded-full"></div>
         </div>
       </div>
 
       <%# Project Timeline skeleton %>
-      <div class="card animate-pulse">
+      <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col animate-pulse">
         <div class="h-6 w-36 bg-darkless rounded mb-4"></div>
-        <div class="chart-container flex items-end justify-between gap-1 py-8 h-48">
+        <div class="flex-1 relative min-h-48 flex items-end justify-between gap-1 py-8 h-48">
           <% 12.times do %>
             <div class="bg-darkless rounded" style="width: 8%; height: <%= rand(20..100) %>%"></div>
           <% end %>
