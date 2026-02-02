@@ -151,6 +151,9 @@ class StaticPagesController < ApplicationController
     %i[project language operating_system editor category].each do |f|
       instance_variable_set("@selected_#{f}", params[f]&.split(",") || [])
     end
+    @selected_interval = params[:interval]
+    @selected_from = params[:from]
+    @selected_to = params[:to]
     render partial: "filterable_dashboard"
   end
 
@@ -177,7 +180,7 @@ class StaticPagesController < ApplicationController
 
   def filterable_dashboard_data
     filters = %i[project language operating_system editor category]
-    key = [ current_user ] + filters.map { |f| params[f] }
+    key = [ current_user ] + filters.map { |f| params[f] } + [ params[:interval], params[:from], params[:to] ]
     hb = current_user.heartbeats
     h = ApplicationController.helpers
 

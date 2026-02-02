@@ -1,6 +1,7 @@
 <%= turbo_frame_tag "filterable_dashboard" do %>
   <div class="max-w-6xl mx-auto my-0">
     <div class="flex gap-4 mt-2 mb-6 flex-wrap">
+      <%= render partial: "shared/dashboard_interval_selector", locals: { selected_interval: @selected_interval, selected_from: @selected_from, selected_to: @selected_to } %>
       <%= render partial: "shared/multi_select", locals: { label: "Project", param: "project", values: @project, selected: @selected_project } %>
       <%= render partial: "shared/multi_select", locals: { label: "Language", param: "language", values: @language, selected: @selected_language } %>
       <%= render partial: "shared/multi_select", locals: { label: "OS", param: "operating_system", values: @operating_system, selected: @selected_operating_system } %>
@@ -139,11 +140,80 @@
           });
       };
 
+    window.initializeIntervalSelect = window.initializeIntervalSelect || function () {
+      const s = document.getElementById("interval-select");
+      if (!s || s.dataset.initialized) return;
+      s.dataset.initialized = "true";
+
+      const h = document.getElementById("interval-header");
+      const c = document.getElementById("interval-options");
+      const clr = document.getElementById("interval-clear-button");
+      const radios = s.querySelectorAll('input[type="radio"]');
+      const start = document.getElementById("interval-custom-start");
+      const end = document.getElementById("interval-custom-end");
+
+      h.addEventListener("click", (e) => {
+        e.stopPropagation();
+        document.querySelectorAll(".options-container").forEach((x) => { if (x !== c) x.style.display = "none"; });
+        c.style.display = c.style.display === "block" ? "none" : "block";
+      });
+
+      clr?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        radios.forEach((r) => (r.checked = false));
+        s.querySelector('input[value=""]')?.click();
+        start.value = end.value = "";
+        updateIntervalFilter("", "", "");
+      });
+
+      radios.forEach((r) => r.addEventListener("change", function () {
+        h.textContent = this.closest(".option").dataset.intervalLabel;
+        clr.classList.toggle("hidden", this.value === "");
+        c.style.display = "none";
+        start.value = end.value = "";
+        updateIntervalFilter(this.value, "", "");
+      }));
+
+      document.getElementById("interval-apply-custom").addEventListener("click", () => {
+        const sv = start.value, ev = end.value;
+        if (!sv && !ev) return;
+        h.textContent = sv && ev ? `${sv} to ${ev}` : sv ? `From ${sv}` : `Until ${ev}`;
+        clr.classList.remove("hidden");
+        c.style.display = "none";
+        radios.forEach((r) => (r.checked = false));
+        updateIntervalFilter("custom", sv, ev);
+      });
+
+      [start, end].forEach((i) => i.addEventListener("click", (e) => e.stopPropagation()));
+    };
+
+    window.updateIntervalFilter = window.updateIntervalFilter || function (interval, from, to) {
+      const f = document.querySelector("#filterable_dashboard_content");
+      f.classList.add("loading");
+
+      const url = new URL(window.location);
+      ["interval", "from", "to"].forEach((k) => url.searchParams.delete(k));
+      if (interval) url.searchParams.set("interval", interval);
+      if (from) url.searchParams.set("from", from);
+      if (to) url.searchParams.set("to", to);
+      window.history.pushState({}, "", url);
+
+      url.pathname = <%== filterable_dashboard_content_static_pages_path.to_json %>;
+      fetch(url.toString(), { headers: { Accept: "text/html" } })
+        .then((r) => r.text())
+        .then((html) => {
+          f.innerHTML = html;
+          f.classList.remove("loading");
+          window.hackatimeCharts?.initializeCharts();
+        });
+    };
+
     document.addEventListener("turbo:frame-load", function (event) {
       if (event.target.id === "filterable_dashboard") {
         ["project", "language", "editor", "operating_system", "category"].forEach((type) => {
           window.initializeMultiSelect(`${type}-select`);
         });
+        window.initializeIntervalSelect();
         document.addEventListener("click", function (e) {
           if (!e.target.closest(".custom-select")) {
             document.querySelectorAll(".options-container").forEach((container) => {
