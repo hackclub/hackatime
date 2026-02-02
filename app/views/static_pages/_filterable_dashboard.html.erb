@@ -31,12 +31,13 @@
 
         // Header and clear button visibility
         const checkedBoxes = Array.from(checkboxes).filter((cb) => cb.checked);
+        const headerSpanInit = header.querySelector("span") || header;
         if (checkedBoxes.length > 0 && clearButton) {
           clearButton.style.display = "block";
           if (checkedBoxes.length === 1) {
-            header.textContent = checkedBoxes[0].value;
+            headerSpanInit.textContent = checkedBoxes[0].value;
           } else {
-            header.textContent = `${checkedBoxes.length} selected`;
+            headerSpanInit.textContent = `${checkedBoxes.length} selected`;
           }
         }
 
@@ -98,14 +99,15 @@
           .map((cb) => cb.value);
 
         // Header text, clear button
+        const headerSpan = header.querySelector("span") || header;
         if (selected.length === 0) {
-          header.textContent = `Filter by ${header.closest(".filter").querySelector(".filter-label").textContent.slice(2).toLowerCase()}...`;
+          headerSpan.textContent = `Filter by ${header.closest(".filter").querySelector(".filter-label").textContent.toLowerCase()}...`;
           if (clearButton) clearButton.style.display = "none";
         } else if (selected.length === 1) {
-          header.textContent = selected[0];
+          headerSpan.textContent = selected[0];
           if (clearButton) clearButton.style.display = "block";
         } else {
-          header.textContent = `${selected.length} selected`;
+          headerSpan.textContent = `${selected.length} selected`;
           if (clearButton) clearButton.style.display = "block";
         }
 
@@ -166,8 +168,9 @@
         updateIntervalFilter("", "", "");
       });
 
+      const hSpan = h.querySelector("span") || h;
       radios.forEach((r) => r.addEventListener("change", function () {
-        h.textContent = this.closest(".option").dataset.intervalLabel;
+        hSpan.textContent = this.closest(".option").dataset.intervalLabel;
         clr.classList.toggle("hidden", this.value === "");
         c.style.display = "none";
         start.value = end.value = "";
@@ -177,7 +180,7 @@
       document.getElementById("interval-apply-custom").addEventListener("click", () => {
         const sv = start.value, ev = end.value;
         if (!sv && !ev) return;
-        h.textContent = sv && ev ? `${sv} to ${ev}` : sv ? `From ${sv}` : `Until ${ev}`;
+        hSpan.textContent = sv && ev ? `${sv} to ${ev}` : sv ? `From ${sv}` : `Until ${ev}`;
         clr.classList.remove("hidden");
         c.style.display = "none";
         radios.forEach((r) => (r.checked = false));
