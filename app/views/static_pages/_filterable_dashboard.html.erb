@@ -1,6 +1,6 @@
 <%= turbo_frame_tag "filterable_dashboard" do %>
-  <div class="content">
-    <div class="filters-section">
+  <div class="max-w-6xl mx-auto my-0">
+    <div class="flex gap-4 mt-2 mb-6 flex-wrap">
       <%= render partial: "shared/multi_select", locals: { label: "Project", param: "project", values: @project, selected: @selected_project } %>
       <%= render partial: "shared/multi_select", locals: { label: "Language", param: "language", values: @language, selected: @selected_language } %>
       <%= render partial: "shared/multi_select", locals: { label: "OS", param: "operating_system", values: @operating_system, selected: @selected_operating_system } %>

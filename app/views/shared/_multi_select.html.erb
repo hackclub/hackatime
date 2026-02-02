@@ -1,16 +1,16 @@
-<div class="filter">
-  <label class="filter-label">▼ <%= label %></label>
-  <div class="custom-select" id="<%= param %>-select" data-param="<%= param %>">
-    <div class="select-header-container">
-      <div class="select-header">Filter by <%= label.downcase %>...</div>
-      <button class="clear-button">×</button>
+<div class="filter flex-1 min-w-37.5 relative">
+  <label class="filter-label block text-sm mb-1 text-secondary">▼ <%= label %></label>
+  <div class="custom-select relative w-full" id="<%= param %>-select" data-param="<%= param %>">
+    <div class="select-header-container flex items-center border border-darkless rounded bg-darkless m-0 p-0">
+      <div class="select-header flex-1 px-3 py-2 text-sm cursor-pointer select-none text-gray-200 m-0 bg-transparent">Filter by <%= label.downcase %>...</div>
+      <button class="clear-button px-2 py-1.5 text-base leading-none text-secondary bg-transparent border-0 border-l border-dark cursor-pointer m-0 hover:text-red hover:bg-dark hidden">×</button>
     </div>
-    <div class="options-container">
-      <input type="text" class="search-input" placeholder="Search <%= label.downcase %>...">
-      <div class="options-list">
+    <div class="options-container absolute top-full left-0 right-0 bg-darkless border border-darkless rounded mt-1 shadow-lg z-1000 p-0 hidden">
+      <input type="text" class="search-input w-full border-0 border-b border-dark p-2 m-0 bg-transparent text-white text-sm rounded-none h-auto placeholder:text-secondary focus:outline-none focus:shadow-none focus:border-primary" placeholder="Search <%= label.downcase %>...">
+      <div class="options-list overflow-y-auto p-0 m-0 max-h-[10.28rem] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <% values.reject(&:blank?).each do |value| %>
-          <label class="option">
-            <input type="checkbox" value="<%= value %>" <%= 'checked' if selected&.include?(value) %>>
+          <label class="option flex items-center px-2 py-1.5 cursor-pointer text-sm text-gray-200 m-0 bg-transparent hover:bg-dark">
+            <input type="checkbox" class="mr-2 mb-0 h-3.5 w-3.5 min-w-3.5 appearance-none border border-secondary rounded-sm bg-dark relative cursor-pointer p-0 checked:bg-primary checked:border-primary hover:border-primary" value="<%= value %>" <%= 'checked' if selected&.include?(value) %>>
             <span><%= value %></span>
           </label>
         <% end %>
