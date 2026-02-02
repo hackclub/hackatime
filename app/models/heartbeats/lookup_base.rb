@@ -3,7 +3,7 @@ class Heartbeats::LookupBase < ApplicationRecord
 
   def self.lookup_column = :name
 
-  validates lookup_column, presence: true, uniqueness: true
+  validates lookup_column, presence: true
 
   def self.resolve(value)
     return nil if value.blank?
