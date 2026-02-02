@@ -249,7 +249,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
                 trust_level: { type: :string, example: 'blue' },
                 trust_value: { type: :integer, example: 3 }
               }
-            }
+            },
+            streak: { type: :integer, example: 7, description: 'Number of consecutive days the user has coded' }
           }
         run_test!
       end

@@ -3140,6 +3140,10 @@ paths:
                       trust_value:
                         type: integer
                         example: 3
+                  streak:
+                    type: integer
+                    example: 7
+                    description: Number of consecutive days the user has coded
         '403':
           description: forbidden
           content:
