@@ -1,4 +1,4 @@
-class Pghero::CleanStatsJob < ApplicationJob
+class PgheroStats::CleanStatsJob < ApplicationJob
   queue_as :literally_whenever
 
   KEEP_DAYS = 30

@@ -1,4 +1,4 @@
-class Pghero::CaptureQueryStatsJob < ApplicationJob
+class PgheroStats::CaptureQueryStatsJob < ApplicationJob
   queue_as :literally_whenever
 
   def perform

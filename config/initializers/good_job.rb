@@ -128,17 +128,17 @@ Rails.application.configure do
     # PgHero stats
     pghero_capture_query_stats: {
       cron: "*/5 * * * *",
-      class: "Pghero::CaptureQueryStatsJob",
+      class: "PgheroStats::CaptureQueryStatsJob",
       description: "Capture query stats for PgHero historical tracking"
     },
     pghero_capture_space_stats: {
       cron: "0 4 * * *",
-      class: "Pghero::CaptureSpaceStatsJob",
+      class: "PgheroStats::CaptureSpaceStatsJob",
       description: "Capture space stats for PgHero historical tracking (daily)"
     },
     pghero_clean_stats: {
       cron: "0 5 * * *",
-      class: "Pghero::CleanStatsJob",
+      class: "PgheroStats::CleanStatsJob",
       description: "Clean PgHero stats older than 30 days"
     }
     # sync_stale_repo_metadata: {
