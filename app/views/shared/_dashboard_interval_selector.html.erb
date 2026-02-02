@@ -1,0 +1,38 @@
+<div class="filter flex-1 min-w-37.5 relative">
+  <label class="filter-label block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider">Date Range</label>
+  <div class="custom-select relative w-full" id="interval-select" data-param="interval">
+    <div class="select-header-container group flex items-center border border-white/10 rounded-lg bg-darkless m-0 p-0 transition-all duration-200 hover:border-white/20">
+      <div class="select-header flex-1 px-3 py-2.5 text-sm cursor-pointer select-none text-gray-300 m-0 bg-transparent flex items-center justify-between" id="interval-header">
+        <span><%= human_interval_name(selected_interval, from: selected_from, to: selected_to) %></span>
+        <svg class="w-4 h-4 text-secondary/60 transition-transform duration-200 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+      <button class="clear-button px-2.5 py-2 text-sm leading-none text-secondary/60 bg-transparent border-0 border-l border-white/10 cursor-pointer m-0 hover:text-red hover:bg-red/10 transition-colors duration-150 <%= selected_interval.blank? && selected_from.blank? && selected_to.blank? ? 'hidden' : '' %>" id="interval-clear-button">×</button>
+    </div>
+    <div class="options-container absolute top-full left-0 right-0 min-w-64 bg-darkless border border-white/10 rounded-lg mt-2 shadow-xl shadow-black/50 z-1000 p-2" id="interval-options" style="display: none;">
+      <div class="options-list overflow-y-auto m-0 max-h-56 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <% TimeRangeFilterable::RANGES.each do |key, config| %>
+          <label class="option flex items-center px-3 py-2.5 cursor-pointer text-sm text-gray-300 m-0 bg-transparent rounded-md hover:bg-dark transition-colors duration-150" data-interval-key="<%= key %>" data-interval-label="<%= config[:human_name] %>">
+            <input type="radio" name="interval-option" class="mr-3 mb-0 h-4 w-4 min-w-4 appearance-none border border-white/20 rounded-full bg-dark relative cursor-pointer p-0 checked:bg-primary checked:border-primary hover:border-white/40 transition-colors duration-150" value="<%= key %>" <%= 'checked' if selected_interval == key.to_s %>>
+            <span><%= config[:human_name] %></span>
+          </label>
+        <% end %>
+        <label class="option flex items-center px-3 py-2.5 cursor-pointer text-sm text-gray-300 m-0 bg-transparent rounded-md hover:bg-dark transition-colors duration-150" data-interval-key="" data-interval-label="All Time">
+          <input type="radio" name="interval-option" class="mr-3 mb-0 h-4 w-4 min-w-4 appearance-none border border-white/20 rounded-full bg-dark relative cursor-pointer p-0 checked:bg-primary checked:border-primary hover:border-white/40 transition-colors duration-150" value="" <%= 'checked' if selected_interval.blank? && selected_from.blank? && selected_to.blank? %>>
+          <span>All Time</span>
+        </label>
+      </div>
+      <hr class="my-2 border-white/10">
+      <div class="flex flex-col gap-2.5 pt-1">
+        <label class="flex items-center justify-between text-sm text-gray-300">
+          <span class="text-secondary/80">Start</span>
+          <input type="date" class="ml-2 py-2 px-3 bg-dark border border-white/10 rounded-md text-sm text-gray-200 focus:outline-none focus:border-white/20 transition-colors duration-150" id="interval-custom-start" value="<%= selected_from %>">
+        </label>
+        <label class="flex items-center justify-between text-sm text-gray-300">
+          <span class="text-secondary/80">End</span>
+          <input type="date" class="ml-2 py-2 px-3 bg-dark border border-white/10 rounded-md text-sm text-gray-200 focus:outline-none focus:border-white/20 transition-colors duration-150" id="interval-custom-end" value="<%= selected_to %>">
+        </label>
+        <button type="button" class="px-3 py-2.5 mt-1 rounded-md font-medium text-sm transition-all duration-200 cursor-pointer bg-primary text-white hover:bg-primary/90" id="interval-apply-custom">Apply Custom Range</button>
+      </div>
+    </div>
+  </div>
+</div>
