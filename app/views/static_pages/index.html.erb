@@ -97,19 +97,17 @@
     <div class="mt-8 mb-8">
       <h1 class="font-bold mt-1 mb-1 text-4xl">For your favorite <span class="text-primary">Hack Club</span> events!</h1>
       <p class="text-primary monospace text-[20px]">First class support for Hack Club events, and more.</p>
-      <div class="flex flex-col md:flex-row bg-[url('/images/som-bg.png')] mt-4 mb-4 rounded-lg">
-        <div class="w-full md:w-1/2 p-8">
-          <img src="/images/som.png" class="h-2/3 mx-auto md:mx-0 mb-6">
-          <%= link_to "Start building", "https://summer.hackclub.com/", class: "inline-block bg-[#592F31] font-primary font-bold text-[#f6dbba] px-4 py-2 rounded-[100px] text-[22px] hover:scale-105 transition-transform duration-200", target: "_blank" %>
-        </div>
-        <div class="w-full md:w-1/2 p-8 pl-4 pr-4 grid grid-cols-1 gap-4">
-          <div class="project-desc p-4">
-            <h2 class="font-bold text-[22px]">Build Projects</h2>
-            <p class="text-[18px]">Build websites, games, apps, or any other personal open-source coding projects to showcase your skills.</p>
+      <div class="relative mt-4 mb-4 rounded-lg" style="background: linear-gradient(90deg, #2e1538 0%, #5a2d4a 50%, #a36b80 100%);">
+        <div class="flex flex-col md:flex-row">
+          <div class="w-full md:w-1/2 pl-8">
+            <img src="/images/flagship.png" class="h-auto w-full mx-auto md:mx-0">
           </div>
-          <div class="project-desc p-4">
-            <h2 class="font-bold text-[22px]">Get Stuff</h2>
-            <p class="text-[18px]">Get awesome prizes like Raspberry Pis, Server hosting credits, 3D printers, and more to fuel your next creation.</p>
+          <div class="w-full md:w-1/2 p-8 pl-4 pr-4 grid grid-cols-1 gap-4 ">
+            <div class="p-8 rounded-lg bg-no-repeat bg-center relative" style="background-image: url('/images/bgBanner.png'); background-size: 100% 100%;">
+              <h2 class="font-bold text-[22px] text-white drop-shadow-md mb-4 mt-6">Make your first game, get a free ticket to the craziest game jam of 2026!</h2>
+              <p class="text-white drop-shadow-md text-[18px] mb-4">Meet indie game developers and your favorite YouTubers.</p>
+              <%= link_to "Start building", "https://flagship.hackclub.com/?utm_source=hackatime", class: "inline-block relative z-10 font-primary font-bold px-6 py-3 rounded-full shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200", style: "background-color: #f5f0e8; color: #2a2a2a; font-size: 18px; padding-top: 14px;", target: "_blank" %>
+            </div>
           </div>
         </div>
       </div>
