@@ -1,10 +1,11 @@
 class Heartbeat < ApplicationRecord
   before_save :set_fields_hash!
-  before_save :set_raw_data!
+  before_save :set_raw_data!, unless: -> { Flipper.enabled?(:skip_heartbeat_raw_data) }
 
   include Heartbeatable
   include TimeRangeFilterable
   include PublicActivity::Common
+  include HeartbeatDimensionResolver
 
   time_range_filterable_field :time
 

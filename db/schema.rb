@@ -10,8 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_20_014910) do
-  create_schema "pganalyze"
+ActiveRecord::Schema[8.1].define(version: 2026_02_02_194419) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -260,49 +259,128 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_20_014910) do
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at", where: "(finished_at IS NULL)"
   end
 
+  create_table "heartbeat_branches", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "name"], name: "index_heartbeat_branches_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_heartbeat_branches_on_user_id"
+  end
+
+  create_table "heartbeat_categories", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_heartbeat_categories_on_name", unique: true
+  end
+
+  create_table "heartbeat_editors", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_heartbeat_editors_on_name", unique: true
+  end
+
+  create_table "heartbeat_languages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_heartbeat_languages_on_name", unique: true
+  end
+
+  create_table "heartbeat_machines", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "name"], name: "index_heartbeat_machines_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_heartbeat_machines_on_user_id"
+  end
+
+  create_table "heartbeat_operating_systems", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_heartbeat_operating_systems_on_name", unique: true
+  end
+
+  create_table "heartbeat_projects", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "name"], name: "index_heartbeat_projects_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_heartbeat_projects_on_user_id"
+  end
+
+  create_table "heartbeat_user_agents", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "value", null: false
+    t.index ["value"], name: "index_heartbeat_user_agents_on_value", unique: true
+  end
+
   create_table "heartbeats", force: :cascade do |t|
     t.string "branch"
+    t.bigint "branch_id"
     t.string "category"
+    t.bigint "category_id"
     t.datetime "created_at", null: false
     t.integer "cursorpos"
     t.datetime "deleted_at"
     t.string "dependencies", default: [], array: true
     t.string "editor"
+    t.bigint "editor_id"
     t.string "entity"
     t.text "fields_hash"
     t.inet "ip_address"
     t.boolean "is_write"
     t.string "language"
+    t.bigint "language_id"
     t.integer "line_additions"
     t.integer "line_deletions"
     t.integer "lineno"
     t.integer "lines"
     t.string "machine"
+    t.bigint "machine_id"
     t.string "operating_system"
+    t.bigint "operating_system_id"
     t.string "project"
+    t.bigint "project_id"
     t.integer "project_root_count"
-    t.jsonb "raw_data"
     t.bigint "raw_heartbeat_upload_id"
     t.integer "source_type", null: false
     t.float "time", null: false
     t.string "type"
     t.datetime "updated_at", null: false
     t.string "user_agent"
+    t.bigint "user_agent_id"
     t.bigint "user_id", null: false
     t.integer "ysws_program", default: 0, null: false
+    t.index ["branch_id"], name: "index_heartbeats_on_branch_id"
     t.index ["category", "time"], name: "index_heartbeats_on_category_and_time"
+    t.index ["category_id"], name: "index_heartbeats_on_category_id"
+    t.index ["editor_id"], name: "index_heartbeats_on_editor_id"
     t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
     t.index ["ip_address"], name: "index_heartbeats_on_ip_address"
+    t.index ["language_id"], name: "index_heartbeats_on_language_id"
     t.index ["machine"], name: "index_heartbeats_on_machine"
+    t.index ["machine_id"], name: "index_heartbeats_on_machine_id"
+    t.index ["operating_system_id"], name: "index_heartbeats_on_operating_system_id"
     t.index ["project", "time"], name: "index_heartbeats_on_project_and_time"
     t.index ["project"], name: "index_heartbeats_on_project"
+    t.index ["project_id"], name: "index_heartbeats_on_project_id"
     t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
     t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
+    t.index ["user_agent_id"], name: "index_heartbeats_on_user_agent_id"
     t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
     t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
     t.index ["user_id", "time", "language"], name: "idx_heartbeats_user_time_language_stats", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "time", "language_id"], name: "idx_heartbeats_user_time_language_id", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "time", "project_id"], name: "idx_heartbeats_user_time_project_id", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
@@ -578,6 +656,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_20_014910) do
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
+  add_foreign_key "heartbeat_branches", "users"
+  add_foreign_key "heartbeat_machines", "users"
+  add_foreign_key "heartbeat_projects", "users"
+  add_foreign_key "heartbeats", "heartbeat_branches", column: "branch_id"
+  add_foreign_key "heartbeats", "heartbeat_categories", column: "category_id"
+  add_foreign_key "heartbeats", "heartbeat_editors", column: "editor_id"
+  add_foreign_key "heartbeats", "heartbeat_languages", column: "language_id"
+  add_foreign_key "heartbeats", "heartbeat_machines", column: "machine_id"
+  add_foreign_key "heartbeats", "heartbeat_operating_systems", column: "operating_system_id"
+  add_foreign_key "heartbeats", "heartbeat_projects", column: "project_id"
+  add_foreign_key "heartbeats", "heartbeat_user_agents", column: "user_agent_id"
   add_foreign_key "heartbeats", "raw_heartbeat_uploads"
   add_foreign_key "heartbeats", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"

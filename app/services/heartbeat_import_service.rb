@@ -51,9 +51,9 @@ class HeartbeatImportService
             cursorpos: heartbeat_data["cursorpos"],
             dependencies: heartbeat_data["dependencies"] || [],
             project_root_count: heartbeat_data["project_root_count"],
-            source_type: :wakapi_import,
-            raw_data: heartbeat_data.slice(*Heartbeat.indexed_attributes)
+            source_type: :wakapi_import
           }
+          attrs[:raw_data] = heartbeat_data.slice(*Heartbeat.indexed_attributes) unless Flipper.enabled?(:skip_heartbeat_raw_data)
 
           attrs[:fields_hash] = Heartbeat.generate_fields_hash(attrs)
           print(attrs[:fields_hash])
@@ -70,10 +70,10 @@ class HeartbeatImportService
         print("importing!!!!!!!!!!!!!!!!!!!!!!")
         print("\n")
         begin
-          # Copied from migrate user from hackatime (app\jobs\migrate_user_from_hackatime_job.rb)
           records_to_upsert = records_to_upsert.group_by { |r| r[:fields_hash] }.map do |_, records|
             records.max_by { |r| r[:time] }
           end
+          records_to_upsert = Heartbeat.batch_resolve_dimensions(records_to_upsert)
           result = Heartbeat.upsert_all(records_to_upsert, unique_by: [ :fields_hash ])
           imported_count += result.length
         rescue => e
