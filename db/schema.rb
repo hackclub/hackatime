@@ -680,14 +680,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_02_210555) do
   add_foreign_key "heartbeat_branches", "users"
   add_foreign_key "heartbeat_machines", "users"
   add_foreign_key "heartbeat_projects", "users"
-  add_foreign_key "heartbeats", "heartbeat_branches", column: "branch_id"
-  add_foreign_key "heartbeats", "heartbeat_categories", column: "category_id"
-  add_foreign_key "heartbeats", "heartbeat_editors", column: "editor_id"
-  add_foreign_key "heartbeats", "heartbeat_languages", column: "language_id"
-  add_foreign_key "heartbeats", "heartbeat_machines", column: "machine_id"
-  add_foreign_key "heartbeats", "heartbeat_operating_systems", column: "operating_system_id"
-  add_foreign_key "heartbeats", "heartbeat_projects", column: "project_id"
-  add_foreign_key "heartbeats", "heartbeat_user_agents", column: "user_agent_id"
+  add_foreign_key "heartbeats", "heartbeat_branches", column: "branch_id", validate: false
+  add_foreign_key "heartbeats", "heartbeat_categories", column: "category_id", validate: false
+  add_foreign_key "heartbeats", "heartbeat_editors", column: "editor_id", validate: false
+  add_foreign_key "heartbeats", "heartbeat_languages", column: "language_id", validate: false
+  add_foreign_key "heartbeats", "heartbeat_machines", column: "machine_id", validate: false
+  add_foreign_key "heartbeats", "heartbeat_operating_systems", column: "operating_system_id", validate: false
+  add_foreign_key "heartbeats", "heartbeat_projects", column: "project_id", validate: false
+  add_foreign_key "heartbeats", "heartbeat_user_agents", column: "user_agent_id", validate: false
   add_foreign_key "heartbeats", "raw_heartbeat_uploads"
   add_foreign_key "heartbeats", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
