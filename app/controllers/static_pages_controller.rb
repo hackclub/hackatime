@@ -201,7 +201,7 @@ class StaticPagesController < ApplicationController
           hb = if %i[operating_system editor].include?(f)
             hb.where(f => arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq)
           elsif f == :language
-            raw = current_user.heartbeats.distinct.pluck(f).compact_blank.select { |l| arr.include?(l.categorize_language) }
+            raw = current_user.heartbeats.distinct.pluck(f).compact_blank.select { |l| arr.any? { |a| a.casecmp?(l.categorize_language) } }
             raw.any? ? hb.where(f => raw) : hb
           else
             hb.where(f => arr)
