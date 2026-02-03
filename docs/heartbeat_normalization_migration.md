@@ -57,15 +57,9 @@ end
 
 (we don't have these in `migrations` bc it won't work till the backfill is done)
 
-### Stop writing raw_data
-
-```ruby
-Flipper.enable(:skip_heartbeat_raw_data)
-```
-
 ### Remove raw_data Column
 
-**WARNING:** This will lock the DB!! We'll need to co-ordinate an announcement with program owners + the wider Slack
+**WARNING:** This will lock the DB! We'll need to co-ordinate an announcement with program owners + the wider Slack
 
 ```bash
 rails g migration RemoveRawDataFromHeartbeats
