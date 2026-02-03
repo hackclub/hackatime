@@ -72,8 +72,6 @@ class MigrateUserFromHackatimeJob < ApplicationJob
           is_write: heartbeat.is_write,
           source_type: :wakapi_import
         }
-        attrs[:raw_data] = heartbeat.attributes.slice(*Heartbeat.indexed_attributes) unless Flipper.enabled?(:skip_heartbeat_raw_data)
-
         {
           **attrs,
           fields_hash: Heartbeat.generate_fields_hash(attrs)

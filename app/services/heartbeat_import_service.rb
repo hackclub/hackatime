@@ -53,8 +53,6 @@ class HeartbeatImportService
             project_root_count: heartbeat_data["project_root_count"],
             source_type: :wakapi_import
           }
-          attrs[:raw_data] = heartbeat_data.slice(*Heartbeat.indexed_attributes) unless Flipper.enabled?(:skip_heartbeat_raw_data)
-
           attrs[:fields_hash] = Heartbeat.generate_fields_hash(attrs)
           print(attrs[:fields_hash])
           print("\n")

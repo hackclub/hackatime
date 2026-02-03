@@ -86,18 +86,10 @@ class RemoveRawDataFromHeartbeats < ActiveRecord::Migration[8.1]
 end
 ```
 
-## Feature flags
-
-| Flag | Purpose |
-|------|---------|
-| `heartbeat_dimension_dual_write` | Enable dual-write of FK columns on new heartbeats |
-| `skip_heartbeat_raw_data` | Stop populating raw_data column |
-
 ## Rollback plan
 
 ```ruby
 Flipper.disable(:heartbeat_dimension_dual_write)
-Flipper.disable(:skip_heartbeat_raw_data)
 ```
 
 ## Future stuff
