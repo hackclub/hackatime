@@ -1,5 +1,6 @@
 module Api
   class SummaryController < ApplicationController
+    include HeartbeatFilterConcern
     skip_before_action :verify_authenticity_token
 
     def index
@@ -101,18 +102,21 @@ module Api
     end
 
     def filter_heartbeats(heartbeats, params)
-      heartbeats = heartbeats.where(project: params[:project]) if params[:project].present?
-      heartbeats = heartbeats.where(language: params[:language]) if params[:language].present?
-      heartbeats = heartbeats.where(editor: params[:editor]) if params[:editor].present?
-      heartbeats = heartbeats.where(operating_system: params[:operating_system]) if params[:operating_system].present?
-      heartbeats = heartbeats.where(machine: params[:machine]) if params[:machine].present?
-
+      user = nil
       if params[:user].present?
         user = User.find_by(slack_uid: params[:user])
         heartbeats = heartbeats.where(user_id: user.id) if user
       end
 
-      heartbeats
+      filters = {
+        project: params[:project],
+        language: params[:language],
+        editor: params[:editor],
+        operating_system: params[:operating_system],
+        machine: params[:machine]
+      }.compact_blank
+
+      apply_heartbeat_filters(heartbeats, filters, user: user)
     end
 
     def calculate_summary(heartbeats, date_range)
