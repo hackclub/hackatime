@@ -104,7 +104,7 @@ module My
       result = HeartbeatImportService.import_from_file(file_content, current_user)
 
       if result[:success]
-        message = "Imported #{result[:imported_count]} out of #{result[:total_count]} heartbeats"
+        message = "Imported #{result[:imported_count]} out of #{result[:total_count]} heartbeats in #{result[:time_taken]}s"
         if result[:skipped_count] > 0
           message += " (#{result[:skipped_count]} skipped cause they were duplicates)"
         end

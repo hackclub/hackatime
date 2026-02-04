@@ -6,6 +6,7 @@ class HeartbeatImportService
       raise StandardError, "Not dev env, not running"
     end
 
+    start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     user_id = user.id
     indexed_attrs = Heartbeat.indexed_attributes
     imported_count = 0
@@ -67,12 +68,15 @@ class HeartbeatImportService
     end
     imported_count += flush_batch(seen_hashes) if seen_hashes.any?
 
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
     {
       success: true,
       imported_count: imported_count,
       total_count: total_count,
       skipped_count: total_count - imported_count,
-      errors: errors
+      errors: errors,
+      time_taken: elapsed.round(2)
     }
 
   rescue => e
