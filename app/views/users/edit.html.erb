@@ -475,7 +475,6 @@
                   <h4 class="text-white font-medium">Import Heartbeat Data</h4>
                 </div>
                 <p class="text-gray-300 text-sm mb-4">Import ur data from real hackatime to test stuff with.</p>
-                <p class="text-gray-300 text-sm mb-4">PS: your console will be spammed and might crash ur dev env so be careful if the file is very big</p>
                 <%= form_with url: import_my_heartbeats_path, method: :post, multipart: true, local: true, class: "space-y-4" do |form| %>
                   <div>
                     <%= form.file_field :heartbeat_file, accept: '.json,application/json', class: 'w-full px-3 py-2 bg-dark border border-darkless rounded text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/75 transition-colors cursor-pointer', required: true %>
