@@ -83,8 +83,6 @@ class HeartbeatImportService
     return 0 if seen_hashes.empty?
 
     records = seen_hashes.values
-    records = Heartbeat.batch_resolve_dimensions(records)
-
     now = Time.current
     records.each do |r|
       r[:created_at] = now
