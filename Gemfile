@@ -75,6 +75,9 @@ gem "public_activity"
 # Bulk import
 gem "activerecord-import"
 
+# Fast JSON parsing
+gem "oj"
+
 # Rack Mini Profiler [https://github.com/MiniProfiler/rack-mini-profiler]
 gem "rack-mini-profiler"
 # For memory profiling via RMP
@@ -83,11 +86,7 @@ gem "flamegraph"
 
 gem "skylight"
 
-# Ahoy analytics
-gem "ahoy_matey"
 gem "geocoder"
-gem "ahoy_captain", git: "https://github.com/johnmcdowall/ahoy_captain.git", branch: "fix_importmaps"
-
 gem "pagy", "~> 43.2"
 
 # Airtable syncing

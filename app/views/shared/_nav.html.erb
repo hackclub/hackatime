@@ -152,11 +152,6 @@
           <% end %>
         <% end %>
         <% superadmin_tool(nil, "div") do %>
-          <%= link_to ahoy_captain_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(ahoy_captain_path) ? 'bg-primary text-primary' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
-            Ahoy Captain
-          <% end %>
-        <% end %>
-        <% superadmin_tool(nil, "div") do %>
           <%= link_to good_job_path, class: "block px-2 py-1 rounded-lg transition #{current_page?(good_job_path) ? 'bg-primary text-primary' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
             GoodBoy
           <% end %>
