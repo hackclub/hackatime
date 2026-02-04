@@ -2,6 +2,7 @@ module Api
   module Admin
     module V1
       class AdminController < Api::Admin::V1::ApplicationController
+        include HeartbeatFilterConcern
         before_action :can_write!, only: [ :user_convict ]
 
         def check
@@ -436,11 +437,14 @@ module Api
             query = query.where("time <= ?", end_timestamp) if end_timestamp
           end
 
-          query = query.where(project: project) if project.present?
-          query = query.where(language: language) if language.present?
-          query = query.where(entity: entity) if entity.present?
-          query = query.where(editor: editor) if editor.present?
-          query = query.where(machine: machine) if machine.present?
+          filters = {
+            project: project,
+            language: language,
+            entity: entity,
+            editor: editor,
+            machine: machine
+          }.compact_blank
+          query = apply_heartbeat_filters(query, filters, user: user)
 
           total_count = query.count
 

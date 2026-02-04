@@ -1,10 +1,10 @@
 class Heartbeat < ApplicationRecord
   before_save :set_fields_hash!
-  before_save :set_raw_data!
 
   include Heartbeatable
   include TimeRangeFilterable
   include PublicActivity::Common
+  include HeartbeatDimensionResolver
 
   time_range_filterable_field :time
 
@@ -110,10 +110,6 @@ class Heartbeat < ApplicationRecord
 
   def self.indexed_attributes
     %w[user_id branch category dependencies editor entity language machine operating_system project type user_agent line_additions line_deletions lineno lines cursorpos project_root_count time is_write]
-  end
-
-  def set_raw_data!
-    self.raw_data ||= self.attributes.slice(*self.class.indexed_attributes)
   end
 
   def soft_delete

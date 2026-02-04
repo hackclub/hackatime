@@ -70,20 +70,18 @@ class MigrateUserFromHackatimeJob < ApplicationJob
           cursorpos: heartbeat.cursor_position,
           project_root_count: heartbeat.project_root_count,
           is_write: heartbeat.is_write,
-          source_type: :wakapi_import,
-          raw_data: heartbeat.attributes.slice(*Heartbeat.indexed_attributes)
+          source_type: :wakapi_import
         }
-
         {
           **attrs,
           fields_hash: Heartbeat.generate_fields_hash(attrs)
         }
       end
 
-      # dedupe records by fields_hash
       records_to_upsert = records_to_upsert.group_by { |r| r[:fields_hash] }.map do |_, records|
         records.max_by { |r| r[:time] }
       end
+      records_to_upsert = Heartbeat.batch_resolve_dimensions(records_to_upsert)
 
       Heartbeat.upsert_all(records_to_upsert, unique_by: [ :fields_hash ])
     end
