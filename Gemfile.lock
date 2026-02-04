@@ -315,6 +315,9 @@ GEM
       faraday (>= 1.0, < 3.0)
       faraday-net_http_persistent
       net-http-persistent
+    oj (3.16.13)
+      bigdecimal (>= 3.0)
+      ostruct (>= 0.2)
     ostruct (0.6.3)
     pagy (43.2.8)
       json
@@ -616,6 +619,7 @@ DEPENDENCIES
   letter_opener_web (~> 3.0)
   memory_profiler
   norairrecord (~> 0.5.1)
+  oj
   pagy (~> 43.2)
   paper_trail
   pg
