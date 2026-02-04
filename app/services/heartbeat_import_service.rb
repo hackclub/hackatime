@@ -139,8 +139,9 @@ class HeartbeatImportService
       @depth -= 1
       if key == "heartbeats"
         @in_heartbeats = false
+      elsif @array_depth > 0
+        @array_depth -= 1
       end
-      @array_depth = 0 if @array_depth > 0
     end
 
     def add_value(value, key)
