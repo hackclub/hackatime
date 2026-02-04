@@ -62,6 +62,9 @@ class HeartbeatImportService
 
     Oj.saj_parse(handler, file_content)
 
+    if total_count.zero?
+      raise StandardError, "Not correct format, download from /my/settings on the offical hackatime then import here"
+    end
     imported_count += flush_batch(seen_hashes) if seen_hashes.any?
 
     {
