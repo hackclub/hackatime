@@ -10,6 +10,5 @@ ignored_endpoints:
   - Api::Hackatime::V1::HackatimeController#status_bar_today
   - Api::V1::StatsController#user_stats
   - Rails::HealthController#show
-  - AhoyCaptain::StatsController#show
   - ActionDispatch::Routing::RouteSet#*
   - ActionDispatch::Static

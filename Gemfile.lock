@@ -1,21 +1,3 @@
-GIT
-  remote: https://github.com/johnmcdowall/ahoy_captain.git
-  revision: 0916eee4bf1279bc7d69ab003b1b1bd7fac8741c
-  branch: fix_importmaps
-  specs:
-    ahoy_captain (1.1.0)
-      ahoy_matey (>= 1.1)
-      chartkick (>= 4)
-      groupdate (>= 5)
-      importmap-rails (>= 2)
-      pagy (>= 4)
-      rails (>= 6)
-      ransack (>= 2.3)
-      rubyzip
-      stimulus-rails (>= 1.1)
-      turbo-rails (>= 1.2)
-      view_component (>= 3)
-
 GEM
   remote: https://rubygems.org/
   specs:
@@ -97,10 +79,6 @@ GEM
       uri (>= 0.13.1)
     addressable (2.8.8)
       public_suffix (>= 2.0.2, < 8.0)
-    ahoy_matey (5.4.1)
-      activesupport (>= 7.1)
-      device_detector (>= 1)
-      safely_block (>= 0.4)
     ast (2.4.3)
     autotuner (1.1.0)
     base64 (0.3.0)
@@ -131,7 +109,6 @@ GEM
       rack-test (>= 0.6.3)
       regexp_parser (>= 1.5, < 3.0)
       xpath (~> 3.2)
-    chartkick (5.2.1)
     childprocess (5.1.0)
       logger (~> 1.5)
     chunky_png (1.4.0)
@@ -150,7 +127,6 @@ GEM
     debug (1.11.1)
       irb (~> 1.10)
       reline (>= 0.3.8)
-    device_detector (1.1.3)
     diff-lcs (1.6.2)
     domain_name (0.6.20240107)
     doorkeeper (5.8.2)
@@ -228,8 +204,6 @@ GEM
       fugit (>= 1.11.0)
       railties (>= 6.1.0)
       thor (>= 1.0.0)
-    groupdate (6.7.0)
-      activesupport (>= 7.1)
     hashie (5.1.0)
       logger
     htmlcompressor (0.4.0)
@@ -433,10 +407,6 @@ GEM
       zeitwerk (~> 2.6)
     rainbow (3.1.1)
     rake (13.3.1)
-    ransack (4.4.1)
-      activerecord (>= 7.2)
-      activesupport (>= 7.2)
-      i18n
     rdoc (7.1.0)
       erb
       psych (>= 4.0.0)
@@ -508,7 +478,6 @@ GEM
     ruby_identicon (0.0.6)
       chunky_png (~> 1.4.0)
     rubyzip (3.2.2)
-    safely_block (0.5.0)
     sanitize (7.0.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.16.8)
@@ -590,10 +559,6 @@ GEM
     uniform_notifier (1.18.0)
     uri (1.1.1)
     useragent (0.16.11)
-    view_component (4.2.0)
-      actionview (>= 7.1.0)
-      activesupport (>= 7.1.0)
-      concurrent-ruby (~> 1)
     web-console (4.2.1)
       actionview (>= 6.0.0)
       activemodel (>= 6.0.0)
@@ -615,6 +580,7 @@ PLATFORMS
   aarch64-linux-musl
   arm-linux-gnu
   arm-linux-musl
+  arm64-darwin-23
   arm64-darwin-24
   arm64-darwin-25
   x86_64-linux
@@ -623,8 +589,6 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord-import
-  ahoy_captain!
-  ahoy_matey
   autotuner (~> 1.0)
   bootsnap
   brakeman
