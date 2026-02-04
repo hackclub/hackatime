@@ -21,7 +21,6 @@ Rails.application.routes.draw do
 
   constraints AdminLevelConstraint.new(:superadmin) do
     mount GoodJob::Engine => "good_job"
-    mount AhoyCaptain::Engine => "/ahoy_captain"
     mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
 
     namespace :admin do

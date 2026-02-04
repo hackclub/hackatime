@@ -6,7 +6,6 @@ class ApplicationController < ActionController::Base
   before_action :track_request
   before_action :set_public_activity
   before_action :enforce_lockout
-  after_action :track_action
 
   around_action :switch_time_zone, if: :current_user
 
@@ -35,10 +34,6 @@ class ApplicationController < ActionController::Base
       user_agent: request.user_agent,
       ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip
     )
-  end
-
-  def track_action
-    ahoy.track "Ran action", request.path_parameters
   end
 
   def track_request
