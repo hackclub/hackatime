@@ -16,43 +16,47 @@ class HeartbeatImportService
     handler = HeartbeatSaxHandler.new do |hb|
       total_count += 1
 
-      time_value = hb["time"].is_a?(String) ? Time.parse(hb["time"]).to_f : hb["time"].to_f
+      begin
+        time_value = hb["time"].is_a?(String) ? Time.parse(hb["time"]).to_f : hb["time"].to_f
 
-      attrs = {
-        user_id: user_id,
-        time: time_value,
-        entity: hb["entity"],
-        type: hb["type"],
-        category: hb["category"] || "coding",
-        project: hb["project"],
-        language: hb["language"],
-        editor: hb["editor"],
-        operating_system: hb["operating_system"],
-        machine: hb["machine"],
-        branch: hb["branch"],
-        user_agent: hb["user_agent"],
-        is_write: hb["is_write"] || false,
-        line_additions: hb["line_additions"],
-        line_deletions: hb["line_deletions"],
-        lineno: hb["lineno"],
-        lines: hb["lines"],
-        cursorpos: hb["cursorpos"],
-        dependencies: hb["dependencies"] || [],
-        project_root_count: hb["project_root_count"],
-        source_type: 1
-      }
+        attrs = {
+          user_id: user_id,
+          time: time_value,
+          entity: hb["entity"],
+          type: hb["type"],
+          category: hb["category"] || "coding",
+          project: hb["project"],
+          language: hb["language"],
+          editor: hb["editor"],
+          operating_system: hb["operating_system"],
+          machine: hb["machine"],
+          branch: hb["branch"],
+          user_agent: hb["user_agent"],
+          is_write: hb["is_write"] || false,
+          line_additions: hb["line_additions"],
+          line_deletions: hb["line_deletions"],
+          lineno: hb["lineno"],
+          lines: hb["lines"],
+          cursorpos: hb["cursorpos"],
+          dependencies: hb["dependencies"] || [],
+          project_root_count: hb["project_root_count"],
+          source_type: 1
+        }
 
-      string_attrs = attrs.transform_keys(&:to_s)
-      hash_input = indexed_attrs.each_with_object({}) { |k, h| h[k] = string_attrs[k] }
-      fields_hash = Digest::MD5.hexdigest(Oj.dump(hash_input, mode: :compat))
-      attrs[:fields_hash] = fields_hash
+        string_attrs = attrs.transform_keys(&:to_s)
+        hash_input = indexed_attrs.each_with_object({}) { |k, h| h[k] = string_attrs[k] }
+        fields_hash = Digest::MD5.hexdigest(Oj.dump(hash_input, mode: :compat))
+        attrs[:fields_hash] = fields_hash
 
-      existing = seen_hashes[fields_hash]
-      seen_hashes[fields_hash] = attrs if existing.nil? || attrs[:time] > existing[:time]
+        existing = seen_hashes[fields_hash]
+        seen_hashes[fields_hash] = attrs if existing.nil? || attrs[:time] > existing[:time]
 
-      if seen_hashes.size >= BATCH_SIZE
-        imported_count += flush_batch(seen_hashes)
-        seen_hashes.clear
+        if seen_hashes.size >= BATCH_SIZE
+          imported_count += flush_batch(seen_hashes)
+          seen_hashes.clear
+        end
+      rescue => e
+        errors << { heartbeat: hb, error: e.message }
       end
     end
 
