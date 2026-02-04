@@ -51,7 +51,7 @@
             </div>
 
             <div class="code-block bg-darkless rounded-lg p-4 mb-4">
-              <code class="text-cyan text-sm">export HACKATIME_API_KEY="<%= @current_user_api_key %>" && export HACKATIME_API_URL="<%= api_hackatime_v1_url %>" && export SUCCESS_URL="<%= root_url %>/success.txt" && curl -sSL <%= root_url %>hackatime/setup.sh | bash</code>
+              <code class="text-cyan text-sm">curl -fsSL https://hack.club/setup/install.sh | bash -s -- <%= @current_user_api_key %></code>
               <button class="copy-button bg-primary hover:bg-primary/75 border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
             </div>
 
@@ -85,7 +85,7 @@
             </div>
 
             <div class="code-block bg-darkless rounded-lg p-4 mb-4">
-              <code class="text-cyan text-sm">$env:HACKATIME_API_KEY="<%= @current_user_api_key %>"; $env:HACKATIME_API_URL="<%= api_hackatime_v1_url %>"; powershell -ExecutionPolicy Bypass -Command "& {iwr <%= root_url %>hackatime/setup.ps1 -UseBasicParsing | iex}"</code>
+              <code class="text-cyan text-sm">& ([scriptblock]::Create((irm https://hack.club/setup/install.ps1))) -ApiKey <%= @current_user_api_key %></code>
               <button class="copy-button bg-primary hover:bg-primary/75 border-0 text-white px-6 py-2 rounded transition-colors cursor-pointer font-semibold" onclick="copy(this)">Copy</button>
             </div>
 
