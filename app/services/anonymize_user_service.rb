@@ -63,10 +63,6 @@ class AnonymizeUserService
     # tombstone
     Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)
 
-    WakatimeMirror.joins("INNER JOIN heartbeats ON heartbeats.id = wakatime_mirrors.heartbeat_id")
-                  .where(heartbeats: { user_id: user.id })
-                  .delete_all
-
     user.access_grants.destroy_all
     user.access_tokens.destroy_all
   end
