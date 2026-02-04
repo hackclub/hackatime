@@ -83,10 +83,10 @@ class HeartbeatImportService
     return 0 if seen_hashes.empty?
 
     records = seen_hashes.values
-    now = Time.current
     records.each do |r|
-      r[:created_at] = now
-      r[:updated_at] = now
+      timestamp = Time.current
+      r[:created_at] = timestamp
+      r[:updated_at] = timestamp
     end
 
     result = Heartbeat.upsert_all(records, unique_by: [ :fields_hash ])
