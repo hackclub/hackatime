@@ -39,7 +39,7 @@ class PosthogService
       return if Rails.cache.exist?(cache_key)
 
       capture(user, event, properties)
-      Rails.cache.write(cache_key, true, expires_in: 25.hours)
+      Rails.cache.write(cache_key, true, expires_at: Date.current.end_of_day + 1.hour)
     rescue => e
       Rails.logger.error "PostHog capture_once_per_day error: #{e.message}"
     end
