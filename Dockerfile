@@ -26,6 +26,10 @@ RUN apt-get update -qq && \
     wget && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash && \
+    mv ~/.bun/bin/bun /usr/local/bin/
+
 # Set production environment
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
@@ -39,6 +43,10 @@ FROM base AS build
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Install npm dependencies for Vite
+COPY package.json bun.lock ./
+RUN bun i --frozen-lockfile
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./
