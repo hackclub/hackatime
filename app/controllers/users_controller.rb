@@ -16,6 +16,7 @@ class UsersController < ApplicationController
         if @user.uses_slack_status?
           @user.update_slack_status
         end
+        PosthogService.capture(@user, "settings_updated", { fields: user_params.keys })
         redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
           notice: "Settings updated successfully"
       else
@@ -42,6 +43,7 @@ class UsersController < ApplicationController
 
       new_api_key = @user.api_keys.create!(name: "Hackatime key")
 
+      PosthogService.capture(@user, "api_key_rotated")
       render json: { token: new_api_key.token }, status: :ok
     end
   rescue => e
@@ -53,15 +55,18 @@ class UsersController < ApplicationController
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
     @current_user_api_key = api_key&.token
+    PosthogService.capture(current_user, "setup_started", { step: 1 })
   end
 
   def wakatime_setup_step_2
+    PosthogService.capture(current_user, "setup_step_viewed", { step: 2 })
   end
 
   def wakatime_setup_step_3
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
     @current_user_api_key = api_key&.token
+    PosthogService.capture(current_user, "setup_step_viewed", { step: 3 })
   end
 
   def wakatime_setup_step_4
@@ -71,6 +76,7 @@ class UsersController < ApplicationController
       "Tricked ya! There is no step 4.",
       "There is no step 4, gotcha!"
     ].sample
+    PosthogService.capture(current_user, "setup_completed", { step: 4 })
   end
 
   def update_trust_level

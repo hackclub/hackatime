@@ -249,6 +249,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   end
 
   def handle_heartbeat(heartbeat_array)
+    PosthogService.capture_once_per_day(@user, "heartbeat_sent", { heartbeat_count: heartbeat_array.size })
+
     results = []
     heartbeat_array.each do |heartbeat|
       source_type = :direct_entry

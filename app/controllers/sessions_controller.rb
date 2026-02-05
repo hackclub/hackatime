@@ -33,6 +33,9 @@ class SessionsController < ApplicationController
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
+      PosthogService.identify(@user)
+      PosthogService.capture(@user, "user_signed_in", { method: "hca" })
+
       if @user.created_at > 5.seconds.ago
         session[:return_data] ||= { url: params[:continue].presence || request.referer }
         Rails.logger.info("Sessions return data: #{session[:return_data]}")
@@ -77,6 +80,9 @@ class SessionsController < ApplicationController
         # if they don't have a data migration job, add one to the queue
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
+
+      PosthogService.identify(@user)
+      PosthogService.capture(@user, "user_signed_in", { method: "slack" })
 
       state = JSON.parse(params[:state]) rescue {}
       if state["close_window"]
@@ -126,6 +132,7 @@ class SessionsController < ApplicationController
     @user = User.from_github_token(params[:code], redirect_uri, current_user)
 
     if @user&.persisted?
+      PosthogService.capture(@user, "github_linked")
       redirect_to my_settings_path, notice: "Successfully linked GitHub account!"
     else
       Rails.logger.error "Failed to link GitHub account"
@@ -243,6 +250,10 @@ class SessionsController < ApplicationController
       session[:user_id] = valid_token.user_id
       session[:return_data] = valid_token.return_data || {}
 
+      user = User.find(valid_token.user_id)
+      PosthogService.identify(user)
+      PosthogService.capture(user, "user_signed_in", { method: "email" })
+
       if valid_token.continue_param.present?
         redirect_to valid_token.continue_param, notice: "Successfully signed in!"
       else
@@ -286,6 +297,7 @@ class SessionsController < ApplicationController
   end
 
   def destroy
+    PosthogService.capture(session[:user_id], "user_signed_out") if session[:user_id]
     session[:user_id] = nil
     session[:impersonater_user_id] = nil
     redirect_to root_path, notice: "Signed out!"
