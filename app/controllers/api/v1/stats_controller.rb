@@ -167,6 +167,35 @@ class Api::V1::StatsController < ApplicationController
     render json: { trust_level: level, trust_value: User.trust_levels[level] }
   end
 
+  def banned_users_counts
+    now = Time.current
+
+    day_ago = now - 1.day
+    week_ago = now - 1.week
+    month_ago = now - 1.month
+
+    day_count = TrustLevelAuditLog.where(new_trust_level: "red")
+                                  .where("created_at >= ?", day_ago)
+                                  .distinct
+                                  .count(:user_id)
+
+    week_count = TrustLevelAuditLog.where(new_trust_level: "red")
+                                     .where("created_at >= ?", week_ago)
+                                     .distinct
+                                     .count(:user_id)
+
+    month_count = TrustLevelAuditLog.where(new_trust_level: "red")
+                                      .where("created_at >= ?", month_ago)
+                                      .distinct
+                                      .count(:user_id)
+
+    render json: {
+      day: day_count,
+      week: week_count,
+      month: month_count
+    }
+  end
+
   def user_projects
     return render json: { error: "User not found" }, status: :not_found unless @user
 
