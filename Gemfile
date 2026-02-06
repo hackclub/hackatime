@@ -86,6 +86,9 @@ gem "flamegraph"
 
 gem "skylight"
 
+# Analytics
+gem "posthog-ruby"
+
 gem "geocoder"
 gem "pagy", "~> 43.2"
 

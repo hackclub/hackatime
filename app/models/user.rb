@@ -628,6 +628,8 @@ class User < ApplicationRecord
 
   def create_signup_activity
     create_activity :first_signup, owner: self
+    PosthogService.identify(self)
+    PosthogService.capture(self, "account_created", { source: "signup" })
   end
 
   def normalize_username
