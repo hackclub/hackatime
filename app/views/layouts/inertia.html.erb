@@ -6,22 +6,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="color-scheme" content="dark">
-
-    <!-- SEO Meta Tags -->
     <meta name="description" content="<%= @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
     <meta name="keywords" content="<%= @meta_keywords || content_for(:meta_keywords) || 'coding time tracker, programming stats, wakatime alternative, free time tracking, code statistics, developer analytics, programming time, coding productivity' %>">
     <meta name="author" content="Hack Club">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="<%= content_for(:canonical_url) || request.original_url %>">
-
-    <!-- Enhanced SEO -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <meta name="theme-color" content="#ec3750">
     <meta name="msapplication-TileColor" content="#ec3750">
-
-    <!-- Open Graph Tags -->
     <meta property="og:title" content="<%= @og_title || content_for(:og_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
     <meta property="og:description" content="<%= @og_description || content_for(:og_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
     <meta property="og:url" content="<%= content_for(:og_url) || request.original_url %>">
@@ -31,8 +22,6 @@
     <meta property="og:image:height" content="630">
     <meta property="og:site_name" content="Hackatime">
     <meta property="og:locale" content="en_US">
-
-    <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@hackclub">
     <meta name="twitter:creator" content="@hackclub">
@@ -51,7 +40,6 @@
 
     <%= yield :head %>
 
-    <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -85,7 +73,6 @@
       }
     </script>
 
-    <!-- Organization Schema -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -97,7 +84,6 @@
       }
     </script>
 
-    <!-- WebSite Schema -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -108,7 +94,6 @@
       }
     </script>
 
-    <!-- FAQ Schema for Homepage -->
     <% if request.path == "/" %>
       <script type="application/ld+json">
         {
@@ -152,16 +137,11 @@
       </script>
     <% end %>
 
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
-
     <%= favicon_link_tag asset_path('favicon.png'), type: 'image/png' %>
 
     <script defer data-domain="hackatime.hackclub.com" src="https://plausible.io/js/script.file-downloads.hash.js"></script>
 
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
-    <%= javascript_importmap_tags %>
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
@@ -170,59 +150,9 @@
     <%= vite_client_tag %>
     <%= vite_typescript_tag "inertia" %>
     <%= inertia_ssr_head %>
-    <%= vite_typescript_tag 'application' %>
-    <!--
-      If using a TypeScript entrypoint file:
-        vite_typescript_tag 'application'
-
-      If using a .jsx or .tsx entrypoint, add the extension:
-        vite_javascript_tag 'application.jsx'
-
-      Visit the guide for more information: https://vite-ruby.netlify.app/guide/rails
-    -->
-
   </head>
 
-  <body class="<%= content_for(:body_class) %> flex min-h-screen bg-darker" data-controller="nav">
-    <% unless content_for?(:hide_nav) %>
-      <button class="mobile-nav-button" data-action="click->nav#toggle" data-nav-target="button" aria-label="Toggle navigation menu" aria-expanded="false">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
-      <div class="nav-overlay" data-nav-target="overlay" data-action="click->nav#close"></div>
-      <%= render 'shared/nav' %>
-    <% end %>
-
-    <!-- 250px is defined in nav.css -->
-    <main class="flex-1 <%= 'lg:ml-[250px] lg:max-w-[calc(100%-250px)]' unless content_for?(:hide_nav) %> p-5 mb-[100px] pt-16 lg:pt-5 transition-all duration-300 ease-in-out">
-      <%= yield %>
-      <footer class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-gray-600 hover:text-gray-300 transition-colors duration-200">
-        <div class="container">
-          <p>
-            Build <%= link_to Rails.application.config.git_version, Rails.application.config.commit_link, class: 'text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200' %> from <%= time_ago_in_words(Rails.application.config.server_start_time) %> ago.
-            <%= pluralize(Heartbeat.recent_count, 'heartbeat') %>
-            (<%= Heartbeat.recent_imported_count %> imported) in the past 24 hours. (DB: <%= pluralize(QueryCount::Counter.counter, 'query') %>, <%= QueryCount::Counter.counter_cache %> cached) (CACHE: <%= cache_stats[:hits] %> hits, <%= cache_stats[:misses] %> misses) (<%= requests_per_second %>)
-          </p>
-          <% if session[:impersonater_user_id] %>
-            <%= link_to 'Stop impersonating', stop_impersonating_path, class: 'text-primary font-bold hover:text-red-300 transition-colors duration-200', data: { turbo_prefetch: 'false' } %>
-          <% end %>
-        </div>
-        <%= render 'static_pages/active_users_graph', hours: active_users_graph_data %>
-      </footer>
-    </main>
-
-    <div class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-elevated border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform -translate-y-full transition-transform duration-300 ease-out hidden" data-controller="currently-hacking" data-currently-hacking-target="container" data-currently-hacking-count-url-value="<%= currently_hacking_count_static_pages_path %>" data-currently-hacking-full-url-value="<%= currently_hacking_static_pages_path %>" data-currently-hacking-interval-value="60000">
-      <div class="currently-hacking p-3 bg-elevated cursor-pointer select-none bg-dark flex items-center justify-between">
-        <div class="text-white text-sm font-medium">
-          <div class="flex items-center">
-            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"></div>
-            <span data-currently-hacking-target="count" class="text-lg"></span>
-          </div>
-        </div>
-      </div>
-      <div data-currently-hacking-target="content" style="display: none;"></div>
-    </div>
-    <%= render 'shared/modal', modal_id: 'logout-modal', title: 'Woah hold on a sec', description: 'You sure you want to log out? You can sign back in later but that is a bit of a hassle...', icon_svg: '<path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"/>', icon_color: 'text-primary', buttons: [{ text: 'Go back', class: 'bg-dark hover:bg-darkless border border-darkless text-gray-300', action: 'click->modal#close' }, { text: 'Log out now', class: 'bg-primary hover:bg-primary/75 text-white font-medium', form: true, url: signout_path, method: 'delete' }] %>
+  <body class="<%= content_for(:body_class) %> flex min-h-screen bg-darker">
+    <%= yield %>
   </body>
 </html>

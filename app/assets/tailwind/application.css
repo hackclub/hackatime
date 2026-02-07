@@ -18,17 +18,17 @@ main {
 }
 
 @theme {
-  --color-darker: #121217;
-  --color-dark: #17171D;
-  --color-darkless: #252429;
-  --color-red: #EC3750;
+  --color-darker: #1F1617;
+  --color-dark: #2A1F21;
+  --color-darkless: #4A2D31;
+  --color-red: #C8394F;
   --color-orange: #FF8C37;
   --color-yellow: #F1C40F;
   --color-green: #33D6A6;
   --color-cyan: #5BC0DE;
   --color-blue: #338EDA;
   --color-purple: #A633D6;
-  --color-primary: #EC3750;
+  --color-primary: #C8394F;
   --color-secondary: #8492A6;
 }
 

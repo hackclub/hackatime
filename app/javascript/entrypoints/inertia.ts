@@ -1,5 +1,6 @@
 import { createInertiaApp, type ResolvedComponent } from '@inertiajs/svelte'
 import { mount } from 'svelte'
+import AppLayout from '../layouts/AppLayout.svelte'
 
 createInertiaApp({
   // Disable progress bar
@@ -16,13 +17,7 @@ createInertiaApp({
       console.error(`Missing Inertia page component: '${name}.svelte'`)
     }
 
-    // To use a default layout, import the Layout component
-    // and use the following line.
-    // see https://inertia-rails.dev/guide/pages#default-layouts
-    //
-    // return { default: page.default, layout: page.layout || Layout } as ResolvedComponent
-
-    return page
+    return { default: page.default, layout: page.layout || AppLayout } as ResolvedComponent
   },
 
   setup({ el, App, props }) {

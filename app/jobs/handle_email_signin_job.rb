@@ -11,5 +11,6 @@ class HandleEmailSigninJob < ApplicationJob
 
     token = email_address.user.create_email_signin_token(continue_param: continue_param).token
     LoopsMailer.sign_in_email(email_address.email, token).deliver_now
+    token
   end
 end

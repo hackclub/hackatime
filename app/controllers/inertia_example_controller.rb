@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class InertiaExampleController < InertiaController
+  layout "inertia"
+
   def index
     render inertia: {
       rails_version: Rails.version,

@@ -1,4 +1,5 @@
-class StaticPagesController < ApplicationController
+class StaticPagesController < InertiaController
+  layout "inertia", only: :index
   before_action :ensure_current_user, only: %i[
     filterable_dashboard
     filterable_dashboard_content
@@ -46,6 +47,8 @@ class StaticPagesController < ApplicationController
         @todays_duration = current_user.heartbeats.today.duration_seconds
         @show_logged_time_sentence = @todays_duration > 1.minute && (@todays_languages.any? || @todays_editors.any?)
       end
+
+      render inertia: "home/signed_in", props: signed_in_props
     else
       # Set homepage SEO content for logged-out users only
       set_homepage_seo_content
@@ -53,6 +56,8 @@ class StaticPagesController < ApplicationController
       @usage_social_proof = Cache::UsageSocialProofJob.perform_now
 
       @home_stats = Cache::HomeStatsJob.perform_now
+
+      render inertia: "home/signed_out", props: signed_out_props
     end
   end
 
@@ -178,6 +183,42 @@ class StaticPagesController < ApplicationController
     @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
   end
 
+  def signed_in_props
+    helpers = ApplicationController.helpers
+    {
+      flavor_text: @flavor_text.to_s,
+      trust_level_red: current_user&.trust_level == "red",
+      show_wakatime_setup_notice: !!@show_wakatime_setup_notice,
+      ssp_message: @ssp_message,
+      ssp_users_recent: @ssp_users_recent || [],
+      ssp_users_size: @ssp_users_size || @ssp_users_recent&.size || 0,
+      github_uid_blank: current_user&.github_uid.blank?,
+      github_auth_path: github_auth_path,
+      wakatime_setup_path: my_wakatime_setup_path,
+      show_logged_time_sentence: !!@show_logged_time_sentence,
+      todays_duration_display: helpers.short_time_detailed(@todays_duration.to_i),
+      todays_languages: @todays_languages || [],
+      todays_editors: @todays_editors || [],
+      mini_leaderboard_html: InertiaRails.defer { mini_leaderboard_html },
+      filterable_dashboard_data: InertiaRails.defer { filterable_dashboard_data },
+      activity_graph_html: InertiaRails.defer { activity_graph_html }
+    }
+  end
+
+  def signed_out_props
+    {
+      flavor_text: @flavor_text.to_s,
+      hca_auth_path: hca_auth_path,
+      slack_auth_path: slack_auth_path,
+      email_auth_path: email_auth_path,
+      sign_in_email: params[:sign_in_email].present?,
+      show_dev_tool: Rails.env.development?,
+      dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
+      csrf_token: form_authenticity_token,
+      home_stats: @home_stats || {}
+    }
+  end
+
   def filterable_dashboard_data
     filters = %i[project language operating_system editor category]
     key = [ current_user ] + filters.map { |f| params[f] } + [ params[:interval], params[:from], params[:to] ]
@@ -255,5 +296,19 @@ class StaticPagesController < ApplicationController
       end
       result
     end
+  end
+
+  def mini_leaderboard_html
+    leaderboard = LeaderboardService.get(period: :daily, date: Date.current)
+    render_to_string partial: "leaderboards/mini_leaderboard", locals: { leaderboard: leaderboard, current_user: current_user }
+  end
+
+  def activity_graph_html
+    tz = current_user.timezone
+    key = "user_#{current_user.id}_daily_durations_#{tz}"
+    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
+      Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
+    end
+    render_to_string partial: "activity_graph", locals: { daily_durations: durations, length_of_busiest_day: 8.hours.to_i, user_tz: tz }
   end
 end

@@ -1,26 +1,4 @@
-@font-face {
-  font-family: "Phantom Sans";
-  src: url("/fonts/Regular.woff2") format("woff2"), url("/fonts/Regular.woff") format("woff");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
 
-@font-face {
-  font-family: "Phantom Sans";
-  src: url("/fonts/Italic.woff2") format("woff2"), url("/fonts/Italic.woff") format("woff");
-  font-weight: normal;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Phantom Sans";
-  src: url("/fonts/Bold.woff2") format("woff2"), url("/fonts/Bold.woff") format("woff");
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-}
 
 @font-face {
   font-family: "DS-Digital";
@@ -56,7 +34,7 @@
 }
 
 body, html {
-  font-family: "Phantom Sans", "Segoe UI", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
   overflow-x: hidden;
 }
 

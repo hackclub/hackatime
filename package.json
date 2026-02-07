@@ -5,6 +5,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "@inertiajs/svelte": "^2.3.13",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/forms": "^0.5.11",
