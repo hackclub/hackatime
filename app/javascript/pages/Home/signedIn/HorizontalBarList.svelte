@@ -18,28 +18,34 @@
     useLogScale ? logScale(seconds, maxVal) : percentOf(seconds, maxVal);
 </script>
 
-<div class="bg-dark border border-primary rounded-xl p-6 flex flex-col">
-  <h3 class="text-xl font-semibold mb-4">{title}</h3>
+<div
+  class="bg-dark/50 border border-white/10 rounded-xl p-6 flex flex-col h-full"
+>
+  <h3 class="text-lg font-semibold mb-4 text-white/90">{title}</h3>
   {#if entries.length > 0}
-    <div class="space-y-3">
+    <div class="space-y-2.5 overflow-y-auto flex-1 pr-2 custom-scrollbar">
       {#each entries as [label, seconds]}
-        <div class="flex items-center gap-3">
-          <div class="w-1/3 truncate font-medium text-white" title={label}>
+        <div class="flex items-center gap-4 group">
+          <div
+            class="w-1/3 truncate font-medium text-sm text-gray-300 text-right group-hover:text-white transition-colors"
+            title={label}
+          >
             {label}
           </div>
-          <div class="flex-1 bg-darkless rounded h-3 overflow-hidden">
+          <div class="flex-1 relative">
             <div
-              class="h-3 bg-primary rounded"
-              style={`width:${barWidth(seconds)}%`}
-            ></div>
-          </div>
-          <div class="w-16 text-sm text-muted text-right">
-            {secondsToDisplay(seconds)}
+              class="bg-primary rounded-md h-6 flex items-center justify-end px-3 transition-all duration-500 ease-out"
+              style={`width:${Math.max(barWidth(seconds), 15)}%`}
+            >
+              <span class="text-xs font-mono text-white whitespace-nowrap">
+                {secondsToDisplay(seconds)}
+              </span>
+            </div>
           </div>
         </div>
       {/each}
     </div>
   {:else}
-    <p class="text-muted">{empty_message}</p>
+    <p class="text-muted text-sm italic">{empty_message}</p>
   {/if}
 </div>

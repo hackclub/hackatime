@@ -65,7 +65,7 @@
   });
 </script>
 
-<div class="filter flex-1 min-w-37.5 relative" bind:this={container}>
+<div class="filter relative" bind:this={container}>
   <span class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider">
     {label}
   </span>
@@ -73,10 +73,10 @@
   <div class="group flex items-center border border-white/10 rounded-lg bg-darkless m-0 p-0 transition-all duration-200 hover:border-white/20">
     <button
       type="button"
-      class="flex-1 px-3 py-2.5 text-sm cursor-pointer select-none text-gray-300 m-0 bg-transparent flex items-center justify-between border-0"
+      class="flex-1 px-3 py-2.5 text-sm cursor-pointer select-none text-gray-300 m-0 bg-transparent flex items-center justify-between border-0 min-w-0"
       onclick={() => (open = !open)}
     >
-      <span class={selected.length === 0 ? "text-secondary/60" : ""}>
+      <span class="truncate {selected.length === 0 ? 'text-secondary/60' : ''}">
         {displayText}
       </span>
       <svg

@@ -181,7 +181,6 @@ class StaticPagesController < InertiaController
       todays_duration_display: helpers.short_time_detailed(@todays_duration.to_i),
       todays_languages: @todays_languages || [],
       todays_editors: @todays_editors || [],
-      mini_leaderboard: mini_leaderboard_data,
       filterable_dashboard_data: filterable_dashboard_data,
       activity_graph: activity_graph_data
     }
@@ -283,53 +282,6 @@ class StaticPagesController < InertiaController
 
       result
     end
-  end
-
-  def mini_leaderboard_data
-    leaderboard = LeaderboardService.get(period: :daily, date: Date.current)
-    return { subtitle: "", entries: [], full_leaderboard_path: "/leaderboards" } unless leaderboard
-
-    entries = leaderboard.entries.respond_to?(:order) ? leaderboard.entries.includes(:user).order(total_seconds: :desc) : leaderboard.entries
-    ordered = entries.to_a
-    active_projects = Rails.cache.fetch("active_projects", expires_in: 2.minutes) { Cache::ActiveProjectsJob.perform_now }
-
-    top3 = ordered.first(3)
-    user_entry = current_user && ordered.find { |e| e.user_id == current_user.id }
-    user_rank = user_entry ? ordered.index(user_entry) : nil
-
-    context = if user_entry && user_rank && user_rank >= 3
-      [ordered[user_rank - 1], user_entry, ordered[user_rank + 1]].compact
-    else
-      []
-    end
-
-    display_entries = (top3 + context).uniq
-
-    h = ApplicationController.helpers
-    {
-      subtitle: "This leaderboard shows time logged in the last 24 hours (UTC time).",
-      entries: display_entries.map do |e|
-        rank = ordered.index(e) + 1
-        active = active_projects&.dig(e.user_id)
-        {
-          rank: rank,
-          is_current_user: current_user && e.user_id == current_user.id,
-          user: {
-            id: e.user_id,
-            display_name: e.user.display_name,
-            avatar_url: e.user.avatar_url,
-            profile_path: "/@#{e.user.display_name}"
-          },
-          total_seconds: e.total_seconds,
-          total_display: h.short_time_detailed(e.total_seconds),
-          streak_count: e.streak_count,
-          active_project: active && { name: active.project_name, repo_url: active.repo_url },
-          needs_github_link: current_user && e.user_id == current_user.id && current_user.github_username.blank?,
-          settings_path: "/my/settings#user_github_account"
-        }
-      end,
-      full_leaderboard_path: "/leaderboards"
-    }
   end
 
   def activity_graph_data

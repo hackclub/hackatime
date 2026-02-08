@@ -16,13 +16,21 @@
 
   let loading = $state(false);
 
-  const langStats = $derived((data.language_stats || {}) as Record<string, number>);
-  const editorStats = $derived((data.editor_stats || {}) as Record<string, number>);
-  const osStats = $derived((data.operating_system_stats || {}) as Record<string, number>);
+  const langStats = $derived(
+    (data.language_stats || {}) as Record<string, number>,
+  );
+  const editorStats = $derived(
+    (data.editor_stats || {}) as Record<string, number>,
+  );
+  const osStats = $derived(
+    (data.operating_system_stats || {}) as Record<string, number>,
+  );
   const projectEntries = $derived(
     Object.entries(data.project_durations || {}) as [string, number][],
   );
-  const weeklyStats = $derived((data.weekly_project_stats || {}) as Record<string, Record<string, number>>);
+  const weeklyStats = $derived(
+    (data.weekly_project_stats || {}) as Record<string, Record<string, number>>,
+  );
 
   const capitalize = (s: string) =>
     s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
@@ -64,7 +72,8 @@
 </script>
 
 <div class="flex flex-col gap-6 w-full" class:opacity-60={loading}>
-  <div class="flex gap-4 mt-2 mb-2 flex-wrap">
+  <!-- Filters -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-2">
     <IntervalSelect
       selected={data.selected_interval || ""}
       from={data.selected_from || ""}
@@ -108,13 +117,12 @@
     />
   </div>
 
-  <div
-    class="grid grid-cols-[repeat(auto-fill,minmax(9.375rem,1fr))] gap-4"
-  >
+  <!-- Stats Grid -->
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
     <StatCard
       label="Total Time"
       value={secondsToDisplay(data.total_time)}
-      large
+      highlight
     />
     <StatCard
       label="Top Project"
@@ -143,24 +151,33 @@
     />
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+  <!-- Charts Layout -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
     {#if projectEntries.length > 1}
-      <HorizontalBarList
-        title="Project Durations"
-        entries={projectEntries}
-        empty_message="No data yet."
-        useLogScale
-      />
+      <div class="lg:col-span-1">
+        <HorizontalBarList
+          title="Project Durations"
+          entries={projectEntries}
+          empty_message="No data yet."
+          useLogScale
+        />
+      </div>
     {/if}
+
     {#if Object.keys(langStats).length > 0}
       <PieChart title="Languages" stats={langStats} />
     {/if}
+
     {#if Object.keys(editorStats).length > 0}
       <PieChart title="Editors" stats={editorStats} />
     {/if}
+
     {#if Object.keys(osStats).length > 0}
       <PieChart title="Operating Systems" stats={osStats} />
     {/if}
-    <ProjectTimelineChart {weeklyStats} />
+
+    <div class="lg:col-span-2">
+      <ProjectTimelineChart {weeklyStats} />
+    </div>
   </div>
 </div>

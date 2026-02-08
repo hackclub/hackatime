@@ -360,47 +360,54 @@
   </aside>
 {/if}
 
+<!-- Main Content Area -->
 <main
-  class={`flex-1 p-5 mb-25 pt-16 lg:pt-5 transition-all duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5 lg:max-w-[calc(100%-250px)]" : ""}`}
+  class={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
 >
-  {@render children?.()}
-  <footer
-    class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-text-muted"
-  >
-    <div class="container">
-      <p class="brightness-60 hover:brightness-100 transition-all duration-200">
-        Using Inertia. Build <a
-          href={layout.footer.commit_link}
-          class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
-          >{layout.footer.git_version}</a
+  <div class="w-full max-w-7xl mx-auto p-4 pt-16 lg:pt-8 md:p-8">
+    {@render children?.()}
+
+    <footer
+      class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-text-muted"
+    >
+      <div class="container mx-auto">
+        <p
+          class="brightness-60 hover:brightness-100 transition-all duration-200"
         >
-        from {layout.footer.server_start_time_ago} ago.
-        {plur("heartbeat", layout.footer.heartbeat_recent_count)}
-        ({layout.footer.heartbeat_recent_imported_count} imported) in the past 24
-        hours. (DB: {plur("query", layout.footer.query_count)}, {layout.footer
-          .query_cache_count} cached) (CACHE: {layout.footer.cache_hits} hits,
-        {layout.footer.cache_misses} misses) ({layout.footer
-          .requests_per_second})
-      </p>
-      {#if layout.show_stop_impersonating}
-        <a
-          href={layout.stop_impersonating_path}
-          data-turbo-prefetch="false"
-          class="text-primary font-bold hover:text-red-300 transition-colors duration-200"
-          >Stop impersonating</a
-        >
-      {/if}
-    </div>
-    <div class="flex flex-row gap-2 mt-4">
-      {#each layout.footer.active_users_graph as hour}
-        <div
-          class="bg-white opacity-10 grow min-w-2.5"
-          title={hour.title}
-          style={`height: ${hour.height}px`}
-        ></div>
-      {/each}
-    </div>
-  </footer>
+          Using Inertia. Build <a
+            href={layout.footer.commit_link}
+            class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
+            >{layout.footer.git_version}</a
+          >
+          from {layout.footer.server_start_time_ago} ago.
+          {plur("heartbeat", layout.footer.heartbeat_recent_count)}
+          ({layout.footer.heartbeat_recent_imported_count} imported) in the past
+          24 hours. (DB: {plur("query", layout.footer.query_count)}, {layout
+            .footer.query_cache_count} cached) (CACHE: {layout.footer
+            .cache_hits} hits,
+          {layout.footer.cache_misses} misses) ({layout.footer
+            .requests_per_second})
+        </p>
+        {#if layout.show_stop_impersonating}
+          <a
+            href={layout.stop_impersonating_path}
+            data-turbo-prefetch="false"
+            class="text-primary font-bold hover:text-red-300 transition-colors duration-200"
+            >Stop impersonating</a
+          >
+        {/if}
+      </div>
+      <div class="flex flex-row gap-2 mt-4 justify-center">
+        {#each layout.footer.active_users_graph as hour}
+          <div
+            class="bg-white opacity-10 grow max-w-[4px] rounded-sm"
+            title={hour.title}
+            style={`height: ${hour.height}px`}
+          ></div>
+        {/each}
+      </div>
+    </footer>
+  </div>
 </main>
 
 {#if layout.nav.user_present}

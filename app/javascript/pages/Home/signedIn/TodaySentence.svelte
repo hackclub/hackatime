@@ -14,7 +14,7 @@
   } = $props();
 </script>
 
-<p class="mt-2">
+<p>
   {#if show_logged_time_sentence}
     You've logged
     {todays_duration_display}

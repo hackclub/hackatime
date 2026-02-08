@@ -1,9 +1,9 @@
 export type FlashData = {
-  notice?: string
-  alert?: string
-}
+  notice?: string;
+  alert?: string;
+};
 
-export type SharedProps = {}
+export type SharedProps = {};
 
 export type LeaderboardEntryUser = {
   id: number;
@@ -27,12 +27,6 @@ export type LeaderboardEntry = {
   active_project: LeaderboardActiveProject | null;
   needs_github_link: boolean;
   settings_path: string;
-};
-
-export type MiniLeaderboardData = {
-  subtitle: string;
-  entries: LeaderboardEntry[];
-  full_leaderboard_path: string;
 };
 
 export type ActivityGraphData = {

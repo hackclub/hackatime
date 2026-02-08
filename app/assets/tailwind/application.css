@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "../../../app/javascript/**/*.{svelte,js,ts}";
+@source "../../../node_modules/layerchart/dist/**/*.{svelte,js}";
 @import "./main.css";
 @import "./nav.css";
 @import "./filterable_dashboard.css";
@@ -33,6 +35,16 @@ main {
 
   --color-muted: #6e6468;
   --color-text-muted: #6e6468;
+
+  --color-surface: #2a1f21;
+  --color-surface-100: #3a292d;
+  --color-surface-200: #4a3438;
+  --color-surface-300: #5a3f44;
+  --color-surface-content: #f3ecee;
+  --color-info: #5bc0de;
+  --color-success: #33d6a6;
+  --color-warning: #f1c40f;
+  --color-danger: #c8394f;
 }
 
 :root.development {
