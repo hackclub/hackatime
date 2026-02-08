@@ -1,17 +1,21 @@
 <script lang="ts">
-  import { secondsToDisplay, percentOf } from "./utils";
+  import { secondsToDisplay, percentOf, logScale } from "./utils";
 
   let {
     title,
     entries,
     empty_message = "No data yet.",
+    useLogScale = false,
   }: {
     title: string;
     entries: [string, number][];
     empty_message?: string;
+    useLogScale?: boolean;
   } = $props();
 
   const maxVal = $derived(Math.max(...entries.map(([_, v]) => v || 0), 1));
+  const barWidth = (seconds: number) =>
+    useLogScale ? logScale(seconds, maxVal) : percentOf(seconds, maxVal);
 </script>
 
 <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col">
@@ -26,7 +30,7 @@
           <div class="flex-1 bg-darkless rounded h-3 overflow-hidden">
             <div
               class="h-3 bg-primary rounded"
-              style={`width:${percentOf(seconds, maxVal)}%`}
+              style={`width:${barWidth(seconds)}%`}
             ></div>
           </div>
           <div class="w-16 text-sm text-muted text-right">

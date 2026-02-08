@@ -83,12 +83,10 @@ Rails.application.routes.draw do
   resources :static_pages, only: [ :index ] do
     collection do
       get :project_durations
-      get :activity_graph
       get :currently_hacking
       get :currently_hacking_count
       get :filterable_dashboard_content
       get :filterable_dashboard
-      get :mini_leaderboard
       get :streak
       # get :timeline # Removed: Old route for timeline
     end

@@ -19,3 +19,18 @@ export const percentOf = (value: number, max: number) => {
   if (!max || max === 0) return 0;
   return Math.max(2, Math.round((value / max) * 100));
 };
+
+export const logScale = (value: number, maxVal: number): number => {
+  if (value === 0) return 0;
+  const minPercent = 5;
+  const maxPercent = 100;
+  const linearRatio = value / maxVal;
+  const logRatio = Math.log(value + 1) / Math.log(maxVal + 1);
+  const linearWeight = 0.8;
+  const logWeight = 0.2;
+  const scaled =
+    minPercent +
+    (linearWeight * linearRatio + logWeight * logRatio) *
+      (maxPercent - minPercent);
+  return Math.min(Math.round(scaled), maxPercent);
+};

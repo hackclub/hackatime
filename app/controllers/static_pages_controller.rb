@@ -16,7 +16,7 @@ class StaticPagesController < InertiaController
         return redirect_to "/my/projects?interval=custom&from=#{d}&to=#{d}" if d
       end
 
-      if current_user.heartbeats.empty? || params[:show_wakatime_setup_notice]
+      if !current_user.heartbeats.exists? || params[:show_wakatime_setup_notice]
         @show_wakatime_setup_notice = true
         if (ssp = Cache::SetupSocialProofJob.perform_now)
           @ssp_message, @ssp_users_recent, @ssp_users_size = ssp.values_at(:message, :users_recent, :users_size)
@@ -72,12 +72,6 @@ class StaticPagesController < InertiaController
     @meta_keywords = "what is hackatime, hackatime definition, hack club time tracker, coding time tracker, programming statistics"
   end
 
-  def mini_leaderboard
-    @leaderboard = LeaderboardService.get(period: :daily, date: Date.current)
-    @active_projects = Cache::ActiveProjectsJob.perform_now
-    render partial: "leaderboards/mini_leaderboard", locals: { leaderboard: @leaderboard, current_user: current_user }
-  end
-
   def project_durations
     return unless current_user
 
@@ -110,18 +104,6 @@ class StaticPagesController < InertiaController
     end
 
     render partial: "project_durations", locals: { project_durations: durations, show_archived: archived }
-  end
-
-  def activity_graph
-    return unless current_user
-
-    tz = current_user.timezone
-    key = "user_#{current_user.id}_daily_durations_#{tz}"
-    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
-      Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
-    end
-
-    render partial: "activity_graph", locals: { daily_durations: durations, length_of_busiest_day: 8.hours.to_i, user_tz: tz }
   end
 
   def currently_hacking
@@ -199,9 +181,9 @@ class StaticPagesController < InertiaController
       todays_duration_display: helpers.short_time_detailed(@todays_duration.to_i),
       todays_languages: @todays_languages || [],
       todays_editors: @todays_editors || [],
-      mini_leaderboard_html: InertiaRails.defer { mini_leaderboard_html },
-      filterable_dashboard_data: InertiaRails.defer { filterable_dashboard_data },
-      activity_graph_html: InertiaRails.defer { activity_graph_html }
+      mini_leaderboard: mini_leaderboard_data,
+      filterable_dashboard_data: filterable_dashboard_data,
+      activity_graph: activity_graph_data
     }
   end
 
@@ -221,7 +203,8 @@ class StaticPagesController < InertiaController
 
   def filterable_dashboard_data
     filters = %i[project language operating_system editor category]
-    key = [ current_user ] + filters.map { |f| params[f] } + [ params[:interval], params[:from], params[:to] ]
+    interval = params[:interval]
+    key = [ current_user ] + filters.map { |f| params[f] } + [ interval.to_s, params[:from], params[:to] ]
     hb = current_user.heartbeats
     h = ApplicationController.helpers
 
@@ -231,9 +214,9 @@ class StaticPagesController < InertiaController
 
       Time.use_zone(current_user.timezone) do
         filters.each do |f|
-          durations = current_user.heartbeats.group(f).duration_seconds
-          durations = durations.reject { |n, _| archived.include?(n) } if f == :project
-          result[f] = durations.sort_by { |_, v| -v }.map(&:first).compact_blank.map { |k|
+          options = current_user.heartbeats.distinct.pluck(f).compact_blank
+          options = options.reject { |n| archived.include?(n) } if f == :project
+          result[f] = options.map { |k|
             f == :language ? k.categorize_language : (%i[operating_system editor].include?(f) ? k.capitalize : k)
           }.uniq
 
@@ -250,8 +233,7 @@ class StaticPagesController < InertiaController
           result["singular_#{f}"] = arr.length == 1
         end
 
-        hb = hb.filter_by_time_range(params[:interval], params[:from], params[:to])
-        result[:filtered_heartbeats] = hb
+        hb = hb.filter_by_time_range(interval, params[:from], params[:to])
         result[:total_time] = hb.group(:project).duration_seconds.values.sum
         result[:total_heartbeats] = hb.count
 
@@ -288,27 +270,82 @@ class StaticPagesController < InertiaController
           }.to_h
         end
 
-        result[:weekly_project_stats] = (0..25).to_h do |w|
+        result[:weekly_project_stats] = (0..11).to_h do |w|
           ws = w.weeks.ago.beginning_of_week
           [ ws.to_date.iso8601, hb.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
               .group(:project).duration_seconds.reject { |p, _| archived.include?(p) } ]
         end
       end
+      result[:selected_interval] = interval.to_s
+      result[:selected_from] = params[:from].to_s
+      result[:selected_to] = params[:to].to_s
+      filters.each { |f| result["selected_#{f}"] = params[f]&.split(",") || [] }
+
       result
     end
   end
 
-  def mini_leaderboard_html
+  def mini_leaderboard_data
     leaderboard = LeaderboardService.get(period: :daily, date: Date.current)
-    render_to_string partial: "leaderboards/mini_leaderboard", locals: { leaderboard: leaderboard, current_user: current_user }
+    return { subtitle: "", entries: [], full_leaderboard_path: "/leaderboards" } unless leaderboard
+
+    entries = leaderboard.entries.respond_to?(:order) ? leaderboard.entries.includes(:user).order(total_seconds: :desc) : leaderboard.entries
+    ordered = entries.to_a
+    active_projects = Rails.cache.fetch("active_projects", expires_in: 2.minutes) { Cache::ActiveProjectsJob.perform_now }
+
+    top3 = ordered.first(3)
+    user_entry = current_user && ordered.find { |e| e.user_id == current_user.id }
+    user_rank = user_entry ? ordered.index(user_entry) : nil
+
+    context = if user_entry && user_rank && user_rank >= 3
+      [ordered[user_rank - 1], user_entry, ordered[user_rank + 1]].compact
+    else
+      []
+    end
+
+    display_entries = (top3 + context).uniq
+
+    h = ApplicationController.helpers
+    {
+      subtitle: "This leaderboard shows time logged in the last 24 hours (UTC time).",
+      entries: display_entries.map do |e|
+        rank = ordered.index(e) + 1
+        active = active_projects&.dig(e.user_id)
+        {
+          rank: rank,
+          is_current_user: current_user && e.user_id == current_user.id,
+          user: {
+            id: e.user_id,
+            display_name: e.user.display_name,
+            avatar_url: e.user.avatar_url,
+            profile_path: "/@#{e.user.display_name}"
+          },
+          total_seconds: e.total_seconds,
+          total_display: h.short_time_detailed(e.total_seconds),
+          streak_count: e.streak_count,
+          active_project: active && { name: active.project_name, repo_url: active.repo_url },
+          needs_github_link: current_user && e.user_id == current_user.id && current_user.github_username.blank?,
+          settings_path: "/my/settings#user_github_account"
+        }
+      end,
+      full_leaderboard_path: "/leaderboards"
+    }
   end
 
-  def activity_graph_html
+  def activity_graph_data
     tz = current_user.timezone
     key = "user_#{current_user.id}_daily_durations_#{tz}"
     durations = Rails.cache.fetch(key, expires_in: 1.minute) do
       Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
     end
-    render_to_string partial: "activity_graph", locals: { daily_durations: durations, length_of_busiest_day: 8.hours.to_i, user_tz: tz }
+
+    {
+      start_date: 365.days.ago.to_date.iso8601,
+      end_date: Time.current.to_date.iso8601,
+      duration_by_date: durations.transform_keys { |d| d.to_date.iso8601 }.transform_values(&:to_i),
+      busiest_day_seconds: 8.hours.to_i,
+      timezone_label: ActiveSupport::TimeZone[tz].to_s,
+      timezone_settings_path: "/my/settings#user_timezone"
+    }
   end
 end

@@ -1,15 +1,45 @@
 <script lang="ts">
-  import { Deferred } from "@inertiajs/svelte";
+  import type {
+    MiniLeaderboardData,
+    ActivityGraphData,
+  } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
   import SetupNotice from "./signedIn/SetupNotice.svelte";
   import TodaySentence from "./signedIn/TodaySentence.svelte";
-  import MiniLeaderboardSkeleton from "./signedIn/MiniLeaderboardSkeleton.svelte";
-  import DashboardSkeleton from "./signedIn/DashboardSkeleton.svelte";
+  import MiniLeaderboard from "./signedIn/MiniLeaderboard.svelte";
   import Dashboard from "./signedIn/Dashboard.svelte";
-  import ActivityGraphSkeleton from "./signedIn/ActivityGraphSkeleton.svelte";
+  import ActivityGraph from "./signedIn/ActivityGraph.svelte";
 
   type SocialProofUser = { display_name: string; avatar_url: string };
+
+  type FilterableDashboardData = {
+    total_time: number;
+    total_heartbeats: number;
+    top_project: string | null;
+    top_language: string | null;
+    top_editor: string | null;
+    top_operating_system: string | null;
+    project_durations: Record<string, number>;
+    language_stats: Record<string, number>;
+    editor_stats: Record<string, number>;
+    operating_system_stats: Record<string, number>;
+    category_stats: Record<string, number>;
+    weekly_project_stats: Record<string, Record<string, number>>;
+    project: string[];
+    language: string[];
+    editor: string[];
+    operating_system: string[];
+    category: string[];
+    selected_interval: string;
+    selected_from: string;
+    selected_to: string;
+    selected_project: string[];
+    selected_language: string[];
+    selected_editor: string[];
+    selected_operating_system: string[];
+    selected_category: string[];
+  };
 
   let {
     flavor_text,
@@ -25,9 +55,9 @@
     todays_duration_display,
     todays_languages,
     todays_editors,
-    mini_leaderboard_html,
+    mini_leaderboard,
     filterable_dashboard_data,
-    activity_graph_html,
+    activity_graph,
   }: {
     flavor_text: string;
     trust_level_red: boolean;
@@ -42,9 +72,9 @@
     todays_duration_display: string;
     todays_languages: string[];
     todays_editors: string[];
-    mini_leaderboard_html?: string | null;
-    filterable_dashboard_data?: Record<string, any> | null;
-    activity_graph_html?: string | null;
+    mini_leaderboard: MiniLeaderboardData;
+    filterable_dashboard_data: FilterableDashboardData;
+    activity_graph: ActivityGraphData;
   } = $props();
 </script>
 
@@ -59,7 +89,7 @@
     Keep Track of <span class="text-primary">Your</span> Coding Time
   </h1>
 
-  {#if true}
+  {#if trust_level_red}
     <BanNotice />
   {/if}
 
@@ -83,32 +113,7 @@
     {todays_editors}
   />
 
-  <div id="mini_leaderboard">
-    <Deferred data="mini_leaderboard_html">
-      {#snippet fallback()}
-        <MiniLeaderboardSkeleton />
-      {/snippet}
-      {@html mini_leaderboard_html ?? ""}
-    </Deferred>
-  </div>
-
-  <div id="filterable_dashboard">
-    <Deferred data="filterable_dashboard_data">
-      {#snippet fallback()}
-        <DashboardSkeleton />
-      {/snippet}
-      {#if filterable_dashboard_data}
-        <Dashboard data={filterable_dashboard_data} />
-      {/if}
-    </Deferred>
-  </div>
-
-  <div id="activity_graph">
-    <Deferred data="activity_graph_html">
-      {#snippet fallback()}
-        <ActivityGraphSkeleton />
-      {/snippet}
-      {@html activity_graph_html ?? ""}
-    </Deferred>
-  </div>
+  <MiniLeaderboard data={mini_leaderboard} />
+  <Dashboard data={filterable_dashboard_data} />
+  <ActivityGraph data={activity_graph} />
 </div>
