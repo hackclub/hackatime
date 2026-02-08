@@ -131,7 +131,7 @@
   });
 
   const navLinkClass = (active?: boolean) =>
-    `block px-2 py-1 rounded-lg transition ${active ? "bg-primary text-primary" : "hover:bg-darkless"}`;
+    `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-white" : "hover:bg-darkless"}`;
 </script>
 
 {#if layout.nav.user_present}
@@ -159,17 +159,17 @@
   <div class="nav-overlay" class:open={navOpen} onclick={closeNav}></div>
 
   <aside
-    class="flex flex-col min-h-screen w-62.5 bg-dark text-white px-2 py-4 rounded-r-lg overflow-y-auto lg:block"
+    class="flex flex-col min-h-screen w-52 bg-dark text-white px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
     data-nav-target="nav"
     class:open={navOpen}
     style="scrollbar-width: none; -ms-overflow-style: none;"
   >
     <div class="space-y-4">
       {#if layout.nav.flash.length > 0}
-        <div>
+        <div class="space-y-2">
           {#each layout.nav.flash as item}
             <div
-              class={`rounded-lg border text-center text-lg px-3 py-2 mb-2 ${item.class_name}`}
+              class={`rounded-md text-center text-sm px-3 py-2 ${item.class_name}`}
             >
               {item.message}
             </div>
@@ -178,7 +178,9 @@
       {/if}
 
       {#if layout.nav.user_present}
-        <div class="px-2 rounded-lg flex flex-col items-center gap-2">
+        <div
+          class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
+        >
           {#if layout.nav.user_mention_html}{@html layout.nav
               .user_mention_html}{/if}
           {#if layout.nav.streak_html}{@html layout.nav.streak_html}{/if}
@@ -186,57 +188,108 @@
               .admin_level_html}{/if}
         </div>
       {:else}
-        <div class="mb-1">
+        <div>
           <a
             href={layout.nav.login_path}
-            class="block px-2 py-1 rounded-lg transition text-white font-bold bg-primary hover:bg-secondary text-lg"
+            class="block px-4 py-2 rounded-md transition text-white font-semibold bg-primary hover:bg-secondary text-center"
             >Login</a
           >
         </div>
       {/if}
 
-      <div class="space-y-1 text-lg">
+      <nav class="space-y-1">
         {#each layout.nav.links as link}
-          <div>
-            {#if link.action === "logout"}
-              <button
-                type="button"
-                onclick={openLogout}
-                class="w-full text-left cursor-pointer block px-3.75 py-2.5 rounded-lg transition hover:text-primary hover:bg-darkless"
-                >Logout</button
-              >
-            {:else}
-              <a
-                href={link.href}
-                onclick={handleNavLinkClick}
-                class={navLinkClass(link.active)}>{link.label}</a
-              >
-            {/if}
-          </div>
+          {#if link.action === "logout"}
+            <a
+              type="button"
+              onclick={openLogout}
+              class={`${navLinkClass(false)} cursor-pointer`}>Logout</a
+            >
+          {:else}
+            <a
+              href={link.href}
+              onclick={handleNavLinkClick}
+              class={navLinkClass(link.active)}>{link.label}</a
+            >
+          {/if}
         {/each}
 
-        {#each [{ links: layout.nav.dev_links, class: "dev-tool" }, { links: layout.nav.admin_links, class: "admin-tool" }, { links: layout.nav.viewer_links, class: "viewer-tool" }, { links: layout.nav.superadmin_links, class: "superadmin-tool" }] as { links, class: className }}
-          {#each links as link}
-            <div class={className}>
+        {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0}
+          <div class="pt-2 mt-2 border-t border-darkless space-y-1">
+            {#each layout.nav.dev_links as link}
               <a
                 href={link.href}
                 onclick={handleNavLinkClick}
-                class={navLinkClass(link.active)}
+                class="{navLinkClass(link.active)} dev-tool"
               >
                 {link.label}
                 {#if link.badge}
                   <span
-                    class="ml-1 px-2 py-0.5 text-xs rounded-full bg-primary text-white font-semibold"
-                    >{link.badge}</span
+                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
                   >
+                    {link.badge}
+                  </span>
                 {/if}
               </a>
-            </div>
-          {/each}
-        {/each}
+            {/each}
 
-        {#if layout.nav.activities_html}{@html layout.nav.activities_html}{/if}
-      </div>
+            {#each layout.nav.admin_links as link}
+              <a
+                href={link.href}
+                onclick={handleNavLinkClick}
+                class="{navLinkClass(link.active)} admin-tool"
+              >
+                {link.label}
+                {#if link.badge}
+                  <span
+                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                  >
+                    {link.badge}
+                  </span>
+                {/if}
+              </a>
+            {/each}
+
+            {#each layout.nav.viewer_links as link}
+              <a
+                href={link.href}
+                onclick={handleNavLinkClick}
+                class="{navLinkClass(link.active)} viewer-tool"
+              >
+                {link.label}
+                {#if link.badge}
+                  <span
+                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                  >
+                    {link.badge}
+                  </span>
+                {/if}
+              </a>
+            {/each}
+
+            {#each layout.nav.superadmin_links as link}
+              <a
+                href={link.href}
+                onclick={handleNavLinkClick}
+                class="{navLinkClass(link.active)} superadmin-tool"
+              >
+                {link.label}
+                {#if link.badge}
+                  <span
+                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                  >
+                    {link.badge}
+                  </span>
+                {/if}
+              </a>
+            {/each}
+          </div>
+        {/if}
+
+        {#if layout.nav.activities_html}
+          <div class="pt-2">{@html layout.nav.activities_html}</div>
+        {/if}
+      </nav>
     </div>
   </aside>
 {/if}
@@ -303,7 +356,7 @@
           <div
             class="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"
           ></div>
-          <span class="text-lg">{countLabel()}</span>
+          <span class="text-base">{countLabel()}</span>
         </div>
       </div>
     </div>
@@ -317,40 +370,38 @@
         </div>
       {:else}
         <div
-          class="currently-hacking-list max-h-[60vh] max-w-100 overflow-y-auto p-1 bg-darker"
+          class="currently-hacking-list max-h-[60vh] max-w-100 overflow-y-auto p-2 bg-darker"
         >
-          <div class="space-y-1">
+          <div class="space-y-2">
             {#each layout.currently_hacking.users as user}
-              <div class="flex flex-col space-y-1 p-1">
-                <div class="flex items-center">
-                  <div class="user-info flex items-center gap-2">
-                    {#if user.avatar_url}
-                      <img
-                        src={user.avatar_url}
-                        alt={`${user.display_name || `User ${user.id}`}'s avatar`}
-                        class="w-6 h-6 rounded-full aspect-square"
-                        loading="lazy"
-                      />
-                    {/if}
-                    <span class="inline-flex items-center gap-1">
-                      {#if user.slack_uid}
-                        <a
-                          href={`https://hackclub.slack.com/team/${user.slack_uid}`}
-                          target="_blank"
-                          class="text-blue-500 hover:underline"
-                        >
-                          @{user.display_name || `User ${user.id}`}
-                        </a>
-                      {:else}
-                        <span class="text-white"
-                          >{user.display_name || `User ${user.id}`}</span
-                        >
-                      {/if}
-                    </span>
-                  </div>
+              <div
+                class="flex flex-col space-y-1 p-2 rounded-md hover:bg-dark transition-colors"
+              >
+                <div class="flex items-center gap-2">
+                  {#if user.avatar_url}
+                    <img
+                      src={user.avatar_url}
+                      alt={`${user.display_name || `User ${user.id}`}'s avatar`}
+                      class="w-6 h-6 rounded-full aspect-square flex-shrink-0"
+                      loading="lazy"
+                    />
+                  {/if}
+                  {#if user.slack_uid}
+                    <a
+                      href={`https://hackclub.slack.com/team/${user.slack_uid}`}
+                      target="_blank"
+                      class="text-blue-500 hover:underline text-sm"
+                    >
+                      @{user.display_name || `User ${user.id}`}
+                    </a>
+                  {:else}
+                    <span class="text-white text-sm"
+                      >{user.display_name || `User ${user.id}`}</span
+                    >
+                  {/if}
                 </div>
                 {#if user.active_project}
-                  <div class="text-sm italic text-muted ml-2">
+                  <div class="text-xs text-muted ml-8">
                     working on
                     {#if user.active_project.repo_url}
                       <a
