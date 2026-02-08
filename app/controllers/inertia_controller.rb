@@ -141,9 +141,20 @@ class InertiaController < ApplicationController
   end
 
   def currently_hacking_props
+    data = Cache::CurrentlyHackingJob.perform_now
+    users = (data[:users] || []).map do |u|
+      proj = data[:active_projects]&.dig(u.id)
+      {
+        id: u.id,
+        display_name: u.display_name,
+        slack_uid: u.slack_uid,
+        avatar_url: u.avatar_url,
+        active_project: proj && { name: proj.project_name, repo_url: proj.repo_url }
+      }
+    end
     {
-      count: CurrentlyHacking.count,
-      users: CurrentlyHacking.active_users,
+      count: users.size,
+      users: users,
       interval: 30_000
     }
   end
