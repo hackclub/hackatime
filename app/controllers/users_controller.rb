@@ -53,6 +53,7 @@ class UsersController < ApplicationController
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
     @current_user_api_key = api_key&.token
+    @setup_os = detect_setup_os(request.user_agent)
   end
 
   def wakatime_setup_step_2
@@ -123,6 +124,14 @@ class UsersController < ApplicationController
     unless @user == current_user
       redirect_to root_path, alert: "You are not authorized to access this page"
     end
+  end
+
+  def detect_setup_os(user_agent)
+    ua = user_agent.to_s
+
+    return :windows if ua.match?(/windows/i)
+
+    :mac_linux
   end
 
   def prepare_settings_page

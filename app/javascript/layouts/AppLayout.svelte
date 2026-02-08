@@ -134,6 +134,18 @@
     `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-white" : "hover:bg-darkless"}`;
 </script>
 
+{#if layout.nav.flash.length > 0}
+  <div class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4 space-y-2">
+    {#each layout.nav.flash as item}
+      <div
+        class={`rounded-md text-center text-sm px-4 py-3 shadow-lg ${item.class_name}`}
+      >
+        {item.message}
+      </div>
+    {/each}
+  </div>
+{/if}
+
 {#if layout.nav.user_present}
   <button
     class="mobile-nav-button"
@@ -165,17 +177,6 @@
     style="scrollbar-width: none; -ms-overflow-style: none;"
   >
     <div class="space-y-4">
-      {#if layout.nav.flash.length > 0}
-        <div class="space-y-2">
-          {#each layout.nav.flash as item}
-            <div
-              class={`rounded-md text-center text-sm px-3 py-2 ${item.class_name}`}
-            >
-              {item.message}
-            </div>
-          {/each}
-        </div>
-      {/if}
 
       {#if layout.nav.user_present}
         <div
