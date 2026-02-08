@@ -47,10 +47,6 @@ main {
   --color-danger: #c8394f;
 }
 
-:root.development {
-  --color-primary: var(--color-green);
-}
-
 .project-toggle-group {
   @apply flex items-center gap-2 rounded-lg p-1;
   background-color: var(--color-darkless);
