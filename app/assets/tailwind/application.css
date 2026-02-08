@@ -18,18 +18,21 @@ main {
 }
 
 @theme {
-  --color-darker: #1F1617;
-  --color-dark: #2A1F21;
-  --color-darkless: #4A2D31;
-  --color-red: #C8394F;
-  --color-orange: #FF8C37;
-  --color-yellow: #F1C40F;
-  --color-green: #33D6A6;
-  --color-cyan: #5BC0DE;
-  --color-blue: #338EDA;
-  --color-purple: #A633D6;
-  --color-primary: #C8394F;
-  --color-secondary: #8492A6;
+  --color-darker: #1f1617;
+  --color-dark: #2a1f21;
+  --color-darkless: #4a2d31;
+  --color-red: #c8394f;
+  --color-orange: #ff8c37;
+  --color-yellow: #f1c40f;
+  --color-green: #33d6a6;
+  --color-cyan: #5bc0de;
+  --color-blue: #338eda;
+  --color-purple: #a633d6;
+  --color-primary: #c8394f;
+  --color-secondary: #6e6468;
+
+  --color-muted: #6e6468;
+  --color-text-muted: #6e6468;
 }
 
 :root.development {

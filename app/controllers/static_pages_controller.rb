@@ -48,7 +48,7 @@ class StaticPagesController < InertiaController
         @show_logged_time_sentence = @todays_duration > 1.minute && (@todays_languages.any? || @todays_editors.any?)
       end
 
-      render inertia: "home/signed_in", props: signed_in_props
+      render inertia: "Home/SignedIn", props: signed_in_props
     else
       # Set homepage SEO content for logged-out users only
       set_homepage_seo_content
@@ -57,7 +57,7 @@ class StaticPagesController < InertiaController
 
       @home_stats = Cache::HomeStatsJob.perform_now
 
-      render inertia: "home/signed_out", props: signed_out_props
+      render inertia: "Home/SignedOut", props: signed_out_props
     end
   end
 

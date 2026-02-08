@@ -12,6 +12,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.18",
     "@tsconfig/svelte": "5",
+    "plur": "^6.0.0",
     "svelte": "5",
     "svelte-check": "^4.3.6",
     "tailwindcss": "^4.1.18",

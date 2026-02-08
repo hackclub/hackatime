@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
+  import plur from "plur";
 
   type NavLink = {
     label: string;
@@ -112,10 +113,6 @@
       closeNav();
       closeLogout();
     }
-  };
-
-  const pluralize = (count: number, word: string) => {
-    return `${count} ${count === 1 ? word : `${word}s`}`;
   };
 
   const countLabel = () => {
@@ -364,24 +361,24 @@
 {/if}
 
 <main
-  class={`flex-1 p-5 mb-25 pt-16 lg:pt-5 transition-all duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-25 lg:max-w-[calc(100%-250px)]" : ""}`}
+  class={`flex-1 p-5 mb-25 pt-16 lg:pt-5 transition-all duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5 lg:max-w-[calc(100%-250px)]" : ""}`}
 >
   {@render children?.()}
   <footer
-    class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-gray-600 hover:text-gray-300 transition-colors duration-200"
+    class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-text-muted"
   >
     <div class="container">
-      <p>
+      <p class="brightness-60 hover:brightness-100 transition-all duration-200">
         Using Inertia. Build <a
           href={layout.footer.commit_link}
           class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
           >{layout.footer.git_version}</a
         >
         from {layout.footer.server_start_time_ago} ago.
-        {pluralize(layout.footer.heartbeat_recent_count, "heartbeat")}
+        {plur("heartbeat", layout.footer.heartbeat_recent_count)}
         ({layout.footer.heartbeat_recent_imported_count} imported) in the past 24
-        hours. (DB: {pluralize(layout.footer.query_count, "query")}, {layout
-          .footer.query_cache_count} cached) (CACHE: {layout.footer.cache_hits} hits,
+        hours. (DB: {plur("query", layout.footer.query_count)}, {layout.footer
+          .query_cache_count} cached) (CACHE: {layout.footer.cache_hits} hits,
         {layout.footer.cache_misses} misses) ({layout.footer
           .requests_per_second})
       </p>
@@ -406,102 +403,106 @@
   </footer>
 </main>
 
-<div
-  class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-elevated border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
-  class:hidden={!currentlyVisible}
-  class:-translate-y-full={!currentlyVisible}
-  class:translate-y-0={currentlyVisible}
->
+{#if layout.nav.user_present}
   <div
-    class="currently-hacking p-3 bg-elevated cursor-pointer select-none bg-dark flex items-center justify-between"
-    onclick={toggleCurrentlyHacking}
+    class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-elevated border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
+    class:hidden={!currentlyVisible}
+    class:-translate-y-full={!currentlyVisible}
+    class:translate-y-0={currentlyVisible}
   >
-    <div class="text-white text-sm font-medium">
-      <div class="flex items-center">
-        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"></div>
-        <span class="text-lg">{countLabel()}</span>
+    <div
+      class="currently-hacking p-3 bg-elevated cursor-pointer select-none bg-dark flex items-center justify-between"
+      onclick={toggleCurrentlyHacking}
+    >
+      <div class="text-white text-sm font-medium">
+        <div class="flex items-center">
+          <div
+            class="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"
+          ></div>
+          <span class="text-lg">{countLabel()}</span>
+        </div>
       </div>
     </div>
-  </div>
-  {#if currentlyExpanded}
-    {#if currentlyLoading}
-      <div class="p-4">
-        <div class="text-center text-muted text-md">Loading...</div>
-      </div>
-    {:else if currentlyError}
-      <div class="p-4 bg-elevated">
-        <div class="text-center text-muted text-sm">
-          ruh ro, something broke :(
+    {#if currentlyExpanded}
+      {#if currentlyLoading}
+        <div class="p-4">
+          <div class="text-center text-muted text-md">Loading...</div>
         </div>
-      </div>
-    {:else if currentlyUsers.length === 0}
-      <div class="p-4 bg-elevated">
-        <div class="text-center text-muted text-sm italic">
-          No one is currently hacking :(
+      {:else if currentlyError}
+        <div class="p-4 bg-elevated">
+          <div class="text-center text-muted text-sm">
+            ruh ro, something broke :(
+          </div>
         </div>
-      </div>
-    {:else}
-      <div
-        class="currently-hacking-list max-h-[60vh] max-w-100 overflow-y-auto p-1 bg-darker"
-      >
-        <div class="space-y-1">
-          {#each currentlyUsers as user}
-            <div class="flex flex-col space-y-1 p-1">
-              <div class="flex items-center">
-                <div class="user-info flex items-center gap-2">
-                  {#if user.avatar_url}
-                    <img
-                      src={user.avatar_url}
-                      alt={`${user.display_name || `User ${user.id}`}'s avatar`}
-                      class="w-6 h-6 rounded-full aspect-square"
-                      loading="lazy"
-                    />
-                  {/if}
-                  <span class="inline-flex items-center gap-1">
-                    {#if user.slack_uid}
+      {:else if currentlyUsers.length === 0}
+        <div class="p-4 bg-elevated">
+          <div class="text-center text-muted text-sm italic">
+            No one is currently hacking :(
+          </div>
+        </div>
+      {:else}
+        <div
+          class="currently-hacking-list max-h-[60vh] max-w-100 overflow-y-auto p-1 bg-darker"
+        >
+          <div class="space-y-1">
+            {#each currentlyUsers as user}
+              <div class="flex flex-col space-y-1 p-1">
+                <div class="flex items-center">
+                  <div class="user-info flex items-center gap-2">
+                    {#if user.avatar_url}
+                      <img
+                        src={user.avatar_url}
+                        alt={`${user.display_name || `User ${user.id}`}'s avatar`}
+                        class="w-6 h-6 rounded-full aspect-square"
+                        loading="lazy"
+                      />
+                    {/if}
+                    <span class="inline-flex items-center gap-1">
+                      {#if user.slack_uid}
+                        <a
+                          href={`https://hackclub.slack.com/team/${user.slack_uid}`}
+                          target="_blank"
+                          class="text-blue-500 hover:underline"
+                          >@{user.display_name || `User ${user.id}`}</a
+                        >
+                      {:else}
+                        <span class="text-white"
+                          >{user.display_name || `User ${user.id}`}</span
+                        >
+                      {/if}
+                    </span>
+                  </div>
+                </div>
+                {#if user.active_project}
+                  <div class="text-sm italic text-muted ml-2">
+                    working on
+                    {#if user.active_project.repo_url}
                       <a
-                        href={`https://hackclub.slack.com/team/${user.slack_uid}`}
+                        href={user.active_project.repo_url}
                         target="_blank"
-                        class="text-blue-500 hover:underline"
-                        >@{user.display_name || `User ${user.id}`}</a
+                        class="text-accent hover:text-cyan-400 transition-colors"
+                        >{user.active_project.name}</a
                       >
                     {:else}
-                      <span class="text-white"
-                        >{user.display_name || `User ${user.id}`}</span
+                      {user.active_project.name}
+                    {/if}
+                    {#if visualizeGitUrl(user.active_project.repo_url)}
+                      <a
+                        href={visualizeGitUrl(user.active_project.repo_url)}
+                        target="_blank"
+                        class="ml-1">🌌</a
                       >
                     {/if}
-                  </span>
-                </div>
+                  </div>
+                {/if}
               </div>
-              {#if user.active_project}
-                <div class="text-sm italic text-muted ml-2">
-                  working on
-                  {#if user.active_project.repo_url}
-                    <a
-                      href={user.active_project.repo_url}
-                      target="_blank"
-                      class="text-accent hover:text-cyan-400 transition-colors"
-                      >{user.active_project.name}</a
-                    >
-                  {:else}
-                    {user.active_project.name}
-                  {/if}
-                  {#if visualizeGitUrl(user.active_project.repo_url)}
-                    <a
-                      href={visualizeGitUrl(user.active_project.repo_url)}
-                      target="_blank"
-                      class="ml-1">🌌</a
-                    >
-                  {/if}
-                </div>
-              {/if}
-            </div>
-          {/each}
+            {/each}
+          </div>
         </div>
-      </div>
+      {/if}
     {/if}
-  {/if}
-</div>
+  </div>
+{/if}
 
 <div
   class="fixed inset-0 flex items-center justify-center z-9999 transition-opacity duration-300 ease-in-out"
