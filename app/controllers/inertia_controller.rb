@@ -9,11 +9,7 @@ class InertiaController < ApplicationController
     {
       nav: inertia_nav_props,
       footer: inertia_footer_props,
-      currently_hacking: {
-        count_url: currently_hacking_count_static_pages_path,
-        full_url: currently_hacking_static_pages_path,
-        interval: 60000
-      },
+      currently_hacking: currently_hacking_props,
       csrf_token: form_authenticity_token,
       signout_path: signout_path,
       show_stop_impersonating: session[:impersonater_user_id].present?,
@@ -141,6 +137,14 @@ class InertiaController < ApplicationController
       cache_misses: cache[:misses],
       requests_per_second: helpers.requests_per_second,
       active_users_graph: hours
+    }
+  end
+
+  def currently_hacking_props
+    {
+      count: CurrentlyHacking.count,
+      users: CurrentlyHacking.active_users,
+      interval: 30_000
     }
   end
 end

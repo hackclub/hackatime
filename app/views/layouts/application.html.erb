@@ -212,12 +212,13 @@
       </footer>
     </main>
 
-    <div class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-elevated border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform -translate-y-full transition-transform duration-300 ease-out hidden" data-controller="currently-hacking" data-currently-hacking-target="container" data-currently-hacking-count-url-value="<%= currently_hacking_count_static_pages_path %>" data-currently-hacking-full-url-value="<%= currently_hacking_static_pages_path %>" data-currently-hacking-interval-value="60000">
-      <div class="currently-hacking p-3 bg-elevated cursor-pointer select-none bg-dark flex items-center justify-between">
+    <% currently_hacking_count = CurrentlyHacking.count %>
+    <div class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform translate-y-0 transition-transform duration-300 ease-out" data-controller="currently-hacking" data-currently-hacking-target="container" data-currently-hacking-count-url-value="<%= currently_hacking_count_static_pages_path %>" data-currently-hacking-full-url-value="<%= currently_hacking_static_pages_path %>" data-currently-hacking-interval-value="60000">
+      <div class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between">
         <div class="text-white text-sm font-medium">
           <div class="flex items-center">
             <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"></div>
-            <span data-currently-hacking-target="count" class="text-lg"></span>
+            <span data-currently-hacking-target="count" class="text-lg"><%= pluralize(currently_hacking_count, "person") %> currently hacking</span>
           </div>
         </div>
       </div>

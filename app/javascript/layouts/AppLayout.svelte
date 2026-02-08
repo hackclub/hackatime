@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { router } from "@inertiajs/svelte";
+  import { usePoll } from "@inertiajs/svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
 
@@ -51,8 +53,8 @@
     nav: LayoutNav;
     footer: Footer;
     currently_hacking: {
-      count_url: string;
-      full_url: string;
+      count: number;
+      users: CurrentlyHackingUser[];
       interval: number;
     };
     csrf_token: string;
@@ -69,128 +71,49 @@
 
   let navOpen = $state(false);
   let logoutOpen = $state(false);
-  let currentlyVisible = $state(false);
   let currentlyExpanded = $state(false);
-  let currentlyLoading = $state(false);
-  let currentlyUsers = $state<CurrentlyHackingUser[]>([]);
-  let currentlyCount = $state(0);
-  let currentlyError = $state(false);
 
-  let countInterval: ReturnType<typeof setInterval> | null = null;
+  const toggleNav = () => (navOpen = !navOpen);
+  const closeNav = () => (navOpen = false);
+  const openLogout = () => (logoutOpen = true);
+  const closeLogout = () => (logoutOpen = false);
 
-  const closeNav = () => {
-    navOpen = false;
-  };
-
-  const toggleNav = () => {
-    navOpen = !navOpen;
-  };
+  usePoll(layout.currently_hacking?.interval || 30000, {
+    only: ["currently_hacking"],
+  });
 
   const handleNavLinkClick = () => {
-    if (!isBrowser) return;
-    if (window.innerWidth <= 1024) {
-      closeNav();
-    }
-  };
-
-  const closeLogout = () => {
-    logoutOpen = false;
-  };
-
-  const openLogout = () => {
-    logoutOpen = true;
+    if (isBrowser && window.innerWidth <= 1024) closeNav();
   };
 
   const handleResize = () => {
-    if (!isBrowser) return;
-    if (window.innerWidth > 1024) {
-      closeNav();
-    }
+    if (isBrowser && window.innerWidth > 1024) closeNav();
   };
 
-  const handleKeydown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
+  const handleKeydown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
       closeNav();
       closeLogout();
     }
   };
 
-  const countLabel = () => {
-    const label = currentlyCount === 1 ? "person" : "people";
-    return `${currentlyCount} ${label} currently hacking`;
-  };
+  const countLabel = () =>
+    `${layout.currently_hacking.count} ${plur("person", layout.currently_hacking.count)} currently hacking`;
 
-  const visualizeGitUrl = (url?: string | null) => {
-    if (!url) return "";
-    if (!url.startsWith("https://github.com/")) return "";
-    return url.replace(
-      "https://github.com/",
-      "https://tkww0gcc0gkwwo4gc8kgs0sw.a.selfhosted.hackclub.com/",
-    );
-  };
+  const visualizeGitUrl = (url?: string | null) =>
+    url?.startsWith("https://github.com/")
+      ? url.replace(
+          "https://github.com/",
+          "https://tkww0gcc0gkwwo4gc8kgs0sw.a.selfhosted.hackclub.com/",
+        )
+      : "";
 
-  const pollCount = async () => {
-    if (!layout?.currently_hacking?.count_url) return;
-    try {
-      const response = await fetch(layout.currently_hacking.count_url, {
-        headers: { Accept: "application/json" },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        currentlyCount = data.count;
-        currentlyVisible = true;
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const startCountPolling = () => {
-    stopCountPolling();
-    pollCount();
-    countInterval = setInterval(pollCount, layout.currently_hacking.interval);
-  };
-
-  const stopCountPolling = () => {
-    if (countInterval) {
-      clearInterval(countInterval);
-      countInterval = null;
-    }
-  };
-
-  const loadCurrentlyHacking = async () => {
-    if (!layout?.currently_hacking?.full_url) return;
-    currentlyLoading = true;
-    currentlyError = false;
-    try {
-      const response = await fetch(layout.currently_hacking.full_url, {
-        headers: { Accept: "application/json" },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        currentlyUsers = data.users || [];
-      } else {
-        currentlyError = true;
-      }
-    } catch (error) {
-      console.error("Failed to poll currently hacking:", error);
-      currentlyError = true;
-    } finally {
-      currentlyLoading = false;
-    }
-  };
-
-  const toggleCurrentlyHacking = async () => {
+  const toggleCurrentlyHacking = () => {
     currentlyExpanded = !currentlyExpanded;
-    if (currentlyExpanded) {
-      await loadCurrentlyHacking();
-    }
   };
 
   $effect(() => {
-    if (isBrowser) {
-      document.body.classList.toggle("overflow-hidden", navOpen);
-    }
+    if (isBrowser) document.body.classList.toggle("overflow-hidden", navOpen);
   });
 
   onMount(() => {
@@ -198,16 +121,17 @@
     handleResize();
     window.addEventListener("resize", handleResize);
     document.addEventListener("keydown", handleKeydown);
-    startCountPolling();
   });
 
   onDestroy(() => {
-    stopCountPolling();
     if (isBrowser) {
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("keydown", handleKeydown);
     }
   });
+
+  const navLinkClass = (active?: boolean) =>
+    `block px-2 py-1 rounded-lg transition ${active ? "bg-primary text-primary" : "hover:bg-darkless"}`;
 </script>
 
 {#if layout.nav.user_present}
@@ -252,17 +176,14 @@
           {/each}
         </div>
       {/if}
+
       {#if layout.nav.user_present}
         <div class="px-2 rounded-lg flex flex-col items-center gap-2">
-          {#if layout.nav.user_mention_html}
-            {@html layout.nav.user_mention_html}
-          {/if}
-          {#if layout.nav.streak_html}
-            {@html layout.nav.streak_html}
-          {/if}
-          {#if layout.nav.admin_level_html}
-            {@html layout.nav.admin_level_html}
-          {/if}
+          {#if layout.nav.user_mention_html}{@html layout.nav
+              .user_mention_html}{/if}
+          {#if layout.nav.streak_html}{@html layout.nav.streak_html}{/if}
+          {#if layout.nav.admin_level_html}{@html layout.nav
+              .admin_level_html}{/if}
         </div>
       {:else}
         <div class="mb-1">
@@ -274,71 +195,33 @@
         </div>
       {/if}
 
-      <div>
-        <div class="space-y-1 text-lg">
-          {#each layout.nav.links as link}
-            <div>
-              {#if link.action === "logout"}
-                <button
-                  type="button"
-                  onclick={openLogout}
-                  class="w-full text-left cursor-pointer block px-3.75 py-2.5 rounded-lg transition hover:text-primary hover:bg-darkless"
-                  >Logout</button
-                >
-              {:else}
-                <a
-                  href={link.href}
-                  onclick={handleNavLinkClick}
-                  class={`block px-2 py-1 rounded-lg transition ${link.active ? "bg-primary text-primary" : "hover:bg-darkless"}`}
-                >
-                  {link.label}
-                </a>
-              {/if}
-            </div>
-          {/each}
-
-          {#each layout.nav.dev_links as link}
-            <div class="dev-tool">
-              <a
-                href={link.href}
-                onclick={handleNavLinkClick}
-                class={`block px-2 py-1 rounded-lg transition ${link.active ? "bg-primary text-primary" : "hover:bg-darkless"}`}
+      <div class="space-y-1 text-lg">
+        {#each layout.nav.links as link}
+          <div>
+            {#if link.action === "logout"}
+              <button
+                type="button"
+                onclick={openLogout}
+                class="w-full text-left cursor-pointer block px-3.75 py-2.5 rounded-lg transition hover:text-primary hover:bg-darkless"
+                >Logout</button
               >
-                {link.label}
-              </a>
-            </div>
-          {/each}
-
-          {#each layout.nav.admin_links as link}
-            <div class="admin-tool">
+            {:else}
               <a
                 href={link.href}
                 onclick={handleNavLinkClick}
-                class={`block px-2 py-1 rounded-lg transition ${link.active ? "bg-primary text-primary" : "hover:bg-darkless"}`}
+                class={navLinkClass(link.active)}>{link.label}</a
               >
-                {link.label}
-              </a>
-            </div>
-          {/each}
+            {/if}
+          </div>
+        {/each}
 
-          {#each layout.nav.viewer_links as link}
-            <div class="viewer-tool">
+        {#each [{ links: layout.nav.dev_links, class: "dev-tool" }, { links: layout.nav.admin_links, class: "admin-tool" }, { links: layout.nav.viewer_links, class: "viewer-tool" }, { links: layout.nav.superadmin_links, class: "superadmin-tool" }] as { links, class: className }}
+          {#each links as link}
+            <div class={className}>
               <a
                 href={link.href}
                 onclick={handleNavLinkClick}
-                class={`block px-2 py-1 rounded-lg transition ${link.active ? "bg-primary text-primary" : "hover:bg-darkless"}`}
-              >
-                {link.label}
-              </a>
-            </div>
-          {/each}
-
-          {#each layout.nav.superadmin_links as link}
-            <div class="superadmin-tool">
-              <a
-                href={link.href}
-                onclick={handleNavLinkClick}
-                class={`block px-2 py-1 rounded-lg transition ${link.active ? "bg-primary text-primary" : "hover:bg-darkless"}`}
+                class={navLinkClass(link.active)}
               >
                 {link.label}
                 {#if link.badge}
@@ -350,17 +233,14 @@
               </a>
             </div>
           {/each}
+        {/each}
 
-          {#if layout.nav.activities_html}
-            {@html layout.nav.activities_html}
-          {/if}
-        </div>
+        {#if layout.nav.activities_html}{@html layout.nav.activities_html}{/if}
       </div>
     </div>
   </aside>
 {/if}
 
-<!-- Main Content Area -->
 <main
   class={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
 >
@@ -382,9 +262,9 @@
           from {layout.footer.server_start_time_ago} ago.
           {plur("heartbeat", layout.footer.heartbeat_recent_count)}
           ({layout.footer.heartbeat_recent_imported_count} imported) in the past
-          24 hours. (DB: {plur("query", layout.footer.query_count)}, {layout
-            .footer.query_cache_count} cached) (CACHE: {layout.footer
-            .cache_hits} hits,
+          24 hours. (DB: {layout.footer.query_count}
+          {plur("query", layout.footer.query_count)}, {layout.footer
+            .query_cache_count} cached) (CACHE: {layout.footer.cache_hits} hits,
           {layout.footer.cache_misses} misses) ({layout.footer
             .requests_per_second})
         </p>
@@ -400,7 +280,7 @@
       <div class="flex flex-row gap-2 mt-4 justify-center">
         {#each layout.footer.active_users_graph as hour}
           <div
-            class="bg-white opacity-10 grow max-w-[4px] rounded-sm"
+            class="bg-white opacity-10 grow max-w-1 rounded-sm"
             title={hour.title}
             style={`height: ${hour.height}px`}
           ></div>
@@ -410,15 +290,12 @@
   </div>
 </main>
 
-{#if layout.nav.user_present}
+{#if layout.currently_hacking}
   <div
-    class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-elevated border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
-    class:hidden={!currentlyVisible}
-    class:-translate-y-full={!currentlyVisible}
-    class:translate-y-0={currentlyVisible}
+    class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
   >
     <div
-      class="currently-hacking p-3 bg-elevated cursor-pointer select-none bg-dark flex items-center justify-between"
+      class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between"
       onclick={toggleCurrentlyHacking}
     >
       <div class="text-white text-sm font-medium">
@@ -430,19 +307,10 @@
         </div>
       </div>
     </div>
+
     {#if currentlyExpanded}
-      {#if currentlyLoading}
-        <div class="p-4">
-          <div class="text-center text-muted text-md">Loading...</div>
-        </div>
-      {:else if currentlyError}
-        <div class="p-4 bg-elevated">
-          <div class="text-center text-muted text-sm">
-            ruh ro, something broke :(
-          </div>
-        </div>
-      {:else if currentlyUsers.length === 0}
-        <div class="p-4 bg-elevated">
+      {#if layout.currently_hacking.users.length === 0}
+        <div class="p-4 bg-dark">
           <div class="text-center text-muted text-sm italic">
             No one is currently hacking :(
           </div>
@@ -452,7 +320,7 @@
           class="currently-hacking-list max-h-[60vh] max-w-100 overflow-y-auto p-1 bg-darker"
         >
           <div class="space-y-1">
-            {#each currentlyUsers as user}
+            {#each layout.currently_hacking.users as user}
               <div class="flex flex-col space-y-1 p-1">
                 <div class="flex items-center">
                   <div class="user-info flex items-center gap-2">
@@ -470,8 +338,9 @@
                           href={`https://hackclub.slack.com/team/${user.slack_uid}`}
                           target="_blank"
                           class="text-blue-500 hover:underline"
-                          >@{user.display_name || `User ${user.id}`}</a
                         >
+                          @{user.display_name || `User ${user.id}`}
+                        </a>
                       {:else}
                         <span class="text-white"
                           >{user.display_name || `User ${user.id}`}</span
@@ -488,8 +357,9 @@
                         href={user.active_project.repo_url}
                         target="_blank"
                         class="text-accent hover:text-cyan-400 transition-colors"
-                        >{user.active_project.name}</a
                       >
+                        {user.active_project.name}
+                      </a>
                     {:else}
                       {user.active_project.name}
                     {/if}
@@ -516,9 +386,7 @@
   class:opacity-0={!logoutOpen}
   class:pointer-events-none={!logoutOpen}
   style="background-color: rgba(0, 0, 0, 0.5);backdrop-filter: blur(4px);"
-  onclick={(event) => {
-    if (event.target === event.currentTarget) closeLogout();
-  }}
+  onclick={(e) => e.target === e.currentTarget && closeLogout()}
 >
   <div
     class={`bg-dark border border-primary rounded-lg p-6 max-w-md w-full mx-4 flex flex-col items-center justify-center transform transition-transform duration-300 ease-in-out ${logoutOpen ? "scale-100" : "scale-95"}`}
