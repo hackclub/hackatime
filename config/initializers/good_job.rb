@@ -123,12 +123,12 @@ Rails.application.configure do
       cron: "0 2 * * *",
       class: "ProcessAccountDeletionsJob",
       description: "nuke accounts after 30 days"
+    },
+    sync_stale_repo_metadata: {
+      cron: "0 4 * * *", # Daily at 4 AM
+      class: "SyncStaleRepoMetadataJob",
+      description: "Refreshes repository metadata (stars, commit counts, etc.) for repositories with stale data."
     }
-    # sync_stale_repo_metadata: {
-    #   cron: "0 4 * * *", # Daily at 4 AM
-    #   class: "SyncStaleRepoMetadataJob",
-    #   description: "Refreshes repository metadata (stars, commit counts, etc.) for repositories with stale data."
-    # },
     # cleanup_old_leaderboards: {
     #   cron: "0 3 * * *", # daily at 3
     #   class: "CleanupOldLeaderboardsJob",

@@ -11,9 +11,14 @@ class SyncRepoMetadataJob < ApplicationJob
     Rails.logger.info "[SyncRepoMetadataJob] Syncing metadata for #{repository.url}"
 
     begin
-      # Use any user who has mapped to this repository for API access
-      user = repository.users.joins(:project_repo_mappings).first
-      return unless user
+      user = repository.users
+                       .joins(:project_repo_mappings)
+                       .where.not(github_access_token: [ nil, "" ])
+                       .first
+      unless user
+        Rails.logger.warn "[SyncRepoMetadataJob] No user with GitHub token available for #{repository.url}"
+        return
+      end
 
       service = RepoHost::ServiceFactory.for_url(user, repository.url)
       metadata = service.fetch_repo_metadata
