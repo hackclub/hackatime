@@ -43,7 +43,7 @@ export default class extends Controller {
 
   showLoading() {
     this.contentTarget.innerHTML = `
-      <div class="p-4">
+      <div class="p-4 bg-dark">
         <div class="text-center text-muted text-md">Loading...</div>
       </div>
     `
@@ -113,7 +113,7 @@ export default class extends Controller {
     } catch (error) {
       console.error("Failed to poll currently hacking:", error)
       this.contentTarget.innerHTML = `
-        <div class="p-4 bg-elevated">
+        <div class="p-4 bg-dark">
           <div class="text-center text-muted text-sm">ruh ro, something broke :(</div>
         </div>
       `
@@ -132,7 +132,7 @@ export default class extends Controller {
   r(u) {
     if (!u || u.length === 0) {
       this.contentTarget.innerHTML = `
-        <div class="p-4 bg-elevated">
+        <div class="p-4 bg-dark">
           <div class="text-center text-muted text-sm italic">No one is currently hacking :(</div>
         </div>
       `

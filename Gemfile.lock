@@ -136,6 +136,7 @@ GEM
       dotenv (= 3.2.0)
       railties (>= 6.1)
     drb (2.2.3)
+    dry-cli (1.4.1)
     ed25519 (1.4.0)
     erb (6.0.1)
     erb_lint (0.9.0)
@@ -221,6 +222,8 @@ GEM
       actionpack (>= 6.0.0)
       activesupport (>= 6.0.0)
       railties (>= 6.0.0)
+    inertia_rails (3.17.0)
+      railties (>= 6)
     io-console (0.8.2)
     irb (1.16.0)
       pp (>= 0.6.0)
@@ -278,6 +281,7 @@ GEM
       prism (~> 1.5)
     msgpack (1.8.0)
     multipart-post (2.4.1)
+    mutex_m (0.3.0)
     net-http (0.9.1)
       uri (>= 0.11.1)
     net-http-persistent (4.0.8)
@@ -370,6 +374,8 @@ GEM
       base64 (>= 0.1.0)
       logger (>= 1.6.0)
       rack (>= 3.0.0, < 4)
+    rack-proxy (0.7.7)
+      rack
     rack-session (2.1.1)
       base64 (>= 0.1.0)
       rack (>= 3.0.0)
@@ -561,6 +567,15 @@ GEM
     uniform_notifier (1.18.0)
     uri (1.1.1)
     useragent (0.16.11)
+    vite_rails (3.0.20)
+      railties (>= 5.1, < 9)
+      vite_ruby (~> 3.0, >= 3.2.2)
+    vite_ruby (3.9.2)
+      dry-cli (>= 0.7, < 2)
+      logger (~> 1.6)
+      mutex_m
+      rack-proxy (~> 0.6, >= 0.6.1)
+      zeitwerk (~> 2.2)
     web-console (4.2.1)
       actionview (>= 6.0.0)
       activemodel (>= 6.0.0)
@@ -612,6 +627,7 @@ DEPENDENCIES
   htmlcompressor (~> 0.4.0)
   http
   importmap-rails
+  inertia_rails (~> 3.17)
   jbuilder
   kamal
   letter_opener
@@ -652,6 +668,7 @@ DEPENDENCIES
   thruster
   turbo-rails
   tzinfo-data
+  vite_rails (~> 3.0)
   web-console
 
 BUNDLED WITH

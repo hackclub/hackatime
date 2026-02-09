@@ -151,7 +151,8 @@ class SessionsController < ApplicationController
     if Rails.env.production?
       HandleEmailSigninJob.perform_later(email, continue_param)
     else
-      HandleEmailSigninJob.perform_now(email, continue_param)
+      token = HandleEmailSigninJob.perform_now(email, continue_param)
+      session[:dev_magic_link] = auth_token_url(token)
     end
 
     redirect_to root_path(sign_in_email: true), notice: "Check your email for a sign-in link!"

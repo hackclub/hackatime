@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="dark">
+  <head>
+    <title><%= @page_title || content_for(:title) || 'Hackatime' %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="color-scheme" content="dark">
+    <meta name="description" content="<%= @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
+    <meta name="keywords" content="<%= @meta_keywords || content_for(:meta_keywords) || 'coding time tracker, programming stats, wakatime alternative, free time tracking, code statistics, developer analytics, programming time, coding productivity' %>">
+    <meta name="author" content="Hack Club">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="<%= content_for(:canonical_url) || request.original_url %>">
+    <meta name="theme-color" content="#ec3750">
+    <meta name="msapplication-TileColor" content="#ec3750">
+    <meta property="og:title" content="<%= @og_title || content_for(:og_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
+    <meta property="og:description" content="<%= @og_description || content_for(:og_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
+    <meta property="og:url" content="<%= content_for(:og_url) || request.original_url %>">
+    <meta property="og:type" content="<%= content_for(:og_type) || 'website' %>">
+    <meta property="og:image" content="<%= content_for(:og_image) || asset_path('favicon.png') %>">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Hackatime">
+    <meta property="og:locale" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@hackclub">
+    <meta name="twitter:creator" content="@hackclub">
+    <meta name="twitter:title" content="<%= @twitter_title || content_for(:twitter_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
+    <meta name="twitter:description" content="<%= @twitter_description || content_for(:twitter_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
+    <meta name="twitter:image" content="<%= content_for(:twitter_image) || asset_path('favicon.png') %>">
+
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <% if current_user %>
+      <meta name="user-is-superadmin" content="<%= current_user.admin_level == 'superadmin' %>">
+      <meta name="user-is-admin" content="<%= current_user.admin_level == 'admin' %>">
+      <meta name="user-is-viewer" content="<%= current_user.admin_level == 'viewer' %>">
+    <% end %>
+
+    <%= yield :head %>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Hackatime",
+        "alternateName": "Hack Club Hackatime",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "description": "Track your coding time easily with Hackatime. A free tool to see how much time you spend programming in different languages and editors.",
+        "url": "https://hackatime.hackclub.com",
+        "downloadUrl": "https://hackatime.hackclub.com",
+        "sameAs": ["https://github.com/hackclub/hackatime", "https://hackatime.hackclub.com/docs"],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        },
+        "author": {
+          "@type": "Organization",
+          "name": "Hack Club",
+          "url": "https://hackclub.com"
+        },
+        "softwareVersion": "2.0",
+        "datePublished": "2025-01-01",
+        "license": "https://opensource.org/licenses/MIT",
+        "programmingLanguage": "Ruby",
+        "codeRepository": "https://github.com/hackclub/hackatime",
+        "supportingData": "Free coding time tracker",
+        "featureList": ["Track coding time across 75+ editors", "See which languages you use most", "View daily coding statistics", "Compare with other high schoolers", "Free and open source"]
+      }
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Hack Club",
+        "url": "https://hackclub.com",
+        "logo": "https://hackclub.com/logo.png",
+        "sameAs": ["https://twitter.com/hackclub", "https://github.com/hackclub"]
+      }
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Hackatime",
+        "alternateName": "Hack Club Hackatime",
+        "url": "https://hackatime.hackclub.com"
+      }
+    </script>
+
+    <% if request.path == "/" %>
+      <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Hackatime?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Hackatime is a free coding time tracker that helps you see how much time you spend programming. It tracks your coding time across different languages and editors."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is Hackatime free?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes! Hackatime is completely free to use. There are no paid plans or hidden costs."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How is Hackatime different from WakaTime?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Hackatime is free and open source, while WakaTime has paid plans. Hackatime gives you all features for free and you can host it yourself."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is Hackatime the same as WakaTime?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. Hackatime is a separate, independent open-source project built by Hack Club. While both track coding time, Hackatime is completely free and designed for high school students in the Hack Club community."
+              }
+            }
+          ]
+        }
+      </script>
+    <% end %>
+
+    <%= favicon_link_tag asset_path('favicon.png'), type: 'image/png' %>
+
+    <script defer data-domain="hackatime.hackclub.com" src="https://plausible.io/js/script.file-downloads.hash.js"></script>
+
+    <%= stylesheet_link_tag :app %>
+    <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
+    <% if Sentry.get_trace_propagation_meta %>
+      <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
+    <% end %>
+    <%= vite_stylesheet_tag "application" %>
+    <%= vite_client_tag %>
+    <%= vite_typescript_tag "inertia" %>
+    <%= inertia_ssr_head %>
+  </head>
+
+  <body class="<%= content_for(:body_class) %> flex min-h-screen bg-darker">
+    <%= yield %>
+  </body>
+</html>

@@ -51,7 +51,6 @@ module Harbor
       secure: Rails.env.production?,
       httponly: true
 
-    config.middleware.use HtmlCompressor::Rack
     config.middleware.use Rack::Attack
     config.exceptions_app = routes
   end
