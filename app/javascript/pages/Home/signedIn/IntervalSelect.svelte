@@ -84,10 +84,10 @@
     Date Range
   </span>
 
-  <div class="group flex items-center border border-white/10 rounded-lg bg-darkless m-0 p-0 transition-all duration-200 hover:border-white/20">
+  <div class="group flex items-center border border-white/20 rounded-lg bg-surface-100 m-0 p-0 transition-all duration-200 hover:border-white/30 hover:bg-surface-200">
     <button
       type="button"
-      class="flex-1 px-3 py-2.5 text-sm cursor-pointer select-none text-gray-300 m-0 bg-transparent flex items-center justify-between border-0"
+      class="flex-1 px-3 py-2.5 text-sm cursor-pointer select-none text-white m-0 bg-transparent flex items-center justify-between border-0"
       onclick={() => (open = !open)}
     >
       <span>{displayLabel}</span>
