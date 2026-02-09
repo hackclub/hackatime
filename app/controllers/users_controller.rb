@@ -1,4 +1,6 @@
-class UsersController < ApplicationController
+class UsersController < InertiaController
+  layout "inertia"
+
   include ActionView::Helpers::NumberHelper
 
   before_action :set_user
@@ -52,25 +54,38 @@ class UsersController < ApplicationController
   def wakatime_setup
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
-    @current_user_api_key = api_key&.token
+    setup_os = detect_setup_os(request.user_agent)
+
+    render inertia: "WakatimeSetup/Index", props: {
+      current_user_api_key: api_key&.token,
+      setup_os: setup_os.to_s,
+      api_url: api_hackatime_v1_url,
+      heartbeat_check_url: api_v1_my_heartbeats_most_recent_path(source_type: "test_entry")
+    }
   end
 
   def wakatime_setup_step_2
+    render inertia: "WakatimeSetup/Step2", props: {}
   end
 
   def wakatime_setup_step_3
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
-    @current_user_api_key = api_key&.token
+    editor = params[:editor]
+
+    render inertia: "WakatimeSetup/Step3", props: {
+      current_user_api_key: api_key&.token,
+      editor: editor,
+      heartbeat_check_url: api_v1_my_heartbeats_most_recent_path
+    }
   end
 
   def wakatime_setup_step_4
-    @no_instruction_wording = [
-      "There is no step 4, lol.",
-      "There is no step 4, psych!",
-      "Tricked ya! There is no step 4.",
-      "There is no step 4, gotcha!"
-    ].sample
+    render inertia: "WakatimeSetup/Step4", props: {
+      dino_video_url: FlavorText.dino_meme_videos.sample,
+      return_url: session.dig(:return_data, "url"),
+      return_button_text: session.dig(:return_data, "button_text") || "Done"
+    }
   end
 
   def update_trust_level
@@ -123,6 +138,14 @@ class UsersController < ApplicationController
     unless @user == current_user
       redirect_to root_path, alert: "You are not authorized to access this page"
     end
+  end
+
+  def detect_setup_os(user_agent)
+    ua = user_agent.to_s
+
+    return :windows if ua.match?(/windows/i)
+
+    :mac_linux
   end
 
   def prepare_settings_page

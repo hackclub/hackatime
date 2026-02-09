@@ -1,4 +1,5 @@
-class StaticPagesController < ApplicationController
+class StaticPagesController < InertiaController
+  layout "inertia", only: :index
   before_action :ensure_current_user, only: %i[
     filterable_dashboard
     filterable_dashboard_content
@@ -15,7 +16,7 @@ class StaticPagesController < ApplicationController
         return redirect_to "/my/projects?interval=custom&from=#{d}&to=#{d}" if d
       end
 
-      if current_user.heartbeats.empty? || params[:show_wakatime_setup_notice]
+      if !current_user.heartbeats.exists? || params[:show_wakatime_setup_notice]
         @show_wakatime_setup_notice = true
         if (ssp = Cache::SetupSocialProofJob.perform_now)
           @ssp_message, @ssp_users_recent, @ssp_users_size = ssp.values_at(:message, :users_recent, :users_size)
@@ -46,6 +47,8 @@ class StaticPagesController < ApplicationController
         @todays_duration = current_user.heartbeats.today.duration_seconds
         @show_logged_time_sentence = @todays_duration > 1.minute && (@todays_languages.any? || @todays_editors.any?)
       end
+
+      render inertia: "Home/SignedIn", props: signed_in_props
     else
       # Set homepage SEO content for logged-out users only
       set_homepage_seo_content
@@ -53,6 +56,8 @@ class StaticPagesController < ApplicationController
       @usage_social_proof = Cache::UsageSocialProofJob.perform_now
 
       @home_stats = Cache::HomeStatsJob.perform_now
+
+      render inertia: "Home/SignedOut", props: signed_out_props
     end
   end
 
@@ -65,12 +70,6 @@ class StaticPagesController < ApplicationController
     @page_title = @og_title = @twitter_title = "What is Hackatime? - Free Coding Time Tracker"
     @meta_description = @og_description = @twitter_description = "Hackatime is a free, open-source coding time tracker built by Hack Club for high school students. Track your programming time across 75+ editors and see your coding statistics."
     @meta_keywords = "what is hackatime, hackatime definition, hack club time tracker, coding time tracker, programming statistics"
-  end
-
-  def mini_leaderboard
-    @leaderboard = LeaderboardService.get(period: :daily, date: Date.current)
-    @active_projects = Cache::ActiveProjectsJob.perform_now
-    render partial: "leaderboards/mini_leaderboard", locals: { leaderboard: @leaderboard, current_user: current_user }
   end
 
   def project_durations
@@ -105,18 +104,6 @@ class StaticPagesController < ApplicationController
     end
 
     render partial: "project_durations", locals: { project_durations: durations, show_archived: archived }
-  end
-
-  def activity_graph
-    return unless current_user
-
-    tz = current_user.timezone
-    key = "user_#{current_user.id}_daily_durations_#{tz}"
-    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
-      Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
-    end
-
-    render partial: "activity_graph", locals: { daily_durations: durations, length_of_busiest_day: 8.hours.to_i, user_tz: tz }
   end
 
   def currently_hacking
@@ -178,9 +165,45 @@ class StaticPagesController < ApplicationController
     @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
   end
 
+  def signed_in_props
+    helpers = ApplicationController.helpers
+    {
+      flavor_text: @flavor_text.to_s,
+      trust_level_red: current_user&.trust_level == "red",
+      show_wakatime_setup_notice: !!@show_wakatime_setup_notice,
+      ssp_message: @ssp_message,
+      ssp_users_recent: @ssp_users_recent || [],
+      ssp_users_size: @ssp_users_size || @ssp_users_recent&.size || 0,
+      github_uid_blank: current_user&.github_uid.blank?,
+      github_auth_path: github_auth_path,
+      wakatime_setup_path: my_wakatime_setup_path,
+      show_logged_time_sentence: !!@show_logged_time_sentence,
+      todays_duration_display: helpers.short_time_detailed(@todays_duration.to_i),
+      todays_languages: @todays_languages || [],
+      todays_editors: @todays_editors || [],
+      filterable_dashboard_data: filterable_dashboard_data,
+      activity_graph: activity_graph_data
+    }
+  end
+
+  def signed_out_props
+    {
+      flavor_text: @flavor_text.to_s,
+      hca_auth_path: hca_auth_path,
+      slack_auth_path: slack_auth_path,
+      email_auth_path: email_auth_path,
+      sign_in_email: params[:sign_in_email].present?,
+      show_dev_tool: Rails.env.development?,
+      dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
+      csrf_token: form_authenticity_token,
+      home_stats: @home_stats || {}
+    }
+  end
+
   def filterable_dashboard_data
     filters = %i[project language operating_system editor category]
-    key = [ current_user ] + filters.map { |f| params[f] } + [ params[:interval], params[:from], params[:to] ]
+    interval = params[:interval]
+    key = [ current_user ] + filters.map { |f| params[f] } + [ interval.to_s, params[:from], params[:to] ]
     hb = current_user.heartbeats
     h = ApplicationController.helpers
 
@@ -190,9 +213,9 @@ class StaticPagesController < ApplicationController
 
       Time.use_zone(current_user.timezone) do
         filters.each do |f|
-          durations = current_user.heartbeats.group(f).duration_seconds
-          durations = durations.reject { |n, _| archived.include?(n) } if f == :project
-          result[f] = durations.sort_by { |_, v| -v }.map(&:first).compact_blank.map { |k|
+          options = current_user.heartbeats.distinct.pluck(f).compact_blank
+          options = options.reject { |n| archived.include?(n) } if f == :project
+          result[f] = options.map { |k|
             f == :language ? k.categorize_language : (%i[operating_system editor].include?(f) ? k.capitalize : k)
           }.uniq
 
@@ -209,8 +232,7 @@ class StaticPagesController < ApplicationController
           result["singular_#{f}"] = arr.length == 1
         end
 
-        hb = hb.filter_by_time_range(params[:interval], params[:from], params[:to])
-        result[:filtered_heartbeats] = hb
+        hb = hb.filter_by_time_range(interval, params[:from], params[:to])
         result[:total_time] = hb.group(:project).duration_seconds.values.sum
         result[:total_heartbeats] = hb.count
 
@@ -247,13 +269,35 @@ class StaticPagesController < ApplicationController
           }.to_h
         end
 
-        result[:weekly_project_stats] = (0..25).to_h do |w|
+        result[:weekly_project_stats] = (0..11).to_h do |w|
           ws = w.weeks.ago.beginning_of_week
           [ ws.to_date.iso8601, hb.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
               .group(:project).duration_seconds.reject { |p, _| archived.include?(p) } ]
         end
       end
+      result[:selected_interval] = interval.to_s
+      result[:selected_from] = params[:from].to_s
+      result[:selected_to] = params[:to].to_s
+      filters.each { |f| result["selected_#{f}"] = params[f]&.split(",") || [] }
+
       result
     end
+  end
+
+  def activity_graph_data
+    tz = current_user.timezone
+    key = "user_#{current_user.id}_daily_durations_#{tz}"
+    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
+      Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
+    end
+
+    {
+      start_date: 365.days.ago.to_date.iso8601,
+      end_date: Time.current.to_date.iso8601,
+      duration_by_date: durations.transform_keys { |d| d.to_date.iso8601 }.transform_values(&:to_i),
+      busiest_day_seconds: 8.hours.to_i,
+      timezone_label: ActiveSupport::TimeZone[tz].to_s,
+      timezone_settings_path: "/my/settings#user_timezone"
+    }
   end
 end
