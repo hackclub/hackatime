@@ -18,12 +18,13 @@ class InertiaController < ApplicationController
   end
 
   def inertia_nav_props
+    user = current_user
     {
       flash: inertia_flash_messages,
-      user_present: current_user.present?,
-      user_mention_html: current_user ? render_to_string(partial: "shared/user_mention", locals: { user: current_user }) : nil,
-      streak_html: current_user ? render_to_string(partial: "static_pages/streak", locals: { user: current_user, show_text: true, turbo_frame: false }) : nil,
-      admin_level_html: current_user ? render_to_string(partial: "static_pages/admin_level", locals: { user: current_user }) : nil,
+      user_present: user.present?,
+      user: user ? inertia_user_mention_props(user) : nil,
+      streak: user ? inertia_streak_props(user) : nil,
+      admin_level: user&.admin_level == "default" ? nil : user&.admin_level,
       login_path: slack_auth_path,
       links: inertia_primary_links,
       dev_links: inertia_dev_links,
@@ -146,6 +147,38 @@ class InertiaController < ApplicationController
       cache_misses: cache[:misses],
       requests_per_second: helpers.requests_per_second,
       active_users_graph: hours
+    }
+  end
+
+  def inertia_user_mention_props(user)
+    title =
+      if user == current_user
+        FlavorText.same_user.sample
+      else
+        user.github_username.presence || user.slack_username.presence
+      end
+    country_name = user.country_code.present? ? user.country_name : nil
+
+    {
+      display_name: user.display_name,
+      avatar_url: user.avatar_url,
+      title: title,
+      country_code: user.country_code,
+      country_name: country_name
+    }
+  end
+
+  def inertia_streak_props(user)
+    streak_display = user.streak_days_formatted
+    return nil if streak_display.blank?
+
+    streak_count = streak_display.to_i
+    {
+      count: streak_count,
+      display: streak_display,
+      title: streak_count > 30 ? "30+ daily streak" : "#{streak_display} day streak",
+      show_text: true,
+      icon_size: 24
     }
   end
 

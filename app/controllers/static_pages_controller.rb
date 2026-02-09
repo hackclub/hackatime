@@ -233,11 +233,26 @@ class StaticPagesController < InertiaController
         end
 
         hb = hb.filter_by_time_range(interval, params[:from], params[:to])
-        result[:total_time] = hb.group(:project).duration_seconds.values.sum
         result[:total_heartbeats] = hb.count
 
+        # Build weekly time ranges for bulk computation
+        week_ranges = (0..11).map do |w|
+          ws = w.weeks.ago.beginning_of_week
+          [ ws.to_date.iso8601, ws.to_f, w.weeks.ago.end_of_week.to_f ]
+        end
+
+        # Single SQL query computes all per-heartbeat diffs, then aggregates
+        # by every dimension + weekly project buckets in one pass.
+        bulk = hb.bulk_duration_stats(week_ranges: week_ranges)
+
+        result[:total_time] = bulk[:total_time]
+
+        # Top stats per dimension
+        dimension_map = { project: :by_project, language: :by_language,
+                          operating_system: :by_operating_system, editor: :by_editor,
+                          category: :by_category }
         filters.each do |f|
-          stats = hb.group(f).duration_seconds
+          stats = bulk[dimension_map[f]]
           stats = stats.reject { |n, _| archived.include?(n) } if f == :project
           result["top_#{f}"] = stats.max_by { |_, v| v }&.first
         end
@@ -246,14 +261,16 @@ class StaticPagesController < InertiaController
         result["top_operating_system"] &&= h.display_os_name(result["top_operating_system"])
         result["top_language"] &&= h.display_language_name(result["top_language"])
 
+        # Project durations chart
         unless result["singular_project"]
-          result[:project_durations] = hb.group(:project).duration_seconds
+          result[:project_durations] = bulk[:by_project]
             .reject { |p, _| archived.include?(p) }.sort_by { |_, d| -d }.first(10).to_h
         end
 
+        # Per-dimension stats charts (language, editor, OS, category)
         %i[language editor operating_system category].each do |f|
           next if result["singular_#{f}"]
-          stats = hb.group(f).duration_seconds.each_with_object({}) do |(raw, dur), agg|
+          stats = bulk[dimension_map[f]].each_with_object({}) do |(raw, dur), agg|
             k = raw.to_s.presence || "Unknown"
             k = f == :language ? (k == "Unknown" ? k : k.categorize_language) : (%i[editor operating_system].include?(f) ? k.downcase : k)
             agg[k] = (agg[k] || 0) + dur
@@ -269,10 +286,9 @@ class StaticPagesController < InertiaController
           }.to_h
         end
 
-        result[:weekly_project_stats] = (0..11).to_h do |w|
-          ws = w.weeks.ago.beginning_of_week
-          [ ws.to_date.iso8601, hb.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
-              .group(:project).duration_seconds.reject { |p, _| archived.include?(p) } ]
+        # Weekly project stats (already computed in bulk)
+        result[:weekly_project_stats] = bulk[:weekly_projects].transform_values do |proj_stats|
+          proj_stats.reject { |p, _| archived.include?(p) }
         end
       end
       result[:selected_interval] = interval.to_s

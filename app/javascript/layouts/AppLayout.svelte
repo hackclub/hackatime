@@ -3,6 +3,9 @@
   import { usePoll } from "@inertiajs/svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
+  import NavAdminLevelBadge from "../components/nav/NavAdminLevelBadge.svelte";
+  import NavStreakBadge from "../components/nav/NavStreakBadge.svelte";
+  import NavUserMention from "../components/nav/NavUserMention.svelte";
 
   type NavLink = {
     label: string;
@@ -12,12 +15,29 @@
     action?: string;
   };
 
+  type NavUserMentionType = {
+    display_name: string;
+    avatar_url?: string | null;
+    title?: string | null;
+    country_code?: string | null;
+    country_name?: string | null;
+  };
+
+  type NavStreak = {
+    count: number;
+    display: string;
+    title: string;
+    show_text?: boolean;
+    icon_size?: number;
+    show_super_class?: boolean;
+  };
+
   type LayoutNav = {
     flash: { message: string; class_name: string }[];
     user_present: boolean;
-    user_mention_html?: string | null;
-    streak_html?: string | null;
-    admin_level_html?: string | null;
+    user?: NavUserMentionType | null;
+    streak?: NavStreak | null;
+    admin_level?: string | null;
     login_path: string;
     links: NavLink[];
     dev_links: NavLink[];
@@ -211,11 +231,15 @@
         <div
           class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
         >
-          {#if layout.nav.user_mention_html}{@html layout.nav
-              .user_mention_html}{/if}
-          {#if layout.nav.streak_html}{@html layout.nav.streak_html}{/if}
-          {#if layout.nav.admin_level_html}{@html layout.nav
-              .admin_level_html}{/if}
+          {#if layout.nav.user}
+            <NavUserMention user={layout.nav.user} />
+          {/if}
+          {#if layout.nav.streak}
+            <NavStreakBadge streak={layout.nav.streak} />
+          {/if}
+          {#if layout.nav.admin_level}
+            <NavAdminLevelBadge level={layout.nav.admin_level} />
+          {/if}
         </div>
       {:else}
         <div>

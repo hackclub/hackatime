@@ -249,6 +249,71 @@ module Heartbeatable
       end
     end
 
+    def bulk_duration_stats(week_ranges: [])
+      timeout = heartbeat_timeout_duration.to_i
+      scope = with_valid_timestamps.where.not(time: nil)
+
+      sql = <<~SQL.squish
+        SELECT project, language, editor, operating_system, category, time,
+          CASE
+            WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
+            ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout})
+          END as diff
+        FROM (#{scope.to_sql}) AS hb
+      SQL
+
+      rows = connection.select_all(sql)
+
+      by_project = Hash.new(0)
+      by_language = Hash.new(0)
+      by_editor = Hash.new(0)
+      by_operating_system = Hash.new(0)
+      by_category = Hash.new(0)
+      total_time = 0
+
+      # Pre-build weekly buckets if requested
+      weekly_projects = {}
+      week_lookup = []
+      if week_ranges.any?
+        week_ranges.each do |label, ws, we|
+          weekly_projects[label] = Hash.new(0)
+          week_lookup << [ label, ws, we ]
+        end
+      end
+
+      rows.each do |row|
+        diff = row["diff"].to_i
+        next if diff <= 0
+
+        total_time += diff
+        by_project[row["project"]] += diff
+        by_language[row["language"]] += diff
+        by_editor[row["editor"]] += diff
+        by_operating_system[row["operating_system"]] += diff
+        by_category[row["category"]] += diff
+
+        if week_lookup.any?
+          t = row["time"].to_f
+          week_lookup.each do |label, ws, we|
+            if t >= ws && t <= we
+              weekly_projects[label][row["project"]] += diff
+              break
+            end
+          end
+        end
+      end
+
+      {
+        total_time: total_time,
+        by_project: by_project,
+        by_language: by_language,
+        by_editor: by_editor,
+        by_operating_system: by_operating_system,
+        by_category: by_category,
+        weekly_projects: weekly_projects
+      }
+    end
+
     def duration_seconds_boundary_aware(scope, start_time, end_time)
       scope = scope.with_valid_timestamps
 
