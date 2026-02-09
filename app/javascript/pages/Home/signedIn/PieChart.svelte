@@ -1,5 +1,6 @@
 <script lang="ts">
   import { PieChart } from "layerchart";
+  import { secondsToDisplay } from "./utils";
 
   let {
     title,
@@ -51,6 +52,9 @@
     const rows = Math.max(1, Math.ceil(data.length / 4));
     return Math.min(96, 24 + rows * 18);
   });
+
+  const formatDuration = (value: number | null | undefined) =>
+    secondsToDisplay(value ?? 0);
 </script>
 
 <div
@@ -68,6 +72,7 @@
         padding={{ bottom: legendPadding }}
         props={{
           legend: { classes: legendClasses },
+          tooltip: { item: { format: formatDuration } },
         }}
       />
     {/if}
