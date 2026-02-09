@@ -20,6 +20,7 @@
     "tailwindcss": "^4.1.18",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vite-plugin-ruby": "^5.1.1"
   }
 }
