@@ -40,6 +40,13 @@
 
     <%= yield :head %>
 
+    <!-- Lets users record their screen from your site -->
+    <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
+    <script type="module" src="https://js.jam.dev/recorder.js"></script>
+    
+    <!-- Captures user events and developer logs -->
+    <script type="module" src="https://js.jam.dev/capture.js"></script>
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
