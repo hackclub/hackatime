@@ -43,6 +43,8 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <%= javascript_importmap_tags %>
+
     <% if current_user %>
       <meta name="user-is-superadmin" content="<%= current_user.admin_level == 'superadmin' %>">
       <meta name="user-is-admin" content="<%= current_user.admin_level == 'admin' %>">
@@ -161,16 +163,11 @@
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
-    <%= javascript_importmap_tags %>
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>
-    <%= vite_stylesheet_tag "application" %>
-    <%= vite_client_tag %>
-    <%= vite_typescript_tag "inertia" %>
-    <%= inertia_ssr_head %>
-    <%= vite_typescript_tag 'application' %>
+    <%# Vite assets are only required for the Inertia layout. %>
 
     <!-- Lets users record their screen from your site -->
     <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
