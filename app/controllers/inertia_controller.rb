@@ -38,8 +38,17 @@ class InertiaController < ApplicationController
     flash.to_hash.map do |type, message|
       {
         message: message.to_s,
-        class_name: type.to_sym == :notice ? "border-green text-green" : "border-primary text-primary"
+        class_name: flash_class_for(type)
       }
+    end
+  end
+
+  def flash_class_for(type)
+    case type.to_sym
+    when :notice, :success
+      "flash-message--success"
+    else
+      "flash-message--error"
     end
   end
 

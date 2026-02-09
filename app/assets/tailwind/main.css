@@ -87,6 +87,55 @@ select {
   border-color: var(--color-green);
 }
 
+.flash-message {
+  @apply rounded-md text-center text-sm border px-4 py-3;
+  will-change: opacity, transform;
+}
+
+.flash-message--success {
+  color: var(--color-success);
+  border-color: var(--color-success);
+  background-color: rgba(51, 214, 166, 0.2);
+  background-color: color-mix(in oklab, var(--color-success) 20%, transparent);
+}
+
+.flash-message--error {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background-color: rgba(200, 57, 79, 0.2);
+  background-color: color-mix(in oklab, var(--color-danger) 20%, transparent);
+}
+
+.flash-message--enter {
+  animation: flash-enter 180ms ease-out;
+}
+
+.flash-message--leaving {
+  animation: flash-exit 240ms ease-in forwards;
+}
+
+@keyframes flash-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes flash-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
 .loading {
   @apply grayscale;
 }

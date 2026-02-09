@@ -72,6 +72,10 @@
   let navOpen = $state(false);
   let logoutOpen = $state(false);
   let currentlyExpanded = $state(false);
+  let flashVisible = $state(layout.nav.flash.length > 0);
+  let flashHiding = $state(false);
+  const flashHideDelay = 6000;
+  const flashExitDuration = 250;
 
   const toggleNav = () => (navOpen = !navOpen);
   const closeNav = () => (navOpen = false);
@@ -116,6 +120,30 @@
     if (isBrowser) document.body.classList.toggle("overflow-hidden", navOpen);
   });
 
+  $effect(() => {
+    if (!layout.nav.flash.length) {
+      flashVisible = false;
+      flashHiding = false;
+      return;
+    }
+
+    flashVisible = true;
+    flashHiding = false;
+    let removeTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    const hideTimeoutId = setTimeout(() => {
+      flashHiding = true;
+      removeTimeoutId = setTimeout(() => {
+        flashVisible = false;
+        flashHiding = false;
+      }, flashExitDuration);
+    }, flashHideDelay);
+
+    return () => {
+      clearTimeout(hideTimeoutId);
+      if (removeTimeoutId) clearTimeout(removeTimeoutId);
+    };
+  });
+
   onMount(() => {
     if (!isBrowser) return;
     handleResize();
@@ -134,13 +162,13 @@
     `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-white" : "hover:bg-darkless"}`;
 </script>
 
-{#if layout.nav.flash.length > 0}
+{#if flashVisible && layout.nav.flash.length > 0}
   <div
     class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4 space-y-2"
   >
     {#each layout.nav.flash as item}
       <div
-        class={`rounded-md text-center text-sm px-4 py-3 shadow-lg ${item.class_name}`}
+        class={`flash-message shadow-lg flash-message--enter ${flashHiding ? "flash-message--leaving" : ""} ${item.class_name}`}
       >
         {item.message}
       </div>

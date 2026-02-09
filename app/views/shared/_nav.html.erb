@@ -4,13 +4,13 @@
       <%
         c =
           case name.to_sym
-          when :notice
-            'border-green text-green'
+          when :notice, :success
+            'flash-message--success'
           else
-            'border-primary text-primary'
+            'flash-message--error'
           end
       %>
-      <div class="rounded-md text-center text-sm px-3 py-2 <%= c %>"><%= msg %></div>
+      <div class="flash-message flash-message--enter <%= c %>" data-controller="flash"><%= msg %></div>
     <% end %>
 
     <% if current_user %>

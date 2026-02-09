@@ -6,7 +6,7 @@
     <p class="text-gray-400 mb-6">We try to autodetect your Git repository, but you can manually specify it if needed.</p>
 
     <% if flash[:alert] %>
-      <div class="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4">
+      <div class="flash-message flash-message--enter flash-message--error mb-4" data-controller="flash">
         <%= flash[:alert] %>
       </div>
     <% end %>
