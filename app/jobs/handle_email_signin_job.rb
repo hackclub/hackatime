@@ -1,5 +1,5 @@
 class HandleEmailSigninJob < ApplicationJob
-  queue_as :latency_10s
+  queue_as :latency_critical
 
   def perform(email, continue_param = nil)
     email_address = ActiveRecord::Base.transaction do
