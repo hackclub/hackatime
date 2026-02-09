@@ -318,8 +318,7 @@ class Api::V1::StatsController < ApplicationController
 
     languages_by_project = query
                           .where.not(language: [ nil, "" ])
-                          .group(:project)
-                          .distinct
+                          .group(:project, :language)
                           .pluck(:project, :language)
                           .group_by(&:first)
                           .transform_values { |pairs| pairs.map(&:last) }
