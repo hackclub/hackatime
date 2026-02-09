@@ -1,5 +1,5 @@
 class UsersController < InertiaController
-  layout "inertia"
+  layout :resolve_layout
 
   include ActionView::Helpers::NumberHelper
 
@@ -127,6 +127,12 @@ class UsersController < InertiaController
   end
 
   private
+
+  def resolve_layout
+    return "application" if %w[edit update migrate_heartbeats].include?(action_name)
+
+    "inertia"
+  end
 
   def require_admin
     unless current_user && (current_user.admin_level == "admin" || current_user.admin_level == "superadmin")
