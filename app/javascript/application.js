@@ -6,7 +6,7 @@ function setupCurrentlyHacking() {
   const header = document.querySelector('.currently-hacking');
   // only if no existing event listener
   if (!header) { return }
-  header.onclick = function() {
+  header.onclick = function () {
     const container = document.querySelector('.currently-hacking-container');
     if (container) {
       container.classList.toggle('visible');
@@ -19,78 +19,21 @@ function outta() {
   const modal = document.getElementById('logout-modal');
   if (!modal) return;
 
-  window.showLogout = function() {
+  window.showLogout = function () {
     modal.dispatchEvent(new CustomEvent('modal:open', { bubbles: true }));
   };
 }
 
-function weirdclockthing() {
-  const clock = document.getElementById('clock');
-
-  if (!clock) return;
-
-  clock.innerHTML = '';
-
-  function write(element, something) {
-    element.innerHTML = '';
-    Array.from(something).forEach((char) => {
-      const span = document.createElement('span');
-      span.textContent = char === ' ' ? '\u00A0' : char;
-      if (char === ':') {
-        span.classList.add('blink');
-      }
-      element.appendChild(span);
-    });
-  }
-
-  const inner = document.createElement('div');
-  inner.className = 'clock-display-inner';
-
-  const front = document.createElement('div');
-  // kinda janky lol
-  front.className = 'clock-display-front ds-digital';
-  write(front, "HAC:KA:TIME");
-
-  const back = document.createElement('div');
-  back.className = 'clock-display-back';
-
-  inner.appendChild(front);
-  inner.appendChild(back);
-  clock.appendChild(inner);
-
-  function updateClock() {
-    const date = new Date();
-    const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
-    write(back, ` ${time} `);
-  }
-
-  let intervalId = null;
-  clock.onmouseenter = function () {
-    updateClock();
-    if (!intervalId) {
-      intervalId = setInterval(updateClock, 1000);
-    }
-  }
-
-  clock.onmouseleave = function () {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
-}
-
 // Handle both initial page load and subsequent Turbo navigations
-document.addEventListener('turbo:load', function() {
+document.addEventListener('turbo:load', function () {
   setupCurrentlyHacking();
   outta();
-  weirdclockthing();
 });
-document.addEventListener('turbo:render', function() {
+document.addEventListener('turbo:render', function () {
   setupCurrentlyHacking();
   outta();
-  weirdclockthing();
 });
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   setupCurrentlyHacking();
   outta();
-  weirdclockthing();
 });

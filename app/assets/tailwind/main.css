@@ -1,16 +1,8 @@
-
-
-@font-face {
-  font-family: "DS-Digital";
-  src: url("/fonts/DS-DIGIB.ttf") format("truetype");
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-}
-
 @font-face {
   font-family: "clockicons";
-  src: url("/fonts/clockicons.woff2") format("woff2"), url("/fonts/clockicons.ttf") format("truetype");
+  src:
+    url("/fonts/clockicons.woff2") format("woff2"),
+    url("/fonts/clockicons.ttf") format("truetype");
   font-style: normal;
   font-weight: 400;
 }
@@ -25,25 +17,27 @@
 }
 
 @keyframes blink-anim {
-  0%, 50% {
+  0%,
+  50% {
     opacity: 1;
   }
-  51%, 100% {
+  51%,
+  100% {
     opacity: 0;
   }
 }
 
-body, html {
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+body,
+html {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+    sans-serif;
   overflow-x: hidden;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   font-family: inherit;
-}
-
-.ds-digital {
-  font-family: "DS-Digital", monospace;
 }
 
 .clockicons {
@@ -54,7 +48,10 @@ body, html {
   animation: blink-anim 1s infinite;
 }
 
-code, pre, kbd, samp {
+code,
+pre,
+kbd,
+samp {
   @apply font-mono;
 }
 
@@ -63,7 +60,9 @@ code, pre, kbd, samp {
 }
 
 /* Ensure forms and inputs respect dark mode */
-input, textarea, select {
+input,
+textarea,
+select {
   color-scheme: dark;
 }
 
@@ -93,7 +92,9 @@ select {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-spin {
@@ -129,7 +130,8 @@ turbo-frame#mini_leaderboard[aria-busy="true"]::before {
   @apply rotate-x-180;
 }
 
-.clock-display-front, .clock-display-back {
+.clock-display-front,
+.clock-display-back {
   @apply absolute w-full h-full flex justify-center items-center backface-hidden;
 }
 

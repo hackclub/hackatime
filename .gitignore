@@ -45,3 +45,5 @@
 .DS_Store
 
 node_modules
+public/vite-dev
+public/vite-ssr
