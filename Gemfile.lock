@@ -322,9 +322,6 @@ GEM
     oj (3.16.14)
       bigdecimal (>= 3.0)
     ostruct (0.6.3)
-    pagy (43.2.8)
-      json
-      yaml
     paper_trail (17.0.0)
       activerecord (>= 7.1)
       request_store (~> 1.4)
@@ -588,7 +585,6 @@ GEM
     websocket-extensions (0.1.5)
     xpath (3.2.0)
       nokogiri (~> 1.8)
-    yaml (0.4.0)
     zeitwerk (2.7.4)
 
 PLATFORMS
@@ -635,7 +631,6 @@ DEPENDENCIES
   memory_profiler
   norairrecord (~> 0.5.1)
   oj
-  pagy (~> 43.2)
   paper_trail
   pg
   propshaft

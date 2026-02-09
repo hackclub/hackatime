@@ -63,46 +63,33 @@ class Api::V1::StatsController < ApplicationController
     service_params[:end_date] = end_date
     service_params[:scope] = scope if scope.present?
 
-    # use TestWakatimeService when test_param=true for all requests
-    if params[:test_param] == "true"
-      service_params[:boundary_aware] = true  # always and i mean always use boundary aware in testwakatime service
+    if params[:total_seconds] == "true"
+      query = @user.heartbeats
+                   .coding_only
+                   .with_valid_timestamps
+                   .where(time: start_date..end_date)
 
-      if params[:total_seconds] == "true"
-        summary = TestWakatimeService.new(**service_params).generate_summary
-        return render json: { total_seconds: summary[:total_seconds] }
+      if params[:filter_by_project].present?
+        filter_by_project = params[:filter_by_project].split(",")
+        query = query.where(project: filter_by_project)
       end
 
-      summary = TestWakatimeService.new(**service_params).generate_summary
-    else
-      if params[:total_seconds] == "true"
-        query = @user.heartbeats
-                     .coding_only
-                     .with_valid_timestamps
-                     .where(time: start_date..end_date)
-
-        if params[:filter_by_project].present?
-          filter_by_project = params[:filter_by_project].split(",")
-          query = query.where(project: filter_by_project)
-        end
-
-        if params[:filter_by_category].present?
-          filter_by_category = params[:filter_by_category].split(",")
-          query = query.where(category: filter_by_category)
-        end
-
-        # do the boundary thingie if requested
-        use_boundary_aware = params[:boundary_aware] == "true"
-        total_seconds = if use_boundary_aware
-          Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
-        else
-          query.duration_seconds || 0
-        end
-
-        return render json: { total_seconds: total_seconds }
+      if params[:filter_by_category].present?
+        filter_by_category = params[:filter_by_category].split(",")
+        query = query.where(category: filter_by_category)
       end
 
-      summary = WakatimeService.new(**service_params).generate_summary
+      use_boundary_aware = params[:boundary_aware] == "true"
+      total_seconds = if use_boundary_aware
+        Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
+      else
+        query.duration_seconds || 0
+      end
+
+      return render json: { total_seconds: total_seconds }
     end
+
+    summary = WakatimeService.new(**service_params).generate_summary
 
     if params[:features]&.include?("projects") && params[:filter_by_project].present?
       filter_by_project = params[:filter_by_project].split(",")
@@ -322,36 +309,42 @@ class Api::V1::StatsController < ApplicationController
     stats = query
            .group(:project)
            .select("project,
-                   COUNT(*) as heartbeat_count,
-                   MIN(time) as first_heartbeat,
-                   MAX(time) as last_heartbeat")
+                    COUNT(*) as heartbeat_count,
+                    MIN(time) as first_heartbeat,
+                    MAX(time) as last_heartbeat")
+           .index_by(&:project)
+
+    durations = query.group(:project).duration_seconds
+
+    languages_by_project = query
+                          .where.not(language: [ nil, "" ])
+                          .group(:project)
+                          .distinct
+                          .pluck(:project, :language)
+                          .group_by(&:first)
+                          .transform_values { |pairs| pairs.map(&:last) }
+
+    repo_mappings = @user.project_repo_mappings
+                        .where(project_name: names)
+                        .index_by(&:project_name)
 
     data = []
 
     names.each do |name|
-      heartbeats = query.where(project: name)
-      next if heartbeats.empty?
+      stat = stats[name]
+      next unless stat
 
-      seconds = heartbeats.duration_seconds || 0
-      stat = stats.find { |p| p.project == name }
-
-      languages = heartbeats
-                 .where.not(language: [ nil, "" ])
-                 .select(:language)
-                 .distinct
-                 .pluck(:language)
-
-      repo = @user.project_repo_mappings.find_by(project_name: name)
+      repo = repo_mappings[name]
       next if repo&.archived?
 
       data << {
         name: name,
-        total_seconds: seconds,
-        languages: languages,
+        total_seconds: durations[name] || 0,
+        languages: languages_by_project[name] || [],
         repo_url: repo&.repo_url,
-        total_heartbeats: stat&.heartbeat_count || 0,
-        first_heartbeat: stat&.first_heartbeat ? Time.at(stat.first_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil,
-        last_heartbeat: stat&.last_heartbeat ? Time.at(stat.last_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil
+        total_heartbeats: stat.heartbeat_count || 0,
+        first_heartbeat: stat.first_heartbeat ? Time.at(stat.first_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil,
+        last_heartbeat: stat.last_heartbeat ? Time.at(stat.last_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil
       }
     end
 

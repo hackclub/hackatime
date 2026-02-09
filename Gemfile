@@ -87,16 +87,12 @@ gem "flamegraph"
 gem "skylight"
 
 gem "geocoder"
-gem "pagy", "~> 43.2"
 
 # Airtable syncing
 gem "norairrecord", "~> 0.5.1"
 
 # Country codes
 gem "countries"
-
-# Random data generation
-gem "faker"
 
 # Markdown parsing
 gem "redcarpet"
@@ -123,6 +119,9 @@ group :development, :test do
 
   gem "rspec-rails"
   gem "rswag-specs"
+
+  # Random data generation
+  gem "faker"
 end
 
 gem "rswag-api"
