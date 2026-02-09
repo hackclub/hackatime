@@ -22,6 +22,7 @@ RUN apt-get update -qq && \
     libvips \
     sqlite3 \
     libpq5 \
+    unzip \
     vim \
     wget && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
@@ -46,7 +47,7 @@ RUN apt-get update -qq && \
 
 # Install npm dependencies for Vite
 COPY package.json bun.lock ./
-RUN bun i --frozen-lockfile
+RUN bun i
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./
