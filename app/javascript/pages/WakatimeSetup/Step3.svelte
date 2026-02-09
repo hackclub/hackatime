@@ -84,13 +84,6 @@
     },
   };
 
-  function copyToClipboard(text: string, identifier: string) {
-    navigator.clipboard.writeText(text).then(() => {
-      copiedCode = identifier;
-      setTimeout(() => (copiedCode = ""), 2000);
-    });
-  }
-
   function showSuccess(timeAgo: string, editorName: string) {
     hasHeartbeat = true;
     heartbeatTimeAgo = timeAgo;
@@ -288,7 +281,7 @@
 
               <a
                 href="/my/wakatime_setup/step-4"
-                class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 Continue →
               </a>
@@ -356,7 +349,7 @@
 
       <a
         href="/my/wakatime_setup/step-4"
-        class="block w-full bg-primary hover:bg-primary/90 text-white text-center px-6 py-4 rounded-xl font-semibold transition-all shadow-sm"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
       </a>
@@ -394,41 +387,6 @@
                       >{method.code}</code
                     ></pre>
                 </div>
-                <button
-                  class="absolute top-2 right-2 bg-darkless hover:bg-white/10 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5"
-                  onclick={() =>
-                    copyToClipboard(method.code, `${editor}-${index}`)}
-                >
-                  {#if copiedCode === `${editor}-${index}`}
-                    <svg
-                      class="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      ><path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M5 13l4 4L19 7"
-                      ></path></svg
-                    >
-                    Copied!
-                  {:else}
-                    <svg
-                      class="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      ><path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                      ></path></svg
-                    >
-                    Copy
-                  {/if}
-                </button>
               </div>
               {#if method.note}
                 <p class="text-xs text-secondary mt-2">{@html method.note}</p>
@@ -440,7 +398,7 @@
 
       <a
         href="/my/wakatime_setup/step-4"
-        class="block w-full bg-primary hover:bg-primary/90 text-white text-center px-6 py-4 rounded-xl font-semibold transition-all shadow-sm"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
       </a>
@@ -516,7 +474,7 @@
 
       <a
         href="/my/wakatime_setup/step-4"
-        class="block w-full bg-primary hover:bg-primary/90 text-white text-center px-6 py-4 rounded-xl font-semibold transition-all shadow-sm"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
       </a>
