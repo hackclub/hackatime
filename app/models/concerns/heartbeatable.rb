@@ -207,6 +207,44 @@ module Heartbeatable
         .map { |date, duration| [ date.to_date, duration ] }
     end
 
+    def multi_group_duration_seconds(scope = all, group_columns:)
+      return {} if group_columns.empty?
+
+      scope = scope.with_valid_timestamps.where.not(time: nil)
+      timeout = heartbeat_timeout_duration.to_i
+
+      quoted_cols = group_columns.map { |c| connection.quote_column_name(c) }
+
+      window_selects = quoted_cols.map.with_index do |col, i|
+        "CASE
+          WHEN LAG(time) OVER (PARTITION BY #{col} ORDER BY time) IS NULL THEN 0
+          ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{col} ORDER BY time), #{timeout})
+        END as diff_#{i}"
+      end
+
+      col_selects = quoted_cols.join(", ")
+      base_sql = scope
+        .unscope(:group)
+        .select("#{col_selects}, #{window_selects.join(', ')}")
+        .to_sql
+
+      union_parts = quoted_cols.map.with_index do |col, i|
+        "SELECT '#{group_columns[i]}' as group_type, #{col}::text as group_value, COALESCE(SUM(diff_#{i}), 0)::integer as duration FROM base GROUP BY #{col}"
+      end
+
+      sql = "WITH base AS (#{base_sql}) #{union_parts.join(' UNION ALL ')}"
+
+      result = {}
+      group_columns.each { |c| result[c] = {} }
+
+      connection.select_all(sql).each do |row|
+        col = row["group_type"].to_sym
+        result[col][row["group_value"]] = row["duration"].to_i
+      end
+
+      result
+    end
+
     def duration_seconds(scope = all)
       scope = scope.with_valid_timestamps
       timeout = heartbeat_timeout_duration.to_i
@@ -248,6 +286,7 @@ module Heartbeatable
         connection.select_value("SELECT COALESCE(SUM(diff), 0)::integer FROM (#{capped_diffs.to_sql}) AS diffs").to_i
       end
     end
+
 
     def weekly_grouped_durations(scope, group_column:, timezone:, weeks: 12)
       scope = scope.with_valid_timestamps

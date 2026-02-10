@@ -17,7 +17,7 @@ Rails.application.routes.draw do
   end
 
   mount Rswag::Api::Engine => "/api-docs"
-  mount Rswag::Ui::Engine => "/api-docs"
+  get "api-docs" => "api_docs#index", as: :scalar_api_docs
   use_doorkeeper
 
   root "static_pages#index", defaults: { export: true }

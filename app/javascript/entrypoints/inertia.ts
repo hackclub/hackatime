@@ -22,7 +22,7 @@ createInertiaApp({
 
   setup({ el, App, props }) {
     if (el) {
-      mount(App, { target: el, props })
+      mount(App, { target: el, props, hydrate: true })
     } else {
       console.error(
         'Missing root element.\n\n' +
