@@ -253,7 +253,7 @@ module Heartbeatable
       timeout = heartbeat_timeout_duration.to_i
       scope = with_valid_timestamps.where.not(time: nil)
 
-      # We calculate independent diffs for each dimension (partitioned) to replicate 
+      # We calculate independent diffs for each dimension (partitioned) to replicate
       # the "group(...).duration_seconds" behavior which counts parallel/overlapping time.
       sql = <<~SQL.squish
         SELECT project, language, editor, operating_system, category, time,
