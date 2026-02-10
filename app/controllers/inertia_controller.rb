@@ -18,20 +18,19 @@ class InertiaController < ApplicationController
   end
 
   def inertia_nav_props
-    user = current_user
     {
       flash: inertia_flash_messages,
-      user_present: user.present?,
-      user: user ? inertia_user_mention_props(user) : nil,
-      streak: user ? inertia_streak_props(user) : nil,
-      admin_level: user&.admin_level == "default" ? nil : user&.admin_level,
+      user_present: current_user.present?,
+      user_mention_html: current_user ? render_to_string(partial: "shared/user_mention", locals: { user: current_user }) : nil,
+      streak_html: current_user ? render_to_string(partial: "static_pages/streak", locals: { user: current_user, show_text: true, turbo_frame: false }) : nil,
+      admin_level_html: current_user ? render_to_string(partial: "static_pages/admin_level", locals: { user: current_user }) : nil,
       login_path: slack_auth_path,
       links: inertia_primary_links,
       dev_links: inertia_dev_links,
       admin_links: inertia_admin_links,
       viewer_links: inertia_viewer_links,
       superadmin_links: inertia_superadmin_links,
-      activities: inertia_activities_props
+      activities_html: inertia_activities_html
     }
   end
 
@@ -120,22 +119,9 @@ class InertiaController < ApplicationController
     { label: label, href: href, active: active, badge: badge }
   end
 
-  def inertia_activities_props
+  def inertia_activities_html
     return nil unless defined?(@activities) && @activities.present?
-
-    @activities.filter_map do |activity|
-      owner = activity.owner
-      next unless owner
-
-      message = inertia_activity_message(activity)
-      next if message.blank?
-
-      {
-        id: activity.id,
-        owner: inertia_user_mention_props(owner),
-        message: message
-      }
-    end
+    helpers.render_activities(@activities)
   end
 
   def inertia_footer_props
@@ -161,82 +147,6 @@ class InertiaController < ApplicationController
       requests_per_second: helpers.requests_per_second,
       active_users_graph: hours
     }
-  end
-
-  def inertia_user_mention_props(user)
-    title =
-      if user == current_user
-        FlavorText.same_user.sample
-      else
-        user.github_username.presence || user.slack_username.presence
-      end
-    country_name = user.country_code.present? ? user.country_name : nil
-
-    {
-      display_name: user.display_name,
-      avatar_url: user.avatar_url,
-      title: title,
-      country_code: user.country_code,
-      country_name: country_name,
-      impersonate_path: impersonate_path_for(user)
-    }
-  end
-
-  def inertia_streak_props(user)
-    streak_display = user.streak_days_formatted
-    return nil if streak_display.blank?
-
-    streak_count = streak_display.to_i
-    {
-      count: streak_count,
-      display: streak_display,
-      title: streak_count > 30 ? "30+ daily streak" : "#{streak_display} day streak",
-      show_text: true,
-      icon_size: 24
-    }
-  end
-
-  def inertia_activity_message(activity)
-    params = activity.parameters&.with_indifferent_access || {}
-    project = params[:project].presence
-
-    case activity.key
-    when "user.first_signup"
-      "just signed in for the first time"
-    when "user.first_heartbeat"
-      base = "just started tracking their coding time"
-      project ? "#{base} on #{project}!" : "#{base}!"
-    when "user.started_working"
-      base = "just started working"
-      project ? "#{base} on #{project}" : base
-    when "user.coding_session"
-      base = "just finished coding"
-      duration = helpers.short_time_simple(params[:duration_seconds].to_i)
-      if project
-        "#{base} on #{project} for #{duration}"
-      else
-        "#{base} for #{duration}"
-      end
-    when "physical_mail.mail_sent"
-      mission_type = params[:humanized_mission_type].presence || "a mission"
-      "was just sent a letter for '#{mission_type}'"
-    when "physical_mail.first_streak_achieved"
-      "just hit their first 7 day coding streak!"
-    else
-      nil
-    end
-  end
-
-  def impersonate_path_for(user)
-    return nil unless current_user
-    return nil unless current_user.admin_level.in?(%w[admin superadmin])
-    return nil if user == current_user
-    return nil if user.admin_level == "superadmin"
-
-    return impersonate_user_path(user) if user.admin_level != "admin"
-    return impersonate_user_path(user) if current_user.admin_level == "superadmin"
-
-    nil
   end
 
   def currently_hacking_props

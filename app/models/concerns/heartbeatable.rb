@@ -249,77 +249,39 @@ module Heartbeatable
       end
     end
 
-    def bulk_duration_stats(week_ranges: [])
+    def weekly_grouped_durations(scope, group_column:, timezone:, weeks: 12)
+      scope = scope.with_valid_timestamps
       timeout = heartbeat_timeout_duration.to_i
-      scope = with_valid_timestamps.where.not(time: nil)
+      tz = timezone.presence || "UTC"
+      weeks = weeks.to_i
+      weeks = 1 if weeks < 1
 
-      # We calculate independent diffs for each dimension (partitioned) to replicate
-      # the "group(...).duration_seconds" behavior which counts parallel/overlapping time.
-      sql = <<~SQL.squish
-        SELECT project, language, editor, operating_system, category, time,
-          LEAST(COALESCE(time - LAG(time) OVER (PARTITION BY project ORDER BY time), 0), #{timeout}) as diff_project,
-          LEAST(COALESCE(time - LAG(time) OVER (PARTITION BY language ORDER BY time), 0), #{timeout}) as diff_language,
-          LEAST(COALESCE(time - LAG(time) OVER (PARTITION BY editor ORDER BY time), 0), #{timeout}) as diff_editor,
-          LEAST(COALESCE(time - LAG(time) OVER (PARTITION BY operating_system ORDER BY time), 0), #{timeout}) as diff_os,
-          LEAST(COALESCE(time - LAG(time) OVER (PARTITION BY category ORDER BY time), 0), #{timeout}) as diff_category
-        FROM (#{scope.to_sql}) AS hb
-      SQL
+      group_expr = group_column.to_s.include?("(") ? group_column : connection.quote_column_name(group_column)
+      week_trunc = "DATE_TRUNC('week', to_timestamp(time) AT TIME ZONE #{connection.quote(tz)})"
 
-      rows = connection.select_all(sql)
-
-      by_project = Hash.new(0)
-      by_language = Hash.new(0)
-      by_editor = Hash.new(0)
-      by_operating_system = Hash.new(0)
-      by_category = Hash.new(0)
-      total_time = 0
-
-      # Pre-build weekly buckets if requested
-      weekly_projects = {}
-      week_lookup = []
-      if week_ranges.any?
-        week_ranges.each do |label, ws, we|
-          weekly_projects[label] = Hash.new(0)
-          week_lookup << [ label, ws, we ]
-        end
+      range_start, range_end = Time.use_zone(tz) do
+        [ (weeks - 1).weeks.ago.beginning_of_week, Time.current.end_of_week ]
       end
 
-      rows.each do |row|
-        d_project = row["diff_project"].to_i
-        d_language = row["diff_language"].to_i
-        d_editor = row["diff_editor"].to_i
-        d_os = row["diff_os"].to_i
-        d_category = row["diff_category"].to_i
+      scoped = scope.where(time: range_start.to_f..range_end.to_f)
+      capped_diffs = scoped
+        .select("#{group_expr} as grouped_time, #{week_trunc} as week_group, CASE
+          WHEN LAG(time) OVER (PARTITION BY #{group_expr}, #{week_trunc} ORDER BY time) IS NULL THEN 0
+          ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr}, #{week_trunc} ORDER BY time), #{timeout})
+        END as diff")
+        .where.not(time: nil)
+        .unscope(:group)
 
-        if d_project > 0
-          by_project[row["project"]] += d_project
-          total_time += d_project
-        end
-        by_language[row["language"]] += d_language if d_language > 0
-        by_editor[row["editor"]] += d_editor if d_editor > 0
-        by_operating_system[row["operating_system"]] += d_os if d_os > 0
-        by_category[row["category"]] += d_category if d_category > 0
+      rows = connection.select_all(
+        "SELECT week_group, grouped_time, COALESCE(SUM(diff), 0)::integer as duration
+         FROM (#{capped_diffs.to_sql}) AS diffs
+         GROUP BY week_group, grouped_time"
+      )
 
-        if week_lookup.any? && d_project > 0
-          t = row["time"].to_f
-          week_lookup.each do |label, ws, we|
-            if t >= ws && t <= we
-              weekly_projects[label][row["project"]] += d_project
-              break
-            end
-          end
-        end
+      rows.each_with_object(Hash.new { |h, k| h[k] = {} }) do |row, hash|
+        week = row["week_group"].to_date
+        hash[week][row["grouped_time"]] = row["duration"].to_i
       end
-
-      {
-        total_time: total_time,
-        by_project: by_project,
-        by_language: by_language,
-        by_editor: by_editor,
-        by_operating_system: by_operating_system,
-        by_category: by_category,
-        weekly_projects: weekly_projects
-      }
     end
 
     def duration_seconds_boundary_aware(scope, start_time, end_time)

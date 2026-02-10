@@ -1,5 +1,6 @@
 <script lang="ts">
   import { inertia } from "@inertiajs/svelte";
+  import type InertiaDocsShowProps from "../../types/serializers/Inertia/DocsShowProps";
 
   let {
     doc_path,
@@ -8,14 +9,7 @@
     breadcrumbs,
     edit_url,
     meta,
-  }: {
-    doc_path: string;
-    title: string;
-    rendered_content: string;
-    breadcrumbs: { name: string; href: string | null; is_link: boolean }[];
-    edit_url: string;
-    meta: { description: string; keywords: string };
-  } = $props();
+  }: InertiaDocsShowProps = $props();
 </script>
 
 <svelte:head>

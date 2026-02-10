@@ -84,17 +84,21 @@ class StaticPagesController < InertiaController
     key += "_#{params[:from]}_#{params[:to]}" if params[:interval] == "custom"
     key += "_archived" if archived
 
-    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
+    cached = Rails.cache.fetch(key, expires_in: 1.minute) do
       hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
       labels = current_user.project_labels
-      hb.group(:project).duration_seconds.filter_map do |proj, dur|
+      projects = hb.group(:project).duration_seconds.filter_map do |proj, dur|
         next if dur <= 0
         m = @project_repo_mappings.find { |p| p.project_name == proj }
         { project: labels.find { |p| p.project_key == proj }&.label || proj || "Unknown",
           project_key: proj, repo_url: m&.repo_url, repository: m&.repository,
           has_mapping: m.present?, duration: dur }
       end.sort_by { |p| -p[:duration] }
+      { projects: projects, total_time: hb.duration_seconds }
     end
+
+    durations = cached[:projects]
+    total_time = cached[:total_time]
 
     durations = durations.select { |p| archived_names.include?(p[:project_key]) == archived }
 
@@ -103,7 +107,7 @@ class StaticPagesController < InertiaController
       p.merge(repo_url: m&.repo_url, repository: m&.repository)
     end
 
-    render partial: "project_durations", locals: { project_durations: durations, show_archived: archived }
+    render partial: "project_durations", locals: { project_durations: durations, total_time: total_time, show_archived: archived }
   end
 
   def currently_hacking
@@ -205,15 +209,18 @@ class StaticPagesController < InertiaController
     interval = params[:interval]
     key = [ current_user ] + filters.map { |f| params[f] } + [ interval.to_s, params[:from], params[:to] ]
     hb = current_user.heartbeats
+    base_hb = hb
     h = ApplicationController.helpers
 
     Rails.cache.fetch(key, expires_in: 5.minutes) do
       archived = current_user.project_repo_mappings.archived.pluck(:project_name)
       result = {}
+      grouped_durations = {}
 
       Time.use_zone(current_user.timezone) do
         filters.each do |f|
-          options = current_user.heartbeats.distinct.pluck(f).compact_blank
+          raw_options = base_hb.distinct.pluck(f).compact_blank
+          options = raw_options
           options = options.reject { |n| archived.include?(n) } if f == :project
           result[f] = options.map { |k|
             f == :language ? k.categorize_language : (%i[operating_system editor].include?(f) ? k.capitalize : k)
@@ -224,7 +231,7 @@ class StaticPagesController < InertiaController
           hb = if %i[operating_system editor].include?(f)
             hb.where(f => arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq)
           elsif f == :language
-            raw = current_user.heartbeats.distinct.pluck(f).compact_blank.select { |l| arr.include?(l.categorize_language) }
+            raw = raw_options.select { |l| arr.include?(l.categorize_language) }
             raw.any? ? hb.where(f => raw) : hb
           else
             hb.where(f => arr)
@@ -233,26 +240,12 @@ class StaticPagesController < InertiaController
         end
 
         hb = hb.filter_by_time_range(interval, params[:from], params[:to])
+        result[:total_time] = hb.duration_seconds
         result[:total_heartbeats] = hb.count
 
-        # Build weekly time ranges for bulk computation
-        week_ranges = (0..11).map do |w|
-          ws = w.weeks.ago.beginning_of_week
-          [ ws.to_date.iso8601, ws.to_f, w.weeks.ago.end_of_week.to_f ]
-        end
-
-        # Single SQL query computes all per-heartbeat diffs, then aggregates
-        # by every dimension + weekly project buckets in one pass.
-        bulk = hb.bulk_duration_stats(week_ranges: week_ranges)
-
-        result[:total_time] = bulk[:total_time]
-
-        # Top stats per dimension
-        dimension_map = { project: :by_project, language: :by_language,
-                          operating_system: :by_operating_system, editor: :by_editor,
-                          category: :by_category }
         filters.each do |f|
-          stats = bulk[dimension_map[f]]
+          grouped_durations[f] ||= hb.group(f).duration_seconds
+          stats = grouped_durations[f]
           stats = stats.reject { |n, _| archived.include?(n) } if f == :project
           result["top_#{f}"] = stats.max_by { |_, v| v }&.first
         end
@@ -261,16 +254,16 @@ class StaticPagesController < InertiaController
         result["top_operating_system"] &&= h.display_os_name(result["top_operating_system"])
         result["top_language"] &&= h.display_language_name(result["top_language"])
 
-        # Project durations chart
         unless result["singular_project"]
-          result[:project_durations] = bulk[:by_project]
+          grouped_durations[:project] ||= hb.group(:project).duration_seconds
+          result[:project_durations] = grouped_durations[:project]
             .reject { |p, _| archived.include?(p) }.sort_by { |_, d| -d }.first(10).to_h
         end
 
-        # Per-dimension stats charts (language, editor, OS, category)
         %i[language editor operating_system category].each do |f|
           next if result["singular_#{f}"]
-          stats = bulk[dimension_map[f]].each_with_object({}) do |(raw, dur), agg|
+          grouped_durations[f] ||= hb.group(f).duration_seconds
+          stats = grouped_durations[f].each_with_object({}) do |(raw, dur), agg|
             k = raw.to_s.presence || "Unknown"
             k = f == :language ? (k == "Unknown" ? k : k.categorize_language) : (%i[editor operating_system].include?(f) ? k.downcase : k)
             agg[k] = (agg[k] || 0) + dur
@@ -286,9 +279,13 @@ class StaticPagesController < InertiaController
           }.to_h
         end
 
-        # Weekly project stats (already computed in bulk)
-        result[:weekly_project_stats] = bulk[:weekly_projects].transform_values do |proj_stats|
-          proj_stats.reject { |p, _| archived.include?(p) }
+        weekly_project_durations = Heartbeat.weekly_grouped_durations(hb,
+          group_column: :project,
+          timezone: current_user.timezone,
+          weeks: 12)
+        result[:weekly_project_stats] = (0..11).to_h do |w|
+          ws = w.weeks.ago.beginning_of_week.to_date
+          [ ws.iso8601, (weekly_project_durations[ws] || {}).reject { |p, _| archived.include?(p) } ]
         end
       end
       result[:selected_interval] = interval.to_s

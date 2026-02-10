@@ -156,65 +156,34 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   end
 
   def calculate_category_stats(heartbeats, category)
-    return [] if heartbeats.empty?
+    durations = heartbeats.group(category).duration_seconds
 
-    # Manual calculation approach to avoid SQL issues
-    category_durations = {}
-
-    # First, group heartbeats by category
-    grouped_heartbeats = {}
-    heartbeats.each do |hb|
-      category_value = hb.send(category) || "unknown"
-      grouped_heartbeats[category_value] ||= []
-      grouped_heartbeats[category_value] << hb
-    end
-
-    # Calculate duration for each category
-    grouped_heartbeats.each do |name, hbs|
-      duration = 0
-      hbs = hbs.sort_by(&:time)
-
-      prev_time = nil
-      hbs.each do |hb|
-        current_time = hb.time
-        if prev_time && (current_time - prev_time) <= 120 # 2-minute timeout
-          duration += (current_time - prev_time)
-        end
-        prev_time = current_time
-      end
-
-      # Add a final 2 minutes for the last heartbeat if we have any
-      duration += 120 if hbs.any?
-
-      category_durations[name] = duration
-    end
-
-    # Calculate total duration for percentage calculations
-    total_duration = category_durations.values.sum.to_f
+    total_duration = durations.values.sum.to_f
     return [] if total_duration == 0
 
-    # Format the data for each category
-    category_durations.map do |name, duration|
-      name = name.presence || "unknown"
-      name = case category
-      when "editor" then ApplicationController.helpers.display_editor_name(name)
-      when "operating_system" then ApplicationController.helpers.display_os_name(name)
-      when "language" then ApplicationController.helpers.display_language_name(name)
-      else name
+    h = ApplicationController.helpers
+    durations.filter_map do |name, duration|
+      next if duration <= 0
+
+      display_name = (name.presence || "unknown")
+      display_name = case category
+      when "editor" then h.display_editor_name(display_name)
+      when "operating_system" then h.display_os_name(display_name)
+      when "language" then h.display_language_name(display_name)
+      else display_name
       end
+
       percent = ((duration / total_duration) * 100).round(2)
-      hours = duration.to_i / 3600
-      minutes = (duration.to_i % 3600) / 60
-      seconds = duration.to_i % 60
-      digital = format("%d:%02d:%02d", hours, minutes, seconds)
-      text = "#{hours} hrs #{minutes} mins"
+      hours = duration / 3600
+      minutes = (duration % 3600) / 60
+      seconds = duration % 60
 
       {
-        name: name,
-        total_seconds: duration.to_i,
+        name: display_name,
+        total_seconds: duration,
         percent: percent,
-        digital: digital,
-        text: text,
+        digital: format("%d:%02d:%02d", hours, minutes, seconds),
+        text: "#{hours} hrs #{minutes} mins",
         hours: hours,
         minutes: minutes,
         seconds: seconds
