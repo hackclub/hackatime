@@ -43,6 +43,6 @@ class LeaderboardsController < ApplicationController
 
   def calculate_untracked_entries(ids)
     r = @period_type == :last_7_days ? ((Date.current - 6.days).beginning_of_day...Date.current.end_of_day) : Date.current.all_day
-    Hackatime::Heartbeat.where(time: r).distinct.pluck(:user_id).count { |uid| !ids.include?(uid) }
+    Hackatime::Heartbeat.where(time: r).where.not(user_id: ids).distinct.count(:user_id)
   end
 end
