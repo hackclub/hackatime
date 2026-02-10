@@ -1,7 +1,6 @@
 <%= turbo_frame_tag "project_durations" do %>
   <% max = project_durations.map { |p| p[:duration] }.max || 1 %>
   <p class="text-lg text-white mt-6">
-    <% total_time = project_durations.sum { |p| p[:duration].to_i } %>
 
     <% if total_time > 0 %>
       You've spent <span class="font-semibold"><%= short_time_detailed(total_time) %></span> coding across all projects.

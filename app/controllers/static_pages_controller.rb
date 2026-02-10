@@ -84,17 +84,21 @@ class StaticPagesController < InertiaController
     key += "_#{params[:from]}_#{params[:to]}" if params[:interval] == "custom"
     key += "_archived" if archived
 
-    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
+    cached = Rails.cache.fetch(key, expires_in: 1.minute) do
       hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
       labels = current_user.project_labels
-      hb.group(:project).duration_seconds.filter_map do |proj, dur|
+      projects = hb.group(:project).duration_seconds.filter_map do |proj, dur|
         next if dur <= 0
         m = @project_repo_mappings.find { |p| p.project_name == proj }
         { project: labels.find { |p| p.project_key == proj }&.label || proj || "Unknown",
           project_key: proj, repo_url: m&.repo_url, repository: m&.repository,
           has_mapping: m.present?, duration: dur }
       end.sort_by { |p| -p[:duration] }
+      { projects: projects, total_time: hb.duration_seconds }
     end
+
+    durations = cached[:projects]
+    total_time = cached[:total_time]
 
     durations = durations.select { |p| archived_names.include?(p[:project_key]) == archived }
 
@@ -103,7 +107,7 @@ class StaticPagesController < InertiaController
       p.merge(repo_url: m&.repo_url, repository: m&.repository)
     end
 
-    render partial: "project_durations", locals: { project_durations: durations, show_archived: archived }
+    render partial: "project_durations", locals: { project_durations: durations, total_time: total_time, show_archived: archived }
   end
 
   def currently_hacking
@@ -233,7 +237,7 @@ class StaticPagesController < InertiaController
         end
 
         hb = hb.filter_by_time_range(interval, params[:from], params[:to])
-        result[:total_time] = hb.group(:project).duration_seconds.values.sum
+        result[:total_time] = hb.duration_seconds
         result[:total_heartbeats] = hb.count
 
         filters.each do |f|
