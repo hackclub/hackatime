@@ -110,6 +110,9 @@ module Heartbeatable
       end
 
       timeout = heartbeat_timeout_duration.to_i
+
+      # Optimized query: partition by user_id only, then group by day in application code
+      # This allows PostgreSQL to use the (user_id, time) index efficiently
       raw_durations = joins(:user)
         .where(user_id: uncached_users)
         .coding_only
@@ -117,15 +120,22 @@ module Heartbeatable
         .where(time: start_date..Time.current)
         .select(
           :user_id,
+          :time,
           "users.timezone as user_timezone",
-          Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone) as day_group"),
-          Arel.sql("LEAST(time - LAG(time) OVER (PARTITION BY user_id, DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone) ORDER BY time), #{timeout}) as diff")
+          Arel.sql("LAG(time) OVER (PARTITION BY user_id ORDER BY time) as prev_time")
         )
 
-      # Then aggregate the results
+      # Calculate diffs and group by day in a single aggregation step
       daily_durations = connection.select_all(
-        "SELECT user_id, user_timezone, day_group, COALESCE(SUM(diff), 0)::integer as duration
-         FROM (#{raw_durations.to_sql}) AS diffs
+        "SELECT user_id, user_timezone,
+                DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE user_timezone) as day_group,
+                COALESCE(SUM(
+                  CASE
+                    WHEN prev_time IS NULL THEN 0
+                    ELSE LEAST(time - prev_time, #{timeout})
+                  END
+                ), 0)::integer as duration
+         FROM (#{raw_durations.to_sql}) AS time_diffs
          GROUP BY user_id, user_timezone, day_group"
       ).group_by { |row| row["user_id"] }
        .transform_values do |rows|
@@ -211,6 +221,9 @@ module Heartbeatable
       scope = scope.with_valid_timestamps
       timeout = heartbeat_timeout_duration.to_i
 
+      # Check if user_id is in the WHERE clause
+      user_id_value = extract_user_id_from_scope(scope)
+
       if scope.group_values.any?
         if scope.group_values.length > 1
           raise NotImplementedError, "Multiple group values are not supported"
@@ -221,10 +234,18 @@ module Heartbeatable
         # Don't quote if it's a SQL function (contains parentheses)
         group_expr = group_column.to_s.include?("(") ? group_column : connection.quote_column_name(group_column)
 
+        # Optimize window function by including user_id in PARTITION BY when available
+        # This allows PostgreSQL to use composite indexes like (user_id, project, time)
+        partition_clause = if user_id_value
+          "PARTITION BY user_id, #{group_expr}"
+        else
+          "PARTITION BY #{group_expr}"
+        end
+
         capped_diffs = scope
           .select("#{group_expr} as grouped_time, CASE
-            WHEN LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time), #{timeout})
+            WHEN LAG(time) OVER (#{partition_clause} ORDER BY time) IS NULL THEN 0
+            ELSE LEAST(time - LAG(time) OVER (#{partition_clause} ORDER BY time), #{timeout})
           END as diff")
           .where.not(time: nil)
           .unscope(:group)
@@ -238,15 +259,43 @@ module Heartbeatable
         end
       else
         # when not grouped, return a single value
+        # For ungrouped queries, add user_id to PARTITION BY if available
+        partition_clause = if user_id_value
+          "PARTITION BY user_id"
+        else
+          ""
+        end
+
+        order_clause = partition_clause.present? ? "#{partition_clause} ORDER BY time" : "ORDER BY time"
+
         capped_diffs = scope
           .select("CASE
-            WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout})
+            WHEN LAG(time) OVER (#{order_clause}) IS NULL THEN 0
+            ELSE LEAST(time - LAG(time) OVER (#{order_clause}), #{timeout})
           END as diff")
           .where.not(time: nil)
 
         connection.select_value("SELECT COALESCE(SUM(diff), 0)::integer FROM (#{capped_diffs.to_sql}) AS diffs").to_i
       end
+    end
+
+    private
+
+    def extract_user_id_from_scope(scope)
+      # Extract user_id from the WHERE clause
+      # This checks both hash-style and Arel-style where clauses
+      return scope.where_values_hash["user_id"] if scope.where_values_hash["user_id"].present?
+
+      # Check for user_id in Arel where clauses
+      scope.where_values.each do |where_value|
+        if where_value.is_a?(Arel::Nodes::Equality) && where_value.left.name.to_s == "user_id"
+          return where_value.right
+        end
+      end
+
+      nil
+    rescue
+      nil
     end
 
     def bulk_duration_stats(week_ranges: [])
