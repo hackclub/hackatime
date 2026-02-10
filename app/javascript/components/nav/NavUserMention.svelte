@@ -9,6 +9,7 @@
   };
 
   let { user }: { user: NavUserMention } = $props();
+  const flagUrl = $derived(countryFlagUrl(user.country_code));
 
   const countryFlagUrl = (countryCode?: string | null) => {
     if (!countryCode) return null;
@@ -36,7 +37,6 @@
   <span class="inline-flex items-center gap-1">
     {user.display_name}
   </span>
-  {@const flagUrl = countryFlagUrl(user.country_code)}
   {#if flagUrl}
     <span title={user.country_name || undefined} class="flex items-center">
       <img
