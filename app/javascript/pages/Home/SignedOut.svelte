@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type InertiaHomeSignedOutProps from "../../types/serializers/Inertia/HomeSignedOutProps";
+  type HomeStats = { seconds_tracked?: number; users_tracked?: number };
 
   let {
     hca_auth_path,
@@ -10,7 +10,16 @@
     dev_magic_link,
     csrf_token,
     home_stats,
-  }: InertiaHomeSignedOutProps = $props();
+  }: {
+    hca_auth_path: string;
+    slack_auth_path: string;
+    email_auth_path: string;
+    sign_in_email: boolean;
+    show_dev_tool: boolean;
+    dev_magic_link?: string | null;
+    csrf_token: string;
+    home_stats: HomeStats;
+  } = $props();
 
   let isSigningIn = $state(false);
 
@@ -31,15 +40,11 @@
   const formatNumber = (value: number) => numberFormatter.format(value);
 
   const hoursTracked = $derived(
-    home_stats?.seconds_tracked && typeof home_stats.seconds_tracked === 'number'
+    home_stats?.seconds_tracked
       ? Math.floor(home_stats.seconds_tracked / 3600)
       : 0,
   );
-  const usersTracked = $derived(
-    home_stats?.users_tracked && typeof home_stats.users_tracked === 'number'
-      ? home_stats.users_tracked
-      : 0
-  );
+  const usersTracked = $derived(home_stats?.users_tracked ?? 0);
 
   // Grid background pattern
   const gridPattern = `background-image: linear-gradient(to right, #4A2D3133 1px, transparent 1px), linear-gradient(to bottom, #4A2D3133 1px, transparent 1px); background-size: 6rem 6rem;`;

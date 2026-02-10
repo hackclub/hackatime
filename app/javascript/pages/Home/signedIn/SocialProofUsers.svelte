@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type InertiaSspUser from "../../../types/serializers/Inertia/SspUser";
+  type SocialProofUser = { display_name: string; avatar_url: string };
 
   let {
     users,
     total_size,
     message,
   }: {
-    users: InertiaSspUser[];
+    users: SocialProofUser[];
     total_size: number;
     message?: string | null;
   } = $props();

@@ -209,18 +209,15 @@ class StaticPagesController < InertiaController
     interval = params[:interval]
     key = [ current_user ] + filters.map { |f| params[f] } + [ interval.to_s, params[:from], params[:to] ]
     hb = current_user.heartbeats
-    base_hb = hb
     h = ApplicationController.helpers
 
     Rails.cache.fetch(key, expires_in: 5.minutes) do
       archived = current_user.project_repo_mappings.archived.pluck(:project_name)
       result = {}
-      grouped_durations = {}
 
       Time.use_zone(current_user.timezone) do
         filters.each do |f|
-          raw_options = base_hb.distinct.pluck(f).compact_blank
-          options = raw_options
+          options = current_user.heartbeats.distinct.pluck(f).compact_blank
           options = options.reject { |n| archived.include?(n) } if f == :project
           result[f] = options.map { |k|
             f == :language ? k.categorize_language : (%i[operating_system editor].include?(f) ? k.capitalize : k)
@@ -231,7 +228,7 @@ class StaticPagesController < InertiaController
           hb = if %i[operating_system editor].include?(f)
             hb.where(f => arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq)
           elsif f == :language
-            raw = raw_options.select { |l| arr.include?(l.categorize_language) }
+            raw = current_user.heartbeats.distinct.pluck(f).compact_blank.select { |l| arr.include?(l.categorize_language) }
             raw.any? ? hb.where(f => raw) : hb
           else
             hb.where(f => arr)
@@ -244,8 +241,7 @@ class StaticPagesController < InertiaController
         result[:total_heartbeats] = hb.count
 
         filters.each do |f|
-          grouped_durations[f] ||= hb.group(f).duration_seconds
-          stats = grouped_durations[f]
+          stats = hb.group(f).duration_seconds
           stats = stats.reject { |n, _| archived.include?(n) } if f == :project
           result["top_#{f}"] = stats.max_by { |_, v| v }&.first
         end
@@ -255,15 +251,13 @@ class StaticPagesController < InertiaController
         result["top_language"] &&= h.display_language_name(result["top_language"])
 
         unless result["singular_project"]
-          grouped_durations[:project] ||= hb.group(:project).duration_seconds
-          result[:project_durations] = grouped_durations[:project]
+          result[:project_durations] = hb.group(:project).duration_seconds
             .reject { |p, _| archived.include?(p) }.sort_by { |_, d| -d }.first(10).to_h
         end
 
         %i[language editor operating_system category].each do |f|
           next if result["singular_#{f}"]
-          grouped_durations[f] ||= hb.group(f).duration_seconds
-          stats = grouped_durations[f].each_with_object({}) do |(raw, dur), agg|
+          stats = hb.group(f).duration_seconds.each_with_object({}) do |(raw, dur), agg|
             k = raw.to_s.presence || "Unknown"
             k = f == :language ? (k == "Unknown" ? k : k.categorize_language) : (%i[editor operating_system].include?(f) ? k.downcase : k)
             agg[k] = (agg[k] || 0) + dur
@@ -279,13 +273,10 @@ class StaticPagesController < InertiaController
           }.to_h
         end
 
-        weekly_project_durations = Heartbeat.weekly_grouped_durations(hb,
-          group_column: :project,
-          timezone: current_user.timezone,
-          weeks: 12)
         result[:weekly_project_stats] = (0..11).to_h do |w|
-          ws = w.weeks.ago.beginning_of_week.to_date
-          [ ws.iso8601, (weekly_project_durations[ws] || {}).reject { |p, _| archived.include?(p) } ]
+          ws = w.weeks.ago.beginning_of_week
+          [ ws.to_date.iso8601, hb.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
+              .group(:project).duration_seconds.reject { |p, _| archived.include?(p) } ]
         end
       end
       result[:selected_interval] = interval.to_s
