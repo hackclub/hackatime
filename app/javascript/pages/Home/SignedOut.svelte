@@ -59,7 +59,7 @@
     class="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 flex justify-between items-center"
   >
     <div class="flex items-center gap-2 min-w-[140px]">
-      <img src="/images/icon-rounded.png" class="h-8 w-8" alt="Logo" />
+      <img src="/images/new-icon-rounded.png" class="h-8 w-8" alt="Logo" />
       <span class="font-bold tracking-tight text-lg">Hackatime</span>
     </div>
     <div class="hidden md:flex gap-8 text-sm font-medium text-text-muted">
