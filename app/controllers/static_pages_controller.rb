@@ -233,7 +233,7 @@ class StaticPagesController < InertiaController
         end
 
         hb = hb.filter_by_time_range(interval, params[:from], params[:to])
-        result[:total_time] = hb.group(:project).duration_seconds.values.sum
+        result[:total_time] = hb.duration_seconds
         result[:total_heartbeats] = hb.count
 
         filters.each do |f|
