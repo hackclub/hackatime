@@ -232,6 +232,8 @@ GEM
     jbuilder (2.14.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
+    js_from_routes (4.0.2)
+      railties (>= 5.1, < 9)
     json (2.18.0)
     json-schema (6.1.0)
       addressable (~> 2.8)
@@ -260,6 +262,10 @@ GEM
       railties (>= 6.1)
       rexml
     lint_roller (1.1.0)
+    listen (3.10.0)
+      logger
+      rb-fsevent (~> 0.10, >= 0.10.3)
+      rb-inotify (~> 0.9, >= 0.9.10)
     llhttp-ffi (0.5.1)
       ffi-compiler (~> 1.0)
       rake (~> 13.0)
@@ -321,6 +327,8 @@ GEM
       net-http-persistent
     oj (3.16.14)
       bigdecimal (>= 3.0)
+    oj_serializers (2.1.0)
+      oj (>= 3.14.0)
     ostruct (0.6.3)
     paper_trail (17.0.0)
       activerecord (>= 7.1)
@@ -412,6 +420,9 @@ GEM
       zeitwerk (~> 2.6)
     rainbow (3.1.1)
     rake (13.3.1)
+    rb-fsevent (0.11.2)
+    rb-inotify (0.11.1)
+      ffi (~> 1.0)
     rdoc (7.1.0)
       erb
       psych (>= 4.0.0)
@@ -555,6 +566,10 @@ GEM
     turbo-rails (2.0.23)
       actionpack (>= 7.1.0)
       railties (>= 7.1.0)
+    types_from_serializers (2.5.0)
+      listen (~> 3.2)
+      oj_serializers (~> 2.0, >= 2.0.2)
+      railties (>= 5.1)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unaccent (0.4.0)
@@ -625,12 +640,14 @@ DEPENDENCIES
   importmap-rails
   inertia_rails (~> 3.17)
   jbuilder
+  js_from_routes
   kamal
   letter_opener
   letter_opener_web (~> 3.0)
   memory_profiler
   norairrecord (~> 0.5.1)
   oj
+  oj_serializers
   paper_trail
   pg
   propshaft
@@ -662,6 +679,7 @@ DEPENDENCIES
   tailwindcss-ruby (~> 4.1)
   thruster
   turbo-rails
+  types_from_serializers
   tzinfo-data
   vite_rails (~> 3.0)
   web-console

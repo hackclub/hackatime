@@ -7,3 +7,11 @@ declare module '@inertiajs/core' {
     errorValueType: string[]
   }
 }
+
+declare global {
+  interface Window {
+    showLogout?: () => void;
+  }
+}
+
+export {}

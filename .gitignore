@@ -49,3 +49,6 @@ public/vite-dev
 public/vite-ssr
 
 .vite
+
+app/javascript/api/
+app/javascript/types/serializers/
