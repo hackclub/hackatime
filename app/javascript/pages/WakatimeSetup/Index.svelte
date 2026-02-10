@@ -1,10 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type InertiaWakatimeSetupIndexProps from "../../types/serializers/Inertia/WakatimeSetupIndexProps";
-  import { users } from "../../api";
+  import { Link } from "@inertiajs/svelte";
   import Stepper from "./Stepper.svelte";
 
-  let { current_user_api_key, setup_os, api_url, heartbeat_check_url }: InertiaWakatimeSetupIndexProps =
+  interface Props {
+    current_user_api_key: string;
+    setup_os: string;
+    api_url: string;
+    heartbeat_check_url: string;
+  }
+
+  let { current_user_api_key, setup_os, api_url, heartbeat_check_url }: Props =
     $props();
 
   let activeSection = $derived(
@@ -111,7 +117,7 @@
             </p>
 
             <a
-              href={users.wakatimeSetupStep2.path()}
+              href="/my/wakatime_setup/step-2"
               class="inline-flex items-center justify-center bg-primary text-white px-6 py-2 rounded-lg font-semibold transition-all"
             >
               Continue to Step 2 →
@@ -218,7 +224,6 @@
                 class="mt-4 rounded-lg overflow-hidden border border-darkless"
               >
                 <iframe
-                  title="Mac/Linux setup tutorial video"
                   width="100%"
                   height="300"
                   src="https://www.youtube.com/embed/QTwhJy7nT_w?modestbranding=1&rel=0"
@@ -306,7 +311,6 @@
                 class="mt-4 rounded-lg overflow-hidden border border-darkless"
               >
                 <iframe
-                  title="Windows setup tutorial video"
                   width="100%"
                   height="300"
                   src="https://www.youtube.com/embed/fX9tsiRvzhg?modestbranding=1&rel=0"
@@ -354,7 +358,7 @@ heartbeat_rate_limit_seconds = 30</code
 
       <div class="text-center">
         <a
-          href={users.wakatimeSetupStep2.path()}
+          href="/my/wakatime_setup/step-2"
           class="text-xs text-secondary hover:text-white transition-colors"
           >Skip to next step</a
         >

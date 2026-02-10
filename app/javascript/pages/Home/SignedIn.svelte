@@ -1,11 +1,43 @@
 <script lang="ts">
-  import type InertiaHomeSignedInProps from "../../types/serializers/Inertia/HomeSignedInProps";
+  import type {
+    ActivityGraphData,
+  } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
   import SetupNotice from "./signedIn/SetupNotice.svelte";
   import TodaySentence from "./signedIn/TodaySentence.svelte";
   import Dashboard from "./signedIn/Dashboard.svelte";
   import ActivityGraph from "./signedIn/ActivityGraph.svelte";
+
+  type SocialProofUser = { display_name: string; avatar_url: string };
+
+  type FilterableDashboardData = {
+    total_time: number;
+    total_heartbeats: number;
+    top_project: string | null;
+    top_language: string | null;
+    top_editor: string | null;
+    top_operating_system: string | null;
+    project_durations: Record<string, number>;
+    language_stats: Record<string, number>;
+    editor_stats: Record<string, number>;
+    operating_system_stats: Record<string, number>;
+    category_stats: Record<string, number>;
+    weekly_project_stats: Record<string, Record<string, number>>;
+    project: string[];
+    language: string[];
+    editor: string[];
+    operating_system: string[];
+    category: string[];
+    selected_interval: string;
+    selected_from: string;
+    selected_to: string;
+    selected_project: string[];
+    selected_language: string[];
+    selected_editor: string[];
+    selected_operating_system: string[];
+    selected_category: string[];
+  };
 
   let {
     flavor_text,
@@ -23,7 +55,23 @@
     todays_editors,
     filterable_dashboard_data,
     activity_graph,
-  }: InertiaHomeSignedInProps = $props();
+  }: {
+    flavor_text: string;
+    trust_level_red: boolean;
+    show_wakatime_setup_notice: boolean;
+    ssp_message?: string | null;
+    ssp_users_recent: SocialProofUser[];
+    ssp_users_size: number;
+    github_uid_blank: boolean;
+    github_auth_path: string;
+    wakatime_setup_path: string;
+    show_logged_time_sentence: boolean;
+    todays_duration_display: string;
+    todays_languages: string[];
+    todays_editors: string[];
+    filterable_dashboard_data: FilterableDashboardData;
+    activity_graph: ActivityGraphData;
+  } = $props();
 </script>
 
 <div>

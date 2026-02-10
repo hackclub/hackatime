@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { users } from "../../api";
+  import { Link } from '@inertiajs/svelte';
   import Stepper from './Stepper.svelte';
 
   const editors = [
@@ -31,7 +31,7 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
       {#each editors as editor}
         <a
-          href={`${users.wakatimeSetupStep3.path()}?editor=${editor.id}`}
+          href={`/my/wakatime_setup/step-3?editor=${editor.id}`}
           class="group flex flex-col items-center justify-center p-6 bg-dark border border-darkless rounded-xl hover:border-primary transition-all duration-200 hover:shadow-lg hover:shadow-primary/10">
           <div class="w-16 h-16 mb-4 flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
             {#if editor.icon}
