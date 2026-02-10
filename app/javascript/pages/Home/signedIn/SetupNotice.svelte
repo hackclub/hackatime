@@ -1,7 +1,6 @@
 <script lang="ts">
+  import type InertiaSspUser from "../../../types/serializers/Inertia/SspUser";
   import SocialProofUsers from "./SocialProofUsers.svelte";
-
-  type SocialProofUser = { display_name: string; avatar_url: string };
 
   let {
     wakatime_setup_path,
@@ -11,7 +10,7 @@
   }: {
     wakatime_setup_path: string;
     ssp_message?: string | null;
-    ssp_users_recent: SocialProofUser[];
+    ssp_users_recent: InertiaSspUser[];
     ssp_users_size: number;
   } = $props();
 </script>

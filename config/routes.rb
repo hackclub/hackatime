@@ -20,9 +20,9 @@ Rails.application.routes.draw do
   mount Rswag::Ui::Engine => "/api-docs"
   use_doorkeeper
 
-  root "static_pages#index"
+  root "static_pages#index", defaults: { export: true }
 
-  resources :extensions, only: [ :index ]
+  resources :extensions, only: [ :index ], defaults: { export: true }
 
   constraints AdminLevelConstraint.new(:superadmin) do
     mount GoodJob::Engine => "good_job"
@@ -114,8 +114,8 @@ Rails.application.routes.draw do
   end
 
   # Docs routes
-  get "docs", to: "docs#index", as: :docs
-  get "docs/*path", to: "docs#show", as: :doc
+  get "docs", to: "docs#index", as: :docs, defaults: { export: true }
+  get "docs/*path", to: "docs#show", as: :doc, defaults: { export: true }
 
   # Nested under users for admin access
   resources :users, only: [] do
@@ -157,10 +157,10 @@ Rails.application.routes.draw do
   post "deletion", to: "deletion_requests#create", as: :create_deletion
   delete "deletion", to: "deletion_requests#cancel", as: :cancel_deletion
 
-  get "my/wakatime_setup", to: "users#wakatime_setup"
-  get "my/wakatime_setup/step-2", to: "users#wakatime_setup_step_2"
-  get "my/wakatime_setup/step-3", to: "users#wakatime_setup_step_3"
-  get "my/wakatime_setup/step-4", to: "users#wakatime_setup_step_4"
+  get "my/wakatime_setup", to: "users#wakatime_setup", defaults: { export: true }
+  get "my/wakatime_setup/step-2", to: "users#wakatime_setup_step_2", defaults: { export: true }
+  get "my/wakatime_setup/step-3", to: "users#wakatime_setup_step_3", defaults: { export: true }
+  get "my/wakatime_setup/step-4", to: "users#wakatime_setup_step_4", defaults: { export: true }
 
   post "/sailors_log/slack/commands", to: "slack#create"
   post "/timedump/slack/commands", to: "slack#create"

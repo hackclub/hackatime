@@ -3,67 +3,9 @@
   import { usePoll } from "@inertiajs/svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
+  import type InertiaLayoutProps from "../types/serializers/Inertia/LayoutProps";
 
-  type NavLink = {
-    label: string;
-    href?: string;
-    active?: boolean;
-    badge?: number | null;
-    action?: string;
-  };
-
-  type LayoutNav = {
-    flash: { message: string; class_name: string }[];
-    user_present: boolean;
-    user_mention_html?: string | null;
-    streak_html?: string | null;
-    admin_level_html?: string | null;
-    login_path: string;
-    links: NavLink[];
-    dev_links: NavLink[];
-    admin_links: NavLink[];
-    viewer_links: NavLink[];
-    superadmin_links: NavLink[];
-    activities_html?: string | null;
-  };
-
-  type Footer = {
-    git_version: string;
-    commit_link: string;
-    server_start_time_ago: string;
-    heartbeat_recent_count: number;
-    heartbeat_recent_imported_count: number;
-    query_count: number;
-    query_cache_count: number;
-    cache_hits: number;
-    cache_misses: number;
-    requests_per_second: string;
-    active_users_graph: { height: number; title: string }[];
-  };
-
-  type CurrentlyHackingUser = {
-    id: number;
-    display_name?: string;
-    slack_uid?: string;
-    avatar_url?: string;
-    active_project?: { name: string; repo_url?: string | null };
-  };
-
-  type LayoutProps = {
-    nav: LayoutNav;
-    footer: Footer;
-    currently_hacking: {
-      count: number;
-      users: CurrentlyHackingUser[];
-      interval: number;
-    };
-    csrf_token: string;
-    signout_path: string;
-    show_stop_impersonating: boolean;
-    stop_impersonating_path: string;
-  };
-
-  let { layout, children }: { layout: LayoutProps; children?: () => unknown } =
+  let { layout, children }: { layout: InertiaLayoutProps; children?: import('svelte').Snippet } =
     $props();
 
   const isBrowser =
@@ -72,7 +14,7 @@
   let navOpen = $state(false);
   let logoutOpen = $state(false);
   let currentlyExpanded = $state(false);
-  let flashVisible = $state(layout.nav.flash.length > 0);
+  let flashVisible = $state(false);
   let flashHiding = $state(false);
   const flashHideDelay = 6000;
   const flashExitDuration = 250;
@@ -104,7 +46,7 @@
   const countLabel = () =>
     `${layout.currently_hacking.count} ${plur("person", layout.currently_hacking.count)} currently hacking`;
 
-  const visualizeGitUrl = (url?: string | null) =>
+  const visualizeGitUrl = (url?: string | null): string =>
     url?.startsWith("https://github.com/")
       ? url.replace(
           "https://github.com/",
@@ -118,6 +60,10 @@
 
   $effect(() => {
     if (isBrowser) document.body.classList.toggle("overflow-hidden", navOpen);
+  });
+
+  $effect(() => {
+    flashVisible = layout.nav.flash.length > 0;
   });
 
   $effect(() => {
@@ -198,7 +144,7 @@
       />
     </svg>
   </button>
-  <div class="nav-overlay" class:open={navOpen} onclick={closeNav}></div>
+  <div class="nav-overlay" class:open={navOpen} onclick={closeNav} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && closeNav()}></div>
 
   <aside
     class="flex flex-col min-h-screen w-52 bg-dark text-white px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
@@ -230,10 +176,10 @@
       <nav class="space-y-1">
         {#each layout.nav.links as link}
           {#if link.action === "logout"}
-            <a
+            <button
               type="button"
               onclick={openLogout}
-              class={`${navLinkClass(false)} cursor-pointer`}>Logout</a
+              class={`${navLinkClass(false)} cursor-pointer text-left w-full bg-transparent border-0`}>Logout</button
             >
           {:else}
             <a
@@ -377,8 +323,9 @@
   <div
     class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
   >
-    <div
-      class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between"
+    <button
+      type="button"
+      class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between w-full border-0"
       onclick={toggleCurrentlyHacking}
     >
       <div class="text-white text-sm font-medium">
@@ -389,7 +336,7 @@
           <span class="text-base">{countLabel()}</span>
         </div>
       </div>
-    </div>
+    </button>
 
     {#if currentlyExpanded}
       {#if layout.currently_hacking.users.length === 0}
@@ -434,22 +381,24 @@
                   <div class="text-xs text-muted ml-8">
                     working on
                     {#if user.active_project.repo_url}
+                      {@const repoUrl = user.active_project.repo_url as string}
                       <a
-                        href={user.active_project.repo_url}
+                        href={repoUrl}
                         target="_blank"
                         class="text-accent hover:text-cyan-400 transition-colors"
                       >
-                        {user.active_project.name}
+                        {user.active_project.name as string}
                       </a>
+                      {@const vizUrl = visualizeGitUrl(repoUrl)}
+                      {#if vizUrl}
+                        <a
+                          href={vizUrl}
+                          target="_blank"
+                          class="ml-1">🌌</a
+                        >
+                      {/if}
                     {:else}
-                      {user.active_project.name}
-                    {/if}
-                    {#if visualizeGitUrl(user.active_project.repo_url)}
-                      <a
-                        href={visualizeGitUrl(user.active_project.repo_url)}
-                        target="_blank"
-                        class="ml-1">🌌</a
-                      >
+                      {user.active_project.name as string}
                     {/if}
                   </div>
                 {/if}
@@ -468,6 +417,10 @@
   class:pointer-events-none={!logoutOpen}
   style="background-color: rgba(0, 0, 0, 0.5);backdrop-filter: blur(4px);"
   onclick={(e) => e.target === e.currentTarget && closeLogout()}
+  role="button"
+  tabindex="-1"
+  aria-label="Close logout modal"
+  onkeydown={(e) => e.key === 'Escape' && closeLogout()}
 >
   <div
     class={`bg-dark border border-primary rounded-lg p-6 max-w-md w-full mx-4 flex flex-col items-center justify-center transform transition-transform duration-300 ease-in-out ${logoutOpen ? "scale-100" : "scale-95"}`}

@@ -1,13 +1,9 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import type InertiaWakatimeSetupStep4Props from "../../types/serializers/Inertia/WakatimeSetupStep4Props";
+  import { staticPages } from "../../api";
   import Stepper from "./Stepper.svelte";
 
-  interface Props {
-    return_url?: string;
-    return_button_text: string;
-  }
-
-  let { return_url, return_button_text }: Props = $props();
+  let { return_url, return_button_text }: InertiaWakatimeSetupStep4Props = $props();
 
   let agreed = $state(false);
 </script>
@@ -59,7 +55,7 @@
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a
-          href="/"
+          href={staticPages.index.path()}
           class="px-8 py-3 bg-primary border border-transparent text-white rounded-lg transition-all font-semibold transform active:scale-[0.98] text-center {agreed
             ? ''
             : 'opacity-50 cursor-not-allowed pointer-events-none'}"
