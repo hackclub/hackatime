@@ -213,9 +213,9 @@ class StaticPagesController < InertiaController
 
       Time.use_zone(current_user.timezone) do
         filters.each do |f|
-          options = current_user.heartbeats.distinct.pluck(f).compact_blank
-          options = options.reject { |n| archived.include?(n) } if f == :project
-          result[f] = options.map { |k|
+          durations = current_user.heartbeats.group(f).duration_seconds
+          durations = durations.reject { |n, _| archived.include?(n) } if f == :project
+          result[f] = durations.sort_by { |_, v| -v }.map(&:first).compact_blank.map { |k|
             f == :language ? k.categorize_language : (%i[operating_system editor].include?(f) ? k.capitalize : k)
           }.uniq
 
@@ -233,7 +233,8 @@ class StaticPagesController < InertiaController
         end
 
         hb = hb.filter_by_time_range(interval, params[:from], params[:to])
-        result[:total_time] = hb.duration_seconds
+        result[:filtered_heartbeats] = hb
+        result[:total_time] = hb.group(:project).duration_seconds.values.sum
         result[:total_heartbeats] = hb.count
 
         filters.each do |f|
@@ -269,12 +270,13 @@ class StaticPagesController < InertiaController
           }.to_h
         end
 
-        result[:weekly_project_stats] = (0..11).to_h do |w|
+        result[:weekly_project_stats] = (0..25).to_h do |w|
           ws = w.weeks.ago.beginning_of_week
           [ ws.to_date.iso8601, hb.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
               .group(:project).duration_seconds.reject { |p, _| archived.include?(p) } ]
         end
       end
+
       result[:selected_interval] = interval.to_s
       result[:selected_from] = params[:from].to_s
       result[:selected_to] = params[:to].to_s
