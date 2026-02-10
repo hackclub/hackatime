@@ -1,11 +1,11 @@
 <script lang="ts">
+  import type InertiaDocsIndexProps from "../../types/serializers/Inertia/DocsIndexProps";
+  import { users } from "../../api";
+
   let {
     popular_editors,
     all_editors,
-  }: {
-    popular_editors: [string, string][];
-    all_editors: [string, string][];
-  } = $props();
+  }: InertiaDocsIndexProps = $props();
 </script>
 
 <svelte:head>
@@ -26,7 +26,7 @@
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
     <a
-      href="/my/wakatime_setup"
+      href={users.wakatimeSetup.path()}
       class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
     >
       <div class="text-2xl mb-2">⚡</div>

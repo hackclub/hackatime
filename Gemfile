@@ -77,6 +77,8 @@ gem "activerecord-import"
 
 # Fast JSON parsing
 gem "oj"
+gem "oj_serializers"
+gem "types_from_serializers"
 
 # Rack Mini Profiler [https://github.com/MiniProfiler/rack-mini-profiler]
 gem "rack-mini-profiler"
@@ -161,5 +163,6 @@ gem "tailwindcss-ruby", "~> 4.1"
 gem "tailwindcss-rails", "~> 4.2"
 
 gem "inertia_rails", "~> 3.17"
+gem "js_from_routes"
 
 gem "vite_rails", "~> 3.0"

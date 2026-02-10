@@ -1,5 +1,5 @@
 <script lang="ts">
-  type HomeStats = { seconds_tracked?: number; users_tracked?: number };
+  import type InertiaHomeSignedOutProps from "../../types/serializers/Inertia/HomeSignedOutProps";
 
   let {
     hca_auth_path,
@@ -10,16 +10,7 @@
     dev_magic_link,
     csrf_token,
     home_stats,
-  }: {
-    hca_auth_path: string;
-    slack_auth_path: string;
-    email_auth_path: string;
-    sign_in_email: boolean;
-    show_dev_tool: boolean;
-    dev_magic_link?: string | null;
-    csrf_token: string;
-    home_stats: HomeStats;
-  } = $props();
+  }: InertiaHomeSignedOutProps = $props();
 
   let isSigningIn = $state(false);
 
@@ -40,11 +31,15 @@
   const formatNumber = (value: number) => numberFormatter.format(value);
 
   const hoursTracked = $derived(
-    home_stats?.seconds_tracked
+    home_stats?.seconds_tracked && typeof home_stats.seconds_tracked === 'number'
       ? Math.floor(home_stats.seconds_tracked / 3600)
       : 0,
   );
-  const usersTracked = $derived(home_stats?.users_tracked ?? 0);
+  const usersTracked = $derived(
+    home_stats?.users_tracked && typeof home_stats.users_tracked === 'number'
+      ? home_stats.users_tracked
+      : 0
+  );
 
   // Grid background pattern
   const gridPattern = `background-image: linear-gradient(to right, #4A2D3133 1px, transparent 1px), linear-gradient(to bottom, #4A2D3133 1px, transparent 1px); background-size: 6rem 6rem;`;
@@ -64,7 +59,7 @@
     class="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 flex justify-between items-center"
   >
     <div class="flex items-center gap-2 min-w-[140px]">
-      <img src="/images/icon-rounded.png" class="h-8 w-8" alt="Logo" />
+      <img src="/images/new-icon-rounded.png" class="h-8 w-8" alt="Logo" />
       <span class="font-bold tracking-tight text-lg">Hackatime</span>
     </div>
     <div class="hidden md:flex gap-8 text-sm font-medium text-text-muted">

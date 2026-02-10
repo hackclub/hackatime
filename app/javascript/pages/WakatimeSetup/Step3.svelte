@@ -1,15 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Link } from "@inertiajs/svelte";
+  import type InertiaWakatimeSetupStep3Props from "../../types/serializers/Inertia/WakatimeSetupStep3Props";
+  import { users } from "../../api";
   import Stepper from "./Stepper.svelte";
 
-  interface Props {
-    current_user_api_key: string;
-    editor: string;
-    heartbeat_check_url: string;
-  }
-
-  let { current_user_api_key, editor, heartbeat_check_url }: Props = $props();
+  let { current_user_api_key, editor, heartbeat_check_url }: InertiaWakatimeSetupStep3Props = $props();
 
   let hasHeartbeat = $state(false);
   let heartbeatTimeAgo = $state("");
@@ -280,7 +275,7 @@
               </p>
 
               <a
-                href="/my/wakatime_setup/step-4"
+                href={users.wakatimeSetupStep4.path()}
                 class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 Continue →
@@ -291,7 +286,7 @@
 
         <div class="text-center">
           <a
-            href="/my/wakatime_setup/step-4"
+            href={users.wakatimeSetupStep4.path()}
             class="text-xs text-secondary hover:text-white transition-colors"
             >Skip to finish</a
           >
@@ -348,22 +343,23 @@
       </div>
 
       <a
-        href="/my/wakatime_setup/step-4"
+        href={users.wakatimeSetupStep4.path()}
         class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
       </a>
-    {:else if editorData[editor]}
+    {:else if editor && editorData[editor]}
+      {@const editorInfo = editorData[editor]}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="flex items-center gap-4 mb-6">
           <img
-            src={editorData[editor].icon}
-            alt={editorData[editor].name}
+            src={editorInfo.icon}
+            alt={editorInfo.name}
             class="w-12 h-12 object-contain"
           />
           <div>
             <h3 class="text-xl font-semibold">
-              {editorData[editor].name} Setup
+              {editorInfo.name} Setup
             </h3>
             <p class="text-secondary text-sm">
               Install the plugin with your preferred package manager.
@@ -372,7 +368,7 @@
         </div>
 
         <div class="space-y-6">
-          {#each editorData[editor].methods as method, index}
+          {#each editorInfo.methods as method, index}
             {#if index > 0}
               <div class="pt-6 border-t border-darkless"></div>
             {/if}
@@ -397,7 +393,7 @@
       </div>
 
       <a
-        href="/my/wakatime_setup/step-4"
+        href={users.wakatimeSetupStep4.path()}
         class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
@@ -473,7 +469,7 @@
       </div>
 
       <a
-        href="/my/wakatime_setup/step-4"
+        href={users.wakatimeSetupStep4.path()}
         class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
