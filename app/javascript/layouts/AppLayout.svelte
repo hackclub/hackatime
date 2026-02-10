@@ -21,6 +21,7 @@
     title?: string | null;
     country_code?: string | null;
     country_name?: string | null;
+    impersonate_path?: string | null;
   };
 
   type NavStreak = {
@@ -30,6 +31,12 @@
     show_text?: boolean;
     icon_size?: number;
     show_super_class?: boolean;
+  };
+
+  type NavActivity = {
+    id: number;
+    owner?: NavUserMentionType | null;
+    message: string;
   };
 
   type LayoutNav = {
@@ -44,7 +51,7 @@
     admin_links: NavLink[];
     viewer_links: NavLink[];
     superadmin_links: NavLink[];
-    activities_html?: string | null;
+    activities?: NavActivity[] | null;
   };
 
   type Footer = {
@@ -340,8 +347,17 @@
           </div>
         {/if}
 
-        {#if layout.nav.activities_html}
-          <div class="pt-2">{@html layout.nav.activities_html}</div>
+        {#if layout.nav.activities && layout.nav.activities.length > 0}
+          <div class="pt-2 space-y-2">
+            {#each layout.nav.activities as activity (activity.id)}
+              <div class="flex flex-wrap items-center gap-1">
+                {#if activity.owner}
+                  <NavUserMention user={activity.owner} />
+                {/if}
+                <span>{activity.message}</span>
+              </div>
+            {/each}
+          </div>
         {/if}
       </nav>
     </div>

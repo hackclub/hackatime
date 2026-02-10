@@ -5,6 +5,7 @@
     title?: string | null;
     country_code?: string | null;
     country_name?: string | null;
+    impersonate_path?: string | null;
   };
 
   let { user }: { user: NavUserMention } = $props();
@@ -35,14 +36,27 @@
   <span class="inline-flex items-center gap-1">
     {user.display_name}
   </span>
-  {#if user.country_code}
+  {@const flagUrl = countryFlagUrl(user.country_code)}
+  {#if flagUrl}
     <span title={user.country_name || undefined} class="flex items-center">
       <img
-        src={countryFlagUrl(user.country_code)}
+        src={flagUrl}
         alt={`${user.country_code} flag`}
         class="inline-block w-5 h-5 align-middle"
         loading="lazy"
       />
+    </span>
+  {/if}
+  {#if user.impersonate_path}
+    <span class="admin-tool">
+      <a
+        href={user.impersonate_path}
+        class="text-primary font-bold hover:text-red-300 transition-colors duration-200"
+        data-turbo-frame="_top"
+        data-turbo-prefetch="false"
+      >
+        &#129400;
+      </a>
     </span>
   {/if}
 </div>

@@ -31,7 +31,7 @@ class InertiaController < ApplicationController
       admin_links: inertia_admin_links,
       viewer_links: inertia_viewer_links,
       superadmin_links: inertia_superadmin_links,
-      activities_html: inertia_activities_html
+      activities: inertia_activities_props
     }
   end
 
@@ -120,9 +120,22 @@ class InertiaController < ApplicationController
     { label: label, href: href, active: active, badge: badge }
   end
 
-  def inertia_activities_html
+  def inertia_activities_props
     return nil unless defined?(@activities) && @activities.present?
-    helpers.render_activities(@activities)
+
+    @activities.filter_map do |activity|
+      owner = activity.owner
+      next unless owner
+
+      message = inertia_activity_message(activity)
+      next if message.blank?
+
+      {
+        id: activity.id,
+        owner: inertia_user_mention_props(owner),
+        message: message
+      }
+    end
   end
 
   def inertia_footer_props
@@ -164,7 +177,8 @@ class InertiaController < ApplicationController
       avatar_url: user.avatar_url,
       title: title,
       country_code: user.country_code,
-      country_name: country_name
+      country_name: country_name,
+      impersonate_path: impersonate_path_for(user)
     }
   end
 
@@ -180,6 +194,49 @@ class InertiaController < ApplicationController
       show_text: true,
       icon_size: 24
     }
+  end
+
+  def inertia_activity_message(activity)
+    params = activity.parameters&.with_indifferent_access || {}
+    project = params[:project].presence
+
+    case activity.key
+    when "user.first_signup"
+      "just signed in for the first time"
+    when "user.first_heartbeat"
+      base = "just started tracking their coding time"
+      project ? "#{base} on #{project}!" : "#{base}!"
+    when "user.started_working"
+      base = "just started working"
+      project ? "#{base} on #{project}" : base
+    when "user.coding_session"
+      base = "just finished coding"
+      duration = helpers.short_time_simple(params[:duration_seconds].to_i)
+      if project
+        "#{base} on #{project} for #{duration}"
+      else
+        "#{base} for #{duration}"
+      end
+    when "physical_mail.mail_sent"
+      mission_type = params[:humanized_mission_type].presence || "a mission"
+      "was just sent a letter for '#{mission_type}'"
+    when "physical_mail.first_streak_achieved"
+      "just hit their first 7 day coding streak!"
+    else
+      nil
+    end
+  end
+
+  def impersonate_path_for(user)
+    return nil unless current_user
+    return nil unless current_user.admin_level.in?(%w[admin superadmin])
+    return nil if user == current_user
+    return nil if user.admin_level == "superadmin"
+
+    return impersonate_user_path(user) if user.admin_level != "admin"
+    return impersonate_user_path(user) if current_user.admin_level == "superadmin"
+
+    nil
   end
 
   def currently_hacking_props
