@@ -1,5 +1,5 @@
 import { createInertiaApp, type ResolvedComponent } from '@inertiajs/svelte'
-import { hydrate, mount } from 'svelte'
+import { mount } from 'svelte'
 import AppLayout from '../layouts/AppLayout.svelte'
 
 createInertiaApp({
@@ -22,9 +22,7 @@ createInertiaApp({
 
   setup({ el, App, props }) {
     if (el) {
-      const hasServerMarkup = el.hasChildNodes()
-      const render = hasServerMarkup ? hydrate : mount
-      render(App, { target: el, props })
+      mount(App, { target: el, props })
     } else {
       console.error(
         'Missing root element.\n\n' +

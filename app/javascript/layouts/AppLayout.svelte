@@ -3,9 +3,6 @@
   import { usePoll } from "@inertiajs/svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
-  import NavAdminLevelBadge from "../components/nav/NavAdminLevelBadge.svelte";
-  import NavStreakBadge from "../components/nav/NavStreakBadge.svelte";
-  import NavUserMention from "../components/nav/NavUserMention.svelte";
 
   type NavLink = {
     label: string;
@@ -15,43 +12,19 @@
     action?: string;
   };
 
-  type NavUserMentionType = {
-    display_name: string;
-    avatar_url?: string | null;
-    title?: string | null;
-    country_code?: string | null;
-    country_name?: string | null;
-    impersonate_path?: string | null;
-  };
-
-  type NavStreak = {
-    count: number;
-    display: string;
-    title: string;
-    show_text?: boolean;
-    icon_size?: number;
-    show_super_class?: boolean;
-  };
-
-  type NavActivity = {
-    id: number;
-    owner?: NavUserMentionType | null;
-    message: string;
-  };
-
   type LayoutNav = {
     flash: { message: string; class_name: string }[];
     user_present: boolean;
-    user?: NavUserMentionType | null;
-    streak?: NavStreak | null;
-    admin_level?: string | null;
+    user_mention_html?: string | null;
+    streak_html?: string | null;
+    admin_level_html?: string | null;
     login_path: string;
     links: NavLink[];
     dev_links: NavLink[];
     admin_links: NavLink[];
     viewer_links: NavLink[];
     superadmin_links: NavLink[];
-    activities?: NavActivity[] | null;
+    activities_html?: string | null;
   };
 
   type Footer = {
@@ -238,15 +211,11 @@
         <div
           class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
         >
-          {#if layout.nav.user}
-            <NavUserMention user={layout.nav.user} />
-          {/if}
-          {#if layout.nav.streak}
-            <NavStreakBadge streak={layout.nav.streak} />
-          {/if}
-          {#if layout.nav.admin_level}
-            <NavAdminLevelBadge level={layout.nav.admin_level} />
-          {/if}
+          {#if layout.nav.user_mention_html}{@html layout.nav
+              .user_mention_html}{/if}
+          {#if layout.nav.streak_html}{@html layout.nav.streak_html}{/if}
+          {#if layout.nav.admin_level_html}{@html layout.nav
+              .admin_level_html}{/if}
         </div>
       {:else}
         <div>
@@ -347,17 +316,8 @@
           </div>
         {/if}
 
-        {#if layout.nav.activities && layout.nav.activities.length > 0}
-          <div class="pt-2 space-y-2">
-            {#each layout.nav.activities as activity (activity.id)}
-              <div class="flex flex-wrap items-center gap-1">
-                {#if activity.owner}
-                  <NavUserMention user={activity.owner} />
-                {/if}
-                <span>{activity.message}</span>
-              </div>
-            {/each}
-          </div>
+        {#if layout.nav.activities_html}
+          <div class="pt-2">{@html layout.nav.activities_html}</div>
         {/if}
       </nav>
     </div>
