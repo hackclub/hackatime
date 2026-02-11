@@ -39,6 +39,7 @@ Rails.application.routes.draw do
           post :toggle_verified
         end
       end
+      post :clear_cache, to: "cache#clear", as: :clear_cache
     end
   end
 

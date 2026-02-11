@@ -13,7 +13,9 @@ class InertiaController < ApplicationController
       csrf_token: form_authenticity_token,
       signout_path: signout_path,
       show_stop_impersonating: session[:impersonater_user_id].present?,
-      stop_impersonating_path: stop_impersonating_path
+      stop_impersonating_path: stop_impersonating_path,
+      is_superadmin: current_user&.admin_level_superadmin? || false,
+      clear_cache_path: current_user&.admin_level_superadmin? ? admin_clear_cache_path : nil
     }
   end
 

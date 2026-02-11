@@ -61,6 +61,8 @@
     signout_path: string;
     show_stop_impersonating: boolean;
     stop_impersonating_path: string;
+    is_superadmin: boolean;
+    clear_cache_path?: string | null;
   };
 
   let { layout, children }: { layout: LayoutProps; children?: () => unknown } =
@@ -313,6 +315,16 @@
                 {/if}
               </a>
             {/each}
+
+            {#if layout.is_superadmin && layout.clear_cache_path}
+              <a
+                href={layout.clear_cache_path}
+                onclick={(e) => { e.preventDefault(); router.post(layout.clear_cache_path); }}
+                class="{navLinkClass(false)} superadmin-tool cursor-pointer"
+              >
+                Clear cache
+              </a>
+            {/if}
           </div>
         {/if}
 
