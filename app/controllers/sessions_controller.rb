@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
   def hca_new
-    session[:return_data] = { url: params[:continue].presence || request.referer } if request.referer.present? && request.referer != request.url
+    session[:return_data] = { "url" => safe_return_url(params[:continue].presence) } if params[:continue].present?
     Rails.logger.info("Sessions return data: #{session[:return_data]}")
     redirect_uri = url_for(action: :hca_create, only_path: false)
 
@@ -34,7 +34,7 @@ class SessionsController < ApplicationController
       end
 
       if @user.created_at > 5.seconds.ago
-        session[:return_data] ||= { url: params[:continue].presence || request.referer }
+        session[:return_data] = { "url" => safe_return_url(params[:continue].presence) }
         Rails.logger.info("Sessions return data: #{session[:return_data]}")
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       else
@@ -81,6 +81,9 @@ class SessionsController < ApplicationController
       state = JSON.parse(params[:state]) rescue {}
       if state["close_window"]
         redirect_to close_window_path
+      elsif @user.created_at > 5.seconds.ago
+        session[:return_data] = { "url" => safe_return_url(state["continue"].presence) }
+        redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
       elsif state["continue"]
         redirect_to state["continue"], notice: "Successfully signed in with Slack! Welcome!"
       else
