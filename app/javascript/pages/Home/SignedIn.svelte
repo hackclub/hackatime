@@ -1,11 +1,15 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import type { ActivityGraphData } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
   import SetupNotice from "./signedIn/SetupNotice.svelte";
   import TodaySentence from "./signedIn/TodaySentence.svelte";
+  import TodaySentenceSkeleton from "./signedIn/TodaySentenceSkeleton.svelte";
   import Dashboard from "./signedIn/Dashboard.svelte";
+  import DashboardSkeleton from "./signedIn/DashboardSkeleton.svelte";
   import ActivityGraph from "./signedIn/ActivityGraph.svelte";
+  import ActivityGraphSkeleton from "./signedIn/ActivityGraphSkeleton.svelte";
 
   type SocialProofUser = { display_name: string; avatar_url: string };
 
@@ -37,6 +41,13 @@
     selected_category: string[];
   };
 
+  type TodayStats = {
+    show_logged_time_sentence: boolean;
+    todays_duration_display: string;
+    todays_languages: string[];
+    todays_editors: string[];
+  };
+
   let {
     flavor_text,
     trust_level_red,
@@ -47,12 +58,7 @@
     github_uid_blank,
     github_auth_path,
     wakatime_setup_path,
-    show_logged_time_sentence,
-    todays_duration_display,
-    todays_languages,
-    todays_editors,
-    filterable_dashboard_data,
-    activity_graph,
+    dashboard_stats_url,
   }: {
     flavor_text: string;
     trust_level_red: boolean;
@@ -63,13 +69,28 @@
     github_uid_blank: boolean;
     github_auth_path: string;
     wakatime_setup_path: string;
-    show_logged_time_sentence: boolean;
-    todays_duration_display: string;
-    todays_languages: string[];
-    todays_editors: string[];
-    filterable_dashboard_data: FilterableDashboardData;
-    activity_graph: ActivityGraphData;
+    dashboard_stats_url: string;
   } = $props();
+
+  let loading = $state(true);
+  let todayStats = $state<TodayStats | null>(null);
+  let dashboardData = $state<FilterableDashboardData | null>(null);
+  let activityGraph = $state<ActivityGraphData | null>(null);
+
+  onMount(async () => {
+    try {
+      const res = await fetch(dashboard_stats_url, {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      todayStats = data.today_stats;
+      dashboardData = data.filterable_dashboard_data;
+      activityGraph = data.activity_graph;
+    } finally {
+      loading = false;
+    }
+  });
 </script>
 
 <div>
@@ -104,20 +125,32 @@
   {/if}
 
   <div class="flex flex-col gap-8">
-    <!-- Today Stats & Leaderboard -->
+    <!-- Today Stats -->
     <div>
-      <TodaySentence
-        {show_logged_time_sentence}
-        {todays_duration_display}
-        {todays_languages}
-        {todays_editors}
-      />
+      {#if loading}
+        <TodaySentenceSkeleton />
+      {:else if todayStats}
+        <TodaySentence
+          show_logged_time_sentence={todayStats.show_logged_time_sentence}
+          todays_duration_display={todayStats.todays_duration_display}
+          todays_languages={todayStats.todays_languages}
+          todays_editors={todayStats.todays_editors}
+        />
+      {/if}
     </div>
 
     <!-- Main Dashboard -->
-    <Dashboard data={filterable_dashboard_data} />
+    {#if loading}
+      <DashboardSkeleton />
+    {:else if dashboardData}
+      <Dashboard data={dashboardData} />
+    {/if}
 
     <!-- Activity Graph -->
-    <ActivityGraph data={activity_graph} />
+    {#if loading}
+      <ActivityGraphSkeleton />
+    {:else if activityGraph}
+      <ActivityGraph data={activityGraph} />
+    {/if}
   </div>
 </div>

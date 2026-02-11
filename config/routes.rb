@@ -194,6 +194,8 @@ Rails.application.routes.draw do
         post :claim, on: :collection
       end
 
+      get "dashboard_stats", to: "dashboard_stats#show"
+
       namespace :my do
         get "heartbeats/most_recent", to: "heartbeats#most_recent"
         get "heartbeats", to: "heartbeats#index"
