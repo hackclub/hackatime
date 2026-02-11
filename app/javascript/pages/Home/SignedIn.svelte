@@ -1,7 +1,5 @@
 <script lang="ts">
-  import type {
-    ActivityGraphData,
-  } from "../../types/index";
+  import type { ActivityGraphData } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
   import SetupNotice from "./signedIn/SetupNotice.svelte";

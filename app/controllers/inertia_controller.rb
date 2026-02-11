@@ -9,7 +9,7 @@ class InertiaController < ApplicationController
     {
       nav: inertia_nav_props,
       footer: inertia_footer_props,
-      currently_hacking: currently_hacking_props,
+      # currently_hacking: currently_hacking_props,
       csrf_token: form_authenticity_token,
       signout_path: signout_path,
       show_stop_impersonating: session[:impersonater_user_id].present?,
