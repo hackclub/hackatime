@@ -62,14 +62,34 @@
       </div>
 
       <div>
-        <%= f.label :scopes, class: "block text-sm font-medium text-white mb-2" %>
-        <%= f.text_field :scopes, class: "w-full px-3 py-2 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary placeholder-secondary font-mono text-sm", placeholder: "profile read" %>
+        <label class="block text-sm font-medium text-white mb-2">Scopes</label>
+        <% selected_scopes = application.scopes.to_s.split %>
+        <input type="hidden" name="doorkeeper_application[scopes]" id="doorkeeper_application_scopes" value="<%= selected_scopes.join(' ') %>">
+        <div class="space-y-3">
+          <% (Doorkeeper.configuration.default_scopes.to_a + Doorkeeper.configuration.optional_scopes.to_a).uniq.each do |scope| %>
+            <div class="flex items-start gap-3 p-4 bg-darkless border border-darkless rounded">
+              <input type="checkbox"
+                     id="scope_<%= scope %>"
+                     value="<%= scope %>"
+                     class="mt-0.5 w-4 h-4 text-primary border-darkless rounded focus:ring-primary bg-darker"
+                     <%= 'checked' if selected_scopes.include?(scope.to_s) || (!application.persisted? && Doorkeeper.configuration.default_scopes.include?(scope)) %>
+                     data-scope-checkbox
+                     onchange="var checks = document.querySelectorAll('[data-scope-checkbox]:checked'); var vals = Array.from(checks).map(function(c){return c.value}); document.getElementById('doorkeeper_application_scopes').value = vals.join(' ');">
+              <div>
+                <label for="scope_<%= scope %>" class="text-sm font-medium text-white cursor-pointer">
+                  <%= scope %>
+                  <% if Doorkeeper.configuration.default_scopes.include?(scope) %>
+                    <span class="ml-1.5 text-xs font-normal text-primary">(default)</span>
+                  <% end %>
+                </label>
+                <p class="mt-1 text-xs text-secondary"><%= t(scope, scope: [:doorkeeper, :scopes]) %></p>
+              </div>
+            </div>
+          <% end %>
+        </div>
         <% if application.errors[:scopes].present? %>
           <p class="mt-1 text-xs text-red"><%= application.errors[:scopes].to_sentence %></p>
         <% end %>
-        <p class="mt-2 text-xs text-secondary">
-          <%= t('doorkeeper.applications.help.scopes') %>
-        </p>
       </div>
 
       <div class="flex items-start gap-3 p-4 bg-darkless border border-darkless rounded">
