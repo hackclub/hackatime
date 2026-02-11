@@ -63,33 +63,46 @@ class Api::V1::StatsController < ApplicationController
     service_params[:end_date] = end_date
     service_params[:scope] = scope if scope.present?
 
-    if params[:total_seconds] == "true"
-      query = @user.heartbeats
-                   .coding_only
-                   .with_valid_timestamps
-                   .where(time: start_date..end_date)
+    # use TestWakatimeService when test_param=true for all requests
+    if params[:test_param] == "true"
+      service_params[:boundary_aware] = true  # always and i mean always use boundary aware in testwakatime service
 
-      if params[:filter_by_project].present?
-        filter_by_project = params[:filter_by_project].split(",")
-        query = query.where(project: filter_by_project)
+      if params[:total_seconds] == "true"
+        summary = TestWakatimeService.new(**service_params).generate_summary
+        return render json: { total_seconds: summary[:total_seconds] }
       end
 
-      if params[:filter_by_category].present?
-        filter_by_category = params[:filter_by_category].split(",")
-        query = query.where(category: filter_by_category)
+      summary = TestWakatimeService.new(**service_params).generate_summary
+    else
+      if params[:total_seconds] == "true"
+        query = @user.heartbeats
+                     .coding_only
+                     .with_valid_timestamps
+                     .where(time: start_date..end_date)
+
+        if params[:filter_by_project].present?
+          filter_by_project = params[:filter_by_project].split(",")
+          query = query.where(project: filter_by_project)
+        end
+
+        if params[:filter_by_category].present?
+          filter_by_category = params[:filter_by_category].split(",")
+          query = query.where(category: filter_by_category)
+        end
+
+        # do the boundary thingie if requested
+        use_boundary_aware = params[:boundary_aware] == "true"
+        total_seconds = if use_boundary_aware
+          Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
+        else
+          query.duration_seconds || 0
+        end
+
+        return render json: { total_seconds: total_seconds }
       end
 
-      use_boundary_aware = params[:boundary_aware] == "true"
-      total_seconds = if use_boundary_aware
-        Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
-      else
-        query.duration_seconds || 0
-      end
-
-      return render json: { total_seconds: total_seconds }
+      summary = WakatimeService.new(**service_params).generate_summary
     end
-
-    summary = WakatimeService.new(**service_params).generate_summary
 
     if params[:features]&.include?("projects") && params[:filter_by_project].present?
       filter_by_project = params[:filter_by_project].split(",")
