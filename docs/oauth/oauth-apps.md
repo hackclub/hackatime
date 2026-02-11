@@ -13,7 +13,7 @@ Hackatime uses [OAuth 2.0](https://oauth.net/2/) (powered by Doorkeeper) to let 
 3. Click **New Application**
 4. Fill in the form:
    - **Name** -- a human-readable name for your app (shown on the consent screen)
-   - **Redirect URIs** -- one URI per line where users are sent after authorizing (e.g. `https://example.com/auth/callback`)
+   - **Redirect URIs** -- one URI per line where users are sent after authorizing (e.g. `https://orpheus.gg/auth/callback`)
    - **Scopes** -- the permissions your app needs (see [Scopes](#scopes) below)
    - **Confidential** -- check this if your app can keep a client secret safe (server-side apps). Leave unchecked for native/mobile/SPA apps.
 5. Click **Submit**
@@ -232,7 +232,7 @@ Returns the user's Hackatime API key (creates one if none exists).
 
 ```json
 {
-  "token": "waka_abc123..."
+  "token": "abc123..."
 }
 ```
 
@@ -274,13 +274,13 @@ You can also leave the **Confidential** checkbox unchecked and omit the `client_
 
 ## App Verification
 
-New OAuth apps are marked as **unverified**. Unverified apps trigger a warning on the consent screen telling users the app has not been reviewed. To get your app verified, contact a Hackatime admin. Verified apps:
+New OAuth apps are marked as **unverified**. Unverified apps trigger a warning on the consent screen telling users the app has not been reviewed. To get your app verified, shoot Mahad a DM on the Slack! Verified apps:
 
 - Don't show an "unverified" warning during authorization
 - Have their name locked to prevent impersonation (only admins can rename them)
 
-## Need Help?
+## Need help?
 
-- Check the [interactive API docs](https://hackatime.hackclub.com/api-docs) for full endpoint details
-- Ask in [#hackatime-v2](https://hackclub.slack.com/archives/C07MQ845X1F) on Slack
-- [Open an issue](https://github.com/hackclub/hackatime/issues) on GitHub
+- Check the [interactive API docs](https://hackatime.hackclub.com/api-docs) for full endpoint details.
+- Ask in [#hackatime-v2](https://hackclub.slack.com/archives/C07MQ845X1F) on Slack.
+- [Open an issue](https://github.com/hackclub/hackatime/issues) on GitHub.
