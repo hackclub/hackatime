@@ -91,8 +91,8 @@ class SessionsController < ApplicationController
       elsif !@user.heartbeats.exists?
         session[:return_data] = { "url" => safe_return_url(state["continue"].presence) }
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
-      elsif state["continue"].present? && safe_return_url(state["continue"]).present?
-        redirect_to safe_return_url(state["continue"]), notice: "Successfully signed in with Slack! Welcome!"
+      elsif (continue_url = safe_return_url(state["continue"].presence))
+        redirect_to continue_url, notice: "Successfully signed in with Slack! Welcome!"
       else
         redirect_to root_path, notice: "Successfully signed in with Slack! Welcome!"
       end
@@ -258,7 +258,7 @@ class SessionsController < ApplicationController
 
       if !user.heartbeats.exists?
         # User hasn't set up editor yet; send through wakatime setup first
-        session[:return_data] = { "url" => continue_url } if continue_url.present?
+        session[:return_data]["url"] = continue_url if continue_url.present?
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in!"
       elsif continue_url.present?
         redirect_to continue_url, notice: "Successfully signed in!"
