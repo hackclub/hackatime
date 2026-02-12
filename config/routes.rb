@@ -20,6 +20,7 @@ Rails.application.routes.draw do
   mount Rswag::Ui::Engine => "/api-docs"
   use_doorkeeper
 
+  post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application
   root "static_pages#index"
 
   resources :extensions, only: [ :index ]
@@ -37,6 +38,7 @@ Rails.application.routes.draw do
       resources :oauth_applications, only: [ :index, :show, :edit, :update ] do
         member do
           post :toggle_verified
+          post :rotate_secret
         end
       end
     end

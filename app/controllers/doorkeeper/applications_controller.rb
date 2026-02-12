@@ -5,7 +5,7 @@ module Doorkeeper
     layout "doorkeeper/admin" unless Doorkeeper.configuration.api_only
 
     before_action :authenticate_admin!
-    before_action :set_application, only: %i[show edit update destroy]
+    before_action :set_application, only: %i[show edit update destroy rotate_secret]
 
     def index
       @applications = current_resource_owner.oauth_applications.ordered_by(:created_at)
@@ -78,6 +78,17 @@ module Doorkeeper
         format.html { redirect_to oauth_applications_url }
         format.json { head :no_content }
       end
+    end
+
+    def rotate_secret
+      @application.renew_secret
+      if @application.save
+        flash[:notice] = "Client secret rotated successfully. Make sure to copy your new secret!"
+        flash[:application_secret] = @application.plaintext_secret
+      else
+        flash[:alert] = "Failed to rotate client secret. Please try again."
+      end
+      redirect_to oauth_application_url(@application)
     end
 
     private
