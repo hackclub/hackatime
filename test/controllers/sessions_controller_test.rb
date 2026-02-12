@@ -5,8 +5,6 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     ActiveRecord::FixtureSet.reset_cache
   end
 
-  # -- HCA: hca_new stores continue in session --
-
   test "hca_new stores continue path for oauth authorize" do
     continue_query = {
       client_id: "Ck47_6hihaBqZO7z3CLmJlCB-0NzHtZHGeDBwG4CqRs",
@@ -87,8 +85,6 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil token
     assert_equal oauth_path, token.continue_param
   end
-
-  # -- Email token: sign-in and redirect logic --
 
   test "email token redirects user with heartbeats to continue param after sign in" do
     user = User.create!
