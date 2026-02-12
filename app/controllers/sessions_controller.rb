@@ -37,6 +37,9 @@ class SessionsController < ApplicationController
         session[:return_data] = { "url" => safe_return_url(params[:continue].presence) }
         Rails.logger.info("Sessions return data: #{session[:return_data]}")
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+      elsif session[:return_data]&.dig("url").present?
+        return_url = session[:return_data].delete("url")
+        redirect_to return_url, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       else
         redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       end

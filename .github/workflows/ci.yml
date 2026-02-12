@@ -115,7 +115,7 @@ jobs:
           PGPASSWORD: postgres
         run: |
           bin/rails db:create RAILS_ENV=test
-          bin/rails db:migrate RAILS_ENV=test
+          bin/rails db:schema:load RAILS_ENV=test
           # Create additional test databases
           psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime;"
           psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log;"

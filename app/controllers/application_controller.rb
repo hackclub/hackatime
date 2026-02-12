@@ -54,9 +54,6 @@ class ApplicationController < ActionController::Base
     !!current_user
   end
 
-  # Validates a return URL is a safe relative path.
-  # Rejects absolute URLs, protocol-relative URLs, and javascript: URIs
-  # to prevent open redirect and XSS attacks.
   def safe_return_url(url)
     return nil if url.blank?
     return nil unless url.start_with?("/") && !url.start_with?("//")
