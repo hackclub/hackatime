@@ -27,6 +27,11 @@ class Admin::OauthApplicationsController < Admin::BaseController
   end
 
   def rotate_secret
+    unless current_user&.admin_level_superadmin?
+      redirect_to admin_oauth_application_path(@application), alert: "Only superadmins can rotate secrets."
+      return
+    end
+
     @application.renew_secret
     if @application.save
       flash[:notice] = "Secret rotated successfully. Make sure to copy the secret!"
@@ -34,7 +39,9 @@ class Admin::OauthApplicationsController < Admin::BaseController
     else
       flash[:alert] = "Failed to rotate client secret. Please try again."
     end
-      redirect_to admin_oauth_application_path(@application)
+    redirect_to admin_oauth_application_path(@application)
+  end
+ redirect_to admin_oauth_application_path(@application)
   end
   private
 
