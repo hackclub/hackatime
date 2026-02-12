@@ -82,13 +82,26 @@ module Doorkeeper
 
     def rotate_secret
       @application.renew_secret
-      if @application.save
-        flash[:notice] = "Client secret rotated successfully. Make sure to copy your new secret!"
-        flash[:application_secret] = @application.plaintext_secret
-      else
-        flash[:alert] = "Failed to rotate client secret. Please try again."
+
+      respond_to do |format|
+        if @application.save
+          format.html do
+            flash[:notice] = I18n.t(:notice, scope: i18n_scope(:rotate_secret))
+            flash[:application_secret] = @application.plaintext_secret
+            redirect_to oauth_application_url(@application)
+          end
+          format.json { render json: @application, as_owner: true }
+        else
+          format.html do
+            flash[:alert] = I18n.t(:alert, scope: i18n_scope(:rotate_secret))
+            redirect_to oauth_application_url(@application)
+          end
+          format.json do
+            errors = @application.errors.full_messages
+            render json: { errors: errors }, status: :unprocessable_entity
+          end
+        end
       end
-      redirect_to oauth_application_url(@application)
     end
 
     private

@@ -1,5 +1,5 @@
 class Admin::OauthApplicationsController < Admin::BaseController
-  before_action :set_application, only: [ :show, :edit, :update, :toggle_verified,  :rotate_secret ]
+  before_action :set_application, only: [ :show, :edit, :update, :toggle_verified, :rotate_secret ]
 
   def index
     @applications = OauthApplication.includes(:owner).order(created_at: :desc)
@@ -41,8 +41,7 @@ class Admin::OauthApplicationsController < Admin::BaseController
     end
     redirect_to admin_oauth_application_path(@application)
   end
- redirect_to admin_oauth_application_path(@application)
-  end
+
   private
 
   def set_application
