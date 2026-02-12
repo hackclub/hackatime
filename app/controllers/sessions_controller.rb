@@ -34,7 +34,10 @@ class SessionsController < ApplicationController
       end
 
       if @user.created_at > 5.seconds.ago
-        session[:return_data] = { "url" => safe_return_url(params[:continue].presence) }
+        # Preserve return_data already set by hca_new; only override if a new continue param is provided.
+        if params[:continue].present?
+          session[:return_data] = { "url" => safe_return_url(params[:continue].presence) }
+        end
         Rails.logger.info("Sessions return data: #{session[:return_data]}")
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       elsif session[:return_data]&.dig("url").present?
@@ -249,9 +252,15 @@ class SessionsController < ApplicationController
       valid_token.mark_used!
       session[:user_id] = valid_token.user_id
       session[:return_data] = valid_token.return_data || {}
+      user = User.find(valid_token.user_id)
+      continue_url = safe_return_url(valid_token.continue_param)
 
-      if valid_token.continue_param.present? && safe_return_url(valid_token.continue_param).present?
-        redirect_to safe_return_url(valid_token.continue_param), notice: "Successfully signed in!"
+      if user.created_at > 5.seconds.ago
+        # New user: send through wakatime setup first, with continue URL for after
+        session[:return_data] = { "url" => continue_url } if continue_url.present?
+        redirect_to my_wakatime_setup_path, notice: "Successfully signed in!"
+      elsif continue_url.present?
+        redirect_to continue_url, notice: "Successfully signed in!"
       else
         redirect_to root_path, notice: "Successfully signed in!"
       end

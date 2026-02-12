@@ -88,8 +88,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal oauth_path, token.continue_param
   end
 
-  test "email token redirects to continue param after sign in" do
-    user = User.create!
+  test "email token redirects existing user to continue param after sign in" do
+    user = User.create!(created_at: 1.hour.ago)
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
     sign_in_token = user.sign_in_tokens.create!(
       auth_type: :email,
@@ -103,8 +103,24 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal user.id, session[:user_id]
   end
 
-  test "email token falls back to root when no continue param" do
+  test "email token redirects new user to wakatime setup with continue stored in session" do
     user = User.create!
+    oauth_path = "/oauth/authorize?client_id=test&response_type=code"
+    sign_in_token = user.sign_in_tokens.create!(
+      auth_type: :email,
+      continue_param: oauth_path
+    )
+
+    get auth_token_path(token: sign_in_token.token)
+
+    assert_response :redirect
+    assert_redirected_to my_wakatime_setup_path
+    assert_equal user.id, session[:user_id]
+    assert_equal oauth_path, session.dig(:return_data, "url")
+  end
+
+  test "email token falls back to root when no continue param for existing user" do
+    user = User.create!(created_at: 1.hour.ago)
     sign_in_token = user.sign_in_tokens.create!(auth_type: :email)
 
     get auth_token_path(token: sign_in_token.token)
@@ -114,8 +130,19 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal user.id, session[:user_id]
   end
 
-  test "email token rejects external continue URL" do
+  test "email token sends new user to wakatime setup when no continue param" do
     user = User.create!
+    sign_in_token = user.sign_in_tokens.create!(auth_type: :email)
+
+    get auth_token_path(token: sign_in_token.token)
+
+    assert_response :redirect
+    assert_redirected_to my_wakatime_setup_path
+    assert_equal user.id, session[:user_id]
+  end
+
+  test "email token rejects external continue URL for existing user" do
+    user = User.create!(created_at: 1.hour.ago)
     sign_in_token = user.sign_in_tokens.create!(
       auth_type: :email,
       continue_param: "https://evil.example.com/phish"
@@ -128,8 +155,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal user.id, session[:user_id]
   end
 
-  test "email token rejects protocol-relative continue URL" do
-    user = User.create!
+  test "email token rejects protocol-relative continue URL for existing user" do
+    user = User.create!(created_at: 1.hour.ago)
     sign_in_token = user.sign_in_tokens.create!(
       auth_type: :email,
       continue_param: "//evil.example.com/phish"
