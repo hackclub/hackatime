@@ -35,9 +35,10 @@ class SessionsController < ApplicationController
 
       if !@user.heartbeats.exists?
         # User hasn't set up editor yet; preserve return_data already set by hca_new,
-        # only override if a new continue param is provided.
+        # only override if a new, safely sanitized continue URL is available.
         if params[:continue].present?
-          session[:return_data] = { "url" => safe_return_url(params[:continue].presence) }
+          sanitized_continue_url = safe_return_url(params[:continue].presence)
+          session[:return_data] = { "url" => sanitized_continue_url } if sanitized_continue_url.present?
         end
         Rails.logger.info("Sessions return data: #{session[:return_data]}")
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"

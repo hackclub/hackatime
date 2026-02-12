@@ -202,4 +202,80 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     assert_nil session[:user_id]
   end
+
+  # -- HCA callback: new user without heartbeats --
+
+  test "hca_create redirects user without heartbeats to wakatime setup" do
+    user = User.create!
+    User.define_singleton_method(:from_hca_token) { |_code, _uri| user }
+    get "/auth/hca/callback", params: { code: "fake_code" }
+
+    assert_response :redirect
+    assert_redirected_to my_wakatime_setup_path
+    assert_equal user.id, session[:user_id]
+  ensure
+    User.singleton_class.remove_method(:from_hca_token)
+  end
+
+  test "hca_create stores continue in session for user without heartbeats" do
+    user = User.create!
+    oauth_path = "/oauth/authorize?client_id=test&response_type=code"
+
+    User.define_singleton_method(:from_hca_token) { |_code, _uri| user }
+    get "/auth/hca/callback", params: { code: "fake_code", continue: oauth_path }
+
+    assert_response :redirect
+    assert_redirected_to my_wakatime_setup_path
+    assert_equal oauth_path, session.dig(:return_data, "url")
+  ensure
+    User.singleton_class.remove_method(:from_hca_token)
+  end
+
+  test "hca_create does not overwrite return_data with nil for unsafe continue URL" do
+    user = User.create!
+
+    # Simulate hca_new having set a valid return URL
+    get hca_auth_path(continue: "/oauth/authorize?client_id=test")
+
+    User.define_singleton_method(:from_hca_token) { |_code, _uri| user }
+    get "/auth/hca/callback", params: { code: "fake_code", continue: "https://evil.example.com" }
+
+    assert_response :redirect
+    assert_redirected_to my_wakatime_setup_path
+    assert_equal "/oauth/authorize?client_id=test", session.dig(:return_data, "url")
+  ensure
+    User.singleton_class.remove_method(:from_hca_token)
+  end
+
+  # -- Slack callback: new user without heartbeats --
+
+  test "slack_create redirects user without heartbeats to wakatime setup" do
+    user = User.create!
+    state = { "continue" => "/oauth/authorize?client_id=test" }.to_json
+
+    User.define_singleton_method(:from_slack_token) { |_code, _uri| user }
+    get "/auth/slack/callback", params: { code: "fake_code", state: state }
+
+    assert_response :redirect
+    assert_redirected_to my_wakatime_setup_path
+    assert_equal user.id, session[:user_id]
+    assert_equal "/oauth/authorize?client_id=test", session.dig(:return_data, "url")
+  ensure
+    User.singleton_class.remove_method(:from_slack_token)
+  end
+
+  test "slack_create redirects user with heartbeats to continue URL" do
+    user = User.create!
+    user.heartbeats.create!(time: Time.current.to_f, source_type: :test_entry)
+    oauth_path = "/oauth/authorize?client_id=test&response_type=code"
+    state = { "continue" => oauth_path }.to_json
+
+    User.define_singleton_method(:from_slack_token) { |_code, _uri| user }
+    get "/auth/slack/callback", params: { code: "fake_code", state: state }
+
+    assert_response :redirect
+    assert_redirected_to oauth_path
+  ensure
+    User.singleton_class.remove_method(:from_slack_token)
+  end
 end
