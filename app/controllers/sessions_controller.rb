@@ -87,8 +87,8 @@ class SessionsController < ApplicationController
       elsif @user.created_at > 5.seconds.ago
         session[:return_data] = { "url" => safe_return_url(state["continue"].presence) }
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
-      elsif state["continue"]
-        redirect_to state["continue"], notice: "Successfully signed in with Slack! Welcome!"
+      elsif state["continue"].present? && safe_return_url(state["continue"]).present?
+        redirect_to safe_return_url(state["continue"]), notice: "Successfully signed in with Slack! Welcome!"
       else
         redirect_to root_path, notice: "Successfully signed in with Slack! Welcome!"
       end
@@ -250,8 +250,8 @@ class SessionsController < ApplicationController
       session[:user_id] = valid_token.user_id
       session[:return_data] = valid_token.return_data || {}
 
-      if valid_token.continue_param.present?
-        redirect_to valid_token.continue_param, notice: "Successfully signed in!"
+      if valid_token.continue_param.present? && safe_return_url(valid_token.continue_param).present?
+        redirect_to safe_return_url(valid_token.continue_param), notice: "Successfully signed in!"
       else
         redirect_to root_path, notice: "Successfully signed in!"
       end
