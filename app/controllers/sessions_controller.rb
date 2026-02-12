@@ -33,8 +33,9 @@ class SessionsController < ApplicationController
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
-      if @user.created_at > 5.seconds.ago
-        # Preserve return_data already set by hca_new; only override if a new continue param is provided.
+      if !@user.heartbeats.exists?
+        # User hasn't set up editor yet; preserve return_data already set by hca_new,
+        # only override if a new continue param is provided.
         if params[:continue].present?
           session[:return_data] = { "url" => safe_return_url(params[:continue].presence) }
         end
@@ -87,7 +88,7 @@ class SessionsController < ApplicationController
       state = JSON.parse(params[:state]) rescue {}
       if state["close_window"]
         redirect_to close_window_path
-      elsif @user.created_at > 5.seconds.ago
+      elsif !@user.heartbeats.exists?
         session[:return_data] = { "url" => safe_return_url(state["continue"].presence) }
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
       elsif state["continue"].present? && safe_return_url(state["continue"]).present?
@@ -255,8 +256,8 @@ class SessionsController < ApplicationController
       user = User.find(valid_token.user_id)
       continue_url = safe_return_url(valid_token.continue_param)
 
-      if user.created_at > 5.seconds.ago
-        # New user: send through wakatime setup first, with continue URL for after
+      if !user.heartbeats.exists?
+        # User hasn't set up editor yet; send through wakatime setup first
         session[:return_data] = { "url" => continue_url } if continue_url.present?
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in!"
       elsif continue_url.present?
