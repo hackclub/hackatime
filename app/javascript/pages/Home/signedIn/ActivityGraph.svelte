@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Link } from "@inertiajs/svelte";
   import type { ActivityGraphData } from "../../../types/index";
 
   let { data }: { data: ActivityGraphData } = $props();
@@ -38,7 +39,7 @@
   <div class="grid grid-rows-7 grid-flow-col gap-1 w-full lg:w-1/2">
     {#each dates as date}
       {@const seconds = data.duration_by_date[date] ?? 0}
-      <a
+      <Link
         class="day transition-all duration-75 w-3 h-3 rounded-sm hover:scale-110 hover:z-10 hover:shadow-md {bgColor(
           seconds,
           data.busiest_day_seconds,
@@ -49,11 +50,11 @@
         data-duration={durationInWords(seconds)}
       >
         &nbsp;
-      </a>
+      </Link>
     {/each}
   </div>
   <p class="super">
     Calculated in
-    <a href={data.timezone_settings_path}>{data.timezone_label}</a>
+    <Link href={data.timezone_settings_path}>{data.timezone_label}</Link>
   </p>
 </div>

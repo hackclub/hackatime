@@ -36,11 +36,5 @@ createInertiaApp({
     form: {
       forceIndicesArrayFormatInFormData: false,
     },
-    future: {
-      useScriptElementForInitialPage: true,
-      useDataInertiaHeadAttribute: true,
-      useDialogForErrorModal: true,
-      preserveEqualProps: true,
-    },
   },
 })

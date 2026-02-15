@@ -58,7 +58,7 @@ class InertiaController < ApplicationController
       links << inertia_link("Projects", my_projects_path, active: helpers.current_page?(my_projects_path))
       links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"))
       links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path))
-      links << inertia_link("Settings", my_settings_path, active: helpers.current_page?(my_settings_path))
+      links << inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings"))
       links << inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications"))
       links << { label: "Logout", action: "logout" }
     else

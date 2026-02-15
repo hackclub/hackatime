@@ -175,11 +175,11 @@
                   Open VS Code, go to Extensions (squares icon), search for <strong
                     >WakaTime</strong
                   >, and click Install.
-                  <a
+                  <Link
                     href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-cyan hover:underline">View on Marketplace</a
+                    class="text-cyan hover:underline">View on Marketplace</Link
                   >
                 </p>
               </div>
@@ -279,21 +279,21 @@
                   : "VS Code"}.
               </p>
 
-              <a
+              <Link
                 href="/my/wakatime_setup/step-4"
                 class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 Continue →
-              </a>
+              </Link>
             </div>
           {/if}
         </div>
 
         <div class="text-center">
-          <a
+          <Link
             href="/my/wakatime_setup/step-4"
             class="text-xs text-secondary hover:text-white transition-colors"
-            >Skip to finish</a
+            >Skip to finish</Link
           >
         </div>
       </div>
@@ -331,7 +331,7 @@
           </div>
 
           <div class="pt-2">
-            <a
+            <Link
               href="https://www.youtube.com/watch?v=a938RgsBzNg&t=29s"
               target="_blank"
               class="inline-flex items-center gap-2 text-cyan hover:underline text-sm font-medium"
@@ -342,17 +342,17 @@
                 /></svg
               >
               Watch setup tutorial
-            </a>
+            </Link>
           </div>
         </div>
       </div>
 
-      <a
+      <Link
         href="/my/wakatime_setup/step-4"
         class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
-      </a>
+      </Link>
     {:else if editor === "jetbrains"}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="flex items-center gap-4 mb-6">
@@ -399,11 +399,11 @@
               <p class="text-sm text-secondary">
                 Search for <b>WakaTime</b> in the marketplace and click Install.
 
-                <a
+                <Link
                     href="https://plugins.jetbrains.com/plugin/7425-wakatime"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-cyan hover:underline">View on Marketplace</a
+                    class="text-cyan hover:underline">View on Marketplace</Link
                   >
               </p>
             </div>
@@ -459,12 +459,12 @@
         </div>
       </div>
 
-      <a
+      <Link
         href="/my/wakatime_setup/step-4"
         class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
-      </a>
+      </Link>
     {:else if editor === "sublime"}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="flex items-center gap-4 mb-6">
@@ -492,11 +492,11 @@
               <p class="font-medium mb-1">Install Package Control</p>
               <p class="text-sm text-secondary">
                 If you don't have Package Control installed, install it at
-                <a
+                <Link
                   href="https://packagecontrol.io/installation"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-cyan hover:underline">packagecontrol.io</a
+                  class="text-cyan hover:underline">packagecontrol.io</Link
                 > to set it up first.
               </p>
             </div>
@@ -512,11 +512,11 @@
               <p class="font-medium mb-1">Install WakaTime Plugin</p>
               <p class="text-sm text-secondary">
                 Open the Command Palette (Ctrl+Shift+P on Windows/Linux, Command+Shift+P on macOS), type <b>Package Control: Install Package</b>, and press Enter. Then type <b>WakaTime</b> and press Enter to install.
-                  <a
+                  <Link
                       href="https://packagecontrol.io/packages/WakaTime"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="text-cyan hover:underline">View on Package Control</a
+                      class="text-cyan hover:underline">View on Package Control</Link
                     >
               </p>
             </div>
@@ -566,12 +566,12 @@
         </div>
       </div>
 
-      <a
+      <Link
         href="/my/wakatime_setup/step-4"
         class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
-      </a>
+      </Link>
     {:else if editorData[editor]}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="flex items-center gap-4 mb-6">
@@ -615,12 +615,12 @@
         </div>
       </div>
 
-      <a
+      <Link
         href="/my/wakatime_setup/step-4"
         class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
-      </a>
+      </Link>
     {:else}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="mb-6">
@@ -646,7 +646,7 @@
           </div>
 
           <div class="pt-4 grid grid-cols-2 gap-3">
-            <a
+            <Link
               href="/docs/editors/pycharm"
               class="flex items-center gap-3 bg-darkless/50 rounded-lg p-3 hover:bg-darkless transition-colors"
             >
@@ -656,8 +656,8 @@
                 class="w-6 h-6"
               />
               <span class="text-sm">PyCharm</span>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/docs/editors/sublime-text"
               class="flex items-center gap-3 bg-darkless/50 rounded-lg p-3 hover:bg-darkless transition-colors"
             >
@@ -667,8 +667,8 @@
                 class="w-6 h-6"
               />
               <span class="text-sm">Sublime Text</span>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/docs/editors/unity"
               class="flex items-center gap-3 bg-darkless/50 rounded-lg p-3 hover:bg-darkless transition-colors"
             >
@@ -678,25 +678,25 @@
                 class="w-6 h-6"
               />
               <span class="text-sm">Unity</span>
-            </a>
-            <a
+            </Link>
+            <Link
               href="https://wakatime.com/editors"
               target="_blank"
               class="flex items-center gap-3 bg-darkless/50 rounded-lg p-3 hover:bg-darkless transition-colors"
             >
               <div class="w-6 h-6 flex items-center justify-center">🌐</div>
               <span class="text-sm">View all editors</span>
-            </a>
+            </Link>
           </div>
         </div>
       </div>
 
-      <a
+      <Link
         href="/my/wakatime_setup/step-4"
         class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
-      </a>
+      </Link>
     {/if}
   </div>
 </div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Link } from "@inertiajs/svelte";
+
   const EXTENSIONS = [
     {
       name: "Hackatime Desktop",
@@ -44,7 +46,7 @@
         </p>
 
         <div class="grid grid-cols-2 gap-3 mt-auto">
-          <a
+          <Link
             href={extension.install}
             target="_blank"
             class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-primary text-white font-medium text-sm hover:opacity-90 transition-opacity"
@@ -64,15 +66,15 @@
                 points="7 10 12 15 17 10"
               /><line x1="12" x2="12" y1="15" y2="3" /></svg
             >
-          </a>
+          </Link>
 
-          <a
+          <Link
             href={extension.source}
             target="_blank"
             class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-surface-200 text-surface-content font-medium text-sm hover:bg-surface-300 transition-colors"
           >
             Source
-          </a>
+          </Link>
         </div>
       </div>
     {/each}

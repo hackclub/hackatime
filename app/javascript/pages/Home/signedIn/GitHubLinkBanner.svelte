@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Link } from "@inertiajs/svelte";
+
   let { github_auth_path }: { github_auth_path: string } = $props();
 </script>
 
@@ -21,10 +23,10 @@
         working on, and qualify for leaderboards!</span
       >
     </div>
-    <a
+    <Link
       href={github_auth_path}
       class="bg-primary hover:bg-primary text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 shrink-0 text-center w-full md:w-fit"
-      data-turbo="false">Connect GitHub</a
+      data-turbo="false">Connect GitHub</Link
     >
   </div>
 </div>

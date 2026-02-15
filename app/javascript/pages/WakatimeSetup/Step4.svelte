@@ -58,14 +58,14 @@
       </div>
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a
+        <Link
           href={return_url ?? "/"}
           class="px-8 py-3 bg-primary border border-transparent text-white rounded-lg transition-all font-semibold transform active:scale-[0.98] text-center {agreed
             ? ''
             : 'opacity-50 cursor-not-allowed pointer-events-none'}"
         >
           {return_url ? return_button_text : "Let's get going!"}
-        </a>
+        </Link>
       </div>
     </div>
   </div>

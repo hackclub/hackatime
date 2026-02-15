@@ -121,8 +121,8 @@ Rails.application.routes.draw do
 
   # Nested under users for admin access
   resources :users, only: [] do
-    get "settings", on: :member, to: "users#edit"
-    patch "settings", on: :member, to: "users#update"
+    get "settings", on: :member, to: "settings/profile#show"
+    patch "settings", on: :member, to: "settings/profile#update"
     member do
       patch :update_trust_level
     end
@@ -133,10 +133,19 @@ Rails.application.routes.draw do
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
 
   # Namespace for current user actions
-  get "my/settings", to: "users#edit", as: :my_settings
-  patch "my/settings", to: "users#update"
-  post "my/settings/migrate_heartbeats", to: "users#migrate_heartbeats", as: :my_settings_migrate_heartbeats
-  post "my/settings/rotate_api_key", to: "users#rotate_api_key", as: :my_settings_rotate_api_key
+  get "my/settings", to: "settings/profile#show", as: :my_settings
+  patch "my/settings", to: "settings/profile#update"
+  get "my/settings/profile", to: "settings/profile#show", as: :my_settings_profile
+  patch "my/settings/profile", to: "settings/profile#update"
+  get "my/settings/integrations", to: "settings/integrations#show", as: :my_settings_integrations
+  patch "my/settings/integrations", to: "settings/integrations#update"
+  get "my/settings/access", to: "settings/access#show", as: :my_settings_access
+  patch "my/settings/access", to: "settings/access#update"
+  get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
+  get "my/settings/data", to: "settings/data#show", as: :my_settings_data
+  get "my/settings/admin", to: "settings/admin#show", as: :my_settings_admin
+  post "my/settings/migrate_heartbeats", to: "settings/data#migrate_heartbeats", as: :my_settings_migrate_heartbeats
+  post "my/settings/rotate_api_key", to: "settings/access#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do

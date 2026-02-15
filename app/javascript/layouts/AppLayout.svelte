@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { router } from "@inertiajs/svelte";
-  import { usePoll } from "@inertiajs/svelte";
+  import { Link, router, usePoll } from "@inertiajs/svelte";
+  import type { Snippet } from "svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
 
@@ -72,7 +72,7 @@
     stop_impersonating_path: string;
   };
 
-  let { layout, children }: { layout: LayoutProps; children?: () => unknown } =
+  let { layout, children }: { layout: LayoutProps; children?: Snippet } =
     $props();
 
   const isBrowser =
@@ -359,10 +359,10 @@
         </div>
       {:else}
         <div>
-          <a
+          <Link
             href={layout.nav.login_path}
             class="block px-4 py-2 rounded-md transition text-white font-semibold bg-primary hover:bg-secondary text-center"
-            >Login</a
+            >Login</Link
           >
         </div>
       {/if}
@@ -370,16 +370,20 @@
       <nav class="space-y-1">
         {#each layout.nav.links as link}
           {#if link.action === "logout"}
-            <a
+            <Link
+              href="#"
               type="button"
-              onclick={openLogout}
-              class={`${navLinkClass(false)} cursor-pointer`}>Logout</a
+              onclick={(event) => {
+                event.preventDefault();
+                openLogout();
+              }}
+              class={`${navLinkClass(false)} cursor-pointer`}>Logout</Link
             >
           {:else}
-            <a
+            <Link
               href={link.href}
               onclick={handleNavLinkClick}
-              class={navLinkClass(link.active)}>{link.label}</a
+              class={navLinkClass(link.active)}>{link.label}</Link
             >
           {/if}
         {/each}
@@ -387,7 +391,7 @@
         {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0}
           <div class="pt-2 mt-2 border-t border-darkless space-y-1">
             {#each layout.nav.dev_links as link}
-              <a
+              <Link
                 href={link.href}
                 onclick={handleNavLinkClick}
                 class="{navLinkClass(link.active)} dev-tool"
@@ -400,11 +404,11 @@
                     {link.badge}
                   </span>
                 {/if}
-              </a>
+              </Link>
             {/each}
 
             {#each layout.nav.admin_links as link}
-              <a
+              <Link
                 href={link.href}
                 onclick={handleNavLinkClick}
                 class="{navLinkClass(link.active)} admin-tool"
@@ -417,11 +421,11 @@
                     {link.badge}
                   </span>
                 {/if}
-              </a>
+              </Link>
             {/each}
 
             {#each layout.nav.viewer_links as link}
-              <a
+              <Link
                 href={link.href}
                 onclick={handleNavLinkClick}
                 class="{navLinkClass(link.active)} viewer-tool"
@@ -434,11 +438,11 @@
                     {link.badge}
                   </span>
                 {/if}
-              </a>
+              </Link>
             {/each}
 
             {#each layout.nav.superadmin_links as link}
-              <a
+              <Link
                 href={link.href}
                 onclick={handleNavLinkClick}
                 class="{navLinkClass(link.active)} superadmin-tool"
@@ -451,7 +455,7 @@
                     {link.badge}
                   </span>
                 {/if}
-              </a>
+              </Link>
             {/each}
           </div>
         {/if}
@@ -473,10 +477,10 @@
         <p
           class="brightness-60 hover:brightness-100 transition-all duration-200"
         >
-          Using Inertia. Build <a
+          Using Inertia. Build <Link
             href={layout.footer.commit_link}
             class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
-            >{layout.footer.git_version}</a
+            >{layout.footer.git_version}</Link
           >
           from {layout.footer.server_start_time_ago} ago.
           {plur("heartbeat", layout.footer.heartbeat_recent_count)}
@@ -488,11 +492,11 @@
             .requests_per_second})
         </p>
         {#if layout.show_stop_impersonating}
-          <a
+          <Link
             href={layout.stop_impersonating_path}
             data-turbo-prefetch="false"
             class="text-primary font-bold hover:text-red-300 transition-colors duration-200"
-            >Stop impersonating</a
+            >Stop impersonating</Link
           >
         {/if}
       </div>
@@ -553,13 +557,13 @@
                     />
                   {/if}
                   {#if user.slack_uid}
-                    <a
+                    <Link
                       href={`https://hackclub.slack.com/team/${user.slack_uid}`}
                       target="_blank"
                       class="text-blue-500 hover:underline text-sm"
                     >
                       @{user.display_name || `User ${user.id}`}
-                    </a>
+                    </Link>
                   {:else}
                     <span class="text-white text-sm"
                       >{user.display_name || `User ${user.id}`}</span
@@ -570,21 +574,21 @@
                   <div class="text-xs text-muted ml-8">
                     working on
                     {#if user.active_project.repo_url}
-                      <a
+                      <Link
                         href={user.active_project.repo_url}
                         target="_blank"
                         class="text-accent hover:text-cyan-400 transition-colors"
                       >
                         {user.active_project.name}
-                      </a>
+                      </Link>
                     {:else}
                       {user.active_project.name}
                     {/if}
                     {#if visualizeGitUrl(user.active_project.repo_url)}
-                      <a
+                      <Link
                         href={visualizeGitUrl(user.active_project.repo_url)}
                         target="_blank"
-                        class="ml-1">🌌</a
+                        class="ml-1">🌌</Link
                       >
                     {/if}
                   </div>
