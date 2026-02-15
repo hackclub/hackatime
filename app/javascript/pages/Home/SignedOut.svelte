@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
-  import Button from "../../components/Button.svelte";
 
   type HomeStats = { seconds_tracked?: number; users_tracked?: number };
 
@@ -71,23 +70,17 @@
       <span class="font-bold tracking-tight text-lg">Hackatime</span>
     </div>
     <div class="hidden md:flex gap-8 text-sm font-medium text-text-muted">
-      <Link href="#stats" class="hover:text-white transition-colors">Stats</Link
-      >
-      <Link href="#editors" class="hover:text-white transition-colors"
-        >Editors</Link
-      >
-      <Link href="/docs" class="hover:text-white transition-colors"
-        >Developers</Link
-      >
+      <a href="#stats" class="hover:text-white transition-colors">Stats</a>
+      <a href="#editors" class="hover:text-white transition-colors">Editors</a>
+      <Link href="/docs" class="hover:text-white transition-colors">Developers</Link>
     </div>
     <div class="min-w-[140px] flex justify-end">
-      <Button
+      <a
         href={hca_auth_path}
-        variant="outlinePrimary"
-        class="text-sm font-bold hover:bg-primary hover:text-on-primary"
+        class="text-sm font-bold border border-primary text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-all"
       >
         Login
-      </Button>
+      </a>
     </div>
   </nav>
 
@@ -118,21 +111,19 @@
             see it!
           </p>
           {#if show_dev_tool && dev_magic_link}
-            <Link
+            <a
               href={dev_magic_link}
               class="text-xs text-secondary underline hover:text-white"
-              >Dev: Open Link</Link
+              >Dev: Open Link</a
             >
           {/if}
         </div>
       {:else}
         <!-- Primary Auth Buttons -->
-        <Button
+        <a
           href={hca_auth_path}
           onclick={() => (isSigningIn = true)}
-          variant="primary"
-          size="lg"
-          class="w-full gap-3 rounded-xl hover:brightness-110 transition-all"
+          class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-primary text-white font-medium hover:brightness-110 transition-all"
         >
           {#if isSigningIn}
             <svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none"
@@ -157,13 +148,11 @@
             />
           {/if}
           <span>Sign in with Hack Club</span>
-        </Button>
+        </a>
 
-        <Button
+        <a
           href={slack_auth_path}
-          variant="dark"
-          size="lg"
-          class="w-full gap-3 rounded-xl transition-all"
+          class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-dark border border-darkless text-white font-medium hover:bg-darkless transition-all"
         >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"
             ><path
@@ -171,7 +160,7 @@
             /></svg
           >
           <span>Sign in with Slack</span>
-        </Button>
+        </a>
 
         <!-- Divider -->
         <div class="flex items-center gap-4 py-1">
@@ -193,13 +182,12 @@
               required
               class="flex-1 bg-dark text-white placeholder-secondary/40 rounded-xl py-3.5 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all border border-darkless focus:border-primary text-sm"
             />
-            <Button
+            <button
               type="submit"
-              variant="dark"
-              class="px-5 py-3.5 rounded-xl border-primary hover:bg-primary hover:text-on-primary transition-all text-sm font-medium"
+              class="px-5 py-3.5 bg-dark border border-primary text-white rounded-xl hover:bg-primary transition-all text-sm font-medium"
             >
               Send link
-            </Button>
+            </button>
           </div>
         </form>
       {/if}

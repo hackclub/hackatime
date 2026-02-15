@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import { onMount } from "svelte";
-  import Button from "../../../components/Button.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { IntegrationsPageProps } from "./types";
 
@@ -48,13 +46,12 @@
       </p>
 
       {#if !slack.can_enable_status}
-        <Button
+        <a
           href={paths.slack_auth_path}
-          variant="surface"
-          class="mt-4"
+          class="mt-4 inline-flex rounded-md border border-surface-200 bg-surface-100 px-3 py-2 text-sm text-surface-content transition-colors hover:bg-surface-200"
         >
           Re-authorize with Slack
-        </Button>
+        </a>
       {/if}
 
       <form method="post" action={settings_update_path} class="mt-4 space-y-3">
@@ -73,12 +70,12 @@
           Update my Slack status automatically
         </label>
 
-        <Button
+        <button
           type="submit"
-          variant="primary"
+          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Save Slack settings
-        </Button>
+        </button>
       </form>
     </section>
 
@@ -96,7 +93,7 @@
         <ul class="mt-4 space-y-2">
           {#each slack.notification_channels as channel}
             <li class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content">
-              <Link href={channel.url} target="_blank" class="underline">{channel.label}</Link>
+              <a href={channel.url} target="_blank" class="underline">{channel.label}</a>
             </li>
           {/each}
         </ul>
@@ -116,17 +113,17 @@
       {#if github.connected && github.username}
         <div class="mt-4 rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content">
           Connected as
-          <Link href={github.profile_url || "#"} target="_blank" class="underline">
+          <a href={github.profile_url || "#"} target="_blank" class="underline">
             @{github.username}
-          </Link>
+          </a>
         </div>
         <div class="mt-3 flex flex-wrap gap-3">
-          <Button
+          <a
             href={paths.github_auth_path}
-            variant="primary"
+            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Reconnect GitHub
-          </Button>
+          </a>
           <form
             method="post"
             action={paths.github_unlink_path}
@@ -142,22 +139,21 @@
           >
             <input type="hidden" name="_method" value="delete" />
             <input type="hidden" name="authenticity_token" value={csrfToken} />
-            <Button
+            <button
               type="submit"
-              variant="surface"
+              class="rounded-md border border-surface-200 bg-surface-100 px-4 py-2 text-sm font-semibold text-surface-content transition-colors hover:bg-surface-200"
             >
               Unlink GitHub
-            </Button>
+            </button>
           </form>
         </div>
       {:else}
-        <Button
+        <a
           href={paths.github_auth_path}
-          variant="primary"
-          class="mt-4"
+          class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Connect GitHub
-        </Button>
+        </a>
       {/if}
     </section>
 
@@ -180,13 +176,12 @@
                   <input type="hidden" name="_method" value="delete" />
                   <input type="hidden" name="authenticity_token" value={csrfToken} />
                   <input type="hidden" name="email" value={email.email} />
-                  <Button
+                  <button
                     type="submit"
-                    variant="surface"
-                    size="xs"
+                    class="rounded-md border border-surface-200 bg-surface-100 px-3 py-1.5 text-xs font-semibold text-surface-content transition-colors hover:bg-surface-200"
                   >
                     Unlink
-                  </Button>
+                  </button>
                 </form>
               {/if}
             </div>
@@ -207,12 +202,12 @@
           placeholder="name@example.com"
           class="grow rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
         />
-        <Button
+        <button
           type="submit"
-          variant="primary"
+          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Add email
-        </Button>
+        </button>
       </form>
     </section>
   </div>

@@ -11,6 +11,7 @@
     active?: boolean;
     badge?: number | null;
     action?: string;
+    inertia?: boolean;
   };
 
   type AdminLevel = "default" | "superadmin" | "admin" | "viewer";
@@ -386,10 +387,10 @@
         </div>
       {:else}
         <div>
-          <Button
+          <a
             href={layout.nav.login_path}
-            class="w-full hover:bg-secondary text-center"
-            >Login</Button
+            class="block px-4 py-2 rounded-md transition text-on-primary font-semibold bg-primary hover:bg-secondary text-center"
+            >Login</a
           >
         </div>
       {/if}
@@ -397,92 +398,164 @@
       <nav class="space-y-1">
         {#each layout.nav.links as link}
           {#if link.action === "logout"}
-            <Button
-              href="#"
-              unstyled
-              onclick={(event) => {
-                event.preventDefault();
-                openLogout();
-              }}
-              class={`${navLinkClass(false)} cursor-pointer block`}>Logout</Button
+            <button
+              type="button"
+              onclick={openLogout}
+              class={`${navLinkClass(false)} cursor-pointer w-full text-left`}>Logout</button
             >
           {:else}
-            <Link
-              href={link.href}
-              onclick={handleNavLinkClick}
-              class={navLinkClass(link.active)}>{link.label}</Link
-            >
+            {#if link.inertia}
+              <Link
+                href={link.href || "#"}
+                onclick={handleNavLinkClick}
+                class={navLinkClass(link.active)}>{link.label}</Link
+              >
+            {:else}
+              <a
+                href={link.href || "#"}
+                onclick={handleNavLinkClick}
+                class={navLinkClass(link.active)}>{link.label}</a
+              >
+            {/if}
           {/if}
         {/each}
 
         {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0}
           <div class="pt-2 mt-2 border-t border-darkless space-y-1">
             {#each layout.nav.dev_links as link}
-              <Link
-                href={link.href}
-                onclick={handleNavLinkClick}
-                class="{navLinkClass(link.active)} dev-tool"
-              >
-                {link.label}
-                {#if link.badge}
-                  <span
-                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                  >
-                    {link.badge}
-                  </span>
-                {/if}
-              </Link>
+              {#if link.inertia}
+                <Link
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} dev-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </Link>
+              {:else}
+                <a
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} dev-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </a>
+              {/if}
             {/each}
 
             {#each layout.nav.admin_links as link}
-              <Link
-                href={link.href}
-                onclick={handleNavLinkClick}
-                class="{navLinkClass(link.active)} admin-tool"
-              >
-                {link.label}
-                {#if link.badge}
-                  <span
-                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                  >
-                    {link.badge}
-                  </span>
-                {/if}
-              </Link>
+              {#if link.inertia}
+                <Link
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} admin-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </Link>
+              {:else}
+                <a
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} admin-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </a>
+              {/if}
             {/each}
 
             {#each layout.nav.viewer_links as link}
-              <Link
-                href={link.href}
-                onclick={handleNavLinkClick}
-                class="{navLinkClass(link.active)} viewer-tool"
-              >
-                {link.label}
-                {#if link.badge}
-                  <span
-                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                  >
-                    {link.badge}
-                  </span>
-                {/if}
-              </Link>
+              {#if link.inertia}
+                <Link
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} viewer-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </Link>
+              {:else}
+                <a
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} viewer-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </a>
+              {/if}
             {/each}
 
             {#each layout.nav.superadmin_links as link}
-              <Link
-                href={link.href}
-                onclick={handleNavLinkClick}
-                class="{navLinkClass(link.active)} superadmin-tool"
-              >
-                {link.label}
-                {#if link.badge}
-                  <span
-                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                  >
-                    {link.badge}
-                  </span>
-                {/if}
-              </Link>
+              {#if link.inertia}
+                <Link
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} superadmin-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </Link>
+              {:else}
+                <a
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} superadmin-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </a>
+              {/if}
             {/each}
           </div>
         {/if}
@@ -504,10 +577,10 @@
         <p
           class="brightness-60 hover:brightness-100 transition-all duration-200"
         >
-          Using Inertia. Build <Link
+          Using Inertia. Build <a
             href={layout.footer.commit_link}
             class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
-            >{layout.footer.git_version}</Link
+            >{layout.footer.git_version}</a
           >
           from {layout.footer.server_start_time_ago} ago.
           {plur("heartbeat", layout.footer.heartbeat_recent_count)}
@@ -519,11 +592,11 @@
             .requests_per_second})
         </p>
         {#if layout.show_stop_impersonating}
-          <Link
+          <a
             href={layout.stop_impersonating_path}
             data-turbo-prefetch="false"
             class="text-primary font-bold hover:text-red transition-colors duration-200"
-            >Stop impersonating</Link
+            >Stop impersonating</a
           >
         {/if}
       </div>
@@ -584,13 +657,13 @@
                     />
                   {/if}
                   {#if user.slack_uid}
-                    <Link
+                    <a
                       href={`https://hackclub.slack.com/team/${user.slack_uid}`}
                       target="_blank"
                       class="text-blue hover:underline text-sm"
                     >
                       @{user.display_name || `User ${user.id}`}
-                    </Link>
+                    </a>
                   {:else}
                     <span class="text-surface-content text-sm"
                       >{user.display_name || `User ${user.id}`}</span
@@ -601,21 +674,21 @@
                   <div class="text-xs text-muted ml-8">
                     working on
                     {#if user.active_project.repo_url}
-                      <Link
+                      <a
                         href={user.active_project.repo_url}
                         target="_blank"
                         class="text-accent hover:text-cyan transition-colors"
                       >
                         {user.active_project.name}
-                      </Link>
+                      </a>
                     {:else}
                       {user.active_project.name}
                     {/if}
                     {#if visualizeGitUrl(user.active_project.repo_url)}
-                      <Link
+                      <a
                         href={visualizeGitUrl(user.active_project.repo_url)}
                         target="_blank"
-                        class="ml-1">🌌</Link
+                        class="ml-1">🌌</a
                       >
                     {/if}
                   </div>

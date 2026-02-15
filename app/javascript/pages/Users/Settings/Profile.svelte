@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import { onMount } from "svelte";
   import Button from "../../../components/Button.svelte";
   import SettingsShell from "./Shell.svelte";
@@ -130,13 +129,13 @@
       {#if badges.profile_url}
         <p class="mt-3 text-sm text-muted">
           Public profile:
-          <Link
+          <a
             href={badges.profile_url}
             target="_blank"
             class="text-primary underline"
           >
             {badges.profile_url}
-          </Link>
+          </a>
         </p>
       {/if}
     </section>

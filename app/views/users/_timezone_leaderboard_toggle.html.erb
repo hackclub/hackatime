@@ -1,8 +1,0 @@
-<%= form_with model: user, url: (@is_own_settings ? my_settings_path : settings_user_path(user)), method: :patch, local: false, class: "space-y-4" do |f| %>
-  <div class="flex items-center gap-3">
-    <%= f.check_box :default_timezone_leaderboard, checked: user.default_timezone_leaderboard, id: 'user_default_timezone_leaderboard', class: 'w-4 h-4 text-primary border-surface-200 rounded focus:ring-primary bg-surface-100' %>
-    <%= f.label :default_timezone_leaderboard, 'Default to Timezone Leaderboard', for: 'user_default_timezone_leaderboard', class: 'text-sm text-muted' %>
-  </div>
-  <p class="text-xs text-muted">Access regional leaderboards that show users in your timezone region or specific timezone. Choose between timezone-specific, regional (UTC offset), or global competition modes.</p>
-  <%= f.submit 'Save', class: 'w-full px-4 py-2 bg-primary text-on-primary font-medium rounded-lg transition-colors duration-200 cursor-pointer' %>
-<% end %>

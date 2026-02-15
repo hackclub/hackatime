@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import Button from "../../../components/Button.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { DataPageProps } from "./types";
 
@@ -46,12 +45,12 @@
       </p>
       <form method="post" action={paths.migrate_heartbeats_path} class="mt-4">
         <input type="hidden" name="authenticity_token" value={csrfToken} />
-        <Button
+        <button
           type="submit"
-          variant="primary"
+          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Start migration
-        </Button>
+        </button>
       </form>
 
       {#if migration.jobs.length > 0}
@@ -69,7 +68,7 @@
       <h2 class="text-xl font-semibold text-surface-content">Download Data</h2>
 
       {#if data_export.is_restricted}
-        <p class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red">
+        <p class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200">
           Data export is currently restricted for this account.
         </p>
       {:else}
@@ -99,12 +98,12 @@
         </div>
 
         <div class="mt-4 space-y-3">
-          <Button
+          <a
             href={paths.export_all_heartbeats_path}
-            variant="primary"
+            class="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Export all heartbeats
-          </Button>
+          </a>
 
           <form
             method="get"
@@ -123,12 +122,12 @@
               required
               class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
             />
-            <Button
+            <button
               type="submit"
-              variant="surface"
+              class="rounded-md border border-surface-200 bg-surface-100 px-4 py-2 text-sm font-semibold text-surface-content transition-colors hover:bg-surface-200"
             >
               Export date range
-            </Button>
+            </button>
           </form>
         </div>
 
@@ -151,13 +150,12 @@
               required
               class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content"
             />
-            <Button
+            <button
               type="submit"
-              variant="surface"
-              class="mt-3"
+              class="mt-3 rounded-md border border-surface-200 bg-surface-100 px-4 py-2 text-sm font-semibold text-surface-content transition-colors hover:bg-surface-200"
             >
               Import file
-            </Button>
+            </button>
           </form>
         {/if}
       {/if}
@@ -185,12 +183,12 @@
           }}
         >
           <input type="hidden" name="authenticity_token" value={csrfToken} />
-          <Button
+          <button
             type="submit"
-            variant="surface"
+            class="rounded-md border border-surface-200 bg-surface-100 px-4 py-2 text-sm font-semibold text-surface-content transition-colors hover:bg-surface-200"
           >
             Request deletion
-          </Button>
+          </button>
         </form>
       {:else}
         <p class="mt-3 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted">

@@ -176,11 +176,11 @@
                   Open VS Code, go to Extensions (squares icon), search for <strong
                     >WakaTime</strong
                   >, and click Install.
-                  <Link
+                  <a
                     href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-cyan hover:underline">View on Marketplace</Link
+                    class="text-cyan hover:underline">View on Marketplace</a
                   >
                 </p>
               </div>
@@ -333,7 +333,7 @@
           </div>
 
           <div class="pt-2">
-            <Link
+            <a
               href="https://www.youtube.com/watch?v=a938RgsBzNg&t=29s"
               target="_blank"
               class="inline-flex items-center gap-2 text-cyan hover:underline text-sm font-medium"
@@ -344,7 +344,7 @@
                 /></svg
               >
               Watch setup tutorial
-            </Link>
+            </a>
           </div>
         </div>
       </div>
@@ -402,11 +402,11 @@
               <p class="text-sm text-secondary">
                 Search for <b>WakaTime</b> in the marketplace and click Install.
 
-                <Link
+                <a
                     href="https://plugins.jetbrains.com/plugin/7425-wakatime"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-cyan hover:underline">View on Marketplace</Link
+                    class="text-cyan hover:underline">View on Marketplace</a
                   >
               </p>
             </div>
@@ -496,11 +496,11 @@
               <p class="font-medium mb-1">Install Package Control</p>
               <p class="text-sm text-secondary">
                 If you don't have Package Control installed, install it at
-                <Link
+                <a
                   href="https://packagecontrol.io/installation"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-cyan hover:underline">packagecontrol.io</Link
+                  class="text-cyan hover:underline">packagecontrol.io</a
                 > to set it up first.
               </p>
             </div>
@@ -516,11 +516,11 @@
               <p class="font-medium mb-1">Install WakaTime Plugin</p>
               <p class="text-sm text-secondary">
                 Open the Command Palette (Ctrl+Shift+P on Windows/Linux, Command+Shift+P on macOS), type <b>Package Control: Install Package</b>, and press Enter. Then type <b>WakaTime</b> and press Enter to install.
-                  <Link
+                  <a
                       href="https://packagecontrol.io/packages/WakaTime"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="text-cyan hover:underline">View on Package Control</Link
+                      class="text-cyan hover:underline">View on Package Control</a
                     >
               </p>
             </div>
@@ -685,14 +685,14 @@
               />
               <span class="text-sm">Unity</span>
             </Link>
-            <Link
+            <a
               href="https://wakatime.com/editors"
               target="_blank"
               class="flex items-center gap-3 bg-darkless/50 rounded-lg p-3 hover:bg-darkless transition-colors"
             >
               <div class="w-6 h-6 flex items-center justify-center">🌐</div>
               <span class="text-sm">View all editors</span>
-            </Link>
+            </a>
           </div>
         </div>
       </div>
