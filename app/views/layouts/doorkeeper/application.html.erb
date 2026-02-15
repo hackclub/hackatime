@@ -12,7 +12,7 @@
     <%= csrf_meta_tags %>
     <%= javascript_importmap_tags %>
   </head>
-  <body class="min-h-screen bg-darker text-surface-content" style="margin: 0; padding: 0; display: flex; align-items: center; justify-content: center;">
+  <body class="min-h-screen bg-surface text-surface-content" style="margin: 0; padding: 0; display: flex; align-items: center; justify-content: center;">
     <main class="w-full max-w-md px-5 py-8">
       <%- if flash[:notice].present? %>
         <div class="flash-message flash-message--enter flash-message--success mb-6" data-controller="flash">

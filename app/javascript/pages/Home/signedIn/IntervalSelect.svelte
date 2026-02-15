@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Button from "../../../components/Button.svelte";
+
   const INTERVALS = [
     { key: "today", label: "Today" },
     { key: "yesterday", label: "Yesterday" },
@@ -84,9 +86,10 @@
     Date Range
   </span>
 
-  <div class="group flex items-center border border-surface-content/20 rounded-lg bg-surface-100 m-0 p-0 transition-all duration-200 hover:border-surface-content/30 hover:bg-surface-200">
-    <button
+  <div class="group flex items-center border border-surface-200 rounded-lg bg-surface-100 m-0 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200">
+    <Button
       type="button"
+      unstyled
       class="flex-1 px-3 py-2.5 text-sm cursor-pointer select-none text-surface-content m-0 bg-transparent flex items-center justify-between border-0"
       onclick={() => (open = !open)}
     >
@@ -94,28 +97,29 @@
       <svg class="w-4 h-4 text-secondary/60 transition-transform duration-200 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
       </svg>
-    </button>
+    </Button>
 
     {#if !isDefault}
-      <button
+      <Button
         type="button"
-        class="px-2.5 py-2 text-sm leading-none text-secondary/60 bg-transparent border-0 border-l border-surface-content/10 cursor-pointer m-0 hover:text-red hover:bg-red/10 transition-colors duration-150"
+        unstyled
+        class="px-2.5 py-2 text-sm leading-none text-secondary/60 bg-transparent border-0 border-l border-surface-200 cursor-pointer m-0 hover:text-red hover:bg-red/10 transition-colors duration-150"
         onclick={clear}
       >
         ✕
-      </button>
+      </Button>
     {/if}
   </div>
 
   {#if open}
-    <div class="absolute top-full left-0 right-0 min-w-64 bg-darkless border border-surface-content/10 rounded-lg mt-2 shadow-xl shadow-black/50 z-1000 p-2">
+    <div class="absolute top-full left-0 right-0 min-w-64 bg-darkless border border-surface-200 rounded-lg mt-2 shadow-xl shadow-black/50 z-1000 p-2">
       <div class="overflow-y-auto m-0 max-h-56">
         {#each INTERVALS as interval}
           <label class="flex items-center px-3 py-2.5 cursor-pointer text-sm text-muted m-0 bg-transparent rounded-md hover:bg-dark transition-colors duration-150">
             <input
               type="radio"
               name="interval"
-              class="mr-3 mb-0 h-4 w-4 min-w-4 appearance-none border border-surface-content/20 rounded-full bg-dark relative cursor-pointer p-0 checked:bg-primary checked:border-primary hover:border-surface-content/40 transition-colors duration-150"
+              class="mr-3 mb-0 h-4 w-4 min-w-4 appearance-none border border-surface-200 rounded-full bg-dark relative cursor-pointer p-0 checked:bg-primary checked:border-primary hover:border-surface-300 transition-colors duration-150"
               checked={selected === interval.key && !from && !to}
               onchange={() => selectInterval(interval.key)}
             />
@@ -124,14 +128,14 @@
         {/each}
       </div>
 
-      <hr class="my-2 border-surface-content/10" />
+      <hr class="my-2 border-surface-200" />
 
       <div class="flex flex-col gap-2.5 pt-1">
         <label class="flex items-center justify-between text-sm text-muted">
           <span class="text-secondary/80">Start</span>
           <input
             type="date"
-            class="ml-2 py-2 px-3 bg-dark border border-surface-content/10 rounded-md text-sm text-muted focus:outline-none focus:border-surface-content/20 transition-colors duration-150"
+            class="ml-2 py-2 px-3 bg-dark border border-surface-200 rounded-md text-sm text-muted focus:outline-none focus:border-surface-300 transition-colors duration-150"
             bind:value={customFrom}
           />
         </label>
@@ -139,17 +143,18 @@
           <span class="text-secondary/80">End</span>
           <input
             type="date"
-            class="ml-2 py-2 px-3 bg-dark border border-surface-content/10 rounded-md text-sm text-muted focus:outline-none focus:border-surface-content/20 transition-colors duration-150"
+            class="ml-2 py-2 px-3 bg-dark border border-surface-200 rounded-md text-sm text-muted focus:outline-none focus:border-surface-300 transition-colors duration-150"
             bind:value={customTo}
           />
         </label>
-        <button
+        <Button
           type="button"
-          class="px-3 py-2.5 mt-1 rounded-md font-medium text-sm transition-all duration-200 cursor-pointer bg-primary text-on-primary hover:bg-primary/90 border-0"
+          size="sm"
+          class="mt-1 border-0 py-2.5"
           onclick={applyCustomRange}
         >
           Apply
-        </button>
+        </Button>
       </div>
     </div>
   {/if}

@@ -5,7 +5,6 @@ aside[data-nav-target="nav"] {
 
 aside[data-nav-target="nav"] a.block {
     @apply block py-2.5 px-4 rounded-md transition-colors duration-150 no-underline;
-    color: var(--color-surface-content);
 }
 
 aside[data-nav-target="nav"] a.block.bg-primary\/20 {
@@ -13,7 +12,11 @@ aside[data-nav-target="nav"] a.block.bg-primary\/20 {
     background-color: color-mix(in oklab, var(--color-primary) 18%, transparent);
 }
 
-aside[data-nav-target="nav"] a.block:hover {
+aside[data-nav-target="nav"] a.block.bg-primary {
+    color: var(--color-on-primary);
+}
+
+aside[data-nav-target="nav"] a.block:not(.bg-primary):not(.bg-primary\/20):hover {
     @apply bg-darkless;
     @apply text-primary;
 }
@@ -30,7 +33,7 @@ aside[data-nav-target="nav"] a.block:hover {
 
 .mobile-nav-button {
     background: var(--color-darkless);
-    color: var(--primary-color);
+    color: var(--color-primary);
     @apply hidden fixed top-5 left-5 z-100 border-none rounded-md p-3 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-[background-color] duration-200;
 }
 

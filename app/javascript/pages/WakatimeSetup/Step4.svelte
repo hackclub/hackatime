@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
 
   interface Props {
@@ -58,14 +58,15 @@
       </div>
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <Link
+        <Button
           href={return_url ?? "/"}
-          class="px-8 py-3 bg-primary border border-transparent text-on-primary rounded-lg transition-all font-semibold transform active:scale-[0.98] text-center {agreed
+          size="xl"
+          class="w-full sm:w-auto transition-all font-semibold transform active:scale-[0.98] text-center {agreed
             ? ''
             : 'opacity-50 cursor-not-allowed pointer-events-none'}"
         >
           {return_url ? return_button_text : "Let's get going!"}
-        </Link>
+        </Button>
       </div>
     </div>
   </div>

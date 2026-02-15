@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import Button from "../../components/Button.svelte";
 
   type HomeStats = { seconds_tracked?: number; users_tracked?: number };
 
@@ -80,12 +81,13 @@
       >
     </div>
     <div class="min-w-[140px] flex justify-end">
-      <Link
+      <Button
         href={hca_auth_path}
-        class="text-sm font-bold border border-primary text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-all"
+        variant="outlinePrimary"
+        class="text-sm font-bold hover:bg-primary hover:text-on-primary"
       >
         Login
-      </Link>
+      </Button>
     </div>
   </nav>
 
@@ -125,10 +127,12 @@
         </div>
       {:else}
         <!-- Primary Auth Buttons -->
-        <Link
+        <Button
           href={hca_auth_path}
           onclick={() => (isSigningIn = true)}
-          class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-primary text-white font-medium hover:brightness-110 transition-all"
+          variant="primary"
+          size="lg"
+          class="w-full gap-3 rounded-xl hover:brightness-110 transition-all"
         >
           {#if isSigningIn}
             <svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none"
@@ -153,11 +157,13 @@
             />
           {/if}
           <span>Sign in with Hack Club</span>
-        </Link>
+        </Button>
 
-        <Link
+        <Button
           href={slack_auth_path}
-          class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-dark border border-darkless text-white font-medium hover:bg-darkless transition-all"
+          variant="dark"
+          size="lg"
+          class="w-full gap-3 rounded-xl transition-all"
         >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"
             ><path
@@ -165,7 +171,7 @@
             /></svg
           >
           <span>Sign in with Slack</span>
-        </Link>
+        </Button>
 
         <!-- Divider -->
         <div class="flex items-center gap-4 py-1">
@@ -187,12 +193,13 @@
               required
               class="flex-1 bg-dark text-white placeholder-secondary/40 rounded-xl py-3.5 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all border border-darkless focus:border-primary text-sm"
             />
-            <button
+            <Button
               type="submit"
-              class="px-5 py-3.5 bg-dark border border-primary text-white rounded-xl hover:bg-primary transition-all text-sm font-medium"
+              variant="dark"
+              class="px-5 py-3.5 rounded-xl border-primary hover:bg-primary hover:text-on-primary transition-all text-sm font-medium"
             >
               Send link
-            </button>
+            </Button>
           </div>
         </form>
       {/if}
@@ -259,10 +266,3 @@
     </div>
   </main>
 </div>
-
-<style>
-  /* Custom Scrollbar for cleaner look if needed */
-  :global(body) {
-    background-color: #1f1617;
-  }
-</style>

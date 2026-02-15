@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
   import { onMount } from "svelte";
+  import Button from "../../../components/Button.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { IntegrationsPageProps } from "./types";
 
@@ -47,12 +48,13 @@
       </p>
 
       {#if !slack.can_enable_status}
-        <Link
+        <Button
           href={paths.slack_auth_path}
-          class="mt-4 inline-flex rounded-md border border-surface-200 bg-surface-100 px-3 py-2 text-sm text-surface-content transition-colors hover:bg-surface-200"
+          variant="surface"
+          class="mt-4"
         >
           Re-authorize with Slack
-        </Link>
+        </Button>
       {/if}
 
       <form method="post" action={settings_update_path} class="mt-4 space-y-3">
@@ -71,12 +73,12 @@
           Update my Slack status automatically
         </label>
 
-        <button
+        <Button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+          variant="primary"
         >
           Save Slack settings
-        </button>
+        </Button>
       </form>
     </section>
 
@@ -119,12 +121,12 @@
           </Link>
         </div>
         <div class="mt-3 flex flex-wrap gap-3">
-          <Link
+          <Button
             href={paths.github_auth_path}
-            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+            variant="primary"
           >
             Reconnect GitHub
-          </Link>
+          </Button>
           <form
             method="post"
             action={paths.github_unlink_path}
@@ -140,21 +142,22 @@
           >
             <input type="hidden" name="_method" value="delete" />
             <input type="hidden" name="authenticity_token" value={csrfToken} />
-            <button
+            <Button
               type="submit"
-              class="rounded-md border border-surface-200 bg-surface-100 px-4 py-2 text-sm font-semibold text-surface-content transition-colors hover:bg-surface-200"
+              variant="surface"
             >
               Unlink GitHub
-            </button>
+            </Button>
           </form>
         </div>
       {:else}
-        <Link
+        <Button
           href={paths.github_auth_path}
-          class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+          variant="primary"
+          class="mt-4"
         >
           Connect GitHub
-        </Link>
+        </Button>
       {/if}
     </section>
 
@@ -177,12 +180,13 @@
                   <input type="hidden" name="_method" value="delete" />
                   <input type="hidden" name="authenticity_token" value={csrfToken} />
                   <input type="hidden" name="email" value={email.email} />
-                  <button
+                  <Button
                     type="submit"
-                    class="rounded-md border border-surface-200 bg-surface-100 px-3 py-1.5 text-xs font-semibold text-surface-content transition-colors hover:bg-surface-200"
+                    variant="surface"
+                    size="xs"
                   >
                     Unlink
-                  </button>
+                  </Button>
                 </form>
               {/if}
             </div>
@@ -203,12 +207,12 @@
           placeholder="name@example.com"
           class="grow rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
         />
-        <button
+        <Button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+          variant="primary"
         >
           Add email
-        </button>
+        </Button>
       </form>
     </section>
   </div>

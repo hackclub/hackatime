@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Link, router, usePoll } from "@inertiajs/svelte";
+  import { Link, usePoll } from "@inertiajs/svelte";
+  import Button from "../components/Button.svelte";
   import type { Snippet } from "svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
@@ -269,7 +270,7 @@
   });
 
   const navLinkClass = (active?: boolean) =>
-    `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-on-primary" : "hover:bg-darkless"}`;
+    `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-on-primary font-bold" : "text-surface-content hover:bg-darkless hover:text-primary"}`;
 </script>
 
 {#if flashVisible && layout.nav.flash.length > 0}
@@ -287,7 +288,9 @@
 {/if}
 
 {#if layout.nav.user_present}
-  <button
+  <Button
+    type="button"
+    unstyled
     class="mobile-nav-button"
     aria-label="Toggle navigation menu"
     aria-expanded={navOpen}
@@ -307,7 +310,7 @@
         d="M4 6h16M4 12h16M4 18h16"
       />
     </svg>
-  </button>
+  </Button>
   <div class="nav-overlay" class:open={navOpen} onclick={closeNav}></div>
 
   <aside
@@ -383,10 +386,10 @@
         </div>
       {:else}
         <div>
-          <Link
+          <Button
             href={layout.nav.login_path}
-            class="block px-4 py-2 rounded-md transition text-on-primary font-semibold bg-primary hover:bg-secondary text-center"
-            >Login</Link
+            class="w-full hover:bg-secondary text-center"
+            >Login</Button
           >
         </div>
       {/if}
@@ -394,14 +397,14 @@
       <nav class="space-y-1">
         {#each layout.nav.links as link}
           {#if link.action === "logout"}
-            <Link
+            <Button
               href="#"
-              type="button"
+              unstyled
               onclick={(event) => {
                 event.preventDefault();
                 openLogout();
               }}
-              class={`${navLinkClass(false)} cursor-pointer`}>Logout</Link
+              class={`${navLinkClass(false)} cursor-pointer block`}>Logout</Button
             >
           {:else}
             <Link
@@ -661,11 +664,12 @@
 
       <div class="flex w-full gap-3">
         <div class="flex-1 min-w-0">
-          <button
+          <Button
             type="button"
             onclick={closeLogout}
-            class="w-full h-10 px-4 rounded-lg transition-colors duration-200 cursor-pointer m-0 bg-dark hover:bg-darkless border border-darkless text-muted"
-            >Go back</button
+            variant="dark"
+            class="w-full h-10 text-muted m-0"
+            >Go back</Button
           >
         </div>
         <div class="flex-1 min-w-0">
@@ -676,10 +680,11 @@
               value={layout.csrf_token}
             />
             <input type="hidden" name="_method" value="delete" />
-            <button
+            <Button
               type="submit"
-              class="w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 bg-primary hover:bg-primary/75 text-on-primary"
-              >Log out now</button
+              variant="primary"
+              class="w-full h-10 m-0"
+              >Log out now</Button
             >
           </form>
         </div>

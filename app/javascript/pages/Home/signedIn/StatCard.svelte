@@ -19,7 +19,7 @@
     ${
       highlight
         ? "bg-primary/10 border-primary/30"
-        : "bg-surface-content/5 border-surface-content/10 hover:border-surface-content/20"
+        : "bg-surface-100/30 border-surface-200 hover:border-surface-300"
     }
   `}
 >

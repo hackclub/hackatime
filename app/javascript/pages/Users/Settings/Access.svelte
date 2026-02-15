@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import { onMount } from "svelte";
+  import Button from "../../../components/Button.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { AccessPageProps } from "./types";
 
@@ -93,12 +93,12 @@
       <p class="mt-1 text-sm text-muted">
         Use the setup guide if you are configuring a new editor or device.
       </p>
-      <Link
+      <Button
         href={paths.wakatime_setup_path}
-        class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+        class="mt-4"
       >
         Open setup guide
-      </Link>
+      </Button>
     </section>
 
     <section id="user_hackatime_extension">
@@ -126,12 +126,12 @@
           </select>
         </div>
 
-        <button
+        <Button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+          variant="primary"
         >
           Save extension settings
-        </button>
+        </Button>
       </form>
     </section>
 
@@ -140,14 +140,14 @@
       <p class="mt-1 text-sm text-muted">
         Rotate your API key if you think it has been exposed.
       </p>
-      <button
+      <Button
         type="button"
-        class="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        class="mt-4"
         onclick={rotateApiKey}
         disabled={rotatingApiKey}
       >
         {rotatingApiKey ? "Rotating..." : "Rotate API key"}
-      </button>
+      </Button>
 
       {#if rotatedApiKeyError}
         <p class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red">
@@ -161,13 +161,15 @@
             New API key
           </p>
           <code class="mt-2 block break-all text-sm text-surface-content">{rotatedApiKey}</code>
-          <button
+          <Button
             type="button"
-            class="mt-3 rounded-md border border-surface-200 bg-surface-100 px-3 py-1.5 text-xs font-semibold text-surface-content transition-colors hover:bg-surface-200"
+            variant="surface"
+            size="xs"
+            class="mt-3"
             onclick={copyApiKey}
           >
             {apiKeyCopied ? "Copied" : "Copy key"}
-          </button>
+          </Button>
         </div>
       {/if}
     </section>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { Link } from "@inertiajs/svelte";
+  import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
 
   interface Props {
@@ -279,12 +280,13 @@
                   : "VS Code"}.
               </p>
 
-              <Link
+              <Button
                 href="/my/wakatime_setup/step-4"
-                class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                size="xl"
+                class="w-full transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 Continue →
-              </Link>
+              </Button>
             </div>
           {/if}
         </div>
@@ -347,12 +349,13 @@
         </div>
       </div>
 
-      <Link
+      <Button
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
+        size="xl"
+        class="w-full"
       >
         Next Step
-      </Link>
+      </Button>
     {:else if editor === "jetbrains"}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="flex items-center gap-4 mb-6">
@@ -459,12 +462,13 @@
         </div>
       </div>
 
-      <Link
+      <Button
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
+        size="xl"
+        class="w-full"
       >
         Next Step
-      </Link>
+      </Button>
     {:else if editor === "sublime"}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="flex items-center gap-4 mb-6">
@@ -566,12 +570,13 @@
         </div>
       </div>
 
-      <Link
+      <Button
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
+        size="xl"
+        class="w-full"
       >
         Next Step
-      </Link>
+      </Button>
     {:else if editorData[editor]}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="flex items-center gap-4 mb-6">
@@ -615,12 +620,13 @@
         </div>
       </div>
 
-      <Link
+      <Button
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
+        size="xl"
+        class="w-full"
       >
         Next Step
-      </Link>
+      </Button>
     {:else}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="mb-6">
@@ -691,12 +697,13 @@
         </div>
       </div>
 
-      <Link
+      <Button
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
+        size="xl"
+        class="w-full"
       >
         Next Step
-      </Link>
+      </Button>
     {/if}
   </div>
 </div>

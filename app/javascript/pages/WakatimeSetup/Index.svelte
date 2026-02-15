@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { Link } from "@inertiajs/svelte";
+  import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
 
   interface Props {
@@ -116,12 +117,12 @@
               Heartbeat detected {heartbeatTimeAgo}.
             </p>
 
-            <Link
+            <Button
               href="/my/wakatime_setup/step-2"
-              class="inline-flex items-center justify-center bg-primary text-on-primary px-6 py-2 rounded-lg font-semibold transition-all"
+              size="lg"
             >
               Continue to Step 2 →
-            </Link>
+            </Button>
           </div>
         {/if}
       </div>

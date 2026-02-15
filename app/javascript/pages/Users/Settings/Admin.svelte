@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import Button from "../../../components/Button.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { AdminPageProps } from "./types";
 
@@ -61,12 +62,13 @@
                 >
                   <input type="hidden" name="_method" value="delete" />
                   <input type="hidden" name="authenticity_token" value={csrfToken} />
-                  <button
+                  <Button
                     type="submit"
-                    class="rounded-md border border-surface-200 bg-surface-100 px-3 py-1.5 text-xs font-semibold text-surface-content transition-colors hover:bg-surface-200"
+                    variant="surface"
+                    size="xs"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </form>
               </div>
             {/each}
@@ -100,12 +102,12 @@
               class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
             />
           </div>
-          <button
+          <Button
             type="submit"
-            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+            variant="primary"
           >
             Add mirror
-          </button>
+          </Button>
         </form>
       </section>
     </div>

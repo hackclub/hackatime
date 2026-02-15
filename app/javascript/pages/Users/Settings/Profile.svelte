@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
   import { onMount } from "svelte";
+  import Button from "../../../components/Button.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { ProfilePageProps } from "./types";
 
@@ -83,12 +84,12 @@
           </select>
         </div>
 
-        <button
+        <Button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+          variant="primary"
         >
           Save region settings
-        </button>
+        </Button>
       </form>
     </section>
 
@@ -118,12 +119,12 @@
           {/if}
         </div>
 
-        <button
+        <Button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+          variant="primary"
         >
           Save username
-        </button>
+        </Button>
       </form>
 
       {#if badges.profile_url}
@@ -161,12 +162,12 @@
           Allow public stats lookup
         </label>
 
-        <button
+        <Button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+          variant="primary"
         >
           Save privacy settings
-        </button>
+        </Button>
       </form>
     </section>
 
@@ -237,12 +238,12 @@
           {/each}
         </div>
 
-        <button
+        <Button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
+          variant="primary"
         >
           Save theme
-        </button>
+        </Button>
       </form>
     </section>
   </div>

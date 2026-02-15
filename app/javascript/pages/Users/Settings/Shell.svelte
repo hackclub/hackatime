@@ -64,7 +64,7 @@
 
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
     <aside class="h-max lg:sticky lg:top-8">
-      <div class="overflow-hidden rounded-xl border border-[#4A3438] bg-surface divide-y divide-[#4A3438]">
+      <div class="overflow-hidden rounded-xl border border-surface-200 bg-surface divide-y divide-surface-200">
         {#each sections as section}
           <Link href={section.path} class={sectionButtonClass(section.id)}>
             <p class="text-sm font-semibold">{section.label}</p>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Button from "../../../components/Button.svelte";
+
   let {
     label,
     param,
@@ -70,9 +72,10 @@
     {label}
   </span>
 
-  <div class="group flex items-center border border-surface-content/20 rounded-lg bg-surface-100 m-0 p-0 transition-all duration-200 hover:border-surface-content/30 hover:bg-surface-200">
-    <button
+  <div class="group flex items-center border border-surface-200 rounded-lg bg-surface-100 m-0 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200">
+    <Button
       type="button"
+      unstyled
       class="flex-1 px-3 py-2.5 text-sm cursor-pointer select-none text-surface-content m-0 bg-transparent flex items-center justify-between border-0 min-w-0"
       onclick={() => (open = !open)}
     >
@@ -87,25 +90,26 @@
       >
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
       </svg>
-    </button>
+    </Button>
 
     {#if selected.length > 0}
-      <button
+      <Button
         type="button"
-        class="px-2.5 py-2 text-sm leading-none text-secondary/60 bg-transparent border-0 border-l border-surface-content/10 cursor-pointer m-0 hover:text-red hover:bg-red/10 transition-colors duration-150"
+        unstyled
+        class="px-2.5 py-2 text-sm leading-none text-secondary/60 bg-transparent border-0 border-l border-surface-200 cursor-pointer m-0 hover:text-red hover:bg-red/10 transition-colors duration-150"
         onclick={clear}
       >
         ×
-      </button>
+      </Button>
     {/if}
   </div>
 
   {#if open}
-    <div class="absolute top-full left-0 right-0 min-w-64 bg-darkless border border-surface-content/10 rounded-lg mt-2 shadow-xl shadow-black/50 z-1000 p-2">
+    <div class="absolute top-full left-0 right-0 min-w-64 bg-darkless border border-surface-200 rounded-lg mt-2 shadow-xl shadow-black/50 z-1000 p-2">
       <input
         type="text"
         placeholder="Search..."
-        class="w-full border border-surface-content/10 px-3 py-2.5 mb-2 bg-dark text-surface-content text-sm rounded-md h-auto placeholder:text-secondary/60 focus:outline-none focus:border-surface-content/20"
+        class="w-full border border-surface-200 px-3 py-2.5 mb-2 bg-dark text-surface-content text-sm rounded-md h-auto placeholder:text-secondary/60 focus:outline-none focus:border-surface-300"
         bind:value={search}
       />
 
@@ -116,7 +120,7 @@
               type="checkbox"
               checked={selected.includes(value)}
               onchange={() => toggle(value)}
-              class="mr-3 mb-0 h-4 w-4 min-w-4 appearance-none border border-surface-content/20 rounded bg-dark relative cursor-pointer p-0 checked:bg-primary checked:border-primary hover:border-surface-content/40 transition-colors duration-150"
+              class="mr-3 mb-0 h-4 w-4 min-w-4 appearance-none border border-surface-200 rounded bg-dark relative cursor-pointer p-0 checked:bg-primary checked:border-primary hover:border-surface-300 transition-colors duration-150"
             />
             {value}
           </label>

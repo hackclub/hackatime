@@ -19,7 +19,7 @@
 </script>
 
 <div
-  class="bg-dark/50 border border-surface-content/10 rounded-xl p-6 flex flex-col h-full"
+  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
 >
   <h3 class="text-lg font-semibold mb-4 text-surface-content/90">{title}</h3>
   {#if entries.length > 0}

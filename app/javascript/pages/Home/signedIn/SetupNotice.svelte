@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Button from "../../../components/Button.svelte";
   import SocialProofUsers from "./SocialProofUsers.svelte";
 
   type SocialProofUser = { display_name: string; avatar_url: string };
@@ -22,11 +22,19 @@
     Hello friend! Looks like you are new around here, let's get you set up
     so you can start tracking your coding time.
   </p>
-  <Link
-    href={wakatime_setup_path}
-    class="inline-block w-auto text-3xl font-bold px-8 py-4 bg-primary text-on-primary rounded shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-pulse"
-    >Let's setup Hackatime! Click me :D</Link
-  >
+  <div class="mb-4 rounded-xl border border-primary/40 bg-surface-100/70 p-4 md:p-5">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <p class="m-0 text-base font-medium text-surface-content">
+        Finish setup once and we&apos;ll start tracking your coding time automatically.
+      </p>
+      <Button
+        href={wakatime_setup_path}
+        size="lg"
+        class="w-full md:w-auto shrink-0"
+        >Let&apos;s setup Hackatime! Click me :D</Button
+      >
+    </div>
+  </div>
   <SocialProofUsers
     users={ssp_users_recent}
     total_size={ssp_users_size}

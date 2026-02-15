@@ -58,7 +58,7 @@
 </script>
 
 <div
-  class="bg-dark/50 border border-surface-content/10 rounded-xl p-6 flex flex-col h-full"
+  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
 >
   <h2 class="mb-4 text-lg font-semibold text-surface-content/90">{title}</h2>
   <div class="h-[260px] sm:h-[280px] lg:h-[300px]">
