@@ -33,13 +33,11 @@ class SessionsController < ApplicationController
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
-      if !@user.heartbeats.exists?
-        # User hasn't set up editor yet; preserve return_data already set by hca_new,
-        # only override if a new, safely sanitized continue URL is available.
-        if params[:continue].present?
-          sanitized_continue_url = safe_return_url(params[:continue].presence)
-          session[:return_data] = { "url" => sanitized_continue_url } if sanitized_continue_url.present?
-        end
+      PosthogService.identify(@user)
+      PosthogService.capture(@user, "user_signed_in", { method: "hca" })
+
+      if @user.created_at > 5.seconds.ago
+        session[:return_data] = { "url" => safe_return_url(params[:continue].presence) }
         Rails.logger.info("Sessions return data: #{session[:return_data]}")
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       elsif session[:return_data]&.dig("url").present?
@@ -86,14 +84,17 @@ class SessionsController < ApplicationController
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
+      PosthogService.identify(@user)
+      PosthogService.capture(@user, "user_signed_in", { method: "slack" })
+
       state = JSON.parse(params[:state]) rescue {}
       if state["close_window"]
         redirect_to close_window_path
-      elsif !@user.heartbeats.exists?
+      elsif @user.created_at > 5.seconds.ago
         session[:return_data] = { "url" => safe_return_url(state["continue"].presence) }
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
-      elsif (continue_url = safe_return_url(state["continue"].presence))
-        redirect_to continue_url, notice: "Successfully signed in with Slack! Welcome!"
+      elsif state["continue"].present? && safe_return_url(state["continue"]).present?
+        redirect_to safe_return_url(state["continue"]), notice: "Successfully signed in with Slack! Welcome!"
       else
         redirect_to root_path, notice: "Successfully signed in with Slack! Welcome!"
       end
@@ -137,6 +138,7 @@ class SessionsController < ApplicationController
     @user = User.from_github_token(params[:code], redirect_uri, current_user)
 
     if @user&.persisted?
+      PosthogService.capture(@user, "github_linked")
       redirect_to my_settings_path, notice: "Successfully linked GitHub account!"
     else
       Rails.logger.error "Failed to link GitHub account"
@@ -254,15 +256,13 @@ class SessionsController < ApplicationController
       valid_token.mark_used!
       session[:user_id] = valid_token.user_id
       session[:return_data] = valid_token.return_data || {}
-      user = User.find(valid_token.user_id)
-      continue_url = safe_return_url(valid_token.continue_param)
 
-      if !user.heartbeats.exists?
-        # User hasn't set up editor yet; send through wakatime setup first
-        session[:return_data]["url"] = continue_url if continue_url.present?
-        redirect_to my_wakatime_setup_path, notice: "Successfully signed in!"
-      elsif continue_url.present?
-        redirect_to continue_url, notice: "Successfully signed in!"
+      user = User.find(valid_token.user_id)
+      PosthogService.identify(user)
+      PosthogService.capture(user, "user_signed_in", { method: "email" })
+
+      if valid_token.continue_param.present? && safe_return_url(valid_token.continue_param).present?
+        redirect_to safe_return_url(valid_token.continue_param), notice: "Successfully signed in!"
       else
         redirect_to root_path, notice: "Successfully signed in!"
       end
@@ -304,6 +304,7 @@ class SessionsController < ApplicationController
   end
 
   def destroy
+    PosthogService.capture(session[:user_id], "user_signed_out") if session[:user_id]
     session[:user_id] = nil
     session[:impersonater_user_id] = nil
     redirect_to root_path, notice: "Signed out!"

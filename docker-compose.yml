@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
+      - "3036:3036"
     volumes:
       - .:/app
       - bundle_cache:/usr/local/bundle

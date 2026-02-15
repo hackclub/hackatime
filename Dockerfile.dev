@@ -41,6 +41,7 @@ RUN git config --system http.timeout 30 && \
     git config --system http.lowSpeedLimit 1000 && \
     git config --system http.lowSpeedTime 10
 EXPOSE 3000
+EXPOSE 3036
 
 # Start the main process
 CMD ["rails", "server", "-b", "0.0.0.0"] 

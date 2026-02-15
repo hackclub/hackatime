@@ -18,6 +18,7 @@ class UsersController < InertiaController
         if @user.uses_slack_status?
           @user.update_slack_status
         end
+        PosthogService.capture(@user, "settings_updated", { fields: user_params.keys })
         redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
           notice: "Settings updated successfully"
       else
@@ -44,6 +45,7 @@ class UsersController < InertiaController
 
       new_api_key = @user.api_keys.create!(name: "Hackatime key")
 
+      PosthogService.capture(@user, "api_key_rotated")
       render json: { token: new_api_key.token }, status: :ok
     end
   rescue => e
@@ -54,33 +56,37 @@ class UsersController < InertiaController
   def wakatime_setup
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
-    setup_os = detect_setup_os(request.user_agent)
+    PosthogService.capture(current_user, "setup_started", { step: 1 })
 
     render inertia: "WakatimeSetup/Index", props: {
-      current_user_api_key: api_key&.token,
-      setup_os: setup_os.to_s,
+      current_user_api_key: api_key.token,
+      setup_os: detect_setup_os(request.user_agent).to_s,
       api_url: api_hackatime_v1_url,
       heartbeat_check_url: api_v1_my_heartbeats_most_recent_path(source_type: "test_entry")
     }
   end
 
   def wakatime_setup_step_2
+    PosthogService.capture(current_user, "setup_step_viewed", { step: 2 })
+
     render inertia: "WakatimeSetup/Step2", props: {}
   end
 
   def wakatime_setup_step_3
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
-    editor = params[:editor]
+    PosthogService.capture(current_user, "setup_step_viewed", { step: 3 })
 
     render inertia: "WakatimeSetup/Step3", props: {
-      current_user_api_key: api_key&.token,
-      editor: editor,
+      current_user_api_key: api_key.token,
+      editor: params[:editor],
       heartbeat_check_url: api_v1_my_heartbeats_most_recent_path
     }
   end
 
   def wakatime_setup_step_4
+    PosthogService.capture(current_user, "setup_completed", { step: 4 })
+
     render inertia: "WakatimeSetup/Step4", props: {
       dino_video_url: FlavorText.dino_meme_videos.sample,
       return_url: session.dig(:return_data, "url"),
