@@ -1,0 +1,12 @@
+<script>
+  function c(b, t) {
+    navigator.clipboard.writeText(t).then(() => {
+      b.querySelector(".ci").classList.add("hidden");
+      b.querySelector(".c").classList.remove("hidden");
+      setTimeout(() => {
+        b.querySelector(".ci").classList.remove("hidden");
+        b.querySelector(".c").classList.add("hidden");
+      }, 2000);
+    });
+  }
+</script>
