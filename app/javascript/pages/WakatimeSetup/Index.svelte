@@ -25,7 +25,7 @@
   let statusPanelClass = $state("border-darkless");
 
   const messages = [
-    "Copy the command above and run it in your terminal!",
+    "Copy the command below and run it in your terminal!",
     "Paste the command and press Enter...",
     "The script will configure everything automatically!",
     "Almost there - just run the command!",
