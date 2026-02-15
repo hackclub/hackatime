@@ -5,6 +5,7 @@ class ApplicationController < ActionController::Base
   before_action :try_rack_mini_profiler_enable
   before_action :track_request
   before_action :enforce_lockout
+  before_action :set_cache_headers
 
   around_action :switch_time_zone, if: :current_user
 
@@ -64,6 +65,10 @@ class ApplicationController < ActionController::Base
     return unless current_user&.pending_deletion?
     return if %w[deletion_requests sessions].include?(controller_name)
     redirect_to deletion_path
+  end
+
+  def set_cache_headers
+    response.headers["Cache-Control"] = "no-store"
   end
 
   def initialize_cache_counters
