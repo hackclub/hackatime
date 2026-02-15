@@ -20,7 +20,7 @@
   let heartbeatTimeAgo = $state("");
   let checkCount = $state(0);
   let statusMessage = $state(
-    "Run the command above, then we'll automatically detect when you're ready.",
+    "Run the command below, then we'll automatically detect when you're ready.",
   );
   let statusPanelClass = $state("border-darkless");
 
