@@ -54,3 +54,9 @@ We do development using docker-compose. Run `docker-compose ps` to see if the de
 - **Jobs**: GoodJob with 4 priority queues, inherit from `ApplicationJob`, concurrency control for cache jobs
 - **Auth**: `ensure_authenticated!` for APIs, token via `Authorization` header or `?api_key=`
 - **CSS**: Using Tailwind CSS, no inline styles, use utility classes. We define some custom classes in `config/tailwind.config.js` and `app/assets/tailwind/application.css`.
+
+## Inertia Components
+
+On Inertia pages, use the `<Button />` component for buttons, not `<button>` tags.
+
+When linking to an Inertia page, use the `<Link />` component instead of `<a>` tags.

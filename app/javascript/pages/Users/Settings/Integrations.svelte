@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import Button from "../../../components/Button.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { IntegrationsPageProps } from "./types";
 
@@ -70,12 +71,7 @@
           Update my Slack status automatically
         </label>
 
-        <button
-          type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-        >
-          Save Slack settings
-        </button>
+        <Button type="submit">Save Slack settings</Button>
       </form>
     </section>
 
@@ -139,12 +135,13 @@
           >
             <input type="hidden" name="_method" value="delete" />
             <input type="hidden" name="authenticity_token" value={csrfToken} />
-            <button
+            <Button
               type="submit"
-              class="rounded-md border border-surface-200 bg-surface-100 px-4 py-2 text-sm font-semibold text-surface-content transition-colors hover:bg-surface-200"
+              variant="surface"
+              class="rounded-md"
             >
               Unlink GitHub
-            </button>
+            </Button>
           </form>
         </div>
       {:else}
@@ -176,12 +173,14 @@
                   <input type="hidden" name="_method" value="delete" />
                   <input type="hidden" name="authenticity_token" value={csrfToken} />
                   <input type="hidden" name="email" value={email.email} />
-                  <button
+                  <Button
                     type="submit"
-                    class="rounded-md border border-surface-200 bg-surface-100 px-3 py-1.5 text-xs font-semibold text-surface-content transition-colors hover:bg-surface-200"
+                    variant="surface"
+                    size="xs"
+                    class="rounded-md"
                   >
                     Unlink
-                  </button>
+                  </Button>
                 </form>
               {/if}
             </div>
@@ -202,12 +201,12 @@
           placeholder="name@example.com"
           class="grow rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
         />
-        <button
+        <Button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          class="rounded-md"
         >
           Add email
-        </button>
+        </Button>
       </form>
     </section>
   </div>

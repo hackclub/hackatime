@@ -3,20 +3,24 @@ aside[data-nav-target="nav"] {
     color: var(--color-surface-content);
 }
 
-aside[data-nav-target="nav"] a.block {
+aside[data-nav-target="nav"] a.block,
+aside[data-nav-target="nav"] button.block {
     @apply block py-2.5 px-4 rounded-md transition-colors duration-150 no-underline;
 }
 
-aside[data-nav-target="nav"] a.block.bg-primary\/20 {
+aside[data-nav-target="nav"] a.block.bg-primary\/20,
+aside[data-nav-target="nav"] button.block.bg-primary\/20 {
     @apply text-primary;
     background-color: color-mix(in oklab, var(--color-primary) 18%, transparent);
 }
 
-aside[data-nav-target="nav"] a.block.bg-primary {
+aside[data-nav-target="nav"] a.block.bg-primary,
+aside[data-nav-target="nav"] button.block.bg-primary {
     color: var(--color-on-primary);
 }
 
-aside[data-nav-target="nav"] a.block:not(.bg-primary):not(.bg-primary\/20):hover {
+aside[data-nav-target="nav"] a.block:not(.bg-primary):not(.bg-primary\/20):hover,
+aside[data-nav-target="nav"] button.block:not(.bg-primary):not(.bg-primary\/20):hover {
     @apply bg-darkless;
     @apply text-primary;
 }
