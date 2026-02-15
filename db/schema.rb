@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_223000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_15_234652) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -322,6 +322,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_223000) do
     t.index ["user_id", "time", "language_id"], name: "idx_heartbeats_user_time_language_id", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "project_id"], name: "idx_heartbeats_user_time_project_id", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "time"], name: "idx_heartbeats_coding_user_time", where: "((deleted_at IS NULL) AND ((category)::text = 'coding'::text))"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
