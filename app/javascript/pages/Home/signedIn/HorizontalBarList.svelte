@@ -37,7 +37,7 @@
               class="bg-primary rounded-md h-6 flex items-center justify-end px-3 transition-all duration-500 ease-out"
               style={`width:${Math.max(barWidth(seconds), 15)}%`}
             >
-              <span class="text-xs font-mono text-surface-content whitespace-nowrap">
+              <span class="text-xs font-mono text-on-primary whitespace-nowrap">
                 {secondsToDisplay(seconds)}
               </span>
             </div>
