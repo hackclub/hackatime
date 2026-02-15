@@ -5,7 +5,7 @@ module Doorkeeper
     layout "doorkeeper/admin" unless Doorkeeper.configuration.api_only
 
     before_action :authenticate_admin!
-    before_action :set_application, only: %i[show edit update destroy]
+    before_action :set_application, only: %i[show edit update destroy rotate_secret]
 
     def index
       @applications = current_resource_owner.oauth_applications.ordered_by(:created_at)
@@ -77,6 +77,30 @@ module Doorkeeper
       respond_to do |format|
         format.html { redirect_to oauth_applications_url }
         format.json { head :no_content }
+      end
+    end
+
+    def rotate_secret
+      @application.renew_secret
+
+      respond_to do |format|
+        if @application.save
+          format.html do
+            flash[:notice] = I18n.t(:notice, scope: i18n_scope(:rotate_secret))
+            flash[:application_secret] = @application.plaintext_secret
+            redirect_to oauth_application_url(@application)
+          end
+          format.json { render json: @application, as_owner: true }
+        else
+          format.html do
+            flash[:alert] = I18n.t(:alert, scope: i18n_scope(:rotate_secret))
+            redirect_to oauth_application_url(@application)
+          end
+          format.json do
+            errors = @application.errors.full_messages
+            render json: { errors: errors }, status: :unprocessable_entity
+          end
+        end
       end
     end
 

@@ -1,6 +1,7 @@
 <aside class="flex flex-col min-h-screen w-[250px] bg-dark text-white px-3 py-4 rounded-r-lg overflow-y-auto lg:block" data-nav-target="nav" style="scrollbar-width: none; -ms-overflow-style: none;">
   <div class="space-y-4">
     <% flash.each do |name, msg| %>
+      <% next if name.to_sym == :application_secret %>
       <%
         c =
           case name.to_sym
@@ -185,12 +186,6 @@
               Feature Flags
             <% end %>
           <% end %>
-        </div>
-      <% end %>
-
-      <% if defined?(@activities) %>
-        <div class="pt-2">
-          <%= render_activities(@activities) %>
         </div>
       <% end %>
     </nav>

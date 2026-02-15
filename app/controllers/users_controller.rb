@@ -56,53 +56,37 @@ class UsersController < InertiaController
   def wakatime_setup
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
-    @current_user_api_key = api_key&.token
     PosthogService.capture(current_user, "setup_started", { step: 1 })
-  end
-
-  def wakatime_setup_step_2
-    PosthogService.capture(current_user, "setup_step_viewed", { step: 2 })
-    setup_os = detect_setup_os(request.user_agent)
 
     render inertia: "WakatimeSetup/Index", props: {
-      current_user_api_key: api_key&.token,
-      setup_os: setup_os.to_s,
+      current_user_api_key: api_key.token,
+      setup_os: detect_setup_os(request.user_agent).to_s,
       api_url: api_hackatime_v1_url,
       heartbeat_check_url: api_v1_my_heartbeats_most_recent_path(source_type: "test_entry")
     }
   end
 
   def wakatime_setup_step_2
+    PosthogService.capture(current_user, "setup_step_viewed", { step: 2 })
+
     render inertia: "WakatimeSetup/Step2", props: {}
   end
 
   def wakatime_setup_step_3
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
-
-    @current_user_api_key = api_key&.token
     PosthogService.capture(current_user, "setup_step_viewed", { step: 3 })
-  end
-
-  def wakatime_setup_step_4
-    @no_instruction_wording = [
-      "There is no step 4, lol.",
-      "There is no step 4, psych!",
-      "Tricked ya! There is no step 4.",
-      "There is no step 4, gotcha!"
-    ].sample
-    PosthogService.capture(current_user, "setup_completed", { step: 4 })
-
-    editor = params[:editor]
 
     render inertia: "WakatimeSetup/Step3", props: {
-      current_user_api_key: api_key&.token,
-      editor: editor,
+      current_user_api_key: api_key.token,
+      editor: params[:editor],
       heartbeat_check_url: api_v1_my_heartbeats_most_recent_path
     }
   end
 
   def wakatime_setup_step_4
+    PosthogService.capture(current_user, "setup_completed", { step: 4 })
+
     render inertia: "WakatimeSetup/Step4", props: {
       dino_video_url: FlavorText.dino_meme_videos.sample,
       return_url: session.dig(:return_data, "url"),

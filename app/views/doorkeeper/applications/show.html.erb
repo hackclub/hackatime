@@ -165,7 +165,6 @@
             </svg>
             <%= t('doorkeeper.applications.buttons.edit') %>
           <% end %>
-
           <%= render 'delete_form', application: @application, submit_btn_css: 'danger' %>
 
           <% if current_user&.admin_level_superadmin? %>
@@ -186,6 +185,16 @@
             <% end %>
           <% end %>
 
+          <%= button_to rotate_secret_oauth_application_path(@application),
+              method: :post,
+              data: { turbo_confirm: "Are you sure? This will invalidate your current secrets and break existing integrations" },
+              class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-yellow/40 text-yellow hover:bg-yellow/10 font-medium rounded transition-colors duration-200" do %>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Rotate Secret
+          <% end %>
+
           <%= link_to oauth_applications_path,
               class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-darkless text-white font-medium rounded transition-colors duration-200 hover:bg-darkless" do %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -199,15 +208,4 @@
   </div>
 </div>
 
-<script>
-  function c(b, t) {
-    navigator.clipboard.writeText(t).then(() => {
-      b.querySelector(".ci").classList.add("hidden");
-      b.querySelector(".c").classList.remove("hidden");
-      setTimeout(() => {
-        b.querySelector(".ci").classList.remove("hidden");
-        b.querySelector(".c").classList.add("hidden");
-      }, 2000);
-    });
-  }
-</script>
+<%= render "shared/clipboard_script" %>

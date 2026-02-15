@@ -1,5 +1,5 @@
 class Admin::OauthApplicationsController < Admin::BaseController
-  before_action :set_application, only: [ :show, :edit, :update, :toggle_verified ]
+  before_action :set_application, only: [ :show, :edit, :update, :toggle_verified, :rotate_secret ]
 
   def index
     @applications = OauthApplication.includes(:owner).order(created_at: :desc)
@@ -24,6 +24,16 @@ class Admin::OauthApplicationsController < Admin::BaseController
     @application.update!(verified: !@application.verified?)
     redirect_back fallback_location: admin_oauth_application_path(@application),
                   notice: @application.verified? ? "gave them twitter blue!" : "took away twitter blue!"
+  end
+
+  def rotate_secret
+    @application.renew_secret
+    if @application.save
+      flash[:notice] = I18n.t(:notice, scope: %i[doorkeeper flash applications rotate_secret])
+    else
+      flash[:alert] = I18n.t(:alert, scope: %i[doorkeeper flash applications rotate_secret])
+    end
+    redirect_to admin_oauth_application_path(@application)
   end
 
   private

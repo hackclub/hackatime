@@ -21,16 +21,13 @@ class InertiaController < ApplicationController
     {
       flash: inertia_flash_messages,
       user_present: current_user.present?,
-      user_mention_html: current_user ? render_to_string(partial: "shared/user_mention", locals: { user: current_user }) : nil,
-      streak_html: current_user ? render_to_string(partial: "static_pages/streak", locals: { user: current_user, show_text: true, turbo_frame: false }) : nil,
-      admin_level_html: current_user ? render_to_string(partial: "static_pages/admin_level", locals: { user: current_user }) : nil,
+      current_user: inertia_nav_current_user,
       login_path: slack_auth_path,
       links: inertia_primary_links,
       dev_links: inertia_dev_links,
       admin_links: inertia_admin_links,
       viewer_links: inertia_viewer_links,
-      superadmin_links: inertia_superadmin_links,
-      activities_html: inertia_activities_html
+      superadmin_links: inertia_superadmin_links
     }
   end
 
@@ -119,18 +116,29 @@ class InertiaController < ApplicationController
     { label: label, href: href, active: active, badge: badge }
   end
 
-  def inertia_activities_html
-    return nil unless defined?(@activities) && @activities.present?
-    helpers.render_activities(@activities)
+  def inertia_nav_current_user
+    return nil unless current_user
+
+    country = current_user.country_code.present? ? ISO3166::Country.new(current_user.country_code) : nil
+
+    {
+      display_name: current_user.display_name,
+      avatar_url: current_user.avatar_url,
+      title: FlavorText.same_user.sample,
+      country_code: current_user.country_code,
+      country_name: country&.common_name,
+      streak_days: current_user.streak_days,
+      admin_level: current_user.admin_level
+    }
   end
 
   def inertia_footer_props
     helpers = ApplicationController.helpers
     cache = helpers.cache_stats
-    hours = active_users_graph_data.map.with_index do |entry, index|
+    hours = active_users_graph_data.map do |entry|
       {
         height: entry[:height],
-        title: "#{helpers.pluralize(index + 1, 'hour')} ago, #{helpers.pluralize(entry[:users], 'people')} logged time. '#{FlavorText.latin_phrases.sample}.'"
+        users: entry[:users]
       }
     end
 
