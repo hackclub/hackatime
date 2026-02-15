@@ -370,7 +370,7 @@
               </div>
               <div class="bg-darkless border border-darkless rounded p-4">
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-orange mb-1"><%= @user.heartbeats.duration_simple %></div>
+                  <div class="text-2xl font-bold text-orange mb-1"><%= number_with_delimiter(@user.heartbeats.duration_simple) %></div>
                   <div class="text-sm text-gray-300">Total Coding Time</div>
                 </div>
               </div>
