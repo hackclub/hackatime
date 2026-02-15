@@ -51,7 +51,7 @@
       <p class="text-sm text-muted text-center mt-1">Add to your editor</p>
     </Link>
 
-    <Link
+    <a
       href="/api-docs"
       class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
     >
@@ -60,7 +60,7 @@
       </svg>
       <h3 class="font-semibold text-surface-content">API Docs</h3>
       <p class="text-sm text-muted text-center mt-1">Interactive reference</p>
-    </Link>
+    </a>
 
     <Link
       href="/docs/oauth/oauth-apps"
@@ -138,16 +138,16 @@
   <div class="mt-8 p-4 bg-surface border border-surface-200 rounded-lg">
     <p class="text-sm text-muted">
       Need help? Ask in
-      <Link
+      <a
         href="https://hackclub.slack.com/archives/C07MQ845X1F"
         target="_blank"
-        class="text-primary hover:underline">#hackatime-v2</Link
+        class="text-primary hover:underline">#hackatime-v2</a
       >
       on Slack or
-      <Link
+      <a
         href="https://github.com/hackclub/hackatime/issues"
         target="_blank"
-        class="text-primary hover:underline">open an issue</Link
+        class="text-primary hover:underline">open an issue</a
       >
       on GitHub.
     </p>

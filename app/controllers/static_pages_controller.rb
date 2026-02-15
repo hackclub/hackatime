@@ -43,12 +43,6 @@ class StaticPagesController < InertiaController
     render :minimal_login, layout: "doorkeeper/application"
   end
 
-  def what_is_hackatime
-    @page_title = @og_title = @twitter_title = "What is Hackatime? - Free Coding Time Tracker"
-    @meta_description = @og_description = @twitter_description = "Hackatime is a free, open-source coding time tracker built by Hack Club for high school students. Track your programming time across 75+ editors and see your coding statistics."
-    @meta_keywords = "what is hackatime, hackatime definition, hack club time tracker, coding time tracker, programming statistics"
-  end
-
   def project_durations
     return unless current_user
 

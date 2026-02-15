@@ -96,7 +96,7 @@
       class="flex items-center justify-center gap-2 py-6 text-sm text-secondary/70"
     >
       <span>Found an issue with this page?</span>
-      <Link
+      <a
         href={edit_url}
         target="_blank"
         class="inline-flex items-center gap-1 text-primary hover:text-red transition-colors font-medium"
@@ -111,7 +111,7 @@
           /></svg
         >
         Edit on GitHub
-      </Link>
+      </a>
     </div>
   </div>
 </div>

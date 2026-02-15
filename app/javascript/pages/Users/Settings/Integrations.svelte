@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import { onMount } from "svelte";
   import SettingsShell from "./Shell.svelte";
   import type { IntegrationsPageProps } from "./types";
@@ -47,12 +46,12 @@
       </p>
 
       {#if !slack.can_enable_status}
-        <Link
+        <a
           href={paths.slack_auth_path}
           class="mt-4 inline-flex rounded-md border border-surface-200 bg-surface-100 px-3 py-2 text-sm text-surface-content transition-colors hover:bg-surface-200"
         >
           Re-authorize with Slack
-        </Link>
+        </a>
       {/if}
 
       <form method="post" action={settings_update_path} class="mt-4 space-y-3">
@@ -94,7 +93,7 @@
         <ul class="mt-4 space-y-2">
           {#each slack.notification_channels as channel}
             <li class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content">
-              <Link href={channel.url} target="_blank" class="underline">{channel.label}</Link>
+              <a href={channel.url} target="_blank" class="underline">{channel.label}</a>
             </li>
           {/each}
         </ul>
@@ -114,17 +113,17 @@
       {#if github.connected && github.username}
         <div class="mt-4 rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content">
           Connected as
-          <Link href={github.profile_url || "#"} target="_blank" class="underline">
+          <a href={github.profile_url || "#"} target="_blank" class="underline">
             @{github.username}
-          </Link>
+          </a>
         </div>
         <div class="mt-3 flex flex-wrap gap-3">
-          <Link
+          <a
             href={paths.github_auth_path}
             class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Reconnect GitHub
-          </Link>
+          </a>
           <form
             method="post"
             action={paths.github_unlink_path}
@@ -149,12 +148,12 @@
           </form>
         </div>
       {:else}
-        <Link
+        <a
           href={paths.github_auth_path}
           class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Connect GitHub
-        </Link>
+        </a>
       {/if}
     </section>
 

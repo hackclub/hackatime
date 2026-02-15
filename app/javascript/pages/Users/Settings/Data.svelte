@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import { onMount } from "svelte";
   import SettingsShell from "./Shell.svelte";
   import type { DataPageProps } from "./types";
@@ -99,12 +98,12 @@
         </div>
 
         <div class="mt-4 space-y-3">
-          <Link
+          <a
             href={paths.export_all_heartbeats_path}
             class="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Export all heartbeats
-          </Link>
+          </a>
 
           <form
             method="get"
