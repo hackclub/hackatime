@@ -108,11 +108,27 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
       produces 'application/json'
 
       parameter name: :include_archived, in: :query, type: :boolean, description: 'Include archived projects (true/false)'
+      parameter name: :projects, in: :query, type: :string, description: 'Comma-separated list of project names'
+      parameter name: :since, in: :query, schema: { type: :string, format: :date_time }, description: 'Project discovery start time (ISO 8601)'
+      parameter name: :until, in: :query, schema: { type: :string, format: :date_time }, description: 'Project discovery end time (ISO 8601)'
+      parameter name: :until_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Alias for until'
+      parameter name: :start, in: :query, schema: { type: :string, format: :date_time }, description: 'Stats start time (ISO 8601)'
+      parameter name: :end, in: :query, schema: { type: :string, format: :date_time }, description: 'Stats end time (ISO 8601)'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Alias for start'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Alias for end'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }
         let(:include_archived) { false }
+        let(:projects) { nil }
+        let(:since) { nil }
+        let(:until) { nil }
+        let(:until_date) { nil }
+        let(:start) { nil }
+        let(:end) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
         schema type: :object,
           properties: {
             projects: {
@@ -136,6 +152,14 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
         let(:Authorization) { 'Bearer invalid' }
         let(:api_key) { "invalid" }
         let(:include_archived) { false }
+        let(:projects) { nil }
+        let(:since) { nil }
+        let(:until) { nil }
+        let(:until_date) { nil }
+        let(:start) { nil }
+        let(:end) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
         # schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
