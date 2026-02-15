@@ -89,7 +89,7 @@
               <div class="w-37.5 text-right pr-4 text-sm text-muted whitespace-nowrap overflow-hidden text-ellipsis"><%= h(project.presence || 'Unknown') %></div>
               <div class="flex-1 h-7 bg-darkless rounded-lg overflow-hidden">
                 <div class="h-full bg-primary rounded-lg relative transition-[width] duration-300 ease-in-out" style="width: <%= log_scale(duration, max_duration) %>%">
-                  <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-darker"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
+                  <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-on-primary"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
                 </div>
               </div>
             </div>
