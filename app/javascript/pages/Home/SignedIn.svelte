@@ -76,17 +76,42 @@
   let todayStats = $state<TodayStats | null>(null);
   let dashboardData = $state<FilterableDashboardData | null>(null);
   let activityGraph = $state<ActivityGraphData | null>(null);
+  let requestSequence = 0;
 
-  onMount(async () => {
+  function buildDashboardStatsUrl(search: string) {
+    const url = new URL(dashboard_stats_url, window.location.origin);
+    if (search.startsWith("?")) {
+      url.search = search;
+    } else if (search) {
+      url.search = `?${search}`;
+    } else {
+      url.search = "";
+    }
+    return `${url.pathname}${url.search}`;
+  }
+
+  async function refreshDashboardData(search: string) {
+    const requestId = ++requestSequence;
     try {
-      const res = await fetch(dashboard_stats_url, {
+      const res = await fetch(buildDashboardStatsUrl(search), {
         headers: { Accept: "application/json" },
       });
       if (!res.ok) return;
+
       const data = await res.json();
+      if (requestId !== requestSequence) return;
+
       todayStats = data.today_stats;
       dashboardData = data.filterable_dashboard_data;
       activityGraph = data.activity_graph;
+    } catch {
+      return;
+    }
+  }
+
+  onMount(async () => {
+    try {
+      await refreshDashboardData(window.location.search);
     } finally {
       loading = false;
     }
@@ -143,7 +168,7 @@
     {#if loading}
       <DashboardSkeleton />
     {:else if dashboardData}
-      <Dashboard data={dashboardData} />
+      <Dashboard data={dashboardData} onFiltersChange={refreshDashboardData} />
     {/if}
 
     <!-- Activity Graph -->

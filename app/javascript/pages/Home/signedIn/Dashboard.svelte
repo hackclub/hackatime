@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { router } from "@inertiajs/svelte";
   import { secondsToDisplay } from "./utils";
   import StatCard from "./StatCard.svelte";
   import HorizontalBarList from "./HorizontalBarList.svelte";
@@ -10,8 +9,10 @@
 
   let {
     data,
+    onFiltersChange,
   }: {
     data: Record<string, any>;
+    onFiltersChange?: (search: string) => Promise<void> | void;
   } = $props();
 
   let loading = $state(false);
@@ -35,7 +36,7 @@
   const capitalize = (s: string) =>
     s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
 
-  function applyFilters(overrides: Record<string, string>) {
+  async function applyFilters(overrides: Record<string, string>) {
     const current = new URL(window.location.href);
     for (const [k, v] of Object.entries(overrides)) {
       if (v) {
@@ -45,29 +46,26 @@
       }
     }
 
+    window.history.pushState({}, "", current.pathname + current.search);
+
     loading = true;
-    router.get(
-      current.pathname + current.search,
-      {},
-      {
-        preserveState: true,
-        preserveScroll: true,
-        only: ["filterable_dashboard_data"],
-        onFinish: () => (loading = false),
-      },
-    );
+    try {
+      await onFiltersChange?.(current.search);
+    } finally {
+      loading = false;
+    }
   }
 
   function onIntervalChange(interval: string, from: string, to: string) {
     if (from || to) {
-      applyFilters({ interval: "custom", from, to });
+      void applyFilters({ interval: "custom", from, to });
     } else {
-      applyFilters({ interval, from: "", to: "" });
+      void applyFilters({ interval, from: "", to: "" });
     }
   }
 
   function onFilterChange(param: string, selected: string[]) {
-    applyFilters({ [param]: selected.join(",") });
+    void applyFilters({ [param]: selected.join(",") });
   }
 </script>
 
