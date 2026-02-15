@@ -14,7 +14,8 @@
 
 <div
   class={`
-    relative flex flex-col justify-between p-4 pb-6 rounded-xl border transition-all duration-200 h-full
+    relative flex flex-col justify-start p-4 rounded-xl border transition-all duration-200 h-full
+    ${subtitle ? "pb-6" : ""}
     ${
       highlight
         ? "bg-primary/10 border-primary/30"
