@@ -222,10 +222,10 @@
                 </summary>
                 <div class="mt-4 pl-6">
                   <p class="text-sm mb-3 text-secondary">
-                    You'll see a clock icon in your status bar:
+                    You'll see a clock icon and time spent coding in your status bar:
                   </p>
                   <img
-                    src="https://hc-cdn.hel1.your-objectstorage.com/s/v3/95d2513ce4b0c1c147827d17ecb4c24540cd73cc_p.png"
+                    src="/images/editor-toolbars/vs-code.png"
                     alt="WakaTime status bar"
                     class="rounded-lg border border-darkless"
                   />
@@ -343,6 +343,225 @@
               >
               Watch setup tutorial
             </a>
+          </div>
+        </div>
+      </div>
+
+      <a
+        href="/my/wakatime_setup/step-4"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
+      >
+        Next Step
+      </a>
+    {:else if editor === "jetbrains"}
+      <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
+        <div class="flex items-center gap-4 mb-6">
+          <img
+            src="/images/editor-icons/jetbrains-128.png"
+            alt="JetBrains"
+            class="w-12 h-12 object-contain"
+          />
+          <div>
+            <h3 class="text-xl font-semibold">Set Up JetBrains IDEs</h3>
+            <p class="text-secondary text-sm">
+              Install the WakaTime extension for JetBrains IDEs (like IntelliJ and PyCharm).
+            </p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <p class="text-sm">
+            JetBrains IDEs require a plugin installed for each IDE separately.
+          </p>
+
+          <div class="flex items-start gap-4">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+            >
+              1
+            </div>
+            <div>
+              <p class="font-medium mb-1">Open Settings</p>
+              <p class="text-sm text-secondary">
+                Open your IDE and go to <b>Settings</b> (Ctrl+Alt+S on Windows/Linux, Command+, on macOS), <b>Plugins</b>, then <b>Marketplace</b>.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+            >
+              2
+            </div>
+            <div>
+              <p class="font-medium mb-1">Install WakaTime Plugin</p>
+              <p class="text-sm text-secondary">
+                Search for <b>WakaTime</b> in the marketplace and click Install.
+
+                <a
+                    href="https://plugins.jetbrains.com/plugin/7425-wakatime"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-cyan hover:underline">View on Marketplace</a
+                  >
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+            >
+              3
+            </div>
+            <div>
+              <p class="font-medium mb-1">Restart & Code</p>
+              <p class="text-sm text-secondary">
+                Restart your IDE if prompted. Then, open any file and start
+                typing to send your first heartbeat.
+              </p>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-darkless">
+            <details class="group">
+              <summary
+                class="cursor-pointer text-sm text-secondary hover:text-white flex items-center gap-2 transition-colors"
+              >
+                <svg
+                  class="w-4 h-4 transition-transform group-open:rotate-90"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+                How do I know it's working?
+              </summary>
+              <div class="mt-4 pl-6">
+                <p class="text-sm mb-3 text-secondary">
+                  You'll see a WakaTime icon and time spent coding in your status bar:
+                </p>
+                <img
+                  src="/images/editor-toolbars/jetbrains.png"
+                  alt="WakaTime status bar"
+                  class="rounded-lg border border-darkless"
+                />
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <a
+        href="/my/wakatime_setup/step-4"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
+      >
+        Next Step
+      </a>
+    {:else if editor === "sublime"}
+      <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
+        <div class="flex items-center gap-4 mb-6">
+          <img
+            src="/images/editor-icons/sublime-text-128.png"
+            alt="Sublime Text"
+            class="w-12 h-12 object-contain"
+          />
+          <div>
+            <h3 class="text-xl font-semibold">Set Up Sublime Text</h3>
+            <p class="text-secondary text-sm">
+              Use Package Control to install WakaTime for Sublime Text.
+            </p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="flex items-start gap-4">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+            >
+              1
+            </div>
+            <div>
+              <p class="font-medium mb-1">Install Package Control</p>
+              <p class="text-sm text-secondary">
+                If you don't have Package Control installed, install it at
+                <a
+                  href="https://packagecontrol.io/installation"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-cyan hover:underline">packagecontrol.io</a
+                > to set it up first.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+            >
+              2
+            </div>
+            <div>
+              <p class="font-medium mb-1">Install WakaTime Plugin</p>
+              <p class="text-sm text-secondary">
+                Open the Command Palette (Ctrl+Shift+P on Windows/Linux, Command+Shift+P on macOS), type <b>Package Control: Install Package</b>, and press Enter. Then type <b>WakaTime</b> and press Enter to install.
+                  <a
+                      href="https://packagecontrol.io/packages/WakaTime"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-cyan hover:underline">View on Package Control</a
+                    >
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+            >
+              2
+            </div>
+            <div>
+              <p class="font-medium mb-1">Start Coding</p>
+              <p class="text-sm text-secondary">
+                After installing WakaTime, open any file and start typing to send your first heartbeat.
+              </p>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-darkless">
+            <details class="group">
+              <summary
+                class="cursor-pointer text-sm text-secondary hover:text-white flex items-center gap-2 transition-colors"
+              >
+                <svg
+                  class="w-4 h-4 transition-transform group-open:rotate-90"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+                How do I know it's working?
+              </summary>
+              <div class="mt-4 pl-6">
+                <p class="text-sm mb-3 text-secondary">
+                  You'll see your time spent coding in your status bar, which looks something like <code>Today: 1h 23m</code>.
+                </p>
+              </div>
+            </details>
           </div>
         </div>
       </div>

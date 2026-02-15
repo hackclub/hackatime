@@ -7,7 +7,7 @@
     { id: 'vim', name: 'Vim', icon: '/images/editor-icons/vim-128.png' },
     { id: 'neovim', name: 'Neovim', icon: '/images/editor-icons/neovim-128.png' },
     { id: 'emacs', name: 'Emacs', icon: '/images/editor-icons/emacs-128.png' },
-    { id: 'pycharm', name: 'PyCharm', icon: '/images/editor-icons/pycharm-128.png' },
+    { id: 'jetbrains', name: 'JetBrains', icon: '/images/editor-icons/jetbrains-128.png' },
     { id: 'sublime', name: 'Sublime', icon: '/images/editor-icons/sublime-text-128.png' },
     { id: 'unity', name: 'Unity', icon: '/images/editor-icons/unity-128.png' },
     { id: 'godot', name: 'Godot', icon: '/images/editor-icons/godot-128.png' },
