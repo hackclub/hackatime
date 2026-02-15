@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import SettingsShell from "./Shell.svelte";
   import type { BadgesPageProps } from "./types";
 
@@ -125,13 +124,13 @@
       </div>
       <p class="mt-3 text-sm text-muted">
         Reference:
-        <Link
+        <a
           href={badges.markscribe_reference_url}
           target="_blank"
           class="text-primary underline"
         >
           markscribe template docs
-        </Link>
+        </a>
       </p>
       <img
         src={badges.markscribe_preview_image_url}

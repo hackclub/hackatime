@@ -51,20 +51,19 @@ class InertiaController < ApplicationController
 
   def inertia_primary_links
     links = []
-    links << inertia_link("Home", root_path, active: helpers.current_page?(root_path))
+    links << inertia_link("Home", root_path, active: helpers.current_page?(root_path), inertia: true)
     links << inertia_link("Leaderboards", leaderboards_path, active: helpers.current_page?(leaderboards_path))
 
     if current_user
       links << inertia_link("Projects", my_projects_path, active: helpers.current_page?(my_projects_path))
-      links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"))
-      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path))
-      links << inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings"))
+      links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true)
+      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
+      links << inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings"), inertia: true)
       links << inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications"))
       links << { label: "Logout", action: "logout" }
     else
-      links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"))
-      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path))
-      links << inertia_link("What is Hackatime?", "/what-is-hackatime", active: helpers.current_page?("/what-is-hackatime"))
+      links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true)
+      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
     end
 
     links
@@ -112,8 +111,8 @@ class InertiaController < ApplicationController
     links
   end
 
-  def inertia_link(label, href, active: false, badge: nil)
-    { label: label, href: href, active: active, badge: badge }
+  def inertia_link(label, href, active: false, badge: nil, inertia: false)
+    { label: label, href: href, active: active, badge: badge, inertia: inertia }
   end
 
   def inertia_nav_current_user

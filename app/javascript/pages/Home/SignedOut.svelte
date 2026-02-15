@@ -70,17 +70,17 @@
       <span class="font-bold tracking-tight text-lg">Hackatime</span>
     </div>
     <div class="hidden md:flex gap-8 text-sm font-medium text-text-muted">
-      <Link href="#stats" class="hover:text-white transition-colors">Stats</Link>
-      <Link href="#editors" class="hover:text-white transition-colors">Editors</Link>
+      <a href="#stats" class="hover:text-white transition-colors">Stats</a>
+      <a href="#editors" class="hover:text-white transition-colors">Editors</a>
       <Link href="/docs" class="hover:text-white transition-colors">Developers</Link>
     </div>
     <div class="min-w-[140px] flex justify-end">
-      <Link
+      <a
         href={hca_auth_path}
         class="text-sm font-bold border border-primary text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-all"
       >
         Login
-      </Link>
+      </a>
     </div>
   </nav>
 
@@ -111,16 +111,16 @@
             see it!
           </p>
           {#if show_dev_tool && dev_magic_link}
-            <Link
+            <a
               href={dev_magic_link}
               class="text-xs text-secondary underline hover:text-white"
-              >Dev: Open Link</Link
+              >Dev: Open Link</a
             >
           {/if}
         </div>
       {:else}
         <!-- Primary Auth Buttons -->
-        <Link
+        <a
           href={hca_auth_path}
           onclick={() => (isSigningIn = true)}
           class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-primary text-white font-medium hover:brightness-110 transition-all"
@@ -148,9 +148,9 @@
             />
           {/if}
           <span>Sign in with Hack Club</span>
-        </Link>
+        </a>
 
-        <Link
+        <a
           href={slack_auth_path}
           class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-dark border border-darkless text-white font-medium hover:bg-darkless transition-all"
         >
@@ -160,7 +160,7 @@
             /></svg
           >
           <span>Sign in with Slack</span>
-        </Link>
+        </a>
 
         <!-- Divider -->
         <div class="flex items-center gap-4 py-1">
