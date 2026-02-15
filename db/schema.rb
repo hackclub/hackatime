@@ -14,7 +14,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_223000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
-  enable_extension "pganalyze"
 
   create_table "admin_api_keys", force: :cascade do |t|
     t.datetime "created_at", null: false
