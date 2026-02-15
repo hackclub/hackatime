@@ -2165,6 +2165,53 @@ paths:
         description: Include archived projects (true/false)
         schema:
           type: boolean
+      - name: projects
+        in: query
+        description: Comma-separated list of project names
+        schema:
+          type: string
+      - name: since
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Project discovery start time (ISO 8601)
+      - name: until
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Project discovery end time (ISO 8601)
+      - name: until_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Alias for until
+      - name: start
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Stats start time (ISO 8601)
+      - name: end
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Stats end time (ISO 8601)
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Alias for start
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Alias for end
       responses:
         '200':
           description: successful
@@ -2940,6 +2987,18 @@ paths:
         required: true
         schema:
           type: string
+      - name: start
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Stats start time (ISO 8601)
+      - name: end
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Stats end time (ISO 8601)
       - name: start_date
         in: query
         schema:
@@ -3008,12 +3067,30 @@ paths:
           type: string
           format: date_time
         description: Start time (ISO 8601) for project discovery
+      - name: until
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End time (ISO 8601) for project discovery
       - name: until_date
         in: query
         schema:
           type: string
           format: date_time
         description: End time (ISO 8601) for project discovery
+      - name: start
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Stats start time (ISO 8601)
+      - name: end
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Stats end time (ISO 8601)
       - name: start_date
         in: query
         schema:
