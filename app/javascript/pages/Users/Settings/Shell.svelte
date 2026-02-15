@@ -20,7 +20,7 @@
   const knownSectionIds = $derived(new Set(sections.map((section) => section.id)));
 
   const sectionButtonClass = (sectionId: keyof SectionPaths) =>
-    `block w-full px-3 py-3 text-left transition-colors ${
+    `block w-full px-4 py-4 text-left transition-colors ${
       active_section === sectionId
         ? "bg-surface-100 text-surface-content"
         : "bg-surface text-muted hover:bg-surface-100 hover:text-surface-content"
