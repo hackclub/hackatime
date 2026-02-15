@@ -2,7 +2,7 @@ class LeaderboardUpdateJob < ApplicationJob
   queue_as :latency_10s
 
   include GoodJob::ActiveJobExtensions::Concurrency
-  UPSERT_BATCH_SIZE = 1_000
+  ENTRY_INSERT_BATCH_SIZE = ENV.fetch("LEADERBOARD_ENTRY_INSERT_BATCH_SIZE", 800).to_i
 
   # Limits concurrency to 1 job per period/date combination
   good_job_control_concurrency_with(
@@ -48,10 +48,7 @@ class LeaderboardUpdateJob < ApplicationJob
       data = heartbeat_query.group(:user_id)
                             .duration_seconds(minimum_seconds: 60)
 
-      streaks = {}
-      data.keys.each_slice(UPSERT_BATCH_SIZE) do |user_ids_batch|
-        streaks.merge!(Heartbeat.daily_streaks_for_users(user_ids_batch))
-      end
+      streaks = data.keys.any? ? Heartbeat.daily_streaks_for_users(data.keys) : {}
 
       entries = data.map do |user_id, seconds|
         {
@@ -65,7 +62,7 @@ class LeaderboardUpdateJob < ApplicationJob
       end
 
       board.entries.delete_all
-      entries.each_slice(UPSERT_BATCH_SIZE) do |entry_batch|
+      entries.each_slice(ENTRY_INSERT_BATCH_SIZE) do |entry_batch|
         LeaderboardEntry.insert_all(entry_batch) if entry_batch.any?
       end
 
