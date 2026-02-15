@@ -139,7 +139,7 @@
   <title>Setup {editor} - Step 3</title>
 </svelte:head>
 
-<div class="min-h-screen text-white pt-8 pb-16">
+<div class="min-h-screen text-surface-content pt-8 pb-16">
   <div class="max-w-2xl mx-auto px-4">
     <Stepper currentStep={3} />
 
@@ -165,7 +165,7 @@
           <div class="space-y-4">
             <div class="flex items-start gap-4">
               <div
-                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
               >
                 1
               </div>
@@ -187,7 +187,7 @@
 
             <div class="flex items-start gap-4">
               <div
-                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
               >
                 2
               </div>
@@ -203,7 +203,7 @@
             <div class="pt-4 border-t border-darkless">
               <details class="group">
                 <summary
-                  class="cursor-pointer text-sm text-secondary hover:text-white flex items-center gap-2 transition-colors"
+                  class="cursor-pointer text-sm text-secondary hover:text-surface-content flex items-center gap-2 transition-colors"
                 >
                   <svg
                     class="w-4 h-4 transition-transform group-open:rotate-90"
@@ -242,7 +242,7 @@
             <div
               class="flex flex-col items-center justify-center text-center py-2"
             >
-              <h4 class="text-lg font-semibold text-white mb-1">
+              <h4 class="text-lg font-semibold text-surface-content mb-1">
                 Waiting for you to code...
               </h4>
               <p class="text-sm text-secondary mb-4 max-w-sm">
@@ -268,7 +268,7 @@
                   />
                 </svg>
               </div>
-              <h4 class="text-xl font-bold text-white mb-2">
+              <h4 class="text-xl font-bold text-surface-content mb-2">
                 Heartbeat detected!
               </h4>
               <p class="text-secondary text-sm mb-6">
@@ -281,7 +281,7 @@
 
               <Link
                 href="/my/wakatime_setup/step-4"
-                class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 Continue →
               </Link>
@@ -292,7 +292,7 @@
         <div class="text-center">
           <Link
             href="/my/wakatime_setup/step-4"
-            class="text-xs text-secondary hover:text-white transition-colors"
+            class="text-xs text-secondary hover:text-surface-content transition-colors"
             >Skip to finish</Link
           >
         </div>
@@ -349,7 +349,7 @@
 
       <Link
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
       </Link>
@@ -376,7 +376,7 @@
 
           <div class="flex items-start gap-4">
             <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
             >
               1
             </div>
@@ -390,7 +390,7 @@
 
           <div class="flex items-start gap-4">
             <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
             >
               2
             </div>
@@ -411,7 +411,7 @@
 
           <div class="flex items-start gap-4">
             <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
             >
               3
             </div>
@@ -427,7 +427,7 @@
           <div class="pt-4 border-t border-darkless">
             <details class="group">
               <summary
-                class="cursor-pointer text-sm text-secondary hover:text-white flex items-center gap-2 transition-colors"
+                class="cursor-pointer text-sm text-secondary hover:text-surface-content flex items-center gap-2 transition-colors"
               >
                 <svg
                   class="w-4 h-4 transition-transform group-open:rotate-90"
@@ -461,7 +461,7 @@
 
       <Link
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
       </Link>
@@ -484,7 +484,7 @@
         <div class="space-y-4">
           <div class="flex items-start gap-4">
             <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
             >
               1
             </div>
@@ -504,7 +504,7 @@
 
           <div class="flex items-start gap-4">
             <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
             >
               2
             </div>
@@ -524,7 +524,7 @@
 
           <div class="flex items-start gap-4">
             <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
             >
               2
             </div>
@@ -539,7 +539,7 @@
           <div class="pt-4 border-t border-darkless">
             <details class="group">
               <summary
-                class="cursor-pointer text-sm text-secondary hover:text-white flex items-center gap-2 transition-colors"
+                class="cursor-pointer text-sm text-secondary hover:text-surface-content flex items-center gap-2 transition-colors"
               >
                 <svg
                   class="w-4 h-4 transition-transform group-open:rotate-90"
@@ -568,7 +568,7 @@
 
       <Link
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
       </Link>
@@ -596,7 +596,7 @@
               <div class="pt-6 border-t border-darkless"></div>
             {/if}
             <div>
-              <h4 class="text-sm font-medium mb-2 text-white">{method.name}</h4>
+              <h4 class="text-sm font-medium mb-2 text-surface-content">{method.name}</h4>
               <div class="relative group">
                 <div
                   class="bg-darker border border-darkless rounded-lg overflow-x-auto"
@@ -617,7 +617,7 @@
 
       <Link
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
       </Link>
@@ -693,7 +693,7 @@
 
       <Link
         href="/my/wakatime_setup/step-4"
-        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-semibold w-full"
+        class="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-on-primary px-8 py-3 rounded-lg font-semibold w-full"
       >
         Next Step
       </Link>

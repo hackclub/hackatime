@@ -19,7 +19,7 @@
   <title>Choose your editor - Step 2</title>
 </svelte:head>
 
-<div class="min-h-screen text-white pt-8 pb-16">
+<div class="min-h-screen text-surface-content pt-8 pb-16">
   <div class="max-w-2xl mx-auto px-4">
     <Stepper currentStep={2} />
 
@@ -40,7 +40,7 @@
               <div class="w-12 h-12 flex items-center justify-center text-3xl">{editor.emoji}</div>
             {/if}
           </div>
-          <span class="font-medium text-white group-hover:text-primary transition-colors">{editor.name}</span>
+          <span class="font-medium text-surface-content group-hover:text-primary transition-colors">{editor.name}</span>
         </Link>
       {/each}
     </div>

@@ -102,7 +102,7 @@
           </div>
           <button
             type="submit"
-            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
           >
             Add mirror
           </button>

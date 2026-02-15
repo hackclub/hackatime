@@ -48,7 +48,7 @@
         <input type="hidden" name="authenticity_token" value={csrfToken} />
         <button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
         >
           Start migration
         </button>
@@ -69,7 +69,7 @@
       <h2 class="text-xl font-semibold text-surface-content">Download Data</h2>
 
       {#if data_export.is_restricted}
-        <p class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200">
+        <p class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red">
           Data export is currently restricted for this account.
         </p>
       {:else}
@@ -101,7 +101,7 @@
         <div class="mt-4 space-y-3">
           <Link
             href={paths.export_all_heartbeats_path}
-            class="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            class="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
           >
             Export all heartbeats
           </Link>

@@ -1,6 +1,6 @@
 <%= turbo_frame_tag "project_durations" do %>
   <% max = project_durations.map { |p| p[:duration] }.max || 1 %>
-  <p class="text-lg text-white mt-6">
+  <p class="text-lg text-surface-content mt-6">
 
     <% if total_time > 0 %>
       You've spent <span class="font-semibold"><%= short_time_detailed(total_time) %></span> coding across all projects.
@@ -23,11 +23,11 @@
           <% project_name = project[:project].presence || 'Unknown' %>
           <% is_broken = project_name.blank? || project_name.downcase == 'unknown' || project_name.match?(/<<.*>>/) %>
           <div class="flex flex-col gap-2 flex-1 min-w-0">
-            <h3 class="text-lg font-semibold text-white truncate" title="<%= h(project[:project]) %>">
+            <h3 class="text-lg font-semibold text-surface-content truncate" title="<%= h(project[:project]) %>">
               <%= h(project_name) %>
             </h3>
             <% if project[:repository]&.stars.present? %>
-              <div class="flex items-center gap-1 text-sm text-yellow-400">
+              <div class="flex items-center gap-1 text-sm text-yellow">
                 <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
@@ -37,37 +37,37 @@
           </div>
           <div class="flex gap-2 items-center">
             <% if project[:repository]&.homepage.present? %>
-              <%= link_to project[:repository].homepage, target: "_blank", title: "View project website", class: "p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200" do %>
-                <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <%= link_to project[:repository].homepage, target: "_blank", title: "View project website", class: "p-2 rounded-lg bg-surface-content/5 hover:bg-surface-content/10 transition-colors duration-200" do %>
+                <svg class="w-4 h-4 text-surface-content/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2m-5.15 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56M14.34 14H9.66c-.1-.66-.16-1.32-.16-2s.06-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2M12 19.96c-.83-1.2-1.5-2.53-1.91-3.96h3.82c-.41 1.43-1.08 2.76-1.91 3.96M8 8H5.08A7.92 7.92 0 0 1 9.4 4.44C8.8 5.55 8.35 6.75 8 8m-2.92 8H8c.35 1.25.8 2.45 1.4 3.56A8 8 0 0 1 5.08 16m-.82-2C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2M12 4.03c.83 1.2 1.5 2.54 1.91 3.97h-3.82c.41-1.43 1.08-2.77 1.91-3.97M18.92 8h-2.95a15.7 15.7 0 0 0-1.38-3.56c1.84.63 3.37 1.9 4.33 3.56M12 2C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2" />
                 </svg>
               <% end %>
             <% end %>
             <% if project[:repo_url].present? %>
-              <%= link_to project[:repo_url], target: "_blank", title: "View repository", class: "p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200" do %>
-                <svg class="w-4 h-4 text-white/70" fill="currentColor" viewBox="0 0 24 24">
+              <%= link_to project[:repo_url], target: "_blank", title: "View repository", class: "p-2 rounded-lg bg-surface-content/5 hover:bg-surface-content/10 transition-colors duration-200" do %>
+                <svg class="w-4 h-4 text-surface-content/70" fill="currentColor" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2a2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2c-.18 0-.35 0-.5.07L13.93 7.5a1.98 1.98 0 0 0-1.15-2.34c-.43-.16-.88-.2-1.28-.09L9.8 3.38l.79-.78c.78-.79 2.04-.79 2.82 0l7.99 7.99c.79.78.79 2.04 0 2.82l-7.99 7.99c-.78.79-2.04.79-2.82 0L2.6 13.41c-.79-.78-.79-2.04 0-2.82" />
                 </svg>
               <% end %>
             <% end %>
             <% if current_user.github_uid.present? && project[:project].present? %>
               <% modal_id = "edit-project-modal-#{project[:project]&.parameterize || 'unknown'}" %>
-              <button type="button" onclick="document.getElementById(<%= modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 cursor-pointer" title="Edit mapping">
-                <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button type="button" onclick="document.getElementById(<%= modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))" class="p-2 rounded-lg bg-surface-content/5 hover:bg-surface-content/10 transition-colors duration-200 cursor-pointer" title="Edit mapping">
+                <svg class="w-4 h-4 text-surface-content/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83l3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z" />
                 </svg>
               </button>
               <% if show_archived %>
                 <% unarchive_modal_id = "unarchive-project-modal-#{project[:project]&.parameterize || 'unknown'}" %>
-                <button type="button" onclick="document.getElementById(<%= unarchive_modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 cursor-pointer" title="Restore project">
-                  <svg class="w-4 h-4 text-white/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <button type="button" onclick="document.getElementById(<%= unarchive_modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))" class="p-2 rounded-lg bg-surface-content/5 hover:bg-surface-content/10 transition-colors duration-200 cursor-pointer" title="Restore project">
+                  <svg class="w-4 h-4 text-surface-content/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path fill="currentColor" d="m20.55 5.22l-1.39-1.68A1.51 1.51 0 0 0 18 3H6c-.47 0-.88.21-1.15.55L3.46 5.22C3.17 5.57 3 6.01 3 6.5V19a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6.5c0-.49-.17-.93-.45-1.28m-8.2 4.63L17.5 15H14v2h-4v-2H6.5l5.15-5.15c.19-.19.51-.19.7 0M5.12 5l.82-1h12l.93 1z" />
                   </svg>
                 </button>
               <% else %>
                 <% archive_modal_id = "archive-project-modal-#{project[:project]&.parameterize || 'unknown'}" %>
-                <button type="button" onclick="document.getElementById(<%= archive_modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-200 cursor-pointer" title="Archive project">
-                  <svg class="w-4 h-4 text-white/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <button type="button" onclick="document.getElementById(<%= archive_modal_id.to_json %>).dispatchEvent(new CustomEvent('modal:open'))" class="p-2 rounded-lg bg-surface-content/5 hover:bg-surface-content/10 transition-colors duration-200 cursor-pointer" title="Archive project">
+                  <svg class="w-4 h-4 text-surface-content/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path fill="currentColor" d="m20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27m-8.89 11.92L6.5 12H10v-2h4v2h3.5l-5.15 5.15c-.19.19-.51.19-.7 0M5.12 5l.81-1h12l.94 1z" />
                   </svg>
                 </button>
@@ -79,40 +79,40 @@
         <div class="flex items-center justify-between">
           <span class="text-2xl font-bold text-primary"><%= short_time_detailed project[:duration] %></span>
           <div class="flex items-center gap-2 hidden">
-            <div class="w-16 h-2 bg-white/10 rounded-full overflow-hidden">
+            <div class="w-16 h-2 bg-surface-content/10 rounded-full overflow-hidden">
               <div class="h-full bg-primary transition-all duration-500 rounded-full" style="width: <%= [project[:duration].to_f / max.to_f * 100, 100].min %>%;"></div>
             </div>
-            <span class="text-xs text-white/40"><%= number_to_percentage([project[:duration].to_f / max.to_f * 100, 100].min, precision: 0) %></span>
+            <span class="text-xs text-surface-content/40"><%= number_to_percentage([project[:duration].to_f / max.to_f * 100, 100].min, precision: 0) %></span>
           </div>
         </div>
 
         <% if project[:repository]&.description.present? %>
-          <div class="text-sm text-white/70 leading-relaxed line-clamp-2">
+          <div class="text-sm text-surface-content/70 leading-relaxed line-clamp-2">
             <%= h(project[:repository].description) %>
           </div>
         <% end %>
 
         <% if project[:repository]&.formatted_languages.present? %>
           <div class="flex items-center gap-1 text-sm">
-            <svg class="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-surface-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path fill="currentColor" d="M5.59 3.41L7 4.82L3.82 8L7 11.18L5.59 12.6L1 8zm5.82 0L16 8l-4.59 4.6L10 11.18L13.18 8L10 4.82zM22 6v12c0 1.11-.89 2-2 2H4a2 2 0 0 1-2-2v-4h2v4h16V6h-2.97V4H20c1.11 0 2 .89 2 2" />
             </svg>
-            <span class="text-white/50"><%= project[:repository].formatted_languages %></span>
+            <span class="text-surface-content/50"><%= project[:repository].formatted_languages %></span>
           </div>
         <% end %>
 
         <% if project[:repository]&.last_commit_at.present? %>
           <div class="flex items-center gap-1 text-sm">
-            <svg class="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-surface-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path fill="currentColor" d="M12 20c4.4 0 8-3.6 8-8s-3.6-8-8-8s-8 3.6-8 8s3.6 8 8 8m0-18c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12S6.5 2 12 2m.5 10.8l-4.8 2.8l-.7-1.4l4-2.3V7h1.5z" />
             </svg>
-            <span class="text-white/50">Last commit <%= time_ago_in_words(project[:repository].last_commit_at) %> ago</span>
+            <span class="text-surface-content/50">Last commit <%= time_ago_in_words(project[:repository].last_commit_at) %> ago</span>
           </div>
         <% end %>
 
         <% if is_broken %>
-          <div class="gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-            <p class="text-sm text-yellow-200/80 leading-relaxed">
+          <div class="gap-2 p-3 bg-yellow/10 border border-yellow/30 rounded-lg">
+            <p class="text-sm text-yellow/80 leading-relaxed">
               Your editor may not be set up properly - we're receiving invalid project names. This time is shown here but won't be counted accurately and may not be submitted to Hack Club programs.
             </p>
           </div>

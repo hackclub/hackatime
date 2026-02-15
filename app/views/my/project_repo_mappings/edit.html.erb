@@ -2,8 +2,8 @@
 
 <div class="max-w-lg mx-auto mt-8">
   <div class="bg-elevated rounded-xl p-6 border border-darkless">
-    <h1 class="text-2xl font-bold text-white mb-2">Edit Project Mapping</h1>
-    <p class="text-gray-400 mb-6">We try to autodetect your Git repository, but you can manually specify it if needed.</p>
+    <h1 class="text-2xl font-bold text-surface-content mb-2">Edit Project Mapping</h1>
+    <p class="text-muted mb-6">We try to autodetect your Git repository, but you can manually specify it if needed.</p>
 
     <% if flash[:alert] %>
       <div class="flash-message flash-message--enter flash-message--error mb-4" data-controller="flash">
@@ -17,19 +17,19 @@
       local: true,
       class: "w-full space-y-4" do |f| %>
       <div class="space-y-2">
-        <%= f.label :project_name, 'Project Name', class: 'block text-sm font-semibold text-white' %>
+        <%= f.label :project_name, 'Project Name', class: 'block text-sm font-semibold text-surface-content' %>
         <%= f.text_field :project_name, value: @project_repo_mapping.project_name, disabled: true, class: 'w-full px-4 py-3 bg-darkless text-secondary border border-darkless rounded-lg cursor-not-allowed' %>
-        <p class="text-xs text-gray-400">Project name cannot be changed.</p>
+        <p class="text-xs text-muted">Project name cannot be changed.</p>
       </div>
 
       <div class="space-y-2 mb-4">
-        <%= f.label :repo_url, 'Repository URL', class: 'block text-sm font-semibold text-white' %>
-        <%= f.url_field :repo_url, value: @project_repo_mapping.repo_url, placeholder: 'https://github.com/username/repo', class: 'w-full px-4 py-3 bg-darkless text-white border border-darkless rounded-lg focus:border-primary focus:outline-none transition-colors' %>
+        <%= f.label :repo_url, 'Repository URL', class: 'block text-sm font-semibold text-surface-content' %>
+        <%= f.url_field :repo_url, value: @project_repo_mapping.repo_url, placeholder: 'https://github.com/username/repo', class: 'w-full px-4 py-3 bg-darkless text-surface-content border border-darkless rounded-lg focus:border-primary focus:outline-none transition-colors' %>
       </div>
 
       <div class="flex gap-3 justify-end">
-        <%= link_to 'Cancel', my_projects_path, class: 'px-4 py-2 border border-gray-600 text-gray-300 hover:bg-darkless rounded-lg transition-colors' %>
-        <%= f.submit 'Update Project', class: 'px-4 py-2 bg-primary text-white hover:bg-red rounded-lg font-medium cursor-pointer transition-colors' %>
+        <%= link_to 'Cancel', my_projects_path, class: 'px-4 py-2 border border-surface-200 text-muted hover:bg-darkless rounded-lg transition-colors' %>
+        <%= f.submit 'Update Project', class: 'px-4 py-2 bg-primary text-on-primary hover:bg-red rounded-lg font-medium cursor-pointer transition-colors' %>
       </div>
     <% end %>
   </div>

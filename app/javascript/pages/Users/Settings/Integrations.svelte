@@ -73,7 +73,7 @@
 
         <button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
         >
           Save Slack settings
         </button>
@@ -121,7 +121,7 @@
         <div class="mt-3 flex flex-wrap gap-3">
           <Link
             href={paths.github_auth_path}
-            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
           >
             Reconnect GitHub
           </Link>
@@ -151,7 +151,7 @@
       {:else}
         <Link
           href={paths.github_auth_path}
-          class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
         >
           Connect GitHub
         </Link>
@@ -205,7 +205,7 @@
         />
         <button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
         >
           Add email
         </button>

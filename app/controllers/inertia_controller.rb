@@ -9,11 +9,20 @@ class InertiaController < ApplicationController
     {
       nav: inertia_nav_props,
       footer: inertia_footer_props,
+      theme: inertia_theme_props,
       # currently_hacking: currently_hacking_props,
       csrf_token: form_authenticity_token,
       signout_path: signout_path,
       show_stop_impersonating: session[:impersonater_user_id].present?,
       stop_impersonating_path: stop_impersonating_path
+    }
+  end
+
+  def inertia_theme_props
+    {
+      name: helpers.current_theme,
+      color_scheme: helpers.current_theme_color_scheme,
+      theme_color: helpers.current_theme_color
     }
   end
 

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="dark">
+<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>">
   <head>
     <title><%= @title %> - Hackatime</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="color-scheme" content="dark">
+    <meta name="color-scheme" content="<%= current_theme_color_scheme %>">
     <meta name="robots" content="noindex, nofollow">
 
     <%= csrf_meta_tags %>

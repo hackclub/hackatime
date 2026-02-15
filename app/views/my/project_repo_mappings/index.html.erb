@@ -1,6 +1,6 @@
 <div class="flex items-center gap-4 mb-4">
   <div class="flex items-center gap-4">
-    <h1 class="text-3xl font-bold text-white">My Projects</h1>
+    <h1 class="text-3xl font-bold text-surface-content">My Projects</h1>
     <% archived_count = current_user.project_repo_mappings.archived.count %>
     <% if archived_count > 0 %>
       <div class="project-toggle-group">
@@ -12,9 +12,9 @@
 </div>
 
 <% if current_user.github_uid.blank? %>
-  <div class="text-red-400 mb-4">
+  <div class="text-red mb-4">
     Heads up! You can't link your projects to GitHub until you connect your GitHub account.
-    <%= link_to 'Sign in with GitHub', github_auth_path, class: 'btn btn-primary text-white underline' %>
+    <%= link_to 'Sign in with GitHub', github_auth_path, class: 'btn btn-primary text-on-primary underline' %>
   </div>
 <% end %>
 

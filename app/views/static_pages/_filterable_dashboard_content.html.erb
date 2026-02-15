@@ -2,12 +2,12 @@
   <div class="grid grid-cols-[repeat(auto-fill,minmax(9.375rem,1fr))] gap-4">
     <div class="bg-dark border border-primary rounded-xl p-4 transition-all duration-200 h-full">
       <div class="text-secondary text-xs mb-1 uppercase tracking-tight">TOTAL TIME</div>
-      <div class="text-lg font-semibold text-white" data-stat="total_time"><%= ApplicationController.helpers.short_time_simple(@total_time) %></div>
+      <div class="text-lg font-semibold text-surface-content" data-stat="total_time"><%= ApplicationController.helpers.short_time_simple(@total_time) %></div>
     </div>
 
     <div class="bg-dark border border-primary rounded-xl p-4 transition-all duration-200 h-full">
       <div class="text-secondary text-xs mb-1 uppercase tracking-tight">TOP PROJECT</div>
-      <div class="text-lg font-semibold text-white" data-stat="top_project">
+      <div class="text-lg font-semibold text-surface-content" data-stat="top_project">
         <%= @top_project || "None" %>
         <% if @singular_project %>
           <span class="super"><%= FlavorText.obvious.sample %></span>
@@ -17,7 +17,7 @@
 
     <div class="bg-dark border border-primary rounded-xl p-4 transition-all duration-200 h-full">
       <div class="text-secondary text-xs mb-1 uppercase tracking-tight">TOP LANGUAGE</div>
-      <div class="text-lg font-semibold text-white" data-stat="top_language">
+      <div class="text-lg font-semibold text-surface-content" data-stat="top_language">
         <%= display_language_name(@top_language) || "Unknown" %>
         <% if @singular_language %>
           <span class="super"><%= FlavorText.obvious.sample %></span>
@@ -27,7 +27,7 @@
 
     <div class="bg-dark border border-primary rounded-xl p-4 transition-all duration-200 h-full">
       <div class="text-secondary text-xs mb-1 uppercase tracking-tight">TOP OS</div>
-      <div class="text-lg font-semibold text-white" data-stat="top_operating_system">
+      <div class="text-lg font-semibold text-surface-content" data-stat="top_operating_system">
         <%= display_os_name(@top_operating_system) || "Unknown" %>
         <% if @singular_operating_system %>
           <span class="super"><%= FlavorText.obvious.sample %></span>
@@ -37,7 +37,7 @@
 
     <div class="bg-dark border border-primary rounded-xl p-4 transition-all duration-200 h-full">
       <div class="text-secondary text-xs mb-1 uppercase tracking-tight">TOP EDITOR</div>
-      <div class="text-lg font-semibold text-white" data-stat="top_editor">
+      <div class="text-lg font-semibold text-surface-content" data-stat="top_editor">
         <%= display_editor_name(@top_editor) || "Unknown" %>
         <% if @singular_editor %>
           <span class="super"><%= FlavorText.obvious.sample %></span>
@@ -47,7 +47,7 @@
 
     <div class="bg-dark border border-primary rounded-xl p-4 transition-all duration-200 h-full">
       <div class="text-secondary text-xs mb-1 uppercase tracking-tight">TOP CATEGORY</div>
-      <div class="text-lg font-semibold text-white" data-stat="top_category">
+      <div class="text-lg font-semibold text-surface-content" data-stat="top_category">
         <%= @top_category&.capitalize || "Unknown" %>
         <% if @singular_category %>
           <span class="super"><%= FlavorText.obvious.sample %></span>
@@ -59,7 +59,7 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
     <% if @project_durations&.size&.> 1 %>
       <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col">
-        <h2 class="mb-4 text-xl font-semibold text-white">Project Durations</h2>
+        <h2 class="mb-4 text-xl font-semibold text-surface-content">Project Durations</h2>
         <div class="mt-2">
           <%
             max_duration = @project_durations.values.max
@@ -86,7 +86,7 @@
 
           <% @project_durations.each do |project, duration| %>
             <div class="flex items-center mb-3">
-              <div class="w-37.5 text-right pr-4 text-sm text-gray-300 whitespace-nowrap overflow-hidden text-ellipsis"><%= h(project.presence || 'Unknown') %></div>
+              <div class="w-37.5 text-right pr-4 text-sm text-muted whitespace-nowrap overflow-hidden text-ellipsis"><%= h(project.presence || 'Unknown') %></div>
               <div class="flex-1 h-7 bg-darkless rounded-lg overflow-hidden">
                 <div class="h-full bg-primary rounded-lg relative transition-[width] duration-300 ease-in-out" style="width: <%= log_scale(duration, max_duration) %>%">
                   <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-darker"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
@@ -101,7 +101,7 @@
     <%# Language distribution %>
     <% if @language_stats.present? %>
       <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col">
-        <h2 class="mb-4 text-xl font-semibold text-white">Languages</h2>
+        <h2 class="mb-4 text-xl font-semibold text-surface-content">Languages</h2>
         <div class="flex-1 relative min-h-48">
           <canvas id="languageChart" class="max-h-full w-full" data-stats="<%= @language_stats.to_json %>"></canvas>
         </div>
@@ -111,7 +111,7 @@
     <%# Editor distribution %>
     <% if @editor_stats.present? %>
       <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col">
-        <h2 class="mb-4 text-xl font-semibold text-white">Editors</h2>
+        <h2 class="mb-4 text-xl font-semibold text-surface-content">Editors</h2>
         <div class="flex-1 relative min-h-48">
           <canvas id="editorChart" class="max-h-full w-full" data-stats="<%= @editor_stats.to_json %>"></canvas>
         </div>
@@ -121,7 +121,7 @@
     <%# OS distribution %>
     <% if @operating_system_stats.present? %>
       <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col">
-        <h2 class="mb-4 text-xl font-semibold text-white">Operating Systems</h2>
+        <h2 class="mb-4 text-xl font-semibold text-surface-content">Operating Systems</h2>
         <div class="flex-1 relative min-h-48">
           <canvas id="operatingSystemChart" class="max-h-full w-full" data-stats="<%= @operating_system_stats.to_json %>"></canvas>
         </div>
@@ -129,7 +129,7 @@
     <% end %>
 
     <div class="bg-dark border border-primary rounded-xl p-6 flex flex-col">
-      <h2 class="mb-4 text-xl font-semibold text-white">Project Timeline</h2>
+      <h2 class="mb-4 text-xl font-semibold text-surface-content">Project Timeline</h2>
       <div class="flex-1 relative min-h-48">
         <canvas id="projectTimelineChart" class="max-h-full w-full" data-stats="<%= @weekly_project_stats.to_json %>"></canvas>
       </div>

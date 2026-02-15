@@ -21,7 +21,7 @@
         class={`flex flex-col justify-between p-4 pb-6 rounded-xl border h-full min-h-23.5 ${
           i === 0
             ? "bg-primary/10 border-primary/30"
-            : "bg-white/5 border-white/10"
+            : "bg-surface-content/5 border-surface-content/10"
         }`}
       >
         <div class="h-3 w-16 bg-darkless rounded mb-2"></div>

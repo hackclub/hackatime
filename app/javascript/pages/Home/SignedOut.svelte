@@ -70,9 +70,14 @@
       <span class="font-bold tracking-tight text-lg">Hackatime</span>
     </div>
     <div class="hidden md:flex gap-8 text-sm font-medium text-text-muted">
-      <Link href="#stats" class="hover:text-white transition-colors">Stats</Link>
-      <Link href="#editors" class="hover:text-white transition-colors">Editors</Link>
-      <Link href="/docs" class="hover:text-white transition-colors">Developers</Link>
+      <Link href="#stats" class="hover:text-white transition-colors">Stats</Link
+      >
+      <Link href="#editors" class="hover:text-white transition-colors"
+        >Editors</Link
+      >
+      <Link href="/docs" class="hover:text-white transition-colors"
+        >Developers</Link
+      >
     </div>
     <div class="min-w-[140px] flex justify-end">
       <Link

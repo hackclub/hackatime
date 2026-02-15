@@ -49,12 +49,12 @@
                   <%= render 'shared/user_mention', user: entry.user, show: [:profile_link] %>
                   <% if entry.user == current_user && current_user.github_username.blank? %>
                     <span class="text-xs italic text-muted">
-                      <%= link_to 'Link active projects', my_settings_path(anchor: 'user_github_account'), target: '_blank', class: 'text-accent hover:text-cyan-400 transition-colors' %>
+                      <%= link_to 'Link active projects', my_settings_path(anchor: 'user_github_account'), target: '_blank', class: 'text-accent hover:text-cyan transition-colors' %>
                     </span>
                   <% end %>
                   <% if @active_projects&.dig(entry.user_id).present? %>
                     <span class="text-xs italic text-muted">
-                      working on <%= link_to h(@active_projects[entry.user_id].project_name), @active_projects[entry.user_id].repo_url, target: '_blank', class: 'text-accent hover:text-cyan-400 transition-colors' %>
+                      working on <%= link_to h(@active_projects[entry.user_id].project_name), @active_projects[entry.user_id].repo_url, target: '_blank', class: 'text-accent hover:text-cyan transition-colors' %>
                       <% dev_tool(nil, 'span') do %>
                         <%= link_to '🌌', visualize_git_url(@active_projects[entry.user_id].repo_url), target: '_blank', class: 'ml-1' %>
                       <% end %>
@@ -65,14 +65,14 @@
                   <% end %>
                 </div>
               </div>
-              <div class="shrink-0 font-mono text-sm text-white font-medium">
+              <div class="shrink-0 font-mono text-sm text-surface-content font-medium">
                 <%= short_time_detailed entry.total_seconds %>
               </div>
             </div>
           <% end %>
         </div>
         <div class="mt-4 text-right">
-          <%= link_to 'View full leaderboard', leaderboards_path, class: 'text-sm text-secondary hover:text-cyan-400 transition-colors', data: { turbo_frame: "_top" } %>
+          <%= link_to 'View full leaderboard', leaderboards_path, class: 'text-sm text-secondary hover:text-cyan transition-colors', data: { turbo_frame: "_top" } %>
         </div>
       </div>
     <% end %>

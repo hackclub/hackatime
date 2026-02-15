@@ -95,7 +95,7 @@
       </p>
       <Link
         href={paths.wakatime_setup_path}
-        class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
       >
         Open setup guide
       </Link>
@@ -128,7 +128,7 @@
 
         <button
           type="submit"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
         >
           Save extension settings
         </button>
@@ -142,7 +142,7 @@
       </p>
       <button
         type="button"
-        class="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        class="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         onclick={rotateApiKey}
         disabled={rotatingApiKey}
       >
@@ -150,7 +150,7 @@
       </button>
 
       {#if rotatedApiKeyError}
-        <p class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200">
+        <p class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red">
           {rotatedApiKeyError}
         </p>
       {/if}

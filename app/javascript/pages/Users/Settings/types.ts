@@ -13,12 +13,31 @@ export type Option = {
   value: string;
 };
 
+export type ThemeOption = {
+  value: string;
+  label: string;
+  description: string;
+  color_scheme: "dark" | "light";
+  theme_color: string;
+  preview: {
+    darker: string;
+    dark: string;
+    darkless: string;
+    primary: string;
+    content: string;
+    info: string;
+    success: string;
+    warning: string;
+  };
+};
+
 export type UserProps = {
   id: number;
   display_name: string;
   timezone: string;
   country_code?: string | null;
   username?: string | null;
+  theme: string;
   uses_slack_status: boolean;
   hackatime_extension_text_type: string;
   allow_public_stats_lookup: boolean;
@@ -50,6 +69,7 @@ export type OptionsProps = {
   countries: Option[];
   timezones: Option[];
   extension_text_types: Option[];
+  themes: ThemeOption[];
   badge_themes: string[];
 };
 
@@ -227,6 +247,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_timezone: "profile",
   user_username: "profile",
   user_privacy: "profile",
+  user_theme: "profile",
   user_hackatime_extension: "access",
   user_api_key: "access",
   user_config_file: "access",

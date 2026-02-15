@@ -61,6 +61,11 @@
   type LayoutProps = {
     nav: LayoutNav;
     footer: Footer;
+    theme: {
+      name: string;
+      color_scheme: "dark" | "light";
+      theme_color: string;
+    };
     currently_hacking: {
       count: number;
       users: CurrentlyHackingUser[];
@@ -152,33 +157,33 @@
   const streakThemeClasses = (streakDays: number) => {
     if (streakDays >= 30) {
       return {
-        bg: "from-blue-900/20 to-indigo-900/20",
-        hbg: "hover:from-blue-800/30 hover:to-indigo-800/30",
-        bc: "border-blue-700",
-        ic: "text-blue-400 group-hover:text-blue-300",
-        tc: "text-blue-300 group-hover:text-blue-200",
-        tm: "text-blue-400",
+        bg: "from-blue/20 to-purple/20",
+        hbg: "hover:from-blue/30 hover:to-purple/30",
+        bc: "border-blue",
+        ic: "text-blue group-hover:text-blue",
+        tc: "text-blue group-hover:text-blue",
+        tm: "text-blue",
       };
     }
 
     if (streakDays >= 7) {
       return {
-        bg: "from-red-900/20 to-orange-900/20",
-        hbg: "hover:from-red-800/30 hover:to-orange-800/30",
-        bc: "border-red-700",
-        ic: "text-red-400 group-hover:text-red-300",
-        tc: "text-red-300 group-hover:text-red-200",
-        tm: "text-red-400",
+        bg: "from-red/20 to-orange/20",
+        hbg: "hover:from-red/30 hover:to-orange/30",
+        bc: "border-red",
+        ic: "text-red group-hover:text-red",
+        tc: "text-red group-hover:text-red",
+        tm: "text-red",
       };
     }
 
     return {
-      bg: "from-orange-900/20 to-yellow-900/20",
-      hbg: "hover:from-orange-800/30 hover:to-yellow-800/30",
-      bc: "border-orange-700",
-      ic: "text-orange-400 group-hover:text-orange-300",
-      tc: "text-orange-300 group-hover:text-orange-200",
-      tm: "text-orange-400",
+      bg: "from-orange/20 to-yellow/20",
+      hbg: "hover:from-orange/30 hover:to-yellow/30",
+      bc: "border-orange",
+      ic: "text-orange group-hover:text-orange",
+      tc: "text-orange group-hover:text-orange",
+      tm: "text-orange",
     };
   };
 
@@ -192,9 +197,9 @@
   };
 
   const adminLevelClass = (adminLevel?: AdminLevel | null) => {
-    if (adminLevel === "superadmin") return "text-red-500 superadmin-tool";
-    if (adminLevel === "admin") return "text-yellow-500 admin-tool";
-    if (adminLevel === "viewer") return "text-blue-500 viewer-tool";
+    if (adminLevel === "superadmin") return "text-red superadmin-tool";
+    if (adminLevel === "admin") return "text-yellow admin-tool";
+    if (adminLevel === "viewer") return "text-blue viewer-tool";
     return "";
   };
 
@@ -204,6 +209,25 @@
 
   $effect(() => {
     if (isBrowser) document.body.classList.toggle("overflow-hidden", navOpen);
+  });
+
+  $effect(() => {
+    if (!isBrowser || !layout.theme?.name) return;
+
+    document.documentElement.setAttribute("data-theme", layout.theme.name);
+
+    const colorSchemeMeta = document.querySelector(
+      "meta[name='color-scheme']",
+    );
+    colorSchemeMeta?.setAttribute("content", layout.theme.color_scheme);
+
+    const themeColorMeta = document.querySelector("meta[name='theme-color']");
+    themeColorMeta?.setAttribute("content", layout.theme.theme_color);
+
+    const tileColorMeta = document.querySelector(
+      "meta[name='msapplication-TileColor']",
+    );
+    tileColorMeta?.setAttribute("content", layout.theme.theme_color);
   });
 
   $effect(() => {
@@ -245,7 +269,7 @@
   });
 
   const navLinkClass = (active?: boolean) =>
-    `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-white" : "hover:bg-darkless"}`;
+    `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-on-primary" : "hover:bg-darkless"}`;
 </script>
 
 {#if flashVisible && layout.nav.flash.length > 0}
@@ -287,7 +311,7 @@
   <div class="nav-overlay" class:open={navOpen} onclick={closeNav}></div>
 
   <aside
-    class="flex flex-col min-h-screen w-52 bg-dark text-white px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
+    class="flex flex-col min-h-screen w-52 bg-dark text-surface-content px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
     data-nav-target="nav"
     class:open={navOpen}
     style="scrollbar-width: none; -ms-overflow-style: none;"
@@ -305,7 +329,7 @@
                   alt={`${layout.nav.current_user.display_name}'s avatar`}
                   width="32"
                   height="32"
-                  class="rounded-full aspect-square border border-gray-300"
+                  class="rounded-full aspect-square border border-surface-200"
                   loading="lazy"
                 />
               {/if}
@@ -361,7 +385,7 @@
         <div>
           <Link
             href={layout.nav.login_path}
-            class="block px-4 py-2 rounded-md transition text-white font-semibold bg-primary hover:bg-secondary text-center"
+            class="block px-4 py-2 rounded-md transition text-on-primary font-semibold bg-primary hover:bg-secondary text-center"
             >Login</Link
           >
         </div>
@@ -399,7 +423,7 @@
                 {link.label}
                 {#if link.badge}
                   <span
-                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
                   >
                     {link.badge}
                   </span>
@@ -416,7 +440,7 @@
                 {link.label}
                 {#if link.badge}
                   <span
-                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
                   >
                     {link.badge}
                   </span>
@@ -433,7 +457,7 @@
                 {link.label}
                 {#if link.badge}
                   <span
-                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
                   >
                     {link.badge}
                   </span>
@@ -450,7 +474,7 @@
                 {link.label}
                 {#if link.badge}
                   <span
-                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                    class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
                   >
                     {link.badge}
                   </span>
@@ -495,7 +519,7 @@
           <Link
             href={layout.stop_impersonating_path}
             data-turbo-prefetch="false"
-            class="text-primary font-bold hover:text-red-300 transition-colors duration-200"
+            class="text-primary font-bold hover:text-red transition-colors duration-200"
             >Stop impersonating</Link
           >
         {/if}
@@ -521,10 +545,10 @@
       class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between"
       onclick={toggleCurrentlyHacking}
     >
-      <div class="text-white text-sm font-medium">
+      <div class="text-surface-content text-sm font-medium">
         <div class="flex items-center">
           <div
-            class="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"
+            class="w-2 h-2 rounded-full bg-green animate-pulse mr-2"
           ></div>
           <span class="text-base">{countLabel()}</span>
         </div>
@@ -560,12 +584,12 @@
                     <Link
                       href={`https://hackclub.slack.com/team/${user.slack_uid}`}
                       target="_blank"
-                      class="text-blue-500 hover:underline text-sm"
+                      class="text-blue hover:underline text-sm"
                     >
                       @{user.display_name || `User ${user.id}`}
                     </Link>
                   {:else}
-                    <span class="text-white text-sm"
+                    <span class="text-surface-content text-sm"
                       >{user.display_name || `User ${user.id}`}</span
                     >
                   {/if}
@@ -577,7 +601,7 @@
                       <Link
                         href={user.active_project.repo_url}
                         target="_blank"
-                        class="text-accent hover:text-cyan-400 transition-colors"
+                        class="text-accent hover:text-cyan transition-colors"
                       >
                         {user.active_project.name}
                       </Link>
@@ -627,10 +651,10 @@
         </svg>
       </div>
 
-      <h3 class="text-2xl font-bold text-white mb-2 text-center w-full">
+      <h3 class="text-2xl font-bold text-surface-content mb-2 text-center w-full">
         Woah hold on a sec
       </h3>
-      <p class="text-gray-300 mb-6 text-center w-full">
+      <p class="text-muted mb-6 text-center w-full">
         You sure you want to log out? You can sign back in later but that is a
         bit of a hassle...
       </p>
@@ -640,7 +664,7 @@
           <button
             type="button"
             onclick={closeLogout}
-            class="w-full h-10 px-4 rounded-lg transition-colors duration-200 cursor-pointer m-0 bg-dark hover:bg-darkless border border-darkless text-gray-300"
+            class="w-full h-10 px-4 rounded-lg transition-colors duration-200 cursor-pointer m-0 bg-dark hover:bg-darkless border border-darkless text-muted"
             >Go back</button
           >
         </div>
@@ -654,7 +678,7 @@
             <input type="hidden" name="_method" value="delete" />
             <button
               type="submit"
-              class="w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 bg-primary hover:bg-primary/75 text-white"
+              class="w-full h-10 px-4 rounded-lg transition-colors duration-200 font-medium cursor-pointer m-0 bg-primary hover:bg-primary/75 text-on-primary"
               >Log out now</button
             >
           </form>

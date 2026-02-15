@@ -19,7 +19,7 @@
     ${
       highlight
         ? "bg-primary/10 border-primary/30"
-        : "bg-white/5 border-white/10 hover:border-white/20"
+        : "bg-surface-content/5 border-surface-content/10 hover:border-surface-content/20"
     }
   `}
 >
@@ -29,7 +29,7 @@
     {label}
   </div>
   <div
-    class={`font-bold text-white wrap-break-word ${String(value).length > 15 ? "text-lg" : "text-xl"}`}
+    class={`font-bold text-surface-content wrap-break-word ${String(value).length > 15 ? "text-lg" : "text-xl"}`}
   >
     {value || "—"}
   </div>

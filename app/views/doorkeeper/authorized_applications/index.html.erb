@@ -4,7 +4,7 @@
 
 <div class="max-w-4xl mx-auto p-6 space-y-6">
   <header class="text-center mb-8">
-    <h1 class="text-4xl font-bold text-white mb-2"><%= t('doorkeeper.authorized_applications.index.title') %></h1>
+    <h1 class="text-4xl font-bold text-surface-content mb-2"><%= t('doorkeeper.authorized_applications.index.title') %></h1>
     <p class="text-secondary text-lg">Applications that have access to your Hackatime account</p>
   </header>
 
@@ -20,7 +20,7 @@
                 </svg>
               </div>
               <div>
-                <h3 class="text-xl font-semibold text-white"><%= application.name %></h3>
+                <h3 class="text-xl font-semibold text-surface-content"><%= application.name %></h3>
                 <p class="text-secondary text-sm">Authorized <%= time_ago_in_words(application.created_at) %> ago</p>
               </div>
             </div>
@@ -37,7 +37,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
       </div>
-      <h3 class="text-xl font-semibold text-white mb-2">No authorized applications</h3>
+      <h3 class="text-xl font-semibold text-surface-content mb-2">No authorized applications</h3>
       <p class="text-secondary">You haven't authorized any third-party applications to access your Hackatime account.</p>
     </div>
   <% end %>

@@ -2,7 +2,7 @@
   import { Link } from "@inertiajs/svelte";
 </script>
 
-<div class="text-primary bg-red-500/10 border-2 border-red-500/20 p-4 text-center rounded-lg mb-4">
+<div class="text-primary bg-red/10 border-2 border-red/20 p-4 text-center rounded-lg mb-4">
   <div class="flex items-center justify-center">
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M8 14.5a6.5 6.5 0 1 0 0-13a6.5 6.5 0 0 0 0 13M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m1-5a1 1 0 1 1-2 0a1 1 0 0 1 2 0m-.25-6.25a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 1.5 0z" clip-rule="evenodd" /></svg>
     <span class="text-3xl font-bold block ml-2">Hold up! Your account has been banned for suspicious activity.</span>

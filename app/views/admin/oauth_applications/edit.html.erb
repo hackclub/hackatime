@@ -4,7 +4,7 @@
 
 <div class="max-w-3xl mx-auto p-6 space-y-6">
   <header class="text-center mb-8">
-    <h1 class="text-4xl font-bold text-white mb-2">Edit Application</h1>
+    <h1 class="text-4xl font-bold text-surface-content mb-2">Edit Application</h1>
     <p class="text-secondary text-lg">
       Update settings for <%= @application.name %>
       <% if @application.verified? %>
@@ -54,29 +54,29 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         </div>
-        <h2 class="text-xl font-semibold text-white">Application Details</h2>
+        <h2 class="text-xl font-semibold text-surface-content">Application Details</h2>
       </div>
 
       <div class="space-y-5">
         <div>
-          <%= f.label :name, class: 'block text-sm font-medium text-white mb-2' %>
-          <%= f.text_field :name, class: 'w-full px-3 py-2 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary placeholder-secondary', placeholder: 'My Awesome App', required: true %>
+          <%= f.label :name, class: 'block text-sm font-medium text-surface-content mb-2' %>
+          <%= f.text_field :name, class: 'w-full px-3 py-2 bg-darkless border border-darkless rounded text-surface-content focus:border-primary focus:ring-1 focus:ring-primary placeholder-secondary', placeholder: 'My Awesome App', required: true %>
           <% if @application.errors[:name].present? %>
             <p class="mt-1 text-xs text-red"><%= @application.errors[:name].to_sentence %></p>
           <% end %>
         </div>
 
         <div>
-          <%= f.label :redirect_uri, 'Redirect URIs', class: 'block text-sm font-medium text-white mb-2' %>
-          <%= f.text_area :redirect_uri, class: 'w-full px-3 py-2 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary placeholder-secondary font-mono text-sm', placeholder: 'https://example.com/auth/callback', rows: 3 %>
+          <%= f.label :redirect_uri, 'Redirect URIs', class: 'block text-sm font-medium text-surface-content mb-2' %>
+          <%= f.text_area :redirect_uri, class: 'w-full px-3 py-2 bg-darkless border border-darkless rounded text-surface-content focus:border-primary focus:ring-1 focus:ring-primary placeholder-secondary font-mono text-sm', placeholder: 'https://example.com/auth/callback', rows: 3 %>
           <% if @application.errors[:redirect_uri].present? %>
             <p class="mt-1 text-xs text-red"><%= @application.errors[:redirect_uri].to_sentence %></p>
           <% end %>
         </div>
 
         <div>
-          <%= f.label :scopes, class: 'block text-sm font-medium text-white mb-2' %>
-          <%= f.text_field :scopes, class: 'w-full px-3 py-2 bg-darkless border border-darkless rounded text-white focus:border-primary focus:ring-1 focus:ring-primary placeholder-secondary font-mono text-sm', placeholder: 'profile read' %>
+          <%= f.label :scopes, class: 'block text-sm font-medium text-surface-content mb-2' %>
+          <%= f.text_field :scopes, class: 'w-full px-3 py-2 bg-darkless border border-darkless rounded text-surface-content focus:border-primary focus:ring-1 focus:ring-primary placeholder-secondary font-mono text-sm', placeholder: 'profile read' %>
           <% if @application.errors[:scopes].present? %>
             <p class="mt-1 text-xs text-red"><%= @application.errors[:scopes].to_sentence %></p>
           <% end %>
@@ -85,7 +85,7 @@
         <div class="flex items-start gap-3 p-4 bg-darkless border border-darkless rounded">
           <%= f.check_box :confidential, class: 'mt-0.5 w-4 h-4 text-primary border-darkless rounded focus:ring-primary bg-darker' %>
           <div>
-            <%= f.label :confidential, 'Confidential Application', class: 'text-sm font-medium text-white' %>
+            <%= f.label :confidential, 'Confidential Application', class: 'text-sm font-medium text-surface-content' %>
             <p class="mt-1 text-xs text-secondary">Confidential clients can keep secrets. Native apps and SPAs are not confidential.</p>
           </div>
         </div>
@@ -93,8 +93,8 @@
     </div>
 
     <div class="flex items-center gap-3">
-      <%= f.submit 'Save Changes', class: 'px-6 py-2 bg-primary text-white font-medium rounded transition-colors duration-200 hover:opacity-90 cursor-pointer' %>
-      <%= link_to 'Cancel', admin_oauth_application_path(@application), class: 'px-6 py-2 border border-darkless text-white font-medium rounded transition-colors duration-200 hover:bg-darkless' %>
+      <%= f.submit 'Save Changes', class: 'px-6 py-2 bg-primary text-on-primary font-medium rounded transition-colors duration-200 hover:opacity-90 cursor-pointer' %>
+      <%= link_to 'Cancel', admin_oauth_application_path(@application), class: 'px-6 py-2 border border-darkless text-surface-content font-medium rounded transition-colors duration-200 hover:bg-darkless' %>
     </div>
   <% end %>
 </div>

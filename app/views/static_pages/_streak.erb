@@ -7,26 +7,26 @@
   show_text = local_assigns.fetch(:show_text, false)
   c = streak_count.to_i
   if c >= 30
-    bg = "from-blue-900/20 to-indigo-900/20"
-    hbg = "hover:from-blue-800/30 hover:to-indigo-800/30"
-    bc = "border-blue-700"
-    ic = "text-blue-400 group-hover:text-blue-300"
-    tc = "text-blue-300 group-hover:text-blue-200"
-    tm = "text-blue-400"
+    bg = "from-blue/20 to-purple/20"
+    hbg = "hover:from-blue/30 hover:to-purple/30"
+    bc = "border-blue"
+    ic = "text-blue group-hover:text-blue"
+    tc = "text-blue group-hover:text-blue"
+    tm = "text-blue"
   elsif c >= 7
-    bg = "from-red-900/20 to-orange-900/20"
-    hbg = "hover:from-red-800/30 hover:to-orange-800/30"
-    bc = "border-red-700"
-    ic = "text-red-400 group-hover:text-red-300"
-    tc = "text-red-300 group-hover:text-red-200"
-    tm = "text-red-400"
+    bg = "from-red/20 to-orange/20"
+    hbg = "hover:from-red/30 hover:to-orange/30"
+    bc = "border-red"
+    ic = "text-red group-hover:text-red"
+    tc = "text-red group-hover:text-red"
+    tm = "text-red"
   else
-    bg = "from-orange-900/20 to-yellow-900/20"
-    hbg = "hover:from-orange-800/30 hover:to-yellow-800/30"
-    bc = "border-orange-700"
-    ic = "text-orange-400 group-hover:text-orange-300"
-    tc = "text-orange-300 group-hover:text-orange-200"
-    tm = "text-orange-400"
+    bg = "from-orange/20 to-yellow/20"
+    hbg = "hover:from-orange/30 hover:to-yellow/30"
+    bc = "border-orange"
+    ic = "text-orange group-hover:text-orange"
+    tc = "text-orange group-hover:text-orange"
+    tm = "text-orange"
   end
 %>
 

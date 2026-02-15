@@ -52,7 +52,7 @@
   </header>
 
   {#if errors.full_messages.length > 0}
-    <div class="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red-200">
+    <div class="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red">
       <p class="font-semibold">Some changes could not be saved:</p>
       <ul class="mt-2 list-disc pl-5">
         {#each errors.full_messages as message}

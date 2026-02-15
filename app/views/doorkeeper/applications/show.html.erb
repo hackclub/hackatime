@@ -4,7 +4,7 @@
 
 <div class="max-w-4xl mx-auto p-6 space-y-6">
   <header class="text-center mb-8">
-    <h1 class="text-4xl font-bold text-white mb-2"><%= t('.title', name: @application.name) %></h1>
+    <h1 class="text-4xl font-bold text-surface-content mb-2"><%= t('.title', name: @application.name) %></h1>
     <p class="text-secondary text-lg">OAuth application credentials and settings</p>
   </header>
 
@@ -17,15 +17,15 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
           </div>
-          <h2 class="text-xl font-semibold text-white">Application Credentials</h2>
+          <h2 class="text-xl font-semibold text-surface-content">Application Credentials</h2>
         </div>
 
         <div class="space-y-5">
           <div>
             <label class="block text-sm font-medium text-secondary mb-2"><%= t('.application_id') %></label>
             <div class="flex items-center gap-2">
-              <code id="application_id" class="flex-1 px-3 py-2 bg-darkless border border-darkless rounded text-white font-mono text-sm break-all"><%= @application.uid %></code>
-              <button type="button" onclick="c(this, <%= @application.uid.to_json %>)" class="px-3 py-2 bg-darkless hover:bg-secondary/20 text-white rounded transition-colors" title="Copy">
+              <code id="application_id" class="flex-1 px-3 py-2 bg-darkless border border-darkless rounded text-surface-content font-mono text-sm break-all"><%= @application.uid %></code>
+              <button type="button" onclick="c(this, <%= @application.uid.to_json %>)" class="px-3 py-2 bg-darkless hover:bg-secondary/20 text-surface-content rounded transition-colors" title="Copy">
                 <svg class="w-5 h-5 ci" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
@@ -51,8 +51,8 @@
               </p>
             <% else %>
               <div class="flex items-center gap-2">
-                <code id="secret" class="flex-1 px-3 py-2 bg-darkless border border-darkless rounded text-white font-mono text-sm break-all"><%= secret %></code>
-                <button type="button" onclick="c(this, <%= secret.to_json %>)" class="px-3 py-2 bg-darkless hover:bg-secondary/20 text-white rounded transition-colors" title="Copy">
+                <code id="secret" class="flex-1 px-3 py-2 bg-darkless border border-darkless rounded text-surface-content font-mono text-sm break-all"><%= secret %></code>
+                <button type="button" onclick="c(this, <%= secret.to_json %>)" class="px-3 py-2 bg-darkless hover:bg-secondary/20 text-surface-content rounded transition-colors" title="Copy">
                   <svg class="w-5 h-5 ci" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
@@ -132,16 +132,16 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </div>
-          <h2 class="text-xl font-semibold text-white"><%= t('.callback_urls') %></h2>
+          <h2 class="text-xl font-semibold text-surface-content"><%= t('.callback_urls') %></h2>
         </div>
 
         <% if @application.redirect_uri.present? %>
           <div class="space-y-3">
             <% @application.redirect_uri.split.each do |uri| %>
               <div class="flex items-center gap-3 p-3 bg-darkless border border-darkless rounded">
-                <code class="flex-1 text-white font-mono text-sm break-all"><%= uri %></code>
+                <code class="flex-1 text-surface-content font-mono text-sm break-all"><%= uri %></code>
                 <%= link_to oauth_authorization_path(client_id: @application.uid, redirect_uri: uri, response_type: 'code', scope: @application.scopes),
-                    class: "shrink-0 px-3 py-1.5 bg-green hover:opacity-90 text-white text-sm font-medium rounded transition-colors",
+                    class: "shrink-0 px-3 py-1.5 bg-green hover:opacity-90 text-on-primary text-sm font-medium rounded transition-colors",
                     target: '_blank' do %>
                   Test Auth
                 <% end %>
@@ -156,10 +156,10 @@
 
     <div class="space-y-4">
       <div class="border border-primary rounded-xl p-6 bg-dark">
-        <h3 class="text-lg font-semibold text-white mb-4"><%= t('.actions') %></h3>
+        <h3 class="text-lg font-semibold text-surface-content mb-4"><%= t('.actions') %></h3>
         <div class="space-y-3">
           <%= link_to edit_oauth_application_path(@application),
-              class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:opacity-90 text-white font-medium rounded transition-colors duration-200" do %>
+              class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:opacity-90 text-on-primary font-medium rounded transition-colors duration-200" do %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
@@ -170,7 +170,7 @@
           <% if current_user&.admin_level_superadmin? %>
             <%= button_to toggle_verified_admin_oauth_application_path(@application),
                 method: :post,
-                class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 #{@application.verified? ? 'bg-yellow hover:bg-yellow/80' : 'bg-green hover:bg-green/80'} text-white font-medium rounded transition-colors duration-200" do %>
+                class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 #{@application.verified? ? 'bg-yellow hover:bg-yellow/80' : 'bg-green hover:bg-green/80'} text-on-primary font-medium rounded transition-colors duration-200" do %>
               <% if @application.verified? %>
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -196,7 +196,7 @@
           <% end %>
 
           <%= link_to oauth_applications_path,
-              class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-darkless text-white font-medium rounded transition-colors duration-200 hover:bg-darkless" do %>
+              class: "w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-darkless text-surface-content font-medium rounded transition-colors duration-200 hover:bg-darkless" do %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>

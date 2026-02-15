@@ -1,7 +1,7 @@
 <%= turbo_frame_tag "profile_projects" do %>
   <% if projects.present? && projects.size > 0 %>
     <div class="mb-6">
-      <h2 class="text-xl font-bold mb-4">Top Projects <span class="text-gray-400 font-normal text-base">(Past Month)</span></h2>
+      <h2 class="text-xl font-bold mb-4">Top Projects <span class="text-muted font-normal text-base">(Past Month)</span></h2>
       <%= render 'profiles/project_cards', projects: projects %>
     </div>
   <% end %>

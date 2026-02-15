@@ -49,7 +49,7 @@
           <Link
             href={extension.install}
             target="_blank"
-            class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-primary text-white font-medium text-sm hover:opacity-90 transition-opacity"
+            class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-primary text-on-primary font-medium text-sm hover:opacity-90 transition-opacity"
           >
             <span>Install</span>
             <svg

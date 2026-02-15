@@ -15,6 +15,22 @@ module ApplicationHelper
     rps == :high_load ? "lots of req/sec" : "#{rps} req/sec (global)"
   end
 
+  def current_theme
+    theme_name = current_user&.theme
+    return User::DEFAULT_THEME if theme_name.blank?
+    return theme_name if User.themes.key?(theme_name)
+
+    User::DEFAULT_THEME
+  end
+
+  def current_theme_color_scheme
+    User.theme_metadata(current_theme).fetch(:color_scheme, "dark")
+  end
+
+  def current_theme_color
+    User.theme_metadata(current_theme).fetch(:theme_color, "#c8394f")
+  end
+
   def superadmin_tool(class_name = "", element = "div", **options, &block)
     return unless current_user && (current_user.admin_level == "superadmin")
     concat content_tag(element, class: "superadmin-tool #{class_name}", **options, &block)
