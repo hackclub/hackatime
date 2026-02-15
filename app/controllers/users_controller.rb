@@ -18,6 +18,7 @@ class UsersController < InertiaController
         if @user.uses_slack_status?
           @user.update_slack_status
         end
+        PosthogService.capture(@user, "settings_updated", { fields: user_params.keys })
         redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
           notice: "Settings updated successfully"
       else
@@ -44,6 +45,7 @@ class UsersController < InertiaController
 
       new_api_key = @user.api_keys.create!(name: "Hackatime key")
 
+      PosthogService.capture(@user, "api_key_rotated")
       render json: { token: new_api_key.token }, status: :ok
     end
   rescue => e
@@ -54,6 +56,12 @@ class UsersController < InertiaController
   def wakatime_setup
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
+    @current_user_api_key = api_key&.token
+    PosthogService.capture(current_user, "setup_started", { step: 1 })
+  end
+
+  def wakatime_setup_step_2
+    PosthogService.capture(current_user, "setup_step_viewed", { step: 2 })
     setup_os = detect_setup_os(request.user_agent)
 
     render inertia: "WakatimeSetup/Index", props: {
@@ -71,6 +79,20 @@ class UsersController < InertiaController
   def wakatime_setup_step_3
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
+
+    @current_user_api_key = api_key&.token
+    PosthogService.capture(current_user, "setup_step_viewed", { step: 3 })
+  end
+
+  def wakatime_setup_step_4
+    @no_instruction_wording = [
+      "There is no step 4, lol.",
+      "There is no step 4, psych!",
+      "Tricked ya! There is no step 4.",
+      "There is no step 4, gotcha!"
+    ].sample
+    PosthogService.capture(current_user, "setup_completed", { step: 4 })
+
     editor = params[:editor]
 
     render inertia: "WakatimeSetup/Step3", props: {

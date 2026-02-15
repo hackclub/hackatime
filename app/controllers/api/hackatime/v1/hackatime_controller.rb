@@ -256,6 +256,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       Rails.logger.error("Error creating heartbeat: #{e.class.name} #{e.message}")
       results << [ { error: e.message, type: e.class.name }, 422 ]
     end
+
+    PosthogService.capture_once_per_day(@user, "heartbeat_sent", { heartbeat_count: heartbeat_array.size })
     results
   end
 

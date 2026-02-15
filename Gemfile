@@ -86,6 +86,9 @@ gem "flamegraph"
 
 gem "skylight"
 
+# Analytics
+gem "posthog-ruby"
+
 gem "geocoder"
 
 # Airtable syncing
