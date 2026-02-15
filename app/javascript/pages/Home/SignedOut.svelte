@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Link } from "@inertiajs/svelte";
+
   type HomeStats = { seconds_tracked?: number; users_tracked?: number };
 
   let {
@@ -68,17 +70,17 @@
       <span class="font-bold tracking-tight text-lg">Hackatime</span>
     </div>
     <div class="hidden md:flex gap-8 text-sm font-medium text-text-muted">
-      <a href="#stats" class="hover:text-white transition-colors">Stats</a>
-      <a href="#editors" class="hover:text-white transition-colors">Editors</a>
-      <a href="/docs" class="hover:text-white transition-colors">Developers</a>
+      <Link href="#stats" class="hover:text-white transition-colors">Stats</Link>
+      <Link href="#editors" class="hover:text-white transition-colors">Editors</Link>
+      <Link href="/docs" class="hover:text-white transition-colors">Developers</Link>
     </div>
     <div class="min-w-[140px] flex justify-end">
-      <a
+      <Link
         href={hca_auth_path}
         class="text-sm font-bold border border-primary text-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-all"
       >
         Login
-      </a>
+      </Link>
     </div>
   </nav>
 
@@ -109,16 +111,16 @@
             see it!
           </p>
           {#if show_dev_tool && dev_magic_link}
-            <a
+            <Link
               href={dev_magic_link}
               class="text-xs text-secondary underline hover:text-white"
-              >Dev: Open Link</a
+              >Dev: Open Link</Link
             >
           {/if}
         </div>
       {:else}
         <!-- Primary Auth Buttons -->
-        <a
+        <Link
           href={hca_auth_path}
           onclick={() => (isSigningIn = true)}
           class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-primary text-white font-medium hover:brightness-110 transition-all"
@@ -146,9 +148,9 @@
             />
           {/if}
           <span>Sign in with Hack Club</span>
-        </a>
+        </Link>
 
-        <a
+        <Link
           href={slack_auth_path}
           class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-dark border border-darkless text-white font-medium hover:bg-darkless transition-all"
         >
@@ -158,7 +160,7 @@
             /></svg
           >
           <span>Sign in with Slack</span>
-        </a>
+        </Link>
 
         <!-- Divider -->
         <div class="flex items-center gap-4 py-1">
@@ -230,7 +232,7 @@
         class="grid grid-cols-4 md:grid-cols-8 gap-8 items-center justify-items-center opacity-60 hover:opacity-100 transition-all duration-500"
       >
         {#each editors as editor}
-          <a
+          <Link
             href={`/docs/editors/${editor.slug}`}
             class="group flex flex-col items-center gap-2 hover:-translate-y-1 transition-transform"
           >
@@ -243,7 +245,7 @@
               class="text-[10px] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-5 text-secondary"
               >{editor.name}</span
             >
-          </a>
+          </Link>
         {/each}
       </div>
       <div class="mt-8 text-sm text-secondary/60">

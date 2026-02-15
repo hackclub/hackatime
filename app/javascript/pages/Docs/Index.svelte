@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Link } from "@inertiajs/svelte";
+
   let {
     popular_editors,
     all_editors,
@@ -25,7 +27,7 @@
   </div>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-    <a
+    <Link
       href="/my/wakatime_setup"
       class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
     >
@@ -36,9 +38,9 @@
       <p class="text-sm text-muted text-center mt-1">
         Set up in under a minute
       </p>
-    </a>
+    </Link>
 
-    <a
+    <Link
       href="/docs/getting-started/installation"
       class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
     >
@@ -47,9 +49,9 @@
       </svg>
       <h3 class="font-semibold text-surface-content">Installation</h3>
       <p class="text-sm text-muted text-center mt-1">Add to your editor</p>
-    </a>
+    </Link>
 
-    <a
+    <Link
       href="/api-docs"
       class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
     >
@@ -58,9 +60,9 @@
       </svg>
       <h3 class="font-semibold text-surface-content">API Docs</h3>
       <p class="text-sm text-muted text-center mt-1">Interactive reference</p>
-    </a>
+    </Link>
 
-    <a
+    <Link
       href="/docs/oauth/oauth-apps"
       class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
     >
@@ -69,7 +71,7 @@
       </svg>
       <h3 class="font-semibold text-surface-content">OAuth Apps</h3>
       <p class="text-sm text-muted text-center mt-1">Build integrations</p>
-    </a>
+    </Link>
   </div>
 
   <h2 class="text-xl font-semibold text-surface-content mb-4">
@@ -77,7 +79,7 @@
   </h2>
   <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-8">
     {#each popular_editors as [name, slug]}
-      <a
+      <Link
         href={`/docs/editors/${slug}`}
         class="flex flex-col items-center p-3 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
       >
@@ -87,7 +89,7 @@
           class="w-10 h-10 mb-2"
         />
         <span class="text-sm text-surface-content">{name}</span>
-      </a>
+      </Link>
     {/each}
   </div>
 
@@ -116,7 +118,7 @@
       class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-3 p-4 bg-surface border border-surface-200 rounded-lg select-none"
     >
       {#each all_editors as [name, slug]}
-        <a
+        <Link
           href={`/docs/editors/${slug}`}
           class="flex flex-col items-center p-2 rounded hover:bg-surface-200 transition-colors"
         >
@@ -128,7 +130,7 @@
           <span class="text-xs text-surface-content text-center leading-tight"
             >{name}</span
           >
-        </a>
+        </Link>
       {/each}
     </div>
   </details>
@@ -136,16 +138,16 @@
   <div class="mt-8 p-4 bg-surface border border-surface-200 rounded-lg">
     <p class="text-sm text-muted">
       Need help? Ask in
-      <a
+      <Link
         href="https://hackclub.slack.com/archives/C07MQ845X1F"
         target="_blank"
-        class="text-primary hover:underline">#hackatime-v2</a
+        class="text-primary hover:underline">#hackatime-v2</Link
       >
       on Slack or
-      <a
+      <Link
         href="https://github.com/hackclub/hackatime/issues"
         target="_blank"
-        class="text-primary hover:underline">open an issue</a
+        class="text-primary hover:underline">open an issue</Link
       >
       on GitHub.
     </p>

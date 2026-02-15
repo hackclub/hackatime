@@ -11,10 +11,21 @@ class Settings::BaseController < InertiaController
   private
 
   def render_settings_page(active_section:, settings_update_path:, status: :ok)
-    render inertia: "Users/Settings", props: settings_page_props(
+    render inertia: settings_component_for(active_section), props: settings_page_props(
       active_section: active_section,
       settings_update_path: settings_update_path
     ), status: status
+  end
+
+  def settings_component_for(active_section)
+    {
+      "profile" => "Users/Settings/Profile",
+      "integrations" => "Users/Settings/Integrations",
+      "access" => "Users/Settings/Access",
+      "badges" => "Users/Settings/Badges",
+      "data" => "Users/Settings/Data",
+      "admin" => "Users/Settings/Admin"
+    }.fetch(active_section.to_s, "Users/Settings/Profile")
   end
 
   def prepare_settings_page

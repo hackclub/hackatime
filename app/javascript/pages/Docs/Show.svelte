@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { inertia } from "@inertiajs/svelte";
+  import { Link } from "@inertiajs/svelte";
 
   let {
     doc_path,
@@ -36,10 +36,8 @@
           <span class="text-primary">{crumb.name}</span>
         {:else}
           {#if crumb.is_link && crumb.href}
-            <a
-              href={crumb.href}
-              use:inertia
-              class="text-secondary hover:text-primary">{crumb.name}</a
+            <Link href={crumb.href} class="text-secondary hover:text-primary"
+              >{crumb.name}</Link
             >
           {:else}
             <span class="text-secondary">{crumb.name}</span>
@@ -98,7 +96,7 @@
       class="flex items-center justify-center gap-2 py-6 text-sm text-secondary/70"
     >
       <span>Found an issue with this page?</span>
-      <a
+      <Link
         href={edit_url}
         target="_blank"
         class="inline-flex items-center gap-1 text-primary hover:text-red transition-colors font-medium"
@@ -113,7 +111,7 @@
           /></svg
         >
         Edit on GitHub
-      </a>
+      </Link>
     </div>
   </div>
 </div>

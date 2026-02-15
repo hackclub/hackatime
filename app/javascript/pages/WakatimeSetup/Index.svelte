@@ -116,12 +116,12 @@
               Heartbeat detected {heartbeatTimeAgo}.
             </p>
 
-            <a
+            <Link
               href="/my/wakatime_setup/step-2"
               class="inline-flex items-center justify-center bg-primary text-white px-6 py-2 rounded-lg font-semibold transition-all"
             >
               Continue to Step 2 →
-            </a>
+            </Link>
           </div>
         {/if}
       </div>
@@ -357,10 +357,10 @@ heartbeat_rate_limit_seconds = 30</code
       {/if}
 
       <div class="text-center">
-        <a
+        <Link
           href="/my/wakatime_setup/step-2"
           class="text-xs text-secondary hover:text-white transition-colors"
-          >Skip to next step</a
+          >Skip to next step</Link
         >
       </div>
     </div>
