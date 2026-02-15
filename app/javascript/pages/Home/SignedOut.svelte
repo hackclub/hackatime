@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import Button from "../../components/Button.svelte";
 
   type HomeStats = { seconds_tracked?: number; users_tracked?: number };
 
@@ -182,12 +183,13 @@
               required
               class="flex-1 bg-dark text-white placeholder-secondary/40 rounded-xl py-3.5 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all border border-darkless focus:border-primary text-sm"
             />
-            <button
+            <Button
               type="submit"
+              unstyled
               class="px-5 py-3.5 bg-dark border border-primary text-white rounded-xl hover:bg-primary transition-all text-sm font-medium"
             >
               Send link
-            </button>
+            </Button>
           </div>
         </form>
       {/if}
