@@ -122,7 +122,7 @@
   <!-- Header Section -->
   <div class="mb-8">
     <div class="flex items-center space-x-2">
-      <p class="italic text-gray-400 m-0">
+      <p class="italic text-muted m-0">
         {@html flavor_text}
       </p>
     </div>

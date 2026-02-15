@@ -81,9 +81,9 @@
 </script>
 
 <div
-  class="bg-dark/50 border border-white/10 rounded-xl p-6 flex flex-col min-h-[400px]"
+  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col min-h-[400px]"
 >
-  <h2 class="mb-4 text-lg font-semibold text-white/90">Project Timeline</h2>
+  <h2 class="mb-4 text-lg font-semibold text-surface-content/90">Project Timeline</h2>
   {#if data.length > 0}
     <div class="h-[350px]">
       <BarChart

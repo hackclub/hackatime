@@ -75,6 +75,7 @@ class Settings::BaseController < InertiaController
         timezone: @user.timezone,
         country_code: @user.country_code,
         username: @user.username,
+        theme: @user.theme,
         uses_slack_status: @user.uses_slack_status,
         hackatime_extension_text_type: @user.hackatime_extension_text_type,
         allow_public_stats_lookup: @user.allow_public_stats_lookup,
@@ -116,6 +117,7 @@ class Settings::BaseController < InertiaController
             value: key
           }
         },
+        themes: User.theme_options,
         badge_themes: GithubReadmeStats.themes
       },
       slack: {

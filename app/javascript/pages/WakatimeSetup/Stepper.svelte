@@ -21,7 +21,7 @@
       <div class="flex flex-col items-center gap-2 bg-darker z-10 px-2">
         <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors duration-200
           {currentStep > step.number ? 'bg-green border-green text-darker' : 
-           currentStep === step.number ? 'bg-primary border-primary text-white' : 
+           currentStep === step.number ? 'bg-primary border-primary text-on-primary' : 
            'bg-dark border-darkless text-secondary'}">
           {#if currentStep > step.number}
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
@@ -31,7 +31,7 @@
             {step.number}
           {/if}
         </div>
-        <span class="text-xs font-medium {currentStep === step.number ? 'text-white' : 'text-secondary'}">{step.label}</span>
+        <span class="text-xs font-medium {currentStep === step.number ? 'text-surface-content' : 'text-secondary'}">{step.label}</span>
       </div>
     {/each}
   </div>

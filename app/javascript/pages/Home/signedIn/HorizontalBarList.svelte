@@ -19,15 +19,15 @@
 </script>
 
 <div
-  class="bg-dark/50 border border-white/10 rounded-xl p-6 flex flex-col h-full"
+  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
 >
-  <h3 class="text-lg font-semibold mb-4 text-white/90">{title}</h3>
+  <h3 class="text-lg font-semibold mb-4 text-surface-content/90">{title}</h3>
   {#if entries.length > 0}
     <div class="space-y-2.5 overflow-y-auto flex-1 pr-2 custom-scrollbar">
       {#each entries as [label, seconds]}
         <div class="flex items-center gap-4 group">
           <div
-            class="w-1/3 truncate font-medium text-sm text-gray-300 text-right group-hover:text-white transition-colors"
+            class="w-1/3 truncate font-medium text-sm text-muted text-right group-hover:text-surface-content transition-colors"
             title={label}
           >
             {label}
@@ -37,7 +37,7 @@
               class="bg-primary rounded-md h-6 flex items-center justify-end px-3 transition-all duration-500 ease-out"
               style={`width:${Math.max(barWidth(seconds), 15)}%`}
             >
-              <span class="text-xs font-mono text-white whitespace-nowrap">
+              <span class="text-xs font-mono text-surface-content whitespace-nowrap">
                 {secondsToDisplay(seconds)}
               </span>
             </div>

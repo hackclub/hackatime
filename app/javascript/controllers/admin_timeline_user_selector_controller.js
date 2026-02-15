@@ -89,24 +89,24 @@ export default class extends Controller {
       const users = await response.json;
       this.renderSearchResults(users);
     } else {
-      this.searchResultsTarget.innerHTML = "<div class='px-4 py-2 text-red-400 text-sm'>Error searching users</div>";
+      this.searchResultsTarget.innerHTML = "<div class='px-4 py-2 text-red text-sm'>Error searching users</div>";
       this.searchResultsTarget.classList.add('active');
     }
   }
 
   renderSearchResults(users) {
     if (users.length === 0) {
-      this.searchResultsTarget.innerHTML = "<div class='px-4 py-2 text-gray-400 text-sm'>No users found</div>";
+      this.searchResultsTarget.innerHTML = "<div class='px-4 py-2 text-muted text-sm'>No users found</div>";
     } else {
       this.searchResultsTarget.innerHTML = users.map(user => `
-        <div class="mx-2 my-1 px-3 py-2 hover:bg-darkless cursor-pointer text-white text-sm flex items-center transition-colors rounded-lg border border-transparent hover:border-gray-600" 
+        <div class="mx-2 my-1 px-3 py-2 hover:bg-darkless cursor-pointer text-surface-content text-sm flex items-center transition-colors rounded-lg border border-transparent hover:border-surface-200" 
             data-action="click->${this.identifier}#selectUser" 
             data-${this.identifier}-user-id-value="${user.id}" 
             data-${this.identifier}-user-display-name-value="${this.escapeHTML(user.display_name)}"
             data-${this.identifier}-user-avatar-url-value="${user.avatar_url || ''}">
           <img src="${user.avatar_url || 'https://via.placeholder.com/20'}" alt="${this.escapeHTML(user.display_name)}" class="w-5 h-5 rounded-full mr-3">
           <span>${this.escapeHTML(user.display_name)}</span>
-          <span class="ml-auto text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">#${user.id}</span>
+          <span class="ml-auto text-xs text-muted bg-surface-100 px-2 py-1 rounded-full">#${user.id}</span>
         </div>
       `).join("");
     }
@@ -169,8 +169,8 @@ export default class extends Controller {
     
     const pill = document.createElement("span");
     const pillClasses = isPillForAdmin 
-      ? "inline-flex items-center bg-blue-600 text-white rounded-lg px-3 py-1 mr-2 mb-2 text-sm font-medium user-pill"
-      : "inline-flex items-center bg-gray-700 text-white rounded-lg px-3 py-1 mr-2 mb-2 text-sm user-pill";
+      ? "inline-flex items-center bg-blue text-on-primary rounded-lg px-3 py-1 mr-2 mb-2 text-sm font-medium user-pill"
+      : "inline-flex items-center bg-surface-100 text-surface-content rounded-lg px-3 py-1 mr-2 mb-2 text-sm user-pill";
     
     pill.className = pillClasses;
     pill.dataset.userId = userId;
@@ -184,8 +184,8 @@ export default class extends Controller {
     pillContent += `<span class="mr-2">${this.escapeHTML(user.display_name)}</span>`;
     
     const idPillClasses = isPillForAdmin 
-      ? "inline-flex items-center bg-blue-500 text-white text-xs px-2 py-0.5 rounded-md"
-      : "inline-flex items-center bg-gray-600 text-gray-200 text-xs px-2 py-0.5 rounded-md";
+      ? "inline-flex items-center bg-blue text-on-primary text-xs px-2 py-0.5 rounded-md"
+      : "inline-flex items-center bg-surface-100 text-muted text-xs px-2 py-0.5 rounded-md";
     
     pillContent += `<span class="${idPillClasses}">#${userId}</span>`;
     
@@ -194,7 +194,7 @@ export default class extends Controller {
     if (!isPillForAdmin) {
       const removeButton = document.createElement("button");
       removeButton.type = "button";
-      removeButton.className = "ml-2 text-gray-300 hover:text-white focus:outline-none text-lg leading-none";
+      removeButton.className = "ml-2 text-muted hover:text-surface-content focus:outline-none text-lg leading-none";
       removeButton.innerHTML = "&times;";
       removeButton.dataset.action = `click->${this.identifier}#removeUser`;
       removeButton.setAttribute("aria-label", "Remove user");

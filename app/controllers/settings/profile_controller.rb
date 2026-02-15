@@ -29,6 +29,7 @@ class Settings::ProfileController < Settings::BaseController
       :country_code,
       :allow_public_stats_lookup,
       :username,
+      :theme,
     )
   end
 end

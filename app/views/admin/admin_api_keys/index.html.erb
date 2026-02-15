@@ -4,10 +4,10 @@
   <div class="mb-8">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-white mb-2">admin api keys</h1>
-        <p class="text-gray-400">fraud team is gonna foam at the mouth for this shit</p>
+        <h1 class="text-3xl font-bold text-surface-content mb-2">admin api keys</h1>
+        <p class="text-muted">fraud team is gonna foam at the mouth for this shit</p>
       </div>
-      <%= link_to "spawn in a new key", new_admin_admin_api_key_path, class: "bg-primary hover:bg-red text-white px-4 py-2 rounded-lg font-medium transition-colors" %>
+      <%= link_to "spawn in a new key", new_admin_admin_api_key_path, class: "bg-primary hover:bg-red text-on-primary px-4 py-2 rounded-lg font-medium transition-colors" %>
     </div>
   </div>
 
@@ -16,18 +16,18 @@
       <table class="min-w-full">
         <thead>
           <tr class="bg-darkless">
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">name</th>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">spawned by</th>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">spawned at</th>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">token</th>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">perform</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">name</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">spawned by</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">spawned at</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">token</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">perform</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-950">
           <% @admin_api_keys.each do |api_key| %>
             <tr class="hover:bg-darkless">
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-white">
+                <div class="text-sm font-medium text-surface-content">
                   <%= h(api_key.name) %>
                 </div>
               </td>
@@ -37,20 +37,20 @@
                     <img class="h-6 w-6 rounded-full mr-2" src="<%= api_key.user.avatar_url %>" alt="key creator avatar">
                   <% end %>
                   <div>
-                    <div class="text-sm text-white"><%= h(api_key.user.display_name) %></div>
-                    <div class="text-xs text-gray-400">ID: <%= api_key.user.id %></div>
+                    <div class="text-sm text-surface-content"><%= h(api_key.user.display_name) %></div>
+                    <div class="text-xs text-muted">ID: <%= api_key.user.id %></div>
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
                 <%= api_key.created_at.strftime("%b %d, %Y at %I:%M %p") %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <code class="text-xs text-white"> <%= api_key.token[0..12] %>... </code>
+                <code class="text-xs text-surface-content"> <%= api_key.token[0..12] %>... </code>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                <%= link_to "inspect", admin_admin_api_key_path(api_key), class: "text-blue-400 hover:text-blue-300" %>
-                <%= link_to "nuke", admin_admin_api_key_path(api_key), data: { "turbo-method": :delete }, class: "text-red-400 hover:text-red-300" %>
+                <%= link_to "inspect", admin_admin_api_key_path(api_key), class: "text-blue hover:text-blue" %>
+                <%= link_to "nuke", admin_admin_api_key_path(api_key), data: { "turbo-method": :delete }, class: "text-red hover:text-red" %>
               </td>
             </tr>
           <% end %>
@@ -60,8 +60,8 @@
 
     <% if @admin_api_keys.empty? %>
       <div class="text-center py-12">
-        <div class="text-gray-400 text-lg mb-2">nothing here cuzo</div>
-        <p class="text-gray-500 mb-4">you can make a new key if you wanna, or not</p>
+        <div class="text-muted text-lg mb-2">nothing here cuzo</div>
+        <p class="text-muted mb-4">you can make a new key if you wanna, or not</p>
       </div>
     <% end %>
   </div>

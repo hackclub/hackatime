@@ -20,7 +20,7 @@
         <%= render 'shared/user_mention', user: e.user, show: %i[profile_link verified_badge] %>
         <% if (proj = active_projects&.dig(e.user_id)).present? %>
           <span class="text-xs italic text-muted truncate max-w-[150px] sm:max-w-none">
-            working on <%= link_to h(proj.project_name), proj.repo_url, target: '_blank', class: 'text-accent hover:text-cyan-400 transition-colors' %>
+            working on <%= link_to h(proj.project_name), proj.repo_url, target: '_blank', class: 'text-accent hover:text-cyan transition-colors' %>
             <% dev_tool(nil, 'span') do %>
               <%= link_to '🌌', visualize_git_url(proj.repo_url), target: '_blank', class: 'ml-1' %>
             <% end %>
@@ -31,7 +31,7 @@
         <% end %>
       </div>
     </div>
-    <div class="shrink-0 font-mono text-xs sm:text-sm text-white font-medium whitespace-nowrap">
+    <div class="shrink-0 font-mono text-xs sm:text-sm text-surface-content font-medium whitespace-nowrap">
       <%= short_time_detailed e.total_seconds %>
     </div>
   </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { Link } from "@inertiajs/svelte";
+  import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
 
   interface Props {
@@ -92,7 +93,7 @@
   <title>Configure Hackatime - Step 1</title>
 </svelte:head>
 
-<div class="min-h-screen text-white pt-8 pb-16">
+<div class="min-h-screen text-surface-content pt-8 pb-16">
   <div class="max-w-2xl mx-auto px-4">
     <Stepper currentStep={1} />
 
@@ -104,24 +105,24 @@
           <div
             class="flex flex-col items-center justify-center text-center py-2"
           >
-            <h4 class="text-lg font-semibold text-white mb-1">
+            <h4 class="text-lg font-semibold text-surface-content mb-1">
               Waiting for setup...
             </h4>
             <p class="text-sm text-secondary mb-4 max-w-sm">{statusMessage}</p>
           </div>
         {:else}
           <div class="text-center py-2">
-            <h4 class="text-xl font-bold text-white">Setup complete!</h4>
+            <h4 class="text-xl font-bold text-surface-content">Setup complete!</h4>
             <p class="text-secondary text-sm mb-6">
               Heartbeat detected {heartbeatTimeAgo}.
             </p>
 
-            <Link
+            <Button
               href="/my/wakatime_setup/step-2"
-              class="inline-flex items-center justify-center bg-primary text-white px-6 py-2 rounded-lg font-semibold transition-all"
+              size="lg"
             >
               Continue to Step 2 →
-            </Link>
+            </Button>
           </div>
         {/if}
       </div>
@@ -155,7 +156,7 @@
                 Look for the <strong>Terminal</strong> tab at the bottom of your
                 window. If you don't see it, press
                 <kbd
-                  class="bg-darkless text-white px-1.5 py-0.5 rounded text-xs font-mono"
+                  class="bg-darkless text-surface-content px-1.5 py-0.5 rounded text-xs font-mono"
                   >Ctrl+`</kbd
                 >.
               </p>
@@ -165,7 +166,7 @@
           <div class="space-y-4">
             <div class="flex items-start gap-4">
               <div
-                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
               >
                 1
               </div>
@@ -180,7 +181,7 @@
 
             <div class="flex items-start gap-4">
               <div
-                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
               >
                 2
               </div>
@@ -203,7 +204,7 @@
           <div class="mt-6 pt-6 border-t border-darkless">
             <details class="group">
               <summary
-                class="cursor-pointer text-sm text-secondary hover:text-white flex items-center gap-2 transition-colors"
+                class="cursor-pointer text-sm text-secondary hover:text-surface-content flex items-center gap-2 transition-colors"
               >
                 <svg
                   class="w-4 h-4 transition-transform group-open:rotate-90"
@@ -247,7 +248,7 @@
           <div class="space-y-4">
             <div class="flex items-start gap-4">
               <div
-                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
               >
                 1
               </div>
@@ -255,7 +256,7 @@
                 <p class="font-medium mb-1">Open PowerShell</p>
                 <p class="text-sm text-secondary">
                   Press <kbd
-                    class="bg-darkless text-white px-1.5 py-0.5 rounded text-xs font-mono"
+                    class="bg-darkless text-surface-content px-1.5 py-0.5 rounded text-xs font-mono"
                     >Win+R</kbd
                   >, type <code>powershell</code>, and press Enter.
                 </p>
@@ -264,7 +265,7 @@
 
             <div class="flex items-start gap-4">
               <div
-                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-white flex items-center justify-center text-xs font-bold mt-0.5"
+                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
               >
                 2
               </div>
@@ -290,7 +291,7 @@
           <div class="mt-6 pt-6 border-t border-darkless">
             <details class="group">
               <summary
-                class="cursor-pointer text-sm text-secondary hover:text-white flex items-center gap-2 transition-colors"
+                class="cursor-pointer text-sm text-secondary hover:text-surface-content flex items-center gap-2 transition-colors"
               >
                 <svg
                   class="w-4 h-4 transition-transform group-open:rotate-90"
@@ -332,9 +333,9 @@
           </div>
 
           <div class="bg-purple/10 border border-purple/20 rounded-lg p-4 mb-4">
-            <p class="text-sm text-purple-200">
+            <p class="text-sm text-purple">
               Create or edit <code
-                class="bg-purple/20 px-1.5 py-0.5 rounded text-white font-mono text-xs"
+                class="bg-purple/20 px-1.5 py-0.5 rounded text-surface-content font-mono text-xs"
                 >~/.wakatime.cfg</code
               > with the following content:
             </p>
@@ -359,7 +360,7 @@ heartbeat_rate_limit_seconds = 30</code
       <div class="text-center">
         <Link
           href="/my/wakatime_setup/step-2"
-          class="text-xs text-secondary hover:text-white transition-colors"
+          class="text-xs text-secondary hover:text-surface-content transition-colors"
           >Skip to next step</Link
         >
       </div>

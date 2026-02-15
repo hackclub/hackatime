@@ -1,13 +1,13 @@
 <div class="max-w-6xl mx-auto px-3 py-4 sm:p-6">
   <div class="mb-8 space-y-4">
-    <h1 class="text-3xl font-bold text-white">Leaderboards</h1>
+    <h1 class="text-3xl font-bold text-surface-content">Leaderboards</h1>
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="inline-flex max-w-full overflow-x-auto rounded-full bg-darkless p-1 gap-1">
-        <%= link_to 'Global', leaderboards_path(period_type: @period_type, scope: 'global'), class: "text-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap #{@leaderboard_scope == :global ? 'bg-primary text-white' : 'text-muted hover:text-white'}" %>
+        <%= link_to 'Global', leaderboards_path(period_type: @period_type, scope: 'global'), class: "text-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap #{@leaderboard_scope == :global ? 'bg-primary text-on-primary' : 'text-muted hover:text-surface-content'}" %>
 
         <% if @country_scope_available %>
-          <%= link_to leaderboards_path(period_type: @period_type, scope: 'country'), class: "text-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 whitespace-nowrap #{@leaderboard_scope == :country ? 'bg-primary text-white' : 'text-muted hover:text-white'}" do %>
+          <%= link_to leaderboards_path(period_type: @period_type, scope: 'country'), class: "text-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 whitespace-nowrap #{@leaderboard_scope == :country ? 'bg-primary text-on-primary' : 'text-muted hover:text-surface-content'}" do %>
             <%= country_to_emoji(@country_code) %>
             <span class="max-w-[12rem] truncate"><%= @country_name %></span>
           <% end %>
@@ -17,23 +17,23 @@
       </div>
 
       <div class="inline-flex max-w-full overflow-x-auto rounded-full bg-darkless p-1 gap-1">
-        <%= link_to 'Last 24 Hours', leaderboards_path(period_type: 'daily', scope: @leaderboard_scope), class: "text-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap #{@period_type == :daily ? 'bg-primary text-white' : 'text-muted hover:text-white'}" %>
-        <%= link_to 'Last 7 Days', leaderboards_path(period_type: 'last_7_days', scope: @leaderboard_scope), class: "text-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap #{@period_type == :last_7_days ? 'bg-primary text-white' : 'text-muted hover:text-white'}" %>
+        <%= link_to 'Last 24 Hours', leaderboards_path(period_type: 'daily', scope: @leaderboard_scope), class: "text-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap #{@period_type == :daily ? 'bg-primary text-on-primary' : 'text-muted hover:text-surface-content'}" %>
+        <%= link_to 'Last 7 Days', leaderboards_path(period_type: 'last_7_days', scope: @leaderboard_scope), class: "text-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap #{@period_type == :last_7_days ? 'bg-primary text-on-primary' : 'text-muted hover:text-surface-content'}" %>
       </div>
     </div>
 
     <% if current_user && !@country_scope_available %>
       <p class="text-xs text-muted">
         Set your country in
-        <%= link_to 'settings', my_settings_path, class: 'text-accent hover:text-cyan-400 transition-colors' %>
+        <%= link_to 'settings', my_settings_path, class: 'text-accent hover:text-cyan transition-colors' %>
         to unlock regional leaderboards.
       </p>
     <% end %>
 
     <% if current_user && current_user.github_uid.blank? %>
       <div class="bg-darker border border-primary rounded-lg p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-        <span class="text-white">Connect your GitHub to qualify for the leaderboard.</span>
-        <%= link_to 'Connect GitHub', '/auth/github', class: 'bg-primary hover:bg-primary/75 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 text-center shrink-0 w-fit' %>
+        <span class="text-surface-content">Connect your GitHub to qualify for the leaderboard.</span>
+        <%= link_to 'Connect GitHub', '/auth/github', class: 'bg-primary hover:bg-primary/75 text-on-primary font-medium px-4 py-2 rounded-lg transition-colors duration-200 text-center shrink-0 w-fit' %>
       </div>
     <% end %>
 
@@ -65,7 +65,7 @@
         </div>
       <% else %>
         <div class="py-16 text-center px-3">
-          <h3 class="text-xl font-medium text-white mb-2">No data available</h3>
+          <h3 class="text-xl font-medium text-surface-content mb-2">No data available</h3>
           <p class="text-muted">
             Check back later for
             <%= @period_type == :last_7_days ? 'last 7 days' : 'last 24 hours' %>
@@ -79,7 +79,7 @@
           Don't see yourself on the leaderboard? You're probably one of the
           <%= pluralize(@untracked_entries, 'user') %>
           who haven't
-          <%= link_to 'updated their wakatime config', my_settings_path, target: '_blank', class: 'text-accent hover:text-cyan-400 transition-colors' %>.
+          <%= link_to 'updated their wakatime config', my_settings_path, target: '_blank', class: 'text-accent hover:text-cyan transition-colors' %>.
         </div>
       <% end %>
 
@@ -88,7 +88,7 @@
       <% end %>
     <% else %>
       <div class="py-16 text-center px-3">
-        <h3 class="text-xl font-medium text-white mb-2">No data available</h3>
+        <h3 class="text-xl font-medium text-surface-content mb-2">No data available</h3>
         <p class="text-muted">
           Check back later for
           <%= @leaderboard_scope == :country ? "#{@country_name} " : '' %>

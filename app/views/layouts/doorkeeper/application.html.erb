@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="<%= current_theme %>">
   <head>
     <title><%= t('doorkeeper.layouts.application.title') %></title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="<%= current_theme_color_scheme %>">
+    <meta name="theme-color" content="<%= current_theme_color %>">
 
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
     <%= csrf_meta_tags %>
     <%= javascript_importmap_tags %>
   </head>
-  <body class="min-h-screen bg-darker text-white" style="margin: 0; padding: 0; display: flex; align-items: center; justify-content: center;">
+  <body class="min-h-screen bg-surface text-surface-content" style="margin: 0; padding: 0; display: flex; align-items: center; justify-content: center;">
     <main class="w-full max-w-md px-5 py-8">
       <%- if flash[:notice].present? %>
         <div class="flash-message flash-message--enter flash-message--success mb-6" data-controller="flash">

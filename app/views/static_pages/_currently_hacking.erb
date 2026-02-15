@@ -9,13 +9,13 @@
             </div>
             <% if active_projects[user.id].present? %>
               <div class="text-xs italic text-muted ml-2">
-                working on <%= link_to h(active_projects[user.id].project_name), active_projects[user.id].repo_url, target: "_blank", class: "text-accent hover:text-cyan-400 transition-colors" %>
+                working on <%= link_to h(active_projects[user.id].project_name), active_projects[user.id].repo_url, target: "_blank", class: "text-accent hover:text-cyan transition-colors" %>
                 <%= link_to "🌌", visualize_git_url(active_projects[user.id].repo_url), target: "_blank", class: "ml-1" %>
               </div>
             <% end %>
             <% if user == current_user && user.github_username.blank? %>
               <div class="text-xs italic text-muted ml-6">
-                <%= link_to "Link active projects", my_settings_path(anchor: "user_github_account"), target: "_blank", class: "text-accent hover:text-cyan-400 transition-colors" %>
+                <%= link_to "Link active projects", my_settings_path(anchor: "user_github_account"), target: "_blank", class: "text-accent hover:text-cyan transition-colors" %>
               </div>
             <% end %>
           </div>

@@ -1,38 +1,38 @@
 <% if users.any? %>
-  <div class="bg-darker rounded-lg border border-gray-700 divide-y divide-gray-700">
+  <div class="bg-darker rounded-lg border border-surface-200 divide-y divide-gray-700">
     <% users.each do |user| %>
-      <div class="flex items-center justify-between p-3 hover:bg-gray-800/50">
+      <div class="flex items-center justify-between p-3 hover:bg-surface-100/50">
         <div class="flex items-center gap-3">
           <img src="<%= user.avatar_url %>" alt="Avatar" class="w-8 h-8 rounded-full">
           <div>
-            <span class="text-white font-medium"><%= user.display_name %></span>
+            <span class="text-surface-content font-medium"><%= user.display_name %></span>
             <% if user.admin_level != "default" %>
               <span
                 class="ml-2 px-2 py-0.5 text-xs rounded-full
                 <%= case user.admin_level
                     when 'superadmin'
-                      'bg-red-600/20 text-red-400'
+                      'bg-red/20 text-red'
                     when 'admin'
-                      'bg-yellow-600/20 text-yellow-400'
+                      'bg-yellow/20 text-yellow'
                     when 'viewer'
-                      'bg-blue-600/20 text-blue-400'
+                      'bg-blue/20 text-blue'
                     else
-                      'bg-gray-600/20 text-gray-400'
+                      'bg-surface-100/20 text-muted'
                     end %>">
                 <%= user.admin_level %>
               </span>
             <% end %>
-            <div class="text-gray-500 text-sm"><%= user.slack_uid || 'No Slack ID' %></div>
+            <div class="text-muted text-sm"><%= user.slack_uid || 'No Slack ID' %></div>
           </div>
         </div>
         <div class="flex gap-2">
-          <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded transition-colors cursor-pointer' %>
-          <%= button_to '→ Admin', admin_admin_user_path(user, admin_level: 'admin'), method: :patch, class: 'px-3 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded transition-colors cursor-pointer' %>
-          <%= button_to '→ Viewer', admin_admin_user_path(user, admin_level: 'viewer'), method: :patch, class: 'px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded transition-colors cursor-pointer' %>
+          <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red hover:bg-red text-on-primary text-sm font-medium rounded transition-colors cursor-pointer' %>
+          <%= button_to '→ Admin', admin_admin_user_path(user, admin_level: 'admin'), method: :patch, class: 'px-3 py-1 bg-yellow hover:bg-yellow text-on-primary text-sm font-medium rounded transition-colors cursor-pointer' %>
+          <%= button_to '→ Viewer', admin_admin_user_path(user, admin_level: 'viewer'), method: :patch, class: 'px-3 py-1 bg-blue hover:bg-blue text-on-primary text-sm font-medium rounded transition-colors cursor-pointer' %>
         </div>
       </div>
     <% end %>
   </div>
 <% else %>
-  <p class="text-gray-500 text-center py-4">nuthin found</p>
+  <p class="text-muted text-center py-4">nuthin found</p>
 <% end %>

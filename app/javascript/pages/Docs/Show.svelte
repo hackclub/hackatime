@@ -27,7 +27,7 @@
   <meta property="og:type" content="article" />
 </svelte:head>
 
-<div class="min-h-screen text-white">
+<div class="min-h-screen text-surface-content">
   <div class="max-w-8xl md:max-w-6xl mx-auto px-6 py-8">
     <!-- Breadcrumbs -->
     <nav class="mb-8">
@@ -54,22 +54,22 @@
              prose-h1:text-4xl prose-h1:mb-6 prose-h1:text-primary prose-h1:mt-0
              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:text-primary prose-h2:border-b prose-h2:border-b-[#6e6468] prose-h2:pb-2
              prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-h3:text-primary
-             prose-h4:text-lg prose-h4:mt-4 prose-h4:mb-2 prose-h4:text-white prose-h4:font-semibold
-             prose-p:text-white prose-p:leading-7 prose-p:mb-5
+             prose-h4:text-lg prose-h4:mt-4 prose-h4:mb-2 prose-h4:text-surface-content prose-h4:font-semibold
+             prose-p:text-surface-content prose-p:leading-7 prose-p:mb-5
              prose-a:text-primary prose-a:hover:text-red prose-a:underline prose-a:font-medium
-             prose-strong:text-white prose-strong:font-semibold
+             prose-strong:text-surface-content prose-strong:font-semibold
              prose-em:text-secondary prose-em:italic
              prose-code:bg-darkless prose-code:text-primary prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-sm prose-code:font-mono
              prose-pre:bg-darkless prose-pre:border prose-pre:border-primary/20 prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto
-             prose-pre:text-white prose-pre:text-sm
+             prose-pre:text-surface-content prose-pre:text-sm
              prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-darkless prose-blockquote:pl-6 prose-blockquote:py-4 prose-blockquote:rounded-r-lg
              prose-blockquote:text-secondary prose-blockquote:italic prose-blockquote:font-normal prose-blockquote:my-6
-             prose-ul:text-white prose-ul:mb-4 prose-ul:pl-6
-             prose-ol:text-white prose-ol:mb-4 prose-ol:pl-6
-             prose-li:text-white prose-li:mb-3 prose-li:leading-7 prose-li:pl-2
+             prose-ul:text-surface-content prose-ul:mb-4 prose-ul:pl-6
+             prose-ol:text-surface-content prose-ol:mb-4 prose-ol:pl-6
+             prose-li:text-surface-content prose-li:mb-3 prose-li:leading-7 prose-li:pl-2
              prose-table:border-collapse prose-table:border prose-table:border-primary/20 prose-table:rounded-lg prose-table:overflow-hidden prose-table:my-6
              prose-th:bg-darkless prose-th:text-primary prose-th:font-semibold prose-th:p-3 prose-th:border prose-th:border-primary/20
-             prose-td:text-white prose-td:p-3 prose-td:border prose-td:border-primary/20
+             prose-td:text-surface-content prose-td:p-3 prose-td:border prose-td:border-primary/20
              prose-img:rounded-lg prose-img:shadow-lg prose-img:mx-auto prose-img:block prose-img:max-w-24 prose-img:h-auto prose-img:my-4
              prose-hr:border-primary/30 prose-hr:my-8
              [&_ol>li::marker]:text-primary [&_ol>li::marker]:font-semibold

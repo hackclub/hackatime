@@ -254,10 +254,3 @@
     </div>
   </main>
 </div>
-
-<style>
-  /* Custom Scrollbar for cleaner look if needed */
-  :global(body) {
-    background-color: #1f1617;
-  }
-</style>

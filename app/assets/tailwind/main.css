@@ -32,6 +32,7 @@ html {
   font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
     sans-serif;
   overflow-x: hidden;
+  color-scheme: var(--app-color-scheme, dark);
 }
 
 *,
@@ -63,7 +64,7 @@ samp {
 input,
 textarea,
 select {
-  color-scheme: dark;
+  color-scheme: var(--app-color-scheme, dark);
 }
 
 select {

@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="dark">
+<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>">
   <head>
     <title><%= @page_title || content_for(:title) || 'Hackatime' %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="color-scheme" content="dark">
+    <meta name="color-scheme" content="<%= current_theme_color_scheme %>">
     <meta name="description" content="<%= @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
     <meta name="keywords" content="<%= @meta_keywords || content_for(:meta_keywords) || 'coding time tracker, programming stats, wakatime alternative, free time tracking, code statistics, developer analytics, programming time, coding productivity' %>">
     <meta name="author" content="Hack Club">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="<%= content_for(:canonical_url) || request.original_url %>">
-    <meta name="theme-color" content="#ec3750">
-    <meta name="msapplication-TileColor" content="#ec3750">
+    <meta name="theme-color" content="<%= current_theme_color %>">
+    <meta name="msapplication-TileColor" content="<%= current_theme_color %>">
     <meta property="og:title" content="<%= @og_title || content_for(:og_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
     <meta property="og:description" content="<%= @og_description || content_for(:og_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
     <meta property="og:url" content="<%= content_for(:og_url) || request.original_url %>">
@@ -43,7 +43,7 @@
     <!-- Lets users record their screen from your site -->
     <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
     <script type="module" src="https://js.jam.dev/recorder.js"></script>
-    
+
     <!-- Captures user events and developer logs -->
     <script type="module" src="https://js.jam.dev/capture.js"></script>
 
@@ -148,12 +148,11 @@
 
     <script defer data-domain="hackatime.hackclub.com" src="https://plausible.io/js/script.file-downloads.hash.js"></script>
 
-    <%= stylesheet_link_tag :app %>
-    <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>
     <%= vite_stylesheet_tag "application" %>
+    <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
     <%= vite_client_tag %>
     <%= vite_typescript_tag "inertia" %>
     <%= inertia_ssr_head %>

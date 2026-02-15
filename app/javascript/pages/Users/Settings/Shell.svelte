@@ -20,7 +20,7 @@
   const knownSectionIds = $derived(new Set(sections.map((section) => section.id)));
 
   const sectionButtonClass = (sectionId: keyof SectionPaths) =>
-    `block w-full px-3 py-3 text-left transition-colors ${
+    `block w-full px-4 py-4 text-left transition-colors ${
       active_section === sectionId
         ? "bg-surface-100 text-surface-content"
         : "bg-surface text-muted hover:bg-surface-100 hover:text-surface-content"
@@ -52,7 +52,7 @@
   </header>
 
   {#if errors.full_messages.length > 0}
-    <div class="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red-200">
+    <div class="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red">
       <p class="font-semibold">Some changes could not be saved:</p>
       <ul class="mt-2 list-disc pl-5">
         {#each errors.full_messages as message}
@@ -64,7 +64,7 @@
 
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
     <aside class="h-max lg:sticky lg:top-8">
-      <div class="overflow-hidden rounded-xl border border-[#4A3438] bg-surface divide-y divide-[#4A3438]">
+      <div class="overflow-hidden rounded-xl border border-surface-200 bg-surface divide-y divide-surface-200">
         {#each sections as section}
           <Link href={section.path} class={sectionButtonClass(section.id)}>
             <p class="text-sm font-semibold">{section.label}</p>

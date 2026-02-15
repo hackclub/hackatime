@@ -3,65 +3,65 @@
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="mb-8">
     <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-bold text-white">looking at a single audit log</h1>
-      <%= link_to "get me outta here", admin_trust_level_audit_logs_path, class: "bg-darkless text-white px-4 py-2 rounded-lg" %>
+      <h1 class="text-3xl font-bold text-surface-content">looking at a single audit log</h1>
+      <%= link_to "get me outta here", admin_trust_level_audit_logs_path, class: "bg-darkless text-surface-content px-4 py-2 rounded-lg" %>
     </div>
   </div>
 
   <div class="bg-dark rounded-lg shadow-xl p-8">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div>
-        <h2 class="text-xl font-semibold text-white mb-4">user</h2>
+        <h2 class="text-xl font-semibold text-surface-content mb-4">user</h2>
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <%= render "shared/user_mention", user: @audit_log.user %>
-            <div class="text-sm text-gray-400">id: <%= @audit_log.user.id %></div>
+            <div class="text-sm text-muted">id: <%= @audit_log.user.id %></div>
           </div>
 
           <div class="pt-4">
-            <%= link_to "actions on this goober", admin_trust_level_audit_logs_path(user_id: @audit_log.user.id), class: "text-blue-400 hover:text-blue-300" %>
+            <%= link_to "actions on this goober", admin_trust_level_audit_logs_path(user_id: @audit_log.user.id), class: "text-blue hover:text-blue" %>
           </div>
         </div>
       </div>
 
       <div>
-        <h2 class="text-xl font-semibold text-white mb-4">updated by</h2>
+        <h2 class="text-xl font-semibold text-surface-content mb-4">updated by</h2>
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <%= render "shared/user_mention", user: @audit_log.changed_by %>
               <% if @audit_log.changed_by.admin_level == "superadmin" %>
-                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-red-950 text-red-500">supa admin</span>
+                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-red text-red">supa admin</span>
               <% elsif @audit_log.changed_by.admin_level == "admin" %>
-                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-yellow-950 text-yellow-500 ml-2">admin</span>
+                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-yellow text-yellow ml-2">admin</span>
               <% elsif @audit_log.changed_by.admin_level == "viewer" %>
-                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-blue-950 text-blue-500 ml-2">viewer</span>
+                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-blue text-blue ml-2">viewer</span>
               <% end %>
             </div>
-            <div class="text-sm text-gray-400">id: <%= @audit_log.changed_by.id %></div>
+            <div class="text-sm text-muted">id: <%= @audit_log.changed_by.id %></div>
           </div>
 
           <div class="pt-4">
-            <%= link_to 'changes by this goober', admin_trust_level_audit_logs_path(admin_id: @audit_log.changed_by.id), class: 'text-blue-400 hover:text-blue-300' %>
+            <%= link_to 'changes by this goober', admin_trust_level_audit_logs_path(admin_id: @audit_log.changed_by.id), class: 'text-blue hover:text-blue' %>
           </div>
         </div>
       </div>
     </div>
 
     <div class="mt-4">
-      <h2 class="text-xl font-semibold text-white mb-4">the deets</h2>
+      <h2 class="text-xl font-semibold text-surface-content mb-4">the deets</h2>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-2">executed at</label>
-          <div class="text-white">
+          <label class="block text-sm font-medium text-muted mb-2">executed at</label>
+          <div class="text-surface-content">
             <%= @audit_log.created_at.strftime('%B %d, %Y at %I:%M %p %Z') %>
           </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-2">before</label>
-          <div class="text-white text-lg">
+          <label class="block text-sm font-medium text-muted mb-2">before</label>
+          <div class="text-surface-content text-lg">
             <%
               a =
                 case @audit_log.previous_trust_level
@@ -80,8 +80,8 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-2">after</label>
-          <div class="text-white text-lg">
+          <label class="block text-sm font-medium text-muted mb-2">after</label>
+          <div class="text-surface-content text-lg">
             <%
               b =
                 case @audit_log.new_trust_level
@@ -102,8 +102,8 @@
 
       <% if @audit_log.reason.present? %>
         <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-400 mb-2">Reason</label>
-          <div class="text-white bg-darker p-4 rounded-lg">
+          <label class="block text-sm font-medium text-muted mb-2">Reason</label>
+          <div class="text-surface-content bg-darker p-4 rounded-lg">
             <%= simple_format(@audit_log.reason) %>
           </div>
         </div>
@@ -111,8 +111,8 @@
 
       <% if @audit_log.notes.present? %>
         <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-400 mb-2">Additional Notes</label>
-          <div class="text-white bg-darker p-4 rounded-lg">
+          <label class="block text-sm font-medium text-muted mb-2">Additional Notes</label>
+          <div class="text-surface-content bg-darker p-4 rounded-lg">
             <%= simple_format(@audit_log.notes) %>
           </div>
         </div>
