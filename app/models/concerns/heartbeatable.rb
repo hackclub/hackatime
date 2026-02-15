@@ -123,10 +123,15 @@ module Heartbeatable
         )
 
       # Then aggregate the results
+      current_time = Time.current
+      current_dates_by_timezone = {}
+      timezone_validity_cache = {}
+
       daily_durations = connection.select_all(
         "SELECT user_id, user_timezone, day_group, COALESCE(SUM(diff), 0)::integer as duration
          FROM (#{raw_durations.to_sql}) AS diffs
-         GROUP BY user_id, user_timezone, day_group"
+         GROUP BY user_id, user_timezone, day_group
+         ORDER BY user_id, day_group DESC"
       ).group_by { |row| row["user_id"] }
        .transform_values do |rows|
          timezone = rows.first["user_timezone"]
@@ -135,20 +140,27 @@ module Heartbeatable
            Rails.logger.warn "nil tz, going to utc."
            timezone = "UTC"
          else
-           begin
-             TZInfo::Timezone.get(timezone)
-           rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
+           timezone_is_valid = timezone_validity_cache.fetch(timezone) do
+             timezone_validity_cache[timezone] = begin
+               TZInfo::Timezone.get(timezone)
+               true
+             rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
+               false
+             end
+           end
+
+           unless timezone_is_valid
              Rails.logger.warn "Invalid timezone for streak calculation: #{timezone}. Defaulting to UTC."
              timezone = "UTC"
            end
          end
 
-         current_date = Time.current.in_time_zone(timezone).to_date
+         current_date = current_dates_by_timezone[timezone] ||= current_time.in_time_zone(timezone).to_date
          {
            current_date: current_date,
            days: rows.map do |row|
              [ row["day_group"].to_date, row["duration"].to_i ]
-           end.sort_by { |date, _| date }.reverse
+           end
          }
        end
 
@@ -207,7 +219,7 @@ module Heartbeatable
         .map { |date, duration| [ date.to_date, duration ] }
     end
 
-    def duration_seconds(scope = all)
+    def duration_seconds(scope = all, minimum_seconds: nil)
       scope = scope.with_valid_timestamps
       timeout = heartbeat_timeout_duration.to_i
 
@@ -229,10 +241,16 @@ module Heartbeatable
           .where.not(time: nil)
           .unscope(:group)
 
+        having_clause = if minimum_seconds
+          " HAVING COALESCE(SUM(diff), 0)::integer > #{minimum_seconds.to_i}"
+        else
+          ""
+        end
+
         connection.select_all(
           "SELECT grouped_time, COALESCE(SUM(diff), 0)::integer as duration
           FROM (#{capped_diffs.to_sql}) AS diffs
-          GROUP BY grouped_time"
+          GROUP BY grouped_time#{having_clause}"
         ).each_with_object({}) do |row, hash|
           hash[row["grouped_time"]] = row["duration"].to_i
         end
