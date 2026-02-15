@@ -70,8 +70,6 @@ gem "dotenv-rails"
 # Added from the code block
 gem "http"
 
-gem "public_activity"
-
 # Bulk import
 gem "activerecord-import"
 

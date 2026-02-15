@@ -12,19 +12,28 @@
     action?: string;
   };
 
+  type AdminLevel = "default" | "superadmin" | "admin" | "viewer";
+
+  type NavCurrentUser = {
+    display_name: string;
+    avatar_url?: string | null;
+    title: string;
+    country_code?: string | null;
+    country_name?: string | null;
+    streak_days?: number | null;
+    admin_level: AdminLevel;
+  };
+
   type LayoutNav = {
     flash: { message: string; class_name: string }[];
     user_present: boolean;
-    user_mention_html?: string | null;
-    streak_html?: string | null;
-    admin_level_html?: string | null;
+    current_user?: NavCurrentUser | null;
     login_path: string;
     links: NavLink[];
     dev_links: NavLink[];
     admin_links: NavLink[];
     viewer_links: NavLink[];
     superadmin_links: NavLink[];
-    activities_html?: string | null;
   };
 
   type Footer = {
@@ -38,7 +47,7 @@
     cache_hits: number;
     cache_misses: number;
     requests_per_second: string;
-    active_users_graph: { height: number; title: string }[];
+    active_users_graph: { height: number; users: number }[];
   };
 
   type CurrentlyHackingUser = {
@@ -111,6 +120,83 @@
           "https://tkww0gcc0gkwwo4gc8kgs0sw.a.selfhosted.hackclub.com/",
         )
       : "";
+
+  const latinPhrases = [
+    "carpe diem",
+    "nemo sine vitio est",
+    "docendo discimus",
+    "per aspera ad astra",
+    "ex nihilo nihil",
+    "aut viam inveniam aut faciam",
+    "semper ad mellora",
+    "soli fortes, una fortiores",
+    "nulla tenaci invia est via",
+    "nihil boni sine labore",
+  ];
+
+  const activeUsersGraphTitle = (hourIndex: number, users: number) => {
+    const hoursAgo = hourIndex + 1;
+    const phrase = latinPhrases[(hoursAgo + users) % latinPhrases.length];
+    return `${hoursAgo} ${plur("hour", hoursAgo)} ago, ${users} ${plur("person", users)} logged time. '${phrase}.'`;
+  };
+
+  const countryFlagEmoji = (countryCode?: string | null) => {
+    if (!countryCode) return "";
+    return countryCode
+      .toUpperCase()
+      .replace(/./g, (char) =>
+        String.fromCodePoint(127397 + char.charCodeAt(0)),
+      );
+  };
+
+  const streakThemeClasses = (streakDays: number) => {
+    if (streakDays >= 30) {
+      return {
+        bg: "from-blue-900/20 to-indigo-900/20",
+        hbg: "hover:from-blue-800/30 hover:to-indigo-800/30",
+        bc: "border-blue-700",
+        ic: "text-blue-400 group-hover:text-blue-300",
+        tc: "text-blue-300 group-hover:text-blue-200",
+        tm: "text-blue-400",
+      };
+    }
+
+    if (streakDays >= 7) {
+      return {
+        bg: "from-red-900/20 to-orange-900/20",
+        hbg: "hover:from-red-800/30 hover:to-orange-800/30",
+        bc: "border-red-700",
+        ic: "text-red-400 group-hover:text-red-300",
+        tc: "text-red-300 group-hover:text-red-200",
+        tm: "text-red-400",
+      };
+    }
+
+    return {
+      bg: "from-orange-900/20 to-yellow-900/20",
+      hbg: "hover:from-orange-800/30 hover:to-yellow-800/30",
+      bc: "border-orange-700",
+      ic: "text-orange-400 group-hover:text-orange-300",
+      tc: "text-orange-300 group-hover:text-orange-200",
+      tm: "text-orange-400",
+    };
+  };
+
+  const streakLabel = (streakDays: number) => (streakDays > 30 ? "30+" : `${streakDays}`);
+
+  const adminLevelLabel = (adminLevel?: AdminLevel | null) => {
+    if (adminLevel === "superadmin") return "Superadmin";
+    if (adminLevel === "admin") return "Admin";
+    if (adminLevel === "viewer") return "Viewer";
+    return null;
+  };
+
+  const adminLevelClass = (adminLevel?: AdminLevel | null) => {
+    if (adminLevel === "superadmin") return "text-red-500 superadmin-tool";
+    if (adminLevel === "admin") return "text-yellow-500 admin-tool";
+    if (adminLevel === "viewer") return "text-blue-500 viewer-tool";
+    return "";
+  };
 
   const toggleCurrentlyHacking = () => {
     currentlyExpanded = !currentlyExpanded;
@@ -211,11 +297,65 @@
         <div
           class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
         >
-          {#if layout.nav.user_mention_html}{@html layout.nav
-              .user_mention_html}{/if}
-          {#if layout.nav.streak_html}{@html layout.nav.streak_html}{/if}
-          {#if layout.nav.admin_level_html}{@html layout.nav
-              .admin_level_html}{/if}
+          {#if layout.nav.current_user}
+            <div class="user-info flex items-center gap-2" title={layout.nav.current_user.title}>
+              {#if layout.nav.current_user.avatar_url}
+                <img
+                  src={layout.nav.current_user.avatar_url}
+                  alt={`${layout.nav.current_user.display_name}'s avatar`}
+                  width="32"
+                  height="32"
+                  class="rounded-full aspect-square border border-gray-300"
+                  loading="lazy"
+                />
+              {/if}
+              <span class="inline-flex items-center gap-1">
+                {layout.nav.current_user.display_name}
+              </span>
+              {#if layout.nav.current_user.country_code}
+                <span
+                  class="flex items-center"
+                  title={layout.nav.current_user.country_name || layout.nav.current_user.country_code}
+                >
+                  {countryFlagEmoji(layout.nav.current_user.country_code)}
+                </span>
+              {/if}
+            </div>
+
+            {#if layout.nav.current_user.streak_days && layout.nav.current_user.streak_days > 0}
+              {@const streakTheme = streakThemeClasses(layout.nav.current_user.streak_days)}
+              <div
+                class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streakTheme.bg} border ${streakTheme.bc} rounded-lg transition-all duration-200 ${streakTheme.hbg} group`}
+                title={layout.nav.current_user.streak_days > 30 ? "30+ daily streak" : `${layout.nav.current_user.streak_days} day streak`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  class={`${streakTheme.ic} transition-colors duration-200 group-hover:animate-pulse`}
+                >
+                  <path
+                    fill="currentColor"
+                    d="M10 2c0-.88 1.056-1.331 1.692-.722c1.958 1.876 3.096 5.995 1.75 9.12l-.08.174l.012.003c.625.133 1.203-.43 2.303-2.173l.14-.224a1 1 0 0 1 1.582-.153C18.733 9.46 20 12.402 20 14.295C20 18.56 16.409 22 12 22s-8-3.44-8-7.706c0-2.252 1.022-4.716 2.632-6.301l.605-.589c.241-.236.434-.43.618-.624C9.285 5.268 10 3.856 10 2"
+                  ></path>
+                </svg>
+
+                <span class={`text-md font-semibold ${streakTheme.tc} transition-colors duration-200`}>
+                  {streakLabel(layout.nav.current_user.streak_days)}
+                  <span class={`ml-1 font-normal ${streakTheme.tm}`}>day streak</span>
+                </span>
+              </div>
+            {/if}
+
+            {#if adminLevelLabel(layout.nav.current_user.admin_level)}
+              <span
+                class={`${adminLevelClass(layout.nav.current_user.admin_level)} font-semibold px-2`}
+              >
+                {adminLevelLabel(layout.nav.current_user.admin_level)}
+              </span>
+            {/if}
+          {/if}
         </div>
       {:else}
         <div>
@@ -315,10 +455,6 @@
             {/each}
           </div>
         {/if}
-
-        {#if layout.nav.activities_html}
-          <div class="pt-2">{@html layout.nav.activities_html}</div>
-        {/if}
       </nav>
     </div>
   </aside>
@@ -361,10 +497,10 @@
         {/if}
       </div>
       <div class="flex flex-row gap-2 mt-4 justify-center">
-        {#each layout.footer.active_users_graph as hour}
+        {#each layout.footer.active_users_graph as hour, hourIndex}
           <div
             class="bg-white opacity-10 grow max-w-1 rounded-sm"
-            title={hour.title}
+            title={activeUsersGraphTitle(hourIndex, hour.users)}
             style={`height: ${hour.height}px`}
           ></div>
         {/each}

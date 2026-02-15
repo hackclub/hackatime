@@ -3,7 +3,6 @@ class Heartbeat < ApplicationRecord
 
   include Heartbeatable
   include TimeRangeFilterable
-  include PublicActivity::Common
 
   time_range_filterable_field :time
 
