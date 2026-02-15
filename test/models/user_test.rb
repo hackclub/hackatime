@@ -1,10 +1,10 @@
 require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
-  test "theme defaults to standard" do
+  test "theme defaults to gruvbox dark" do
     user = User.create!
 
-    assert_equal "standard", user.theme
+    assert_equal "gruvbox_dark", user.theme
   end
 
   test "theme options include all supported themes in order" do
@@ -22,9 +22,9 @@ class UserTest < ActiveSupport::TestCase
     ], values
   end
 
-  test "theme metadata falls back to standard for unknown themes" do
+  test "theme metadata falls back to default for unknown themes" do
     metadata = User.theme_metadata("not-a-real-theme")
 
-    assert_equal "standard", metadata[:value]
+    assert_equal "gruvbox_dark", metadata[:value]
   end
 end

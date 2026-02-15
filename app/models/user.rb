@@ -5,11 +5,11 @@ class User < ApplicationRecord
   include ::GithubIntegration
 
   USERNAME_MAX_LENGTH = 21 # going over 21 overflows the navbar
-  DEFAULT_THEME = "standard".freeze
+  DEFAULT_THEME = "gruvbox_dark".freeze
   THEME_OPTIONS = [
     {
       value: "standard",
-      label: "Standard",
+      label: "Classic",
       description: "Current Hackatime look.",
       color_scheme: "dark",
       theme_color: "#c8394f",

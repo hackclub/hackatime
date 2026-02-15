@@ -20,7 +20,7 @@
   }: ProfilePageProps = $props();
 
   let csrfToken = $state("");
-  let selectedTheme = $state(user.theme || "standard");
+  let selectedTheme = $state(user.theme || "gruvbox_dark");
 
   onMount(() => {
     csrfToken =

@@ -17,7 +17,7 @@
   } = $props();
 </script>
 
-<div class="text-left my-8 flex flex-col">
+<div class="text-left mt-2 mb-4 flex flex-col">
   <p class="mb-4 text-xl text-primary">
     Hello friend! Looks like you are new around here, let's get you set up
     so you can start tracking your coding time.
