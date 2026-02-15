@@ -11,6 +11,11 @@ class AdminLevelConstraint
 end
 
 Rails.application.routes.draw do
+  # Redirect to localhost from 127.0.0.1 to use same IP address with Vite server
+  constraints(host: "127.0.0.1") do
+    get "(*path)", to: redirect { |params, req| "#{req.protocol}localhost:#{req.port}/#{params[:path]}" }
+  end
+
   mount Rswag::Api::Engine => "/api-docs"
   mount Rswag::Ui::Engine => "/api-docs"
   use_doorkeeper
@@ -77,12 +82,10 @@ Rails.application.routes.draw do
   resources :static_pages, only: [ :index ] do
     collection do
       get :project_durations
-      get :activity_graph
       get :currently_hacking
       get :currently_hacking_count
       get :filterable_dashboard_content
       get :filterable_dashboard
-      get :mini_leaderboard
       get :streak
       # get :timeline # Removed: Old route for timeline
     end
@@ -190,6 +193,8 @@ Rails.application.routes.draw do
       resources :ysws_programs, only: [ :index ] do
         post :claim, on: :collection
       end
+
+      get "dashboard_stats", to: "dashboard_stats#show"
 
       namespace :my do
         get "heartbeats/most_recent", to: "heartbeats#most_recent"

@@ -54,6 +54,12 @@ class ApplicationController < ActionController::Base
     !!current_user
   end
 
+  def safe_return_url(url)
+    return nil if url.blank?
+    return nil unless url.start_with?("/") && !url.start_with?("//")
+    url
+  end
+
   def authenticate_user!
     unless user_signed_in?
       redirect_to root_path, alert: "Please sign in first!"

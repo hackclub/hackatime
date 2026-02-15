@@ -1,0 +1,181 @@
+<script lang="ts">
+  import { onMount } from "svelte";
+  import type { ActivityGraphData } from "../../types/index";
+  import BanNotice from "./signedIn/BanNotice.svelte";
+  import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
+  import SetupNotice from "./signedIn/SetupNotice.svelte";
+  import TodaySentence from "./signedIn/TodaySentence.svelte";
+  import TodaySentenceSkeleton from "./signedIn/TodaySentenceSkeleton.svelte";
+  import Dashboard from "./signedIn/Dashboard.svelte";
+  import DashboardSkeleton from "./signedIn/DashboardSkeleton.svelte";
+  import ActivityGraph from "./signedIn/ActivityGraph.svelte";
+  import ActivityGraphSkeleton from "./signedIn/ActivityGraphSkeleton.svelte";
+
+  type SocialProofUser = { display_name: string; avatar_url: string };
+
+  type FilterableDashboardData = {
+    total_time: number;
+    total_heartbeats: number;
+    top_project: string | null;
+    top_language: string | null;
+    top_editor: string | null;
+    top_operating_system: string | null;
+    project_durations: Record<string, number>;
+    language_stats: Record<string, number>;
+    editor_stats: Record<string, number>;
+    operating_system_stats: Record<string, number>;
+    category_stats: Record<string, number>;
+    weekly_project_stats: Record<string, Record<string, number>>;
+    project: string[];
+    language: string[];
+    editor: string[];
+    operating_system: string[];
+    category: string[];
+    selected_interval: string;
+    selected_from: string;
+    selected_to: string;
+    selected_project: string[];
+    selected_language: string[];
+    selected_editor: string[];
+    selected_operating_system: string[];
+    selected_category: string[];
+  };
+
+  type TodayStats = {
+    show_logged_time_sentence: boolean;
+    todays_duration_display: string;
+    todays_languages: string[];
+    todays_editors: string[];
+  };
+
+  let {
+    flavor_text,
+    trust_level_red,
+    show_wakatime_setup_notice,
+    ssp_message,
+    ssp_users_recent,
+    ssp_users_size,
+    github_uid_blank,
+    github_auth_path,
+    wakatime_setup_path,
+    dashboard_stats_url,
+  }: {
+    flavor_text: string;
+    trust_level_red: boolean;
+    show_wakatime_setup_notice: boolean;
+    ssp_message?: string | null;
+    ssp_users_recent: SocialProofUser[];
+    ssp_users_size: number;
+    github_uid_blank: boolean;
+    github_auth_path: string;
+    wakatime_setup_path: string;
+    dashboard_stats_url: string;
+  } = $props();
+
+  let loading = $state(true);
+  let todayStats = $state<TodayStats | null>(null);
+  let dashboardData = $state<FilterableDashboardData | null>(null);
+  let activityGraph = $state<ActivityGraphData | null>(null);
+  let requestSequence = 0;
+
+  function buildDashboardStatsUrl(search: string) {
+    const url = new URL(dashboard_stats_url, window.location.origin);
+    if (search.startsWith("?")) {
+      url.search = search;
+    } else if (search) {
+      url.search = `?${search}`;
+    } else {
+      url.search = "";
+    }
+    return `${url.pathname}${url.search}`;
+  }
+
+  async function refreshDashboardData(search: string) {
+    const requestId = ++requestSequence;
+    try {
+      const res = await fetch(buildDashboardStatsUrl(search), {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (requestId !== requestSequence) return;
+
+      todayStats = data.today_stats;
+      dashboardData = data.filterable_dashboard_data;
+      activityGraph = data.activity_graph;
+    } catch {
+      return;
+    }
+  }
+
+  onMount(async () => {
+    try {
+      await refreshDashboardData(window.location.search);
+    } finally {
+      loading = false;
+    }
+  });
+</script>
+
+<div>
+  <!-- Header Section -->
+  <div class="mb-8">
+    <div class="flex items-center space-x-2">
+      <p class="italic text-gray-400 m-0">
+        {@html flavor_text}
+      </p>
+    </div>
+
+    <h1 class="font-bold mt-2 mb-4 text-3xl md:text-4xl">
+      Keep Track of <span class="text-primary">Your</span> Coding Time
+    </h1>
+  </div>
+
+  {#if trust_level_red}
+    <BanNotice />
+  {/if}
+
+  {#if show_wakatime_setup_notice}
+    <SetupNotice
+      {wakatime_setup_path}
+      {ssp_message}
+      {ssp_users_recent}
+      {ssp_users_size}
+    />
+  {/if}
+
+  {#if github_uid_blank}
+    <GitHubLinkBanner {github_auth_path} />
+  {/if}
+
+  <div class="flex flex-col gap-8">
+    <!-- Today Stats -->
+    <div>
+      {#if loading}
+        <TodaySentenceSkeleton />
+      {:else if todayStats}
+        <TodaySentence
+          show_logged_time_sentence={todayStats.show_logged_time_sentence}
+          todays_duration_display={todayStats.todays_duration_display}
+          todays_languages={todayStats.todays_languages}
+          todays_editors={todayStats.todays_editors}
+        />
+      {/if}
+    </div>
+
+    <!-- Main Dashboard -->
+    {#if loading}
+      <DashboardSkeleton />
+    {:else if dashboardData}
+      <Dashboard data={dashboardData} onFiltersChange={refreshDashboardData} />
+    {/if}
+
+    <!-- Activity Graph -->
+    {#if loading}
+      <ActivityGraphSkeleton />
+    {:else if activityGraph}
+      <ActivityGraph data={activityGraph} />
+    {/if}
+  </div>
+</div>

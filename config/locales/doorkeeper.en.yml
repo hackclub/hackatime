@@ -154,4 +154,5 @@ en:
       application:
         title: 'OAuth authorization required'
     scopes:
-      read: View basic info about your Hackatime account
+      profile: Access your basic profile info (user ID, emails, Slack ID, GitHub username)
+      read: View your Hackatime stats, projects, heartbeats, and coding activity

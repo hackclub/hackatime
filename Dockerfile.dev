@@ -1,6 +1,6 @@
 FROM ruby:3.4.8
 
-# Install system dependencies
+# Install system dependencies including Node.js
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential \
@@ -12,10 +12,20 @@ RUN apt-get update -qq && \
     pkg-config \
     curl \
     vim \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash && \
+    mv ~/.bun/bin/bun /usr/local/bin/
 
 # Set working directory
 WORKDIR /app
+
+# Install npm dependencies for Vite
+COPY package.json bun.lock ./
+RUN bun install
 
 # Install application dependencies
 COPY Gemfile Gemfile.lock ./

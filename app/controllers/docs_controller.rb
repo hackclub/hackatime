@@ -1,24 +1,68 @@
-class DocsController < ApplicationController
+class DocsController < InertiaController
+  layout "inertia"
+
+  POPULAR_EDITORS = [
+    [ "VS Code", "vs-code" ], [ "PyCharm", "pycharm" ], [ "IntelliJ IDEA", "intellij-idea" ],
+    [ "Sublime Text", "sublime-text" ], [ "Vim", "vim" ], [ "Neovim", "neovim" ],
+    [ "Android Studio", "android-studio" ], [ "Xcode", "xcode" ], [ "Unity", "unity" ],
+    [ "Godot", "godot" ], [ "Cursor", "cursor" ], [ "Zed", "zed" ],
+    [ "Terminal", "terminal" ], [ "WebStorm", "webstorm" ], [ "Eclipse", "eclipse" ],
+    [ "Emacs", "emacs" ], [ "Jupyter", "jupyter" ], [ "OnShape", "onshape" ]
+  ].freeze
+
+  ALL_EDITORS = [
+    [ "Android Studio", "android-studio" ], [ "AppCode", "appcode" ], [ "Aptana", "aptana" ],
+    [ "Arduino IDE", "arduino-ide" ], [ "Azure Data Studio", "azure-data-studio" ],
+    [ "Brackets", "brackets" ],
+    [ "C++ Builder", "c++-builder" ],
+    [ "CLion", "clion" ], [ "Cloud9", "cloud9" ], [ "Coda", "coda" ],
+    [ "CodeTasty", "codetasty" ], [ "Cursor", "cursor" ], [ "DataGrip", "datagrip" ],
+    [ "DataSpell", "dataspell" ], [ "DBeaver", "dbeaver" ], [ "Delphi", "delphi" ],
+    [ "Eclipse", "eclipse" ],
+    [ "Emacs", "emacs" ], [ "Eric", "eric" ],
+    [ "Figma", "figma" ], [ "Gedit", "gedit" ],
+    [ "Godot", "godot" ], [ "GoLand", "goland" ], [ "HBuilder X", "hbuilder-x" ],
+    [ "IntelliJ IDEA", "intellij-idea" ], [ "Jupyter", "jupyter" ],
+    [ "Kakoune", "kakoune" ], [ "Kate", "kate" ], [ "Komodo", "komodo" ],
+    [ "Micro", "micro" ], [ "MPS", "mps" ], [ "Neovim", "neovim" ],
+    [ "NetBeans", "netbeans" ], [ "Notepad++", "notepad++" ], [ "Nova", "nova" ],
+    [ "Obsidian", "obsidian" ], [ "OnShape", "onshape" ], [ "Oxygen", "oxygen" ],
+    [ "PhpStorm", "phpstorm" ], [ "Postman", "postman" ],
+    [ "Processing", "processing" ], [ "Pulsar", "pulsar" ], [ "PyCharm", "pycharm" ],
+    [ "ReClassEx", "reclassex" ], [ "Rider", "rider" ], [ "Roblox Studio", "roblox-studio" ],
+    [ "RubyMine", "rubymine" ], [ "RustRover", "rustrover" ],
+    [ "SiYuan", "siyuan" ], [ "Sketch", "sketch" ], [ "SlickEdit", "slickedit" ],
+    [ "SQL Server Management Studio", "sql-server-management-studio" ],
+    [ "Sublime Text", "sublime-text" ], [ "Terminal", "terminal" ],
+    [ "TeXstudio", "texstudio" ], [ "TextMate", "textmate" ], [ "Trae", "trae" ],
+    [ "Unity", "unity" ], [ "Unreal Engine 4", "unreal-engine-4" ],
+    [ "Vim", "vim" ], [ "Visual Studio", "visual-studio" ], [ "VS Code", "vs-code" ],
+    [ "WebStorm", "webstorm" ], [ "Windsurf", "windsurf" ], [ "Wing", "wing" ],
+    [ "Xcode", "xcode" ], [ "Zed", "zed" ],
+    [ "Swift Playgrounds", "swift-playgrounds" ]
+  ].sort_by { |editor| editor[0] }.freeze
+
   # Docs are publicly accessible - no authentication required
 
   def index
-    @docs = docs_structure
+    render inertia: "Docs/Index", props: {
+      popular_editors: POPULAR_EDITORS,
+      all_editors: ALL_EDITORS
+    }
   end
 
   def show
-    @doc_path = sanitize_path(params[:path] || "index")
+    doc_path = sanitize_path(params[:path] || "index")
 
-    if @doc_path.start_with?("api")
+    if doc_path.start_with?("api")
       redirect_to "/api-docs", allow_other_host: false and return
     end
 
-    @breadcrumbs = build_breadcrumbs(@doc_path)
-
-    file_path = safe_docs_path("#{@doc_path}.md")
+    file_path = safe_docs_path("#{doc_path}.md")
 
     unless File.exist?(file_path)
       # Try with index.md in the directory
-      dir_path = safe_docs_path(@doc_path, "index.md")
+      dir_path = safe_docs_path(doc_path, "index.md")
       if File.exist?(dir_path)
         file_path = dir_path
       else
@@ -26,9 +70,23 @@ class DocsController < ApplicationController
       end
     end
 
-    @content = read_docs_file(file_path)
-    @title = extract_title(@content) || @doc_path.humanize
-    @rendered_content = render_markdown(@content)
+    content = read_docs_file(file_path)
+    title = extract_title(content) || doc_path.humanize
+    rendered_content = render_markdown(content)
+    breadcrumbs = build_inertia_breadcrumbs(doc_path)
+    edit_url = "https://github.com/hackclub/hackatime/edit/main/docs/#{doc_path}.md"
+
+    render inertia: "Docs/Show", props: {
+      doc_path: doc_path,
+      title: title,
+      rendered_content: rendered_content,
+      breadcrumbs: breadcrumbs,
+      edit_url: edit_url,
+      meta: {
+        description: generate_doc_description(content, title),
+        keywords: generate_doc_keywords(doc_path, title)
+      }
+    }
   rescue => e
     Rails.logger.error "Error loading docs: #{e.message}"
     render_not_found
@@ -40,13 +98,9 @@ class DocsController < ApplicationController
     # Remove any directory traversal attempts and normalize path
     return "index" if path.blank?
 
-    # Remove leading/trailing slashes and dangerous characters
-    clean_path = path.to_s.gsub(/\A\/+|\/+\z/, "").gsub(/\.\./, "")
-
-    # Only allow alphanumeric characters, hyphens, underscores, plus signs, and forward slashes
+    clean_path = path.to_s.split("/").reject(&:empty?).join("/").gsub("..", "")
     clean_path = clean_path.gsub(/[^a-zA-Z0-9\-_+\/]/, "")
 
-    # Ensure we don't have empty path
     clean_path.present? ? clean_path : "index"
   end
 
@@ -92,9 +146,9 @@ class DocsController < ApplicationController
     structure
   end
 
-  def build_breadcrumbs(path)
+  def build_inertia_breadcrumbs(path)
     parts = path.split("/")
-    breadcrumbs = [ { name: "Docs", path: docs_path, is_link: true } ]
+    breadcrumbs = [ { name: "Docs", href: docs_path, is_link: true } ]
 
     current_path = ""
     parts.each_with_index do |part, index|
@@ -105,10 +159,11 @@ class DocsController < ApplicationController
                    File.exist?(safe_docs_path(current_path, "index.md"))
 
       # Only make it a link if the file exists, or if it's the current page (last item)
-      if file_exists || index == parts.length - 1
-        breadcrumbs << { name: part.titleize, path: doc_path(current_path), is_link: true }
+      is_last = index == parts.length - 1
+      if file_exists || is_last
+        breadcrumbs << { name: part.titleize, href: doc_path(current_path), is_link: !is_last }
       else
-        breadcrumbs << { name: part.titleize, path: nil, is_link: false }
+        breadcrumbs << { name: part.titleize, href: nil, is_link: false }
       end
     end
 
@@ -159,10 +214,11 @@ class DocsController < ApplicationController
   end
 
   def render_not_found
-    @status_code = 404
-    @title = "Page Not Found"
-    @message = "The documentation page you were looking for doesn't exist."
-    render "errors/show", status: :not_found, layout: "errors"
+    render inertia: "Errors/NotFound", props: {
+      status_code: 404,
+      title: "Page Not Found",
+      message: "The documentation page you were looking for doesn't exist."
+    }, status: :not_found
   end
 
   # Make these helper methods available to views

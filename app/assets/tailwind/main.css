@@ -1,38 +1,8 @@
 @font-face {
-  font-family: "Phantom Sans";
-  src: url("/fonts/Regular.woff2") format("woff2"), url("/fonts/Regular.woff") format("woff");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Phantom Sans";
-  src: url("/fonts/Italic.woff2") format("woff2"), url("/fonts/Italic.woff") format("woff");
-  font-weight: normal;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Phantom Sans";
-  src: url("/fonts/Bold.woff2") format("woff2"), url("/fonts/Bold.woff") format("woff");
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "DS-Digital";
-  src: url("/fonts/DS-DIGIB.ttf") format("truetype");
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
   font-family: "clockicons";
-  src: url("/fonts/clockicons.woff2") format("woff2"), url("/fonts/clockicons.ttf") format("truetype");
+  src:
+    url("/fonts/clockicons.woff2") format("woff2"),
+    url("/fonts/clockicons.ttf") format("truetype");
   font-style: normal;
   font-weight: 400;
 }
@@ -47,25 +17,27 @@
 }
 
 @keyframes blink-anim {
-  0%, 50% {
+  0%,
+  50% {
     opacity: 1;
   }
-  51%, 100% {
+  51%,
+  100% {
     opacity: 0;
   }
 }
 
-body, html {
-  font-family: "Phantom Sans", "Segoe UI", sans-serif;
+body,
+html {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+    sans-serif;
   overflow-x: hidden;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   font-family: inherit;
-}
-
-.ds-digital {
-  font-family: "DS-Digital", monospace;
 }
 
 .clockicons {
@@ -76,7 +48,10 @@ body, html {
   animation: blink-anim 1s infinite;
 }
 
-code, pre, kbd, samp {
+code,
+pre,
+kbd,
+samp {
   @apply font-mono;
 }
 
@@ -85,7 +60,9 @@ code, pre, kbd, samp {
 }
 
 /* Ensure forms and inputs respect dark mode */
-input, textarea, select {
+input,
+textarea,
+select {
   color-scheme: dark;
 }
 
@@ -110,12 +87,63 @@ select {
   border-color: var(--color-green);
 }
 
+.flash-message {
+  @apply rounded-md text-center text-sm border px-4 py-3;
+  will-change: opacity, transform;
+}
+
+.flash-message--success {
+  color: var(--color-success);
+  border-color: var(--color-success);
+  background-color: rgba(51, 214, 166, 0.2);
+  background-color: color-mix(in oklab, var(--color-success) 20%, transparent);
+}
+
+.flash-message--error {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background-color: rgba(200, 57, 79, 0.2);
+  background-color: color-mix(in oklab, var(--color-danger) 20%, transparent);
+}
+
+.flash-message--enter {
+  animation: flash-enter 180ms ease-out;
+}
+
+.flash-message--leaving {
+  animation: flash-exit 240ms ease-in forwards;
+}
+
+@keyframes flash-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes flash-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
 .loading {
   @apply grayscale;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-spin {
@@ -151,7 +179,8 @@ turbo-frame#mini_leaderboard[aria-busy="true"]::before {
   @apply rotate-x-180;
 }
 
-.clock-display-front, .clock-display-back {
+.clock-display-front,
+.clock-display-back {
   @apply absolute w-full h-full flex justify-center items-center backface-hidden;
 }
 

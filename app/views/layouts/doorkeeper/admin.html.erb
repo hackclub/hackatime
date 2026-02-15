@@ -25,13 +25,13 @@
 
     <main class="flex-1 lg:ml-[250px] lg:max-w-[calc(100%-250px)] p-5 mb-[100px] pt-16 lg:pt-5 transition-all duration-300 ease-in-out">
       <%- if flash[:notice].present? %>
-        <div class="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400">
+        <div class="flash-message flash-message--enter flash-message--success mb-6" data-controller="flash">
           <%= flash[:notice] %>
         </div>
       <% end -%>
 
       <%- if flash[:alert].present? %>
-        <div class="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
+        <div class="flash-message flash-message--enter flash-message--error mb-6" data-controller="flash">
           <%= flash[:alert] %>
         </div>
       <% end -%>

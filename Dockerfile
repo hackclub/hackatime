@@ -22,9 +22,14 @@ RUN apt-get update -qq && \
     libvips \
     sqlite3 \
     libpq5 \
+    unzip \
     vim \
     wget && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash && \
+    mv ~/.bun/bin/bun /usr/local/bin/
 
 # Set production environment
 ENV RAILS_ENV="production" \
@@ -37,8 +42,12 @@ FROM base AS build
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev && \
+    apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs npm && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Install npm dependencies for Vite
+COPY package.json bun.lock ./
+RUN bun i
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./

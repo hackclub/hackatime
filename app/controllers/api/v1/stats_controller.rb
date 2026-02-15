@@ -322,36 +322,41 @@ class Api::V1::StatsController < ApplicationController
     stats = query
            .group(:project)
            .select("project,
-                   COUNT(*) as heartbeat_count,
-                   MIN(time) as first_heartbeat,
-                   MAX(time) as last_heartbeat")
+                    COUNT(*) as heartbeat_count,
+                    MIN(time) as first_heartbeat,
+                    MAX(time) as last_heartbeat")
+           .index_by(&:project)
+
+    durations = query.group(:project).duration_seconds
+
+    languages_by_project = query
+                          .where.not(language: [ nil, "" ])
+                          .group(:project, :language)
+                          .pluck(:project, :language)
+                          .group_by(&:first)
+                          .transform_values { |pairs| pairs.map(&:last) }
+
+    repo_mappings = @user.project_repo_mappings
+                        .where(project_name: names)
+                        .index_by(&:project_name)
 
     data = []
 
     names.each do |name|
-      heartbeats = query.where(project: name)
-      next if heartbeats.empty?
+      stat = stats[name]
+      next unless stat
 
-      seconds = heartbeats.duration_seconds || 0
-      stat = stats.find { |p| p.project == name }
-
-      languages = heartbeats
-                 .where.not(language: [ nil, "" ])
-                 .select(:language)
-                 .distinct
-                 .pluck(:language)
-
-      repo = @user.project_repo_mappings.find_by(project_name: name)
+      repo = repo_mappings[name]
       next if repo&.archived?
 
       data << {
         name: name,
-        total_seconds: seconds,
-        languages: languages,
+        total_seconds: durations[name] || 0,
+        languages: languages_by_project[name] || [],
         repo_url: repo&.repo_url,
-        total_heartbeats: stat&.heartbeat_count || 0,
-        first_heartbeat: stat&.first_heartbeat ? Time.at(stat.first_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil,
-        last_heartbeat: stat&.last_heartbeat ? Time.at(stat.last_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil
+        total_heartbeats: stat.heartbeat_count || 0,
+        first_heartbeat: stat.first_heartbeat ? Time.at(stat.first_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil,
+        last_heartbeat: stat.last_heartbeat ? Time.at(stat.last_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil
       }
     end
 

@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
   def hca_new
-    session[:return_data] = { url: params[:continue].presence || request.referer } if request.referer.present? && request.referer != request.url
+    session[:return_data] = { "url" => safe_return_url(params[:continue].presence) } if params[:continue].present?
     Rails.logger.info("Sessions return data: #{session[:return_data]}")
     redirect_uri = url_for(action: :hca_create, only_path: false)
 
@@ -37,9 +37,12 @@ class SessionsController < ApplicationController
       PosthogService.capture(@user, "user_signed_in", { method: "hca" })
 
       if @user.created_at > 5.seconds.ago
-        session[:return_data] ||= { url: params[:continue].presence || request.referer }
+        session[:return_data] = { "url" => safe_return_url(params[:continue].presence) }
         Rails.logger.info("Sessions return data: #{session[:return_data]}")
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+      elsif session[:return_data]&.dig("url").present?
+        return_url = session[:return_data].delete("url")
+        redirect_to return_url, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       else
         redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       end
@@ -87,8 +90,11 @@ class SessionsController < ApplicationController
       state = JSON.parse(params[:state]) rescue {}
       if state["close_window"]
         redirect_to close_window_path
-      elsif state["continue"]
-        redirect_to state["continue"], notice: "Successfully signed in with Slack! Welcome!"
+      elsif @user.created_at > 5.seconds.ago
+        session[:return_data] = { "url" => safe_return_url(state["continue"].presence) }
+        redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
+      elsif state["continue"].present? && safe_return_url(state["continue"]).present?
+        redirect_to safe_return_url(state["continue"]), notice: "Successfully signed in with Slack! Welcome!"
       else
         redirect_to root_path, notice: "Successfully signed in with Slack! Welcome!"
       end
@@ -158,7 +164,8 @@ class SessionsController < ApplicationController
     if Rails.env.production?
       HandleEmailSigninJob.perform_later(email, continue_param)
     else
-      HandleEmailSigninJob.perform_now(email, continue_param)
+      token = HandleEmailSigninJob.perform_now(email, continue_param)
+      session[:dev_magic_link] = auth_token_url(token)
     end
 
     redirect_to root_path(sign_in_email: true), notice: "Check your email for a sign-in link!"
@@ -254,8 +261,8 @@ class SessionsController < ApplicationController
       PosthogService.identify(user)
       PosthogService.capture(user, "user_signed_in", { method: "email" })
 
-      if valid_token.continue_param.present?
-        redirect_to valid_token.continue_param, notice: "Successfully signed in!"
+      if valid_token.continue_param.present? && safe_return_url(valid_token.continue_param).present?
+        redirect_to safe_return_url(valid_token.continue_param), notice: "Successfully signed in!"
       else
         redirect_to root_path, notice: "Successfully signed in!"
       end

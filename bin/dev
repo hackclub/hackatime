@@ -1,18 +1,23 @@
 #!/usr/bin/env sh
 
-if ! gem list foreman -i --silent; then
+export PORT="${PORT:-3000}"
+
+if command -v overmind 1> /dev/null 2>&1
+then
+  overmind start -f Procfile.dev "$@"
+  exit $?
+fi
+
+if command -v hivemind 1> /dev/null 2>&1
+then
+  echo "Hivemind is installed. Running the application with Hivemind..."
+  exec hivemind Procfile.dev "$@"
+  exit $?
+fi
+
+if gem list --no-installed --exact --silent foreman; then
   echo "Installing foreman..."
   gem install foreman
 fi
 
-# Default to port 3000 if not specified
-export PORT="${PORT:-3000}"
-
-# Let the debug gem allow remote connections,
-# but avoid loading until `debugger` is called
-export RUBY_DEBUG_OPEN="true"
-export RUBY_DEBUG_LAZY="true"
-
-# Use Procfile.dev, ensure web process binds to 0.0.0.0
-# (Procfile.dev should have: web: bin/rails server -b 0.0.0.0)
-exec foreman start -f Procfile.dev "$@"
+foreman start -f Procfile.dev "$@"

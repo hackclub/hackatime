@@ -16,7 +16,7 @@ Rails.application.configure do
 
   # https://github.com/bensheldon/good_job#configuring-your-queues
   # 12 threads total
-  config.good_job.queues = "latency_10s:4; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:5"
+  config.good_job.queues = "latency_critical:2; latency_10s:3; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:4"
 
   config.good_job.cron = {
     # update_slack_status: {
@@ -128,7 +128,7 @@ Rails.application.configure do
     #   cron: "0 4 * * *", # Daily at 4 AM
     #   class: "SyncStaleRepoMetadataJob",
     #   description: "Refreshes repository metadata (stars, commit counts, etc.) for repositories with stale data."
-    # },
+    # }
     # cleanup_old_leaderboards: {
     #   cron: "0 3 * * *", # daily at 3
     #   class: "CleanupOldLeaderboardsJob",

@@ -90,16 +90,12 @@ gem "skylight"
 gem "posthog-ruby"
 
 gem "geocoder"
-gem "pagy", "~> 43.2"
 
 # Airtable syncing
 gem "norairrecord", "~> 0.5.1"
 
 # Country codes
 gem "countries"
-
-# Random data generation
-gem "faker"
 
 # Markdown parsing
 gem "redcarpet"
@@ -126,6 +122,9 @@ group :development, :test do
 
   gem "rspec-rails"
   gem "rswag-specs"
+
+  # Random data generation
+  gem "faker"
 end
 
 gem "rswag-api"
@@ -163,3 +162,7 @@ gem "autotuner", "~> 1.0"
 gem "tailwindcss-ruby", "~> 4.1"
 
 gem "tailwindcss-rails", "~> 4.2"
+
+gem "inertia_rails", "~> 3.17"
+
+gem "vite_rails", "~> 3.0"

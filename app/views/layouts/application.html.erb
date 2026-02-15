@@ -15,6 +15,9 @@
     <link rel="canonical" href="<%= content_for(:canonical_url) || request.original_url %>">
 
     <!-- Enhanced SEO -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <meta name="theme-color" content="#ec3750">
     <meta name="msapplication-TileColor" content="#ec3750">
 
@@ -39,6 +42,8 @@
 
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+
+    <%= javascript_importmap_tags %>
 
     <% if current_user %>
       <meta name="user-is-superadmin" content="<%= current_user.admin_level == 'superadmin' %>">
@@ -178,11 +183,29 @@
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
-    <%= javascript_importmap_tags %>
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>
+    <%# Vite assets are only required for the Inertia layout. %>
+
+    <!-- Lets users record their screen from your site -->
+    <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
+    <script type="module" src="https://js.jam.dev/recorder.js"></script>
+    
+    <!-- Captures user events and developer logs -->
+    <script type="module" src="https://js.jam.dev/capture.js"></script>
+
+    <!--
+      If using a TypeScript entrypoint file:
+        vite_typescript_tag 'application'
+
+      If using a .jsx or .tsx entrypoint, add the extension:
+        vite_javascript_tag 'application.jsx'
+
+      Visit the guide for more information: https://vite-ruby.netlify.app/guide/rails
+    -->
+
   </head>
 
   <body class="<%= content_for(:body_class) %> flex min-h-screen bg-darker" data-controller="nav">
@@ -214,12 +237,13 @@
       </footer>
     </main>
 
-    <div class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-elevated border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform -translate-y-full transition-transform duration-300 ease-out hidden" data-controller="currently-hacking" data-currently-hacking-target="container" data-currently-hacking-count-url-value="<%= currently_hacking_count_static_pages_path %>" data-currently-hacking-full-url-value="<%= currently_hacking_static_pages_path %>" data-currently-hacking-interval-value="60000">
-      <div class="currently-hacking p-3 bg-elevated cursor-pointer select-none bg-dark flex items-center justify-between">
+    <% currently_hacking_count = CurrentlyHacking.count %>
+    <div class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform translate-y-0 transition-transform duration-300 ease-out" data-controller="currently-hacking" data-currently-hacking-target="container" data-currently-hacking-count-url-value="<%= currently_hacking_count_static_pages_path %>" data-currently-hacking-full-url-value="<%= currently_hacking_static_pages_path %>" data-currently-hacking-interval-value="60000">
+      <div class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between">
         <div class="text-white text-sm font-medium">
           <div class="flex items-center">
             <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"></div>
-            <span data-currently-hacking-target="count" class="text-lg"></span>
+            <span data-currently-hacking-target="count" class="text-lg"><%= pluralize(currently_hacking_count, "person") %> currently hacking</span>
           </div>
         </div>
       </div>

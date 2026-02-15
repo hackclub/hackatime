@@ -206,11 +206,24 @@ module Api
           user = find_user_by_id
           return unless user
 
-          date = parse_date_param
-          return unless date
+          if params[:start_date].present? || params[:end_date].present?
+            start_time = begin
+              Date.parse(params[:start_date]).beginning_of_day.utc
+            rescue
+              10.years.ago.utc
+            end
+            end_time = begin
+              Date.parse(params[:end_date]).end_of_day.utc
+            rescue
+              Date.current.end_of_day.utc
+            end
+          else
+            date = parse_date_param
+            return unless date
 
-          start_time = date.beginning_of_day.utc
-          end_time = date.end_of_day.utc
+            start_time = date.beginning_of_day.utc
+            end_time = date.end_of_day.utc
+          end
 
           heartbeats = user.heartbeats
                           .where(time: start_time..end_time)
@@ -219,7 +232,8 @@ module Api
           render json: {
             user_id: user.id,
             username: user.display_name,
-            date: date.iso8601,
+            start_date: start_time.to_date.iso8601,
+            end_date: end_time.to_date.iso8601,
             timezone: user.timezone,
             heartbeats: heartbeats.map do |hb|
               {
