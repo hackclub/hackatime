@@ -51,22 +51,11 @@
     })),
   );
 
-  const legendClasses = {
-    root: "w-full px-2",
-    swatches: "flex-wrap justify-center",
-    label: "text-xs text-white/70",
-  };
-
-  const legendPadding = $derived.by(() => {
-    const rows = Math.max(1, Math.ceil(series.length / 4));
-    return Math.min(120, 24 + rows * 18);
-  });
-
   const chartPadding = $derived.by(() => ({
     top: 4,
     right: 4,
     left: 20,
-    bottom: 20 + legendPadding,
+    bottom: 20,
   }));
 
   function formatDuration(value: number): string {
@@ -102,11 +91,9 @@
         x="week"
         {series}
         seriesLayout="stack"
-        legend
         padding={chartPadding}
         props={{
           yAxis: { format: formatYAxis },
-          legend: { classes: legendClasses },
         }}
       >
         <svelte:fragment slot="tooltip">
