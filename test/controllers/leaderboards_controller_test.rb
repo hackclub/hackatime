@@ -34,6 +34,40 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{leaderboards_path(period_type: "daily", scope: "global")}']"
   end
 
+  test "entries clamps page=0 to page 1 instead of erroring" do
+    user = create_user(username: "page_zero_user")
+    board = create_boards_for_today(period_type: :daily).first
+    board.entries.create!(user: user, total_seconds: 100)
+
+    sign_in_as(user)
+    get entries_leaderboards_path(period_type: "daily", page: 0), xhr: true
+
+    assert_response :success
+  end
+
+  test "entries clamps negative page to page 1 instead of erroring" do
+    user = create_user(username: "neg_page_user")
+    board = create_boards_for_today(period_type: :daily).first
+    board.entries.create!(user: user, total_seconds: 100)
+
+    sign_in_as(user)
+    get entries_leaderboards_path(period_type: "daily", page: -5), xhr: true
+
+    assert_response :success
+  end
+
+  test "validated_period_type does not intern arbitrary symbols" do
+    user = create_user(username: "bad_period_user")
+    create_boards_for_today(period_type: :daily)
+
+    sign_in_as(user)
+    get leaderboards_path(period_type: "evil_user_input_xyz")
+
+    assert_response :success
+    assert_not Symbol.all_symbols.map(&:to_s).include?("evil_user_input_xyz"),
+      "Arbitrary user input should not be interned as a symbol"
+  end
+
   private
 
   def create_user(username:, country_code: nil)

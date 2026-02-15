@@ -17,7 +17,7 @@ class LeaderboardsController < ApplicationController
     @leaderboard = LeaderboardService.get(period: @period_type, date: start_date)
     return head :no_content unless @leaderboard&.persisted?
 
-    page = (params[:page] || 1).to_i
+    page = [(params[:page] || 1).to_i, 1].max
     @entries = leaderboard_entries_scope.includes(:user).order(total_seconds: :desc)
                                  .offset((page - 1) * PER_PAGE).limit(PER_PAGE)
     @active_projects = Cache::ActiveProjectsJob.perform_now
@@ -29,8 +29,8 @@ class LeaderboardsController < ApplicationController
   private
 
   def validated_period_type
-    p = (params[:period_type] || "daily").to_sym
-    %i[daily last_7_days].include?(p) ? p : :daily
+    p = (params[:period_type] || "daily").to_s
+    %w[daily last_7_days].include?(p) ? p.to_sym : :daily
   end
 
   def validated_leaderboard_scope
