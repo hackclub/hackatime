@@ -43,7 +43,7 @@ That's it! The plugin will use your settings from Step 2.
 
 **Don't know how to edit .vimrc?** Type `:e ~/.vimrc` in Vim to open it.
 
-**Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-v2 channel.
+**Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-help channel.
 
 ## What Happens Next
 

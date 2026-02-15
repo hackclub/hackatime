@@ -282,5 +282,5 @@ New OAuth apps are marked as **unverified**. Unverified apps trigger a warning o
 ## Need help?
 
 - Check the [interactive API docs](https://hackatime.hackclub.com/api-docs) for full endpoint details.
-- Ask in [#hackatime-v2](https://hackclub.slack.com/archives/C07MQ845X1F) on Slack.
+- Ask in [#hackatime-help](https://hackclub.slack.com/archives/C07MQ845X1F) on Slack.
 - [Open an issue](https://github.com/hackclub/hackatime/issues) on GitHub.

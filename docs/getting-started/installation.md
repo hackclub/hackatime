@@ -29,4 +29,4 @@ After setup, start coding! Your time will show up on your [Hackatime dashboard](
 
 - **Not seeing your time?** Make sure the API URL is set correctly
 - **Plugin not working?** Try closing and opening your editor again
-- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-v2 channel)
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)

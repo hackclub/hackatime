@@ -26,7 +26,7 @@ This installs `terminal-wakatime` and automatically configures it for bash, zsh,
 
 - **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) first
 - **Plugin not working?** Try restarting Terminal after installation
-- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-v2 channel)
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 
 ## Next Steps
 

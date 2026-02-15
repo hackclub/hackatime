@@ -74,4 +74,4 @@ include_only_with_project_file = true
 
 ## Need Help?
 
-Having trouble with setup? Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-v2 channel)!
+Having trouble with setup? Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)!

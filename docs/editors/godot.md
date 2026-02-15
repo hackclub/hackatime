@@ -83,7 +83,7 @@ This Hack Club-approved plugin provides:
 
 - **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) first
 - **Plugin not enabled?** Check **Project → Project Settings → Plugins** and enable "Godot Super Wakatime"
-- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-v2 channel)
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 
 ---
 

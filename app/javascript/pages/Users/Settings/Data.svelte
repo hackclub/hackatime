@@ -99,12 +99,12 @@
         </div>
 
         <div class="mt-4 space-y-3">
-          <a
+          <Button
             href={paths.export_all_heartbeats_path}
-            class="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            class="rounded-md"
           >
             Export all heartbeats
-          </a>
+          </Button>
 
           <form
             method="get"

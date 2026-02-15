@@ -141,7 +141,7 @@
       <a
         href="https://hackclub.slack.com/archives/C07MQ845X1F"
         target="_blank"
-        class="text-primary hover:underline">#hackatime-v2</a
+        class="text-primary hover:underline">#hackatime-help</a
       >
       on Slack or
       <a
