@@ -17,7 +17,7 @@ class LeaderboardsController < ApplicationController
     @leaderboard = LeaderboardService.get(period: @period_type, date: start_date)
     return head :no_content unless @leaderboard&.persisted?
 
-    page = [(params[:page] || 1).to_i, 1].max
+    page = [ (params[:page] || 1).to_i, 1 ].max
     @entries = leaderboard_entries_scope.includes(:user).order(total_seconds: :desc)
                                  .offset((page - 1) * PER_PAGE).limit(PER_PAGE)
     @active_projects = Cache::ActiveProjectsJob.perform_now
