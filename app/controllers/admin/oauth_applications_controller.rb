@@ -30,7 +30,6 @@ class Admin::OauthApplicationsController < Admin::BaseController
     @application.renew_secret
     if @application.save
       flash[:notice] = I18n.t(:notice, scope: %i[doorkeeper flash applications rotate_secret])
-      flash[:application_secret] = @application.plaintext_secret
     else
       flash[:alert] = I18n.t(:alert, scope: %i[doorkeeper flash applications rotate_secret])
     end
