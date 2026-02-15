@@ -20,12 +20,12 @@
   let heartbeatTimeAgo = $state("");
   let checkCount = $state(0);
   let statusMessage = $state(
-    "Run the command above, then we'll automatically detect when you're ready.",
+    "Run the command below, then we'll automatically detect when you're ready.",
   );
   let statusPanelClass = $state("border-darkless");
 
   const messages = [
-    "Copy the command above and run it in your terminal!",
+    "Copy the command below and run it in your terminal!",
     "Paste the command and press Enter...",
     "The script will configure everything automatically!",
     "Almost there - just run the command!",
