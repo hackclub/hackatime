@@ -54,6 +54,70 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
     assert included.project_details(names: [ "archived_project" ]).first[:archived]
   end
 
+  test "parse_datetime returns Time objects for string datetime values" do
+    query = ProjectStatsQuery.new(user: @user, params: { start: "2024-01-15T10:30:00Z" })
+    parsed = query.send(:parse_datetime, "2024-01-15T10:30:00Z")
+
+    assert_instance_of ActiveSupport::TimeWithZone, parsed
+    assert_equal Time.zone.parse("2024-01-15T10:30:00Z"), parsed
+  end
+
+  test "parse_datetime converts DateTime objects to Time using in_time_zone" do
+    dt = DateTime.new(2024, 1, 15, 10, 30, 0)
+    query = ProjectStatsQuery.new(user: @user, params: {})
+    parsed = query.send(:parse_datetime, dt)
+
+    assert_instance_of ActiveSupport::TimeWithZone, parsed
+    assert_equal dt.in_time_zone, parsed
+  end
+
+  test "parse_datetime preserves Time objects correctly using in_time_zone" do
+    time = Time.zone.parse("2024-01-15T10:30:00Z")
+    query = ProjectStatsQuery.new(user: @user, params: {})
+    parsed = query.send(:parse_datetime, time)
+
+    assert_instance_of ActiveSupport::TimeWithZone, parsed
+    assert_equal time, parsed
+  end
+
+  test "parse_datetime returns nil for blank values" do
+    query = ProjectStatsQuery.new(user: @user, params: {})
+
+    assert_nil query.send(:parse_datetime, nil)
+    assert_nil query.send(:parse_datetime, "")
+    assert_nil query.send(:parse_datetime, "   ")
+  end
+
+  test "parse_datetime returns nil for invalid datetime strings" do
+    query = ProjectStatsQuery.new(user: @user, params: {})
+
+    assert_nil query.send(:parse_datetime, "invalid-date")
+    assert_nil query.send(:parse_datetime, "not a date")
+  end
+
+  test "range construction with parsed datetime values works without ArgumentError" do
+    # This test specifically addresses the bug that was causing 500 errors
+    start_time = DateTime.new(2024, 1, 1, 0, 0, 0)
+    end_time = DateTime.new(2024, 1, 31, 23, 59, 59)
+
+    create_heartbeat(project: "test_project", time: Time.zone.parse("2024-01-15").to_f)
+
+    query = ProjectStatsQuery.new(
+      user: @user,
+      params: {
+        start: start_time,
+        end: end_time
+      }
+    )
+
+    # This should not raise ArgumentError: bad value for range
+    assert_nothing_raised do
+      projects = query.project_details(names: [ "test_project" ])
+      assert_equal 1, projects.size
+      assert_equal "test_project", projects.first[:name]
+    end
+  end
+
   private
 
   def create_heartbeat(project:, time:, language: nil)
