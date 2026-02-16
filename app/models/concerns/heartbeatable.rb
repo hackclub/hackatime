@@ -242,7 +242,7 @@ module Heartbeatable
           .unscope(:group)
 
         having_clause = if minimum_seconds
-          " HAVING COALESCE(SUM(diff), 0)::integer > #{minimum_seconds.to_i}"
+          " HAVING COALESCE(SUM(diff), 0)::integer > #{ActiveRecord::Base.connection.quote(minimum_seconds.to_i)}"
         else
           ""
         end
