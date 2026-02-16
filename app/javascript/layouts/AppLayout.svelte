@@ -2,7 +2,7 @@
   import { Link, usePoll } from "@inertiajs/svelte";
   import Button from "../components/Button.svelte";
   import type { Snippet } from "svelte";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import plur from "plur";
 
   type NavLink = {
@@ -88,17 +88,20 @@
   let navOpen = $state(false);
   let logoutOpen = $state(false);
   let currentlyExpanded = $state(false);
-  let flashVisible = $state(layout.nav.flash.length > 0);
+  let flashVisible = $state(false);
   let flashHiding = $state(false);
   const flashHideDelay = 6000;
   const flashExitDuration = 250;
+  const pollInterval = untrack(
+    () => layout.currently_hacking?.interval || 30000,
+  );
 
   const toggleNav = () => (navOpen = !navOpen);
   const closeNav = () => (navOpen = false);
   const openLogout = () => (logoutOpen = true);
   const closeLogout = () => (logoutOpen = false);
 
-  usePoll(layout.currently_hacking?.interval || 30000, {
+  usePoll(pollInterval, {
     only: ["currently_hacking"],
   });
 
@@ -113,6 +116,13 @@
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
       closeNav();
+      closeLogout();
+    }
+  };
+
+  const handleModalBackdropKeydown = (e: KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
       closeLogout();
     }
   };
@@ -189,7 +199,8 @@
     };
   };
 
-  const streakLabel = (streakDays: number) => (streakDays > 30 ? "30+" : `${streakDays}`);
+  const streakLabel = (streakDays: number) =>
+    streakDays > 30 ? "30+" : `${streakDays}`;
 
   const adminLevelLabel = (adminLevel?: AdminLevel | null) => {
     if (adminLevel === "superadmin") return "Superadmin";
@@ -218,9 +229,7 @@
 
     document.documentElement.setAttribute("data-theme", layout.theme.name);
 
-    const colorSchemeMeta = document.querySelector(
-      "meta[name='color-scheme']",
-    );
+    const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
     colorSchemeMeta?.setAttribute("content", layout.theme.color_scheme);
 
     const themeColorMeta = document.querySelector("meta[name='theme-color']");
@@ -312,7 +321,13 @@
       />
     </svg>
   </Button>
-  <div class="nav-overlay" class:open={navOpen} onclick={closeNav}></div>
+  <Button
+    type="button"
+    unstyled
+    class={`nav-overlay ${navOpen ? "open" : ""}`}
+    aria-label="Close navigation"
+    onclick={closeNav}
+  />
 
   <aside
     class="flex flex-col min-h-screen w-52 bg-dark text-surface-content px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
@@ -326,7 +341,10 @@
           class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
         >
           {#if layout.nav.current_user}
-            <div class="user-info flex items-center gap-2" title={layout.nav.current_user.title}>
+            <div
+              class="user-info flex items-center gap-2"
+              title={layout.nav.current_user.title}
+            >
               {#if layout.nav.current_user.avatar_url}
                 <img
                   src={layout.nav.current_user.avatar_url}
@@ -343,7 +361,8 @@
               {#if layout.nav.current_user.country_code}
                 <span
                   class="flex items-center"
-                  title={layout.nav.current_user.country_name || layout.nav.current_user.country_code}
+                  title={layout.nav.current_user.country_name ||
+                    layout.nav.current_user.country_code}
                 >
                   {countryFlagEmoji(layout.nav.current_user.country_code)}
                 </span>
@@ -351,10 +370,14 @@
             </div>
 
             {#if layout.nav.current_user.streak_days && layout.nav.current_user.streak_days > 0}
-              {@const streakTheme = streakThemeClasses(layout.nav.current_user.streak_days)}
+              {@const streakTheme = streakThemeClasses(
+                layout.nav.current_user.streak_days,
+              )}
               <div
                 class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streakTheme.bg} border ${streakTheme.bc} rounded-lg transition-all duration-200 ${streakTheme.hbg} group`}
-                title={layout.nav.current_user.streak_days > 30 ? "30+ daily streak" : `${layout.nav.current_user.streak_days} day streak`}
+                title={layout.nav.current_user.streak_days > 30
+                  ? "30+ daily streak"
+                  : `${layout.nav.current_user.streak_days} day streak`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -369,9 +392,13 @@
                   ></path>
                 </svg>
 
-                <span class={`text-md font-semibold ${streakTheme.tc} transition-colors duration-200`}>
+                <span
+                  class={`text-md font-semibold ${streakTheme.tc} transition-colors duration-200`}
+                >
                   {streakLabel(layout.nav.current_user.streak_days)}
-                  <span class={`ml-1 font-normal ${streakTheme.tm}`}>day streak</span>
+                  <span class={`ml-1 font-normal ${streakTheme.tm}`}
+                    >day streak</span
+                  >
                 </span>
               </div>
             {/if}
@@ -401,22 +428,21 @@
             <button
               type="button"
               onclick={openLogout}
-              class={`${navLinkClass(false)} cursor-pointer w-full text-left`}>Logout</button
+              class={`${navLinkClass(false)} cursor-pointer w-full text-left`}
+              >Logout</button
+            >
+          {:else if link.inertia}
+            <Link
+              href={link.href || "#"}
+              onclick={handleNavLinkClick}
+              class={navLinkClass(link.active)}>{link.label}</Link
             >
           {:else}
-            {#if link.inertia}
-              <Link
-                href={link.href || "#"}
-                onclick={handleNavLinkClick}
-                class={navLinkClass(link.active)}>{link.label}</Link
-              >
-            {:else}
-              <a
-                href={link.href || "#"}
-                onclick={handleNavLinkClick}
-                class={navLinkClass(link.active)}>{link.label}</a
-              >
-            {/if}
+            <a
+              href={link.href || "#"}
+              onclick={handleNavLinkClick}
+              class={navLinkClass(link.active)}>{link.label}</a
+            >
           {/if}
         {/each}
 
@@ -584,8 +610,8 @@
           >
           from {layout.footer.server_start_time_ago} ago.
           {plur("heartbeat", layout.footer.heartbeat_recent_count)}
-          ({layout.footer.heartbeat_recent_imported_count} imported) in the past
-          24 hours. (DB: {layout.footer.query_count}
+          ({layout.footer.heartbeat_recent_imported_count} imported) in the past 24
+          hours. (DB: {layout.footer.query_count}
           {plur("query", layout.footer.query_count)}, {layout.footer
             .query_cache_count} cached) (CACHE: {layout.footer.cache_hits} hits,
           {layout.footer.cache_misses} misses) ({layout.footer
@@ -617,19 +643,21 @@
   <div
     class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
   >
-    <div
+    <Button
+      type="button"
+      unstyled
       class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between"
+      aria-expanded={currentlyExpanded}
+      aria-label="Toggle currently hacking users"
       onclick={toggleCurrentlyHacking}
     >
       <div class="text-surface-content text-sm font-medium">
         <div class="flex items-center">
-          <div
-            class="w-2 h-2 rounded-full bg-green animate-pulse mr-2"
-          ></div>
+          <div class="w-2 h-2 rounded-full bg-green animate-pulse mr-2"></div>
           <span class="text-base">{countLabel()}</span>
         </div>
       </div>
-    </div>
+    </Button>
 
     {#if currentlyExpanded}
       {#if layout.currently_hacking.users.length === 0}
@@ -707,7 +735,11 @@
   class:opacity-0={!logoutOpen}
   class:pointer-events-none={!logoutOpen}
   style="background-color: rgba(0, 0, 0, 0.5);backdrop-filter: blur(4px);"
+  role="button"
+  tabindex="0"
+  aria-label="Close logout dialog"
   onclick={(e) => e.target === e.currentTarget && closeLogout()}
+  onkeydown={handleModalBackdropKeydown}
 >
   <div
     class={`bg-dark border border-primary rounded-lg p-6 max-w-md w-full mx-4 flex flex-col items-center justify-center transform transition-transform duration-300 ease-in-out ${logoutOpen ? "scale-100" : "scale-95"}`}
@@ -727,7 +759,9 @@
         </svg>
       </div>
 
-      <h3 class="text-2xl font-bold text-surface-content mb-2 text-center w-full">
+      <h3
+        class="text-2xl font-bold text-surface-content mb-2 text-center w-full"
+      >
         Woah hold on a sec
       </h3>
       <p class="text-muted mb-6 text-center w-full">
@@ -741,8 +775,7 @@
             type="button"
             onclick={closeLogout}
             variant="dark"
-            class="w-full h-10 text-muted m-0"
-            >Go back</Button
+            class="w-full h-10 text-muted m-0">Go back</Button
           >
         </div>
         <div class="flex-1 min-w-0">
@@ -753,10 +786,7 @@
               value={layout.csrf_token}
             />
             <input type="hidden" name="_method" value="delete" />
-            <Button
-              type="submit"
-              variant="primary"
-              class="w-full h-10 m-0"
+            <Button type="submit" variant="primary" class="w-full h-10 m-0"
               >Log out now</Button
             >
           </form>

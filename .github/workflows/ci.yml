@@ -65,6 +65,28 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Run Svelte type checks
+        run: npm run check:svelte
+
+      - name: Run Svelte formatting checks
+        run: npm run format:svelte:check
+
   zeitwerk:
     runs-on: ubuntu-latest
 

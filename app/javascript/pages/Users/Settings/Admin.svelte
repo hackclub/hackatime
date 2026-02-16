@@ -37,7 +37,9 @@
   {#if admin_tools.visible}
     <div class="space-y-8">
       <section id="wakatime_mirror">
-        <h2 class="text-xl font-semibold text-surface-content">WakaTime Mirrors</h2>
+        <h2 class="text-xl font-semibold text-surface-content">
+          WakaTime Mirrors
+        </h2>
         <p class="mt-1 text-sm text-muted">
           Mirror heartbeats to external WakaTime-compatible endpoints.
         </p>
@@ -49,7 +51,9 @@
                 <p class="text-sm font-semibold text-surface-content">
                   {mirror.endpoint_url}
                 </p>
-                <p class="mt-1 text-xs text-muted">Last synced: {mirror.last_synced_ago}</p>
+                <p class="mt-1 text-xs text-muted">
+                  Last synced: {mirror.last_synced_ago}
+                </p>
                 <form
                   method="post"
                   action={mirror.destroy_path}
@@ -61,12 +65,12 @@
                   }}
                 >
                   <input type="hidden" name="_method" value="delete" />
-                  <input type="hidden" name="authenticity_token" value={csrfToken} />
-                  <Button
-                    type="submit"
-                    variant="surface"
-                    size="xs"
-                  >
+                  <input
+                    type="hidden"
+                    name="authenticity_token"
+                    value={csrfToken}
+                  />
+                  <Button type="submit" variant="surface" size="xs">
                     Delete
                   </Button>
                 </form>
@@ -75,10 +79,17 @@
           </div>
         {/if}
 
-        <form method="post" action={paths.user_wakatime_mirrors_path} class="mt-5 space-y-3">
+        <form
+          method="post"
+          action={paths.user_wakatime_mirrors_path}
+          class="mt-5 space-y-3"
+        >
           <input type="hidden" name="authenticity_token" value={csrfToken} />
           <div>
-            <label for="endpoint_url" class="mb-2 block text-sm text-surface-content">
+            <label
+              for="endpoint_url"
+              class="mb-2 block text-sm text-surface-content"
+            >
               Endpoint URL
             </label>
             <input
@@ -91,7 +102,10 @@
             />
           </div>
           <div>
-            <label for="mirror_key" class="mb-2 block text-sm text-surface-content">
+            <label
+              for="mirror_key"
+              class="mb-2 block text-sm text-surface-content"
+            >
               WakaTime API Key
             </label>
             <input
@@ -102,17 +116,14 @@
               class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
             />
           </div>
-          <Button
-            type="submit"
-            variant="primary"
-          >
-            Add mirror
-          </Button>
+          <Button type="submit" variant="primary">Add mirror</Button>
         </form>
       </section>
     </div>
   {:else}
-    <p class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted">
+    <p
+      class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
+    >
       You are not authorized to access this section.
     </p>
   {/if}

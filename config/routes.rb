@@ -86,8 +86,6 @@ Rails.application.routes.draw do
       get :project_durations
       get :currently_hacking
       get :currently_hacking_count
-      get :filterable_dashboard_content
-      get :filterable_dashboard
       get :streak
       # get :timeline # Removed: Old route for timeline
     end
@@ -203,8 +201,6 @@ Rails.application.routes.draw do
       resources :ysws_programs, only: [ :index ] do
         post :claim, on: :collection
       end
-
-      get "dashboard_stats", to: "dashboard_stats#show"
 
       namespace :my do
         get "heartbeats/most_recent", to: "heartbeats#most_recent"

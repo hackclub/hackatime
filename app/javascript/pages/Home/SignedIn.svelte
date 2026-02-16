@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { Deferred, router } from "@inertiajs/svelte";
   import type { ActivityGraphData } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
@@ -58,7 +58,7 @@
     github_uid_blank,
     github_auth_path,
     wakatime_setup_path,
-    dashboard_stats_url,
+    dashboard_stats,
   }: {
     flavor_text: string;
     trust_level_red: boolean;
@@ -69,53 +69,22 @@
     github_uid_blank: boolean;
     github_auth_path: string;
     wakatime_setup_path: string;
-    dashboard_stats_url: string;
+    dashboard_stats?: {
+      filterable_dashboard_data: FilterableDashboardData;
+      activity_graph: ActivityGraphData;
+      today_stats: TodayStats;
+    };
   } = $props();
 
-  let loading = $state(true);
-  let todayStats = $state<TodayStats | null>(null);
-  let dashboardData = $state<FilterableDashboardData | null>(null);
-  let activityGraph = $state<ActivityGraphData | null>(null);
-  let requestSequence = 0;
-
-  function buildDashboardStatsUrl(search: string) {
-    const url = new URL(dashboard_stats_url, window.location.origin);
-    if (search.startsWith("?")) {
-      url.search = search;
-    } else if (search) {
-      url.search = `?${search}`;
-    } else {
-      url.search = "";
-    }
-    return `${url.pathname}${url.search}`;
+  function refreshDashboardData(search: string) {
+    router.visit(`${window.location.pathname}${search}`, {
+      only: ["dashboard_stats"],
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      async: true,
+    });
   }
-
-  async function refreshDashboardData(search: string) {
-    const requestId = ++requestSequence;
-    try {
-      const res = await fetch(buildDashboardStatsUrl(search), {
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) return;
-
-      const data = await res.json();
-      if (requestId !== requestSequence) return;
-
-      todayStats = data.today_stats;
-      dashboardData = data.filterable_dashboard_data;
-      activityGraph = data.activity_graph;
-    } catch {
-      return;
-    }
-  }
-
-  onMount(async () => {
-    try {
-      await refreshDashboardData(window.location.search);
-    } finally {
-      loading = false;
-    }
-  });
 </script>
 
 <div>
@@ -149,33 +118,46 @@
     <GitHubLinkBanner {github_auth_path} />
   {/if}
 
-  <div class="flex flex-col gap-8">
-    <!-- Today Stats -->
-    <div>
-      {#if loading}
-        <TodaySentenceSkeleton />
-      {:else if todayStats}
-        <TodaySentence
-          show_logged_time_sentence={todayStats.show_logged_time_sentence}
-          todays_duration_display={todayStats.todays_duration_display}
-          todays_languages={todayStats.todays_languages}
-          todays_editors={todayStats.todays_editors}
-        />
-      {/if}
-    </div>
+  <Deferred data="dashboard_stats">
+    {#snippet fallback()}
+      <div class="flex flex-col gap-8">
+        <div>
+          <TodaySentenceSkeleton />
+        </div>
+        <DashboardSkeleton />
+        <ActivityGraphSkeleton />
+      </div>
+    {/snippet}
 
-    <!-- Main Dashboard -->
-    {#if loading}
-      <DashboardSkeleton />
-    {:else if dashboardData}
-      <Dashboard data={dashboardData} onFiltersChange={refreshDashboardData} />
-    {/if}
+    {#snippet children({ reloading })}
+      <div class="flex flex-col gap-8" class:opacity-60={reloading}>
+        <!-- Today Stats -->
+        <div>
+          {#if dashboard_stats?.today_stats}
+            <TodaySentence
+              show_logged_time_sentence={dashboard_stats.today_stats
+                .show_logged_time_sentence}
+              todays_duration_display={dashboard_stats.today_stats
+                .todays_duration_display}
+              todays_languages={dashboard_stats.today_stats.todays_languages}
+              todays_editors={dashboard_stats.today_stats.todays_editors}
+            />
+          {/if}
+        </div>
 
-    <!-- Activity Graph -->
-    {#if loading}
-      <ActivityGraphSkeleton />
-    {:else if activityGraph}
-      <ActivityGraph data={activityGraph} />
-    {/if}
-  </div>
+        <!-- Main Dashboard -->
+        {#if dashboard_stats?.filterable_dashboard_data}
+          <Dashboard
+            data={dashboard_stats.filterable_dashboard_data}
+            onFiltersChange={refreshDashboardData}
+          />
+        {/if}
+
+        <!-- Activity Graph -->
+        {#if dashboard_stats?.activity_graph}
+          <ActivityGraph data={dashboard_stats.activity_graph} />
+        {/if}
+      </div>
+    {/snippet}
+  </Deferred>
 </div>

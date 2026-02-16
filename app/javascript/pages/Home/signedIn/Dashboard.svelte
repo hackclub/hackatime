@@ -12,10 +12,8 @@
     onFiltersChange,
   }: {
     data: Record<string, any>;
-    onFiltersChange?: (search: string) => Promise<void> | void;
+    onFiltersChange?: (search: string) => void;
   } = $props();
-
-  let loading = $state(false);
 
   const langStats = $derived(
     (data.language_stats || {}) as Record<string, number>,
@@ -36,7 +34,7 @@
   const capitalize = (s: string) =>
     s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
 
-  async function applyFilters(overrides: Record<string, string>) {
+  function applyFilters(overrides: Record<string, string>) {
     const current = new URL(window.location.href);
     for (const [k, v] of Object.entries(overrides)) {
       if (v) {
@@ -45,31 +43,23 @@
         current.searchParams.delete(k);
       }
     }
-
-    window.history.pushState({}, "", current.pathname + current.search);
-
-    loading = true;
-    try {
-      await onFiltersChange?.(current.search);
-    } finally {
-      loading = false;
-    }
+    onFiltersChange?.(current.search);
   }
 
   function onIntervalChange(interval: string, from: string, to: string) {
     if (from || to) {
-      void applyFilters({ interval: "custom", from, to });
+      applyFilters({ interval: "custom", from, to });
     } else {
-      void applyFilters({ interval, from: "", to: "" });
+      applyFilters({ interval, from: "", to: "" });
     }
   }
 
   function onFilterChange(param: string, selected: string[]) {
-    void applyFilters({ [param]: selected.join(",") });
+    applyFilters({ [param]: selected.join(",") });
   }
 </script>
 
-<div class="flex flex-col gap-6 w-full" class:opacity-60={loading}>
+<div class="flex flex-col gap-6 w-full">
   <!-- Filters -->
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-2">
     <IntervalSelect

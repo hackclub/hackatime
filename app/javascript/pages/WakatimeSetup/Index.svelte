@@ -112,15 +112,14 @@
           </div>
         {:else}
           <div class="text-center py-2">
-            <h4 class="text-xl font-bold text-surface-content">Setup complete!</h4>
+            <h4 class="text-xl font-bold text-surface-content">
+              Setup complete!
+            </h4>
             <p class="text-secondary text-sm mb-6">
               Heartbeat detected {heartbeatTimeAgo}.
             </p>
 
-            <Button
-              href="/my/wakatime_setup/step-2"
-              size="lg"
-            >
+            <Button href="/my/wakatime_setup/step-2" size="lg">
               Continue to Step 2 →
             </Button>
           </div>
@@ -225,6 +224,7 @@
                 class="mt-4 rounded-lg overflow-hidden border border-darkless"
               >
                 <iframe
+                  title="macOS setup video tutorial"
                   width="100%"
                   height="300"
                   src="https://www.youtube.com/embed/QTwhJy7nT_w?modestbranding=1&rel=0"
@@ -312,6 +312,7 @@
                 class="mt-4 rounded-lg overflow-hidden border border-darkless"
               >
                 <iframe
+                  title="Windows setup video tutorial"
                   width="100%"
                   height="300"
                   src="https://www.youtube.com/embed/fX9tsiRvzhg?modestbranding=1&rel=0"

@@ -68,18 +68,26 @@
 </script>
 
 <div class="filter relative" bind:this={container}>
-  <span class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider">
+  <span
+    class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider"
+  >
     {label}
   </span>
 
-  <div class="group flex items-center border border-surface-200 rounded-lg bg-surface-100 m-0 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200">
+  <div
+    class="group flex items-center border border-surface-200 rounded-lg bg-surface-100 m-0 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200"
+  >
     <Button
       type="button"
       unstyled
       class="flex-1 px-3 py-2.5 text-sm cursor-pointer select-none text-surface-content m-0 bg-transparent flex items-center justify-between border-0 min-w-0"
       onclick={() => (open = !open)}
     >
-      <span class="truncate {selected.length === 0 ? 'text-surface-content/60' : ''}">
+      <span
+        class="truncate {selected.length === 0
+          ? 'text-surface-content/60'
+          : ''}"
+      >
         {displayText}
       </span>
       <svg
@@ -88,7 +96,12 @@
         stroke="currentColor"
         viewBox="0 0 24 24"
       >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7"
+        />
       </svg>
     </Button>
 
@@ -105,7 +118,9 @@
   </div>
 
   {#if open}
-    <div class="absolute top-full left-0 right-0 min-w-64 bg-darkless border border-surface-200 rounded-lg mt-2 shadow-xl shadow-black/50 z-1000 p-2">
+    <div
+      class="absolute top-full left-0 right-0 min-w-64 bg-darkless border border-surface-200 rounded-lg mt-2 shadow-xl shadow-black/50 z-1000 p-2"
+    >
       <input
         type="text"
         placeholder="Search..."
@@ -115,7 +130,9 @@
 
       <div class="overflow-y-auto m-0 max-h-64">
         {#each filtered as value}
-          <label class="flex items-center px-3 py-2.5 cursor-pointer text-sm text-muted m-0 bg-transparent rounded-md hover:bg-dark transition-colors duration-150">
+          <label
+            class="flex items-center px-3 py-2.5 cursor-pointer text-sm text-muted m-0 bg-transparent rounded-md hover:bg-dark transition-colors duration-150"
+          >
             <input
               type="checkbox"
               checked={selected.includes(value)}

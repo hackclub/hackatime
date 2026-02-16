@@ -3,7 +3,9 @@
 </script>
 
 <div class="bg-dark border border-primary/40 rounded-xl p-4 md:p-5 mb-4">
-  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+  <div
+    class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+  >
     <div class="flex items-center gap-3 min-w-0">
       <svg
         xmlns="http://www.w3.org/2000/svg"

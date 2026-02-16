@@ -1,13 +1,10 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import type { Snippet } from "svelte";
 
   type ButtonType = "button" | "submit" | "reset";
   type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
-  type ButtonVariant =
-    | "primary"
-    | "surface"
-    | "dark"
-    | "outlinePrimary";
+  type ButtonVariant = "primary" | "surface" | "dark" | "outlinePrimary";
 
   let {
     href = "",
@@ -15,6 +12,7 @@
     size = "md",
     variant = "primary",
     unstyled = false,
+    children,
     class: className = "",
     ...rest
   }: {
@@ -23,6 +21,7 @@
     size?: ButtonSize;
     variant?: ButtonVariant;
     unstyled?: boolean;
+    children?: Snippet;
     class?: string;
     [key: string]: unknown;
   } = $props();
@@ -59,11 +58,11 @@
 </script>
 
 {#if href}
-  <Link href={href} class={classes} {...rest}>
-    <slot />
+  <Link {href} class={classes} {...rest}>
+    {@render children?.()}
   </Link>
 {:else}
-  <button type={type} class={classes} {...rest}>
-    <slot />
+  <button {type} class={classes} {...rest}>
+    {@render children?.()}
   </button>
 {/if}

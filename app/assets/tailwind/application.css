@@ -3,7 +3,6 @@
 @source "../../../node_modules/layerchart/dist/**/*.{svelte,js}";
 @import "./main.css";
 @import "./nav.css";
-@import "./filterable_dashboard.css";
 
 body {
   @apply flex min-h-screen;
@@ -291,4 +290,3 @@ html[data-theme="nord"] {
   background-color: var(--color-primary);
   opacity: 0.9;
 }
-

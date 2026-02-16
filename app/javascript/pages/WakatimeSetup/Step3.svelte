@@ -223,7 +223,8 @@
                 </summary>
                 <div class="mt-4 pl-6">
                   <p class="text-sm mb-3 text-secondary">
-                    You'll see a clock icon and time spent coding in your status bar:
+                    You'll see a clock icon and time spent coding in your status
+                    bar:
                   </p>
                   <img
                     src="/images/editor-toolbars/vs-code.png"
@@ -349,11 +350,7 @@
         </div>
       </div>
 
-      <Button
-        href="/my/wakatime_setup/step-4"
-        size="xl"
-        class="w-full"
-      >
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
         Next Step
       </Button>
     {:else if editor === "jetbrains"}
@@ -367,7 +364,8 @@
           <div>
             <h3 class="text-xl font-semibold">Set Up JetBrains IDEs</h3>
             <p class="text-secondary text-sm">
-              Install the WakaTime extension for JetBrains IDEs (like IntelliJ and PyCharm).
+              Install the WakaTime extension for JetBrains IDEs (like IntelliJ
+              and PyCharm).
             </p>
           </div>
         </div>
@@ -386,7 +384,9 @@
             <div>
               <p class="font-medium mb-1">Open Settings</p>
               <p class="text-sm text-secondary">
-                Open your IDE and go to <b>Settings</b> (Ctrl+Alt+S on Windows/Linux, Command+, on macOS), <b>Plugins</b>, then <b>Marketplace</b>.
+                Open your IDE and go to <b>Settings</b> (Ctrl+Alt+S on
+                Windows/Linux, Command+, on macOS), <b>Plugins</b>, then
+                <b>Marketplace</b>.
               </p>
             </div>
           </div>
@@ -403,11 +403,11 @@
                 Search for <b>WakaTime</b> in the marketplace and click Install.
 
                 <a
-                    href="https://plugins.jetbrains.com/plugin/7425-wakatime"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-cyan hover:underline">View on Marketplace</a
-                  >
+                  href="https://plugins.jetbrains.com/plugin/7425-wakatime"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-cyan hover:underline">View on Marketplace</a
+                >
               </p>
             </div>
           </div>
@@ -449,7 +449,8 @@
               </summary>
               <div class="mt-4 pl-6">
                 <p class="text-sm mb-3 text-secondary">
-                  You'll see a WakaTime icon and time spent coding in your status bar:
+                  You'll see a WakaTime icon and time spent coding in your
+                  status bar:
                 </p>
                 <img
                   src="/images/editor-toolbars/jetbrains.png"
@@ -462,11 +463,7 @@
         </div>
       </div>
 
-      <Button
-        href="/my/wakatime_setup/step-4"
-        size="xl"
-        class="w-full"
-      >
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
         Next Step
       </Button>
     {:else if editor === "sublime"}
@@ -515,13 +512,17 @@
             <div>
               <p class="font-medium mb-1">Install WakaTime Plugin</p>
               <p class="text-sm text-secondary">
-                Open the Command Palette (Ctrl+Shift+P on Windows/Linux, Command+Shift+P on macOS), type <b>Package Control: Install Package</b>, and press Enter. Then type <b>WakaTime</b> and press Enter to install.
-                  <a
-                      href="https://packagecontrol.io/packages/WakaTime"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-cyan hover:underline">View on Package Control</a
-                    >
+                Open the Command Palette (Ctrl+Shift+P on Windows/Linux,
+                Command+Shift+P on macOS), type <b
+                  >Package Control: Install Package</b
+                >, and press Enter. Then type <b>WakaTime</b> and press Enter to
+                install.
+                <a
+                  href="https://packagecontrol.io/packages/WakaTime"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-cyan hover:underline">View on Package Control</a
+                >
               </p>
             </div>
           </div>
@@ -535,7 +536,8 @@
             <div>
               <p class="font-medium mb-1">Start Coding</p>
               <p class="text-sm text-secondary">
-                After installing WakaTime, open any file and start typing to send your first heartbeat.
+                After installing WakaTime, open any file and start typing to
+                send your first heartbeat.
               </p>
             </div>
           </div>
@@ -562,7 +564,8 @@
               </summary>
               <div class="mt-4 pl-6">
                 <p class="text-sm mb-3 text-secondary">
-                  You'll see your time spent coding in your status bar, which looks something like <code>Today: 1h 23m</code>.
+                  You'll see your time spent coding in your status bar, which
+                  looks something like <code>Today: 1h 23m</code>.
                 </p>
               </div>
             </details>
@@ -570,11 +573,7 @@
         </div>
       </div>
 
-      <Button
-        href="/my/wakatime_setup/step-4"
-        size="xl"
-        class="w-full"
-      >
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
         Next Step
       </Button>
     {:else if editorData[editor]}
@@ -601,7 +600,9 @@
               <div class="pt-6 border-t border-darkless"></div>
             {/if}
             <div>
-              <h4 class="text-sm font-medium mb-2 text-surface-content">{method.name}</h4>
+              <h4 class="text-sm font-medium mb-2 text-surface-content">
+                {method.name}
+              </h4>
               <div class="relative group">
                 <div
                   class="bg-darker border border-darkless rounded-lg overflow-x-auto"
@@ -620,11 +621,7 @@
         </div>
       </div>
 
-      <Button
-        href="/my/wakatime_setup/step-4"
-        size="xl"
-        class="w-full"
-      >
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
         Next Step
       </Button>
     {:else}
@@ -697,11 +694,7 @@
         </div>
       </div>
 
-      <Button
-        href="/my/wakatime_setup/step-4"
-        size="xl"
-        class="w-full"
-      >
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
         Next Step
       </Button>
     {/if}

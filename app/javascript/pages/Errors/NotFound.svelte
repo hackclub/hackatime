@@ -22,11 +22,7 @@
       <h1 class="text-6xl font-bold text-primary mb-4">{status_code}</h1>
       <h2 class="text-2xl font-semibold text-surface-content mb-4">{title}</h2>
       <p class="text-secondary mb-8">{message}</p>
-      <Button
-        href="/"
-        size="lg"
-        class="hover:brightness-110 transition-all"
-      >
+      <Button href="/" size="lg" class="hover:brightness-110 transition-all">
         Go Home
       </Button>
     </div>
