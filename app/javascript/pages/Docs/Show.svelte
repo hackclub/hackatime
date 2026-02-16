@@ -28,7 +28,7 @@
 </svelte:head>
 
 <div class="min-h-screen text-surface-content">
-  <div class="max-w-8xl md:max-w-6xl mx-auto px-6 py-8">
+  <div class="w-full max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
     <!-- Breadcrumbs -->
     <nav class="mb-8">
       {#each breadcrumbs as crumb, index}
@@ -49,7 +49,7 @@
 
     <!-- Content -->
     <div
-      class="bg-dark rounded-lg p-8 mb-8 prose prose-invert prose-lg max-w-none
+      class="bg-dark rounded-lg p-4 sm:p-6 lg:p-8 mb-8 prose prose-invert prose-base sm:prose-lg max-w-none
              prose-headings:text-primary prose-headings:font-bold prose-headings:leading-tight
              prose-h1:text-4xl prose-h1:mb-6 prose-h1:text-primary prose-h1:mt-0
              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:text-primary prose-h2:border-b prose-h2:border-b-[#6e6468] prose-h2:pb-2
@@ -59,7 +59,7 @@
              prose-a:text-primary prose-a:hover:text-red prose-a:underline prose-a:font-medium
              prose-strong:text-surface-content prose-strong:font-semibold
              prose-em:text-secondary prose-em:italic
-             prose-code:bg-darkless prose-code:text-primary prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-sm prose-code:font-mono
+             prose-code:bg-darkless prose-code:text-primary prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:break-words
              prose-pre:bg-darkless prose-pre:border prose-pre:border-primary/20 prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto
              prose-pre:text-surface-content prose-pre:text-sm
              prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-darkless prose-blockquote:pl-6 prose-blockquote:py-4 prose-blockquote:rounded-r-lg
@@ -78,6 +78,7 @@
              [&_h2:not(:first-child)]:mt-10
              [&_h3:not(:first-child)]:mt-8
              [&_p_strong:first-child]:text-primary
+             [&_p]:break-words [&_li]:break-words
              [&_pre[class*='language-json']]:bg-darkless [&_pre[class*='language-json']]:border [&_pre[class*='language-json']]:border-primary/10
              [&_pre[class*='language-bash']]:bg-darkless [&_pre[class*='language-bash']]:border [&_pre[class*='language-bash']]:border-primary/10
              [&_img[alt*='PyCharm']]:w-16 [&_img[alt*='PyCharm']]:h-16 [&_img[alt*='PyCharm']]:mx-auto [&_img[alt*='PyCharm']]:block [&_img[alt*='PyCharm']]:my-4
