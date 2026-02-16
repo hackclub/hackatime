@@ -53,6 +53,13 @@ class Settings::BaseController < InertiaController
   def settings_page_props(active_section:, settings_update_path:)
     heartbeats_last_7_days = @user.heartbeats.where("time >= ?", 7.days.ago.to_f).count
     channel_ids = @enabled_sailors_logs.pluck(:slack_channel_id)
+    heartbeat_import_id = nil
+    heartbeat_import_status = nil
+
+    if active_section.to_s == "data" && Rails.env.development?
+      heartbeat_import_id = params[:heartbeat_import_id].presence
+      heartbeat_import_status = HeartbeatImportRunner.status(user: @user, import_id: heartbeat_import_id) if heartbeat_import_id
+    end
 
     {
       active_section: active_section,
@@ -97,7 +104,7 @@ class Settings::BaseController < InertiaController
         migrate_heartbeats_path: my_settings_migrate_heartbeats_path,
         export_all_heartbeats_path: export_my_heartbeats_path(format: :json, all_data: "true"),
         export_range_heartbeats_path: export_my_heartbeats_path(format: :json),
-        import_heartbeats_path: import_my_heartbeats_path,
+        create_heartbeat_import_path: my_heartbeat_imports_path,
         create_deletion_path: create_deletion_path,
         user_wakatime_mirrors_path: user_wakatime_mirrors_path(current_user)
       },
@@ -186,6 +193,10 @@ class Settings::BaseController < InertiaController
       },
       ui: {
         show_dev_import: Rails.env.development?
+      },
+      heartbeat_import: {
+        import_id: heartbeat_import_id,
+        status: heartbeat_import_status
       },
       errors: {
         full_messages: @user.errors.full_messages,
