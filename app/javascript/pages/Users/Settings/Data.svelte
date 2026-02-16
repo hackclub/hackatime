@@ -329,7 +329,7 @@
                 <progress
                   max="100"
                   value={$tweenedProgress}
-                  class="mt-2 h-2 w-full accent-primary"
+                  class="mt-2 h-2 w-full bg-primary rounded-full"
                 ></progress>
                 <p class="mt-2 text-sm text-muted">
                   {formatCount(processedCount)} / {formatCount(totalCount)} processed
@@ -339,7 +339,7 @@
                 {/if}
                 {#if importState === "completed"}
                   <p class="mt-1 text-sm text-muted">
-                    Imported: {formatCount(importedCount)} | Skipped duplicates: {formatCount(skippedCount)} | Errors: {errorsCount.toLocaleString()}
+                    Imported: {formatCount(importedCount)}. Skipped {formatCount(skippedCount)} duplicates and {errorsCount.toLocaleString()} errors
                   </p>
                 {/if}
               </div>
