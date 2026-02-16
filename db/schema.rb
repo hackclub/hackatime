@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_234652) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -308,7 +308,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_234652) do
     t.index ["project_id"], name: "index_heartbeats_on_project_id"
     t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
     t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
-    t.index ["time", "user_id"], name: "idx_heartbeats_coding_time_user", where: "((deleted_at IS NULL) AND ((category)::text = 'coding'::text))"
     t.index ["user_agent_id"], name: "index_heartbeats_on_user_agent_id"
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
@@ -322,7 +321,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_234652) do
     t.index ["user_id", "time", "language_id"], name: "idx_heartbeats_user_time_language_id", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "project_id"], name: "idx_heartbeats_user_time_project_id", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "time"], name: "idx_heartbeats_coding_user_time", where: "((deleted_at IS NULL) AND ((category)::text = 'coding'::text))"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
