@@ -122,7 +122,9 @@ class ProjectStatsQuery
   def parse_datetime(value)
     return nil if value.blank?
 
-    value.to_datetime
+    return value.in_time_zone if value.respond_to?(:in_time_zone)
+
+    Time.zone.parse(value.to_s)
   rescue ArgumentError, TypeError
     nil
   end
