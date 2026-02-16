@@ -84,10 +84,14 @@ class ProjectStatsQuery
   end
 
   def scoped_heartbeats(start_time, end_time)
+    start_timestamp = timestamp_value(start_time)
+    end_timestamp = timestamp_value(end_time)
+    return @user.heartbeats.none if start_timestamp.nil? || end_timestamp.nil?
+
     @user.heartbeats
          .with_valid_timestamps
          .where.not(project: [ nil, "" ])
-         .where(time: start_time..end_time)
+         .where(time: start_timestamp..end_timestamp)
   end
 
   def archived_project_names
@@ -137,5 +141,16 @@ class ProjectStatsQuery
     return nil if time_value.blank?
 
     Time.at(time_value.to_f).utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+  end
+
+  def timestamp_value(value)
+    case value
+    when Numeric
+      value.to_f
+    when Time, ActiveSupport::TimeWithZone
+      value.to_f
+    when DateTime
+      value.to_time.to_f
+    end
   end
 end

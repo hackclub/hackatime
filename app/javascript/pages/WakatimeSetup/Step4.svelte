@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Checkbox } from "bits-ui";
   import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
 
@@ -47,11 +48,17 @@
           <label
             class="flex items-center gap-3 cursor-pointer select-none group"
           >
-            <input
-              type="checkbox"
+            <Checkbox.Root
               bind:checked={agreed}
-              class="w-5 h-5 rounded border-darkless bg-darker text-primary focus:ring-primary focus:ring-offset-darker transition-colors cursor-pointer"
-            />
+              class="inline-flex h-5 w-5 min-w-5 items-center justify-center rounded border border-darkless bg-darker text-on-primary transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+            >
+              {#snippet children({ checked })}
+                <span
+                  class={checked ? "text-xs font-bold leading-none" : "hidden"}
+                  >✓</span
+                >
+              {/snippet}
+            </Checkbox.Root>
             <span class="font-medium">I understand and agree to the rules</span>
           </label>
         </div>

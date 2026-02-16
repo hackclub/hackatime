@@ -60,7 +60,7 @@ export type PathsProps = {
   migrate_heartbeats_path: string;
   export_all_heartbeats_path: string;
   export_range_heartbeats_path: string;
-  import_heartbeats_path: string;
+  create_heartbeat_import_path: string;
   create_deletion_path: string;
   user_wakatime_mirrors_path: string;
 };
@@ -138,6 +138,26 @@ export type UiProps = {
   show_dev_import: boolean;
 };
 
+export type HeartbeatImportStatusProps = {
+  import_id: string;
+  state: string;
+  progress_percent: number;
+  processed_count: number;
+  total_count: number | null;
+  imported_count: number | null;
+  skipped_count: number | null;
+  errors_count: number;
+  message: string;
+  updated_at: string;
+  started_at?: string;
+  finished_at?: string;
+};
+
+export type HeartbeatImportProps = {
+  import_id?: string | null;
+  status?: HeartbeatImportStatusProps | null;
+};
+
 export type ErrorsProps = {
   full_messages: string[];
   username: string[];
@@ -189,6 +209,7 @@ export type DataPageProps = SettingsCommonProps & {
   migration: MigrationProps;
   data_export: DataExportProps;
   ui: UiProps;
+  heartbeat_import: HeartbeatImportProps;
 };
 
 export type AdminPageProps = SettingsCommonProps & {
