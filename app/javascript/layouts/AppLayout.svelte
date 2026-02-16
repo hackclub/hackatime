@@ -549,7 +549,7 @@
                   {link.label}
                   {#if link.badge}
                     <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
                     >
                       {link.badge}
                     </span>
