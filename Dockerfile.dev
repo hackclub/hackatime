@@ -25,6 +25,7 @@ WORKDIR /app
 
 # Install npm dependencies for Vite
 COPY package.json bun.lock ./
+# Copy vendor directory for local file: dependencies (e.g., @inertiajs/core)
 COPY vendor ./vendor
 RUN bun install
 

@@ -101,6 +101,8 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
     end_time = DateTime.new(2024, 1, 31, 23, 59, 59)
 
     create_heartbeat(project: "test_project", time: Time.zone.parse("2024-01-15").to_f)
+    create_heartbeat(project: "test_project", time: Time.zone.parse("2023-12-15").to_f)
+    create_heartbeat(project: "test_project", time: Time.zone.parse("2024-02-15").to_f)
 
     query = ProjectStatsQuery.new(
       user: @user,
@@ -115,6 +117,8 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
       projects = query.project_details(names: [ "test_project" ])
       assert_equal 1, projects.size
       assert_equal "test_project", projects.first[:name]
+      # Verify only the heartbeat within the range is counted
+      assert_equal 1, projects.first[:total_heartbeats]
     end
   end
 
