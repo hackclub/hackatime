@@ -2,10 +2,6 @@ class StaticPagesController < InertiaController
   include DashboardData
 
   layout "inertia", only: :index
-  before_action :ensure_current_user, only: %i[
-    filterable_dashboard
-    filterable_dashboard_content
-  ]
 
   def index
     if current_user
@@ -108,31 +104,7 @@ class StaticPagesController < InertiaController
     render partial: "streak"
   end
 
-  def filterable_dashboard
-    load_dashboard_data
-    %i[project language operating_system editor category].each do |f|
-      instance_variable_set("@selected_#{f}", params[f]&.split(",") || [])
-    end
-    @selected_interval = params[:interval]
-    @selected_from = params[:from]
-    @selected_to = params[:to]
-    render partial: "filterable_dashboard"
-  end
-
-  def filterable_dashboard_content
-    load_dashboard_data
-    render partial: "filterable_dashboard_content"
-  end
-
   private
-
-  def load_dashboard_data
-    filterable_dashboard_data.each { |k, v| instance_variable_set("@#{k}", v) }
-  end
-
-  def ensure_current_user
-    redirect_to(root_path, alert: "You must be logged in to view this page") unless current_user
-  end
 
   def set_homepage_seo_content
     @page_title = @og_title = @twitter_title = "Hackatime - See How Much You Code"
@@ -151,16 +123,15 @@ class StaticPagesController < InertiaController
       github_uid_blank: current_user&.github_uid.blank?,
       github_auth_path: github_auth_path,
       wakatime_setup_path: my_wakatime_setup_path,
-      dashboard_stats_url: api_v1_dashboard_stats_path(
-        interval: params[:interval],
-        from: params[:from],
-        to: params[:to],
-        project: params[:project],
-        language: params[:language],
-        editor: params[:editor],
-        operating_system: params[:operating_system],
-        category: params[:category]
-      )
+      dashboard_stats: InertiaRails.defer { dashboard_stats_payload }
+    }
+  end
+
+  def dashboard_stats_payload
+    {
+      filterable_dashboard_data: filterable_dashboard_data,
+      activity_graph: activity_graph_data,
+      today_stats: today_stats_data
     }
   end
 

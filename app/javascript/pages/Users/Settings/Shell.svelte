@@ -17,7 +17,9 @@
   }: SettingsCommonProps & { children?: Snippet } = $props();
 
   const sections = $derived(buildSections(section_paths, admin_tools.visible));
-  const knownSectionIds = $derived(new Set(sections.map((section) => section.id)));
+  const knownSectionIds = $derived(
+    new Set(sections.map((section) => section.id)),
+  );
 
   const sectionButtonClass = (sectionId: keyof SectionPaths) =>
     `block w-full px-4 py-4 text-left transition-colors ${
@@ -32,7 +34,9 @@
       if (!section || !knownSectionIds.has(section)) return;
       if (section === active_section || !section_paths[section]) return;
 
-      window.location.replace(`${section_paths[section]}${window.location.hash}`);
+      window.location.replace(
+        `${section_paths[section]}${window.location.hash}`,
+      );
     };
 
     syncSectionFromHash();
@@ -52,7 +56,9 @@
   </header>
 
   {#if errors.full_messages.length > 0}
-    <div class="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red">
+    <div
+      class="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red"
+    >
       <p class="font-semibold">Some changes could not be saved:</p>
       <ul class="mt-2 list-disc pl-5">
         {#each errors.full_messages as message}
@@ -64,7 +70,9 @@
 
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
     <aside class="h-max lg:sticky lg:top-8">
-      <div class="overflow-hidden rounded-xl border border-surface-200 bg-surface divide-y divide-surface-200">
+      <div
+        class="overflow-hidden rounded-xl border border-surface-200 bg-surface divide-y divide-surface-200"
+      >
         {#each sections as section}
           <Link href={section.path} class={sectionButtonClass(section.id)}>
             <p class="text-sm font-semibold">{section.label}</p>

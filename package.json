@@ -2,7 +2,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json"
+    "check": "npm run check:svelte && tsc -p tsconfig.node.json",
+    "check:svelte": "svelte-check --tsconfig ./tsconfig.svelte-check.json",
+    "format:svelte": "prettier --write \"app/javascript/**/*.svelte\"",
+    "format:svelte:check": "prettier --check \"app/javascript/**/*.svelte\""
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -25,5 +28,9 @@
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-ruby": "^5.1.2"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.4.1"
   }
 }

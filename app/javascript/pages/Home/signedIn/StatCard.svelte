@@ -34,7 +34,8 @@
     {value || "—"}
   </div>
   {#if subtitle}
-    <span class="absolute bottom-2 left-4 text-xs text-secondary font-normal opacity-70"
+    <span
+      class="absolute bottom-2 left-4 text-xs text-secondary font-normal opacity-70"
       >{subtitle}</span
     >
   {/if}

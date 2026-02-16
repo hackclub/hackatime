@@ -20,10 +20,7 @@ class HeartbeatImportRunner
       message: "Queued import."
     })
 
-    Thread.new(user.id, import_id, file_path) do |user_id, thread_import_id, thread_file_path|
-      Thread.current.report_on_exception = false
-      run_import(user_id: user_id, import_id: thread_import_id, file_path: thread_file_path)
-    end
+    HeartbeatImportJob.perform_later(user.id, import_id, file_path)
 
     import_id
   end
@@ -45,31 +42,14 @@ class HeartbeatImportRunner
         return
       end
 
-      write_status(user_id: user_id, import_id: import_id, attributes: {
-        state: "counting",
-        message: "Counting heartbeats...",
-        started_at: Time.current.iso8601
-      })
-
       file_content = File.read(file_path).force_encoding("UTF-8")
-      total_count = HeartbeatImportService.count_heartbeats(file_content)
-
-      if total_count.zero?
-        write_status(user_id: user_id, import_id: import_id, attributes: {
-          state: "failed",
-          progress_percent: 0,
-          total_count: 0,
-          message: "No heartbeats found in file.",
-          finished_at: Time.current.iso8601
-        })
-        return
-      end
 
       write_status(user_id: user_id, import_id: import_id, attributes: {
         state: "running",
-        total_count: total_count,
+        total_count: nil,
         progress_percent: 0,
         processed_count: 0,
+        started_at: Time.current.iso8601,
         message: "Importing heartbeats..."
       })
 
@@ -78,12 +58,11 @@ class HeartbeatImportRunner
         user,
         progress_interval: PROGRESS_INTERVAL,
         on_progress: lambda { |processed_count|
-          progress = [ ((processed_count.to_f / total_count) * 100).round, 100 ].min
           write_status(user_id: user_id, import_id: import_id, attributes: {
             state: "running",
-            progress_percent: progress,
+            progress_percent: 0,
             processed_count: processed_count,
-            total_count: total_count,
+            total_count: nil,
             message: "Importing heartbeats..."
           })
         }

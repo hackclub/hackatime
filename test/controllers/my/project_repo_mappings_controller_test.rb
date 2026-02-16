@@ -45,6 +45,7 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     Heartbeat.create!(user: user, project: project_name, category: "coding", time: now - 1800, source_type: :test_entry)
     Heartbeat.create!(user: user, project: project_name, category: "coding", time: now, source_type: :test_entry)
   end
+
   def sign_in_as(user)
     token = user.sign_in_tokens.create!(auth_type: :email)
     get auth_token_path(token: token.token)

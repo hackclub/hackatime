@@ -21,7 +21,6 @@ class My::ProjectRepoMappingsController < InertiaController
       from: params[:from],
       to: params[:to],
       interval_label: helpers.human_interval_name(selected_interval, from: params[:from], to: params[:to]),
-      interval_options: interval_options,
       total_projects: project_count(archived),
       projects_data: InertiaRails.defer { projects_payload(archived: archived) }
     }
@@ -94,19 +93,18 @@ class My::ProjectRepoMappingsController < InertiaController
     params[:interval]
   end
 
-  def interval_options
-    TimeRangeFilterable::RANGES.map do |key, config|
-      {
-        value: key.to_s,
-        label: config[:human_name]
-      }
-    end
-  end
-
   def project_durations_cache_key
     key = "user_#{current_user.id}_project_durations_#{selected_interval}_v3"
-    key += "_#{params[:from]}_#{params[:to]}" if selected_interval == "custom"
+    if selected_interval == "custom"
+      sanitized_from = sanitized_cache_date(params[:from]) || "none"
+      sanitized_to = sanitized_cache_date(params[:to]) || "none"
+      key += "_#{sanitized_from}_#{sanitized_to}"
+    end
     key
+  end
+
+  def sanitized_cache_date(value)
+    value.to_s.gsub(/[^0-9-]/, "")[0, 10].presence
   end
 
   def projects_payload(archived:)
