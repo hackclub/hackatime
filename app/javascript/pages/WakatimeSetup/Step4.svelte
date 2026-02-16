@@ -53,7 +53,10 @@
               class="inline-flex h-5 w-5 min-w-5 items-center justify-center rounded border border-darkless bg-darker text-on-primary transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary"
             >
               {#snippet children({ checked })}
-                <span class={checked ? "text-xs font-bold leading-none" : "hidden"}>✓</span>
+                <span
+                  class={checked ? "text-xs font-bold leading-none" : "hidden"}
+                  >✓</span
+                >
               {/snippet}
             </Checkbox.Root>
             <span class="font-medium">I understand and agree to the rules</span>

@@ -5,11 +5,7 @@
 
   type ButtonType = "button" | "submit" | "reset";
   type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
-  type ButtonVariant =
-    | "primary"
-    | "surface"
-    | "dark"
-    | "outlinePrimary";
+  type ButtonVariant = "primary" | "surface" | "dark" | "outlinePrimary";
 
   let {
     href = "",
@@ -66,16 +62,16 @@
 
 {#if href}
   {#if native}
-    <BitsButton.Root href={href} class={classes} {...rest}>
+    <BitsButton.Root {href} class={classes} {...rest}>
       {@render children?.()}
     </BitsButton.Root>
   {:else}
-    <Link href={href} class={classes} {...rest}>
+    <Link {href} class={classes} {...rest}>
       {@render children?.()}
     </Link>
   {/if}
 {:else}
-  <BitsButton.Root type={type} class={classes} {...rest}>
+  <BitsButton.Root {type} class={classes} {...rest}>
     {@render children?.()}
   </BitsButton.Root>
 {/if}

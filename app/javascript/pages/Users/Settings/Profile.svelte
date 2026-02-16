@@ -44,7 +44,9 @@
 >
   <div class="space-y-8">
     <section id="user_region">
-      <h2 class="text-xl font-semibold text-surface-content">Region and Timezone</h2>
+      <h2 class="text-xl font-semibold text-surface-content">
+        Region and Timezone
+      </h2>
       <p class="mt-1 text-sm text-muted">
         Use your local region and timezone for accurate dashboards and
         leaderboards.
@@ -54,14 +56,20 @@
         <input type="hidden" name="authenticity_token" value={csrfToken} />
 
         <div>
-          <label for="country_code" class="mb-2 block text-sm text-surface-content">
+          <label
+            for="country_code"
+            class="mb-2 block text-sm text-surface-content"
+          >
             Country
           </label>
           <Select
             id="country_code"
             name="user[country_code]"
             value={user.country_code || ""}
-            items={[{ value: "", label: "Select a country" }, ...options.countries]}
+            items={[
+              { value: "", label: "Select a country" },
+              ...options.countries,
+            ]}
           />
         </div>
 
@@ -77,12 +85,7 @@
           />
         </div>
 
-        <Button
-          type="submit"
-          variant="primary"
-        >
-          Save region settings
-        </Button>
+        <Button type="submit" variant="primary">Save region settings</Button>
       </form>
     </section>
 
@@ -112,12 +115,7 @@
           {/if}
         </div>
 
-        <Button
-          type="submit"
-          variant="primary"
-        >
-          Save username
-        </Button>
+        <Button type="submit" variant="primary">Save username</Button>
       </form>
 
       {#if badges.profile_url}
@@ -144,7 +142,11 @@
         <input type="hidden" name="authenticity_token" value={csrfToken} />
 
         <label class="flex items-center gap-3 text-sm text-surface-content">
-          <input type="hidden" name="user[allow_public_stats_lookup]" value="0" />
+          <input
+            type="hidden"
+            name="user[allow_public_stats_lookup]"
+            value="0"
+          />
           <Checkbox.Root
             bind:checked={allowPublicStatsLookup}
             name="user[allow_public_stats_lookup]"
@@ -158,12 +160,7 @@
           Allow public stats lookup
         </label>
 
-        <Button
-          type="submit"
-          variant="primary"
-        >
-          Save privacy settings
-        </Button>
+        <Button type="submit" variant="primary">Save privacy settings</Button>
       </form>
     </section>
 
@@ -189,11 +186,15 @@
               {#snippet children({ checked })}
                 <div class="flex items-start justify-between gap-3">
                   <div>
-                    <p class="text-sm font-semibold text-surface-content">{theme.label}</p>
+                    <p class="text-sm font-semibold text-surface-content">
+                      {theme.label}
+                    </p>
                     <p class="mt-1 text-xs text-muted">{theme.description}</p>
                   </div>
                   {#if checked}
-                    <span class="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+                    <span
+                      class="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary"
+                    >
                       Selected
                     </span>
                   {/if}
@@ -211,15 +212,32 @@
                     <span class="text-[10px] opacity-80">2h 14m</span>
                   </div>
 
-                  <div class="mt-2 grid grid-cols-[1fr_auto] items-center gap-2">
-                    <span class="h-2 rounded" style={`background:${theme.preview.primary};`}></span>
-                    <span class="h-2 w-8 rounded" style={`background:${theme.preview.darkless};`}></span>
+                  <div
+                    class="mt-2 grid grid-cols-[1fr_auto] items-center gap-2"
+                  >
+                    <span
+                      class="h-2 rounded"
+                      style={`background:${theme.preview.primary};`}
+                    ></span>
+                    <span
+                      class="h-2 w-8 rounded"
+                      style={`background:${theme.preview.darkless};`}
+                    ></span>
                   </div>
 
                   <div class="mt-2 flex gap-1.5">
-                    <span class="h-1.5 w-6 rounded" style={`background:${theme.preview.info};`}></span>
-                    <span class="h-1.5 w-6 rounded" style={`background:${theme.preview.success};`}></span>
-                    <span class="h-1.5 w-6 rounded" style={`background:${theme.preview.warning};`}></span>
+                    <span
+                      class="h-1.5 w-6 rounded"
+                      style={`background:${theme.preview.info};`}
+                    ></span>
+                    <span
+                      class="h-1.5 w-6 rounded"
+                      style={`background:${theme.preview.success};`}
+                    ></span>
+                    <span
+                      class="h-1.5 w-6 rounded"
+                      style={`background:${theme.preview.warning};`}
+                    ></span>
                   </div>
                 </div>
               {/snippet}
@@ -227,12 +245,7 @@
           {/each}
         </RadioGroup.Root>
 
-        <Button
-          type="submit"
-          variant="primary"
-        >
-          Save theme
-        </Button>
+        <Button type="submit" variant="primary">Save theme</Button>
       </form>
     </section>
   </div>

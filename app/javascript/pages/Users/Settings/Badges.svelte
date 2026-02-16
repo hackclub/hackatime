@@ -80,7 +80,10 @@
           <Select
             id="badge_theme"
             bind:value={selectedTheme}
-            items={options.badge_themes.map((theme) => ({ value: theme, label: theme }))}
+            items={options.badge_themes.map((theme) => ({
+              value: theme,
+              label: theme,
+            }))}
           />
         </div>
 
@@ -106,7 +109,10 @@
           <Select
             id="badge_project"
             bind:value={selectedProject}
-            items={badges.projects.map((project) => ({ value: project, label: project }))}
+            items={badges.projects.map((project) => ({
+              value: project,
+              label: project,
+            }))}
           />
           <div class="mt-4 rounded-md border border-surface-200 bg-darker p-4">
             <img

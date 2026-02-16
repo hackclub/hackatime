@@ -190,7 +190,8 @@
     };
   };
 
-  const streakLabel = (streakDays: number) => (streakDays > 30 ? "30+" : `${streakDays}`);
+  const streakLabel = (streakDays: number) =>
+    streakDays > 30 ? "30+" : `${streakDays}`;
 
   const adminLevelLabel = (adminLevel?: AdminLevel | null) => {
     if (adminLevel === "superadmin") return "Superadmin";
@@ -219,9 +220,7 @@
 
     document.documentElement.setAttribute("data-theme", layout.theme.name);
 
-    const colorSchemeMeta = document.querySelector(
-      "meta[name='color-scheme']",
-    );
+    const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
     colorSchemeMeta?.setAttribute("content", layout.theme.color_scheme);
 
     const themeColorMeta = document.querySelector("meta[name='theme-color']");
@@ -327,7 +326,10 @@
           class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
         >
           {#if layout.nav.current_user}
-            <div class="user-info flex items-center gap-2" title={layout.nav.current_user.title}>
+            <div
+              class="user-info flex items-center gap-2"
+              title={layout.nav.current_user.title}
+            >
               {#if layout.nav.current_user.avatar_url}
                 <img
                   src={layout.nav.current_user.avatar_url}
@@ -344,7 +346,8 @@
               {#if layout.nav.current_user.country_code}
                 <span
                   class="flex items-center"
-                  title={layout.nav.current_user.country_name || layout.nav.current_user.country_code}
+                  title={layout.nav.current_user.country_name ||
+                    layout.nav.current_user.country_code}
                 >
                   {countryFlagEmoji(layout.nav.current_user.country_code)}
                 </span>
@@ -352,10 +355,14 @@
             </div>
 
             {#if layout.nav.current_user.streak_days && layout.nav.current_user.streak_days > 0}
-              {@const streakTheme = streakThemeClasses(layout.nav.current_user.streak_days)}
+              {@const streakTheme = streakThemeClasses(
+                layout.nav.current_user.streak_days,
+              )}
               <div
                 class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streakTheme.bg} border ${streakTheme.bc} rounded-lg transition-all duration-200 ${streakTheme.hbg} group`}
-                title={layout.nav.current_user.streak_days > 30 ? "30+ daily streak" : `${layout.nav.current_user.streak_days} day streak`}
+                title={layout.nav.current_user.streak_days > 30
+                  ? "30+ daily streak"
+                  : `${layout.nav.current_user.streak_days} day streak`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -370,9 +377,13 @@
                   ></path>
                 </svg>
 
-                <span class={`text-md font-semibold ${streakTheme.tc} transition-colors duration-200`}>
+                <span
+                  class={`text-md font-semibold ${streakTheme.tc} transition-colors duration-200`}
+                >
                   {streakLabel(layout.nav.current_user.streak_days)}
-                  <span class={`ml-1 font-normal ${streakTheme.tm}`}>day streak</span>
+                  <span class={`ml-1 font-normal ${streakTheme.tm}`}
+                    >day streak</span
+                  >
                 </span>
               </div>
             {/if}
@@ -402,22 +413,21 @@
             <button
               type="button"
               onclick={openLogout}
-              class={`${navLinkClass(false)} cursor-pointer w-full text-left`}>Logout</button
+              class={`${navLinkClass(false)} cursor-pointer w-full text-left`}
+              >Logout</button
+            >
+          {:else if link.inertia}
+            <Link
+              href={link.href || "#"}
+              onclick={handleNavLinkClick}
+              class={navLinkClass(link.active)}>{link.label}</Link
             >
           {:else}
-            {#if link.inertia}
-              <Link
-                href={link.href || "#"}
-                onclick={handleNavLinkClick}
-                class={navLinkClass(link.active)}>{link.label}</Link
-              >
-            {:else}
-              <a
-                href={link.href || "#"}
-                onclick={handleNavLinkClick}
-                class={navLinkClass(link.active)}>{link.label}</a
-              >
-            {/if}
+            <a
+              href={link.href || "#"}
+              onclick={handleNavLinkClick}
+              class={navLinkClass(link.active)}>{link.label}</a
+            >
           {/if}
         {/each}
 
@@ -585,8 +595,8 @@
           >
           from {layout.footer.server_start_time_ago} ago.
           {plur("heartbeat", layout.footer.heartbeat_recent_count)}
-          ({layout.footer.heartbeat_recent_imported_count} imported) in the past
-          24 hours. (DB: {layout.footer.query_count}
+          ({layout.footer.heartbeat_recent_imported_count} imported) in the past 24
+          hours. (DB: {layout.footer.query_count}
           {plur("query", layout.footer.query_count)}, {layout.footer
             .query_cache_count} cached) (CACHE: {layout.footer.cache_hits} hits,
           {layout.footer.cache_misses} misses) ({layout.footer
@@ -624,9 +634,7 @@
     >
       <div class="text-surface-content text-sm font-medium">
         <div class="flex items-center">
-          <div
-            class="w-2 h-2 rounded-full bg-green animate-pulse mr-2"
-          ></div>
+          <div class="w-2 h-2 rounded-full bg-green animate-pulse mr-2"></div>
           <span class="text-base">{countLabel()}</span>
         </div>
       </div>
@@ -732,8 +740,7 @@
         type="button"
         onclick={closeLogout}
         variant="dark"
-        class="h-10 w-full border border-surface-300 text-muted"
-        >Go back</Button
+        class="h-10 w-full border border-surface-300 text-muted">Go back</Button
       >
 
       <form method="post" action={layout.signout_path} class="m-0">
@@ -743,8 +750,10 @@
           value={layout.csrf_token}
         />
         <input type="hidden" name="_method" value="delete" />
-        <Button type="submit" variant="primary" class="h-10 w-full text-on-primary"
-          >Log out now</Button
+        <Button
+          type="submit"
+          variant="primary"
+          class="h-10 w-full text-on-primary">Log out now</Button
         >
       </form>
     </div>

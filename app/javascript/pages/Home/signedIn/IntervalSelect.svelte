@@ -51,7 +51,9 @@
   });
 
   const isDefault = $derived(!selected && !from && !to);
-  const selectedIntervalValue = $derived(selected && !from && !to ? selected : "");
+  const selectedIntervalValue = $derived(
+    selected && !from && !to ? selected : "",
+  );
 
   function selectInterval(key: string) {
     onchange(key, "", "");
@@ -70,12 +72,16 @@
 </script>
 
 <div class="filter relative">
-  <span class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider">
+  <span
+    class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider"
+  >
     Date Range
   </span>
 
   <Popover.Root bind:open>
-    <div class="group m-0 flex items-center rounded-lg border border-surface-200 bg-surface-100 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200 focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/35 focus-within:ring-offset-1 focus-within:ring-offset-surface">
+    <div
+      class="group m-0 flex items-center rounded-lg border border-surface-200 bg-surface-100 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200 focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/35 focus-within:ring-offset-1 focus-within:ring-offset-surface"
+    >
       <Popover.Trigger>
         {#snippet child({ props })}
           <Button
@@ -85,8 +91,18 @@
             {...props}
           >
             <span class="font-medium">{displayLabel}</span>
-            <svg class={`h-4 w-4 text-secondary/60 transition-all duration-200 group-hover:text-secondary ${open ? "rotate-180 text-primary" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            <svg
+              class={`h-4 w-4 text-secondary/60 transition-all duration-200 group-hover:text-secondary ${open ? "rotate-180 text-primary" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              ></path>
             </svg>
           </Button>
         {/snippet}
@@ -122,7 +138,9 @@
                 class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-muted outline-none transition-all duration-150 hover:bg-surface-100/60 hover:text-surface-content data-[highlighted]:bg-surface-100/70 data-[state=checked]:bg-primary/12 data-[state=checked]:text-surface-content"
               >
                 {#snippet children({ checked })}
-                  <span class={`mr-3 h-4 w-4 min-w-4 rounded-full border transition-colors ${checked ? "border-primary bg-primary shadow-[0_0_0_3px_rgba(0,0,0,0.2)]" : "border-surface-content/35 bg-surface/40"}`}></span>
+                  <span
+                    class={`mr-3 h-4 w-4 min-w-4 rounded-full border transition-colors ${checked ? "border-primary bg-primary shadow-[0_0_0_3px_rgba(0,0,0,0.2)]" : "border-surface-content/35 bg-surface/40"}`}
+                  ></span>
                   <span>{interval.label}</span>
                 {/snippet}
               </RadioGroup.Item>

@@ -41,9 +41,7 @@
       class={`bits-modal-content fixed inset-0 z-10000 m-auto h-fit w-[calc(100vw-2rem)] ${maxWidth} overflow-hidden rounded-2xl border border-surface-300/70 bg-surface shadow-[0_28px_90px_rgba(0,0,0,0.5)] outline-none`}
       onclick={onContentClick}
     >
-      <div
-        class="absolute inset-x-0 top-0 h-1 bg-primary"
-      ></div>
+      <div class="absolute inset-x-0 top-0 h-1 bg-primary"></div>
 
       <div class="p-6 sm:p-8">
         <div class="mb-5 flex items-start justify-between gap-4">
