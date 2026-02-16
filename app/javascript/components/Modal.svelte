@@ -72,7 +72,7 @@
           </div>
 
           <Dialog.Close
-            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-surface-200/70 bg-surface-100/40 text-surface-content/75 outline-none transition-colors hover:bg-surface-100/60 hover:text-surface-content focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            class="inline-flex h-12 w-12 items-center justify-center rounded-lg text-surface-content/75 outline-none transition-colors hover:bg-surface-100/60 hover:text-surface-content focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             aria-label="Close"
           >
             <svg
@@ -83,7 +83,7 @@
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="h-4 w-4"
+              class="h-6 w-6"
               aria-hidden="true"
             >
               <path d="M18 6L6 18" />
