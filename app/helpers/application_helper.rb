@@ -210,8 +210,13 @@ module ApplicationHelper
   def modal_open_button(modal_id, text, **options)
     button_tag text, {
       type: "button",
-      data: { action: "click->modal#open" },
-      onclick: "document.getElementById('#{modal_id}').querySelector('[data-controller=\"modal\"]').dispatchEvent(new CustomEvent('modal:open', { bubbles: true }))"
+      onclick: "document.getElementById('#{modal_id}')?.dispatchEvent(new CustomEvent('modal:open'))"
     }.merge(options)
+  end
+
+  def safe_asset_path(asset_name, fallback: nil)
+    asset_path(asset_name)
+  rescue StandardError
+    fallback.present? ? asset_path(fallback) : asset_name
   end
 end

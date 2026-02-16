@@ -97,7 +97,8 @@ class Settings::BaseController < InertiaController
         migrate_heartbeats_path: my_settings_migrate_heartbeats_path,
         export_all_heartbeats_path: export_my_heartbeats_path(format: :json, all_data: "true"),
         export_range_heartbeats_path: export_my_heartbeats_path(format: :json),
-        import_heartbeats_path: import_my_heartbeats_path,
+        create_heartbeat_import_path: my_heartbeat_imports_path,
+        heartbeat_import_status_path_template: my_heartbeat_import_path("__IMPORT_ID__"),
         create_deletion_path: create_deletion_path,
         user_wakatime_mirrors_path: user_wakatime_mirrors_path(current_user)
       },

@@ -26,7 +26,7 @@
     <meta property="og:description" content="<%= @og_description || content_for(:og_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
     <meta property="og:url" content="<%= content_for(:og_url) || request.original_url %>">
     <meta property="og:type" content="<%= content_for(:og_type) || 'website' %>">
-    <meta property="og:image" content="<%= content_for(:og_image) || asset_path('og.jpg') %>">
+    <meta property="og:image" content="<%= content_for(:og_image) || safe_asset_path('og.jpg', fallback: 'favicon.png') %>">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:site_name" content="Hackatime">
@@ -38,7 +38,7 @@
     <meta name="twitter:creator" content="@hackclub">
     <meta name="twitter:title" content="<%= @twitter_title || content_for(:twitter_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
     <meta name="twitter:description" content="<%= @twitter_description || content_for(:twitter_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
-    <meta name="twitter:image" content="<%= content_for(:twitter_image) || asset_path('favicon.png') %>">
+    <meta name="twitter:image" content="<%= content_for(:twitter_image) || safe_asset_path('favicon.png', fallback: 'og.jpg') %>">
 
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -184,15 +184,16 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
+    <%= vite_client_tag %>
+    <%= vite_typescript_tag "rails_modals" %>
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>
-    <%# Vite assets are only required for the Inertia layout. %>
 
     <!-- Lets users record their screen from your site -->
     <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
     <script type="module" src="https://js.jam.dev/recorder.js"></script>
-    
+
     <!-- Captures user events and developer logs -->
     <script type="module" src="https://js.jam.dev/capture.js"></script>
 
@@ -249,6 +250,6 @@
       </div>
       <div data-currently-hacking-target="content" style="display: none;"></div>
     </div>
-    <%= render 'shared/modal', modal_id: 'logout-modal', title: 'Woah hold on a sec', description: 'You sure you want to log out? You can sign back in later but that is a bit of a hassle...', icon_svg: '<path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"/>', icon_color: 'text-primary', buttons: [{ text: 'Go back', class: 'bg-dark hover:bg-darkless border border-darkless text-muted', action: 'click->modal#close' }, { text: 'Log out now', class: 'bg-primary hover:bg-primary/75 text-on-primary font-medium', form: true, url: signout_path, method: 'delete' }] %>
+    <%= render 'shared/modal', modal_id: 'logout-modal', title: 'Woah, hold on a sec!', description: 'You sure you want to log out? You can sign back in later but that is a bit of a hassle...', icon_svg: '<path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"/>', icon_color: 'text-primary', buttons: [{ text: 'Go back', class: 'bg-dark hover:bg-darkless border border-darkless text-muted', action: 'click->modal#close' }, { text: 'Log out now', class: 'bg-primary hover:bg-primary/75 text-on-primary font-medium', form: true, url: signout_path, method: 'delete' }] %>
   </body>
 </html>

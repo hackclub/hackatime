@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Button from "../../../components/Button.svelte";
+  import Modal from "../../../components/Modal.svelte";
+  import Select from "../../../components/Select.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { AccessPageProps } from "./types";
 
@@ -24,14 +26,10 @@
   let rotatedApiKey = $state("");
   let rotatedApiKeyError = $state("");
   let apiKeyCopied = $state(false);
+  let rotateApiKeyModalOpen = $state(false);
 
   const rotateApiKey = async () => {
     if (rotatingApiKey || typeof window === "undefined") return;
-
-    const confirmed = window.confirm(
-      "Rotate your API key now? This immediately invalidates the current key.",
-    );
-    if (!confirmed) return;
 
     rotatingApiKey = true;
     rotatedApiKey = "";
@@ -62,6 +60,16 @@
     } finally {
       rotatingApiKey = false;
     }
+  };
+
+  const openRotateApiKeyModal = () => {
+    if (rotatingApiKey) return;
+    rotateApiKeyModalOpen = true;
+  };
+
+  const confirmRotateApiKey = async () => {
+    rotateApiKeyModalOpen = false;
+    await rotateApiKey();
   };
 
   const copyApiKey = async () => {
@@ -114,16 +122,12 @@
           <label for="extension_type" class="mb-2 block text-sm text-surface-content">
             Display style
           </label>
-          <select
+          <Select
             id="extension_type"
             name="user[hackatime_extension_text_type]"
             value={user.hackatime_extension_text_type}
-            class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-          >
-            {#each options.extension_text_types as textType}
-              <option value={textType.value}>{textType.label}</option>
-            {/each}
-          </select>
+            items={options.extension_text_types}
+          />
         </div>
 
         <Button
@@ -143,7 +147,7 @@
       <Button
         type="button"
         class="mt-4"
-        onclick={rotateApiKey}
+        onclick={openRotateApiKeyModal}
         disabled={rotatingApiKey}
       >
         {rotatingApiKey ? "Rotating..." : "Rotate API key"}
@@ -190,3 +194,33 @@
     </section>
   </div>
 </SettingsShell>
+
+<Modal
+  bind:open={rotateApiKeyModalOpen}
+  title="Rotate API key?"
+  description="This immediately invalidates your current API key. Any integrations using the old key will stop until updated."
+  maxWidth="max-w-md"
+  hasActions
+>
+  {#snippet actions()}
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Button
+        type="button"
+        variant="dark"
+        class="h-10 w-full border border-surface-300 text-muted"
+        onclick={() => (rotateApiKeyModalOpen = false)}
+      >
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        variant="primary"
+        class="h-10 w-full text-on-primary"
+        onclick={confirmRotateApiKey}
+        disabled={rotatingApiKey}
+      >
+        {rotatingApiKey ? "Rotating..." : "Rotate key"}
+      </Button>
+    </div>
+  {/snippet}
+</Modal>

@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { Checkbox } from "bits-ui";
   import { onMount } from "svelte";
   import Button from "../../../components/Button.svelte";
+  import Modal from "../../../components/Modal.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { IntegrationsPageProps } from "./types";
 
@@ -21,6 +23,8 @@
   }: IntegrationsPageProps = $props();
 
   let csrfToken = $state("");
+  let usesSlackStatus = $state(user.uses_slack_status);
+  let unlinkGithubModalOpen = $state(false);
 
   onMount(() => {
     csrfToken =
@@ -61,13 +65,16 @@
 
         <label class="flex items-center gap-3 text-sm text-surface-content">
           <input type="hidden" name="user[uses_slack_status]" value="0" />
-          <input
-            type="checkbox"
+          <Checkbox.Root
+            bind:checked={usesSlackStatus}
             name="user[uses_slack_status]"
             value="1"
-            checked={user.uses_slack_status}
-            class="h-4 w-4 rounded border-surface-200 bg-darker text-primary"
-          />
+            class="inline-flex h-4 w-4 min-w-4 items-center justify-center rounded border border-surface-200 bg-darker text-on-primary transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+          >
+            {#snippet children({ checked })}
+              <span class={checked ? "text-[10px]" : "hidden"}>✓</span>
+            {/snippet}
+          </Checkbox.Root>
           Update my Slack status automatically
         </label>
 
@@ -120,37 +127,23 @@
           >
             Reconnect GitHub
           </a>
-          <form
-            method="post"
-            action={paths.github_unlink_path}
-            onsubmit={(event) => {
-              if (
-                !window.confirm(
-                  "Unlink this GitHub account? GitHub-based features will stop until relinked.",
-                )
-              ) {
-                event.preventDefault();
-              }
-            }}
+          <Button
+            type="button"
+            variant="surface"
+            class="rounded-md"
+            onclick={() => (unlinkGithubModalOpen = true)}
           >
-            <input type="hidden" name="_method" value="delete" />
-            <input type="hidden" name="authenticity_token" value={csrfToken} />
-            <Button
-              type="submit"
-              variant="surface"
-              class="rounded-md"
-            >
-              Unlink GitHub
-            </Button>
-          </form>
+            Unlink GitHub
+          </Button>
         </div>
       {:else}
-        <a
+        <Button
           href={paths.github_auth_path}
-          class="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          native
+          class="mt-4 rounded-md"
         >
           Connect GitHub
-        </a>
+        </Button>
       {/if}
     </section>
 
@@ -211,3 +204,31 @@
     </section>
   </div>
 </SettingsShell>
+
+<Modal
+  bind:open={unlinkGithubModalOpen}
+  title="Unlink GitHub account?"
+  description="GitHub-based features will stop until you reconnect."
+  maxWidth="max-w-md"
+  hasActions
+>
+  {#snippet actions()}
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Button
+        type="button"
+        variant="dark"
+        class="h-10 w-full border border-surface-300 text-muted"
+        onclick={() => (unlinkGithubModalOpen = false)}
+      >
+        Cancel
+      </Button>
+      <form method="post" action={paths.github_unlink_path} class="m-0">
+        <input type="hidden" name="_method" value="delete" />
+        <input type="hidden" name="authenticity_token" value={csrfToken} />
+        <Button type="submit" variant="primary" class="h-10 w-full text-on-primary">
+          Unlink GitHub
+        </Button>
+      </form>
+    </div>
+  {/snippet}
+</Modal>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Button from "../../../components/Button.svelte";
+  import Modal from "../../../components/Modal.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { AdminPageProps } from "./types";
 
@@ -16,6 +17,18 @@
   }: AdminPageProps = $props();
 
   let csrfToken = $state("");
+  let deleteMirrorModalOpen = $state(false);
+  let selectedMirror = $state<{ endpoint_url: string; destroy_path: string } | null>(null);
+
+  const openDeleteMirrorModal = (mirror: { endpoint_url: string; destroy_path: string }) => {
+    selectedMirror = mirror;
+    deleteMirrorModalOpen = true;
+  };
+
+  const closeDeleteMirrorModal = () => {
+    deleteMirrorModalOpen = false;
+    selectedMirror = null;
+  };
 
   onMount(() => {
     csrfToken =
@@ -50,26 +63,16 @@
                   {mirror.endpoint_url}
                 </p>
                 <p class="mt-1 text-xs text-muted">Last synced: {mirror.last_synced_ago}</p>
-                <form
-                  method="post"
-                  action={mirror.destroy_path}
-                  class="mt-3"
-                  onsubmit={(event) => {
-                    if (!window.confirm("Delete this mirror endpoint?")) {
-                      event.preventDefault();
-                    }
-                  }}
-                >
-                  <input type="hidden" name="_method" value="delete" />
-                  <input type="hidden" name="authenticity_token" value={csrfToken} />
+                <div class="mt-3">
                   <Button
-                    type="submit"
+                    type="button"
                     variant="surface"
                     size="xs"
+                    onclick={() => openDeleteMirrorModal(mirror)}
                   >
                     Delete
                   </Button>
-                </form>
+                </div>
               </div>
             {/each}
           </div>
@@ -117,3 +120,35 @@
     </p>
   {/if}
 </SettingsShell>
+
+<Modal
+  bind:open={deleteMirrorModalOpen}
+  title="Delete mirror endpoint?"
+  description={selectedMirror
+    ? `${selectedMirror.endpoint_url} will stop receiving mirrored heartbeats.`
+    : "This mirror endpoint will be removed."}
+  maxWidth="max-w-lg"
+  hasActions
+>
+  {#snippet actions()}
+    {#if selectedMirror}
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Button
+          type="button"
+          variant="dark"
+          class="h-10 w-full border border-surface-300 text-muted"
+          onclick={closeDeleteMirrorModal}
+        >
+          Cancel
+        </Button>
+        <form method="post" action={selectedMirror.destroy_path} class="m-0">
+          <input type="hidden" name="_method" value="delete" />
+          <input type="hidden" name="authenticity_token" value={csrfToken} />
+          <Button type="submit" variant="primary" class="h-10 w-full text-on-primary">
+            Delete mirror
+          </Button>
+        </form>
+      </div>
+    {/if}
+  {/snippet}
+</Modal>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Link, usePoll } from "@inertiajs/svelte";
   import Button from "../components/Button.svelte";
+  import Modal from "../components/Modal.svelte";
   import type { Snippet } from "svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
@@ -702,69 +703,53 @@
   </div>
 {/if}
 
-<div
-  class="fixed inset-0 flex items-center justify-center z-9999 transition-opacity duration-300 ease-in-out"
-  class:opacity-0={!logoutOpen}
-  class:pointer-events-none={!logoutOpen}
-  style="background-color: rgba(0, 0, 0, 0.5);backdrop-filter: blur(4px);"
-  onclick={(e) => e.target === e.currentTarget && closeLogout()}
+<Modal
+  bind:open={logoutOpen}
+  title="Woah, hold on a sec!"
+  description="You sure you want to log out? You can sign back in later but that is a bit of a hassle..."
+  maxWidth="max-w-lg"
+  hasIcon
+  hasActions
 >
-  <div
-    class={`bg-dark border border-primary rounded-lg p-6 max-w-md w-full mx-4 flex flex-col items-center justify-center transform transition-transform duration-300 ease-in-out ${logoutOpen ? "scale-100" : "scale-95"}`}
-  >
-    <div class="flex flex-col items-center w-full">
-      <div class="mb-4 flex justify-center w-full">
-        <svg
-          class="w-12 h-12 text-primary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+  {#snippet icon()}
+    <svg
+      class="h-8 w-8"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        fill="currentColor"
+        d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"
+      />
+    </svg>
+  {/snippet}
+
+  {#snippet actions()}
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Button
+        type="button"
+        onclick={closeLogout}
+        variant="dark"
+        class="h-10 w-full border border-surface-300 text-muted"
+        >Go back</Button
+      >
+
+      <form method="post" action={layout.signout_path} class="m-0">
+        <input
+          type="hidden"
+          name="authenticity_token"
+          value={layout.csrf_token}
+        />
+        <input type="hidden" name="_method" value="delete" />
+        <Button type="submit" variant="primary" class="h-10 w-full text-on-primary"
+          >Log out now</Button
         >
-          <path
-            fill="currentColor"
-            d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"
-          />
-        </svg>
-      </div>
-
-      <h3 class="text-2xl font-bold text-surface-content mb-2 text-center w-full">
-        Woah hold on a sec
-      </h3>
-      <p class="text-muted mb-6 text-center w-full">
-        You sure you want to log out? You can sign back in later but that is a
-        bit of a hassle...
-      </p>
-
-      <div class="flex w-full gap-3">
-        <div class="flex-1 min-w-0">
-          <Button
-            type="button"
-            onclick={closeLogout}
-            variant="dark"
-            class="w-full h-10 text-muted m-0"
-            >Go back</Button
-          >
-        </div>
-        <div class="flex-1 min-w-0">
-          <form method="post" action={layout.signout_path} class="m-0">
-            <input
-              type="hidden"
-              name="authenticity_token"
-              value={layout.csrf_token}
-            />
-            <input type="hidden" name="_method" value="delete" />
-            <Button
-              type="submit"
-              variant="primary"
-              class="w-full h-10 m-0"
-              >Log out now</Button
-            >
-          </form>
-        </div>
-      </div>
+      </form>
     </div>
-  </div>
-</div>
+  {/snippet}
+</Modal>
 
 <style>
   :global(#app) {

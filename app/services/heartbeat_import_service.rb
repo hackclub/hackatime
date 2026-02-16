@@ -1,7 +1,7 @@
 class HeartbeatImportService
   BATCH_SIZE = 50_000
 
-  def self.import_from_file(file_content, user)
+  def self.import_from_file(file_content, user, on_progress: nil, progress_interval: 250)
     unless Rails.env.development?
       raise StandardError, "Not dev env, not running"
     end
@@ -16,6 +16,7 @@ class HeartbeatImportService
 
     handler = HeartbeatSaxHandler.new do |hb|
       total_count += 1
+      on_progress&.call(total_count) if progress_interval.positive? && (total_count % progress_interval).zero?
 
       begin
         time_value = hb["time"].is_a?(String) ? Time.parse(hb["time"]).to_f : hb["time"].to_f
@@ -62,6 +63,7 @@ class HeartbeatImportService
     end
 
     Oj.saj_parse(handler, file_content)
+    on_progress&.call(total_count)
 
     if total_count.zero?
       raise StandardError, "Not correct format, download from /my/settings on the offical hackatime then import here"
@@ -88,6 +90,17 @@ class HeartbeatImportService
       skipped_count: 0,
       errors: [ e.message ]
     }
+  end
+
+  def self.count_heartbeats(file_content)
+    total_count = 0
+
+    handler = HeartbeatSaxHandler.new do |_hb|
+      total_count += 1
+    end
+
+    Oj.saj_parse(handler, file_content)
+    total_count
   end
 
   def self.flush_batch(seen_hashes)

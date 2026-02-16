@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import { Button as BitsButton } from "bits-ui";
+  import type { Snippet } from "svelte";
 
   type ButtonType = "button" | "submit" | "reset";
   type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
@@ -14,7 +16,9 @@
     type = "button",
     size = "md",
     variant = "primary",
+    native = false,
     unstyled = false,
+    children,
     class: className = "",
     ...rest
   }: {
@@ -22,7 +26,9 @@
     type?: ButtonType;
     size?: ButtonSize;
     variant?: ButtonVariant;
+    native?: boolean;
     unstyled?: boolean;
+    children?: Snippet;
     class?: string;
     [key: string]: unknown;
   } = $props();
@@ -59,11 +65,17 @@
 </script>
 
 {#if href}
-  <Link href={href} class={classes} {...rest}>
-    <slot />
-  </Link>
+  {#if native}
+    <BitsButton.Root href={href} class={classes} {...rest}>
+      {@render children?.()}
+    </BitsButton.Root>
+  {:else}
+    <Link href={href} class={classes} {...rest}>
+      {@render children?.()}
+    </Link>
+  {/if}
 {:else}
-  <button type={type} class={classes} {...rest}>
-    <slot />
-  </button>
+  <BitsButton.Root type={type} class={classes} {...rest}>
+    {@render children?.()}
+  </BitsButton.Root>
 {/if}

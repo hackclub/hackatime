@@ -60,7 +60,8 @@ export type PathsProps = {
   migrate_heartbeats_path: string;
   export_all_heartbeats_path: string;
   export_range_heartbeats_path: string;
-  import_heartbeats_path: string;
+  create_heartbeat_import_path: string;
+  heartbeat_import_status_path_template: string;
   create_deletion_path: string;
   user_wakatime_mirrors_path: string;
 };

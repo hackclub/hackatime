@@ -64,7 +64,7 @@ class InertiaController < ApplicationController
     links << inertia_link("Leaderboards", leaderboards_path, active: helpers.current_page?(leaderboards_path))
 
     if current_user
-      links << inertia_link("Projects", my_projects_path, active: helpers.current_page?(my_projects_path))
+      links << inertia_link("Projects", my_projects_path, active: request.path.start_with?("/my/projects"), inertia: true)
       links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true)
       links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
       links << inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings"), inertia: true)

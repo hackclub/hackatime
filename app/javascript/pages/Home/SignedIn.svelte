@@ -119,7 +119,6 @@
 </script>
 
 <div>
-  <!-- Header Section -->
   <div class="mb-8">
     <div class="flex items-center space-x-2">
       <p class="italic text-muted m-0">
@@ -150,7 +149,6 @@
   {/if}
 
   <div class="flex flex-col gap-8">
-    <!-- Today Stats -->
     <div>
       {#if loading}
         <TodaySentenceSkeleton />
@@ -164,14 +162,12 @@
       {/if}
     </div>
 
-    <!-- Main Dashboard -->
     {#if loading}
       <DashboardSkeleton />
     {:else if dashboardData}
       <Dashboard data={dashboardData} onFiltersChange={refreshDashboardData} />
     {/if}
 
-    <!-- Activity Graph -->
     {#if loading}
       <ActivityGraphSkeleton />
     {:else if activityGraph}
