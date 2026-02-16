@@ -2,6 +2,7 @@ class LeaderboardUpdateJob < ApplicationJob
   queue_as :latency_10s
 
   include GoodJob::ActiveJobExtensions::Concurrency
+  ENTRY_INSERT_BATCH_SIZE = ENV.fetch("LEADERBOARD_ENTRY_INSERT_BATCH_SIZE", 800).to_i
 
   # Limits concurrency to 1 job per period/date combination
   good_job_control_concurrency_with(
@@ -18,6 +19,7 @@ class LeaderboardUpdateJob < ApplicationJob
   private
 
   def build_leaderboard(date, period, force_update = false)
+    build_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     board = ::Leaderboard.find_or_create_by!(
       start_date: date,
       period_type: period,
@@ -29,20 +31,24 @@ class LeaderboardUpdateJob < ApplicationJob
     Rails.logger.info "Building leaderboard for #{period} on #{date}"
 
     range = LeaderboardDateRange.calculate(date, period)
+    now = Time.current
+    entries_count = 0
+
+    eligible_user_ids = User.where.not(github_uid: nil)
+                            .where.not(trust_level: User.trust_levels[:red])
+                            .select(:id)
 
     ActiveRecord::Base.transaction do
       # Build the base heartbeat query
       heartbeat_query = Heartbeat.where(time: range)
                                  .with_valid_timestamps
-                                 .joins(:user)
                                  .coding_only
-                                 .where.not(users: { github_uid: nil })
-                                 .where.not(users: { trust_level: User.trust_levels[:red] })
+                                 .where(user_id: eligible_user_ids)
 
-      data = heartbeat_query.group(:user_id).duration_seconds
-                            .filter { |_, seconds| seconds > 60 }
+      data = heartbeat_query.group(:user_id)
+                            .duration_seconds(minimum_seconds: 60)
 
-      streaks = Heartbeat.daily_streaks_for_users(data.keys)
+      streaks = data.keys.any? ? Heartbeat.daily_streaks_for_users(data.keys) : {}
 
       entries = data.map do |user_id, seconds|
         {
@@ -50,27 +56,26 @@ class LeaderboardUpdateJob < ApplicationJob
           user_id: user_id,
           total_seconds: seconds,
           streak_count: streaks[user_id] || 0,
-          created_at: Time.current,
-          updated_at: Time.current
+          created_at: now,
+          updated_at: now
         }
       end
 
-      LeaderboardEntry.upsert_all(entries, unique_by: %i[leaderboard_id user_id]) if entries.any?
-
-      if data.keys.any?
-        board.entries.where.not(user_id: data.keys).delete_all
-      else
-        board.entries.delete_all
+      board.entries.delete_all
+      entries.each_slice(ENTRY_INSERT_BATCH_SIZE) do |entry_batch|
+        LeaderboardEntry.insert_all(entry_batch) if entry_batch.any?
       end
 
-      board.update!(finished_generating_at: Time.current)
+      board.update!(finished_generating_at: now)
+      entries_count = entries.length
     end
 
     # Cache the board
     cache_key = LeaderboardCache.global_key(period, date)
     LeaderboardCache.write(cache_key, board)
 
-    Rails.logger.debug "Persisted leaderboard for #{period} with #{board.entries.count} entries"
+    build_elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - build_started_at
+    Rails.logger.info("Persisted leaderboard for #{period} with #{entries_count} entries in #{build_elapsed.round(2)}s")
 
     board
   end
