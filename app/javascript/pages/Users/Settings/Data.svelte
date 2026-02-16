@@ -1,10 +1,18 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { usePoll } from "@inertiajs/svelte";
+  import { onMount } from "svelte";
   import { tweened } from "svelte/motion";
   import { cubicOut } from "svelte/easing";
   import Button from "../../../components/Button.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { DataPageProps } from "./types";
+
+  type ImportStatusPayload = NonNullable<DataPageProps["heartbeat_import"]["status"]>;
+  type ImportCreateResponse = {
+    import_id?: string;
+    status?: ImportStatusPayload;
+    error?: string;
+  };
 
   let {
     active_section,
@@ -17,6 +25,7 @@
     migration,
     data_export,
     ui,
+    heartbeat_import,
     errors,
     admin_tools,
   }: DataPageProps = $props();
@@ -33,11 +42,32 @@
   let skippedCount = $state<number | null>(null);
   let errorsCount = $state(0);
   let isStartingImport = $state(false);
-  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let isPolling = $state(false);
+  const importPollParams: { heartbeat_import_id?: string } = {};
   const tweenedProgress = tweened(0, { duration: 320, easing: cubicOut });
 
   const importInProgress = $derived(
     importState === "queued" || importState === "counting" || importState === "running",
+  );
+
+  const { start: startStatusPolling, stop: stopStatusPolling } = usePoll(
+    1000,
+    {
+      only: ["heartbeat_import"],
+      data: importPollParams,
+      preserveUrl: true,
+      onHttpException: () => {
+        if (importInProgress) {
+          importMessage = "Connection issue while checking import status. Retrying...";
+        }
+      },
+      onNetworkError: () => {
+        if (importInProgress) {
+          importMessage = "Connection issue while checking import status. Retrying...";
+        }
+      },
+    },
+    { autoStart: false },
   );
 
   onMount(() => {
@@ -45,29 +75,35 @@
       document
         .querySelector("meta[name='csrf-token']")
         ?.getAttribute("content") || "";
+
+    syncImportFromProps(heartbeat_import);
   });
 
-  onDestroy(() => {
-    stopPolling();
+  $effect(() => {
+    syncImportFromProps(heartbeat_import);
   });
+
+  function isTerminalImportState(state: string) {
+    return state === "completed" || state === "failed";
+  }
 
   function stopPolling() {
-    if (pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
+    stopStatusPolling();
+    delete importPollParams.heartbeat_import_id;
+    isPolling = false;
   }
 
   function startPolling() {
-    stopPolling();
-    void fetchImportStatus();
-    pollTimer = setInterval(() => {
-      void fetchImportStatus();
-    }, 1000);
-  }
-
-  function importStatusPath(id: string) {
-    return paths.heartbeat_import_status_path_template.replace("__IMPORT_ID__", encodeURIComponent(id));
+    if (!importId) {
+      return;
+    }
+    if (isPolling && importPollParams.heartbeat_import_id === importId) {
+      return;
+    }
+    stopStatusPolling();
+    importPollParams.heartbeat_import_id = importId;
+    startStatusPolling();
+    isPolling = true;
   }
 
   function formatCount(value: number | null) {
@@ -77,18 +113,53 @@
     return value.toLocaleString();
   }
 
-  function applyImportStatus(status: Record<string, unknown>) {
-    const state = (status.state as string | undefined) || "idle";
-    const progress = Number(status.progress_percent || 0);
+  function applyImportStatus(status: Partial<ImportStatusPayload>) {
+    const state = status.state || "idle";
+    const progress = Number(status.progress_percent ?? 0);
+    const normalizedProgress = Number.isFinite(progress) ? Math.min(Math.max(progress, 0), 100) : 0;
 
     importState = state;
-    importMessage = (status.message as string | undefined) || importMessage;
-    processedCount = (status.processed_count as number | undefined) ?? processedCount;
-    totalCount = (status.total_count as number | null | undefined) ?? totalCount;
-    importedCount = (status.imported_count as number | null | undefined) ?? importedCount;
-    skippedCount = (status.skipped_count as number | null | undefined) ?? skippedCount;
-    errorsCount = (status.errors_count as number | undefined) ?? errorsCount;
-    void tweenedProgress.set(progress);
+    importMessage = status.message || importMessage;
+    processedCount = status.processed_count ?? processedCount;
+    totalCount = status.total_count ?? totalCount;
+    importedCount = status.imported_count ?? importedCount;
+    skippedCount = status.skipped_count ?? skippedCount;
+    errorsCount = status.errors_count ?? errorsCount;
+    void tweenedProgress.set(normalizedProgress);
+  }
+
+  function syncImportFromProps(serverImport: DataPageProps["heartbeat_import"]) {
+    if (!serverImport) {
+      return;
+    }
+
+    if (serverImport.import_id) {
+      if (importId && serverImport.import_id !== importId) {
+        return;
+      }
+      importId = serverImport.import_id;
+    }
+
+    if (serverImport.import_id && !serverImport.status) {
+      stopPolling();
+      importState = "failed";
+      importMessage = "Import status could not be found.";
+      return;
+    }
+
+    if (!serverImport.status) {
+      return;
+    }
+
+    applyImportStatus(serverImport.status);
+    if (isTerminalImportState(serverImport.status.state)) {
+      stopPolling();
+      return;
+    }
+
+    if (importId) {
+      startPolling();
+    }
   }
 
   function resetImportState() {
@@ -129,10 +200,14 @@
         credentials: "same-origin",
         body: formData,
       });
-      const payload = await response.json();
+      const payload = (await response.json()) as ImportCreateResponse;
 
       if (!response.ok) {
         throw new Error(payload.error || "Unable to start import.");
+      }
+
+      if (!payload.import_id) {
+        throw new Error("Unable to start import.");
       }
 
       importId = payload.import_id;
@@ -146,33 +221,6 @@
       submitError = error instanceof Error ? error.message : "Unable to start import.";
     } finally {
       isStartingImport = false;
-    }
-  }
-
-  async function fetchImportStatus() {
-    if (!importId) {
-      return;
-    }
-
-    try {
-      const response = await fetch(importStatusPath(importId), {
-        headers: { Accept: "application/json" },
-        credentials: "same-origin",
-      });
-      if (!response.ok) {
-        throw new Error("Could not fetch import status.");
-      }
-
-      const status = await response.json();
-      applyImportStatus(status);
-
-      if (importState === "completed" || importState === "failed") {
-        stopPolling();
-      }
-    } catch (_error) {
-      stopPolling();
-      importState = "failed";
-      importMessage = "Lost connection while checking import status.";
     }
   }
 </script>
@@ -329,7 +377,7 @@
                 <progress
                   max="100"
                   value={$tweenedProgress}
-                  class="mt-2 h-2 w-full bg-primary rounded-full"
+                  class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
                 ></progress>
                 <p class="mt-2 text-sm text-muted">
                   {formatCount(processedCount)} / {formatCount(totalCount)} processed

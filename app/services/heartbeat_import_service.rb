@@ -113,8 +113,10 @@ class HeartbeatImportService
       r[:updated_at] = timestamp
     end
 
-    result = Heartbeat.upsert_all(records, unique_by: [ :fields_hash ])
-    result.length
+    ActiveRecord::Base.logger.silence do
+      result = Heartbeat.upsert_all(records, unique_by: [ :fields_hash ])
+      result.length
+    end
   end
 
   class HeartbeatSaxHandler < Oj::Saj
