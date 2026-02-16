@@ -61,7 +61,8 @@
   $effect(() => {
     if (open) {
       document.addEventListener("click", handleClickOutside, true);
-      return () => document.removeEventListener("click", handleClickOutside, true);
+      return () =>
+        document.removeEventListener("click", handleClickOutside, true);
     }
   });
 
@@ -82,11 +83,15 @@
 </script>
 
 <div class="filter relative" bind:this={container}>
-  <span class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider">
+  <span
+    class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider"
+  >
     Date Range
   </span>
 
-  <div class="group flex items-center border border-surface-200 rounded-lg bg-surface-100 m-0 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200">
+  <div
+    class="group flex items-center border border-surface-200 rounded-lg bg-surface-100 m-0 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200"
+  >
     <Button
       type="button"
       unstyled
@@ -94,8 +99,18 @@
       onclick={() => (open = !open)}
     >
       <span>{displayLabel}</span>
-      <svg class="w-4 h-4 text-secondary/60 transition-transform duration-200 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      <svg
+        class="w-4 h-4 text-secondary/60 transition-transform duration-200 group-hover:text-secondary"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7"
+        ></path>
       </svg>
     </Button>
 
@@ -112,10 +127,14 @@
   </div>
 
   {#if open}
-    <div class="absolute top-full left-0 right-0 min-w-64 bg-darkless border border-surface-200 rounded-lg mt-2 shadow-xl shadow-black/50 z-1000 p-2">
+    <div
+      class="absolute top-full left-0 right-0 min-w-64 bg-darkless border border-surface-200 rounded-lg mt-2 shadow-xl shadow-black/50 z-1000 p-2"
+    >
       <div class="overflow-y-auto m-0 max-h-56">
         {#each INTERVALS as interval}
-          <label class="flex items-center px-3 py-2.5 cursor-pointer text-sm text-muted m-0 bg-transparent rounded-md hover:bg-dark transition-colors duration-150">
+          <label
+            class="flex items-center px-3 py-2.5 cursor-pointer text-sm text-muted m-0 bg-transparent rounded-md hover:bg-dark transition-colors duration-150"
+          >
             <input
               type="radio"
               name="interval"

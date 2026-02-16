@@ -73,7 +73,9 @@
     <div class="hidden md:flex gap-8 text-sm font-medium text-text-muted">
       <a href="#stats" class="hover:text-white transition-colors">Stats</a>
       <a href="#editors" class="hover:text-white transition-colors">Editors</a>
-      <Link href="/docs" class="hover:text-white transition-colors">Developers</Link>
+      <Link href="/docs" class="hover:text-white transition-colors"
+        >Developers</Link
+      >
     </div>
     <div class="min-w-[140px] flex justify-end">
       <a

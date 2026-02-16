@@ -40,24 +40,23 @@
 >
   <div class="space-y-8">
     <section id="user_migration_assistant">
-      <h2 class="text-xl font-semibold text-surface-content">Migration Assistant</h2>
+      <h2 class="text-xl font-semibold text-surface-content">
+        Migration Assistant
+      </h2>
       <p class="mt-1 text-sm text-muted">
         Queue migration of heartbeats and API keys from legacy Hackatime.
       </p>
       <form method="post" action={paths.migrate_heartbeats_path} class="mt-4">
         <input type="hidden" name="authenticity_token" value={csrfToken} />
-        <Button
-          type="submit"
-          class="rounded-md"
-        >
-          Start migration
-        </Button>
+        <Button type="submit" class="rounded-md">Start migration</Button>
       </form>
 
       {#if migration.jobs.length > 0}
         <div class="mt-4 space-y-2">
           {#each migration.jobs as job}
-            <div class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content">
+            <div
+              class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content"
+            >
               Job {job.id}: {job.status}
             </div>
           {/each}
@@ -69,7 +68,9 @@
       <h2 class="text-xl font-semibold text-surface-content">Download Data</h2>
 
       {#if data_export.is_restricted}
-        <p class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200">
+        <p
+          class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200"
+        >
           Data export is currently restricted for this account.
         </p>
       {:else}
@@ -79,19 +80,25 @@
 
         <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-            <p class="text-xs uppercase tracking-wide text-muted">Total heartbeats</p>
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Total heartbeats
+            </p>
             <p class="mt-1 text-lg font-semibold text-surface-content">
               {data_export.total_heartbeats}
             </p>
           </div>
           <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-            <p class="text-xs uppercase tracking-wide text-muted">Total coding time</p>
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Total coding time
+            </p>
             <p class="mt-1 text-lg font-semibold text-surface-content">
               {data_export.total_coding_time}
             </p>
           </div>
           <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-            <p class="text-xs uppercase tracking-wide text-muted">Last 7 days</p>
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Last 7 days
+            </p>
             <p class="mt-1 text-lg font-semibold text-surface-content">
               {data_export.heartbeats_last_7_days}
             </p>
@@ -99,10 +106,7 @@
         </div>
 
         <div class="mt-4 space-y-3">
-          <Button
-            href={paths.export_all_heartbeats_path}
-            class="rounded-md"
-          >
+          <Button href={paths.export_all_heartbeats_path} class="rounded-md">
             Export all heartbeats
           </Button>
 
@@ -123,11 +127,7 @@
               required
               class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
             />
-            <Button
-              type="submit"
-              variant="surface"
-              class="rounded-md"
-            >
+            <Button type="submit" variant="surface" class="rounded-md">
               Export date range
             </Button>
           </form>
@@ -141,7 +141,10 @@
             class="mt-4 rounded-md border border-surface-200 bg-darker p-4"
           >
             <input type="hidden" name="authenticity_token" value={csrfToken} />
-            <label class="mb-2 block text-sm text-surface-content" for="heartbeat_file">
+            <label
+              class="mb-2 block text-sm text-surface-content"
+              for="heartbeat_file"
+            >
               Import heartbeats (development only)
             </label>
             <input
@@ -152,11 +155,7 @@
               required
               class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content"
             />
-            <Button
-              type="submit"
-              variant="surface"
-              class="mt-3 rounded-md"
-            >
+            <Button type="submit" variant="surface" class="mt-3 rounded-md">
               Import file
             </Button>
           </form>
@@ -165,11 +164,13 @@
     </section>
 
     <section id="delete_account">
-      <h2 class="text-xl font-semibold text-surface-content">Account Deletion</h2>
+      <h2 class="text-xl font-semibold text-surface-content">
+        Account Deletion
+      </h2>
       {#if user.can_request_deletion}
         <p class="mt-1 text-sm text-muted">
-          Request permanent deletion. The account enters a waiting period
-          before final removal.
+          Request permanent deletion. The account enters a waiting period before
+          final removal.
         </p>
         <form
           method="post"
@@ -186,16 +187,14 @@
           }}
         >
           <input type="hidden" name="authenticity_token" value={csrfToken} />
-          <Button
-            type="submit"
-            variant="surface"
-            class="rounded-md"
-          >
+          <Button type="submit" variant="surface" class="rounded-md">
             Request deletion
           </Button>
         </form>
       {:else}
-        <p class="mt-3 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted">
+        <p
+          class="mt-3 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
+        >
           Deletion request is unavailable for this account right now.
         </p>
       {/if}
