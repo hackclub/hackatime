@@ -18,7 +18,9 @@ Rails.application.routes.draw do
 
   mount Rswag::Api::Engine => "/api-docs"
   mount Rswag::Ui::Engine => "/api-docs"
-  use_doorkeeper
+  use_doorkeeper do
+    controllers authorizations: "custom_doorkeeper/authorizations"
+  end
 
   post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application
   root "static_pages#index"
@@ -91,7 +93,7 @@ Rails.application.routes.draw do
     end
   end
 
-  get "/minimal_login", to: "static_pages#minimal_login", as: :minimal_login
+  get "/signin", to: "static_pages#signin", as: :signin
 
   # Auth routes
   get "/auth/hca", to: "sessions#hca_new", as: :hca_auth

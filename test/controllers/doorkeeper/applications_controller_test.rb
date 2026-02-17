@@ -3,11 +3,11 @@ require "json"
 require "nokogiri"
 
 class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
-  test "index redirects guests to minimal login" do
+  test "index redirects guests to signin" do
     get oauth_applications_path
 
     assert_response :redirect
-    assert_redirected_to minimal_login_path(continue: oauth_applications_path)
+    assert_redirected_to signin_path(continue: oauth_applications_path)
   end
 
   test "index renders only current user's applications in inertia payload" do
@@ -168,13 +168,6 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
-
-  def inertia_page
-    document = Nokogiri::HTML(response.body)
-    page_script = document.at_css("script[data-page='app'][type='application/json']")
-    assert_not_nil page_script, "Expected Inertia page payload script in response body"
-    JSON.parse(page_script.text)
-  end
 
   def valid_application_params(name:)
     {
