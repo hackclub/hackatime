@@ -57,8 +57,10 @@
 
   function isActive(href: string): boolean {
     const currentPath = doc_path || "";
-    const normalizedCurrent = currentPath === "index" ? "/docs" : currentPath;
-    return normalizedCurrent === href.replace("/docs/", "");
+    if (href === "/docs") {
+      return currentPath === "index" || currentPath === "";
+    }
+    return currentPath === href.replace("/docs/", "");
   }
 
   function getActiveSectionIndex(): number {
