@@ -6,7 +6,7 @@ permissions:
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   scan_ruby:
@@ -136,6 +136,11 @@ jobs:
 
       - name: Install JavaScript dependencies
         run: npm ci
+
+      - name: Pre-build Vite assets for test
+        run: bin/vite build
+        env:
+          RAILS_ENV: test
 
       - name: Run tests
         env:
