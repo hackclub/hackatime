@@ -44,7 +44,9 @@
   });
 </script>
 
-<div class="min-h-screen w-full bg-darker text-surface-content flex flex-col items-center justify-center px-6">
+<div
+  class="min-h-screen w-full bg-darker text-surface-content flex flex-col items-center justify-center px-6"
+>
   <div class="w-full max-w-md space-y-8">
     <div class="text-center">
       <Link href="/" class="inline-flex items-center gap-3 mb-8">
@@ -55,8 +57,12 @@
         />
         <span class="font-bold text-3xl tracking-tight">Hackatime</span>
       </Link>
-      <h1 class="text-2xl font-semibold tracking-tight mb-2">Sign in to Hackatime</h1>
-      <p class="text-secondary text-sm">Track your coding time. Own your metrics.</p>
+      <h1 class="text-2xl font-semibold tracking-tight mb-2">
+        Sign in to Hackatime
+      </h1>
+      <p class="text-secondary text-sm">
+        Track your coding time. Own your metrics.
+      </p>
     </div>
 
     <AuthForm
@@ -72,7 +78,10 @@
     />
 
     <div class="text-center">
-      <Link href="/" class="text-sm text-secondary hover:text-primary transition-colors">
+      <Link
+        href="/"
+        class="text-sm text-secondary hover:text-primary transition-colors"
+      >
         ← Back to home
       </Link>
     </div>
