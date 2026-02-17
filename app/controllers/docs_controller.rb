@@ -1,6 +1,12 @@
 class DocsController < InertiaController
   layout "inertia"
 
+  before_action :hide_docs_nav
+
+  def hide_docs_nav
+    @hide_nav = true
+  end
+
   POPULAR_EDITORS = [
     [ "VS Code", "vs-code" ], [ "PyCharm", "pycharm" ], [ "IntelliJ IDEA", "intellij-idea" ],
     [ "Sublime Text", "sublime-text" ], [ "Vim", "vim" ], [ "Neovim", "neovim" ],

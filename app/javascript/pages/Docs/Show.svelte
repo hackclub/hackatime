@@ -16,6 +16,57 @@
     edit_url: string;
     meta: { description: string; keywords: string };
   } = $props();
+
+  const sidebarLinks = [
+    {
+      section: "Overview",
+      links: [
+        { name: "Docs Home", href: "/docs" },
+      ],
+    },
+    {
+      section: "Getting Started",
+      links: [
+        { name: "Quick Start", href: "/docs/getting-started/quick-start" },
+        { name: "Installation", href: "/docs/getting-started/installation" },
+        { name: "Configuration", href: "/docs/getting-started/configuration" },
+      ],
+    },
+    {
+      section: "Editors",
+      links: [
+        { name: "VS Code", href: "/docs/editors/vs-code" },
+        { name: "PyCharm", href: "/docs/editors/pycharm" },
+        { name: "IntelliJ IDEA", href: "/docs/editors/intellij-idea" },
+        { name: "Sublime Text", href: "/docs/editors/sublime-text" },
+        { name: "Vim", href: "/docs/editors/vim" },
+        { name: "Neovim", href: "/docs/editors/neovim" },
+        { name: "Android Studio", href: "/docs/editors/android-studio" },
+        { name: "Xcode", href: "/docs/editors/xcode" },
+        { name: "Cursor", href: "/docs/editors/cursor" },
+        { name: "Zed", href: "/docs/editors/zed" },
+        { name: "WebStorm", href: "/docs/editors/webstorm" },
+        { name: "Visual Studio", href: "/docs/editors/visual-studio" },
+        { name: "Emacs", href: "/docs/editors/emacs" },
+        { name: "Jupyter", href: "/docs/editors/jupyter" },
+        { name: "Terminal", href: "/docs/editors/terminal" },
+        { name: "Unity", href: "/docs/editors/unity" },
+        { name: "Godot", href: "/docs/editors/godot" },
+      ],
+    },
+    {
+      section: "Integrations",
+      links: [
+        { name: "OAuth Apps", href: "/docs/oauth/oauth-apps" },
+      ],
+    },
+  ];
+
+  function isActive(href: string): boolean {
+    const currentPath = doc_path || "";
+    const normalizedCurrent = currentPath === "index" ? "/docs" : currentPath;
+    return normalizedCurrent === href.replace("/docs/", "");
+  }
 </script>
 
 <svelte:head>
@@ -28,25 +79,59 @@
 </svelte:head>
 
 <div class="min-h-screen text-surface-content">
-  <div class="w-full max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-    <!-- Breadcrumbs -->
-    <nav class="mb-8">
-      {#each breadcrumbs as crumb, index}
-        {#if index === breadcrumbs.length - 1}
-          <span class="text-primary">{crumb.name}</span>
-        {:else}
-          {#if crumb.is_link && crumb.href}
-            <Link href={crumb.href} class="text-secondary hover:text-primary"
-              >{crumb.name}</Link
-            >
-          {:else}
-            <span class="text-secondary">{crumb.name}</span>
-          {/if}
-          <span class="text-secondary mx-2">/</span>
-        {/if}
-      {/each}
-    </nav>
+  <div class="w-full max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar -->
+      <aside class="w-full lg:w-64 flex-shrink-0">
+        <nav class="sticky top-8 space-y-6">
+          <!-- Logo -->
+          <a href="/" class="flex items-center gap-2 px-3 py-2">
+            <img src="/images/new-icon-rounded.png" alt="Hackatime" class="w-8 h-8" />
+            <span class="text-lg font-bold text-primary">Hackatime</span>
+          </a>
+          
+          <!-- Dashboard Link -->
+          <a
+            href="/my/wakatime_setup"
+            class="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium bg-primary text-on-primary hover:bg-secondary transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Go to Dashboard
+          </a>
 
+          <div class="pt-4 mt-4 border-t border-darkless">
+            {#each sidebarLinks as section}
+            <div>
+              <h3 class="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
+                {section.section}
+              </h3>
+              <ul class="space-y-1">
+                {#each section.links as link}
+                  <li>
+                    <Link
+                      href={link.href}
+                      class="block px-3 py-2 rounded-md text-sm transition-colors
+                             {isActive(link.href)
+                               ? 'bg-primary/20 text-primary font-medium'
+                               : 'text-secondary hover:text-primary hover:bg-darkless'}"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {/each}
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="flex-1 min-w-0">
     <!-- Content -->
     <div
       class="bg-dark rounded-lg p-4 sm:p-6 lg:p-8 mb-8 prose prose-invert prose-base sm:prose-lg max-w-none
@@ -113,6 +198,8 @@
         >
         Edit on GitHub
       </a>
+    </div>
+      </div>
     </div>
   </div>
 </div>

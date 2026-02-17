@@ -78,6 +78,7 @@
     signout_path: string;
     show_stop_impersonating: boolean;
     stop_impersonating_path: string;
+    hide_nav?: boolean;
   };
 
   let { layout, children }: { layout: LayoutProps; children?: Snippet } =
@@ -321,7 +322,7 @@
     style="scrollbar-width: none; -ms-overflow-style: none;"
   >
     <div class="space-y-4">
-      {#if layout.nav.user_present}
+{#if layout.nav.user_present && !layout.hide_nav}
         <div
           class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
         >
@@ -576,7 +577,7 @@
 {/if}
 
 <main
-  class={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
+  class={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${layout.nav.user_present && !layout.hide_nav ? "lg:ml-62.5" : ""}`}
 >
   <div class="w-full max-w-7xl mx-auto p-4 pt-16 lg:pt-8 md:p-8">
     {@render children?.()}
