@@ -15,11 +15,6 @@ development:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
     url: <%= ENV['DATABASE_URL'] %>
-  wakatime:
-    adapter: postgresql
-    encoding: unicode
-    url: <%= ENV['WAKATIME_DATABASE_URL'] %>
-    replica: true
   warehouse:
     adapter: postgresql
     encoding: unicode
@@ -37,12 +32,6 @@ test:
     username: postgres
     password: postgres
     # url: <%= ENV['TEST_DATABASE_URL'] %>
-  wakatime:
-    adapter: postgresql
-    database: test_wakatime
-    username: postgres
-    password: postgres
-    replica: true
   warehouse:
     adapter: postgresql
     database: test_warehouse
@@ -59,11 +48,6 @@ production:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 16 }.to_i + 8 %> # Web threads + 8 GoodJob threads
     url: <%= ENV['POOL_DATABASE_URL'] %>
-  wakatime:
-    adapter: postgresql
-    encoding: unicode
-    url: <%= ENV['WAKATIME_DATABASE_URL'] %>
-    replica: true
   warehouse:
     adapter: postgresql
     encoding: unicode

@@ -259,7 +259,6 @@ RSpec.describe 'Api::V1::My', type: :request do
 
         before do
           login_browser_user
-          allow(MigrateUserFromHackatimeJob).to receive(:perform_later)
         end
         run_test!
       end

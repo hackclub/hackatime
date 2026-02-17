@@ -285,16 +285,6 @@ class User < ApplicationRecord
   has_many :project_repo_mappings
 
 
-  has_many :hackatime_heartbeats,
-    foreign_key: :user_id,
-    primary_key: :slack_uid,
-    class_name: "Hackatime::Heartbeat"
-
-  has_many :project_labels,
-    foreign_key: :user_id,
-    primary_key: :slack_uid,
-    class_name: "Hackatime::ProjectLabel"
-
   has_many :api_keys
   has_many :admin_api_keys, dependent: :destroy
   has_many :oauth_applications, as: :owner, dependent: :destroy
@@ -395,21 +385,6 @@ class User < ApplicationRecord
   end
 
   after_save :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
-
-  def data_migration_jobs
-    GoodJob::Job.where(
-      "serialized_params->>'arguments' = ?", [ id ].to_json
-    ).where(
-      "job_class = ?", "MigrateUserFromHackatimeJob"
-    ).order(created_at: :desc).limit(10).all
-  end
-
-  def in_progress_migration_jobs?
-    GoodJob::Job.where(job_class: "MigrateUserFromHackatimeJob")
-                .where("serialized_params->>'arguments' = ?", [ id ].to_json)
-                .where(finished_at: nil)
-                .exists?
-  end
 
   def format_extension_text(duration)
     case hackatime_extension_text_type

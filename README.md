@@ -19,7 +19,6 @@ Edit your `.env` file to include the following:
 ```env
 # Database configurations - these work with the Docker setup
 DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
-WAKATIME_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
 
 # Generate these with `rails secret` or use these for development
 SECRET_KEY_BASE=alallalalallalalallalalalladlalllalal
