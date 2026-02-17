@@ -26,7 +26,6 @@
     pendingDelete = { name: applicationName, path: destroyPath };
     deleteModalOpen = true;
   };
-
 </script>
 
 <svelte:head>

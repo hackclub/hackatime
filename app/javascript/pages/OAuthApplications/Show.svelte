@@ -92,7 +92,6 @@
   const destructiveConfirmStyle = $derived.by(() =>
     pendingDestructiveAction === "delete" ? "danger" : "primary",
   );
-
 </script>
 
 <svelte:head>
