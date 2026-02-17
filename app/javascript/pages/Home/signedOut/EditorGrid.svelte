@@ -10,6 +10,8 @@
     { name: "Cursor", slug: "cursor" },
     { name: "Zed", slug: "zed" },
     { name: "Terminal", slug: "terminal" },
+    { name: "Figma", slug: "figma" },
+    { name: "Godot", slug: "godot" },
   ];
 </script>
 
