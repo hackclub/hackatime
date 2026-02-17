@@ -246,6 +246,46 @@ select {
   animation: spin 1s linear infinite;
 }
 
+.activity-cell--0 {
+  background-color: color-mix(
+    in oklab,
+    var(--color-surface-content) 12%,
+    var(--color-surface)
+  );
+}
+
+.activity-cell--1 {
+  background-color: color-mix(
+    in oklab,
+    var(--color-success) 35%,
+    var(--color-surface)
+  );
+}
+
+.activity-cell--2 {
+  background-color: color-mix(
+    in oklab,
+    var(--color-success) 50%,
+    var(--color-surface)
+  );
+}
+
+.activity-cell--3 {
+  background-color: color-mix(
+    in oklab,
+    var(--color-success) 68%,
+    var(--color-surface)
+  );
+}
+
+.activity-cell--4 {
+  background-color: color-mix(
+    in oklab,
+    var(--color-success) 85%,
+    var(--color-surface)
+  );
+}
+
 .super {
   @apply italic text-sm text-[#ccc] mt-0 mb-0.5 mx-0;
 }

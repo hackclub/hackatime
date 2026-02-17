@@ -19,6 +19,8 @@ class UserTest < ActiveSupport::TestCase
       github_dark
       github_light
       nord
+      rose
+      rose_pine_dawn
     ], values
   end
 
