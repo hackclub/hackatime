@@ -73,7 +73,7 @@ Check that it's working:
 **Need help?**
 
 - Visit the [Hackatime Setup Page](https://hackatime.hackclub.com/my/wakatime_setup) for guided troubleshooting
-- Join [Hack Club Slack](https://hackclub.slack.com) (#hackatime-v2 channel)
+- Join [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 - [Create an issue](https://github.com/hackclub/hackatime/issues) on GitHub
 
 **Migrating from WakaTime?**

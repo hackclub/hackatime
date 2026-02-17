@@ -1,9 +1,9 @@
 <header class="text-center mb-8">
-  <h1 class="font-bold text-3xl text-white"><%= t('.title') %></h1>
+  <h1 class="font-bold text-3xl text-surface-content"><%= t('.title') %></h1>
 </header>
 
 <% unless @pre_auth.client.application.verified? %>
-  <div class="bg-yellow-500/20 border border-yellow rounded-lg p-4 mb-6">
+  <div class="bg-yellow/20 border border-yellow rounded-lg p-4 mb-6">
     <div class="flex items-start gap-3">
       <svg class="w-6 h-6 text-yellow shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -17,17 +17,17 @@
 <% end %>
 
 <div class="bg-dark rounded-lg p-6 mb-8 border border-darkless">
-  <p class="text-lg text-white mb-4">
+  <p class="text-lg text-surface-content mb-4">
     <%= sanitize t('.prompt', client_name: content_tag(:strong, class: 'text-primary') { @pre_auth.client.name }), tags: %w[strong], attributes: %w[class] %>
   </p>
 
   <% if @pre_auth.scopes.count > 0 %>
     <div id="oauth-permissions">
-      <p class="text-sm text-white mb-3"><%= t('.able_to') %>:</p>
+      <p class="text-sm text-surface-content mb-3"><%= t('.able_to') %>:</p>
 
       <ul class="space-y-2">
         <% @pre_auth.scopes.each do |scope| %>
-          <li class="flex items-center text-white">
+          <li class="flex items-center text-surface-content">
             <span class="inline-block w-2 h-2 bg-primary rounded-full mr-3"></span>
             <%= t scope, scope: %i[doorkeeper scopes] %>
           </li>
@@ -47,7 +47,7 @@
     <%= hidden_field_tag :scope, @pre_auth.scope, id: nil %>
     <%= hidden_field_tag :code_challenge, @pre_auth.code_challenge, id: nil %>
     <%= hidden_field_tag :code_challenge_method, @pre_auth.code_challenge_method, id: nil %>
-    <button type="submit" class="w-full px-4 py-3 bg-primary hover:bg-primary/75 text-white font-bold rounded transition-colors cursor-pointer flex items-center justify-center">
+    <button type="submit" class="w-full px-4 py-3 bg-primary hover:bg-primary/75 text-on-primary font-bold rounded transition-colors cursor-pointer flex items-center justify-center">
       <span class="spinner hidden mr-2"><%= render "shared/spinner", class: "h-5 w-5" %></span>
       <span class="btn-text"><%= t('doorkeeper.authorizations.buttons.authorize') %></span>
     </button>
@@ -61,7 +61,7 @@
     <%= hidden_field_tag :scope, @pre_auth.scope, id: nil %>
     <%= hidden_field_tag :code_challenge, @pre_auth.code_challenge, id: nil %>
     <%= hidden_field_tag :code_challenge_method, @pre_auth.code_challenge_method, id: nil %>
-    <button type="submit" class="w-full px-4 py-3 bg-dark hover:bg-darkless border border-darkless text-gray-300 rounded transition-colors cursor-pointer flex items-center justify-center">
+    <button type="submit" class="w-full px-4 py-3 bg-dark hover:bg-darkless border border-darkless text-muted rounded transition-colors cursor-pointer flex items-center justify-center">
       <span class="spinner hidden mr-2"><%= render 'shared/spinner', class: 'h-5 w-5' %></span>
       <span class="btn-text"><%= t('doorkeeper.authorizations.buttons.deny') %></span>
     </button>

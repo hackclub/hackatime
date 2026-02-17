@@ -6,7 +6,7 @@ permissions:
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   scan_ruby:
@@ -65,6 +65,28 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Run Svelte type checks
+        run: npm run check:svelte
+
+      - name: Run Svelte formatting checks
+        run: npm run format:svelte:check
+
   zeitwerk:
     runs-on: ubuntu-latest
 
@@ -106,20 +128,50 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Pre-build Vite assets for test
+        run: bin/vite build
+        env:
+          RAILS_ENV: test
+
       - name: Run tests
         env:
           RAILS_ENV: test
+          PARALLEL_WORKERS: 4
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
         run: |
           bin/rails db:create RAILS_ENV=test
-          bin/rails db:migrate RAILS_ENV=test
-          # Create additional test databases
-          psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime;"
-          psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log;"
-          psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse;"
+          bin/rails db:schema:load RAILS_ENV=test
+          # Create additional test databases used by multi-db models
+          psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime;" || true
+          psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log;" || true
+          psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse;" || true
+          # Create per-worker variants for parallelized tests (e.g., test_wakatime_0)
+          for worker in $(seq 0 $((PARALLEL_WORKERS - 1))); do
+            psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime_${worker};" || true
+            psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log_${worker};" || true
+            psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse_${worker};" || true
+          done
+          # Mirror schema from primary test DB so cross-db models can query safely in tests
+          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_wakatime
+          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_sailors_log
+          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_warehouse
+          for worker in $(seq 0 $((PARALLEL_WORKERS - 1))); do
+            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_wakatime_${worker}
+            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_sailors_log_${worker}
+            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_warehouse_${worker}
+          done
           bin/rails test
 
       - name: Ensure Swagger docs are up to date

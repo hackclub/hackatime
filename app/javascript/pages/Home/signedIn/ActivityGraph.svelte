@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Link } from "@inertiajs/svelte";
   import type { ActivityGraphData } from "../../../types/index";
 
   let { data }: { data: ActivityGraphData } = $props();
@@ -14,13 +15,13 @@
     return dates;
   }
 
-  function bgColor(seconds: number, busiestDaySeconds: number): string {
-    if (seconds < 60) return "bg-[#151b23]";
+  function intensityClass(seconds: number, busiestDaySeconds: number): string {
+    if (seconds < 60) return "activity-cell--0";
     const ratio = seconds / busiestDaySeconds;
-    if (ratio >= 0.8) return "bg-[#56d364]";
-    if (ratio >= 0.5) return "bg-[#2ea043]";
-    if (ratio >= 0.2) return "bg-[#196c2e]";
-    return "bg-[#033a16]";
+    if (ratio >= 0.8) return "activity-cell--4";
+    if (ratio >= 0.5) return "activity-cell--3";
+    if (ratio >= 0.2) return "activity-cell--2";
+    return "activity-cell--1";
   }
 
   function durationInWords(seconds: number): string {
@@ -38,8 +39,8 @@
   <div class="grid grid-rows-7 grid-flow-col gap-1 w-full lg:w-1/2">
     {#each dates as date}
       {@const seconds = data.duration_by_date[date] ?? 0}
-      <a
-        class="day transition-all duration-75 w-3 h-3 rounded-sm hover:scale-110 hover:z-10 hover:shadow-md {bgColor(
+      <Link
+        class="day activity-cell transition-all duration-75 w-3 h-3 rounded-sm hover:scale-110 hover:z-10 hover:shadow-md {intensityClass(
           seconds,
           data.busiest_day_seconds,
         )}"
@@ -49,11 +50,11 @@
         data-duration={durationInWords(seconds)}
       >
         &nbsp;
-      </a>
+      </Link>
     {/each}
   </div>
   <p class="super">
     Calculated in
-    <a href={data.timezone_settings_path}>{data.timezone_label}</a>
+    <Link href={data.timezone_settings_path}>{data.timezone_label}</Link>
   </p>
 </div>

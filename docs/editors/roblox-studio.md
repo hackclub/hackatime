@@ -66,7 +66,7 @@ If you see an **ERR\_NETWORK** message, it means the plugin can't connect to Hac
 
 ### Still Stuck?
 
-If you're still experiencing issues, don't hesitate to ask for help in the **#hackatime-v2 channel** on the [Hack Club Slack](https://hackclub.slack.com).
+If you're still experiencing issues, don't hesitate to ask for help in the **#hackatime-help channel** on the [Hack Club Slack](https://hackclub.slack.com).
 
 ---
 

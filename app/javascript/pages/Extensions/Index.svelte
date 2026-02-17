@@ -47,7 +47,8 @@
           <a
             href={extension.install}
             target="_blank"
-            class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-primary text-white font-medium text-sm hover:opacity-90 transition-opacity"
+            rel="noopener noreferrer"
+            class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-primary text-on-primary font-medium text-sm hover:opacity-90 transition-opacity"
           >
             <span>Install</span>
             <svg
@@ -69,6 +70,7 @@
           <a
             href={extension.source}
             target="_blank"
+            rel="noopener noreferrer"
             class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-surface-200 text-surface-content font-medium text-sm hover:bg-surface-300 transition-colors"
           >
             Source

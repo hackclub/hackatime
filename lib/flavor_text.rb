@@ -9,7 +9,11 @@ class FlavorText
       "i'm seeing double!!",
       "you again?",
       "your twin?!",
-      "despite everything, it's still you"
+      "despite everything, it's still you",
+      "our favourite user!",
+      "back again?",
+      "someone you used to know!",
+      "my favourite customer!"
     ]
   end
 
@@ -225,7 +229,8 @@ class FlavorText
       "in soviet russia, time tracks you!",
       "tick tock!",
       "it waits for no one!",
-      "waiting for no one!"
+      "ticking away...",
+      "working around the clock!"
     ]
   end
 

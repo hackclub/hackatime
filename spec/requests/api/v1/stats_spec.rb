@@ -142,12 +142,16 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
         parameter name: :username, in: :path, type: :string
         parameter name: :project_name, in: :path, type: :string
+        parameter name: :start, in: :query, schema: { type: :string, format: :date }
+        parameter name: :end, in: :query, schema: { type: :string, format: :date }
         parameter name: :start_date, in: :query, schema: { type: :string, format: :date }
         parameter name: :end_date, in: :query, schema: { type: :string, format: :date }
 
         response(200, 'successful') do
           let(:username) { 'testuser' }
           let(:project_name) { 'harbor' }
+          let(:start) { nil }
+          let(:end) { nil }
           let(:start_date) { nil }
           let(:end_date) { nil }
 
@@ -176,6 +180,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         parameter name: :projects, in: :query, type: :string, description: 'Comma-separated project names'
         parameter name: :since, in: :query, schema: { type: :string, format: :date_time }
         parameter name: :until, in: :query, schema: { type: :string, format: :date_time }
+        parameter name: :start, in: :query, schema: { type: :string, format: :date_time }
+        parameter name: :end, in: :query, schema: { type: :string, format: :date_time }
         parameter name: :start_date, in: :query, schema: { type: :string, format: :date }
         parameter name: :end_date, in: :query, schema: { type: :string, format: :date }
 
@@ -184,6 +190,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
           let(:projects) { nil }
           let(:since) { nil }
           let(:until) { nil }
+          let(:start) { nil }
+          let(:end) { nil }
           let(:start_date) { nil }
           let(:end_date) { nil }
 

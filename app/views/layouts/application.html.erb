@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="dark">
+<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>">
   <head>
     <title><%= @page_title || content_for(:title) || 'Hackatime' %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="color-scheme" content="dark">
+    <meta name="color-scheme" content="<%= current_theme_color_scheme %>">
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="<%= @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
@@ -18,15 +18,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <meta name="theme-color" content="#ec3750">
-    <meta name="msapplication-TileColor" content="#ec3750">
+    <meta name="theme-color" content="<%= current_theme_color %>">
+    <meta name="msapplication-TileColor" content="<%= current_theme_color %>">
 
     <!-- Open Graph Tags -->
     <meta property="og:title" content="<%= @og_title || content_for(:og_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
     <meta property="og:description" content="<%= @og_description || content_for(:og_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
     <meta property="og:url" content="<%= content_for(:og_url) || request.original_url %>">
     <meta property="og:type" content="<%= content_for(:og_type) || 'website' %>">
-    <meta property="og:image" content="<%= content_for(:og_image) || asset_path('favicon.png') %>">
+    <meta property="og:image" content="<%= content_for(:og_image) || safe_asset_path('og.jpg', fallback: 'favicon.png') %>">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:site_name" content="Hackatime">
@@ -38,7 +38,7 @@
     <meta name="twitter:creator" content="@hackclub">
     <meta name="twitter:title" content="<%= @twitter_title || content_for(:twitter_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
     <meta name="twitter:description" content="<%= @twitter_description || content_for(:twitter_description) || @meta_description || content_for(:meta_description) || 'Free and open-source coding time tracker built by Hack Club. Track your time across 75+ editors.' %>">
-    <meta name="twitter:image" content="<%= content_for(:twitter_image) || asset_path('favicon.png') %>">
+    <meta name="twitter:image" content="<%= content_for(:twitter_image) || safe_asset_path('favicon.png', fallback: 'og.jpg') %>">
 
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -161,18 +161,39 @@
 
     <script defer data-domain="hackatime.hackclub.com" src="https://plausible.io/js/script.file-downloads.hash.js"></script>
 
+    <% if ENV['POSTHOG_API_KEY'].present? %>
+      <script>
+        !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace('.i.posthog.com','-assets.i.posthog.com')+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys getNextSurveyStep onSessionId setPersonProperties".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+        posthog.init('<%= ENV['POSTHOG_API_KEY'] %>', {
+          api_host: '<%= ENV.fetch('POSTHOG_HOST', 'https://us.i.posthog.com') %>',
+          person_profiles: 'identified_only',
+          capture_pageview: true,
+          capture_pageleave: true,
+          autocapture: true
+        });
+        <% if current_user %>
+          posthog.identify('<%= current_user.id %>', {
+            slack_uid: '<%= current_user.slack_uid %>',
+            username: '<%= current_user.username %>',
+            timezone: '<%= current_user.timezone %>'
+          });
+        <% end %>
+      </script>
+    <% end %>
+
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
+    <%= vite_client_tag %>
+    <%= vite_typescript_tag "rails_modals", skip_preload_tags: true, preload_links_header: false %>
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>
-    <%# Vite assets are only required for the Inertia layout. %>
 
     <!-- Lets users record their screen from your site -->
     <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
     <script type="module" src="https://js.jam.dev/recorder.js"></script>
-    
+
     <!-- Captures user events and developer logs -->
     <script type="module" src="https://js.jam.dev/capture.js"></script>
 
@@ -202,7 +223,7 @@
     <!-- 250px is defined in nav.css -->
     <main class="flex-1 <%= 'lg:ml-[250px] lg:max-w-[calc(100%-250px)]' unless content_for?(:hide_nav) %> p-5 mb-[100px] pt-16 lg:pt-5 transition-all duration-300 ease-in-out">
       <%= yield %>
-      <footer class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-gray-600 hover:text-gray-300 transition-colors duration-200">
+      <footer class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-muted hover:text-muted transition-colors duration-200">
         <div class="container">
           <p>
             Build <%= link_to Rails.application.config.git_version, Rails.application.config.commit_link, class: 'text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200' %> from <%= time_ago_in_words(Rails.application.config.server_start_time) %> ago.
@@ -210,7 +231,7 @@
             (<%= Heartbeat.recent_imported_count %> imported) in the past 24 hours. (DB: <%= pluralize(QueryCount::Counter.counter, 'query') %>, <%= QueryCount::Counter.counter_cache %> cached) (CACHE: <%= cache_stats[:hits] %> hits, <%= cache_stats[:misses] %> misses) (<%= requests_per_second %>)
           </p>
           <% if session[:impersonater_user_id] %>
-            <%= link_to 'Stop impersonating', stop_impersonating_path, class: 'text-primary font-bold hover:text-red-300 transition-colors duration-200', data: { turbo_prefetch: 'false' } %>
+            <%= link_to 'Stop impersonating', stop_impersonating_path, class: 'text-primary font-bold hover:text-red transition-colors duration-200', data: { turbo_prefetch: 'false' } %>
           <% end %>
         </div>
         <%= render 'static_pages/active_users_graph', hours: active_users_graph_data %>
@@ -220,15 +241,15 @@
     <% currently_hacking_count = CurrentlyHacking.count %>
     <div class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform translate-y-0 transition-transform duration-300 ease-out" data-controller="currently-hacking" data-currently-hacking-target="container" data-currently-hacking-count-url-value="<%= currently_hacking_count_static_pages_path %>" data-currently-hacking-full-url-value="<%= currently_hacking_static_pages_path %>" data-currently-hacking-interval-value="60000">
       <div class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between">
-        <div class="text-white text-sm font-medium">
+        <div class="text-surface-content text-sm font-medium">
           <div class="flex items-center">
-            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"></div>
+            <div class="w-2 h-2 rounded-full bg-green animate-pulse mr-2"></div>
             <span data-currently-hacking-target="count" class="text-lg"><%= pluralize(currently_hacking_count, "person") %> currently hacking</span>
           </div>
         </div>
       </div>
       <div data-currently-hacking-target="content" style="display: none;"></div>
     </div>
-    <%= render 'shared/modal', modal_id: 'logout-modal', title: 'Woah hold on a sec', description: 'You sure you want to log out? You can sign back in later but that is a bit of a hassle...', icon_svg: '<path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"/>', icon_color: 'text-primary', buttons: [{ text: 'Go back', class: 'bg-dark hover:bg-darkless border border-darkless text-gray-300', action: 'click->modal#close' }, { text: 'Log out now', class: 'bg-primary hover:bg-primary/75 text-white font-medium', form: true, url: signout_path, method: 'delete' }] %>
+    <%= render 'shared/modal', modal_id: 'logout-modal', title: 'Woah, hold on a sec!', description: 'You sure you want to log out? You can sign back in later but that is a bit of a hassle...', icon_svg: '<path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"/>', icon_color: 'text-primary', buttons: [{ text: 'Go back', class: 'bg-dark hover:bg-darkless border border-darkless text-muted', action: 'click->modal#close' }, { text: 'Log out now', class: 'bg-primary hover:bg-primary/75 text-on-primary font-medium', form: true, url: signout_path, method: 'delete' }] %>
   </body>
 </html>

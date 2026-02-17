@@ -31,7 +31,7 @@ That's it! The plugin will use your settings from Step 2.
 
 **Don't have Package Control?** Go to [packagecontrol.io](https://packagecontrol.io/installation) to install it first.
 
-**Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-v2 channel.
+**Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-help channel.
 
 ## What Happens Next
 

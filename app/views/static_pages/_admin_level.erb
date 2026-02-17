@@ -1,8 +1,8 @@
 <% if current_user.admin_level == "superadmin" %>
-  <span class="text-red-500 font-semibold px-2 superadmin-tool">Superadmin</span>
+  <span class="text-red font-semibold px-2 superadmin-tool">Superadmin</span>
 <% elsif current_user.admin_level == "admin" %>
-  <span class="text-yellow-500 font-semibold px-2 admin-tool">Admin</span>
+  <span class="text-yellow font-semibold px-2 admin-tool">Admin</span>
 <% elsif current_user.admin_level == "viewer" %>
-  <span class="text-blue-500 font-semibold px-2 viewer-tool">Viewer</span>
+  <span class="text-blue font-semibold px-2 viewer-tool">Viewer</span>
 <% else %>
 <%end%>

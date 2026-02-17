@@ -249,41 +249,6 @@ module Heartbeatable
       end
     end
 
-    def weekly_grouped_durations(scope, group_column:, timezone:, weeks: 12)
-      scope = scope.with_valid_timestamps
-      timeout = heartbeat_timeout_duration.to_i
-      tz = timezone.presence || "UTC"
-      weeks = weeks.to_i
-      weeks = 1 if weeks < 1
-
-      group_expr = group_column.to_s.include?("(") ? group_column : connection.quote_column_name(group_column)
-      week_trunc = "DATE_TRUNC('week', to_timestamp(time) AT TIME ZONE #{connection.quote(tz)})"
-
-      range_start, range_end = Time.use_zone(tz) do
-        [ (weeks - 1).weeks.ago.beginning_of_week, Time.current.end_of_week ]
-      end
-
-      scoped = scope.where(time: range_start.to_f..range_end.to_f)
-      capped_diffs = scoped
-        .select("#{group_expr} as grouped_time, #{week_trunc} as week_group, CASE
-          WHEN LAG(time) OVER (PARTITION BY #{group_expr}, #{week_trunc} ORDER BY time) IS NULL THEN 0
-          ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr}, #{week_trunc} ORDER BY time), #{timeout})
-        END as diff")
-        .where.not(time: nil)
-        .unscope(:group)
-
-      rows = connection.select_all(
-        "SELECT week_group, grouped_time, COALESCE(SUM(diff), 0)::integer as duration
-         FROM (#{capped_diffs.to_sql}) AS diffs
-         GROUP BY week_group, grouped_time"
-      )
-
-      rows.each_with_object(Hash.new { |h, k| h[k] = {} }) do |row, hash|
-        week = row["week_group"].to_date
-        hash[week][row["grouped_time"]] = row["duration"].to_i
-      end
-    end
-
     def duration_seconds_boundary_aware(scope, start_time, end_time)
       scope = scope.with_valid_timestamps
 

@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type InertiaSspUser from "../../../types/serializers/Inertia/SspUser";
+  type SocialProofUser = { display_name: string; avatar_url: string };
 
   let {
     users,
     total_size,
     message,
   }: {
-    users: InertiaSspUser[];
+    users: SocialProofUser[];
     total_size: number;
     message?: string | null;
   } = $props();
@@ -20,7 +20,7 @@
           class={`relative cursor-pointer transition-transform duration-200 hover:-translate-y-1 hover:z-10 group ${index > 0 ? "-ml-4" : ""}`}
         >
           <div
-            class="absolute -top-9 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20"
+            class="absolute -top-9 left-1/2 transform -translate-x-1/2 bg-surface-100 text-surface-content px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20"
           >
             {user.display_name}
             <div
@@ -40,22 +40,22 @@
           title={`See all ${total_size} users`}
         >
           <div
-            class="w-10 h-10 rounded-full border-2 border-primary bg-primary text-white font-bold text-sm flex items-center justify-center shadow-sm"
+            class="w-10 h-10 rounded-full border-2 border-primary bg-primary text-on-primary font-bold text-sm flex items-center justify-center shadow-sm"
           >
             +{total_size - 5}
           </div>
           <div
-            class="absolute -left-5 top-11 bg-gray-800 rounded-lg shadow-xl p-4 w-80 z-50 max-h-96 overflow-y-auto opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200"
+            class="absolute -left-5 top-11 bg-surface-100 rounded-lg shadow-xl p-4 w-80 z-50 max-h-96 overflow-y-auto opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200"
           >
             <h4
-              class="mt-0 mb-2 text-base text-gray-200 border-b border-gray-600 pb-2"
+              class="mt-0 mb-2 text-base text-muted border-b border-surface-200 pb-2"
             >
               All users who set up Hackatime
             </h4>
             <div class="flex flex-col gap-2">
               {#each users as user}
                 <div
-                  class="flex items-center p-1 rounded hover:bg-gray-700 transition-colors duration-200"
+                  class="flex items-center p-1 rounded hover:bg-surface-100 transition-colors duration-200"
                 >
                   <img
                     src={user.avatar_url}
@@ -75,7 +75,7 @@
     </div>
   {/if}
   {#if message}
-    <p class="m-0 ml-2 italic text-gray-400">
+    <p class="m-0 ml-2 italic text-muted">
       {message} (this is real data)
     </p>
   {/if}

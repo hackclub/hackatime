@@ -1,7 +1,7 @@
 <div class="flex flex-col items-center justify-center text-center p-8 max-w-3xl">
   <div class="mb-6">
     <div class="text-8xl font-bold text-primary mb-2"><%= @status_code %></div>
-    <h1 class="text-3xl font-bold text-white mb-4"><%= @title %></h1>
+    <h1 class="text-3xl font-bold text-surface-content mb-4"><%= @title %></h1>
   </div>
 
   <div class="bg-dark rounded-xl p-6 mb-6 border border-darkless">
@@ -9,8 +9,8 @@
   </div>
 
   <div class="flex flex-col sm:flex-row gap-4">
-    <%= link_to 'Go Home', root_path, class: 'px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/75 transition-colors' %>
-    <button onclick="history.back()" class="px-6 py-3 bg-dark text-white rounded-lg font-medium hover:bg-darkless transition-colors border border-darkless cursor-pointer">Go Back</button>
+    <%= link_to 'Go Home', root_path, class: 'px-6 py-3 bg-primary text-on-primary rounded-lg font-medium hover:bg-primary/75 transition-colors' %>
+    <button onclick="history.back()" class="px-6 py-3 bg-dark text-surface-content rounded-lg font-medium hover:bg-darkless transition-colors border border-darkless cursor-pointer">Go Back</button>
   </div>
 
   <p class="mt-8 text-sm text-muted">

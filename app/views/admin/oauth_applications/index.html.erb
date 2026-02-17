@@ -4,7 +4,7 @@
 
 <div class="max-w-6xl mx-auto p-6 space-y-6">
   <header class="text-center mb-8">
-    <h1 class="text-4xl font-bold text-white mb-2">All OAuth Applications</h1>
+    <h1 class="text-4xl font-bold text-surface-content mb-2">All OAuth Applications</h1>
     <p class="text-secondary text-lg">Manage all OAuth applications across all users</p>
   </header>
 
@@ -21,7 +21,7 @@
                   </svg>
                 </div>
                 <div class="flex items-center gap-2">
-                  <%= link_to application.name, admin_oauth_application_path(application), class: "text-xl font-semibold text-white hover:text-primary transition-colors" %>
+                  <%= link_to application.name, admin_oauth_application_path(application), class: "text-xl font-semibold text-surface-content hover:text-primary transition-colors" %>
                   <% if application.verified? %>
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-green/20 text-green border border-green/30 rounded text-xs">
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -37,11 +37,11 @@
                 <div class="flex items-center gap-2">
                   <span class="text-secondary text-sm">Owner:</span>
                   <% if application.owner&.username.present? %>
-                    <%= link_to profile_path(application.owner.username), class: "text-white hover:text-primary" do %>
+                    <%= link_to profile_path(application.owner.username), class: "text-surface-content hover:text-primary" do %>
                       @<%= application.owner.username %>
                     <% end %>
                   <% elsif application.owner %>
-                    <span class="text-white"><%= application.owner.display_name || "User ##{application.owner.id}" %></span>
+                    <span class="text-surface-content"><%= application.owner.display_name || "User ##{application.owner.id}" %></span>
                   <% else %>
                     <span class="text-yellow text-sm">No owner</span>
                   <% end %>
@@ -49,7 +49,7 @@
 
                 <div class="flex items-start gap-2">
                   <span class="text-secondary text-sm shrink-0">Callback URLs:</span>
-                  <div class="text-white/80 text-sm break-all">
+                  <div class="text-surface-content/80 text-sm break-all">
                     <% application.redirect_uri.to_s.split.each do |uri| %>
                       <span class="inline-block bg-darkless px-2 py-0.5 rounded text-xs mb-1"><%= uri %></span>
                     <% end %>
@@ -58,14 +58,14 @@
 
                 <div class="flex items-center gap-2">
                   <span class="text-secondary text-sm">Created:</span>
-                  <span class="text-white/80 text-sm"><%= application.created_at.strftime("%b %d, %Y") %></span>
+                  <span class="text-surface-content/80 text-sm"><%= application.created_at.strftime("%b %d, %Y") %></span>
                 </div>
               </div>
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
               <%= link_to admin_oauth_application_path(application),
-                  class: "inline-flex items-center gap-1.5 px-3 py-2 bg-darkless hover:bg-secondary/20 text-white text-sm font-medium rounded transition-colors duration-200" do %>
+                  class: "inline-flex items-center gap-1.5 px-3 py-2 bg-darkless hover:bg-secondary/20 text-surface-content text-sm font-medium rounded transition-colors duration-200" do %>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -74,7 +74,7 @@
               <% end %>
               <%= button_to toggle_verified_admin_oauth_application_path(application),
                   method: :post,
-                  class: "inline-flex items-center gap-1.5 px-3 py-2 #{application.verified? ? 'bg-yellow hover:bg-yellow/80' : 'bg-green hover:bg-green/80'} text-white text-sm font-medium rounded transition-colors duration-200" do %>
+                  class: "inline-flex items-center gap-1.5 px-3 py-2 #{application.verified? ? 'bg-yellow hover:bg-yellow/80' : 'bg-green hover:bg-green/80'} text-on-primary text-sm font-medium rounded transition-colors duration-200" do %>
                 <% if application.verified? %>
                   <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -99,7 +99,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       </div>
-      <h3 class="text-xl font-semibold text-white mb-2">No applications</h3>
+      <h3 class="text-xl font-semibold text-surface-content mb-2">No applications</h3>
       <p class="text-secondary">No OAuth applications have been created yet.</p>
     </div>
   <% end %>

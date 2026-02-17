@@ -1,0 +1,59 @@
+{
+  "name": "@inertiajs/core",
+  "version": "2.3.14",
+  "license": "MIT",
+  "description": "A framework for creating server-driven single page apps.",
+  "contributors": [
+    "Jonathan Reinink <jonathan@reinink.ca>",
+    "Claudio Dekker <claudio@ubient.net>",
+    "Sebastian De Deyne <sebastiandedeyne@gmail.com>"
+  ],
+  "homepage": "https://inertiajs.com/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inertiajs/inertia.git",
+    "directory": "packages/inertia"
+  },
+  "bugs": {
+    "url": "https://github.com/inertiajs/inertia/issues"
+  },
+  "files": [
+    "dist",
+    "types"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./types/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "server": [
+        "types/server.d.ts"
+      ]
+    }
+  },
+  "dependencies": {
+    "@jridgewell/trace-mapping": "^0.3.31",
+    "@types/lodash-es": "^4.17.12",
+    "laravel-precognition": "2.0.0-beta.0",
+    "lodash-es": "^4.17.23"
+  },
+  "peerDependencies": {
+    "axios": "^1.13.2"
+  },
+  "peerDependenciesMeta": {
+    "axios": {
+      "optional": true
+    }
+  },
+  "x-inertia-source": "https://github.com/inertiajs/inertia/tree/504fa085db13066c48d447a00b1c9f80d91ef7b6"
+}

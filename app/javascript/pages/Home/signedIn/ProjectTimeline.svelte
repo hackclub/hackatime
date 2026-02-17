@@ -15,10 +15,7 @@
   {#if entries.length > 0}
     <div class="flex flex-col gap-2 max-h-96 overflow-y-auto">
       {#each entries as [week, stats]}
-        {@const total = Object.values(stats).reduce(
-          (a, v) => a + (v || 0),
-          0,
-        )}
+        {@const total = Object.values(stats).reduce((a, v) => a + (v || 0), 0)}
         <div class="flex items-center gap-3">
           <div class="w-28 text-sm text-muted">{week}</div>
           <div class="flex-1 bg-darkless rounded h-3 overflow-hidden">

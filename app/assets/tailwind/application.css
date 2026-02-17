@@ -3,7 +3,6 @@
 @source "../../../node_modules/layerchart/dist/**/*.{svelte,js}";
 @import "./main.css";
 @import "./nav.css";
-@import "./filterable_dashboard.css";
 
 body {
   @apply flex min-h-screen;
@@ -45,6 +44,273 @@ main {
   --color-success: #33d6a6;
   --color-warning: #f1c40f;
   --color-danger: #c8394f;
+  --color-on-primary: #ffffff;
+}
+
+:root {
+  --app-color-scheme: dark;
+  --color-on-primary: #ffffff;
+}
+
+html[data-theme="standard"] {
+  --app-color-scheme: dark;
+  --color-on-primary: #ffffff;
+}
+
+html[data-theme="neon"] {
+  --app-color-scheme: dark;
+  --color-on-primary: #13160d;
+  --color-darker: #050505;
+  --color-dark: #101312;
+  --color-darkless: #242a28;
+  --color-red: #ff4d6d;
+  --color-orange: #ffb347;
+  --color-yellow: #ffd166;
+  --color-green: #7dfc6a;
+  --color-cyan: #6fd7ff;
+  --color-blue: #69a6ff;
+  --color-purple: #c9a8ff;
+  --color-primary: #d7ff6a;
+  --color-secondary: #a4b0aa;
+  --color-muted: #8f9b95;
+  --color-text-muted: #8f9b95;
+  --color-surface: #111514;
+  --color-surface-100: #171c1a;
+  --color-surface-200: #202826;
+  --color-surface-300: #2b3532;
+  --color-surface-content: #e8eee9;
+  --color-info: #6fd7ff;
+  --color-success: #7dfc6a;
+  --color-warning: #ffd166;
+  --color-danger: #ff4d6d;
+}
+
+html[data-theme="catppuccin_mocha"] {
+  --app-color-scheme: dark;
+  --color-on-primary: #1e1e2e;
+  --color-darker: #11111b;
+  --color-dark: #181825;
+  --color-darkless: #313244;
+  --color-red: #f38ba8;
+  --color-orange: #fab387;
+  --color-yellow: #f9e2af;
+  --color-green: #a6e3a1;
+  --color-cyan: #94e2d5;
+  --color-blue: #89b4fa;
+  --color-purple: #cba6f7;
+  --color-primary: #cba6f7;
+  --color-secondary: #a6adc8;
+  --color-muted: #a6adc8;
+  --color-text-muted: #a6adc8;
+  --color-surface: #1e1e2e;
+  --color-surface-100: #313244;
+  --color-surface-200: #45475a;
+  --color-surface-300: #585b70;
+  --color-surface-content: #cdd6f4;
+  --color-info: #89b4fa;
+  --color-success: #a6e3a1;
+  --color-warning: #f9e2af;
+  --color-danger: #f38ba8;
+}
+
+html[data-theme="catppuccin_iced_latte"] {
+  --app-color-scheme: light;
+  --color-on-primary: #ffffff;
+  --color-darker: #ccd0da;
+  --color-dark: #dce0e8;
+  --color-darkless: #bac2de;
+  --color-red: #d20f39;
+  --color-orange: #fe640b;
+  --color-yellow: #df8e1d;
+  --color-green: #40a02b;
+  --color-cyan: #179299;
+  --color-blue: #1e66f5;
+  --color-purple: #8839ef;
+  --color-primary: #1e66f5;
+  --color-secondary: #5c5f77;
+  --color-muted: #5c5f77;
+  --color-text-muted: #5c5f77;
+  --color-surface: #eff1f5;
+  --color-surface-100: #e6e9ef;
+  --color-surface-200: #dce0e8;
+  --color-surface-300: #ccd0da;
+  --color-surface-content: #4c4f69;
+  --color-info: #209fb5;
+  --color-success: #40a02b;
+  --color-warning: #df8e1d;
+  --color-danger: #d20f39;
+}
+
+html[data-theme="gruvbox_dark"] {
+  --app-color-scheme: dark;
+  --color-on-primary: #1d2021;
+  --color-darker: #1d2021;
+  --color-dark: #282828;
+  --color-darkless: #3c3836;
+  --color-red: #fb4934;
+  --color-orange: #fe8019;
+  --color-yellow: #fabd2f;
+  --color-green: #b8bb26;
+  --color-cyan: #8ec07c;
+  --color-blue: #83a598;
+  --color-purple: #d3869b;
+  --color-primary: #d8a657;
+  --color-secondary: #a89984;
+  --color-muted: #a89984;
+  --color-text-muted: #a89984;
+  --color-surface: #282828;
+  --color-surface-100: #3c3836;
+  --color-surface-200: #504945;
+  --color-surface-300: #665c54;
+  --color-surface-content: #ebdbb2;
+  --color-info: #83a598;
+  --color-success: #b8bb26;
+  --color-warning: #fabd2f;
+  --color-danger: #fb4934;
+}
+
+html[data-theme="github_dark"] {
+  --app-color-scheme: dark;
+  --color-on-primary: #ffffff;
+  --color-darker: #1b1f23;
+  --color-dark: #1f2428;
+  --color-darkless: #2f363d;
+  --color-red: #ea4a5a;
+  --color-orange: #ffab70;
+  --color-yellow: #ffea7f;
+  --color-green: #34d058;
+  --color-cyan: #39c5cf;
+  --color-blue: #79b8ff;
+  --color-purple: #b392f0;
+  --color-primary: #0366d6;
+  --color-secondary: #959da5;
+  --color-muted: #959da5;
+  --color-text-muted: #959da5;
+  --color-surface: #24292e;
+  --color-surface-100: #2b3036;
+  --color-surface-200: #39414a;
+  --color-surface-300: #444d56;
+  --color-surface-content: #e1e4e8;
+  --color-info: #79b8ff;
+  --color-success: #34d058;
+  --color-warning: #ffab70;
+  --color-danger: #ea4a5a;
+}
+
+html[data-theme="github_light"] {
+  --app-color-scheme: light;
+  --color-on-primary: #ffffff;
+  --color-darker: #d1d5da;
+  --color-dark: #e1e4e8;
+  --color-darkless: #f6f8fa;
+  --color-red: #d73a49;
+  --color-orange: #e36209;
+  --color-yellow: #f9c513;
+  --color-green: #28a745;
+  --color-cyan: #3192aa;
+  --color-blue: #2188ff;
+  --color-purple: #6f42c1;
+  --color-primary: #2188ff;
+  --color-secondary: #586069;
+  --color-muted: #6a737d;
+  --color-text-muted: #6a737d;
+  --color-surface: #ffffff;
+  --color-surface-100: #f6f8fa;
+  --color-surface-200: #e1e4e8;
+  --color-surface-300: #d1d5da;
+  --color-surface-content: #24292e;
+  --color-info: #0366d6;
+  --color-success: #28a745;
+  --color-warning: #e36209;
+  --color-danger: #d73a49;
+}
+
+html[data-theme="nord"] {
+  --app-color-scheme: dark;
+  --color-on-primary: #2e3440;
+  --color-darker: #2e3440;
+  --color-dark: #3b4252;
+  --color-darkless: #434c5e;
+  --color-red: #bf616a;
+  --color-orange: #d08770;
+  --color-yellow: #ebcb8b;
+  --color-green: #a3be8c;
+  --color-cyan: #8fbcbb;
+  --color-blue: #81a1c1;
+  --color-purple: #b48ead;
+  --color-primary: #88c0d0;
+  --color-secondary: #d8dee9;
+  --color-muted: #d8dee9;
+  --color-text-muted: #d8dee9;
+  --color-surface: #3b4252;
+  --color-surface-100: #434c5e;
+  --color-surface-200: #4c566a;
+  --color-surface-300: #5e6878;
+  --color-surface-content: #e5e9f0;
+  --color-info: #81a1c1;
+  --color-success: #a3be8c;
+  --color-warning: #ebcb8b;
+  --color-danger: #bf616a;
+}
+
+html[data-theme="rose"] {
+  --app-color-scheme: dark;
+  --color-on-primary: #191724;
+  --color-darker: #191724;
+  --color-dark: #1f1d2e;
+  --color-darkless: #26233a;
+  --color-red: #eb6f92;
+  --color-orange: #f6c177;
+  --color-yellow: #f6c177;
+  --color-green: #31748f;
+  --color-cyan: #9ccfd8;
+  --color-blue: #c4a7e7;
+  --color-purple: #c4a7e7;
+  --color-primary: #eb6f92;
+  --color-secondary: #908caa;
+  --color-muted: #908caa;
+  --color-text-muted: #908caa;
+  --color-surface: #1f1d2e;
+  --color-surface-100: #26233a;
+  --color-surface-200: #312f44;
+  --color-surface-300: #3d3b52;
+  --color-surface-content: #e0def4;
+  --color-info: #9ccfd8;
+  --color-success: #31748f;
+  --color-warning: #f6c177;
+  --color-danger: #eb6f92;
+}
+
+html[data-theme="rose_pine_dawn"] {
+  --app-color-scheme: light;
+  --color-on-primary: #fffaf3;
+  --color-darker: #dfdad9;
+  --color-dark: #f2e9e1;
+  --color-darkless: #cecacd;
+  --color-red: #aa586f;
+  --color-orange: #a35a00;
+  --color-yellow: #a35a00;
+  --color-green: #286983;
+  --color-cyan: #56949f;
+  --color-blue: #907aa9;
+  --color-purple: #907aa9;
+  --color-primary: #aa586f;
+  --color-secondary: #5e5977;
+  --color-muted: #5e5977;
+  --color-text-muted: #5e5977;
+  --color-surface: #faf4ed;
+  --color-surface-100: #f2e9e1;
+  --color-surface-200: #c3bbb8;
+  --color-surface-300: #cecacd;
+  --color-surface-content: #575279;
+  --color-info: #56949f;
+  --color-success: #286983;
+  --color-warning: #a35a00;
+  --color-danger: #aa586f;
+}
+
+html[data-theme="rose_pine_dawn"] body {
+  background-color: #FCF2E9;
 }
 
 .project-toggle-group {
@@ -63,7 +329,7 @@ main {
 
 .project-toggle-btn.active {
   background-color: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
 }
 
 .project-toggle-btn.active:hover {
@@ -77,7 +343,7 @@ main {
 
 .interval-selector-button {
   background-color: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
 }
 
 .interval-selector-button:hover {

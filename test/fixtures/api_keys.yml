@@ -3,9 +3,9 @@
 one:
   user: one
   name: MyText
-  token: MyText
+  token: MyTextOne
 
 two:
   user: two
   name: MyText
-  token: MyText
+  token: MyTextTwo

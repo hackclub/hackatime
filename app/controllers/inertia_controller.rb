@@ -9,7 +9,8 @@ class InertiaController < ApplicationController
     {
       nav: inertia_nav_props,
       footer: inertia_footer_props,
-      currently_hacking: currently_hacking_props,
+      theme: inertia_theme_props,
+      # currently_hacking: currently_hacking_props,
       csrf_token: form_authenticity_token,
       signout_path: signout_path,
       show_stop_impersonating: session[:impersonater_user_id].present?,
@@ -17,25 +18,34 @@ class InertiaController < ApplicationController
     }
   end
 
+  def inertia_theme_props
+    {
+      name: helpers.current_theme,
+      color_scheme: helpers.current_theme_color_scheme,
+      theme_color: helpers.current_theme_color
+    }
+  end
+
   def inertia_nav_props
     {
       flash: inertia_flash_messages,
       user_present: current_user.present?,
-      user_mention_html: current_user ? render_to_string(partial: "shared/user_mention", locals: { user: current_user }) : nil,
-      streak_html: current_user ? render_to_string(partial: "static_pages/streak", locals: { user: current_user, show_text: true, turbo_frame: false }) : nil,
-      admin_level_html: current_user ? render_to_string(partial: "static_pages/admin_level", locals: { user: current_user }) : nil,
+      current_user: inertia_nav_current_user,
       login_path: slack_auth_path,
       links: inertia_primary_links,
       dev_links: inertia_dev_links,
       admin_links: inertia_admin_links,
       viewer_links: inertia_viewer_links,
-      superadmin_links: inertia_superadmin_links,
-      activities_html: inertia_activities_html
+      superadmin_links: inertia_superadmin_links
     }
   end
 
   def inertia_flash_messages
-    flash.to_hash.map do |type, message|
+    allowed_types = %w[notice success alert error]
+
+    flash.to_hash.filter_map do |type, message|
+      next unless allowed_types.include?(type.to_s)
+
       {
         message: message.to_s,
         class_name: flash_class_for(type)
@@ -54,20 +64,19 @@ class InertiaController < ApplicationController
 
   def inertia_primary_links
     links = []
-    links << inertia_link("Home", root_path, active: helpers.current_page?(root_path))
+    links << inertia_link("Home", root_path, active: helpers.current_page?(root_path), inertia: true)
     links << inertia_link("Leaderboards", leaderboards_path, active: helpers.current_page?(leaderboards_path))
 
     if current_user
-      links << inertia_link("Projects", my_projects_path, active: helpers.current_page?(my_projects_path))
-      links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"))
-      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path))
-      links << inertia_link("Settings", my_settings_path, active: helpers.current_page?(my_settings_path))
-      links << inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications"))
+      links << inertia_link("Projects", my_projects_path, active: request.path.start_with?("/my/projects"), inertia: true)
+      links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true)
+      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
+      links << inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings"), inertia: true)
+      links << inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications"), inertia: true)
       links << { label: "Logout", action: "logout" }
     else
-      links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"))
-      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path))
-      links << inertia_link("What is Hackatime?", "/what-is-hackatime", active: helpers.current_page?("/what-is-hackatime"))
+      links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true)
+      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
     end
 
     links
@@ -115,22 +124,33 @@ class InertiaController < ApplicationController
     links
   end
 
-  def inertia_link(label, href, active: false, badge: nil)
-    { label: label, href: href, active: active, badge: badge }
+  def inertia_link(label, href, active: false, badge: nil, inertia: false)
+    { label: label, href: href, active: active, badge: badge, inertia: inertia }
   end
 
-  def inertia_activities_html
-    return nil unless defined?(@activities) && @activities.present?
-    helpers.render_activities(@activities)
+  def inertia_nav_current_user
+    return nil unless current_user
+
+    country = current_user.country_code.present? ? ISO3166::Country.new(current_user.country_code) : nil
+
+    {
+      display_name: current_user.display_name,
+      avatar_url: current_user.avatar_url,
+      title: FlavorText.same_user.sample,
+      country_code: current_user.country_code,
+      country_name: country&.common_name,
+      streak_days: current_user.streak_days,
+      admin_level: current_user.admin_level
+    }
   end
 
   def inertia_footer_props
     helpers = ApplicationController.helpers
     cache = helpers.cache_stats
-    hours = active_users_graph_data.map.with_index do |entry, index|
+    hours = active_users_graph_data.map do |entry|
       {
         height: entry[:height],
-        title: "#{helpers.pluralize(index + 1, 'hour')} ago, #{helpers.pluralize(entry[:users], 'people')} logged time. '#{FlavorText.latin_phrases.sample}.'"
+        users: entry[:users]
       }
     end
 

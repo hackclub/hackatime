@@ -47,8 +47,6 @@
 node_modules
 public/vite-dev
 public/vite-ssr
+public/vite-test
 
 .vite
-
-app/javascript/api/
-app/javascript/types/serializers/

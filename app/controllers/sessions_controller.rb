@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
   def hca_new
-    session[:return_data] = { url: params[:continue].presence || request.referer } if request.referer.present? && request.referer != request.url
+    session[:return_data] = { "url" => safe_return_url(params[:continue].presence) } if params[:continue].present?
     Rails.logger.info("Sessions return data: #{session[:return_data]}")
     redirect_uri = url_for(action: :hca_create, only_path: false)
 
@@ -33,10 +33,14 @@ class SessionsController < ApplicationController
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
+      PosthogService.identify(@user)
+      PosthogService.capture(@user, "user_signed_in", { method: "hca" })
+
       if @user.created_at > 5.seconds.ago
-        session[:return_data] ||= { url: params[:continue].presence || request.referer }
-        Rails.logger.info("Sessions return data: #{session[:return_data]}")
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+      elsif session[:return_data]&.dig("url").present?
+        return_url = session[:return_data].delete("url")
+        redirect_to return_url, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       else
         redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       end
@@ -78,11 +82,17 @@ class SessionsController < ApplicationController
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
+      PosthogService.identify(@user)
+      PosthogService.capture(@user, "user_signed_in", { method: "slack" })
+
       state = JSON.parse(params[:state]) rescue {}
       if state["close_window"]
         redirect_to close_window_path
-      elsif state["continue"]
-        redirect_to state["continue"], notice: "Successfully signed in with Slack! Welcome!"
+      elsif @user.created_at > 5.seconds.ago
+        session[:return_data] = { "url" => safe_return_url(state["continue"].presence) }
+        redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
+      elsif state["continue"].present? && safe_return_url(state["continue"]).present?
+        redirect_to safe_return_url(state["continue"]), notice: "Successfully signed in with Slack! Welcome!"
       else
         redirect_to root_path, notice: "Successfully signed in with Slack! Welcome!"
       end
@@ -126,6 +136,7 @@ class SessionsController < ApplicationController
     @user = User.from_github_token(params[:code], redirect_uri, current_user)
 
     if @user&.persisted?
+      PosthogService.capture(@user, "github_linked")
       redirect_to my_settings_path, notice: "Successfully linked GitHub account!"
     else
       Rails.logger.error "Failed to link GitHub account"
@@ -155,7 +166,8 @@ class SessionsController < ApplicationController
       session[:dev_magic_link] = auth_token_url(token)
     end
 
-    redirect_to root_path(sign_in_email: true), notice: "Check your email for a sign-in link!"
+    redirect_path = params[:redirect_to] == "signin" ? signin_path(sign_in_email: true) : root_path(sign_in_email: true)
+    redirect_to redirect_path, notice: "Check your email for a sign-in link!"
   end
 
   def add_email
@@ -244,8 +256,12 @@ class SessionsController < ApplicationController
       session[:user_id] = valid_token.user_id
       session[:return_data] = valid_token.return_data || {}
 
-      if valid_token.continue_param.present?
-        redirect_to valid_token.continue_param, notice: "Successfully signed in!"
+      user = User.find(valid_token.user_id)
+      PosthogService.identify(user)
+      PosthogService.capture(user, "user_signed_in", { method: "email" })
+
+      if valid_token.continue_param.present? && safe_return_url(valid_token.continue_param).present?
+        redirect_to safe_return_url(valid_token.continue_param), notice: "Successfully signed in!"
       else
         redirect_to root_path, notice: "Successfully signed in!"
       end
@@ -287,6 +303,7 @@ class SessionsController < ApplicationController
   end
 
   def destroy
+    PosthogService.capture(session[:user_id], "user_signed_out") if session[:user_id]
     session[:user_id] = nil
     session[:impersonater_user_id] = nil
     redirect_to root_path, notice: "Signed out!"

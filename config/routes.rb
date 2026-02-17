@@ -18,11 +18,14 @@ Rails.application.routes.draw do
 
   mount Rswag::Api::Engine => "/api-docs"
   mount Rswag::Ui::Engine => "/api-docs"
-  use_doorkeeper
+  use_doorkeeper do
+    controllers authorizations: "custom_doorkeeper/authorizations"
+  end
 
-  root "static_pages#index", defaults: { export: true }
+  post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application
+  root "static_pages#index"
 
-  resources :extensions, only: [ :index ], defaults: { export: true }
+  resources :extensions, only: [ :index ]
 
   constraints AdminLevelConstraint.new(:superadmin) do
     mount GoodJob::Engine => "good_job"
@@ -37,6 +40,7 @@ Rails.application.routes.draw do
       resources :oauth_applications, only: [ :index, :show, :edit, :update ] do
         member do
           post :toggle_verified
+          post :rotate_secret
         end
       end
     end
@@ -84,15 +88,12 @@ Rails.application.routes.draw do
       get :project_durations
       get :currently_hacking
       get :currently_hacking_count
-      get :filterable_dashboard_content
-      get :filterable_dashboard
       get :streak
       # get :timeline # Removed: Old route for timeline
     end
   end
 
-  get "/minimal_login", to: "static_pages#minimal_login", as: :minimal_login
-  get "/what-is-hackatime", to: "static_pages#what_is_hackatime"
+  get "/signin", to: "static_pages#signin", as: :signin
 
   # Auth routes
   get "/auth/hca", to: "sessions#hca_new", as: :hca_auth
@@ -114,13 +115,13 @@ Rails.application.routes.draw do
   end
 
   # Docs routes
-  get "docs", to: "docs#index", as: :docs, defaults: { export: true }
-  get "docs/*path", to: "docs#show", as: :doc, defaults: { export: true }
+  get "docs", to: "docs#index", as: :docs
+  get "docs/*path", to: "docs#show", as: :doc
 
   # Nested under users for admin access
   resources :users, only: [] do
-    get "settings", on: :member, to: "users#edit"
-    patch "settings", on: :member, to: "users#update"
+    get "settings", on: :member, to: "settings/profile#show"
+    patch "settings", on: :member, to: "settings/profile#update"
     member do
       patch :update_trust_level
     end
@@ -131,12 +132,23 @@ Rails.application.routes.draw do
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
 
   # Namespace for current user actions
-  get "my/settings", to: "users#edit", as: :my_settings
-  patch "my/settings", to: "users#update"
-  post "my/settings/migrate_heartbeats", to: "users#migrate_heartbeats", as: :my_settings_migrate_heartbeats
-  post "my/settings/rotate_api_key", to: "users#rotate_api_key", as: :my_settings_rotate_api_key
+  get "my/settings", to: "settings/profile#show", as: :my_settings
+  patch "my/settings", to: "settings/profile#update"
+  get "my/settings/profile", to: "settings/profile#show", as: :my_settings_profile
+  patch "my/settings/profile", to: "settings/profile#update"
+  get "my/settings/integrations", to: "settings/integrations#show", as: :my_settings_integrations
+  patch "my/settings/integrations", to: "settings/integrations#update"
+  get "my/settings/access", to: "settings/access#show", as: :my_settings_access
+  patch "my/settings/access", to: "settings/access#update"
+  get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
+  get "my/settings/data", to: "settings/data#show", as: :my_settings_data
+  get "my/settings/admin", to: "settings/admin#show", as: :my_settings_admin
+  post "my/settings/migrate_heartbeats", to: "settings/data#migrate_heartbeats", as: :my_settings_migrate_heartbeats
+  post "my/settings/rotate_api_key", to: "settings/access#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
+    resources :heartbeat_imports, only: [ :create, :show ]
+
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
       member do
         patch :archive
@@ -157,10 +169,10 @@ Rails.application.routes.draw do
   post "deletion", to: "deletion_requests#create", as: :create_deletion
   delete "deletion", to: "deletion_requests#cancel", as: :cancel_deletion
 
-  get "my/wakatime_setup", to: "users#wakatime_setup", defaults: { export: true }
-  get "my/wakatime_setup/step-2", to: "users#wakatime_setup_step_2", defaults: { export: true }
-  get "my/wakatime_setup/step-3", to: "users#wakatime_setup_step_3", defaults: { export: true }
-  get "my/wakatime_setup/step-4", to: "users#wakatime_setup_step_4", defaults: { export: true }
+  get "my/wakatime_setup", to: "users#wakatime_setup"
+  get "my/wakatime_setup/step-2", to: "users#wakatime_setup_step_2"
+  get "my/wakatime_setup/step-3", to: "users#wakatime_setup_step_3"
+  get "my/wakatime_setup/step-4", to: "users#wakatime_setup_step_4"
 
   post "/sailors_log/slack/commands", to: "slack#create"
   post "/timedump/slack/commands", to: "slack#create"

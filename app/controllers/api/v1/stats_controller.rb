@@ -63,33 +63,46 @@ class Api::V1::StatsController < ApplicationController
     service_params[:end_date] = end_date
     service_params[:scope] = scope if scope.present?
 
-    if params[:total_seconds] == "true"
-      query = @user.heartbeats
-                   .coding_only
-                   .with_valid_timestamps
-                   .where(time: start_date..end_date)
+    # use TestWakatimeService when test_param=true for all requests
+    if params[:test_param] == "true"
+      service_params[:boundary_aware] = true  # always and i mean always use boundary aware in testwakatime service
 
-      if params[:filter_by_project].present?
-        filter_by_project = params[:filter_by_project].split(",")
-        query = query.where(project: filter_by_project)
+      if params[:total_seconds] == "true"
+        summary = TestWakatimeService.new(**service_params).generate_summary
+        return render json: { total_seconds: summary[:total_seconds] }
       end
 
-      if params[:filter_by_category].present?
-        filter_by_category = params[:filter_by_category].split(",")
-        query = query.where(category: filter_by_category)
+      summary = TestWakatimeService.new(**service_params).generate_summary
+    else
+      if params[:total_seconds] == "true"
+        query = @user.heartbeats
+                     .coding_only
+                     .with_valid_timestamps
+                     .where(time: start_date..end_date)
+
+        if params[:filter_by_project].present?
+          filter_by_project = params[:filter_by_project].split(",")
+          query = query.where(project: filter_by_project)
+        end
+
+        if params[:filter_by_category].present?
+          filter_by_category = params[:filter_by_category].split(",")
+          query = query.where(category: filter_by_category)
+        end
+
+        # do the boundary thingie if requested
+        use_boundary_aware = params[:boundary_aware] == "true"
+        total_seconds = if use_boundary_aware
+          Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
+        else
+          query.duration_seconds || 0
+        end
+
+        return render json: { total_seconds: total_seconds }
       end
 
-      use_boundary_aware = params[:boundary_aware] == "true"
-      total_seconds = if use_boundary_aware
-        Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
-      else
-        query.duration_seconds || 0
-      end
-
-      return render json: { total_seconds: total_seconds }
+      summary = WakatimeService.new(**service_params).generate_summary
     end
-
-    summary = WakatimeService.new(**service_params).generate_summary
 
     if params[:features]&.include?("projects") && params[:filter_by_project].present?
       filter_by_project = params[:filter_by_project].split(",")
@@ -186,15 +199,7 @@ class Api::V1::StatsController < ApplicationController
   def user_projects
     return render json: { error: "User not found" }, status: :not_found unless @user
 
-    since = 30.days.ago.beginning_of_day.to_f
-    projects = @user.heartbeats
-      .where("time >= ?", since)
-      .where.not(project: [ nil, "" ])
-      .select(:project)
-      .distinct
-      .pluck(:project)
-
-    render json: { projects: projects }
+    render json: { projects: project_stats_query(include_archived: true).project_names }
   end
 
   def user_project
@@ -202,7 +207,7 @@ class Api::V1::StatsController < ApplicationController
     project_name = params[:project_name]
     return render json: { error: "whats the name?" }, status: :bad_request unless project_name.present?
 
-    project_data = get_project([ project_name ]).first
+    project_data = project_stats_query.project_details(names: [ project_name ]).first
     return render json: { error: "found nuthin" }, status: :not_found unless project_data
 
     render json: project_data
@@ -211,23 +216,8 @@ class Api::V1::StatsController < ApplicationController
   def user_projects_details
     return render json: { error: "User not found" }, status: :not_found unless @user
 
-    names = if params[:projects].present?
-      params[:projects].split(",").map(&:strip)
-    else
-      since = params[:since]&.to_datetime || 30.days.ago.beginning_of_day
-      until_date = (params[:until] || params[:until_date])&.to_datetime || Time.current
-
-      @user.heartbeats
-           .where(time: since..until_date)
-           .where.not(project: [ nil, "" ])
-           .select(:project)
-           .distinct
-           .pluck(:project)
-    end
-
-    return render json: { projects: [] } if names.empty?
-
-    data = get_project(names)
+    names = params[:projects]&.split(",")&.map(&:strip)
+    data = project_stats_query.project_details(names: names)
     render json: { projects: data }
   end
 
@@ -296,58 +286,13 @@ class Api::V1::StatsController < ApplicationController
     slack_id
   end
 
-  def get_project(names)
-    start_date = params[:start_date]&.to_datetime || 1.year.ago
-    end_date = params[:end_date]&.to_datetime || Time.current
-
-    query = @user.heartbeats
-                 .where(time: start_date..end_date)
-                 .where(project: names)
-
-    return [] if query.empty?
-
-    stats = query
-           .group(:project)
-           .select("project,
-                    COUNT(*) as heartbeat_count,
-                    MIN(time) as first_heartbeat,
-                    MAX(time) as last_heartbeat")
-           .index_by(&:project)
-
-    durations = query.group(:project).duration_seconds
-
-    languages_by_project = query
-                          .where.not(language: [ nil, "" ])
-                          .group(:project, :language)
-                          .pluck(:project, :language)
-                          .group_by(&:first)
-                          .transform_values { |pairs| pairs.map(&:last) }
-
-    repo_mappings = @user.project_repo_mappings
-                        .where(project_name: names)
-                        .index_by(&:project_name)
-
-    data = []
-
-    names.each do |name|
-      stat = stats[name]
-      next unless stat
-
-      repo = repo_mappings[name]
-      next if repo&.archived?
-
-      data << {
-        name: name,
-        total_seconds: durations[name] || 0,
-        languages: languages_by_project[name] || [],
-        repo_url: repo&.repo_url,
-        total_heartbeats: stat.heartbeat_count || 0,
-        first_heartbeat: stat.first_heartbeat ? Time.at(stat.first_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil,
-        last_heartbeat: stat.last_heartbeat ? Time.at(stat.last_heartbeat).strftime("%Y-%m-%dT%H:%M:%SZ") : nil
-      }
-    end
-
-    data.sort_by { |project| -project[:total_seconds] }
+  def project_stats_query(include_archived: false)
+    @project_stats_queries ||= {}
+    @project_stats_queries[include_archived] ||= ProjectStatsQuery.new(
+      user: @user,
+      params: params,
+      include_archived: include_archived
+    )
   end
 
   def unique_heartbeat_seconds(heartbeats)

@@ -2,53 +2,53 @@
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="mb-8">
-    <h1 class="text-3xl font-bold text-white mb-2">admin aboose logs</h1>
-    <p class="text-gray-400">look at all the funky shit that admins do</p>
+    <h1 class="text-3xl font-bold text-surface-content mb-2">admin aboose logs</h1>
+    <p class="text-muted">look at all the funky shit that admins do</p>
   </div>
 
   <div class="mb-6 bg-dark rounded-lg p-6">
     <%= form_with url: admin_trust_level_audit_logs_path, method: :get, local: true, class: "space-y-4" do |form| %>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <%= form.label :user_search, 'user lookup', class: 'block text-sm font-medium text-gray-300 mb-2' %>
-          <%= form.text_field :user_search, value: @user_search, placeholder: 'just put anything here or something', class: 'w-full px-3 py-2 bg-darkless rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent' %>
+          <%= form.label :user_search, 'user lookup', class: 'block text-sm font-medium text-muted mb-2' %>
+          <%= form.text_field :user_search, value: @user_search, placeholder: 'just put anything here or something', class: 'w-full px-3 py-2 bg-darkless rounded-md text-surface-content placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue focus:border-transparent' %>
         </div>
 
         <div>
-          <%= form.label :admin_search, 'admin lookup', class: 'block text-sm font-medium text-gray-300 mb-2' %>
-          <%= form.text_field :admin_search, value: @admin_search, placeholder: 'just put anything here or something', class: 'w-full px-3 py-2 bg-darkless rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent' %>
+          <%= form.label :admin_search, 'admin lookup', class: 'block text-sm font-medium text-muted mb-2' %>
+          <%= form.text_field :admin_search, value: @admin_search, placeholder: 'just put anything here or something', class: 'w-full px-3 py-2 bg-darkless rounded-md text-surface-content placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue focus:border-transparent' %>
         </div>
 
         <div>
-          <%= form.label :trust_level_filter, 'filter by trust updates', class: 'block text-sm font-medium text-gray-300 mb-2' %>
-          <%= form.select :trust_level_filter, options_for_select([['All Changes', 'all'], ['🔴 Set to Convicted', 'to_convicted'], ['🟢 Set to Trusted', 'to_trusted'], ['🟡 Set to Suspected', 'to_suspected'], ['🔵 Set to Unscored', 'to_unscored']], @trust_level_filter || 'all'), {}, { class: 'w-full px-3 py-2 bg-darkless rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent' } %>
+          <%= form.label :trust_level_filter, 'filter by trust updates', class: 'block text-sm font-medium text-muted mb-2' %>
+          <%= form.select :trust_level_filter, options_for_select([['All Changes', 'all'], ['🔴 Set to Convicted', 'to_convicted'], ['🟢 Set to Trusted', 'to_trusted'], ['🟡 Set to Suspected', 'to_suspected'], ['🔵 Set to Unscored', 'to_unscored']], @trust_level_filter || 'all'), {}, { class: 'w-full px-3 py-2 bg-darkless rounded-md text-surface-content focus:outline-none focus:ring-2 focus:ring-blue focus:border-transparent' } %>
         </div>
       </div>
 
       <div class="flex items-center gap-4">
-        <%= form.submit 'run that shit', class: 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors' %>
-        <%= link_to 'alt+f4', admin_trust_level_audit_logs_path, class: 'bg-gray-600 hover:bg-darkless text-white px-4 py-2 rounded-md font-medium transition-colors' %>
-        <span class="text-md text-gray-400"> found <%= @audit_logs.length %> result<%= @audit_logs.length == 1 ? '' : 's' %> </span>
+        <%= form.submit 'run that shit', class: 'bg-blue hover:bg-blue text-on-primary px-4 py-2 rounded-md font-medium transition-colors' %>
+        <%= link_to 'alt+f4', admin_trust_level_audit_logs_path, class: 'bg-surface-100 hover:bg-darkless text-surface-content px-4 py-2 rounded-md font-medium transition-colors' %>
+        <span class="text-md text-muted"> found <%= @audit_logs.length %> result<%= @audit_logs.length == 1 ? '' : 's' %> </span>
       </div>
     <% end %>
   </div>
 
   <% if @filtered_user || @filtered_admin %>
-    <div class="mb-6 p-4 bg-dark border border-blue-500/30 rounded-lg">
+    <div class="mb-6 p-4 bg-dark border border-blue/30 rounded-lg">
       <div class="flex items-center justify-between">
         <div>
           <% if @filtered_user %>
-            <p class="text-sm text-blue-300">
+            <p class="text-sm text-blue">
               filtering logs by <strong><%= @filtered_user.display_name %></strong>
             </p>
           <% end %>
           <% if @filtered_admin %>
-            <p class="text-sm text-blue-300">
+            <p class="text-sm text-blue">
               filtering logs by admin: <strong><%= @filtered_admin.display_name %></strong>
             </p>
           <% end %>
         </div>
-        <%= link_to 'fuckin abort', admin_trust_level_audit_logs_path, class: 'text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded' %>
+        <%= link_to 'fuckin abort', admin_trust_level_audit_logs_path, class: 'text-sm bg-blue hover:bg-blue text-on-primary px-3 py-1 rounded' %>
       </div>
     </div>
   <% end %>
@@ -58,18 +58,18 @@
       <table class="min-w-full">
         <thead class="">
           <tr>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">time</th>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">goober</th>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">change</th>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">goobed by</th>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">why</th>
-            <th class="px-6 py-3 text-left text-sm font-medium text-gray-300">link</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">time</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">goober</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">change</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">goobed by</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">why</th>
+            <th class="px-6 py-3 text-left text-sm font-medium text-muted">link</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-950">
           <% @audit_logs.each do |log| %>
             <tr class="hover:bg-darkless">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
                 <%= log.created_at.strftime('%b %d, %Y at %I:%M %p') %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -78,16 +78,16 @@
                     <img class="h-8 w-8 rounded-full mr-3" src="<%= log.user.avatar_url %>" alt="">
                   <% end %>
                   <div>
-                    <div class="text-sm font-medium text-white">
+                    <div class="text-sm font-medium text-surface-content">
                       <%= log.user.display_name %>
                     </div>
-                    <div class="text-sm text-gray-400">ID: <%= log.user.id %></div>
+                    <div class="text-sm text-muted">ID: <%= log.user.id %></div>
                   </div>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
-                  <span class="text-sm text-gray-300">
+                  <span class="text-sm text-muted">
                     <%
                       previous_emoji =
                         case log.previous_trust_level
@@ -125,30 +125,30 @@
                     <img class="h-6 w-6 rounded-full mr-2" src="<%= log.changed_by.avatar_url %>" alt="">
                   <% end %>
                   <div>
-                    <div class="text-sm text-white">
+                    <div class="text-sm text-surface-content">
                       <%= log.changed_by.display_name %>
                       <% if log.changed_by.admin_level == "superadmin" %>
-                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-red-950 text-red-500"> supa admin </span>
+                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-red text-red"> supa admin </span>
                       <% elsif log.changed_by.admin_level == "admin" %>
-                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-yellow-950 text-yellow-500"> admin </span>
+                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-yellow text-yellow"> admin </span>
                       <% elsif log.changed_by.admin_level == "viewer" %>
-                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-blue-950 text-blue-500"> viewer </span>
+                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-sm font-medium border border-blue text-blue"> viewer </span>
                       <% end %>
                     </div>
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-300">
+              <td class="px-6 py-4 text-sm text-muted">
                 <% if log.reason.present? %>
                   <div class="max-w-xs truncate" title="<%= log.reason %>">
                     <%= log.reason %>
                   </div>
                 <% else %>
-                  <span class="text-gray-500 italic">plead the 5th</span>
+                  <span class="text-muted italic">plead the 5th</span>
                 <% end %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <%= link_to 'the deets', admin_trust_level_audit_log_path(log), class: 'text-blue-400 hover:text-blue-300' %>
+                <%= link_to 'the deets', admin_trust_level_audit_log_path(log), class: 'text-blue hover:text-blue' %>
               </td>
             </tr>
           <% end %>
@@ -158,8 +158,8 @@
 
     <% if @audit_logs.empty? %>
       <div class="text-center py-12">
-        <div class="text-gray-400 text-lg mb-2">theres nothin</div>
-        <p class="text-gray-500">new shit will be seen here</p>
+        <div class="text-muted text-lg mb-2">theres nothin</div>
+        <p class="text-muted">new shit will be seen here</p>
       </div>
     <% end %>
   </div>

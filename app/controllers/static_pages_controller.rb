@@ -1,9 +1,7 @@
 class StaticPagesController < InertiaController
+  include DashboardData
+
   layout "inertia", only: :index
-  before_action :ensure_current_user, only: %i[
-    filterable_dashboard
-    filterable_dashboard_content
-  ]
 
   def index
     if current_user
@@ -23,31 +21,6 @@ class StaticPagesController < InertiaController
         end
       end
 
-      Time.use_zone(current_user.timezone) do
-        h = ApplicationController.helpers
-        rows = current_user.heartbeats.today
-          .select(:language, :editor,
-                  "COUNT(*) OVER (PARTITION BY language) as language_count",
-                  "COUNT(*) OVER (PARTITION BY editor) as editor_count")
-          .distinct.to_a
-
-        lang_counts = rows
-          .map { |r| [ r.language&.categorize_language, r.language_count ] }
-          .reject { |l, _| l.blank? }
-          .group_by(&:first).transform_values { |p| p.sum(&:last) }
-          .sort_by { |_, c| -c }
-
-        ed_counts = rows
-          .map { |r| [ r.editor, r.editor_count ] }
-          .reject { |e, _| e.blank? }.uniq
-          .sort_by { |_, c| -c }
-
-        @todays_languages = lang_counts.map { |l, _| h.display_language_name(l) }
-        @todays_editors = ed_counts.map { |e, _| h.display_editor_name(e) }
-        @todays_duration = current_user.heartbeats.today.duration_seconds
-        @show_logged_time_sentence = @todays_duration > 1.minute && (@todays_languages.any? || @todays_editors.any?)
-      end
-
       render inertia: "Home/SignedIn", props: signed_in_props
     else
       # Set homepage SEO content for logged-out users only
@@ -61,15 +34,19 @@ class StaticPagesController < InertiaController
     end
   end
 
-  def minimal_login
-    @continue_param = params[:continue].presence
-    render :minimal_login, layout: "doorkeeper/application"
-  end
-
-  def what_is_hackatime
-    @page_title = @og_title = @twitter_title = "What is Hackatime? - Free Coding Time Tracker"
-    @meta_description = @og_description = @twitter_description = "Hackatime is a free, open-source coding time tracker built by Hack Club for high school students. Track your programming time across 75+ editors and see your coding statistics."
-    @meta_keywords = "what is hackatime, hackatime definition, hack club time tracker, coding time tracker, programming statistics"
+  def signin
+    return redirect_to root_path if current_user
+    continue_param = params[:continue].presence
+    render inertia: "Auth/SignIn", props: {
+      hca_auth_path: hca_auth_path(continue: continue_param),
+      slack_auth_path: slack_auth_path(continue: continue_param),
+      email_auth_path: email_auth_path,
+      sign_in_email: params[:sign_in_email].present?,
+      show_dev_tool: Rails.env.development?,
+      dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
+      csrf_token: form_authenticity_token,
+      continue_param: continue_param
+    }
   end
 
   def project_durations
@@ -137,31 +114,7 @@ class StaticPagesController < InertiaController
     render partial: "streak"
   end
 
-  def filterable_dashboard
-    load_dashboard_data
-    %i[project language operating_system editor category].each do |f|
-      instance_variable_set("@selected_#{f}", params[f]&.split(",") || [])
-    end
-    @selected_interval = params[:interval]
-    @selected_from = params[:from]
-    @selected_to = params[:to]
-    render partial: "filterable_dashboard"
-  end
-
-  def filterable_dashboard_content
-    load_dashboard_data
-    render partial: "filterable_dashboard_content"
-  end
-
   private
-
-  def load_dashboard_data
-    filterable_dashboard_data.each { |k, v| instance_variable_set("@#{k}", v) }
-  end
-
-  def ensure_current_user
-    redirect_to(root_path, alert: "You must be logged in to view this page") unless current_user
-  end
 
   def set_homepage_seo_content
     @page_title = @og_title = @twitter_title = "Hackatime - See How Much You Code"
@@ -170,7 +123,6 @@ class StaticPagesController < InertiaController
   end
 
   def signed_in_props
-    helpers = ApplicationController.helpers
     {
       flavor_text: @flavor_text.to_s,
       trust_level_red: current_user&.trust_level == "red",
@@ -181,12 +133,15 @@ class StaticPagesController < InertiaController
       github_uid_blank: current_user&.github_uid.blank?,
       github_auth_path: github_auth_path,
       wakatime_setup_path: my_wakatime_setup_path,
-      show_logged_time_sentence: !!@show_logged_time_sentence,
-      todays_duration_display: helpers.short_time_detailed(@todays_duration.to_i),
-      todays_languages: @todays_languages || [],
-      todays_editors: @todays_editors || [],
+      dashboard_stats: InertiaRails.defer { dashboard_stats_payload }
+    }
+  end
+
+  def dashboard_stats_payload
+    {
       filterable_dashboard_data: filterable_dashboard_data,
-      activity_graph: activity_graph_data
+      activity_graph: activity_graph_data,
+      today_stats: today_stats_data
     }
   end
 
@@ -201,116 +156,6 @@ class StaticPagesController < InertiaController
       dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
       csrf_token: form_authenticity_token,
       home_stats: @home_stats || {}
-    }
-  end
-
-  def filterable_dashboard_data
-    filters = %i[project language operating_system editor category]
-    interval = params[:interval]
-    key = [ current_user ] + filters.map { |f| params[f] } + [ interval.to_s, params[:from], params[:to] ]
-    hb = current_user.heartbeats
-    base_hb = hb
-    h = ApplicationController.helpers
-
-    Rails.cache.fetch(key, expires_in: 5.minutes) do
-      archived = current_user.project_repo_mappings.archived.pluck(:project_name)
-      result = {}
-      grouped_durations = {}
-
-      Time.use_zone(current_user.timezone) do
-        filters.each do |f|
-          raw_options = base_hb.distinct.pluck(f).compact_blank
-          options = raw_options
-          options = options.reject { |n| archived.include?(n) } if f == :project
-          result[f] = options.map { |k|
-            f == :language ? k.categorize_language : (%i[operating_system editor].include?(f) ? k.capitalize : k)
-          }.uniq
-
-          next unless params[f].present?
-          arr = params[f].split(",")
-          hb = if %i[operating_system editor].include?(f)
-            hb.where(f => arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq)
-          elsif f == :language
-            raw = raw_options.select { |l| arr.include?(l.categorize_language) }
-            raw.any? ? hb.where(f => raw) : hb
-          else
-            hb.where(f => arr)
-          end
-          result["singular_#{f}"] = arr.length == 1
-        end
-
-        hb = hb.filter_by_time_range(interval, params[:from], params[:to])
-        result[:total_time] = hb.duration_seconds
-        result[:total_heartbeats] = hb.count
-
-        filters.each do |f|
-          grouped_durations[f] ||= hb.group(f).duration_seconds
-          stats = grouped_durations[f]
-          stats = stats.reject { |n, _| archived.include?(n) } if f == :project
-          result["top_#{f}"] = stats.max_by { |_, v| v }&.first
-        end
-
-        result["top_editor"] &&= h.display_editor_name(result["top_editor"])
-        result["top_operating_system"] &&= h.display_os_name(result["top_operating_system"])
-        result["top_language"] &&= h.display_language_name(result["top_language"])
-
-        unless result["singular_project"]
-          grouped_durations[:project] ||= hb.group(:project).duration_seconds
-          result[:project_durations] = grouped_durations[:project]
-            .reject { |p, _| archived.include?(p) }.sort_by { |_, d| -d }.first(10).to_h
-        end
-
-        %i[language editor operating_system category].each do |f|
-          next if result["singular_#{f}"]
-          grouped_durations[f] ||= hb.group(f).duration_seconds
-          stats = grouped_durations[f].each_with_object({}) do |(raw, dur), agg|
-            k = raw.to_s.presence || "Unknown"
-            k = f == :language ? (k == "Unknown" ? k : k.categorize_language) : (%i[editor operating_system].include?(f) ? k.downcase : k)
-            agg[k] = (agg[k] || 0) + dur
-          end
-          result["#{f}_stats"] = stats.sort_by { |_, d| -d }.first(10).map { |k, v|
-            label = case f
-            when :editor then h.display_editor_name(k)
-            when :operating_system then h.display_os_name(k)
-            when :language then h.display_language_name(k)
-            else k
-            end
-            [ label, v ]
-          }.to_h
-        end
-
-        weekly_project_durations = Heartbeat.weekly_grouped_durations(hb,
-          group_column: :project,
-          timezone: current_user.timezone,
-          weeks: 12)
-        result[:weekly_project_stats] = (0..11).to_h do |w|
-          ws = w.weeks.ago.beginning_of_week.to_date
-          [ ws.iso8601, (weekly_project_durations[ws] || {}).reject { |p, _| archived.include?(p) } ]
-        end
-      end
-      result[:selected_interval] = interval.to_s
-      result[:selected_from] = params[:from].to_s
-      result[:selected_to] = params[:to].to_s
-      filters.each { |f| result["selected_#{f}"] = params[f]&.split(",") || [] }
-
-      result
-    end
-  end
-
-  def activity_graph_data
-    tz = current_user.timezone
-    key = "user_#{current_user.id}_daily_durations_#{tz}"
-    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
-      Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
-    end
-
-    {
-      start_date: 365.days.ago.to_date.iso8601,
-      end_date: Time.current.to_date.iso8601,
-      duration_by_date: durations.transform_keys { |d| d.to_date.iso8601 }.transform_values(&:to_i),
-      busiest_day_seconds: 8.hours.to_i,
-      timezone_label: ActiveSupport::TimeZone[tz].to_s,
-      timezone_settings_path: "/my/settings#user_timezone"
     }
   end
 end

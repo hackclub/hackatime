@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="dark">
+<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>">
   <head>
     <title><%= t('doorkeeper.layouts.admin.title') %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="color-scheme" content="dark">
+    <meta name="color-scheme" content="<%= current_theme_color_scheme %>">
 
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -14,7 +14,7 @@
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
   </head>
 
-  <body class="flex min-h-screen bg-darker" data-controller="nav">
+  <body class="flex min-h-screen bg-surface" data-controller="nav">
     <button class="mobile-nav-button" data-action="click->nav#toggle" data-nav-target="button" aria-label="Toggle navigation menu" aria-expanded="false">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />

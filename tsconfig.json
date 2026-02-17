@@ -25,6 +25,5 @@
   },
 
   "include": ["app/javascript/**/*.ts", "app/javascript/**/*.js", "app/javascript/**/*.svelte"],
-  "exclude": ["app/javascript/controllers"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

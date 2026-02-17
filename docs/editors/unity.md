@@ -54,7 +54,7 @@ After installing, you will need to grab your Hackatime API key and paste it into
 
 **Package Manager not working?** Make sure you're connected to the internet.
 
-**Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-v2 channel.
+**Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-help channel.
 
 ## What Happens Next
 

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { router } from "@inertiajs/svelte";
   import { secondsToDisplay } from "./utils";
   import StatCard from "./StatCard.svelte";
   import HorizontalBarList from "./HorizontalBarList.svelte";
@@ -10,11 +9,11 @@
 
   let {
     data,
+    onFiltersChange,
   }: {
     data: Record<string, any>;
+    onFiltersChange?: (search: string) => void;
   } = $props();
-
-  let loading = $state(false);
 
   const langStats = $derived(
     (data.language_stats || {}) as Record<string, number>,
@@ -44,18 +43,7 @@
         current.searchParams.delete(k);
       }
     }
-
-    loading = true;
-    router.get(
-      current.pathname + current.search,
-      {},
-      {
-        preserveState: true,
-        preserveScroll: true,
-        only: ["filterable_dashboard_data"],
-        onFinish: () => (loading = false),
-      },
-    );
+    onFiltersChange?.(current.search);
   }
 
   function onIntervalChange(interval: string, from: string, to: string) {
@@ -71,7 +59,7 @@
   }
 </script>
 
-<div class="flex flex-col gap-6 w-full" class:opacity-60={loading}>
+<div class="flex flex-col gap-6 w-full">
   <!-- Filters -->
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-2">
     <IntervalSelect

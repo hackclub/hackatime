@@ -1,17 +1,29 @@
-class My::ProjectRepoMappingsController < ApplicationController
+class My::ProjectRepoMappingsController < InertiaController
+  layout "inertia", only: [ :index ]
+
   before_action :ensure_current_user
   before_action :require_github_oauth, only: [ :edit, :update ]
   before_action :set_project_repo_mapping_for_edit, only: [ :edit, :update ]
   before_action :set_project_repo_mapping, only: [ :archive, :unarchive ]
 
   def index
-    @project_repo_mappings = current_user.project_repo_mappings.active
-    @interval = params[:interval] || "daily"
-    @from = params[:from]
-    @to = params[:to]
+    archived = show_archived?
 
-    archived = params[:show_archived] == "true"
-    @project_count = project_count(archived)
+    render inertia: "Projects/Index", props: {
+      page_title: "My Projects",
+      index_path: my_projects_path,
+      show_archived: archived,
+      archived_count: current_user.project_repo_mappings.archived.count,
+      github_connected: current_user.github_uid.present?,
+      github_auth_path: github_auth_path,
+      settings_path: my_settings_path(anchor: "user_github_account"),
+      interval: selected_interval,
+      from: params[:from],
+      to: params[:to],
+      interval_label: helpers.human_interval_name(selected_interval, from: params[:from], to: params[:to]),
+      total_projects: project_count(archived),
+      projects_data: InertiaRails.defer { projects_payload(archived: archived) }
+    }
   end
 
   def edit
@@ -73,9 +85,115 @@ class My::ProjectRepoMappingsController < ApplicationController
     params.require(:project_repo_mapping).permit(:repo_url)
   end
 
+  def show_archived?
+    params[:show_archived] == "true"
+  end
+
+  def selected_interval
+    params[:interval]
+  end
+
+  def project_durations_cache_key
+    key = "user_#{current_user.id}_project_durations_#{selected_interval}_v3"
+    if selected_interval == "custom"
+      sanitized_from = sanitized_cache_date(params[:from]) || "none"
+      sanitized_to = sanitized_cache_date(params[:to]) || "none"
+      key += "_#{sanitized_from}_#{sanitized_to}"
+    end
+    key
+  end
+
+  def sanitized_cache_date(value)
+    value.to_s.gsub(/[^0-9-]/, "")[0, 10].presence
+  end
+
+  def projects_payload(archived:)
+    mappings = current_user.project_repo_mappings.includes(:repository)
+    scoped_mappings = archived ? mappings.archived : mappings.active
+    mappings_by_name = scoped_mappings.index_by(&:project_name)
+    archived_names = current_user.project_repo_mappings.archived.pluck(:project_name).index_with(true)
+    labels_by_project_key = current_user.project_labels.pluck(:project_key, :label).to_h
+
+    cached = Rails.cache.fetch(project_durations_cache_key, expires_in: 1.minute) do
+      hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
+      {
+        durations: hb.group(:project).duration_seconds,
+        total_time: hb.duration_seconds
+      }
+    end
+
+    projects = cached[:durations].filter_map do |project_key, duration|
+      next if duration <= 0
+      next if archived_names.key?(project_key) != archived
+
+      mapping = mappings_by_name[project_key]
+      display_name = labels_by_project_key[project_key].presence || project_key.presence || "Unknown"
+
+      {
+        id: project_card_id(project_key),
+        name: display_name,
+        project_key: project_key,
+        duration_seconds: duration,
+        duration_label: format_duration(duration),
+        duration_percent: 0,
+        repo_url: mapping&.repo_url,
+        repository: repository_payload(mapping&.repository),
+        broken_name: broken_project_name?(project_key, display_name),
+        manage_enabled: current_user.github_uid.present? && project_key.present?,
+        edit_path: project_key.present? ? edit_my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
+        update_path: project_key.present? ? my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
+        archive_path: project_key.present? ? archive_my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
+        unarchive_path: project_key.present? ? unarchive_my_project_repo_mapping_path(CGI.escape(project_key)) : nil
+      }
+    end.sort_by { |project| -project[:duration_seconds] }
+
+    max_duration = projects.map { |project| project[:duration_seconds].to_f }.max || 1.0
+
+    projects.each do |project|
+      project[:duration_percent] = ((project[:duration_seconds].to_f / max_duration) * 100).round(1)
+    end
+
+    total_time = cached[:total_time].to_i
+
+    {
+      total_time_seconds: total_time,
+      total_time_label: format_duration(total_time),
+      has_activity: total_time.positive?,
+      projects: projects
+    }
+  end
+
+  def format_duration(seconds)
+    helpers.short_time_detailed(seconds).presence || "0m"
+  end
+
+  def project_card_id(project_key)
+    raw_key = project_key.nil? ? "__nil__" : "str:#{project_key}"
+    "project-#{raw_key.unpack1('H*')}"
+  end
+
+  def broken_project_name?(project_key, display_name)
+    key = project_key.to_s
+    name = display_name.to_s
+
+    key.blank? || name.downcase == "unknown" || key.match?(/<<.*>>/) || name.match?(/<<.*>>/)
+  end
+
+  def repository_payload(repository)
+    return nil unless repository
+
+    {
+      homepage: repository.homepage,
+      stars: repository.stars,
+      description: repository.description,
+      formatted_languages: repository.formatted_languages,
+      last_commit_ago: repository.last_commit_at ? "#{helpers.time_ago_in_words(repository.last_commit_at)} ago" : nil
+    }
+  end
+
   def project_count(archived)
     archived_names = current_user.project_repo_mappings.archived.pluck(:project_name)
-    hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
+    hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
     projects = hb.select(:project).distinct.pluck(:project)
     projects.count { |proj| archived_names.include?(proj) == archived }
   end

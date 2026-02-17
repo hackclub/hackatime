@@ -41,7 +41,7 @@
   }
 </style>
 
-<div class=" text-white flex flex-col font-sans min-h-screen">
+<div class=" text-surface-content flex flex-col font-sans min-h-screen">
   <div data-controller="admin-timeline-user-selector" data-admin-timeline-user-selector-current-user-json-value="<%= current_admin_user_json %>" data-admin-timeline-user-selector-initial-selected-users-json-value="<%= initial_selected_users_json %>" data-admin-timeline-user-selector-search-url-value="<%= admin_timeline_search_users_path %>" data-admin-timeline-user-selector-leaderboard-users-url-value="<%= admin_timeline_leaderboard_users_path %>" class="mb-4 p-3 bg-dark rounded-md shrink-0">
     <form id="timeline-filter-form" action="<%= admin_timeline_path %>" method="get" data-turbo-frame="_top">
       <input type="hidden" name="user_ids" data-admin-timeline-user-selector-target="userIdsInput">
@@ -50,7 +50,7 @@
       <div class="flex items-center gap-3">
         <div class="flex-1 relative">
           <div class="relative">
-            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted">
               <svg data-admin-timeline-user-selector-target="searchIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
@@ -59,15 +59,15 @@
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             </div>
-            <input type="text" id="user-search-input" placeholder="Add user by name/email/id..." data-admin-timeline-user-selector-target="searchInput" data-action="input->admin-timeline-user-selector#debouncedSearch keydown->admin-timeline-user-selector#handleKeydown focus->admin-timeline-user-selector#search blur->admin-timeline-user-selector#hideResultsDelayed" autocomplete="off" class="w-full pl-10 pr-3 py-2 bg-darker rounded-md text-white placeholder-gray-300 focus:outline-none focus:border-transparent text-sm">
+            <input type="text" id="user-search-input" placeholder="Add user by name/email/id..." data-admin-timeline-user-selector-target="searchInput" data-action="input->admin-timeline-user-selector#debouncedSearch keydown->admin-timeline-user-selector#handleKeydown focus->admin-timeline-user-selector#search blur->admin-timeline-user-selector#hideResultsDelayed" autocomplete="off" class="w-full pl-10 pr-3 py-2 bg-darker rounded-md text-surface-content placeholder-gray-300 focus:outline-none focus:border-transparent text-sm">
           </div>
-          <div class="absolute top-full left-0 w-full bg-dark border border-gray-700 rounded-lg mt-1 z-50 max-h-48 overflow-y-auto hidden shadow-lg" data-admin-timeline-user-selector-target="searchResults">
+          <div class="absolute top-full left-0 w-full bg-dark border border-surface-200 rounded-lg mt-1 z-50 max-h-48 overflow-y-auto hidden shadow-lg" data-admin-timeline-user-selector-target="searchResults">
             <%# Search results will appear here %>
           </div>
         </div>
-        <button type="button" class="px-3 py-2 bg-darker rounded-md text-sm text-white transition-colors" data-action="admin-timeline-user-selector#applyPreset" data-period="today">Top 15 Today</button>
-        <button type="button" class="px-3 py-2 bg-darker rounded-md text-sm text-white transition-colors" data-action="admin-timeline-user-selector#applyPreset" data-period="last_7_days">Top 15 Week</button>
-        <button type="submit" class="px-4 py-2 bg-green-600 rounded-md text-sm text-white transition-colors font-medium">View</button>
+        <button type="button" class="px-3 py-2 bg-darker rounded-md text-sm text-surface-content transition-colors" data-action="admin-timeline-user-selector#applyPreset" data-period="today">Top 15 Today</button>
+        <button type="button" class="px-3 py-2 bg-darker rounded-md text-sm text-surface-content transition-colors" data-action="admin-timeline-user-selector#applyPreset" data-period="last_7_days">Top 15 Week</button>
+        <button type="submit" class="px-4 py-2 bg-green rounded-md text-sm text-on-primary transition-colors font-medium">View</button>
       </div>
 
       <div class="mt-2 min-h-7" data-admin-timeline-user-selector-target="selectedUsersContainer">
@@ -101,8 +101,8 @@
             hour_top = 120 + (hour * pixels_per_hour)
             formatted_hour = Time.utc(2000, 1, 1, hour).strftime('%-l:00 %p')
           %>
-          <div class="absolute left-0 w-full border-t border-gray-600" style="top: <%= hour_top %>px; height: <%= pixels_per_hour %>px;">
-            <div class="absolute left-2 top-2 text-xs text-gray-300 font-mono px-1">
+          <div class="absolute left-0 w-full border-t border-surface-200" style="top: <%= hour_top %>px; height: <%= pixels_per_hour %>px;">
+            <div class="absolute left-2 top-2 text-xs text-muted font-mono px-1">
               <%= formatted_hour %>
             </div>
           </div>
@@ -128,18 +128,18 @@
             trust_level_bg =
               case user.respond_to?(:trust_level) ? user.trust_level : nil
               when 'red'
-                'bg-red-500/20'
+                'bg-red/20'
               when 'green'
-                'bg-green-500/20'
+                'bg-green/20'
               when 'yellow'
-                'bg-yellow-500/20'
+                'bg-yellow/20'
               when 'blue'
-                'bg-blue-500/20'
+                'bg-blue/20'
               else
-                'bg-gray-500/20'
+                'bg-surface-100/20'
               end
           %>
-          <div class="absolute border-r border-gray-700" style="left: <%= column_left %>px; width: <%= min_column_width_px %>px; top: 120px; bottom: 0; padding-bottom: 0;"></div>
+          <div class="absolute border-r border-surface-200" style="left: <%= column_left %>px; width: <%= min_column_width_px %>px; top: 120px; bottom: 0; padding-bottom: 0;"></div>
           <div class="absolute top-0 p-3 rounded-lg shadow-lg <%= trust_level_bg %>" data-user-id="<%= user.id %>" style="left: <%= column_left + 2 %>px; width: <%= min_column_width_px - 4 %>px;" title="User ID: <%= user.id %> - <%= user.respond_to?(:display_name) && user.display_name.present? ? h(user.display_name) : h(user.email_addresses.first&.email) %> | Total Coded: <%= total_coded_time_seconds && total_coded_time_seconds > 0 ? short_time_detailed(total_coded_time_seconds) : '0m' %> | TZ: <%= h(user.timezone) %>">
             <div class="flex items-center space-x-1 mb-1">
               <%= render 'shared/user_mention', user: user %>
@@ -147,12 +147,12 @@
             <div class="flex justify-center items-center gap-4 mb-1 text-center">
               <% if current_user && user != current_user && user.slack_uid.present? %>
                 <div>
-                  <%= link_to 'Slack', "slack://user?team=T0266FRGM&id=#{user.slack_uid}", target: '_blank', class: 'text-xs text-blue-400 hover:text-blue-300 underline' %>
+                  <%= link_to 'Slack', "slack://user?team=T0266FRGM&id=#{user.slack_uid}", target: '_blank', class: 'text-xs text-blue hover:text-blue underline' %>
                 </div>
               <% end %>
               <% if user.respond_to?(:github_profile_url) && user.github_profile_url.present? %>
                 <div>
-                  <%= link_to 'Git', user.github_profile_url, target: '_blank', class: 'text-xs text-green-400 hover:text-green-300 underline' %>
+                  <%= link_to 'Git', user.github_profile_url, target: '_blank', class: 'text-xs text-green hover:text-green underline' %>
                 </div>
               <% end %>
               <div>
@@ -160,15 +160,15 @@
               </div>
               <% if current_user && current_user.admin_level.in?(["admin", "superadmin"]) && user != current_user %>
                 <div>
-                  <button onclick="setTrust(<%= user.id.to_json %>)" class="text-xs text-gray-300 hover:text-white" title="Set trust level">🔨</button>
+                  <button onclick="setTrust(<%= user.id.to_json %>)" class="text-xs text-muted hover:text-surface-content" title="Set trust level">🔨</button>
                 </div>
               <% end %>
             </div>
-            <div class="text-sm font-medium mb-1 <%= total_coded_time_seconds && total_coded_time_seconds > 0 ? 'text-green-300' : 'text-gray-400' %>">
+            <div class="text-sm font-medium mb-1 <%= total_coded_time_seconds && total_coded_time_seconds > 0 ? 'text-green' : 'text-muted' %>">
               <%= total_coded_time_seconds && total_coded_time_seconds > 0 ? "#{short_time_simple(total_coded_time_seconds)} coded" : 'No time coded' %>
             </div>
 
-            <div class="text-xs text-gray-300">
+            <div class="text-xs text-muted">
               <%= user.timezone %>
             </div>
           </div>
@@ -185,8 +185,8 @@
           end
         %>
         <% if show_current_time_line %>
-          <div class="absolute w-full h-0.5 bg-red-500 z-300 flex items-center" style="left: <%= hour_label_width %>px; right: 0; top: <%= current_time_line_top_px %>px;">
-            <div class="bg-red-500 text-white text-xs px-2 py-1 rounded -ml-16">NOW</div>
+          <div class="absolute w-full h-0.5 bg-red z-300 flex items-center" style="left: <%= hour_label_width %>px; right: 0; top: <%= current_time_line_top_px %>px;">
+            <div class="bg-red text-on-primary text-xs px-2 py-1 rounded -ml-16">NOW</div>
           </div>
         <% end %>
         <%
@@ -237,7 +237,7 @@
             <% props = calculate_span_properties.call(span_data, user.timezone || primary_user_tz) %>
             <% next unless props %>
             <div
-              class="absolute rounded-md p-2 text-white text-xs overflow-hidden z-10"
+              class="absolute rounded-md p-2 text-surface-content text-xs overflow-hidden z-10"
               style="background-color: <%= block_color %>;
                         left: <%= column_left + 2 %>px;
                         width: <%= min_column_width_px - 4 %>px;
@@ -248,7 +248,7 @@
                 <% if props[:projects_to_display]&.any? %>
                   <% props[:projects_to_display].each_with_index do |project_detail, p_idx| %>
                     <% if project_detail[:repo_url].present? %>
-                      <a href="<%= project_detail[:repo_url] %>" target="_blank" rel="noopener noreferrer" class="text-white hover:text-gray-200 underline" title="Open <%= h(project_detail[:name]) %> on GitHub"><%= h(project_detail[:name]).truncate(20) %></a>
+                      <a href="<%= project_detail[:repo_url] %>" target="_blank" rel="noopener noreferrer" class="text-surface-content hover:text-muted underline" title="Open <%= h(project_detail[:name]) %> on GitHub"><%= h(project_detail[:name]).truncate(20) %></a>
                     <% else %>
                       <span title="<%= h(project_detail[:name]) %> - No GitHub Repo Mapped"><%= h(project_detail[:name]).truncate(20) %> 🚫</span>
                     <% end %>
@@ -280,15 +280,15 @@
           <% pill_left_px = column_left + 93 %>
           <% commit_minutes_from_view_start = ((Time.at(commit[:timestamp]).in_time_zone(user_tz) - view_start_datetime) / 60.0).to_f %>
           <% commit_top_px = 120 + (commit_minutes_from_view_start * pixels_per_minute).round %>
-          <a href="<%= commit[:github_url] %>" target="_blank" rel="noopener noreferrer" title="<%= commit[:message] %>" class="absolute z-20 bg-darker text-white rounded-full px-2 py-1 text-xs hover:bg-gray-800 transition-colors" style="left: <%= pill_left_px %>px; top: <%= commit_top_px %>px; transform: translateX(-50%);">
-            <span class="<%= commit[:additions].to_i > 0 ? 'text-green-400 font-semibold' : '' %>">+<%= commit[:additions] %></span>
+          <a href="<%= commit[:github_url] %>" target="_blank" rel="noopener noreferrer" title="<%= commit[:message] %>" class="absolute z-20 bg-darker text-surface-content rounded-full px-2 py-1 text-xs hover:bg-surface-100 transition-colors" style="left: <%= pill_left_px %>px; top: <%= commit_top_px %>px; transform: translateX(-50%);">
+            <span class="<%= commit[:additions].to_i > 0 ? 'text-green font-semibold' : '' %>">+<%= commit[:additions] %></span>
             /
-            <span class="<%= commit[:deletions].to_i > 0 ? 'text-red-400 font-semibold' : '' %>">-<%= commit[:deletions] %></span>
+            <span class="<%= commit[:deletions].to_i > 0 ? 'text-red font-semibold' : '' %>">-<%= commit[:deletions] %></span>
           </a>
         <% end %>
       </div>
     <% else %>
-      <div class="flex items-center justify-center h-64 text-gray-400">
+      <div class="flex items-center justify-center h-64 text-muted">
         <div class="text-center">
           <div class="text-lg mb-2">No users selected</div>
           <div class="text-sm">Use the search bar above to add users to the timeline</div>
@@ -300,14 +300,14 @@
 
 <script>
   const trusts = {
-    green: { emoji: "🟢", name: "Green - Trusted", bg: "bg-green-500/20" },
-    yellow: { emoji: "🟡", name: "Yellow - Suspected", bg: "bg-yellow-500/20" },
-    red: { emoji: "🔴", name: "Red - Convicted (banned)", bg: "bg-red-500/20" },
-    blue: { emoji: "🔵", name: "Blue - Unscored", bg: "bg-blue-500/20" },
-    1: { emoji: "🟢", name: "Green - Trusted", bg: "bg-green-500/20", level: "green" },
-    2: { emoji: "🟡", name: "Yellow - Suspected", bg: "bg-yellow-500/20", level: "yellow" },
-    3: { emoji: "🔴", name: "Red - Convicted (banned)", bg: "bg-red-500/20", level: "red" },
-    4: { emoji: "🔵", name: "Blue - Unscored", bg: "bg-blue-500/20", level: "blue" },
+    green: { emoji: "🟢", name: "Green - Trusted", bg: "bg-green/20" },
+    yellow: { emoji: "🟡", name: "Yellow - Suspected", bg: "bg-yellow/20" },
+    red: { emoji: "🔴", name: "Red - Convicted (banned)", bg: "bg-red/20" },
+    blue: { emoji: "🔵", name: "Blue - Unscored", bg: "bg-blue/20" },
+    1: { emoji: "🟢", name: "Green - Trusted", bg: "bg-green/20", level: "green" },
+    2: { emoji: "🟡", name: "Yellow - Suspected", bg: "bg-yellow/20", level: "yellow" },
+    3: { emoji: "🔴", name: "Red - Convicted (banned)", bg: "bg-red/20", level: "red" },
+    4: { emoji: "🔵", name: "Blue - Unscored", bg: "bg-blue/20", level: "blue" },
   };
 
   window.setTrust = function (userId) {
@@ -379,7 +379,7 @@
           // what the fuck is this
         });
         if (card) {
-          card.classList.remove("bg-red-500/20", "bg-green-500/20", "bg-yellow-500/20", "bg-blue-500/20", "bg-gray-500/20");
+          card.classList.remove("bg-red/20", "bg-green/20", "bg-yellow/20", "bg-blue/20", "bg-surface-100/20");
           card.classList.add(trust.bg);
           const span = card.querySelector("span.text-sm");
           if (span) {

@@ -4,8 +4,8 @@ class ApplicationController < ActionController::Base
   before_action :initialize_cache_counters
   before_action :try_rack_mini_profiler_enable
   before_action :track_request
-  before_action :set_public_activity
   before_action :enforce_lockout
+  before_action :set_cache_headers
 
   around_action :switch_time_zone, if: :current_user
 
@@ -19,11 +19,6 @@ class ApplicationController < ActionController::Base
   helper_method :current_user, :user_signed_in?, :active_users_graph_data
 
   private
-
-  def set_public_activity
-    return unless Flipper.enabled?(:public_activity_log, current_user)
-    @activities = PublicActivity::Activity.limit(25).order(created_at: :desc).includes(:owner, :trackable)
-  end
 
   def sentry_context
     Sentry.set_user(
@@ -54,6 +49,12 @@ class ApplicationController < ActionController::Base
     !!current_user
   end
 
+  def safe_return_url(url)
+    return nil if url.blank?
+    return nil unless url.start_with?("/") && !url.start_with?("//")
+    url
+  end
+
   def authenticate_user!
     unless user_signed_in?
       redirect_to root_path, alert: "Please sign in first!"
@@ -64,6 +65,10 @@ class ApplicationController < ActionController::Base
     return unless current_user&.pending_deletion?
     return if %w[deletion_requests sessions].include?(controller_name)
     redirect_to deletion_path
+  end
+
+  def set_cache_headers
+    response.headers["Cache-Control"] = "no-store"
   end
 
   def initialize_cache_counters

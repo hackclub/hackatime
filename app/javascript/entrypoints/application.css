@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import '../../assets/tailwind/application.css';
 
 @plugin '@tailwindcss/typography';
 @plugin '@tailwindcss/forms';

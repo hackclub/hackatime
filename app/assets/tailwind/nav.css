@@ -1,61 +1,72 @@
 aside[data-nav-target="nav"] {
-    @apply fixed inset-y-0 left-0 w-[15.625rem] bg-dark text-[#f3f3f3] border-r border-r-darkless z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-in-out;
+  @apply fixed inset-y-0 left-0 w-[15.625rem] bg-dark border-r border-r-darkless z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-in-out;
+  color: var(--color-surface-content);
 }
 
-aside[data-nav-target="nav"] a.block {
-    @apply block py-2.5 px-4 text-[#f3f3f3] rounded-md transition-colors duration-150 no-underline;
+aside[data-nav-target="nav"] a.block,
+aside[data-nav-target="nav"] button.block {
+  @apply block py-2.5 px-4 rounded-md transition-colors duration-150 no-underline;
 }
 
-aside[data-nav-target="nav"] a.block.bg-primary\/20 {
-    @apply text-primary;
-    @apply bg-[rgba(225,57,80,0.12)];
+aside[data-nav-target="nav"] a.block.bg-primary\/20,
+aside[data-nav-target="nav"] button.block.bg-primary\/20 {
+  @apply text-primary;
+  background-color: color-mix(in oklab, var(--color-primary) 18%, transparent);
 }
 
-aside[data-nav-target="nav"] a.block:hover {
-    @apply bg-darkless;
-    @apply text-primary;
+aside[data-nav-target="nav"] a.block.bg-primary,
+aside[data-nav-target="nav"] button.block.bg-primary {
+  color: var(--color-on-primary);
+}
+
+aside[data-nav-target="nav"]
+  a.block:not(.bg-primary):not(.bg-primary\/20):hover,
+aside[data-nav-target="nav"]
+  button.block:not(.bg-primary):not(.bg-primary\/20):hover {
+  @apply bg-darkless;
+  @apply text-primary;
 }
 
 @media (max-width: 1023px) {
-    aside[data-nav-target="nav"] {
-        @apply -translate-x-full z-9999;
-    }
+  aside[data-nav-target="nav"] {
+    @apply -translate-x-full z-9999;
+  }
 
-    aside[data-nav-target="nav"].open {
-        @apply translate-x-0 shadow-[2px_0_20px_rgba(0,0,0,0.3)];
-    }
+  aside[data-nav-target="nav"].open {
+    @apply translate-x-0 shadow-[2px_0_20px_rgba(0,0,0,0.3)];
+  }
 }
 
 .mobile-nav-button {
-    background: var(--color-darkless);
-    color: var(--primary-color);
-    @apply hidden fixed top-5 left-5 z-100 border-none rounded-md p-3 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-[background-color] duration-200;
+  background: var(--color-darkless);
+  color: var(--color-primary);
+  @apply hidden fixed top-5 left-5 z-100 border-none rounded-md p-3 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-[background-color] duration-200;
 }
 
 .mobile-nav-button:hover {
-    @apply bg-darkless;
+  @apply bg-darkless;
 }
 
 .mobile-nav-button svg {
-    @apply size-6;
+  @apply size-6;
 }
 
 @media (max-width: 1023px) {
-    .mobile-nav-button {
-        @apply block;
-    }
+  .mobile-nav-button {
+    @apply block;
+  }
 }
 
 .nav-overlay {
-    @apply hidden fixed inset-0 bg-[rgba(0,0,0,0.5)] backdrop-blur-xs z-9998 opacity-0 transition-opacity duration-300 ease-in-out;
+  @apply hidden fixed inset-0 bg-[rgba(0,0,0,0.5)] backdrop-blur-xs z-9998 opacity-0 transition-opacity duration-300 ease-in-out;
 }
 
 .nav-overlay.open {
-    @apply opacity-100;
+  @apply opacity-100;
 }
 
 @media (max-width: 1023px) {
-    .nav-overlay.open {
-        @apply block;
-    }
+  .nav-overlay.open {
+    @apply block;
+  }
 }

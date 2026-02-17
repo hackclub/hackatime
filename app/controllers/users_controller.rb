@@ -1,86 +1,43 @@
 class UsersController < InertiaController
-  layout :resolve_layout
+  layout "inertia", only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
 
-  include ActionView::Helpers::NumberHelper
-
-  before_action :set_user
-  before_action :require_current_user, except: [ :update_trust_level ]
+  before_action :ensure_current_user_for_setup, only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
   before_action :require_admin, only: [ :update_trust_level ]
-
-  def edit
-    prepare_settings_page
-  end
-
-  def update
-    # Handle regular user settings updates
-    if params[:user].present?
-      if @user.update(user_params)
-        if @user.uses_slack_status?
-          @user.update_slack_status
-        end
-        redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
-          notice: "Settings updated successfully"
-      else
-        flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
-        prepare_settings_page
-        render :edit, status: :unprocessable_entity
-      end
-    else
-      redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
-        notice: "Settings updated successfully!"
-    end
-  end
-
-  def migrate_heartbeats
-    MigrateUserFromHackatimeJob.perform_later(@user.id)
-
-    redirect_to is_own_settings? ? my_settings_path : settings_user_path(@user),
-      notice: "Heartbeats & api keys migration started"
-  end
-
-  def rotate_api_key
-    @user.api_keys.transaction do
-      @user.api_keys.destroy_all
-
-      new_api_key = @user.api_keys.create!(name: "Hackatime key")
-
-      render json: { token: new_api_key.token }, status: :ok
-    end
-  rescue => e
-    Rails.logger.error("error rotate #{e.class.name} #{e.message}")
-    render json: { error: "cant rotate" }, status: :unprocessable_entity
-  end
 
   def wakatime_setup
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
-    setup_os = detect_setup_os(request.user_agent)
+    PosthogService.capture(current_user, "setup_started", { step: 1 })
 
     render inertia: "WakatimeSetup/Index", props: {
-      current_user_api_key: api_key&.token,
-      setup_os: setup_os.to_s,
+      current_user_api_key: api_key.token,
+      setup_os: detect_setup_os(request.user_agent).to_s,
       api_url: api_hackatime_v1_url,
       heartbeat_check_url: api_v1_my_heartbeats_most_recent_path(source_type: "test_entry")
     }
   end
 
   def wakatime_setup_step_2
+    PosthogService.capture(current_user, "setup_step_viewed", { step: 2 })
+
     render inertia: "WakatimeSetup/Step2", props: {}
   end
 
   def wakatime_setup_step_3
     api_key = current_user&.api_keys&.last
     api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
-    editor = params[:editor]
+    PosthogService.capture(current_user, "setup_step_viewed", { step: 3 })
 
     render inertia: "WakatimeSetup/Step3", props: {
-      current_user_api_key: api_key&.token,
-      editor: editor,
+      current_user_api_key: api_key.token,
+      editor: params[:editor],
       heartbeat_check_url: api_v1_my_heartbeats_most_recent_path
     }
   end
 
   def wakatime_setup_step_4
+    PosthogService.capture(current_user, "setup_completed", { step: 4 })
+
     render inertia: "WakatimeSetup/Step4", props: {
       dino_video_url: FlavorText.dino_meme_videos.sample,
       return_url: session.dig(:return_data, "url"),
@@ -128,10 +85,8 @@ class UsersController < InertiaController
 
   private
 
-  def resolve_layout
-    return "application" if %w[edit update migrate_heartbeats].include?(action_name)
-
-    "inertia"
+  def ensure_current_user_for_setup
+    redirect_to root_path, alert: "You need to log in!" if current_user.nil?
   end
 
   def require_admin
@@ -152,45 +107,5 @@ class UsersController < InertiaController
     return :windows if ua.match?(/windows/i)
 
     :mac_linux
-  end
-
-  def prepare_settings_page
-    @is_own_settings = is_own_settings?
-    @can_enable_slack_status = @user.slack_access_token.present? && @user.slack_scopes.include?("users.profile:write")
-
-    @enabled_sailors_logs = SailorsLogNotificationPreference.where(
-      slack_uid: @user.slack_uid,
-      enabled: true,
-    ).where.not(slack_channel_id: SailorsLog::DEFAULT_CHANNELS)
-
-    @heartbeats_migration_jobs = @user.data_migration_jobs
-
-    @projects = @user.project_repo_mappings.distinct.pluck(:project_name)
-    @work_time_stats_url = "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/#{@projects.first || 'example'}"
-  end
-
-  def set_user
-    @user = if params["id"].present?
-      User.find(params["id"])
-    else
-      current_user
-    end
-
-    redirect_to root_path, alert: "You need to log in!" if @user.nil?
-  end
-
-  def is_own_settings?
-    @is_own_settings ||= params["id"] == "my" || params["id"]&.blank?
-  end
-
-  def user_params
-    params.require(:user).permit(
-      :uses_slack_status,
-      :hackatime_extension_text_type,
-      :timezone,
-      :country_code,
-      :allow_public_stats_lookup,
-      :username,
-    )
   end
 end

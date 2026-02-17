@@ -29,7 +29,7 @@ In the WAKA api key section, paste your api key from Step 2 and make sure tracki
 
 - **Not seeing your time?** Make sure you have completed all the steps above and set the correct api key
 - **Plugin not working?** Try refreshing OnShape after installation
-- **Still stuck?** Ask for help in by pinging @Jeffrey Wang on [Hack Club Slack](https://hackclub.slack.com) (#hackatime-v2 channel)
+- **Still stuck?** Ask for help in by pinging @Jeffrey Wang on [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 
 ## Next Steps
 

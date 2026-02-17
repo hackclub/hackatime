@@ -45,7 +45,7 @@
   const legendClasses = {
     root: "w-full px-2",
     swatches: "flex-wrap justify-center",
-    label: "text-xs text-white/70",
+    label: "text-xs text-surface-content/70",
   };
 
   const legendPadding = $derived.by(() => {
@@ -58,9 +58,9 @@
 </script>
 
 <div
-  class="bg-dark/50 border border-white/10 rounded-xl p-6 flex flex-col h-full"
+  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
 >
-  <h2 class="mb-4 text-lg font-semibold text-white/90">{title}</h2>
+  <h2 class="mb-4 text-lg font-semibold text-surface-content/90">{title}</h2>
   <div class="h-[260px] sm:h-[280px] lg:h-[300px]">
     {#if data.length > 0}
       <PieChart

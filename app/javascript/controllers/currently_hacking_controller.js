@@ -169,8 +169,8 @@ export default class extends Controller {
     const url = u.avatar_url || ''
     
     const name = u.slack_uid ? 
-      `<a href="https://hackclub.slack.com/team/${u.slack_uid}" target="_blank" class="text-blue-500 hover:underline">@${dis}</a>` :
-      `<span class="text-white">${dis}</span>`
+      `<a href="https://hackclub.slack.com/team/${u.slack_uid}" target="_blank" class="text-blue hover:underline">@${dis}</a>` :
+      `<span class="text-on-primary">${dis}</span>`
     
     return `
       <div class="user-info flex items-center gap-2">
@@ -191,7 +191,7 @@ export default class extends Controller {
     return `
       <div class="text-sm italic text-muted ml-2">
         working on 
-        ${p.repo_url ? `<a href="${p.repo_url}" target="_blank" class="text-accent hover:text-cyan-400 transition-colors">${out}</a>` : out}
+        ${p.repo_url ? `<a href="${p.repo_url}" target="_blank" class="text-accent hover:text-cyan transition-colors">${out}</a>` : out}
         ${v ? `<a href="${v}" target="_blank" class="ml-1">🌌</a>` : ''}
       </div>
     `

@@ -22,7 +22,7 @@ The WakaTime plugin will automatically use your Hackatime configuration after ru
 
 - **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) first
 - **Plugin not working?** Try restarting Neovim after installation
-- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-v2 channel)
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 
 ## Next Steps
 

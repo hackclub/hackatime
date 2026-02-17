@@ -15,6 +15,10 @@ Rails.application.configure do
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
+  # Avoid stale precompiled asset manifests in public/assets during development.
+  # Propshaft switches to dynamic resolution when this manifest file does not exist.
+  config.assets.manifest_path = Rails.root.join("tmp/assets/.manifest.json")
+
   # Do not eager load code on boot.
   config.eager_load = false
 

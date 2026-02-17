@@ -8,10 +8,26 @@
   } = $props();
 
   const PIE_COLORS = [
-    "#60a5fa", "#f472b6", "#fb923c", "#facc15", "#4ade80",
-    "#2dd4bf", "#a78bfa", "#f87171", "#38bdf8", "#e879f9",
-    "#34d399", "#fbbf24", "#818cf8", "#fb7185", "#22d3ee",
-    "#a3e635", "#c084fc", "#f97316", "#14b8a6", "#8b5cf6",
+    "#60a5fa",
+    "#f472b6",
+    "#fb923c",
+    "#facc15",
+    "#4ade80",
+    "#2dd4bf",
+    "#a78bfa",
+    "#f87171",
+    "#38bdf8",
+    "#e879f9",
+    "#34d399",
+    "#fbbf24",
+    "#818cf8",
+    "#fb7185",
+    "#22d3ee",
+    "#a3e635",
+    "#c084fc",
+    "#f97316",
+    "#14b8a6",
+    "#8b5cf6",
   ];
 
   const sortedWeeks = $derived(Object.keys(weeklyStats).sort());
@@ -51,22 +67,11 @@
     })),
   );
 
-  const legendClasses = {
-    root: "w-full px-2",
-    swatches: "flex-wrap justify-center",
-    label: "text-xs text-white/70",
-  };
-
-  const legendPadding = $derived.by(() => {
-    const rows = Math.max(1, Math.ceil(series.length / 4));
-    return Math.min(120, 24 + rows * 18);
-  });
-
   const chartPadding = $derived.by(() => ({
     top: 4,
     right: 4,
     left: 20,
-    bottom: 20 + legendPadding,
+    bottom: 20,
   }));
 
   function formatDuration(value: number): string {
@@ -85,16 +90,21 @@
 
   type TimelineDatum = Record<string, string | number>;
 
-  function getSeriesValue(datum: TimelineDatum | null | undefined, key: string): number {
+  function getSeriesValue(
+    datum: TimelineDatum | null | undefined,
+    key: string,
+  ): number {
     const value = datum?.[key];
     return typeof value === "number" ? value : 0;
   }
 </script>
 
 <div
-  class="bg-dark/50 border border-white/10 rounded-xl p-6 flex flex-col min-h-[400px]"
+  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col min-h-[400px]"
 >
-  <h2 class="mb-4 text-lg font-semibold text-white/90">Project Timeline</h2>
+  <h2 class="mb-4 text-lg font-semibold text-surface-content/90">
+    Project Timeline
+  </h2>
   {#if data.length > 0}
     <div class="h-[350px]">
       <BarChart
@@ -102,11 +112,9 @@
         x="week"
         {series}
         seriesLayout="stack"
-        legend
         padding={chartPadding}
         props={{
           yAxis: { format: formatYAxis },
-          legend: { classes: legendClasses },
         }}
       >
         <svelte:fragment slot="tooltip">
@@ -121,7 +129,7 @@
                   {@const value = getSeriesValue(data, s.key)}
                   <Tooltip.Item
                     label={s.label ?? s.key}
-                    value={value}
+                    {value}
                     color={s.color}
                     format={formatDuration}
                     valueAlign="right"
