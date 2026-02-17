@@ -29,7 +29,7 @@
 
 body,
 html {
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+  font-family: "Spline Sans Variable", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
     sans-serif;
   overflow-x: hidden;
   color-scheme: var(--app-color-scheme, dark);

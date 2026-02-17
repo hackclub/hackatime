@@ -158,7 +158,7 @@ module Doorkeeper
     def authenticate_oauth_owner!
       return if current_resource_owner
 
-      redirect_to minimal_login_path(continue: request.fullpath)
+      redirect_to signin_path(continue: request.fullpath)
     end
 
     def index_props

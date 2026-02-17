@@ -37,8 +37,6 @@ class SessionsController < ApplicationController
       PosthogService.capture(@user, "user_signed_in", { method: "hca" })
 
       if @user.created_at > 5.seconds.ago
-        session[:return_data] = { "url" => safe_return_url(params[:continue].presence) }
-        Rails.logger.info("Sessions return data: #{session[:return_data]}")
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       elsif session[:return_data]&.dig("url").present?
         return_url = session[:return_data].delete("url")
@@ -168,7 +166,8 @@ class SessionsController < ApplicationController
       session[:dev_magic_link] = auth_token_url(token)
     end
 
-    redirect_to root_path(sign_in_email: true), notice: "Check your email for a sign-in link!"
+    redirect_path = params[:redirect_to] == "signin" ? signin_path(sign_in_email: true) : root_path(sign_in_email: true)
+    redirect_to redirect_path, notice: "Check your email for a sign-in link!"
   end
 
   def add_email

@@ -1,3 +1,7 @@
+<script module lang="ts">
+  export const layout = false;
+</script>
+
 <script lang="ts">
   import Form from "./Form.svelte";
   import type { OAuthApplicationFormProps } from "./types";

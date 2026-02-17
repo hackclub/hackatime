@@ -26,3 +26,33 @@ module ActiveSupport
     # Add more helper methods to be used by all tests here...
   end
 end
+
+module InertiaTestHelper
+  def inertia_page
+    document = Nokogiri::HTML(response.body)
+    page_script = document.at_css("script[data-page='app'][type='application/json']")
+    assert_not_nil page_script, "Expected Inertia page payload script in response body"
+    JSON.parse(page_script.text)
+  end
+
+  def assert_inertia_component(expected_component)
+    page = inertia_page
+    assert_equal expected_component, page["component"],
+      "Expected Inertia component '#{expected_component}' but got '#{page["component"]}'"
+  end
+
+  def assert_inertia_prop(key, expected_value)
+    page = inertia_page
+    actual = page.dig("props", key)
+    if expected_value.nil?
+      assert_nil actual, "Expected Inertia prop '#{key}' to be nil but got #{actual.inspect}"
+    else
+      assert_equal expected_value, actual,
+        "Expected Inertia prop '#{key}' to be #{expected_value.inspect} but got #{actual.inspect}"
+    end
+  end
+end
+
+class ActionDispatch::IntegrationTest
+  include InertiaTestHelper
+end

@@ -1,3 +1,4 @@
+import '@fontsource-variable/spline-sans'
 import { createInertiaApp, type ResolvedComponent } from '@inertiajs/svelte'
 import { mount } from 'svelte'
 import AppLayout from '../layouts/AppLayout.svelte'
@@ -17,7 +18,8 @@ createInertiaApp({
       console.error(`Missing Inertia page component: '${name}.svelte'`)
     }
 
-    return { default: page.default, layout: page.layout || AppLayout } as ResolvedComponent
+    const layout = page.layout === false ? undefined : (page.layout || AppLayout)
+    return { default: page.default, layout } as ResolvedComponent
   },
 
   setup({ el, App, props }) {

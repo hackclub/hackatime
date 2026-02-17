@@ -8,6 +8,7 @@
     "format:svelte:check": "prettier --check \"app/javascript/**/*.svelte\""
   },
   "dependencies": {
+    "@fontsource-variable/spline-sans": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
     "@inertiajs/core": "file:vendor/inertia/packages/core",
     "@inertiajs/svelte": "file:vendor/inertia/packages/svelte",

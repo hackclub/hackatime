@@ -48,37 +48,39 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/oauth/authorize}
   end
 
-  # -- Minimal login: preserves continue param --
+  # -- Signin: preserves continue param --
 
-  test "minimal_login renders with continue param available for auth links" do
+  test "signin renders with continue param in inertia props" do
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
 
-    get minimal_login_path(continue: oauth_path)
+    get signin_path(continue: oauth_path)
 
     assert_response :success
-    assert_select "a[href*='continue']", minimum: 1
-    assert_select "input[name='continue'][value=?]", oauth_path
+    assert_inertia_component "Auth/SignIn"
+    assert_inertia_prop "continue_param", oauth_path
   end
 
-  test "minimal_login renders without continue param when not provided" do
-    get minimal_login_path
+  test "signin renders without continue param when not provided" do
+    get signin_path
 
     assert_response :success
-    assert_select "input[name='continue']", count: 0
+    assert_inertia_component "Auth/SignIn"
+    assert_inertia_prop "continue_param", nil
   end
 
   # -- Email auth: persists continue into sign-in token --
 
   test "email auth stores continue param in sign-in token" do
     user = User.create!
-    user.email_addresses.create!(email: "test@example.com")
+    email = "continue-test-#{SecureRandom.hex(4)}@example.com"
+    user.email_addresses.create!(email: email)
 
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
 
     # LoopsMailer forces SMTP delivery even in test; temporarily override
     original_delivery_method = LoopsMailer.delivery_method
     LoopsMailer.delivery_method = :test
-    post email_auth_path, params: { email: "test@example.com", continue: oauth_path }
+    post email_auth_path, params: { email: email, continue: oauth_path }
     LoopsMailer.delivery_method = original_delivery_method
 
     assert_response :redirect

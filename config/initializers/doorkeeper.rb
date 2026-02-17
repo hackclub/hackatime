@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 Doorkeeper.configure do
-  base_controller "ApplicationController"
+  base_controller "InertiaController"
   application_class "OauthApplication"
 
   default_scopes "profile"
@@ -10,12 +10,12 @@ Doorkeeper.configure do
 
   resource_owner_authenticator do
     if respond_to?(:current_user, true)
-      send(:current_user) || redirect_to(minimal_login_path(continue: request.fullpath))
+      send(:current_user) || redirect_to(signin_path(continue: request.fullpath))
     end
   end
 
   admin_authenticator do
-    current_user || redirect_to(minimal_login_path(continue: request.fullpath))
+    current_user || redirect_to(signin_path(continue: request.fullpath))
   end
 
   enable_application_owner confirmation: false
