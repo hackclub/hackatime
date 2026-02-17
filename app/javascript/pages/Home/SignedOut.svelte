@@ -102,13 +102,12 @@
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
         >
-          Start Tracking
+          Start tracking
         </Link>
       </nav>
     </div>
   </header>
 
-  <!-- Hero Section -->
   <section class="pt-40 pb-20">
     <div class="max-w-[900px] mx-auto px-6 text-center">
       <h1
@@ -145,7 +144,7 @@
           {#if usersTracked > 0}
             <div class="flex flex-col items-center">
               <span class="text-2xl font-bold text-surface-content"
-                >{formatNumber(usersTracked)}+</span
+                >{formatNumber(usersTracked)}</span
               >
               <span>users</span>
             </div>
@@ -153,7 +152,7 @@
           {#if hoursTracked > 0}
             <div class="flex flex-col items-center">
               <span class="text-2xl font-bold text-surface-content"
-                >{formatNumber(hoursTracked)}+</span
+                >{formatNumber(hoursTracked)}</span
               >
               <span>hours tracked</span>
             </div>
@@ -185,30 +184,18 @@
     </div>
   </section>
 
-  <!-- Philosophy -->
   <PhilosophySection />
-
-  <!-- Features -->
   <FeaturesGrid />
-
-  <!-- Integrations -->
   <EditorGrid />
-
-  <!-- How it Works -->
   <HowItWorks />
-
-  <!-- FAQ -->
   <FAQSection />
-
-  <!-- CTA -->
   <CTASection
     hoursTracked={formatNumber(hoursTracked)}
     usersTracked={formatNumber(usersTracked)}
   />
 
-  <!-- Footer -->
   <footer class="py-16 w-full bg-surface">
-    <div class="max-w-[1100px] mx-auto px-6">
+    <div class="max-w-275 mx-auto px-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
         <div class="md:col-span-1">
           <a href="/" class="flex items-center gap-2 mb-4">

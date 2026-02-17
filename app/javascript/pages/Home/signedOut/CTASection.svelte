@@ -18,8 +18,8 @@
       Start tracking your code.
     </h2>
     <p class="text-on-primary/90 text-lg mb-10">
-      Join {usersTracked}+ users who have tracked {hoursTracked}+ hours of
-      coding with Hackatime.
+      Join {usersTracked} users who have tracked {hoursTracked}+ hours of coding
+      with Hackatime.
     </p>
     <Link
       href="/signin"
