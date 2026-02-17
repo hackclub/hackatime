@@ -42,6 +42,19 @@
           <span class="text-xs font-medium text-secondary">{editor.name}</span>
         </Link>
       {/each}
+      <a
+        href="/docs#all-editors"
+        class="flex flex-col items-center w-20 group"
+      >
+        <div
+          class="w-16 h-16 bg-surface border border-surface-200 rounded-xl flex items-center justify-center mb-2 group-hover:border-primary transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-secondary group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
+          </svg>
+        </div>
+        <span class="text-xs font-medium text-secondary group-hover:text-primary transition-colors">More</span>
+      </a>
     </div>
   </div>
 </section>

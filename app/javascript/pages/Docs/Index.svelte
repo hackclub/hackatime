@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import { onMount } from "svelte";
 
   let {
     popular_editors,
@@ -8,6 +9,17 @@
     popular_editors: [string, string][];
     all_editors: [string, string][];
   } = $props();
+
+  let detailsElement: HTMLDetailsElement;
+
+  onMount(() => {
+    if (window.location.hash === "#all-editors" && detailsElement) {
+      detailsElement.open = true;
+      setTimeout(() => {
+        detailsElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  });
 
   const sidebarLinks = [
     {
@@ -221,7 +233,7 @@
     {/each}
   </div>
 
-  <details class="group">
+  <details class="group" id="all-editors" bind:this={detailsElement}>
     <summary
       class="flex items-center justify-between p-4 bg-surface border border-surface-200 rounded-lg cursor-pointer hover:border-surface-300 transition-colors select-none"
     >
