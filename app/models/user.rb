@@ -142,6 +142,40 @@ class User < ApplicationRecord
         success: "#a3be8c",
         warning: "#ebcb8b"
       }
+    },
+    {
+      value: "rose",
+      label: "Rose Pine",
+      description: "Rose Pine inspired dark palette.",
+      color_scheme: "dark",
+      theme_color: "#eb6f92",
+      preview: {
+        darker: "#191724",
+        dark: "#1f1d2e",
+        darkless: "#26233a",
+        primary: "#eb6f92",
+        content: "#e0def4",
+        info: "#9ccfd8",
+        success: "#31748f",
+        warning: "#f6c177"
+      }
+    },
+    {
+      value: "rose_pine_dawn",
+      label: "Rose Pine Dawn",
+      description: "Rose Pine inspired light palette.",
+      color_scheme: "light",
+      theme_color: "#aa586f",
+      preview: {
+        darker: "#dfdad9",
+        dark: "#f2e9e1",
+        darkless: "#cecacd",
+        primary: "#aa586f",
+        content: "#575279",
+        info: "#56949f",
+        success: "#286983",
+        warning: "#a35a00"
+      }
     }
   ].freeze
   THEME_OPTION_BY_VALUE = THEME_OPTIONS.index_by { |theme| theme[:value] }.freeze
@@ -196,7 +230,9 @@ class User < ApplicationRecord
     gruvbox_dark: 4,
     github_dark: 5,
     github_light: 6,
-    nord: 7
+    nord: 7,
+    rose: 8,
+    rose_pine_dawn: 9
   }
 
   def can_convict_users?

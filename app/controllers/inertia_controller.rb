@@ -41,7 +41,11 @@ class InertiaController < ApplicationController
   end
 
   def inertia_flash_messages
-    flash.to_hash.map do |type, message|
+    allowed_types = %w[notice success alert error]
+
+    flash.to_hash.filter_map do |type, message|
+      next unless allowed_types.include?(type.to_s)
+
       {
         message: message.to_s,
         class_name: flash_class_for(type)
@@ -68,7 +72,7 @@ class InertiaController < ApplicationController
       links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true)
       links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
       links << inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings"), inertia: true)
-      links << inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications"))
+      links << inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications"), inertia: true)
       links << { label: "Logout", action: "logout" }
     else
       links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true)

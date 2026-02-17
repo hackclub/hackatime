@@ -191,7 +191,7 @@
 
   {#if !github_connected}
     <div class="mb-4 rounded-xl border border-yellow/30 bg-yellow/10 p-4">
-      <p class="text-base font-medium text-yellow">
+      <p class="text-base font-medium text-surface-content">
         Heads up! You can't link projects to GitHub until you connect your
         account.
       </p>
@@ -245,7 +245,7 @@
         >
           {#each projects_data.projects as project (project.id)}
             <article
-              class="flex h-full flex-col gap-4 rounded-xl border border-primary bg-dark p-6 shadow-lg backdrop-blur-sm transition-all duration-300"
+              class="flex h-full flex-col gap-4 rounded-xl border border-primary bg-dark p-6 shadow-xs backdrop-blur-sm transition-all duration-300"
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0 flex-1">
