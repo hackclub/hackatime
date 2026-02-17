@@ -1,5 +1,13 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+
+  let {
+    hoursTracked,
+    usersTracked,
+  }: {
+    hoursTracked: string;
+    usersTracked: string;
+  } = $props();
 </script>
 
 <section class="py-24 w-full bg-primary">
@@ -10,7 +18,8 @@
       Start tracking your code.
     </h2>
     <p class="text-on-primary/90 text-lg mb-10">
-      Join 20,000+ users learning about their coding habits with Hackatime.
+      Join {usersTracked}+ users who have tracked {hoursTracked}+ hours of
+      coding with Hackatime.
     </p>
     <Link
       href="/signin"

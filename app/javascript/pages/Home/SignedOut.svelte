@@ -123,7 +123,7 @@
         habits, project breakdowns and language stats belong to you - not a
         proprietary database!
       </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
         <Link
           href="/signin"
           class="px-7 py-3.5 bg-primary text-on-primary rounded-md font-semibold text-base hover:opacity-90 transition-colors"
@@ -137,6 +137,31 @@
           Read the docs
         </Link>
       </div>
+
+      {#if hoursTracked > 0 || usersTracked > 0}
+        <div
+          class="flex items-center justify-center gap-8 mb-16 text-secondary text-sm"
+        >
+          {#if usersTracked > 0}
+            <div class="flex flex-col items-center">
+              <span class="text-2xl font-bold text-surface-content"
+                >{formatNumber(usersTracked)}+</span
+              >
+              <span>users</span>
+            </div>
+          {/if}
+          {#if hoursTracked > 0}
+            <div class="flex flex-col items-center">
+              <span class="text-2xl font-bold text-surface-content"
+                >{formatNumber(hoursTracked)}+</span
+              >
+              <span>hours tracked</span>
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <div class="mb-16"></div>
+      {/if}
 
       <!-- Browser Mockup -->
       <div
@@ -176,7 +201,10 @@
   <FAQSection />
 
   <!-- CTA -->
-  <CTASection />
+  <CTASection
+    hoursTracked={formatNumber(hoursTracked)}
+    usersTracked={formatNumber(usersTracked)}
+  />
 
   <!-- Footer -->
   <footer class="py-16 w-full bg-surface">
