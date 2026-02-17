@@ -174,9 +174,6 @@ Rails.application.routes.draw do
   get "my/wakatime_setup/step-3", to: "users#wakatime_setup_step_3"
   get "my/wakatime_setup/step-4", to: "users#wakatime_setup_step_4"
 
-  post "/sailors_log/slack/commands", to: "slack#create"
-  post "/timedump/slack/commands", to: "slack#create"
-
   get "/hackatime/v1", to: redirect("/", status: 302) # some clients seem to link this as the user's dashboard instead of /api/v1/hackatime
   # API routes
   namespace :api do

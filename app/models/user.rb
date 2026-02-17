@@ -299,11 +299,6 @@ class User < ApplicationRecord
   has_many :admin_api_keys, dependent: :destroy
   has_many :oauth_applications, as: :owner, dependent: :destroy
 
-  has_one :sailors_log,
-    foreign_key: :slack_uid,
-    primary_key: :slack_uid,
-    class_name: "SailorsLog"
-
   has_many :wakatime_mirrors, dependent: :destroy
 
   scope :search_identity, ->(term) {

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_17_175605) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -475,41 +475,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.datetime "updated_at", null: false
     t.string "url"
     t.index ["url"], name: "index_repositories_on_url", unique: true
-  end
-
-  create_table "sailors_log_leaderboards", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.datetime "deleted_at"
-    t.text "message"
-    t.string "slack_channel_id"
-    t.string "slack_uid"
-    t.datetime "updated_at", null: false
-  end
-
-  create_table "sailors_log_notification_preferences", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.boolean "enabled", default: true, null: false
-    t.string "slack_channel_id", null: false
-    t.string "slack_uid", null: false
-    t.datetime "updated_at", null: false
-    t.index ["slack_uid", "slack_channel_id"], name: "idx_sailors_log_notification_preferences_unique_user_channel", unique: true
-  end
-
-  create_table "sailors_log_slack_notifications", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.integer "project_duration", null: false
-    t.string "project_name", null: false
-    t.boolean "sent", default: false, null: false
-    t.string "slack_channel_id", null: false
-    t.string "slack_uid", null: false
-    t.datetime "updated_at", null: false
-  end
-
-  create_table "sailors_logs", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.jsonb "projects_summary", default: {}, null: false
-    t.string "slack_uid", null: false
-    t.datetime "updated_at", null: false
   end
 
   create_table "sign_in_tokens", force: :cascade do |t|

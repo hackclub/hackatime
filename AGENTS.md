@@ -60,3 +60,7 @@ We do development using docker-compose. Run `docker-compose ps` to see if the de
 On Inertia pages, use the `<Button />` component for buttons, not `<button>` tags.
 
 When linking to an Inertia page, use the `<Link />` component instead of `<a>` tags.
+
+## Migrations
+
+**NEVER** make migration files directly. Use the `bin/rails generate migration` command to create migration files. Do not delete migration files unless you added them in this session (and always ask for approval before doing so).

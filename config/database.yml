@@ -20,11 +20,6 @@ development:
     encoding: unicode
     url: <%= ENV['WAKATIME_DATABASE_URL'] %>
     replica: true
-  sailors_log:
-    adapter: postgresql
-    encoding: unicode
-    url: <%= ENV['SAILORS_LOG_DATABASE_URL'] %>
-    replica: true
   warehouse:
     adapter: postgresql
     encoding: unicode
@@ -48,12 +43,6 @@ test:
     username: postgres
     password: postgres
     replica: true
-  sailors_log:
-    adapter: postgresql
-    database: test_sailors_log
-    username: postgres
-    password: postgres
-    replica: true
   warehouse:
     adapter: postgresql
     database: test_warehouse
@@ -74,11 +63,6 @@ production:
     adapter: postgresql
     encoding: unicode
     url: <%= ENV['WAKATIME_DATABASE_URL'] %>
-    replica: true
-  sailors_log:
-    adapter: postgresql
-    encoding: unicode
-    url: <%= ENV['SAILORS_LOG_DATABASE_URL'] %>
     replica: true
   warehouse:
     adapter: postgresql

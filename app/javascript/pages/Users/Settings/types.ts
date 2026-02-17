@@ -75,11 +75,6 @@ export type OptionsProps = {
 
 export type SlackProps = {
   can_enable_status: boolean;
-  notification_channels: {
-    id: string;
-    label: string;
-    url: string;
-  }[];
 };
 
 export type GithubProps = {
@@ -217,7 +212,10 @@ export type AdminPageProps = SettingsCommonProps & {
   paths: PathsProps;
 };
 
-export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean) => {
+export const buildSections = (
+  sectionPaths: SectionPaths,
+  adminVisible: boolean,
+) => {
   const sections = [
     {
       id: "profile" as SectionId,

@@ -155,21 +155,17 @@ jobs:
           bin/rails db:schema:load RAILS_ENV=test
           # Create additional test databases used by multi-db models
           psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime;" || true
-          psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log;" || true
           psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse;" || true
           # Create per-worker variants for parallelized tests (e.g., test_wakatime_0)
           for worker in $(seq 0 $((PARALLEL_WORKERS - 1))); do
             psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime_${worker};" || true
-            psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log_${worker};" || true
             psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse_${worker};" || true
           done
           # Mirror schema from primary test DB so cross-db models can query safely in tests
           pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_wakatime
-          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_sailors_log
           pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_warehouse
           for worker in $(seq 0 $((PARALLEL_WORKERS - 1))); do
             pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_wakatime_${worker}
-            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_sailors_log_${worker}
             pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_warehouse_${worker}
           done
           bin/rails test

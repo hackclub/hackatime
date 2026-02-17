@@ -4,8 +4,7 @@ class Settings::DataController < Settings::BaseController
   end
 
   def migrate_heartbeats
-    MigrateUserFromHackatimeJob.perform_later(@user.id)
-    redirect_to my_settings_data_path, notice: "Heartbeats & api keys migration started"
+    redirect_to my_settings_data_path, alert: "Legacy Hackatime migration is no longer available"
   end
 
   private

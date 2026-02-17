@@ -3316,64 +3316,6 @@ paths:
                   slack_uid:
                     type: string
                     example: U000000
-  "/sailors_log/slack/commands":
-    post:
-      summary: Handle Sailor's Log Command
-      tags:
-      - Slack
-      description: Handle incoming Slack slash commands for Sailor's Log (/sailorslog).
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  response_type:
-                    type: string
-                  text:
-                    type: string
-                    nullable: true
-                  blocks:
-                    type: array
-                    items:
-                      type: object
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: string
-  "/timedump/slack/commands":
-    post:
-      summary: Handle Timedump Command
-      tags:
-      - Slack
-      description: Handle incoming Slack slash commands for Timedump (/timedump).
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  response_type:
-                    type: string
-                  text:
-                    type: string
-                    nullable: true
-                  blocks:
-                    type: array
-                    items:
-                      type: object
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: string
 components:
   securitySchemes:
     Bearer:

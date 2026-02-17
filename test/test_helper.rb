@@ -18,11 +18,7 @@ module ActiveSupport
       "api_keys",
       "heartbeats",
       "project_repo_mappings",
-      "repositories",
-      "sailors_log_leaderboards",
-      "sailors_log_notification_preferences",
-      "sailors_log_slack_notifications",
-      "sailors_logs"
+      "repositories"
     ]
 
     # Add more helper methods to be used by all tests here...

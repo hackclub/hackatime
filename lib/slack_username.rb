@@ -3,7 +3,7 @@ class SlackUsername
     key = "slack_username_#{uid}"
 
     cached_name = Rails.cache.fetch(key, expires_in: 1.day) do
-      response = HTTP.headers(Authorization: "Bearer #{ENV.fetch("SAILORS_LOG_SLACK_BOT_OAUTH_TOKEN")}").get("https://slack.com/api/users.info?user=#{uid}")
+      response = HTTP.headers(Authorization: "Bearer #{ENV.fetch("SLACK_USER_OAUTH_TOKEN")}").get("https://slack.com/api/users.info?user=#{uid}")
       data = JSON.parse(response.body)
 
       name = data.dig("user", "profile", "display_name")

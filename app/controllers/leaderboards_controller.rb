@@ -76,6 +76,6 @@ class LeaderboardsController < ApplicationController
     range = @period_type == :last_7_days ? ((Date.current - 6.days).beginning_of_day...Date.current.end_of_day) : Date.current.all_day
     ids_set = ids.to_set
 
-    Hackatime::Heartbeat.where(time: range).distinct.pluck(:user_id).count { |uid| !ids_set.include?(uid) }
+    0
   end
 end

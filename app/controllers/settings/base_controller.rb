@@ -32,12 +32,7 @@ class Settings::BaseController < InertiaController
     @is_own_settings = is_own_settings?
     @can_enable_slack_status = @user.slack_access_token.present? && @user.slack_scopes.include?("users.profile:write")
 
-    @enabled_sailors_logs = SailorsLogNotificationPreference.where(
-      slack_uid: @user.slack_uid,
-      enabled: true,
-    ).where.not(slack_channel_id: SailorsLog::DEFAULT_CHANNELS)
-
-    @heartbeats_migration_jobs = @user.data_migration_jobs
+    @heartbeats_migration_jobs = []
 
     @projects = @user.project_repo_mappings.distinct.pluck(:project_name)
     @work_time_stats_base_url = @user.slack_uid.present? ? "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/" : nil
@@ -52,7 +47,6 @@ class Settings::BaseController < InertiaController
 
   def settings_page_props(active_section:, settings_update_path:)
     heartbeats_last_7_days = @user.heartbeats.where("time >= ?", 7.days.ago.to_f).count
-    channel_ids = @enabled_sailors_logs.pluck(:slack_channel_id)
     heartbeat_import_id = nil
     heartbeat_import_status = nil
 
@@ -128,14 +122,7 @@ class Settings::BaseController < InertiaController
         badge_themes: GithubReadmeStats.themes
       },
       slack: {
-        can_enable_status: @can_enable_slack_status,
-        notification_channels: channel_ids.map { |channel_id|
-          {
-            id: channel_id,
-            label: "##{channel_id}",
-            url: "https://hackclub.slack.com/archives/#{channel_id}"
-          }
-        }
+        can_enable_status: @can_enable_slack_status
       },
       github: {
         connected: @user.github_uid.present?,

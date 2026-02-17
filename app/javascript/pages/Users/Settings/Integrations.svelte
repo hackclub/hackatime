@@ -84,41 +84,6 @@
       </form>
     </section>
 
-    <section id="user_slack_notifications">
-      <h2 class="text-xl font-semibold text-surface-content">
-        Slack Channel Notifications
-      </h2>
-      <p class="mt-1 text-sm text-muted">
-        Enable notifications in any channel by running
-        <code
-          class="rounded bg-darker px-1 py-0.5 text-xs text-surface-content"
-        >
-          /sailorslog on
-        </code>
-        in that channel.
-      </p>
-
-      {#if slack.notification_channels.length > 0}
-        <ul class="mt-4 space-y-2">
-          {#each slack.notification_channels as channel}
-            <li
-              class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content"
-            >
-              <a href={channel.url} target="_blank" class="underline"
-                >{channel.label}</a
-              >
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <p
-          class="mt-4 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
-        >
-          No channel notifications are enabled.
-        </p>
-      {/if}
-    </section>
-
     <section id="user_github_account">
       <h2 class="text-xl font-semibold text-surface-content">
         Connected GitHub Account
