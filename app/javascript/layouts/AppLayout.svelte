@@ -322,7 +322,7 @@
     style="scrollbar-width: none; -ms-overflow-style: none;"
   >
     <div class="space-y-4">
-{#if layout.nav.user_present && !layout.hide_nav}
+      {#if layout.nav.user_present && !layout.hide_nav}
         <div
           class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
         >
