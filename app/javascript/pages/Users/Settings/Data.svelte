@@ -261,7 +261,8 @@
       </form>
       {#if !migration.enabled}
         <p class="mt-2 text-xs text-muted">
-          Hackatime v1 import is currently disabled.
+          Hackatime v1 import is currently disabled due to an integration issue.
+          We're working on reinstating imports!
         </p>
       {/if}
 
