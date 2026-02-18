@@ -33,7 +33,11 @@
 
 <!-- Help -->
 
-<div align="center"> *Having issues? Reach out on the _#hackatime-help_ channel on [slack!](https://slack.hackclub.com/)* </div>
+<div align="center"> 
+  
+  *Having issues? Reach out on the _#hackatime-help_ channel on [slack!](https://slack.hackclub.com/)* 
+  
+</div>
 
 ## Local development
 
