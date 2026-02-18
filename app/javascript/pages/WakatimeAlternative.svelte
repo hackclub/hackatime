@@ -130,11 +130,11 @@
   ];
 
   const benefits = [
-    "100% free, forever\u2014every feature, no exceptions",
-    "Works with all WakaTime plugins\u2014just change your API endpoint",
-    "Open source\u2014audit the code, contribute, or self-host",
-    "Privacy-first\u2014only metadata tracked, never your code",
-    "Community leaderboards\u2014see how you stack up against peers",
+    "100% free, forever - every feature, no exceptions",
+    "Works with all WakaTime plugins - just change your API endpoint",
+    "Open source - audit the code, contribute, or self-host",
+    "Privacy-first - only metadata tracked, never your code",
+    "Community leaderboards - see how you stack up against peers",
   ];
 </script>
 
@@ -317,8 +317,8 @@
       </h2>
       <p class="text-secondary leading-relaxed mb-6">
         If you're a student, open source contributor, or developer who wants
-        powerful coding analytics without paying a subscription, Hackatime
-        delivers:
+        powerful coding analytics without paying a subscription, Hackatime might
+        be a good fit:
       </p>
       <ul class="space-y-3">
         {#each benefits as benefit}
