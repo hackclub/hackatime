@@ -274,6 +274,20 @@ module Api
 
           base_heartbeats = user.heartbeats.where.not(project: nil)
 
+          if params[:start_date].present? || params[:end_date].present?
+            start_time = begin
+              Date.parse(params[:start_date]).beginning_of_day.utc.to_i
+            rescue
+              10.years.ago.utc.to_i
+            end
+            end_time = begin
+              Date.parse(params[:end_date]).end_of_day.utc.to_i
+            rescue
+              Date.current.end_of_day.utc.to_i
+            end
+            base_heartbeats = base_heartbeats.where(time: start_time..end_time)
+          end
+
           project_stats = base_heartbeats
             .select(
               :project,
