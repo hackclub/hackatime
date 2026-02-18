@@ -114,6 +114,7 @@ export type ConfigFileProps = {
 };
 
 export type MigrationProps = {
+  enabled: boolean;
   jobs: { id: string; status: string }[];
 };
 
