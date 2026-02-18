@@ -16,65 +16,6 @@
     edit_url: string;
     meta: { description: string; keywords: string };
   } = $props();
-
-  const sidebarLinks = [
-    {
-      section: "Getting Started",
-      links: [
-        { name: "Introduction", href: "/docs" },
-        { name: "Quick Start", href: "/docs/getting-started/quick-start" },
-        { name: "Installation", href: "/docs/getting-started/installation" },
-        { name: "Configuration", href: "/docs/getting-started/configuration" },
-      ],
-    },
-    {
-      section: "Editors",
-      links: [
-        { name: "VS Code", href: "/docs/editors/vs-code" },
-        { name: "PyCharm", href: "/docs/editors/pycharm" },
-        { name: "IntelliJ IDEA", href: "/docs/editors/intellij-idea" },
-        { name: "Sublime Text", href: "/docs/editors/sublime-text" },
-        { name: "Vim", href: "/docs/editors/vim" },
-        { name: "Neovim", href: "/docs/editors/neovim" },
-        { name: "Android Studio", href: "/docs/editors/android-studio" },
-        { name: "Xcode", href: "/docs/editors/xcode" },
-        { name: "Cursor", href: "/docs/editors/cursor" },
-        { name: "Zed", href: "/docs/editors/zed" },
-        { name: "WebStorm", href: "/docs/editors/webstorm" },
-        { name: "Visual Studio", href: "/docs/editors/visual-studio" },
-        { name: "Emacs", href: "/docs/editors/emacs" },
-        { name: "Jupyter", href: "/docs/editors/jupyter" },
-        { name: "Terminal", href: "/docs/editors/terminal" },
-        { name: "Unity", href: "/docs/editors/unity" },
-        { name: "Godot", href: "/docs/editors/godot" },
-      ],
-    },
-    {
-      section: "Integrations",
-      links: [{ name: "OAuth Apps", href: "/docs/oauth/oauth-apps" }],
-    },
-  ];
-
-  function isActive(href: string): boolean {
-    const currentPath = doc_path || "";
-    if (href === "/docs") {
-      return currentPath === "index" || currentPath === "";
-    }
-    return currentPath === href.replace("/docs/", "");
-  }
-
-  function getActiveSectionIndex(): number {
-    for (let i = 0; i < sidebarLinks.length; i++) {
-      for (const link of sidebarLinks[i].links) {
-        if (isActive(link.href)) {
-          return i;
-        }
-      }
-    }
-    return 0;
-  }
-
-  let activeSection = $state(getActiveSectionIndex());
 </script>
 
 <svelte:head>
@@ -87,96 +28,28 @@
 </svelte:head>
 
 <div class="min-h-screen text-surface-content">
-  <div class="w-full max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-    <div class="flex flex-col lg:flex-row gap-8">
-      <!-- Sidebar -->
-      <aside class="w-full lg:w-64 flex-shrink-0">
-        <nav class="space-y-6">
-          <!-- Logo -->
-          <a href="/" class="flex items-center gap-2 px-3 py-2">
-            <img
-              src="/images/new-icon-rounded.png"
-              alt="Hackatime"
-              class="w-8 h-8"
-            />
-            <span class="text-lg font-bold text-primary">Hackatime</span>
-          </a>
-
-          <!-- Dashboard Link -->
-          <a
-            href="/my/wakatime_setup"
-            class="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium bg-primary text-on-primary hover:bg-secondary transition-colors"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+  <div class="w-full max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+    <!-- Breadcrumbs -->
+    <nav class="mb-8">
+      {#each breadcrumbs as crumb, index}
+        {#if index === breadcrumbs.length - 1}
+          <span class="text-primary">{crumb.name}</span>
+        {:else}
+          {#if crumb.is_link && crumb.href}
+            <Link href={crumb.href} class="text-secondary hover:text-primary"
+              >{crumb.name}</Link
             >
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            Go to Dashboard
-          </a>
+          {:else}
+            <span class="text-secondary">{crumb.name}</span>
+          {/if}
+          <span class="text-secondary mx-2">/</span>
+        {/if}
+      {/each}
+    </nav>
 
-          <div class="pt-4 mt-4 border-t border-darkless">
-            {#each sidebarLinks as section, index}
-              <details class="group" open={activeSection === index}>
-                <summary
-                  class="flex items-center justify-between cursor-pointer py-2 mb-1"
-                >
-                  <h3
-                    class="text-sm font-semibold text-primary uppercase tracking-wider"
-                  >
-                    {section.section}
-                  </h3>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="w-4 h-4 text-primary transition-transform group-open:rotate-180"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </summary>
-                <ul class="space-y-1 pb-2">
-                  {#each section.links as link}
-                    <li>
-                      <Link
-                        href={link.href}
-                        class="block px-3 py-2 rounded-md text-sm transition-colors
-                               {isActive(link.href)
-                          ? 'bg-primary/20 text-primary font-medium'
-                          : 'text-secondary hover:text-primary hover:bg-darkless'}"
-                      >
-                        {link.name}
-                      </Link>
-                    </li>
-                  {/each}
-                </ul>
-              </details>
-            {/each}
-          </div>
-        </nav>
-      </aside>
-
-      <!-- Main Content -->
-      <div class="flex-1 min-w-0">
-        <!-- Content -->
-        <div
-          class="bg-dark rounded-lg p-4 sm:p-6 lg:p-8 mb-8 prose prose-invert prose-base sm:prose-lg max-w-none
+    <!-- Content -->
+    <div
+      class="bg-dark rounded-lg p-4 sm:p-6 lg:p-8 mb-8 prose prose-invert prose-base sm:prose-lg max-w-none
              prose-headings:text-primary prose-headings:font-bold prose-headings:leading-tight
              prose-h1:text-4xl prose-h1:mb-6 prose-h1:text-primary prose-h1:mt-0
              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:text-primary prose-h2:border-b prose-h2:border-b-[#6e6468] prose-h2:pb-2
@@ -215,33 +88,31 @@
              [&_.editor-steps]:bg-darkless [&_.editor-steps]:p-6 [&_.editor-steps]:rounded-lg [&_.editor-steps]:my-4
              [&_.editor-steps_ol]:m-0
              [&_.editor-steps_li]:mb-2"
-        >
-          {@html rendered_content}
-        </div>
+    >
+      {@html rendered_content}
+    </div>
 
-        <!-- Edit on GitHub -->
-        <div
-          class="flex items-center justify-center gap-2 py-6 text-sm text-secondary/70"
+    <!-- Edit on GitHub -->
+    <div
+      class="flex items-center justify-center gap-2 py-6 text-sm text-secondary/70"
+    >
+      <span>Found an issue with this page?</span>
+      <a
+        href={edit_url}
+        target="_blank"
+        class="inline-flex items-center gap-1 text-primary hover:text-red transition-colors font-medium"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-4 h-4"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          ><path
+            d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"
+          /></svg
         >
-          <span>Found an issue with this page?</span>
-          <a
-            href={edit_url}
-            target="_blank"
-            class="inline-flex items-center gap-1 text-primary hover:text-red transition-colors font-medium"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-4 h-4"
-              viewBox="0 0 16 16"
-              fill="currentColor"
-              ><path
-                d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"
-              /></svg
-            >
-            Edit on GitHub
-          </a>
-        </div>
-      </div>
+        Edit on GitHub
+      </a>
     </div>
   </div>
 </div>

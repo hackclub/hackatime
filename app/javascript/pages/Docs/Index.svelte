@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
-  import { onMount } from "svelte";
 
   let {
     popular_editors,
@@ -9,55 +8,6 @@
     popular_editors: [string, string][];
     all_editors: [string, string][];
   } = $props();
-
-  let detailsElement: HTMLDetailsElement;
-
-  onMount(() => {
-    if (window.location.hash === "#all-editors" && detailsElement) {
-      detailsElement.open = true;
-      setTimeout(() => {
-        detailsElement.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
-    }
-  });
-
-  const sidebarLinks = [
-    {
-      section: "Getting Started",
-      links: [
-        { name: "Introduction", href: "/docs" },
-        { name: "Quick Start", href: "/docs/getting-started/quick-start" },
-        { name: "Installation", href: "/docs/getting-started/installation" },
-        { name: "Configuration", href: "/docs/getting-started/configuration" },
-      ],
-    },
-    {
-      section: "Editors",
-      links: [
-        { name: "VS Code", href: "/docs/editors/vs-code" },
-        { name: "PyCharm", href: "/docs/editors/pycharm" },
-        { name: "IntelliJ IDEA", href: "/docs/editors/intellij-idea" },
-        { name: "Sublime Text", href: "/docs/editors/sublime-text" },
-        { name: "Vim", href: "/docs/editors/vim" },
-        { name: "Neovim", href: "/docs/editors/neovim" },
-        { name: "Android Studio", href: "/docs/editors/android-studio" },
-        { name: "Xcode", href: "/docs/editors/xcode" },
-        { name: "Cursor", href: "/docs/editors/cursor" },
-        { name: "Zed", href: "/docs/editors/zed" },
-        { name: "WebStorm", href: "/docs/editors/webstorm" },
-        { name: "Visual Studio", href: "/docs/editors/visual-studio" },
-        { name: "Emacs", href: "/docs/editors/emacs" },
-        { name: "Jupyter", href: "/docs/editors/jupyter" },
-        { name: "Terminal", href: "/docs/editors/terminal" },
-        { name: "Unity", href: "/docs/editors/unity" },
-        { name: "Godot", href: "/docs/editors/godot" },
-      ],
-    },
-    {
-      section: "Integrations",
-      links: [{ name: "OAuth Apps", href: "/docs/oauth/oauth-apps" }],
-    },
-  ];
 </script>
 
 <svelte:head>
@@ -68,270 +18,170 @@
   />
 </svelte:head>
 
-<div class="min-h-screen text-surface-content">
-  <div class="w-full max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-    <div class="flex flex-col lg:flex-row gap-8">
-      <!-- Sidebar -->
-      <aside class="w-full lg:w-64 flex-shrink-0">
-        <nav class="space-y-6">
-          <!-- Logo -->
-          <a href="/" class="flex items-center gap-2 px-3 py-2">
-            <img
-              src="/images/new-icon-rounded.png"
-              alt="Hackatime"
-              class="w-8 h-8"
-            />
-            <span class="text-lg font-bold text-primary">Hackatime</span>
-          </a>
+<div class="max-w-4xl mx-auto">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-surface-content mb-2">Documentation</h1>
+    <p class="text-muted">
+      Free, open-source time tracking for Hack Club. Like WakaTime, but free.
+    </p>
+  </div>
 
-          <!-- Dashboard Link -->
-          <a
-            href="/my/wakatime_setup"
-            class="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium bg-primary text-on-primary hover:bg-secondary transition-colors"
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <Link
+      href="/my/wakatime_setup"
+      class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
+    >
+      <svg
+        class="w-6 h-6 mb-2 text-primary"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z"
+          clip-rule="evenodd"
+        />
+      </svg>
+      <h3 class="font-semibold text-surface-content">Quick Start</h3>
+      <p class="text-sm text-muted text-center mt-1">
+        Set up in under a minute
+      </p>
+    </Link>
+
+    <Link
+      href="/docs/getting-started/installation"
+      class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
+    >
+      <svg
+        class="w-6 h-6 mb-2 text-primary"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M2.25 5.25a3 3 0 013-3h13.5a3 3 0 013 3V15a3 3 0 01-3 3h-3v.257c0 .597.237 1.17.659 1.591l.621.622H7.071l.621-.622A2.25 2.25 0 008.25 18.257V18h-3a3 3 0 01-3-3V5.25zm1.5 0v7.5a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5v-7.5a1.5 1.5 0 00-1.5-1.5H5.25a1.5 1.5 0 00-1.5 1.5z"
+          clip-rule="evenodd"
+        />
+      </svg>
+      <h3 class="font-semibold text-surface-content">Installation</h3>
+      <p class="text-sm text-muted text-center mt-1">Add to your editor</p>
+    </Link>
+
+    <a
+      href="/api-docs"
+      class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
+    >
+      <svg
+        class="w-6 h-6 mb-2 text-primary"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M14.447 3.027a.75.75 0 01.527.92l-4.5 16.5a.75.75 0 01-1.448-.394l4.5-16.5a.75.75 0 01.921-.526zM16.72 6.22a.75.75 0 011.06 0l5.25 5.25a.75.75 0 010 1.06l-5.25 5.25a.75.75 0 11-1.06-1.06L21.44 12l-4.72-4.72a.75.75 0 010-1.06zm-9.44 0a.75.75 0 010 1.06L2.56 12l4.72 4.72a.75.75 0 11-1.06 1.06L.97 12.53a.75.75 0 010-1.06l5.25-5.25a.75.75 0 011.06 0z"
+          clip-rule="evenodd"
+        />
+      </svg>
+      <h3 class="font-semibold text-surface-content">API Docs</h3>
+      <p class="text-sm text-muted text-center mt-1">Interactive reference</p>
+    </a>
+
+    <Link
+      href="/docs/oauth/oauth-apps"
+      class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
+    >
+      <svg
+        class="w-6 h-6 mb-2 text-primary"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M15.75 1.5a6.75 6.75 0 00-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a3 3 0 00-.878 2.121v2.818c0 .414.336.75.75.75H6a.75.75 0 00.75-.75v-1.5h1.5A.75.75 0 009 19.5V18h1.5a.75.75 0 00.53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1015.75 1.5zm0 3a.75.75 0 000 1.5A2.25 2.25 0 0118 8.25a.75.75 0 001.5 0 3.75 3.75 0 00-3.75-3.75z"
+          clip-rule="evenodd"
+        />
+      </svg>
+      <h3 class="font-semibold text-surface-content">OAuth Apps</h3>
+      <p class="text-sm text-muted text-center mt-1">Build integrations</p>
+    </Link>
+  </div>
+
+  <h2 class="text-xl font-semibold text-surface-content mb-4">
+    Popular Editors
+  </h2>
+  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-8">
+    {#each popular_editors as [name, slug]}
+      <Link
+        href={`/docs/editors/${slug}`}
+        class="flex flex-col items-center p-3 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
+      >
+        <img
+          src={`/images/editor-icons/${slug}-128.png`}
+          alt={name}
+          class="w-10 h-10 mb-2"
+        />
+        <span class="text-sm text-surface-content">{name}</span>
+      </Link>
+    {/each}
+  </div>
+
+  <details class="group">
+    <summary
+      class="flex items-center justify-between p-4 bg-surface border border-surface-200 rounded-lg cursor-pointer hover:border-surface-300 transition-colors select-none"
+    >
+      <span class="font-medium text-surface-content"
+        >All {all_editors.length} supported editors</span
+      >
+      <svg
+        class="w-5 h-5 text-muted group-open:rotate-180 transition-transform"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7"
+        />
+      </svg>
+    </summary>
+    <div
+      class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-3 p-4 bg-surface border border-surface-200 rounded-lg select-none"
+    >
+      {#each all_editors as [name, slug]}
+        <Link
+          href={`/docs/editors/${slug}`}
+          class="flex flex-col items-center p-2 rounded hover:bg-surface-200 transition-colors"
+        >
+          <img
+            src={`/images/editor-icons/${slug}-128.png`}
+            alt={name}
+            class="w-8 h-8 mb-1"
+          />
+          <span class="text-xs text-surface-content text-center leading-tight"
+            >{name}</span
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            Go to Dashboard
-          </a>
-
-          <div class="pt-4 mt-4 border-t border-darkless">
-            {#each sidebarLinks as section, index}
-              <details class="group" open={index === 0}>
-                <summary
-                  class="flex items-center justify-between cursor-pointer py-2 mb-1"
-                >
-                  <h3
-                    class="text-sm font-semibold text-primary uppercase tracking-wider"
-                  >
-                    {section.section}
-                  </h3>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="w-4 h-4 text-primary transition-transform group-open:rotate-180"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </summary>
-                <ul class="space-y-1 pb-2">
-                  {#each section.links as link}
-                    <li>
-                      <Link
-                        href={link.href}
-                        class="block px-3 py-2 rounded-md text-sm transition-colors
-                               {link.href === '/docs'
-                          ? 'bg-primary/20 text-primary font-medium'
-                          : 'text-secondary hover:text-primary hover:bg-darkless'}"
-                      >
-                        {link.name}
-                      </Link>
-                    </li>
-                  {/each}
-                </ul>
-              </details>
-            {/each}
-          </div>
-        </nav>
-      </aside>
-
-      <!-- Main Content -->
-      <div class="flex-1 min-w-0">
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-surface-content mb-2">
-            Documentation
-          </h1>
-          <p class="text-muted">
-            Free, open-source time tracking for Hack Club. Like WakaTime, but
-            free.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Link
-            href="/my/wakatime_setup"
-            class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
-          >
-            <svg
-              class="w-6 h-6 mb-2 text-primary"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            <h3 class="font-semibold text-surface-content">Quick Start</h3>
-            <p class="text-sm text-muted text-center mt-1">
-              Set up in under a minute
-            </p>
-          </Link>
-
-          <Link
-            href="/docs/getting-started/installation"
-            class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
-          >
-            <svg
-              class="w-6 h-6 mb-2 text-primary"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M2.25 5.25a3 3 0 013-3h13.5a3 3 0 013 3V15a3 3 0 01-3 3h-3v.257c0 .597.237 1.17.659 1.591l.621.622H7.071l.621-.622A2.25 2.25 0 008.25 18.257V18h-3a3 3 0 01-3-3V5.25zm1.5 0v7.5a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5v-7.5a1.5 1.5 0 00-1.5-1.5H5.25a1.5 1.5 0 00-1.5 1.5z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            <h3 class="font-semibold text-surface-content">Installation</h3>
-            <p class="text-sm text-muted text-center mt-1">
-              Add to your editor
-            </p>
-          </Link>
-
-          <a
-            href="/api-docs"
-            class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
-          >
-            <svg
-              class="w-6 h-6 mb-2 text-primary"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M14.447 3.027a.75.75 0 01.527.92l-4.5 16.5a.75.75 0 01-1.448-.394l4.5-16.5a.75.75 0 01.921-.526zM16.72 6.22a.75.75 0 011.06 0l5.25 5.25a.75.75 0 010 1.06l-5.25 5.25a.75.75 0 11-1.06-1.06L21.44 12l-4.72-4.72a.75.75 0 010-1.06zm-9.44 0a.75.75 0 010 1.06L2.56 12l4.72 4.72a.75.75 0 11-1.06 1.06L.97 12.53a.75.75 0 010-1.06l5.25-5.25a.75.75 0 011.06 0z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            <h3 class="font-semibold text-surface-content">API Docs</h3>
-            <p class="text-sm text-muted text-center mt-1">
-              Interactive reference
-            </p>
-          </a>
-
-          <Link
-            href="/docs/oauth/oauth-apps"
-            class="flex flex-col items-center justify-center p-6 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
-          >
-            <svg
-              class="w-6 h-6 mb-2 text-primary"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M15.75 1.5a6.75 6.75 0 00-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a3 3 0 00-.878 2.121v2.818c0 .414.336.75.75.75H6a.75.75 0 00.75-.75v-1.5h1.5A.75.75 0 009 19.5V18h1.5a.75.75 0 00.53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1015.75 1.5zm0 3a.75.75 0 000 1.5A2.25 2.25 0 0118 8.25a.75.75 0 001.5 0 3.75 3.75 0 00-3.75-3.75z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            <h3 class="font-semibold text-surface-content">OAuth Apps</h3>
-            <p class="text-sm text-muted text-center mt-1">
-              Build integrations
-            </p>
-          </Link>
-        </div>
-
-        <h2 class="text-xl font-semibold text-surface-content mb-4">
-          Popular Editors
-        </h2>
-        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-8">
-          {#each popular_editors as [name, slug]}
-            <Link
-              href={`/docs/editors/${slug}`}
-              class="flex flex-col items-center p-3 bg-surface border border-surface-200 rounded-lg hover:border-primary transition-colors"
-            >
-              <img
-                src={`/images/editor-icons/${slug}-128.png`}
-                alt={name}
-                class="w-10 h-10 mb-2"
-              />
-              <span class="text-sm text-surface-content">{name}</span>
-            </Link>
-          {/each}
-        </div>
-
-        <details class="group" id="all-editors" bind:this={detailsElement}>
-          <summary
-            class="flex items-center justify-between p-4 bg-surface border border-surface-200 rounded-lg cursor-pointer hover:border-surface-300 transition-colors select-none"
-          >
-            <span class="font-medium text-surface-content"
-              >All {all_editors.length} supported editors</span
-            >
-            <svg
-              class="w-5 h-5 text-muted group-open:rotate-180 transition-transform"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </summary>
-          <div
-            class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-3 p-4 bg-surface border border-surface-200 rounded-lg select-none"
-          >
-            {#each all_editors as [name, slug]}
-              <Link
-                href={`/docs/editors/${slug}`}
-                class="flex flex-col items-center p-2 rounded hover:bg-surface-200 transition-colors"
-              >
-                <img
-                  src={`/images/editor-icons/${slug}-128.png`}
-                  alt={name}
-                  class="w-8 h-8 mb-1"
-                />
-                <span
-                  class="text-xs text-surface-content text-center leading-tight"
-                  >{name}</span
-                >
-              </Link>
-            {/each}
-          </div>
-        </details>
-
-        <div class="mt-8 p-4 bg-surface border border-surface-200 rounded-lg">
-          <p class="text-sm text-muted">
-            Need help? Ask in
-            <a
-              href="https://hackclub.slack.com/archives/C07MQ845X1F"
-              target="_blank"
-              class="text-primary hover:underline">#hackatime-help</a
-            >
-            on Slack or
-            <a
-              href="https://github.com/hackclub/hackatime/issues"
-              target="_blank"
-              class="text-primary hover:underline">open an issue</a
-            >
-            on GitHub.
-          </p>
-        </div>
-      </div>
+        </Link>
+      {/each}
     </div>
+  </details>
+
+  <div class="mt-8 p-4 bg-surface border border-surface-200 rounded-lg">
+    <p class="text-sm text-muted">
+      Need help? Ask in
+      <a
+        href="https://hackclub.slack.com/archives/C07MQ845X1F"
+        target="_blank"
+        class="text-primary hover:underline">#hackatime-help</a
+      >
+      on Slack or
+      <a
+        href="https://github.com/hackclub/hackatime/issues"
+        target="_blank"
+        class="text-primary hover:underline">open an issue</a
+      >
+      on GitHub.
+    </p>
   </div>
 </div>

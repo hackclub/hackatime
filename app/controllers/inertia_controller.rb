@@ -3,6 +3,8 @@
 class InertiaController < ApplicationController
   inertia_share layout: -> { inertia_layout_props }
 
+  private
+
   def inertia_layout_props
     {
       nav: inertia_nav_props,
@@ -12,8 +14,7 @@ class InertiaController < ApplicationController
       csrf_token: form_authenticity_token,
       signout_path: signout_path,
       show_stop_impersonating: session[:impersonater_user_id].present?,
-      stop_impersonating_path: stop_impersonating_path,
-      hide_nav: @hide_nav || false
+      stop_impersonating_path: stop_impersonating_path
     }
   end
 
