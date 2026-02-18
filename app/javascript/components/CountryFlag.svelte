@@ -17,7 +17,9 @@
 
     const unicodeHex = normalizedCode
       .split("")
-      .map((char) => (0x1f1e6 + char.charCodeAt(0) - "A".charCodeAt(0)).toString(16))
+      .map((char) =>
+        (0x1f1e6 + char.charCodeAt(0) - "A".charCodeAt(0)).toString(16),
+      )
       .join("-");
 
     return `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/${unicodeHex}.svg`;
@@ -29,11 +31,5 @@
 </script>
 
 {#if src}
-  <img
-    {src}
-    {title}
-    {alt}
-    class={className}
-    loading="lazy"
-  />
+  <img {src} {title} {alt} class={className} loading="lazy" />
 {/if}
