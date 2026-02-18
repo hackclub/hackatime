@@ -3,7 +3,7 @@ class HackatimeRecord < ApplicationRecord
 
   begin
     connects_to database: { reading: :wakatime, writing: :wakatime }
-  rescue => e
+  rescue StandardError => e
     Rails.logger.warn "HackatimeRecord: Could not connect to wakatime database: #{e.message}"
   end
 end
