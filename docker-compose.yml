@@ -18,6 +18,7 @@ services:
       - POSTGRES_PASSWORD=secureorpheus123
     depends_on:
       - db
+    command: ["sleep", "infinity"]
 
   db:
     image: postgres:16
@@ -33,4 +34,4 @@ services:
 volumes:
   harbor_postgres_data:
   bundle_cache:
-  node_modules: 
+  node_modules:

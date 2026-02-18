@@ -11,6 +11,13 @@ if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare
   # echo "Warming up caches for production deployment..."
   # ./bin/rails cache:warmup
+
+  # Start the Inertia SSR server in the background if the SSR bundle exists
+  SSR_ENTRYPOINT="public/vite-ssr/ssr.js"
+  if [ -f "$SSR_ENTRYPOINT" ]; then
+    echo "Starting Inertia SSR server..."
+    (while true; do bun "$SSR_ENTRYPOINT"; echo "SSR server exited, restarting..."; sleep 1; done) &
+  fi
 fi
 
 exec "${@}"

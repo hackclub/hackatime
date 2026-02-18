@@ -34,7 +34,8 @@ Comment out the `LOOPS_API_KEY` for the local letter opener, otherwise the app w
 ## Build & Run the project
 
 ```sh
-$ docker compose run --service-ports web /bin/bash
+$ docker compose up -d
+$ docker compose exec web /bin/bash
 
 # Now, setup the database using:
 app# bin/rails db:create db:schema:load db:seed
