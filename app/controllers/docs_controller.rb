@@ -44,6 +44,18 @@ class DocsController < InertiaController
 
   # Docs are publicly accessible - no authentication required
 
+  def llms
+    respond_to do |format|
+      format.text { render layout: false }
+    end
+  end
+
+  def llms_full
+    respond_to do |format|
+      format.text { render layout: false }
+    end
+  end
+
   def index
     render inertia: "Docs/Index", props: {
       popular_editors: POPULAR_EDITORS,
@@ -76,17 +88,22 @@ class DocsController < InertiaController
     breadcrumbs = build_inertia_breadcrumbs(doc_path)
     edit_url = "https://github.com/hackclub/hackatime/edit/main/docs/#{doc_path}.md"
 
-    render inertia: "Docs/Show", props: {
-      doc_path: doc_path,
-      title: title,
-      rendered_content: rendered_content,
-      breadcrumbs: breadcrumbs,
-      edit_url: edit_url,
-      meta: {
-        description: generate_doc_description(content, title),
-        keywords: generate_doc_keywords(doc_path, title)
-      }
-    }
+    respond_to do |format|
+      format.html do
+        render inertia: "Docs/Show", props: {
+          doc_path: doc_path,
+          title: title,
+          rendered_content: rendered_content,
+          breadcrumbs: breadcrumbs,
+          edit_url: edit_url,
+          meta: {
+            description: generate_doc_description(content, title),
+            keywords: generate_doc_keywords(doc_path, title)
+          }
+        }
+      end
+      format.md { render plain: content, content_type: "text/markdown" }
+    end
   rescue => e
     Rails.logger.error "Error loading docs: #{e.message}"
     render_not_found

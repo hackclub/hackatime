@@ -1,7 +1,6 @@
-import '@fontsource-variable/spline-sans'
-import { createInertiaApp, type ResolvedComponent } from '@inertiajs/svelte'
-import { mount } from 'svelte'
-import AppLayout from '../layouts/AppLayout.svelte'
+import "@fontsource-variable/spline-sans";
+import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
+import AppLayout from "../layouts/AppLayout.svelte";
 
 createInertiaApp({
   // Disable progress bar
@@ -10,28 +9,16 @@ createInertiaApp({
   // progress: false,
 
   resolve: (name) => {
-    const pages = import.meta.glob<ResolvedComponent>('../pages/**/*.svelte', {
+    const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {
       eager: true,
-    })
-    const page = pages[`../pages/${name}.svelte`]
+    });
+    const page = pages[`../pages/${name}.svelte`];
     if (!page) {
-      console.error(`Missing Inertia page component: '${name}.svelte'`)
+      console.error(`Missing Inertia page component: '${name}.svelte'`);
     }
 
-    const layout = page.layout === false ? undefined : (page.layout || AppLayout)
-    return { default: page.default, layout } as ResolvedComponent
-  },
-
-  setup({ el, App, props }) {
-    if (el) {
-      mount(App, { target: el, props })
-    } else {
-      console.error(
-        'Missing root element.\n\n' +
-          'If you see this error, it probably means you load Inertia.js on non-Inertia pages.\n' +
-          'Consider moving <%= vite_typescript_tag "inertia" %> to the Inertia-specific layout instead.',
-      )
-    }
+    const layout = page.layout === false ? undefined : page.layout || AppLayout;
+    return { default: page.default, layout } as ResolvedComponent;
   },
 
   defaults: {
@@ -39,4 +26,4 @@ createInertiaApp({
       forceIndicesArrayFormatInFormData: false,
     },
   },
-})
+});

@@ -114,6 +114,10 @@ Rails.application.routes.draw do
     get :entries, on: :collection
   end
 
+  # LLMs.txt routes
+  get "llms.txt" => "docs#llms", defaults: { format: "text" }
+  get "llms-full.txt" => "docs#llms_full", defaults: { format: "text" }
+
   # Docs routes
   get "docs", to: "docs#index", as: :docs
   get "docs/*path", to: "docs#show", as: :doc
