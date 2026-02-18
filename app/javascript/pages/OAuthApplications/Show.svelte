@@ -25,12 +25,44 @@
   let destructiveModalOpen = $state(false);
   let pendingDestructiveAction = $state<"delete" | "rotate" | null>(null);
 
+  const copyToClipboard = async (value: string) => {
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.clipboard &&
+      (typeof window === "undefined" || window.isSecureContext)
+    ) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+
+    if (typeof document === "undefined") {
+      throw new Error("Clipboard is not available");
+    }
+
+    const textArea = document.createElement("textarea");
+    textArea.value = value;
+    textArea.setAttribute("readonly", "");
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    textArea.style.pointerEvents = "none";
+    document.body.appendChild(textArea);
+    textArea.select();
+    textArea.setSelectionRange(0, textArea.value.length);
+
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textArea);
+
+    if (!successful) {
+      throw new Error("Failed to copy text");
+    }
+  };
+
   const copyValue = async (key: "uid" | "secret") => {
     const value = key === "uid" ? application.uid : secret.value || "";
     if (!value) return;
 
     try {
-      await navigator.clipboard.writeText(value);
+      await copyToClipboard(value);
       copiedValue = key;
       setTimeout(() => {
         if (copiedValue === key) copiedValue = null;
@@ -272,10 +304,19 @@
         <Button
           type="button"
           variant="surface"
-          class="w-full !border-red/45 !bg-red/15 !text-red hover:!bg-red/25"
+          class="w-full border-red/45! bg-red/15! text-red! hover:bg-red/25!"
           onclick={() => openDestructiveModal("delete")}
         >
           Delete application
+        </Button>
+
+        <Button
+          type="button"
+          variant="surface"
+          class="w-full border-red/45! bg-red/15! text-red! hover:bg-red/25!"
+          onclick={() => openDestructiveModal("rotate")}
+        >
+          Rotate secret
         </Button>
 
         {#if application.toggle_verified_path}
@@ -288,7 +329,7 @@
             <Button
               type="submit"
               variant="surface"
-              class={`w-full ${application.verified ? "!border-yellow/40 !bg-yellow/15 !text-yellow hover:!bg-yellow/25" : "!border-green/45 !bg-green/15 !text-green hover:!bg-green/25"}`}
+              class={`w-full ${application.verified ? "border-yellow/40! bg-yellow/40! text-yellow! hover:bg-yellow/60!" : "!border-green/45 bg-green/40! !text-green! hover:bg-green/60!"}`}
             >
               {application.verified
                 ? "Remove verification"
@@ -296,15 +337,6 @@
             </Button>
           </form>
         {/if}
-
-        <Button
-          type="button"
-          variant="outlinePrimary"
-          class="w-full"
-          onclick={() => openDestructiveModal("rotate")}
-        >
-          Rotate secret
-        </Button>
 
         <Link
           href={application.index_path}
