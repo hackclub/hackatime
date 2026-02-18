@@ -14,7 +14,7 @@ FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 # Rails app lives here
 WORKDIR /rails
 
-# Install base packages
+# Install base packages (including Node.js for Inertia SSR server)
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     curl \
@@ -24,7 +24,8 @@ RUN apt-get update -qq && \
     libpq5 \
     unzip \
     vim \
-    wget && \
+    wget \
+    nodejs && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install Bun
