@@ -157,7 +157,9 @@ class Settings::BaseController < InertiaController
         profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
         markscribe_template: '{{ wakatimeDoubleCategoryBar "Languages:" wakatimeData.Languages "Projects:" wakatimeData.Projects 5 }}',
         markscribe_reference_url: "https://github.com/taciturnaxolotl/markscribe#your-wakatime-languages-formated-as-a-bar",
-        markscribe_preview_image_url: "https://cdn.fluff.pw/slackcdn/524e293aa09bc5f9115c0c29c18fb4bc.png"
+        markscribe_preview_image_url: "https://cdn.fluff.pw/slackcdn/524e293aa09bc5f9115c0c29c18fb4bc.png",
+        heatmap_badge_url: "https://heatmap.shymike.dev?id=#{@user.id}&timezone=#{@user.timezone}",
+        heatmap_config_url: "https://hackatime-heatmap.shymike.dev?id=#{@user.id}&timezone=#{@user.timezone}"
       },
       config_file: {
         content: generated_wakatime_config(@latest_api_key_token),

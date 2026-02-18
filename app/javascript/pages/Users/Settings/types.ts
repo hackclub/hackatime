@@ -103,6 +103,8 @@ export type BadgesProps = {
   markscribe_template: string;
   markscribe_reference_url: string;
   markscribe_preview_image_url: string;
+  heatmap_badge_url: string;
+  heatmap_config_url: string;
 };
 
 export type ConfigFileProps = {
