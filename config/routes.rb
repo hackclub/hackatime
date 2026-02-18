@@ -115,6 +115,8 @@ Rails.application.routes.draw do
   end
 
   # Docs routes
+  # Note: llms.txt and llms-full.txt are served as static files from public/
+  # Generate them with: rails docs:generate_llms
   get "docs", to: "docs#index", as: :docs
   get "docs/*path", to: "docs#show", as: :doc
 
@@ -302,6 +304,7 @@ Rails.application.routes.draw do
 
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
+  get "/wakatime-alternative", to: "static_pages#wakatime_alternative"
 
   # fuck ups
   match "/400", to: "errors#bad_request", via: :all

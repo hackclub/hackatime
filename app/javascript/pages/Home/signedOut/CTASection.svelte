@@ -28,7 +28,7 @@
       Create free account
     </Link>
     <div class="mt-6 text-sm text-on-primary/80">
-      No credit card required · Open source (MIT)
+      Free to use, forever · Open source (MIT)
     </div>
   </div>
 </section>

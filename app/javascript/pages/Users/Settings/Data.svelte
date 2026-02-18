@@ -255,8 +255,16 @@
       </p>
       <form method="post" action={paths.migrate_heartbeats_path} class="mt-4">
         <input type="hidden" name="authenticity_token" value={csrfToken} />
-        <Button type="submit" class="rounded-md">Start migration</Button>
+        <Button type="submit" class="rounded-md" disabled={!migration.enabled}
+          >Start migration</Button
+        >
       </form>
+      {#if !migration.enabled}
+        <p class="mt-2 text-xs text-muted">
+          Hackatime v1 import is currently disabled due to an integration issue.
+          We're working on reinstating imports!
+        </p>
+      {/if}
 
       {#if migration.jobs.length > 0}
         <div class="mt-4 space-y-2">

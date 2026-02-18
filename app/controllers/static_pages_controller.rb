@@ -1,7 +1,7 @@
 class StaticPagesController < InertiaController
   include DashboardData
 
-  layout "inertia", only: :index
+  layout "inertia", only: %i[index wakatime_alternative]
 
   def index
     if current_user
@@ -63,7 +63,7 @@ class StaticPagesController < InertiaController
 
     cached = Rails.cache.fetch(key, expires_in: 1.minute) do
       hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
-      labels = current_user.project_labels
+      labels = Flipper.enabled?(:hackatime_v1_import) ? current_user.project_labels : []
       projects = hb.group(:project).duration_seconds.filter_map do |proj, dur|
         next if dur <= 0
         m = @project_repo_mappings.find { |p| p.project_name == proj }
@@ -112,6 +112,18 @@ class StaticPagesController < InertiaController
 
   def streak
     render partial: "streak"
+  end
+
+  def wakatime_alternative
+    @page_title = "WakaTime Alternative - Free & Open Source Coding Time Tracker | Hackatime"
+    @meta_description = "Looking for a WakaTime alternative? Hackatime is a free, open source coding time tracker with all features unlocked. Compare features, pricing, and see why developers are switching."
+    @meta_keywords = "wakatime alternative, free time tracker, coding time tracker, open source wakatime, hackatime, developer analytics, programming stats"
+    @og_title = "WakaTime Alternative - Free & Open Source | Hackatime"
+    @og_description = @meta_description
+    @twitter_title = @og_title
+    @twitter_description = @meta_description
+
+    render inertia: "WakatimeAlternative"
   end
 
   private

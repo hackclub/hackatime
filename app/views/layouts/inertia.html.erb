@@ -156,6 +156,12 @@
     <%= vite_client_tag %>
     <%= vite_typescript_tag "inertia" %>
     <%= inertia_ssr_head %>
+
+    <!--
+    TODO: don't hardcode this!
+    It's not a secret, but it's a code smell.
+    -->
+    <meta name="google-site-verification" content="I4TpbUG8M-kpernUDtUBjwm-UqBnha1IqGayR5vs_Fw">
   </head>
 
   <body class="<%= content_for(:body_class) %> flex min-h-screen bg-darker">
