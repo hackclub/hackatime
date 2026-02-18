@@ -302,6 +302,7 @@ Rails.application.routes.draw do
 
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
+  get "/wakatime-alternative", to: "static_pages#wakatime_alternative"
 
   # fuck ups
   match "/400", to: "errors#bad_request", via: :all

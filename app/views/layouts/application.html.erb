@@ -221,7 +221,7 @@
     <% end %>
 
     <!-- 250px is defined in nav.css -->
-    <main class="flex-1 <%= 'lg:ml-[250px] lg:max-w-[calc(100%-250px)]' unless content_for?(:hide_nav) %> p-5 mb-[100px] pt-16 lg:pt-5 transition-all duration-300 ease-in-out">
+    <main class="flex-1 p-5 mb-[100px] pt-16 lg:pt-5 <%= 'lg:ml-[250px] lg:max-w-[calc(100%-250px)]' unless content_for?(:hide_nav) %> transition-all duration-300 ease-in-out">
       <%= yield %>
       <footer class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-muted hover:text-muted transition-colors duration-200">
         <div class="container">

@@ -1,7 +1,7 @@
 class StaticPagesController < InertiaController
   include DashboardData
 
-  layout "inertia", only: :index
+  layout "inertia", only: %i[index wakatime_alternative]
 
   def index
     if current_user
@@ -112,6 +112,18 @@ class StaticPagesController < InertiaController
 
   def streak
     render partial: "streak"
+  end
+
+  def wakatime_alternative
+    @page_title = "WakaTime Alternative - Free & Open Source Coding Time Tracker | Hackatime"
+    @meta_description = "Looking for a WakaTime alternative? Hackatime is a free, open source coding time tracker with all features unlocked. Compare features, pricing, and see why developers are switching."
+    @meta_keywords = "wakatime alternative, free time tracker, coding time tracker, open source wakatime, hackatime, developer analytics, programming stats"
+    @og_title = "WakaTime Alternative - Free & Open Source | Hackatime"
+    @og_description = @meta_description
+    @twitter_title = @og_title
+    @twitter_description = @meta_description
+
+    render inertia: "WakatimeAlternative"
   end
 
   private
