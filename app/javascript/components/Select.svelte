@@ -74,7 +74,7 @@
             value={item.value}
             label={item.label}
             disabled={item.disabled}
-            class="flex w-full select-none items-center justify-between rounded-md px-3 py-2 text-sm text-muted outline-none transition-all duration-150 hover:bg-surface-100/60 hover:text-surface-content data-[highlighted]:bg-surface-100/70 data-[highlighted]:text-surface-content data-[state=checked]:bg-primary/12 data-[state=checked]:text-surface-content data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
+            class="flex w-full select-none items-center justify-between rounded-md px-3 py-2 text-sm text-surface-content outline-none transition-all duration-150 hover:bg-surface-100/60 data-[highlighted]:bg-surface-100/70 data-[state=checked]:bg-primary/12 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
           >
             {#snippet children({ selected })}
               <span class="truncate">{item.label}</span>
