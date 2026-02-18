@@ -1,5 +1,9 @@
-<img width="3504" height="2240" alt="image" src="https://github.com/user-attachments/assets/8689e4a8-13f5-4b83-ae8c-b10b6db9c50c" />
+<!-- Why comment a markdown README you might ask? I don't know to be honest. I guess I'm a little bored :b -->
 
+<img width="3504" height="2240" alt="Free, Open-Source Code Tracker" src="https://github.com/user-attachments/assets/8689e4a8-13f5-4b83-ae8c-b10b6db9c50c" /> <!-- Header -->
+
+
+<!-- Header text -->
 <div align="center">
   
 # **Hackatime**
@@ -12,11 +16,24 @@
 
 </div>
 
+<!-- Main Content -->
 **[Hackatime](hackatime.hackclub.com)** allows you to track the time you code, see daily and weekly coding leaderboards, and get statics on projects, languages, and more.
 
-<img width="3504" height="2240" alt="Untitled - 2026-02-17T142454 258 1" src="https://github.com/user-attachments/assets/3d80cc2f-28ae-4215-a302-22f7f0e6f191" />
+<!-- IDES -->
+<img width="3504" height="2240" alt="A visual of some of the supported IDEs" src="https://github.com/user-attachments/assets/3d80cc2f-28ae-4215-a302-22f7f0e6f191" />
 
-Code in your favorite IDE with over 60 IDEs supported!
+**Code in your favorite IDE with over 60 IDEs supported!**
+
+<!-- Statistics -->
+<img width="3504" height="2240" alt="showcase of statistics" src="https://github.com/user-attachments/assets/e03a6b8a-fe19-44ad-8d70-c6ff246b0420" />
+
+**Get detailed statistics by language, project, date, and more!**
+
+---
+
+<!-- Help -->
+
+<div align="center"> *Having issues? Reach out on the _#hackatime-help_ channel on [slack!](https://slack.hackclub.com/)* </div>
 
 ## Local development
 
