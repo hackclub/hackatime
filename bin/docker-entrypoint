@@ -16,7 +16,7 @@ if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   SSR_ENTRYPOINT="public/vite-ssr/ssr.js"
   if [ -f "$SSR_ENTRYPOINT" ]; then
     echo "Starting Inertia SSR server..."
-    bun "$SSR_ENTRYPOINT" &
+    (while true; do bun "$SSR_ENTRYPOINT"; echo "SSR server exited, restarting..."; sleep 1; done) &
   fi
 fi
 
