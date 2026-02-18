@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Link, usePoll } from "@inertiajs/svelte";
   import Button from "../components/Button.svelte";
+  import CountryFlag from "../components/CountryFlag.svelte";
   import Modal from "../components/Modal.svelte";
   import type { Snippet } from "svelte";
   import { onMount, onDestroy } from "svelte";
@@ -148,14 +149,8 @@
     return `${hoursAgo} ${plur("hour", hoursAgo)} ago, ${users} ${plur("person", users)} logged time. '${phrase}.'`;
   };
 
-  const countryFlagEmoji = (countryCode?: string | null) => {
-    if (!countryCode) return "";
-    return countryCode
-      .toUpperCase()
-      .replace(/./g, (char) =>
-        String.fromCodePoint(127397 + char.charCodeAt(0)),
-      );
-  };
+  const footerStatsText = () =>
+    `${layout.footer.heartbeat_recent_count} ${plur("heartbeat", layout.footer.heartbeat_recent_count)} (${layout.footer.heartbeat_recent_imported_count} imported) in the past 24 hours. (DB: ${layout.footer.query_count} ${plur("query", layout.footer.query_count)}, ${layout.footer.query_cache_count} cached) (CACHE: ${layout.footer.cache_hits} hits, ${layout.footer.cache_misses} misses) (${layout.footer.requests_per_second})`;
 
   const streakThemeClasses = (streakDays: number) => {
     if (streakDays >= 30) {
@@ -349,7 +344,10 @@
                   title={layout.nav.current_user.country_name ||
                     layout.nav.current_user.country_code}
                 >
-                  {countryFlagEmoji(layout.nav.current_user.country_code)}
+                  <CountryFlag
+                    countryCode={layout.nav.current_user.country_code}
+                    countryName={layout.nav.current_user.country_name}
+                  />
                 </span>
               {/if}
             </div>
@@ -593,14 +591,7 @@
             class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
             >{layout.footer.git_version}</a
           >
-          from {layout.footer.server_start_time_ago} ago.
-          {plur("heartbeat", layout.footer.heartbeat_recent_count)}
-          ({layout.footer.heartbeat_recent_imported_count} imported) in the past 24
-          hours. (DB: {layout.footer.query_count}
-          {plur("query", layout.footer.query_count)}, {layout.footer
-            .query_cache_count} cached) (CACHE: {layout.footer.cache_hits} hits,
-          {layout.footer.cache_misses} misses) ({layout.footer
-            .requests_per_second})
+          from {layout.footer.server_start_time_ago} ago. {footerStatsText()}
         </p>
         {#if layout.show_stop_impersonating}
           <a
