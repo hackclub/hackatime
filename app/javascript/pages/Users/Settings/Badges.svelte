@@ -157,9 +157,15 @@
     </section>
 
     <section id="user_heatmap">
-      <h2 class="text-xl font-semibold text-surface-content">Activity Heatmap</h2>
+      <h2 class="text-xl font-semibold text-surface-content">
+        Activity Heatmap
+      </h2>
       <p class="mt-1 text-sm text-muted">
-        A <a class="text-primary underline" href={badges.heatmap_config_url} target="_blank">customizable</a> heatmap for your coding activity.
+        A <a
+          class="text-primary underline"
+          href={badges.heatmap_config_url}
+          target="_blank">customizable</a
+        > heatmap for your coding activity.
       </p>
       <div class="mt-4 pb-3 rounded-md border border-surface-200 bg-darker p-4">
         <a href={badges.heatmap_config_url} target="_blank" class="block">

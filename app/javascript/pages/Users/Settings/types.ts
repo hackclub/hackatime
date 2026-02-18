@@ -281,6 +281,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_email_addresses: "integrations",
   user_stats_badges: "badges",
   user_markscribe: "badges",
+  user_heatmap: "badges",
   user_migration_assistant: "data",
   download_user_data: "data",
   delete_account: "data",
