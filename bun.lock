@@ -5,7 +5,6 @@
     "": {
       "dependencies": {
         "@fontsource-variable/spline-sans": "^5.2.8",
-        "@fontsource/inter": "^5.2.8",
         "@inertiajs/core": "file:vendor/inertia/packages/core",
         "@inertiajs/svelte": "file:vendor/inertia/packages/svelte",
         "@sveltejs/vite-plugin-svelte": "^6.2.4",
@@ -98,8 +97,6 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
     "@fontsource-variable/spline-sans": ["@fontsource-variable/spline-sans@5.2.8", "", {}, "sha512-Cn4tVu+wTZpJoD9zHN1fio0bPXq/79qE9yvQmiUz09rBZTJntKYNpA5bawDeRtS07dTxueeAVJqVwKGb0TNheQ=="],
-
-    "@fontsource/inter": ["@fontsource/inter@5.2.8", "", {}, "sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg=="],
 
     "@inertiajs/core": ["@inertiajs/core@file:vendor/inertia/packages/core", { "dependencies": { "@jridgewell/trace-mapping": "^0.3.31", "@types/lodash-es": "^4.17.12", "laravel-precognition": "2.0.0-beta.0", "lodash-es": "^4.17.23" }, "peerDependencies": { "axios": "^1.13.2" }, "optionalPeers": ["axios"] }],
 
