@@ -50,3 +50,5 @@ public/vite-ssr
 public/vite-test
 
 .vite
+
+pg-dump*
