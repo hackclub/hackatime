@@ -112,7 +112,7 @@ class My::ProjectRepoMappingsController < InertiaController
     scoped_mappings = archived ? mappings.archived : mappings.active
     mappings_by_name = scoped_mappings.index_by(&:project_name)
     archived_names = current_user.project_repo_mappings.archived.pluck(:project_name).index_with(true)
-    labels_by_project_key = current_user.project_labels.pluck(:project_key, :label).to_h
+    labels_by_project_key = Flipper.enabled?(:hackatime_v1_import) ? current_user.project_labels.pluck(:project_key, :label).to_h : {}
 
     cached = Rails.cache.fetch(project_durations_cache_key, expires_in: 1.minute) do
       hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])

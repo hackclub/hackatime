@@ -63,7 +63,7 @@ class StaticPagesController < InertiaController
 
     cached = Rails.cache.fetch(key, expires_in: 1.minute) do
       hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
-      labels = current_user.project_labels
+      labels = Flipper.enabled?(:hackatime_v1_import) ? current_user.project_labels : []
       projects = hb.group(:project).duration_seconds.filter_map do |proj, dur|
         next if dur <= 0
         m = @project_repo_mappings.find { |p| p.project_name == proj }

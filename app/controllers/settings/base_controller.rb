@@ -167,6 +167,7 @@ class Settings::BaseController < InertiaController
         api_url: "https://#{request.host_with_port}/api/hackatime/v1"
       },
       migration: {
+        enabled: Flipper.enabled?(:hackatime_v1_import),
         jobs: @heartbeats_migration_jobs.map { |job|
           {
             id: job.id,
