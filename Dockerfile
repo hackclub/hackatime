@@ -70,6 +70,9 @@ RUN bundle exec bootsnap precompile app/ lib/
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails tailwindcss:build
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
+# Generate static llms.txt files for LLM consumption
+RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails docs:generate_llms
+
 # Final stage for app image
 FROM base
 

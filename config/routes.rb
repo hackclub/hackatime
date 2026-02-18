@@ -114,11 +114,9 @@ Rails.application.routes.draw do
     get :entries, on: :collection
   end
 
-  # LLMs.txt routes
-  get "llms.txt" => "docs#llms", defaults: { format: "text" }
-  get "llms-full.txt" => "docs#llms_full", defaults: { format: "text" }
-
   # Docs routes
+  # Note: llms.txt and llms-full.txt are served as static files from public/
+  # Generate them with: rails docs:generate_llms
   get "docs", to: "docs#index", as: :docs
   get "docs/*path", to: "docs#show", as: :doc
 

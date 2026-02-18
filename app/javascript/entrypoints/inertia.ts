@@ -2,6 +2,10 @@ import "@fontsource-variable/spline-sans";
 import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
 import AppLayout from "../layouts/AppLayout.svelte";
 
+const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {
+  eager: true,
+});
+
 createInertiaApp({
   // Disable progress bar
   //
@@ -9,16 +13,14 @@ createInertiaApp({
   // progress: false,
 
   resolve: (name) => {
-    const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {
-      eager: true,
-    });
-    const page = pages[`../pages/${name}.svelte`];
-    if (!page) {
+    const component = pages[`../pages/${name}.svelte`];
+    if (!component) {
       console.error(`Missing Inertia page component: '${name}.svelte'`);
     }
 
-    const layout = page.layout === false ? undefined : page.layout || AppLayout;
-    return { default: page.default, layout } as ResolvedComponent;
+    const layout =
+      component.layout === false ? undefined : component.layout || AppLayout;
+    return { default: component.default, layout } as ResolvedComponent;
   },
 
   defaults: {

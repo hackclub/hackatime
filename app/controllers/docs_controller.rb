@@ -44,18 +44,6 @@ class DocsController < InertiaController
 
   # Docs are publicly accessible - no authentication required
 
-  def llms
-    respond_to do |format|
-      format.text { render layout: false }
-    end
-  end
-
-  def llms_full
-    respond_to do |format|
-      format.text { render layout: false }
-    end
-  end
-
   def index
     render inertia: "Docs/Index", props: {
       popular_editors: POPULAR_EDITORS,
@@ -83,13 +71,14 @@ class DocsController < InertiaController
     end
 
     content = read_docs_file(file_path)
-    title = extract_title(content) || doc_path.humanize
-    rendered_content = render_markdown(content)
-    breadcrumbs = build_inertia_breadcrumbs(doc_path)
-    edit_url = "https://github.com/hackclub/hackatime/edit/main/docs/#{doc_path}.md"
 
     respond_to do |format|
       format.html do
+        title = extract_title(content) || doc_path.humanize
+        rendered_content = render_markdown(content)
+        breadcrumbs = build_inertia_breadcrumbs(doc_path)
+        edit_url = "https://github.com/hackclub/hackatime/edit/main/docs/#{doc_path}.md"
+
         render inertia: "Docs/Show", props: {
           doc_path: doc_path,
           title: title,
