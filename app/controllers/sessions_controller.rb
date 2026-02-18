@@ -29,7 +29,7 @@ class SessionsController < ApplicationController
     if @user&.persisted?
       session[:user_id] = @user.id
 
-      if @user.data_migration_jobs.empty?
+      if Flipper.enabled?(:hackatime_v1_import) && @user.data_migration_jobs.empty?
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end
 
@@ -77,7 +77,7 @@ class SessionsController < ApplicationController
     if @user&.persisted?
       session[:user_id] = @user.id
 
-      if @user.data_migration_jobs.empty?
+      if Flipper.enabled?(:hackatime_v1_import) && @user.data_migration_jobs.empty?
         # if they don't have a data migration job, add one to the queue
         MigrateUserFromHackatimeJob.perform_later(@user.id)
       end

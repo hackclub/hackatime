@@ -4,6 +4,11 @@ class Settings::DataController < Settings::BaseController
   end
 
   def migrate_heartbeats
+    unless Flipper.enabled?(:hackatime_v1_import)
+      redirect_to my_settings_data_path, alert: "Hackatime v1 import is currently disabled"
+      return
+    end
+
     MigrateUserFromHackatimeJob.perform_later(@user.id)
     redirect_to my_settings_data_path, notice: "Heartbeats & api keys migration started"
   end
