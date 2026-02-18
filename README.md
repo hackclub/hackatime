@@ -17,7 +17,7 @@
 </div>
 
 <!-- Main Content -->
-**[Hackatime](hackatime.hackclub.com)** allows you to track the time you code, see daily and weekly coding leaderboards, and get statics on projects, languages, and more.
+**[Hackatime](https://hackatime.hackclub.com)** allows you to track the time you code, see daily and weekly coding leaderboards, and get statistics on projects, languages, and more.
 
 <!-- IDES -->
 <img width="3504" height="2240" alt="A visual of some of the supported IDEs" src="https://github.com/user-attachments/assets/3d80cc2f-28ae-4215-a302-22f7f0e6f191" />
