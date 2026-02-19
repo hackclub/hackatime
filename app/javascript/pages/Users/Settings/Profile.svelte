@@ -22,8 +22,13 @@
   }: ProfilePageProps = $props();
 
   let csrfToken = $state("");
-  let selectedTheme = $state($state.snapshot(user).theme || "gruvbox_dark");
-  let allowPublicStatsLookup = $state($state.snapshot(user).allow_public_stats_lookup);
+  let selectedTheme = $state("gruvbox_dark");
+  let allowPublicStatsLookup = $state(false);
+
+  $effect(() => {
+    selectedTheme = user.theme || "gruvbox_dark";
+    allowPublicStatsLookup = user.allow_public_stats_lookup;
+  });
 
   onMount(() => {
     csrfToken =

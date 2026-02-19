@@ -90,17 +90,19 @@
   let navOpen = $state(false);
   let logoutOpen = $state(false);
   let currentlyExpanded = $state(false);
-  let flashVisible = $state($state.snapshot(layout).nav.flash.length > 0);
+  let flashVisible = $state(false);
   let flashHiding = $state(false);
   const flashHideDelay = 6000;
   const flashExitDuration = 250;
+  const currentlyHackingPollInterval = () =>
+    layout.currently_hacking?.interval || 30000;
 
   const toggleNav = () => (navOpen = !navOpen);
   const closeNav = () => (navOpen = false);
   const openLogout = () => (logoutOpen = true);
   const closeLogout = () => (logoutOpen = false);
 
-  usePoll($state.snapshot(layout).currently_hacking?.interval || 30000, {
+  usePoll(currentlyHackingPollInterval(), {
     only: ["currently_hacking"],
   });
 
@@ -307,8 +309,13 @@
       />
     </svg>
   </Button>
-  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="nav-overlay" class:open={navOpen} onclick={closeNav}></div>
+  <button
+    type="button"
+    class="nav-overlay"
+    class:open={navOpen}
+    onclick={closeNav}
+    aria-label="Close navigation menu"
+  ></button>
 
   <aside
     class="flex flex-col min-h-screen w-52 bg-dark text-surface-content px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
@@ -620,10 +627,12 @@
   <div
     class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
   >
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-    <div
+    <button
+      type="button"
       class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between"
       onclick={toggleCurrentlyHacking}
+      aria-expanded={currentlyExpanded}
+      aria-label="Toggle currently hacking list"
     >
       <div class="text-surface-content text-sm font-medium">
         <div class="flex items-center">
@@ -631,7 +640,7 @@
           <span class="text-base">{countLabel()}</span>
         </div>
       </div>
-    </div>
+    </button>
 
     {#if currentlyExpanded}
       {#if layout.currently_hacking.users.length === 0}

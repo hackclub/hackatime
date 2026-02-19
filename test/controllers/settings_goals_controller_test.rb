@@ -63,71 +63,50 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 5, user.reload.goals.count
   end
 
-  test "update rejects invalid goal period" do
+  test "create rejects invalid goal period" do
     user = User.create!
     sign_in_as(user)
 
-    goals = [
-      {
-        id: "invalid-period",
+    post my_settings_goals_create_path, params: {
+      goal: {
         period: "year",
         target_seconds: 1800,
         languages: [],
         projects: []
       }
-    ]
-
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
-      }
     }
 
     assert_response :unprocessable_entity
     assert_equal 0, user.reload.goals.count
   end
 
-  test "update rejects nonpositive goal target" do
+  test "create rejects nonpositive goal target" do
     user = User.create!
     sign_in_as(user)
 
-    goals = [
-      {
-        id: "invalid-target",
+    post my_settings_goals_create_path, params: {
+      goal: {
         period: "day",
         target_seconds: 0,
         languages: [],
         projects: []
       }
-    ]
-
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
-      }
     }
 
     assert_response :unprocessable_entity
     assert_equal 0, user.reload.goals.count
   end
 
-  test "update rejects impossible day target" do
+  test "create rejects impossible day target" do
     user = User.create!
     sign_in_as(user)
 
-    goals = [
-      {
-        id: "impossible-day-target",
+    post my_settings_goals_create_path, params: {
+      goal: {
         period: "day",
         target_seconds: 25.hours.to_i,
         languages: [],
         projects: []
-      }
-    ]
-
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
       }
     }
 

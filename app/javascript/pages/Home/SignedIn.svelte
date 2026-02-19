@@ -57,6 +57,7 @@
     complete: boolean;
     languages: string[];
     projects: string[];
+    period_end: string;
   };
 
   let {
