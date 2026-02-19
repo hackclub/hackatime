@@ -21,9 +21,9 @@
           .querySelector("meta[name='csrf-token']")
           ?.getAttribute("content") || "";
 
-  let selectedScopes = $state([...(application.selected_scopes || [])]);
-  let confidential = $state(Boolean(application.confidential));
-  let redirectUri = $state(application.redirect_uri);
+  let selectedScopes = $state([...($state.snapshot(application).selected_scopes || [])]);
+  let confidential = $state(Boolean($state.snapshot(application).confidential));
+  let redirectUri = $state($state.snapshot(application).redirect_uri);
 
   const nameLocked = $derived(application.persisted && application.verified);
 </script>

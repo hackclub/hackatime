@@ -36,12 +36,14 @@
     `${goals.length} Active Goal${goals.length === 1 ? "" : "s"}`,
   );
 
-  let goalModalOpen = $state(goal_form?.open ?? false);
+  const initialGoalForm = $state.snapshot(goal_form);
+  const initialOptions = $state.snapshot(options);
+  let goalModalOpen = $state(initialGoalForm?.open ?? false);
   let editingGoal = $state<ProgrammingGoal | null>(null);
   let targetAmount = $state(30);
   let targetUnit = $state<"minutes" | "hours">("minutes");
   let selectedPeriod = $state<ProgrammingGoal["period"]>(
-    (options.goals.periods[0]?.value as ProgrammingGoal["period"]) || "day",
+    (initialOptions.goals.periods[0]?.value as ProgrammingGoal["period"]) || "day",
   );
   let selectedLanguages = $state<string[]>([]);
   let selectedProjects = $state<string[]>([]);
@@ -64,16 +66,17 @@
   }
 
   // Restore modal state from server on validation error
-  if (goal_form?.open) {
-    const seconds = goal_form.target_seconds || 1800;
-    selectedPeriod = (goal_form.period as ProgrammingGoal["period"]) || "day";
+  if (initialGoalForm?.open) {
+    const seconds = initialGoalForm.target_seconds || 1800;
+    selectedPeriod = (initialGoalForm.period as ProgrammingGoal["period"]) || "day";
     targetUnit = seconds % 3600 === 0 ? "hours" : "minutes";
     targetAmount = targetUnit === "hours" ? seconds / 3600 : seconds / 60;
-    selectedLanguages = goal_form.languages || [];
-    selectedProjects = goal_form.projects || [];
+    selectedLanguages = initialGoalForm.languages || [];
+    selectedProjects = initialGoalForm.projects || [];
 
-    if (goal_form.mode === "edit" && goal_form.goal_id) {
-      editingGoal = goals.find((g) => g.id === goal_form.goal_id) ?? null;
+    const initialGoals = $state.snapshot(goals);
+    if (initialGoalForm.mode === "edit" && initialGoalForm.goal_id) {
+      editingGoal = initialGoals.find((g) => g.id === initialGoalForm.goal_id) ?? null;
     }
   }
 

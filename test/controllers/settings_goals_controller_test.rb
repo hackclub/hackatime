@@ -15,35 +15,32 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [], page.dig("props", "user", "programming_goals")
   end
 
-  test "update saves valid goals" do
+  test "create saves valid goals" do
     user = User.create!
     sign_in_as(user)
 
-    goals = [
-      {
-        id: "daily-ruby",
+    post my_settings_goals_create_path, params: {
+      goal: {
         period: "day",
         target_seconds: 3600,
         languages: [ "Ruby", "Ruby", "" ],
         projects: [ "hackatime", "" ]
-      },
-      {
-        id: "weekly-all",
-        period: "week",
-        target_seconds: 7200,
-        languages: [],
-        projects: []
-      }
-    ]
-
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
       }
     }
 
     assert_response :redirect
     assert_redirected_to my_settings_goals_path
+
+    post my_settings_goals_create_path, params: {
+      goal: {
+        period: "week",
+        target_seconds: 7200,
+        languages: [],
+        projects: []
+      }
+    }
+
+    assert_response :redirect
 
     saved_goals = user.reload.goals.order(:created_at)
     assert_equal 2, saved_goals.size
@@ -51,95 +48,79 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "hackatime" ], saved_goals.first.projects
   end
 
-  test "update rejects more than five goals" do
+  test "create rejects more than five goals" do
     user = User.create!
     sign_in_as(user)
 
-    goals = 6.times.map do |index|
-      {
-        id: "goal-#{index}",
-        period: "day",
-        target_seconds: 1800 + index,
-        languages: [],
-        projects: []
+    5.times do |index|
+      post my_settings_goals_create_path, params: {
+        goal: {
+          period: "day",
+          target_seconds: 1800 + index,
+          languages: [],
+          projects: []
+        }
       }
+      assert_response :redirect
     end
 
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
+    post my_settings_goals_create_path, params: {
+      goal: {
+        period: "day",
+        target_seconds: 9999,
+        languages: [],
+        projects: []
       }
     }
 
     assert_response :unprocessable_entity
-    assert_equal 0, user.reload.goals.count
+    assert_equal 5, user.reload.goals.count
   end
 
-  test "update rejects invalid goal period" do
+  test "create rejects invalid goal period" do
     user = User.create!
     sign_in_as(user)
 
-    goals = [
-      {
-        id: "invalid-period",
+    post my_settings_goals_create_path, params: {
+      goal: {
         period: "year",
         target_seconds: 1800,
         languages: [],
         projects: []
       }
-    ]
-
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
-      }
     }
 
     assert_response :unprocessable_entity
     assert_equal 0, user.reload.goals.count
   end
 
-  test "update rejects nonpositive goal target" do
+  test "create rejects nonpositive goal target" do
     user = User.create!
     sign_in_as(user)
 
-    goals = [
-      {
-        id: "invalid-target",
+    post my_settings_goals_create_path, params: {
+      goal: {
         period: "day",
         target_seconds: 0,
         languages: [],
         projects: []
       }
-    ]
-
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
-      }
     }
 
     assert_response :unprocessable_entity
     assert_equal 0, user.reload.goals.count
   end
 
-  test "update rejects impossible day target" do
+  test "create rejects impossible day target" do
     user = User.create!
     sign_in_as(user)
 
-    goals = [
-      {
-        id: "impossible-day-target",
+    post my_settings_goals_create_path, params: {
+      goal: {
         period: "day",
         target_seconds: 25.hours.to_i,
         languages: [],
         projects: []
-      }
-    ]
-
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
       }
     }
 

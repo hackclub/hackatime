@@ -90,7 +90,7 @@
   let navOpen = $state(false);
   let logoutOpen = $state(false);
   let currentlyExpanded = $state(false);
-  let flashVisible = $state(layout.nav.flash.length > 0);
+  let flashVisible = $state($state.snapshot(layout).nav.flash.length > 0);
   let flashHiding = $state(false);
   const flashHideDelay = 6000;
   const flashExitDuration = 250;
@@ -100,7 +100,7 @@
   const openLogout = () => (logoutOpen = true);
   const closeLogout = () => (logoutOpen = false);
 
-  usePoll(layout.currently_hacking?.interval || 30000, {
+  usePoll($state.snapshot(layout).currently_hacking?.interval || 30000, {
     only: ["currently_hacking"],
   });
 
@@ -307,6 +307,7 @@
       />
     </svg>
   </Button>
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="nav-overlay" class:open={navOpen} onclick={closeNav}></div>
 
   <aside
@@ -619,6 +620,7 @@
   <div
     class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
   >
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
     <div
       class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between"
       onclick={toggleCurrentlyHacking}

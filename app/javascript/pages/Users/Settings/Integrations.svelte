@@ -23,7 +23,7 @@
   }: IntegrationsPageProps = $props();
 
   let csrfToken = $state("");
-  let usesSlackStatus = $state(user.uses_slack_status);
+  let usesSlackStatus = $state($state.snapshot(user).uses_slack_status);
   let unlinkGithubModalOpen = $state(false);
 
   onMount(() => {

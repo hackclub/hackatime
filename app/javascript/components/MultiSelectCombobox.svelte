@@ -90,7 +90,7 @@
                     type="button"
                     unstyled
                     class="text-muted hover:text-surface-content"
-                    onclick={(event) => remove(value, event)}
+                    onclick={(event: MouseEvent) => remove(value, event)}
                   >
                     ×
                   </Button>
