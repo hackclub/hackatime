@@ -41,9 +41,8 @@ class ProgrammingGoalsProgressService
     scope = scope.where(project: goal.projects) if goal.projects.any?
 
     if goal.languages.any?
-      matching_languages = scope.distinct.pluck(:language).compact_blank.select do |language|
-        goal.languages.include?(language.categorize_language)
-      end
+      grouped_languages = scope.distinct.pluck(:language).compact_blank.group_by(&:categorize_language)
+      matching_languages = goal.languages.flat_map { |language| grouped_languages[language] }.compact_blank.uniq
 
       return 0 if matching_languages.empty?
 

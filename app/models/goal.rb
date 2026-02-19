@@ -39,8 +39,8 @@ class Goal < ApplicationRecord
 
   def normalize_fields
     self.period = period.to_s
-    self.languages = Array(languages).map(&:to_s).compact_blank.uniq
-    self.projects = Array(projects).map(&:to_s).compact_blank.uniq
+    self.languages = Array(languages).map(&:to_s).compact_blank.uniq.sort
+    self.projects = Array(projects).map(&:to_s).compact_blank.uniq.sort
   end
 
   def languages_must_be_string_array

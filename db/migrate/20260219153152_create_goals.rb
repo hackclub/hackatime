@@ -11,7 +11,6 @@ class CreateGoals < ActiveRecord::Migration[8.1]
 
     add_index :goals,
       [ :user_id, :period, :target_seconds, :languages, :projects ],
-      unique: true,
       name: "index_goals_on_user_and_scope"
   end
 end

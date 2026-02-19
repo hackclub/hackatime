@@ -75,6 +75,29 @@ class GoalTest < ActiveSupport::TestCase
     assert_includes duplicate.errors[:base], "duplicate goal"
   end
 
+  test "rejects duplicate goals when languages and projects are in different order" do
+    user = User.create!
+
+    user.goals.create!(
+      period: "week",
+      target_seconds: 3600,
+      languages: [ "Ruby", "Python" ],
+      projects: [ "beta", "alpha" ]
+    )
+
+    duplicate = user.goals.build(
+      period: "week",
+      target_seconds: 3600,
+      languages: [ "Python", "Ruby" ],
+      projects: [ "alpha", "beta" ]
+    )
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:base], "duplicate goal"
+    assert_equal [ "Python", "Ruby" ], duplicate.languages
+    assert_equal [ "alpha", "beta" ], duplicate.projects
+  end
+
   test "limits users to five goals" do
     user = User.create!
 

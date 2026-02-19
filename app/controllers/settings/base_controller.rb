@@ -41,6 +41,17 @@ class Settings::BaseController < InertiaController
     @heartbeats_migration_jobs = @user.data_migration_jobs
 
     @projects = @user.project_repo_mappings.distinct.pluck(:project_name)
+    heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
+    @goal_selectable_languages = heartbeat_language_and_projects
+      .map(&:first)
+      .compact_blank
+      .map(&:categorize_language)
+      .compact_blank
+      .uniq
+      .sort
+    @goal_selectable_projects = (heartbeat_language_and_projects.map(&:last).compact_blank + @projects)
+      .uniq
+      .sort
     @work_time_stats_base_url = @user.slack_uid.present? ? "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/" : nil
     @work_time_stats_url = if @work_time_stats_base_url.present?
       "#{@work_time_stats_base_url}#{@projects.first || 'example'}"
@@ -143,15 +154,9 @@ class Settings::BaseController < InertiaController
             }
           },
           preset_target_seconds: Goal::PRESET_TARGET_SECONDS,
-          selectable_languages: @user.heartbeats.distinct.pluck(:language).compact_blank
-            .map(&:categorize_language)
-            .compact_blank
-            .uniq
-            .sort
+          selectable_languages: @goal_selectable_languages
             .map { |language| { label: language, value: language } },
-          selectable_projects: (@user.heartbeats.distinct.pluck(:project).compact_blank + @projects)
-            .uniq
-            .sort
+          selectable_projects: @goal_selectable_projects
             .map { |project| { label: project, value: project } }
         }
       },
