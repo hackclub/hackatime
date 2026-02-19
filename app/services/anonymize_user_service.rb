@@ -66,6 +66,7 @@ class AnonymizeUserService
     user.email_verification_requests.destroy_all
     user.wakatime_mirrors.destroy_all
     user.project_repo_mappings.destroy_all
+    user.goals.destroy_all
 
     # tombstone
     Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)

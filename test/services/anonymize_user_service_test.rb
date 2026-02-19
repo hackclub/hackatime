@@ -26,4 +26,15 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
     assert_nil user.profile_discord_url
     assert_nil user.profile_website_url
   end
+
+  test "anonymization destroys goals" do
+    user = User.create!(username: "ag_#{SecureRandom.hex(4)}")
+    user.goals.create!(period: "day", target_seconds: 600, languages: [ "Ruby" ], projects: [ "alpha" ])
+
+    assert_equal 1, user.goals.count
+
+    AnonymizeUserService.call(user)
+
+    assert_equal 0, user.goals.count
+  end
 end

@@ -41,7 +41,7 @@ class ProgrammingGoalsProgressService
     scope = scope.where(project: goal.projects) if goal.projects.any?
 
     if goal.languages.any?
-      grouped_languages = scope.distinct.pluck(:language).compact_blank.group_by(&:categorize_language)
+      grouped_languages = languages_grouped_by_category(scope.distinct.pluck(:language))
       matching_languages = goal.languages.flat_map { |language| grouped_languages[language] }.compact_blank.uniq
 
       return 0 if matching_languages.empty?
@@ -50,6 +50,17 @@ class ProgrammingGoalsProgressService
     end
 
     scope.duration_seconds.to_i
+  end
+
+  def languages_grouped_by_category(languages)
+    languages.each_with_object(Hash.new { |hash, key| hash[key] = [] }) do |language, grouped|
+      next if language.blank?
+
+      categorized_language = language.categorize_language
+      next if categorized_language.blank?
+
+      grouped[categorized_language] << language
+    end
   end
 
   def time_window_for(period, now:)
