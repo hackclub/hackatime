@@ -103,6 +103,8 @@ export type BadgesProps = {
   markscribe_template: string;
   markscribe_reference_url: string;
   markscribe_preview_image_url: string;
+  heatmap_badge_url: string;
+  heatmap_config_url: string;
 };
 
 export type ConfigFileProps = {
@@ -279,6 +281,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_email_addresses: "integrations",
   user_stats_badges: "badges",
   user_markscribe: "badges",
+  user_heatmap: "badges",
   user_migration_assistant: "data",
   download_user_data: "data",
   delete_account: "data",
