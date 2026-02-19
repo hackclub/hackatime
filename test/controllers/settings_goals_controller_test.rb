@@ -37,28 +37,30 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "hackatime" ], saved_goal.projects
   end
 
-  test "update rejects more than five goals" do
+  test "rejects sixth goal when limit reached" do
     user = User.create!
     sign_in_as(user)
 
-    goals = 6.times.map do |index|
-      {
-        id: "goal-#{index}",
+    5.times do |index|
+      user.goals.create!(
         period: "day",
         target_seconds: 1800 + index,
         languages: [],
         projects: []
-      }
+      )
     end
 
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
+    post my_settings_goals_create_path, params: {
+      goal: {
+        period: "day",
+        target_seconds: 9999,
+        languages: [],
+        projects: []
       }
     }
 
     assert_response :unprocessable_entity
-    assert_equal 0, user.reload.goals.count
+    assert_equal 5, user.reload.goals.count
   end
 
   test "update rejects invalid goal period" do
