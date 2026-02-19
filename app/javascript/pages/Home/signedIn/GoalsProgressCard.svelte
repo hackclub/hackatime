@@ -134,12 +134,7 @@
             </div>
 
             <!-- Circular progress indicator with percentage inside -->
-            <svg
-              width="52"
-              height="52"
-              viewBox="0 0 52 52"
-              class="shrink-0"
-            >
+            <svg width="52" height="52" viewBox="0 0 52 52" class="shrink-0">
               <!-- Background track -->
               <circle
                 cx="26"
@@ -184,8 +179,8 @@
                   dominant-baseline="central"
                   class="fill-surface-content"
                   font-size="12"
-                  font-weight="700"
-                >{Math.round(goal.completion_percent)}%</text>
+                  font-weight="700">{Math.round(goal.completion_percent)}%</text
+                >
               {/if}
             </svg>
           </div>
@@ -204,5 +199,3 @@
     {/each}
   </section>
 {/if}
-
-

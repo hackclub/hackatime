@@ -161,7 +161,8 @@
         {#if dashboard_stats?.filterable_dashboard_data}
           <Dashboard
             data={dashboard_stats.filterable_dashboard_data}
-            programmingGoalsProgress={dashboard_stats.programming_goals_progress || []}
+            programmingGoalsProgress={dashboard_stats.programming_goals_progress ||
+              []}
             onFiltersChange={refreshDashboardData}
           />
         {/if}

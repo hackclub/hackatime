@@ -80,7 +80,9 @@
   <section
     class="overflow-hidden rounded-2xl border border-surface-200 bg-surface p-6 shadow-sm"
   >
-    <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+    <div
+      class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between"
+    >
       <div class="flex min-w-0 items-start gap-4">
         <img
           src={profile.avatar_url}
@@ -111,7 +113,9 @@
           <p class="mt-1 text-sm text-muted">@{profile.username}</p>
 
           {#if profile.bio}
-            <p class="mt-4 whitespace-pre-wrap text-sm leading-6 text-surface-content/90">
+            <p
+              class="mt-4 whitespace-pre-wrap text-sm leading-6 text-surface-content/90"
+            >
               {profile.bio}
             </p>
           {/if}
@@ -146,33 +150,50 @@
       <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div class="rounded-xl border border-primary/60 bg-surface p-4">
           <div class="text-xs uppercase tracking-wide text-muted">Today</div>
-          <div class="mt-2 text-2xl font-bold text-primary">{stats.totals.today_label}</div>
+          <div class="mt-2 text-2xl font-bold text-primary">
+            {stats.totals.today_label}
+          </div>
         </div>
         <div class="rounded-xl border border-primary/60 bg-surface p-4">
-          <div class="text-xs uppercase tracking-wide text-muted">This Week</div>
-          <div class="mt-2 text-2xl font-bold text-primary">{stats.totals.week_label}</div>
+          <div class="text-xs uppercase tracking-wide text-muted">
+            This Week
+          </div>
+          <div class="mt-2 text-2xl font-bold text-primary">
+            {stats.totals.week_label}
+          </div>
         </div>
         <div class="rounded-xl border border-primary/60 bg-surface p-4">
           <div class="text-xs uppercase tracking-wide text-muted">All Time</div>
-          <div class="mt-2 text-2xl font-bold text-primary">{stats.totals.all_label}</div>
+          <div class="mt-2 text-2xl font-bold text-primary">
+            {stats.totals.all_label}
+          </div>
         </div>
       </section>
 
       <section class="rounded-xl border border-surface-200 bg-surface p-6">
         <div class="mb-4 flex items-end justify-between gap-3">
-          <h2 class="text-xl font-semibold text-surface-content">Top Projects</h2>
+          <h2 class="text-xl font-semibold text-surface-content">
+            Top Projects
+          </h2>
           <p class="text-sm text-muted">Past month</p>
         </div>
 
         {#if stats.top_projects_month.length > 0}
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             {#each stats.top_projects_month as project}
-              <article class="rounded-lg border border-surface-200 bg-darker p-4">
+              <article
+                class="rounded-lg border border-surface-200 bg-darker p-4"
+              >
                 <div class="flex items-center justify-between gap-3">
-                  <h3 class="truncate font-medium text-surface-content" title={project.project}>
+                  <h3
+                    class="truncate font-medium text-surface-content"
+                    title={project.project}
+                  >
                     {project.project || "Unknown"}
                   </h3>
-                  <span class="text-sm font-semibold text-primary">{project.duration_label}</span>
+                  <span class="text-sm font-semibold text-primary"
+                    >{project.duration_label}</span
+                  >
                 </div>
 
                 {#if project.repo_url}
@@ -189,7 +210,9 @@
             {/each}
           </div>
         {:else}
-          <p class="text-sm text-muted">No project activity in the past month.</p>
+          <p class="text-sm text-muted">
+            No project activity in the past month.
+          </p>
         {/if}
       </section>
 
@@ -207,7 +230,10 @@
         />
       </section>
 
-      <section id="profile_activity" class="rounded-xl border border-surface-200 bg-surface p-6">
+      <section
+        id="profile_activity"
+        class="rounded-xl border border-surface-200 bg-surface p-6"
+      >
         <h2 class="text-xl font-semibold text-surface-content">Activity</h2>
         <ActivityGraph data={stats.activity_graph} />
       </section>
@@ -217,8 +243,12 @@
       </section>
     {/if}
   {:else}
-    <section class="rounded-xl border border-yellow/35 bg-yellow/10 p-6 text-center">
-      <p class="text-lg font-semibold text-surface-content">Stats are private</p>
+    <section
+      class="rounded-xl border border-yellow/35 bg-yellow/10 p-6 text-center"
+    >
+      <p class="text-lg font-semibold text-surface-content">
+        Stats are private
+      </p>
       <p class="mt-2 text-sm text-muted">
         This user chose not to share coding stats publicly.
       </p>
@@ -233,6 +263,8 @@
   {/if}
 
   <div class="text-sm text-muted">
-    <Link href="/leaderboards" class="underline hover:text-primary">Explore leaderboards</Link>
+    <Link href="/leaderboards" class="underline hover:text-primary"
+      >Explore leaderboards</Link
+    >
   </div>
 </div>

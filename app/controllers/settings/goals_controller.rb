@@ -7,7 +7,7 @@ class Settings::GoalsController < Settings::BaseController
     @goal = @user.goals.build(goal_params)
 
     if @goal.save
-      PosthogService.capture(@user, "settings_updated", { fields: ["programming_goals"] })
+      PosthogService.capture(@user, "settings_updated", { fields: [ "programming_goals" ] })
       redirect_to my_settings_goals_path, notice: "Goal created."
     else
       flash.now[:error] = @goal.errors.full_messages.to_sentence
@@ -19,7 +19,7 @@ class Settings::GoalsController < Settings::BaseController
     @goal = @user.goals.find(params[:goal_id])
 
     if @goal.update(goal_params)
-      PosthogService.capture(@user, "settings_updated", { fields: ["programming_goals"] })
+      PosthogService.capture(@user, "settings_updated", { fields: [ "programming_goals" ] })
       redirect_to my_settings_goals_path, notice: "Goal updated."
     else
       flash.now[:error] = @goal.errors.full_messages.to_sentence
@@ -30,7 +30,7 @@ class Settings::GoalsController < Settings::BaseController
   def destroy
     @goal = @user.goals.find(params[:goal_id])
     @goal.destroy!
-    PosthogService.capture(@user, "settings_updated", { fields: ["programming_goals"] })
+    PosthogService.capture(@user, "settings_updated", { fields: [ "programming_goals" ] })
     redirect_to my_settings_goals_path, notice: "Goal deleted."
   end
 

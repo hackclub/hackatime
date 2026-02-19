@@ -84,7 +84,8 @@
                 <span
                   class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-medium text-surface-content"
                 >
-                  {options.find((option) => option.value === value)?.label || value}
+                  {options.find((option) => option.value === value)?.label ||
+                    value}
                   <Button
                     type="button"
                     unstyled
@@ -110,7 +111,7 @@
         <input
           type="text"
           bind:value={search}
-          placeholder={placeholder}
+          {placeholder}
           class="mb-2 h-10 w-full rounded-lg border border-surface-content/20 bg-dark px-3 text-sm text-surface-content placeholder:text-secondary/60 transition-colors duration-150 focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-1 focus:ring-offset-dark"
         />
 
@@ -132,7 +133,10 @@
               >
                 <span class="truncate">{option.label}</span>
                 {#if isSelected}
-                  <span class="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-on-primary">✓</span>
+                  <span
+                    class="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-on-primary"
+                    >✓</span
+                  >
                 {/if}
               </Button>
             {/each}
