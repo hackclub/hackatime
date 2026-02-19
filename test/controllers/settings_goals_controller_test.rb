@@ -15,40 +15,26 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [], page.dig("props", "user", "programming_goals")
   end
 
-  test "update saves valid goals" do
+  test "create saves valid goal" do
     user = User.create!
     sign_in_as(user)
 
-    goals = [
-      {
-        id: "daily-ruby",
+    post my_settings_goals_create_path, params: {
+      goal: {
         period: "day",
         target_seconds: 3600,
-        languages: [ "Ruby", "Ruby", "" ],
-        projects: [ "hackatime", "" ]
-      },
-      {
-        id: "weekly-all",
-        period: "week",
-        target_seconds: 7200,
-        languages: [],
-        projects: []
-      }
-    ]
-
-    patch my_settings_goals_path, params: {
-      user: {
-        programming_goals_json: goals.to_json
+        languages: [ "Ruby" ],
+        projects: [ "hackatime" ]
       }
     }
 
     assert_response :redirect
     assert_redirected_to my_settings_goals_path
 
-    saved_goals = user.reload.goals.order(:created_at)
-    assert_equal 2, saved_goals.size
-    assert_equal [ "Ruby" ], saved_goals.first.languages
-    assert_equal [ "hackatime" ], saved_goals.first.projects
+    saved_goal = user.reload.goals.first
+    assert_equal "day", saved_goal.period
+    assert_equal [ "Ruby" ], saved_goal.languages
+    assert_equal [ "hackatime" ], saved_goal.projects
   end
 
   test "update rejects more than five goals" do
