@@ -38,27 +38,22 @@ test:
   primary:
     <<: *default
     adapter: postgresql
-    database: test_db
-    username: postgres
-    password: postgres
-    # url: <%= ENV['TEST_DATABASE_URL'] %>
+    database: app_test
+    url: <%= ENV['TEST_DATABASE_URL'] %>
   wakatime:
     adapter: postgresql
-    database: test_wakatime
-    username: postgres
-    password: postgres
+    database: app_test
+    url: <%= ENV['TEST_DATABASE_URL'] %>
     replica: true
   sailors_log:
     adapter: postgresql
-    database: test_sailors_log
-    username: postgres
-    password: postgres
+    database: app_test
+    url: <%= ENV['TEST_DATABASE_URL'] %>
     replica: true
   warehouse:
     adapter: postgresql
-    database: test_warehouse
-    username: postgres
-    password: postgres
+    database: app_test
+    url: <%= ENV['TEST_DATABASE_URL'] %>
     replica: true
 
 # Store production database in the storage/ directory, which by default

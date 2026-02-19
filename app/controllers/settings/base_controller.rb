@@ -22,6 +22,7 @@ class Settings::BaseController < InertiaController
       "profile" => "Users/Settings/Profile",
       "integrations" => "Users/Settings/Integrations",
       "access" => "Users/Settings/Access",
+      "goals" => "Users/Settings/Goals",
       "badges" => "Users/Settings/Badges",
       "data" => "Users/Settings/Data",
       "admin" => "Users/Settings/Admin"
@@ -40,6 +41,18 @@ class Settings::BaseController < InertiaController
     @heartbeats_migration_jobs = @user.data_migration_jobs
 
     @projects = @user.project_repo_mappings.distinct.pluck(:project_name)
+    heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
+    goal_languages = []
+    goal_projects = @projects.dup
+
+    heartbeat_language_and_projects.each do |language, project|
+      categorized_language = language&.categorize_language
+      goal_languages << categorized_language if categorized_language.present?
+      goal_projects << project if project.present?
+    end
+
+    @goal_selectable_languages = goal_languages.uniq.sort
+    @goal_selectable_projects = goal_projects.uniq.sort
     @work_time_stats_base_url = @user.slack_uid.present? ? "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/" : nil
     @work_time_stats_url = if @work_time_stats_base_url.present?
       "#{@work_time_stats_base_url}#{@projects.first || 'example'}"
@@ -67,14 +80,16 @@ class Settings::BaseController < InertiaController
         profile: my_settings_profile_path,
         integrations: my_settings_integrations_path,
         access: my_settings_access_path,
+        goals: my_settings_goals_path,
         badges: my_settings_badges_path,
         data: my_settings_data_path,
         admin: my_settings_admin_path
       },
       page_title: (@is_own_settings ? "My Settings" : "Settings | #{@user.display_name}"),
       heading: (@is_own_settings ? "Settings" : "Settings for #{@user.display_name}"),
-      subheading: "Manage your profile, integrations, API access, and data tools.",
+      subheading: "Manage your profile, integrations, access, goals, and data tools.",
       settings_update_path: settings_update_path,
+      create_goal_path: my_settings_goals_create_path,
       username_max_length: User::USERNAME_MAX_LENGTH,
       user: {
         id: @user.id,
@@ -90,7 +105,13 @@ class Settings::BaseController < InertiaController
         can_request_deletion: @user.can_request_deletion?,
         github_uid: @user.github_uid,
         github_username: @user.github_username,
-        slack_uid: @user.slack_uid
+        slack_uid: @user.slack_uid,
+        programming_goals: @user.goals.order(:created_at).map { |goal|
+          goal.as_programming_goal_payload.merge(
+            update_path: my_settings_goal_update_path(goal),
+            destroy_path: my_settings_goal_destroy_path(goal)
+          )
+        }
       },
       paths: {
         settings_path: settings_update_path,
@@ -125,7 +146,20 @@ class Settings::BaseController < InertiaController
           }
         },
         themes: User.theme_options,
-        badge_themes: GithubReadmeStats.themes
+        badge_themes: GithubReadmeStats.themes,
+        goals: {
+          periods: Goal::PERIODS.map { |period|
+            {
+              label: period.humanize,
+              value: period
+            }
+          },
+          preset_target_seconds: Goal::PRESET_TARGET_SECONDS,
+          selectable_languages: @goal_selectable_languages
+            .map { |language| { label: language, value: language } },
+          selectable_projects: @goal_selectable_projects
+            .map { |project| { label: project, value: project } }
+        }
       },
       slack: {
         can_enable_status: @can_enable_slack_status,

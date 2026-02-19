@@ -142,6 +142,10 @@ Rails.application.routes.draw do
   patch "my/settings/integrations", to: "settings/integrations#update"
   get "my/settings/access", to: "settings/access#show", as: :my_settings_access
   patch "my/settings/access", to: "settings/access#update"
+  get "my/settings/goals", to: "settings/goals#show", as: :my_settings_goals
+  post "my/settings/goals", to: "settings/goals#create", as: :my_settings_goals_create
+  patch "my/settings/goals/:goal_id", to: "settings/goals#update", as: :my_settings_goal_update
+  delete "my/settings/goals/:goal_id", to: "settings/goals#destroy", as: :my_settings_goal_destroy
   get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
   get "my/settings/data", to: "settings/data#show", as: :my_settings_data
   get "my/settings/admin", to: "settings/admin#show", as: :my_settings_admin

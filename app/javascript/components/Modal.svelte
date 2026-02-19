@@ -44,7 +44,7 @@
       <div class="absolute inset-x-0 top-0 h-1 bg-primary"></div>
 
       <div class="p-6 sm:p-8">
-        <div class="mb-5 flex items-start justify-between gap-4">
+        <div class="mb-5 flex items-center justify-between gap-4">
           <div class="min-w-0">
             {#if hasIcon}
               <div
