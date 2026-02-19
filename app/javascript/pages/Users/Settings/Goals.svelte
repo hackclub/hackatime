@@ -81,8 +81,9 @@
 
     if (goal_form.mode === "edit" && goal_form.goal_id) {
       editingGoal =
-        (user.programming_goals || []).find((g) => g.id === goal_form.goal_id) ??
-        null;
+        (user.programming_goals || []).find(
+          (g) => g.id === goal_form.goal_id,
+        ) ?? null;
     }
   });
 
