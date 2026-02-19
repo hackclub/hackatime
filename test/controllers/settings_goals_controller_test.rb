@@ -15,7 +15,7 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [], page.dig("props", "user", "programming_goals")
   end
 
-  test "create saves valid goals" do
+  test "create saves valid goal" do
     user = User.create!
     sign_in_as(user)
 
@@ -23,45 +23,31 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
       goal: {
         period: "day",
         target_seconds: 3600,
-        languages: [ "Ruby", "Ruby", "" ],
-        projects: [ "hackatime", "" ]
+        languages: [ "Ruby" ],
+        projects: [ "hackatime" ]
       }
     }
 
     assert_response :redirect
     assert_redirected_to my_settings_goals_path
 
-    post my_settings_goals_create_path, params: {
-      goal: {
-        period: "week",
-        target_seconds: 7200,
-        languages: [],
-        projects: []
-      }
-    }
-
-    assert_response :redirect
-
-    saved_goals = user.reload.goals.order(:created_at)
-    assert_equal 2, saved_goals.size
-    assert_equal [ "Ruby" ], saved_goals.first.languages
-    assert_equal [ "hackatime" ], saved_goals.first.projects
+    saved_goal = user.reload.goals.first
+    assert_equal "day", saved_goal.period
+    assert_equal [ "Ruby" ], saved_goal.languages
+    assert_equal [ "hackatime" ], saved_goal.projects
   end
 
-  test "create rejects more than five goals" do
+  test "rejects sixth goal when limit reached" do
     user = User.create!
     sign_in_as(user)
 
     5.times do |index|
-      post my_settings_goals_create_path, params: {
-        goal: {
-          period: "day",
-          target_seconds: 1800 + index,
-          languages: [],
-          projects: []
-        }
-      }
-      assert_response :redirect
+      user.goals.create!(
+        period: "day",
+        target_seconds: 1800 + index,
+        languages: [],
+        projects: []
+      )
     end
 
     post my_settings_goals_create_path, params: {
@@ -77,33 +63,23 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 5, user.reload.goals.count
   end
 
-  test "create rejects invalid goal period" do
+  test "update rejects invalid goal period" do
     user = User.create!
     sign_in_as(user)
 
-    post my_settings_goals_create_path, params: {
-      goal: {
+    goals = [
+      {
+        id: "invalid-period",
         period: "year",
         target_seconds: 1800,
         languages: [],
         projects: []
       }
-    }
+    ]
 
-    assert_response :unprocessable_entity
-    assert_equal 0, user.reload.goals.count
-  end
-
-  test "create rejects nonpositive goal target" do
-    user = User.create!
-    sign_in_as(user)
-
-    post my_settings_goals_create_path, params: {
-      goal: {
-        period: "day",
-        target_seconds: 0,
-        languages: [],
-        projects: []
+    patch my_settings_goals_path, params: {
+      user: {
+        programming_goals_json: goals.to_json
       }
     }
 
@@ -111,16 +87,47 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, user.reload.goals.count
   end
 
-  test "create rejects impossible day target" do
+  test "update rejects nonpositive goal target" do
     user = User.create!
     sign_in_as(user)
 
-    post my_settings_goals_create_path, params: {
-      goal: {
+    goals = [
+      {
+        id: "invalid-target",
+        period: "day",
+        target_seconds: 0,
+        languages: [],
+        projects: []
+      }
+    ]
+
+    patch my_settings_goals_path, params: {
+      user: {
+        programming_goals_json: goals.to_json
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_equal 0, user.reload.goals.count
+  end
+
+  test "update rejects impossible day target" do
+    user = User.create!
+    sign_in_as(user)
+
+    goals = [
+      {
+        id: "impossible-day-target",
         period: "day",
         target_seconds: 25.hours.to_i,
         languages: [],
         projects: []
+      }
+    ]
+
+    patch my_settings_goals_path, params: {
+      user: {
+        programming_goals_json: goals.to_json
       }
     }
 
