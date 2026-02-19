@@ -1,29 +1,31 @@
 # AGENT.md - Rails Hackatime/Harbor Project
 
-We do development using docker-compose. Run `docker-compose ps` to see if the dev server is running. If it is, then you can restart the dev server with `touch tmp/restart.txt`. If not, then bring the dev server up with `docker-compose up`.
+We do development using docker-compose. Run `docker compose ps` to see if the dev server is running. If it is, then you can restart the dev server with `touch tmp/restart.txt`. If not, bring the containers up first with `docker compose up -d`.
+
+**IMPORTANT**: Always use `docker compose exec` (not `run`) to execute commands in the existing container. `run` creates a new container each time; `exec` reuses the running one.
 
 ## Commands (via Docker Compose)
 
-- **Tests**: `docker compose run web rails test` (all), `docker compose run web rails test test/models/user_test.rb` (single file), `docker compose run web rails test test/models/user_test.rb -n test_method_name` (single test) - Note: Limited test coverage
-- **Lint**: `docker compose run web bundle exec rubocop` (check), `docker compose run web bundle exec rubocop -A` (auto-fix)
-- **Console**: `docker compose run web rails c` (interactive console)
-- **Server**: `docker compose run --service-ports web rails s -b 0.0.0.0` (development server)
-- **Database**: `docker compose run web rails db:migrate`, `docker compose run web rails db:create`, `docker compose run web rails db:schema:load`, `docker compose run web rails db:seed`
-- **Security**: `docker compose run web bundle exec brakeman` (security audit)
-- **JS Security**: `docker compose run web bin/importmap audit` (JS dependency scan)
-- **Zeitwerk**: `docker compose run web bin/rails zeitwerk:check` (autoloader check)
-- **Swagger**: `docker compose run web bin/rails rswag:specs:swaggerize` (generate API docs)
+- **Tests**: `docker compose exec web rails test` (all), `docker compose exec web rails test test/models/user_test.rb` (single file), `docker compose exec web rails test test/models/user_test.rb -n test_method_name` (single test) - Note: Limited test coverage
+- **Lint**: `docker compose exec web bundle exec rubocop` (check), `docker compose exec web bundle exec rubocop -A` (auto-fix)
+- **Console**: `docker compose exec web rails c` (interactive console)
+- **Server**: `docker compose exec web rails s -b 0.0.0.0` (development server)
+- **Database**: `docker compose exec web rails db:migrate`, `docker compose exec web rails db:create`, `docker compose exec web rails db:schema:load`, `docker compose exec web rails db:seed`
+- **Security**: `docker compose exec web bundle exec brakeman` (security audit)
+- **JS Security**: `docker compose exec web bin/importmap audit` (JS dependency scan)
+- **Zeitwerk**: `docker compose exec web bin/rails zeitwerk:check` (autoloader check)
+- **Swagger**: `docker compose exec web bin/rails rswag:specs:swaggerize` (generate API docs)
 
 ## CI/Testing Requirements
 
 **Before marking any task complete, run ALL CI checks locally:**
 
-1. `docker compose run web bundle exec rubocop` (lint check)
-2. `docker compose run web bundle exec brakeman` (security scan)
-3. `docker compose run web bin/importmap audit` (JS security)
-4. `docker compose run web bin/rails zeitwerk:check` (autoloader)
-5. `docker compose run web rails test` (full test suite)
-6. `docker compose run web bin/rails rswag:specs:swaggerize` (ensure docs are up to date)
+1. `docker compose exec web bundle exec rubocop` (lint check)
+2. `docker compose exec web bundle exec brakeman` (security scan)
+3. `docker compose exec web bin/importmap audit` (JS security)
+4. `docker compose exec web bin/rails zeitwerk:check` (autoloader)
+5. `docker compose exec web rails test` (full test suite)
+6. `docker compose exec web bin/rails rswag:specs:swaggerize` (ensure docs are up to date)
 
 ## API Documentation
 
@@ -33,8 +35,9 @@ We do development using docker-compose. Run `docker-compose ps` to see if the de
 
 ## Docker Development
 
-- **Interactive shell**: `docker compose run --service-ports web /bin/bash`
-- **Initial setup**: `docker compose run web bin/rails db:create db:schema:load db:seed`
+- **Start containers**: `docker compose up -d` (must be running before using `exec`)
+- **Interactive shell**: `docker compose exec web /bin/bash`
+- **Initial setup**: `docker compose exec web bin/rails db:create db:schema:load db:seed`
 - **Cleanup**: Run commands with the `--remove-orphans` flag to remove unused containers and images
 
 ## Git Practices

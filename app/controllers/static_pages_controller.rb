@@ -153,7 +153,8 @@ class StaticPagesController < InertiaController
     {
       filterable_dashboard_data: filterable_dashboard_data,
       activity_graph: activity_graph_data,
-      today_stats: today_stats_data
+      today_stats: today_stats_data,
+      programming_goals_progress: programming_goals_progress_data
     }
   end
 
@@ -169,5 +170,19 @@ class StaticPagesController < InertiaController
       csrf_token: form_authenticity_token,
       home_stats: @home_stats || {}
     }
+  end
+
+  def programming_goals_progress_data
+    goals = current_user.goals.order(:id)
+    return [] if goals.blank?
+
+    goals_hash = ActiveSupport::Digest.hexdigest(
+      goals.pluck(:id, :period, :target_seconds, :languages, :projects).to_json
+    )
+    cache_key = "user_#{current_user.id}_programming_goals_progress_#{current_user.timezone}_#{goals_hash}"
+
+    Rails.cache.fetch(cache_key, expires_in: 1.minute) do
+      ProgrammingGoalsProgressService.new(user: current_user, goals: goals).call
+    end
   end
 end

@@ -2,6 +2,7 @@ export type SectionId =
   | "profile"
   | "integrations"
   | "access"
+  | "goals"
   | "badges"
   | "data"
   | "admin";
@@ -31,6 +32,27 @@ export type ThemeOption = {
   };
 };
 
+export type ProgrammingGoal = {
+  id: string;
+  period: "day" | "week" | "month";
+  target_seconds: number;
+  languages: string[];
+  projects: string[];
+  update_path: string;
+  destroy_path: string;
+};
+
+export type GoalForm = {
+  open: boolean;
+  mode: "create" | "edit";
+  goal_id: string | null;
+  period: string;
+  target_seconds: number;
+  languages: string[];
+  projects: string[];
+  errors: string[];
+};
+
 export type UserProps = {
   id: number;
   display_name: string;
@@ -46,6 +68,7 @@ export type UserProps = {
   github_uid?: string | null;
   github_username?: string | null;
   slack_uid?: string | null;
+  programming_goals: ProgrammingGoal[];
 };
 
 export type PathsProps = {
@@ -71,6 +94,12 @@ export type OptionsProps = {
   extension_text_types: Option[];
   themes: ThemeOption[];
   badge_themes: string[];
+  goals: {
+    periods: Option[];
+    preset_target_seconds: number[];
+    selectable_languages: Option[];
+    selectable_projects: Option[];
+  };
 };
 
 export type SlackProps = {
@@ -199,6 +228,14 @@ export type AccessPageProps = SettingsCommonProps & {
   config_file: ConfigFileProps;
 };
 
+export type GoalsPageProps = SettingsCommonProps & {
+  settings_update_path: string;
+  create_goal_path: string;
+  user: UserProps;
+  options: OptionsProps;
+  goal_form?: GoalForm | null;
+};
+
 export type BadgesPageProps = SettingsCommonProps & {
   options: OptionsProps;
   badges: BadgesProps;
@@ -239,6 +276,12 @@ export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean)
       path: sectionPaths.access,
     },
     {
+      id: "goals" as SectionId,
+      label: "Goals",
+      blurb: "Set daily, weekly, or monthly programming targets.",
+      path: sectionPaths.goals,
+    },
+    {
       id: "badges" as SectionId,
       label: "Badges",
       blurb: "Shareable badges and profile snippets.",
@@ -273,6 +316,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_hackatime_extension: "access",
   user_api_key: "access",
   user_config_file: "access",
+  user_programming_goals: "goals",
   user_slack_status: "integrations",
   user_slack_notifications: "integrations",
   user_github_account: "integrations",

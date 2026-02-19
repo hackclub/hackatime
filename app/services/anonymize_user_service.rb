@@ -47,8 +47,15 @@ class AnonymizeUserService
       username: "deleted_user_#{user.id}",
       uses_slack_status: false,
       country_code: nil,
-
-      deprecated_name: nil
+      deprecated_name: nil,
+      display_name_override: nil,
+      profile_bio: nil,
+      profile_github_url: nil,
+      profile_twitter_url: nil,
+      profile_bluesky_url: nil,
+      profile_linkedin_url: nil,
+      profile_discord_url: nil,
+      profile_website_url: nil
     )
   end
 

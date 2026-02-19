@@ -48,6 +48,17 @@
     todays_editors: string[];
   };
 
+  type ProgrammingGoalProgress = {
+    id: string;
+    period: "day" | "week" | "month";
+    target_seconds: number;
+    tracked_seconds: number;
+    completion_percent: number;
+    complete: boolean;
+    languages: string[];
+    projects: string[];
+  };
+
   let {
     flavor_text,
     trust_level_red,
@@ -73,6 +84,7 @@
       filterable_dashboard_data: FilterableDashboardData;
       activity_graph: ActivityGraphData;
       today_stats: TodayStats;
+      programming_goals_progress: ProgrammingGoalProgress[];
     };
   } = $props();
 
@@ -149,6 +161,7 @@
         {#if dashboard_stats?.filterable_dashboard_data}
           <Dashboard
             data={dashboard_stats.filterable_dashboard_data}
+            programmingGoalsProgress={dashboard_stats.programming_goals_progress || []}
             onFiltersChange={refreshDashboardData}
           />
         {/if}
