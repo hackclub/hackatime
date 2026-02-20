@@ -52,6 +52,7 @@ class ApplicationController < ActionController::Base
   def safe_return_url(url)
     return nil if url.blank?
     return nil unless url.start_with?("/") && !url.start_with?("//")
+    return nil if url.include?(":")
     url
   end
 
