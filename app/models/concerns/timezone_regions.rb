@@ -9,7 +9,7 @@ module TimezoneRegions
         tz = Time.find_zone(timezone)
         return nil unless tz
         tz.now.utc_offset / 3600 # Convert seconds to hours
-      rescue
+      rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
         nil
       end
     end

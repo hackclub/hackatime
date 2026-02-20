@@ -18,19 +18,31 @@ RSpec.describe 'Api::V1::External', type: :request do
       }
 
       response(200, 'successful') do
-        before { ENV['STATS_API_KEY'] = 'dev-admin-api-key-12345' }
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:payload) { { token: 'valid_slack_token' } }
         before do
-          allow(ENV).to receive(:[]).and_call_original
-          allow(ENV).to receive(:[]).with("STATS_API_KEY").and_return('dev-admin-api-key-12345')
-          allow(HTTP).to receive(:auth).and_return(double(get: double(body: { ok: true, user_id: 'U123456' }.to_json)))
-          allow_any_instance_of(User).to receive(:raw_slack_user_info).and_return({
-            "profile" => { "email" => "test@example.com" },
-            "tz" => "UTC"
-          })
-          allow_any_instance_of(User).to receive(:update_from_slack)
+          ENV['STATS_API_KEY'] = 'dev-admin-api-key-12345'
+
+          stub_request(:get, "https://slack.com/api/auth.test")
+            .to_return(
+              status: 200,
+              body: { ok: true, user_id: 'U_SLACK_OAUTH' }.to_json,
+              headers: { 'Content-Type' => 'application/json' }
+            )
+
+          user = User.find_or_create_by!(slack_uid: 'U_SLACK_OAUTH') do |u|
+            u.username = 'slack_oauth_user'
+            u.timezone = 'UTC'
+          end
+          user.email_addresses.find_or_create_by!(email: 'slacktest@example.com') do |e|
+            e.source = :slack
+          end
         end
+
+        after do
+          ENV['STATS_API_KEY'] = 'dev-api-key-12345'
+        end
+
         schema type: :object,
           properties: {
             user_id: { type: :integer },
@@ -41,12 +53,17 @@ RSpec.describe 'Api::V1::External', type: :request do
       end
 
       response(400, 'bad request') do
-        before do
-          allow(ENV).to receive(:[]).and_call_original
-          allow(ENV).to receive(:[]).with("STATS_API_KEY").and_return('dev-admin-api-key-12345')
-        end
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:payload) { { token: nil } }
+
+        before do
+          ENV['STATS_API_KEY'] = 'dev-admin-api-key-12345'
+        end
+
+        after do
+          ENV['STATS_API_KEY'] = 'dev-api-key-12345'
+        end
+
         run_test! do |response|
           expect(response.status).to eq(400)
         end
@@ -90,6 +107,7 @@ RSpec.describe 'Api::V1::External', type: :request do
 
       response(200, 'successful') do
         before { ENV['STATS_API_KEY'] = 'dev-admin-api-key-12345' }
+        after { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:api_key) { "dev-admin-api-key-12345" }
         let(:user) {
@@ -116,6 +134,7 @@ RSpec.describe 'Api::V1::External', type: :request do
 
       response(409, 'conflict') do
         before { ENV['STATS_API_KEY'] = 'dev-admin-api-key-12345' }
+        after { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:api_key) { "dev-admin-api-key-12345" }
         let(:user) {
@@ -155,7 +174,15 @@ RSpec.describe 'Api::V1::External', type: :request do
         schema type: :object,
           properties: {
             error: { type: :string },
-            conflicts: { type: :array, items: { type: :array, items: { type: :string } } }
+            conflicts: {
+              type: :array,
+              items: {
+                type: :array,
+                minItems: 2,
+                maxItems: 2,
+                items: {}
+              }
+            }
           }
         run_test!
       end

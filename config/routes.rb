@@ -295,7 +295,6 @@ Rails.application.routes.draw do
 
     namespace :internal do
       post "revoke", to: "revocations#create"
-      post "/can_i_have_a_magic_link_for/:id", to: "magic_links#create"
     end
   end
 

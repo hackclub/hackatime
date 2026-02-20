@@ -4,10 +4,11 @@ class Api::V1::StatsController < ApplicationController
 
   def show
     # take either user_id with a start date & end date
-    start_date = Date.parse(params[:start_date]).beginning_of_day if params[:start_date].present?
-    start_date ||= 10.years.ago
-    end_date = Date.parse(params[:end_date]).end_of_day if params[:end_date].present?
-    end_date ||= Date.today.end_of_day
+    start_date = parse_date_param(:start_date, default: 10.years.ago, boundary: :start)
+    return if performed?
+
+    end_date = parse_date_param(:end_date, default: Date.today.end_of_day, boundary: :end)
+    return if performed?
 
     query = Heartbeat.where(time: start_date..end_date)
     if params[:username].present?
@@ -37,10 +38,11 @@ class Api::V1::StatsController < ApplicationController
       return render json: { error: "user has disabled public stats" }, status: :forbidden
     end
 
-    start_date = params[:start_date].to_datetime if params[:start_date].present?
-    start_date ||= 10.years.ago
-    end_date = params[:end_date].to_datetime if params[:end_date].present?
-    end_date ||= Date.today.end_of_day
+    start_date = parse_datetime_param(:start_date, default: 10.years.ago)
+    return if performed?
+
+    end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
+    return if performed?
 
     # /api/v1/users/current/stats?filter_by_project=harbor,high-seas
     scope = nil
@@ -135,10 +137,11 @@ class Api::V1::StatsController < ApplicationController
   def user_spans
     return render json: { error: "User not found" }, status: :not_found unless @user
 
-    start_date = params[:start_date].to_datetime if params[:start_date].present?
-    start_date ||= 10.years.ago
-    end_date = params[:end_date].to_datetime if params[:end_date].present?
-    end_date ||= Date.today.end_of_day
+    start_date = parse_datetime_param(:start_date, default: 10.years.ago)
+    return if performed?
+
+    end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
+    return if performed?
 
     timespan = (start_date.to_f..end_date.to_f)
 
@@ -308,5 +311,29 @@ class Api::V1::StatsController < ApplicationController
     end
 
     total_seconds.to_i
+  end
+
+  def parse_date_param(param_name, default:, boundary:)
+    raw_value = params[param_name]
+    return default if raw_value.blank?
+
+    parsed_date = Date.iso8601(raw_value)
+    boundary == :start ? parsed_date.beginning_of_day : parsed_date.end_of_day
+  rescue ArgumentError, Date::Error, TypeError
+    render json: { error: "Invalid #{param_name}" }, status: :unprocessable_entity
+    nil
+  end
+
+  def parse_datetime_param(param_name, default:)
+    raw_value = params[param_name]
+    return default if raw_value.blank?
+
+    parsed_time = Time.zone.parse(raw_value.to_s)
+    raise ArgumentError if parsed_time.nil?
+
+    parsed_time
+  rescue ArgumentError, TypeError
+    render json: { error: "Invalid #{param_name}" }, status: :unprocessable_entity
+    nil
   end
 end

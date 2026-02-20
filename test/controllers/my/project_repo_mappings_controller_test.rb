@@ -38,6 +38,48 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "\"total_projects\":1"
   end
 
+  test "repository payload uses newer tracked commit when repository metadata is stale" do
+    travel_to Time.zone.parse("2026-02-19 12:00:00 UTC") do
+      repository = Repository.create!(
+        url: "https://github.com/hackclub/hackatime",
+        host: "github.com",
+        owner: "hackclub",
+        name: "hackatime",
+        last_commit_at: 8.months.ago
+      )
+
+      controller = My::ProjectRepoMappingsController.new
+      payload = controller.send(
+        :repository_payload,
+        repository,
+        { repository.id => 1.week.ago }
+      )
+
+      assert_equal "7 days ago", payload[:last_commit_ago]
+    end
+  end
+
+  test "repository payload keeps repository metadata when it is newer than tracked commits" do
+    travel_to Time.zone.parse("2026-02-19 12:00:00 UTC") do
+      repository = Repository.create!(
+        url: "https://github.com/hackclub/hcb",
+        host: "github.com",
+        owner: "hackclub",
+        name: "hcb",
+        last_commit_at: 2.days.ago
+      )
+
+      controller = My::ProjectRepoMappingsController.new
+      payload = controller.send(
+        :repository_payload,
+        repository,
+        { repository.id => 2.weeks.ago }
+      )
+
+      assert_equal "2 days ago", payload[:last_commit_ago]
+    end
+  end
+
   private
 
   def create_project_heartbeats(user, project_name)

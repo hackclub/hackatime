@@ -1,4 +1,5 @@
 require "test_helper"
+require "uri"
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -143,6 +144,58 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "slack_new stores oauth nonce and embeds it in state" do
+    get slack_auth_path(close_window: true, continue: "/projects")
+
+    assert_response :redirect
+    assert_not_nil session[:slack_oauth_state_nonce]
+
+    redirect_query = Rack::Utils.parse_nested_query(URI.parse(response.redirect_url).query)
+    state = JSON.parse(redirect_query["state"])
+
+    assert_equal session[:slack_oauth_state_nonce], state["token"]
+    assert_equal true, state["close_window"]
+    assert_equal "/projects", state["continue"]
+  end
+
+  test "slack_create rejects oauth callback with mismatched state nonce" do
+    get slack_auth_path
+    expected_nonce = session[:slack_oauth_state_nonce]
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: "wrong-#{expected_nonce}" }.to_json }
+
+    assert_response :redirect
+    assert_redirected_to root_path
+    assert_nil session[:slack_oauth_state_nonce]
+  end
+
+  test "github_new stores oauth nonce and passes it in redirect state" do
+    user = User.create!
+    sign_in_as(user)
+
+    get github_auth_path
+
+    assert_response :redirect
+    assert_not_nil session[:github_oauth_state_nonce]
+
+    redirect_query = Rack::Utils.parse_nested_query(URI.parse(response.redirect_url).query)
+    assert_equal session[:github_oauth_state_nonce], redirect_query["state"]
+  end
+
+  test "github_create rejects oauth callback with mismatched state nonce" do
+    user = User.create!
+    sign_in_as(user)
+
+    get github_auth_path
+    expected_nonce = session[:github_oauth_state_nonce]
+
+    get "/auth/github/callback", params: { code: "oauth-code", state: "wrong-#{expected_nonce}" }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert_nil session[:github_oauth_state_nonce]
+  end
+
   test "expired token redirects to root with alert" do
     user = User.create!
     sign_in_token = user.sign_in_tokens.create!(
@@ -171,5 +224,13 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to root_path
     assert_nil session[:user_id]
+  end
+
+  private
+
+  def sign_in_as(user)
+    token = user.sign_in_tokens.create!(auth_type: :email)
+    get auth_token_path(token: token.token)
+    assert_equal user.id, session[:user_id]
   end
 end
