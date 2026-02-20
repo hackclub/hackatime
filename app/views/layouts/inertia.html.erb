@@ -151,10 +151,14 @@
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>
-    <%= vite_stylesheet_tag "application" %>
+    <% unless Rails.env.test? %>
+      <%= vite_stylesheet_tag "application" %>
+    <% end %>
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
-    <%= vite_client_tag %>
-    <%= vite_typescript_tag "inertia" %>
+    <% unless Rails.env.test? %>
+      <%= vite_client_tag %>
+      <%= vite_typescript_tag "inertia" %>
+    <% end %>
     <%= inertia_ssr_head %>
 
     <!--

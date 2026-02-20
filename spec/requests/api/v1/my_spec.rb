@@ -12,7 +12,8 @@ RSpec.describe 'Api::V1::My', type: :request do
 
   def login_browser_user
     allow_any_instance_of(ActionController::Base).to receive(:protect_against_forgery?).and_return(false)
-    allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(user)
+    sign_in_token = user.sign_in_tokens.create!(auth_type: :email)
+    get "/auth/token/#{sign_in_token.token}"
   end
 
   path '/api/v1/my/heartbeats/most_recent' do
@@ -130,7 +131,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       tags 'My Projects'
       description 'List mappings between local project names and Git repositories.'
       security [ Bearer: [], ApiKeyAuth: [] ]
-      produces 'application/json', 'text/html'
+      produces 'text/html'
 
       parameter name: :interval, in: :query, type: :string, description: 'Time interval (e.g., daily, weekly). Default: daily'
       parameter name: :from, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
@@ -259,7 +260,15 @@ RSpec.describe 'Api::V1::My', type: :request do
 
         before do
           login_browser_user
-          allow(MigrateUserFromHackatimeJob).to receive(:perform_later)
+          @hackatime_v1_import_was_enabled = Flipper.enabled?(:hackatime_v1_import)
+          Flipper.enable(:hackatime_v1_import)
+        end
+        after do
+          if @hackatime_v1_import_was_enabled
+            Flipper.enable(:hackatime_v1_import)
+          else
+            Flipper.disable(:hackatime_v1_import)
+          end
         end
         run_test!
       end

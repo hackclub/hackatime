@@ -50,6 +50,18 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
+
+      response(422, 'invalid date') do
+        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:start_date) { 'invalid-date' }
+        let(:end_date) { '2023-12-31' }
+        let(:username) { nil }
+        let(:user_email) { nil }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
     end
 
     path '/api/v1/users/{username}/heartbeats/spans' do
@@ -85,6 +97,16 @@ RSpec.describe 'Api::V1::Stats', type: :request do
                 }
               }
             }
+          run_test!
+        end
+
+        response(422, 'invalid date') do
+          let(:username) { 'testuser' }
+          let(:start_date) { 'invalid-date' }
+          let(:end_date) { '2023-01-02' }
+          let(:project) { nil }
+          let(:filter_by_project) { nil }
+          schema '$ref' => '#/components/schemas/Error'
           run_test!
         end
       end
@@ -288,6 +310,22 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:api_key) { "dev-api-key-12345" }
         let(:username) { 'non_existent_user' }
         let(:start_date) { '2023-01-01' }
+        let(:end_date) { '2023-12-31' }
+        let(:limit) { nil }
+        let(:features) { nil }
+        let(:filter_by_project) { nil }
+        let(:filter_by_category) { nil }
+        let(:boundary_aware) { nil }
+        let(:total_seconds) { nil }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(422, 'invalid date') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:username) { 'testuser' }
+        let(:start_date) { 'invalid-date' }
         let(:end_date) { '2023-12-31' }
         let(:limit) { nil }
         let(:features) { nil }

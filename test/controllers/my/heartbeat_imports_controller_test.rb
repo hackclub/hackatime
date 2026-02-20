@@ -57,20 +57,20 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   test "create starts import and returns status" do
     user = User.create!(timezone: "UTC")
     sign_in_as(user)
-    expected_status = { "state" => "queued", "progress_percent" => 0 }
 
     with_development_env do
-      with_runner_stubs(start_return: "import-123", status_return: expected_status) do
-          post my_heartbeat_imports_path, params: {
-            heartbeat_file: uploaded_file
-          }
+      with_memory_cache do
+        post my_heartbeat_imports_path, params: {
+          heartbeat_file: uploaded_file
+        }
       end
     end
 
     assert_response :accepted
     body = JSON.parse(response.body)
-    assert_equal "import-123", body["import_id"]
+    assert body["import_id"].present?
     assert_equal "queued", body.dig("status", "state")
+    assert_equal 0, body.dig("status", "progress_percent")
   end
 
   private
@@ -92,20 +92,12 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
     rails_singleton.remove_method :__original_env_for_test
   end
 
-  def with_runner_stubs(start_return:, status_return:)
-    runner_singleton = class << HeartbeatImportRunner; self; end
-    runner_singleton.alias_method :__original_start_for_test, :start
-    runner_singleton.alias_method :__original_status_for_test, :status
-    runner_singleton.define_method(:start) { |**| start_return }
-    runner_singleton.define_method(:status) { |**| status_return }
+  def with_memory_cache
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
     yield
   ensure
-    runner_singleton.remove_method :start
-    runner_singleton.remove_method :status
-    runner_singleton.alias_method :start, :__original_start_for_test
-    runner_singleton.alias_method :status, :__original_status_for_test
-    runner_singleton.remove_method :__original_start_for_test
-    runner_singleton.remove_method :__original_status_for_test
+    Rails.cache = original_cache
   end
 
   def uploaded_file(filename: "heartbeats.json", content_type: "application/json", content: '{"heartbeats":[]}')
