@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_19_153152) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -102,6 +102,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.datetime "updated_at", null: false
     t.text "value"
     t.index ["feature_key", "key", "value"], name: "index_flipper_gates_on_feature_key_and_key_and_value", unique: true
+  end
+
+  create_table "goals", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "languages", default: [], null: false, array: true
+    t.string "period", null: false
+    t.string "projects", default: [], null: false, array: true
+    t.integer "target_seconds", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "period", "target_seconds", "languages", "projects"], name: "index_goals_on_user_and_scope", unique: true
+    t.index ["user_id"], name: "index_goals_on_user_id"
   end
 
   create_table "good_job_batches", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -559,6 +571,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.datetime "created_at", null: false
     t.boolean "default_timezone_leaderboard", default: true, null: false
     t.string "deprecated_name"
+    t.string "display_name_override"
     t.text "github_access_token"
     t.string "github_avatar_url"
     t.string "github_uid"
@@ -567,6 +580,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
+    t.text "profile_bio"
+    t.string "profile_bluesky_url"
+    t.string "profile_discord_url"
+    t.string "profile_github_url"
+    t.string "profile_linkedin_url"
+    t.string "profile_twitter_url"
+    t.string "profile_website_url"
     t.text "slack_access_token"
     t.string "slack_avatar_url"
     t.string "slack_scopes", default: [], array: true
@@ -617,6 +637,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
+  add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_branches", "users"
   add_foreign_key "heartbeat_machines", "users"
   add_foreign_key "heartbeat_projects", "users"

@@ -65,7 +65,7 @@
     <BitsSelect.Content
       align="start"
       sideOffset={6}
-      class="dashboard-select-popover z-1000 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-surface-content/20 bg-darkless/95 p-2 shadow-xl shadow-black/50 outline-none backdrop-blur-sm"
+      class="dashboard-select-popover z-[11000] w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-surface-content/20 bg-darkless/95 p-2 shadow-xl shadow-black/50 outline-none backdrop-blur-sm"
     >
       <BitsSelect.Viewport
         class="max-h-64 overflow-y-auto rounded-lg border border-surface-content/15 bg-dark/55 p-1"
