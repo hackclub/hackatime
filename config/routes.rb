@@ -165,7 +165,7 @@ Rails.application.routes.draw do
     # get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
       collection do
-        get :export
+        post :export
         post :import
       end
     end

@@ -1,6 +1,8 @@
-# AGENT.md - Rails Hackatime/Harbor Project
+# AGENTS.md for Hackatime
 
-We do development using docker-compose. Run `docker compose ps` to see if the dev server is running. If it is, then you can restart the dev server with `touch tmp/restart.txt`. If not, bring the containers up first with `docker compose up -d`.
+_You MUST read the [development guide](DEVELOPMENT.md) before starting. If you cannot read it, please ask for help._
+
+We do development using docker-compose. Run `docker compose ps` to see if the dev server is running. If it is, then you can restart the dev server with `touch tmp/restart.txt` (but do not do this unless you added/removed a gem). If not, bring the containers up first with `docker compose up -d`.
 
 **IMPORTANT**: Always use `docker compose exec` (not `run`) to execute commands in the existing container. `run` creates a new container each time; `exec` reuses the running one.
 
@@ -18,14 +20,9 @@ We do development using docker-compose. Run `docker compose ps` to see if the de
 
 ## CI/Testing Requirements
 
-**Before marking any task complete, run ALL CI checks locally:**
+Before marking any task complete, you MUST check `config/ci.rb` and manually run the checks in that file which are relevant to your changes (with `docker compose exec`.)
 
-1. `docker compose exec web bundle exec rubocop` (lint check)
-2. `docker compose exec web bundle exec brakeman` (security scan)
-3. `docker compose exec web bin/importmap audit` (JS security)
-4. `docker compose exec web bin/rails zeitwerk:check` (autoloader)
-5. `docker compose exec web rails test` (full test suite)
-6. `docker compose exec web bin/rails rswag:specs:swaggerize` (ensure docs are up to date)
+Skip running checks which aren't relevant to your changes. However, at the very end of feature development, recommend the user to run all checks. If they say yes, run `docker compose exec web bin/ci` to run them all.
 
 ## API Documentation
 

@@ -3,7 +3,7 @@ require "test_helper"
 class AnonymizeUserServiceTest < ActiveSupport::TestCase
   test "anonymization clears profile identity fields" do
     user = User.create!(
-      username: "anon_user_#{SecureRandom.hex(4)}",
+      username: "anon_#{SecureRandom.hex(4)}",
       display_name_override: "Custom Name",
       profile_bio: "Bio",
       profile_github_url: "https://github.com/hackclub",

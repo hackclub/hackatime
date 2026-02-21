@@ -1,37 +1,39 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  user: one
-  entity: MyText
-  type: MyText
-  category: MyString
-  time: 2025-03-03 18:08:42
-  project: MyString
+  user_id: 1
+  entity: "src/main.rb"
+  type: "file"
+  category: "coding"
+  time: <%= 1.day.ago.to_f %>
+  project: "testproject"
   project_root_count: 1
-  branch: MyString
-  language: MyString
-  dependencies: MyString
-  lines: 1
-  line_additions: 1
-  line_deletions: 1
-  lineno: 1
-  cursorpos: 1
-  is_write: false
+  branch: "main"
+  language: "Ruby"
+  dependencies: []
+  source_type: 0
+  lines: 100
+  line_additions: 5
+  line_deletions: 2
+  lineno: 42
+  cursorpos: 10
+  is_write: true
 
 two:
-  user: two
-  entity: MyText
-  type: MyText
-  category: MyString
-  time: 2025-03-03 18:08:42
-  project: MyString
+  user_id: 2
+  entity: "src/app.py"
+  type: "file"
+  category: "coding"
+  time: <%= 2.days.ago.to_f %>
+  project: "otherproject"
   project_root_count: 1
-  branch: MyString
-  language: MyString
-  dependencies: MyString
-  lines: 1
-  line_additions: 1
+  branch: "main"
+  language: "Python"
+  dependencies: []
+  source_type: 0
+  lines: 50
+  line_additions: 3
   line_deletions: 1
-  lineno: 1
-  cursorpos: 1
+  lineno: 10
+  cursorpos: 5
   is_write: false
