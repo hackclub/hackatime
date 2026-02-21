@@ -13,7 +13,12 @@ end
 Rails.application.routes.draw do
   # Redirect to localhost from 127.0.0.1 to use same IP address with Vite server
   constraints(host: "127.0.0.1") do
-    get "(*path)", to: redirect { |params, req| "#{req.protocol}localhost:#{req.port}/#{params[:path]}" }
+    get "(*path)", to: redirect { |params, req|
+      path = params[:path].to_s
+      query = req.query_string.presence
+      base = "#{req.protocol}localhost:#{req.port}/#{path}"
+      query ? "#{base}?#{query}" : base
+    }
   end
 
   mount Rswag::Api::Engine => "/api-docs"
@@ -165,7 +170,7 @@ Rails.application.routes.draw do
     # get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
       collection do
-        get :export
+        post :export
         post :import
       end
     end

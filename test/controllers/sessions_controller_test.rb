@@ -226,11 +226,80 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_nil session[:user_id]
   end
 
-  private
+  test "github_unlink clears github fields for signed-in user" do
+    user = User.create!(github_uid: "12345", github_username: "octocat", github_access_token: "secret-token")
+    sign_in_as(user)
 
-  def sign_in_as(user)
-    token = user.sign_in_tokens.create!(auth_type: :email)
-    get auth_token_path(token: token.token)
-    assert_equal user.id, session[:user_id]
+    delete github_unlink_path
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+
+    user.reload
+    assert_nil user.github_uid
+    assert_nil user.github_username
+    assert_nil user.github_access_token
+  end
+
+  test "add_email creates email verification request" do
+    user = User.create!
+    sign_in_as(user)
+
+    assert_difference -> { user.reload.email_verification_requests.count }, 1 do
+      post add_email_auth_path, params: { email: "new-address@example.com" }
+    end
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert_equal "new-address@example.com", user.reload.email_verification_requests.last.email
+  end
+
+  test "unlink_email removes secondary signing-in email" do
+    user = User.create!
+    removable = user.email_addresses.create!(email: "remove-me@example.com", source: :signing_in)
+    user.email_addresses.create!(email: "keep-me@example.com", source: :signing_in)
+    sign_in_as(user)
+
+    assert_difference -> { user.reload.email_addresses.count }, -1 do
+      delete unlink_email_auth_path, params: { email: removable.email }
+    end
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert_not user.reload.email_addresses.exists?(email: removable.email)
+  end
+
+  test "auth token verifies email verification request token" do
+    user = User.create!
+    verification_request = user.email_verification_requests.create!(email: "verify-me@example.com")
+
+    assert_difference -> { user.reload.email_addresses.count }, 1 do
+      get auth_token_path(token: verification_request.token)
+    end
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert verification_request.reload.deleted_at.present?
+    assert user.reload.email_addresses.exists?(email: "verify-me@example.com")
+  end
+
+  test "impersonate and stop impersonating swaps active user session" do
+    admin = User.create!(admin_level: :admin)
+    target = User.create!
+    sign_in_as(admin)
+
+    get impersonate_user_path(target.id)
+
+    assert_response :redirect
+    assert_redirected_to root_path
+    assert_equal target.id, session[:user_id]
+    assert_equal admin.id, session[:impersonater_user_id]
+
+    get stop_impersonating_path
+
+    assert_response :redirect
+    assert_redirected_to root_path
+    assert_equal admin.id, session[:user_id]
+    assert_nil session[:impersonater_user_id]
   end
 end

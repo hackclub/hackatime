@@ -1,0 +1,2 @@
+# Keep this fixture file present so Rails manages/truncates sign_in_tokens
+# during fixture setup. System tests create sign-in tokens dynamically.

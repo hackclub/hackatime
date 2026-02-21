@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { usePoll } from "@inertiajs/svelte";
+  import { usePoll, Form } from "@inertiajs/svelte";
   import { onMount } from "svelte";
   import { tweened } from "svelte/motion";
   import { cubicOut } from "svelte/easing";
@@ -320,32 +320,51 @@
           </div>
         </div>
 
-        <div class="mt-4 space-y-3">
-          <Button href={paths.export_all_heartbeats_path} class="rounded-md">
-            Export all heartbeats
-          </Button>
+        <p class="mt-2 text-sm text-muted">
+          Exports are generated in the background and emailed to you.
+        </p>
 
-          <form
-            method="get"
+        <div class="mt-4 space-y-3">
+          <Form method="post" action={paths.export_all_heartbeats_path}>
+            {#snippet children({ processing })}
+              <Button
+                type="submit"
+                class="rounded-md cursor-default"
+                disabled={processing}
+              >
+                {processing ? "Exporting..." : "Export all heartbeats"}
+              </Button>
+            {/snippet}
+          </Form>
+
+          <Form
+            method="post"
             action={paths.export_range_heartbeats_path}
             class="grid grid-cols-1 gap-3 rounded-md border border-surface-200 bg-darker p-4 sm:grid-cols-3"
           >
-            <input
-              type="date"
-              name="start_date"
-              required
-              class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-            />
-            <input
-              type="date"
-              name="end_date"
-              required
-              class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-            />
-            <Button type="submit" variant="surface" class="rounded-md">
-              Export date range
-            </Button>
-          </form>
+            {#snippet children({ processing })}
+              <input
+                type="date"
+                name="start_date"
+                required
+                class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+              />
+              <input
+                type="date"
+                name="end_date"
+                required
+                class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+              />
+              <Button
+                type="submit"
+                variant="surface"
+                class="rounded-md"
+                disabled={processing}
+              >
+                {processing ? "Exporting..." : "Export date range"}
+              </Button>
+            {/snippet}
+          </Form>
         </div>
 
         {#if ui.show_dev_import}

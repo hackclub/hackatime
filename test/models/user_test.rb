@@ -2,7 +2,7 @@ require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
   test "theme defaults to gruvbox dark" do
-    user = User.create!
+    user = User.new
 
     assert_equal "gruvbox_dark", user.theme
   end

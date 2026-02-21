@@ -8,10 +8,6 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match %r{text/markdown}, response.content_type
-  end
-
-  test "docs show .md format returns raw markdown content" do
-    get "/docs/getting-started/quick-start.md"
 
     expected_content = File.read(Rails.root.join("docs", "getting-started", "quick-start.md"))
     assert_equal expected_content, response.body

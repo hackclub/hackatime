@@ -84,10 +84,4 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
       scope: "profile"
     }
   end
-
-  def sign_in_as(user)
-    token = user.sign_in_tokens.create!(auth_type: :email)
-    get "/auth/token/#{token.token}"
-    assert_equal user.id, session[:user_id]
-  end
 end

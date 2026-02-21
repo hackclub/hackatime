@@ -123,8 +123,8 @@ class Settings::BaseController < InertiaController
         unlink_email_path: unlink_email_auth_path,
         rotate_api_key_path: my_settings_rotate_api_key_path,
         migrate_heartbeats_path: my_settings_migrate_heartbeats_path,
-        export_all_heartbeats_path: export_my_heartbeats_path(format: :json, all_data: "true"),
-        export_range_heartbeats_path: export_my_heartbeats_path(format: :json),
+        export_all_heartbeats_path: export_my_heartbeats_path(all_data: "true"),
+        export_range_heartbeats_path: export_my_heartbeats_path,
         create_heartbeat_import_path: my_heartbeat_imports_path,
         create_deletion_path: create_deletion_path,
         user_wakatime_mirrors_path: user_wakatime_mirrors_path(current_user)
