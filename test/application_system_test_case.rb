@@ -12,6 +12,11 @@ Capybara.register_driver :headless_chromium do |app|
   options.add_argument("--disable-dev-shm-usage")
   options.add_argument("--window-size=1400,1400")
 
+  # (For CI pinning)
+  if ENV["CHROME_BIN"].present?
+    options.binary = ENV["CHROME_BIN"]
+  end
+
   service = Selenium::WebDriver::Chrome::Service.new(
     path: ENV.fetch("CHROMEDRIVER_BIN", "/usr/bin/chromedriver")
   )

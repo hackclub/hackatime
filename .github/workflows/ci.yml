@@ -128,11 +128,16 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Set up Chrome
+      # Pin Chrome to version 133 to avoid flaky system test failures.
+      # Chrome 134+ has a known bug causing intermittent Selenium/Capybara failures
+      # where session paths don't update correctly after visit() calls.
+      # See: https://github.com/teamcapybara/capybara/issues/2800
+      # Remove this pin once the upstream issue is resolved.
+      - name: Setup Chrome
         id: setup-chrome
-        uses: browser-actions/setup-chrome@v2
+        uses: browser-actions/setup-chrome@latest
         with:
-          chrome-version: 142
+          chrome-version: 133
           install-chromedriver: true
 
       - name: Install JavaScript dependencies

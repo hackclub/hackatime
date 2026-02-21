@@ -21,7 +21,7 @@ class HeartbeatExportMailerTest < ActionMailer::TestCase
     mail = HeartbeatExportMailer.export_ready(
       @user,
       recipient_email: @recipient_email,
-      blob: blob,
+      blob_signed_id: blob.signed_id,
       filename: "heartbeats_test.zip"
     )
 
@@ -32,7 +32,7 @@ class HeartbeatExportMailerTest < ActionMailer::TestCase
     assert_includes mail.html_part.body.decoded, "Your heartbeat export is ready"
     assert_includes mail.text_part.body.decoded, "Your Hackatime heartbeat export has been generated"
     assert_includes mail.text_part.body.decoded, @user.display_name
-    assert_includes mail.text_part.body.decoded, "/rails/active_storage/blobs/redirect/"
+    assert_includes mail.text_part.body.decoded, "/rails/active_storage/"
     assert_includes mail.text_part.body.decoded, "heartbeats_test.zip"
 
     blob.purge
