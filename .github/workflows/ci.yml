@@ -75,11 +75,6 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Install Chromium and Chromedriver
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y chromium chromium-driver
-
       - name: Install JavaScript dependencies
         run: bun install --frozen-lockfile
 
@@ -133,10 +128,12 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Install Chromium and Chromedriver
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y chromium chromium-driver
+      - name: Set up Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+          install-chromedriver: true
 
       - name: Install JavaScript dependencies
         run: bun install --frozen-lockfile
@@ -153,8 +150,8 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
-          CHROME_BIN: /usr/bin/chromium
-          CHROMEDRIVER_BIN: /usr/bin/chromedriver
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
         run: |
           bin/rails db:create RAILS_ENV=test
           bin/rails db:schema:load RAILS_ENV=test
