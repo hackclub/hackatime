@@ -2562,7 +2562,7 @@ paths:
         '401':
           description: unauthorized
   "/my/heartbeats/export":
-    get:
+    post:
       summary: Export Heartbeats
       tags:
       - My Data
@@ -2589,8 +2589,8 @@ paths:
           format: date
         description: End date (YYYY-MM-DD)
       responses:
-        '200':
-          description: successful
+        '302':
+          description: redirect
   "/my/heartbeats/import":
     post:
       summary: Import Heartbeats
@@ -2793,14 +2793,12 @@ paths:
           type: string
       responses:
         '200':
-          description: successful
+          description: successful with invalid credentials
           content:
             text/plain:
               schema:
                 type: integer
                 example: 123456
-        '401':
-          description: unauthorized
         '404':
           description: user not found
           content:

@@ -75,7 +75,7 @@ RSpec.describe 'Api::V1::My', type: :request do
   end
 
   path '/my/heartbeats/export' do
-    get('Export Heartbeats') do
+    post('Export Heartbeats') do
       tags 'My Data'
       description 'Export your heartbeats as a JSON file.'
       security [ Bearer: [], ApiKeyAuth: [] ]
@@ -85,7 +85,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
       parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
 
-      response(200, 'successful') do
+      response(302, 'redirect') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:all_data) { true }
@@ -114,11 +114,15 @@ RSpec.describe 'Api::V1::My', type: :request do
       response(302, 'redirect') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
-        let(:heartbeat_file) { Rack::Test::UploadedFile.new(Rails.root.join('spec/fixtures/heartbeats.json'), 'application/json') }
+        let(:heartbeat_file) do
+          Rack::Test::UploadedFile.new(
+            StringIO.new("[]"),
+            "application/json",
+            original_filename: "heartbeats.json"
+          )
+        end
 
         before do
-           FileUtils.mkdir_p(Rails.root.join('spec/fixtures'))
-           File.write(Rails.root.join('spec/fixtures/heartbeats.json'), '[]') unless File.exist?(Rails.root.join('spec/fixtures/heartbeats.json'))
            login_browser_user
         end
         run_test!

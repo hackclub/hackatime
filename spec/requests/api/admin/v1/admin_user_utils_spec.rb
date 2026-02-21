@@ -46,7 +46,13 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
               }
             }
           }
-        run_test!
+        run_test! do |response|
+          expect(response).to have_http_status(:ok)
+          body = JSON.parse(response.body)
+          expect(body["users"]).to be_an(Array)
+          returned_ids = body["users"].map { |entry| entry["id"] }
+          expect(returned_ids & [ u1.id, u2.id ]).not_to be_empty
+        end
       end
     end
   end

@@ -84,6 +84,27 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
     end
   end
 
+  test "job returns silently when user is missing" do
+    missing_user_id = User.maximum(:id).to_i + 1000
+
+    assert_no_difference -> { ActionMailer::Base.deliveries.count } do
+      HeartbeatExportJob.perform_now(missing_user_id, all_data: true)
+    end
+  end
+
+  test "invalid date arguments do not send email" do
+    create_heartbeat(at_time: Time.utc(2026, 2, 10, 12, 0, 0), entity: "src/valid.rb")
+
+    assert_no_difference -> { ActionMailer::Base.deliveries.count } do
+      HeartbeatExportJob.perform_now(
+        @user.id,
+        all_data: false,
+        start_date: "not-a-date",
+        end_date: "2026-02-11"
+      )
+    end
+  end
+
   private
 
   def create_heartbeat(at_time:, entity:)

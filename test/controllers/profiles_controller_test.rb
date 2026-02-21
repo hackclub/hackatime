@@ -51,12 +51,4 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_inertia_prop "profile_visible", true
     assert_inertia_prop "is_own_profile", true
   end
-
-  private
-
-  def sign_in_as(user)
-    token = user.sign_in_tokens.create!(auth_type: :email)
-    get auth_token_path(token: token.token)
-    assert_equal user.id, session[:user_id]
-  end
 end

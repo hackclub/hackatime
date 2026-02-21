@@ -10,6 +10,7 @@ CI.run do
   step "Setup: Test DB", "env RAILS_ENV=test bin/rails db:create db:schema:load"
   step "Setup: Vite assets", "env RAILS_ENV=test bin/vite build"
   step "Tests: Rails", "env RAILS_ENV=test bin/rails test"
+  step "Tests: System", "env RAILS_ENV=test bin/rails test:system"
   step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
 
   step "Docs: Swagger", "env RAILS_ENV=test bin/rails rswag:specs:swaggerize && git diff --exit-code swagger/v1/swagger.yaml"

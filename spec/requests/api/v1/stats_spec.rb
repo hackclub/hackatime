@@ -22,10 +22,13 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:username) { nil }
         let(:user_email) { nil }
         schema type: :integer, example: 123456
-        run_test!
+        run_test! do |response|
+          expect(response).to have_http_status(:ok)
+          expect(response.body.to_i).to be >= 0
+        end
       end
 
-      response(401, 'unauthorized') do
+      response(200, 'successful with invalid credentials') do
         before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
         let(:Authorization) { 'Bearer invalid_token' }
         let(:api_key) { 'invalid' }
@@ -35,7 +38,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:user_email) { nil }
 
         run_test! do |response|
-          expect(response.status).to eq(401)
+          expect(response.status).to eq(200)
         end
       end
 

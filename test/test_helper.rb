@@ -19,7 +19,6 @@ module ActiveSupport
       "heartbeats",
       "users",
       "email_addresses",
-      "sign_in_tokens",
       "project_repo_mappings",
       "repositories",
       "sailors_log_leaderboards",
@@ -36,6 +35,14 @@ module SystemTestAuthHelper
   def sign_in_as(user)
     token = user.sign_in_tokens.create!(auth_type: :email)
     visit auth_token_path(token: token.token)
+  end
+end
+
+module IntegrationTestAuthHelper
+  def sign_in_as(user)
+    token = user.sign_in_tokens.create!(auth_type: :email)
+    get auth_token_path(token: token.token)
+    assert_equal user.id, session[:user_id]
   end
 end
 
@@ -66,5 +73,6 @@ module InertiaTestHelper
 end
 
 class ActionDispatch::IntegrationTest
+  include IntegrationTestAuthHelper
   include InertiaTestHelper
 end
