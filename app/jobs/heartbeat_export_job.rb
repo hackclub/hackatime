@@ -13,12 +13,11 @@ class HeartbeatExportJob < ApplicationJob
 
     if all_data
       heartbeats = user.heartbeats.order(time: :asc)
-      first_heartbeat = heartbeats.first
-      last_heartbeat = heartbeats.last
+      first_time, last_time = user.heartbeats.pick(Arel.sql("MIN(time), MAX(time)"))
 
-      if first_heartbeat && last_heartbeat
-        start_date = Time.at(first_heartbeat.time).to_date
-        end_date = Time.at(last_heartbeat.time).to_date
+      if first_time && last_time
+        start_date = Time.at(first_time).to_date
+        end_date = Time.at(last_time).to_date
       else
         start_date = Date.current
         end_date = Date.current
