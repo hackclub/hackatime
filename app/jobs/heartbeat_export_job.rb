@@ -1,3 +1,5 @@
+require "zip"
+
 class HeartbeatExportJob < ApplicationJob
   queue_as :default
 
@@ -35,17 +37,39 @@ class HeartbeatExportJob < ApplicationJob
 
     export_data = build_export_data(heartbeats, start_date, end_date)
     user_identifier = user.slack_uid.presence || "user_#{user.id}"
-    filename = "heartbeats_#{user_identifier}_#{start_date.strftime("%Y%m%d")}_#{end_date.strftime("%Y%m%d")}.json"
+    json_filename = "heartbeats_#{user_identifier}_#{start_date.strftime("%Y%m%d")}_#{end_date.strftime("%Y%m%d")}.json"
+    zip_filename = "#{File.basename(json_filename, ".json")}.zip"
 
     Tempfile.create([ "heartbeat_export", ".json" ]) do |file|
       file.write(export_data.to_json)
       file.rewind
-      HeartbeatExportMailer.export_ready(
-        user,
-        recipient_email: recipient_email,
-        file_path: file.path,
-        filename: filename
-      ).deliver_now
+
+      Tempfile.create([ "heartbeat_export", ".zip" ]) do |zip_file|
+        Zip::File.open(zip_file.path, create: true) do |archive|
+          archive.add(json_filename, file.path)
+        end
+
+        blob = File.open(zip_file.path, "rb") do |zip_io|
+          ActiveStorage::Blob.create_and_upload!(
+            io: zip_io,
+            filename: zip_filename,
+            content_type: "application/zip",
+            metadata: {
+              heartbeat_export: true,
+              user_id: user.id
+            }
+          )
+        end
+
+        HeartbeatExportCleanupJob.set(wait: 7.days).perform_later(blob.id)
+
+        HeartbeatExportMailer.export_ready(
+          user,
+          recipient_email: recipient_email,
+          blob: blob,
+          filename: zip_filename
+        ).deliver_now
+      end
     end
   rescue ArgumentError => e
     Rails.logger.error("Heartbeat export failed for user #{user_id}: #{e.message}")
