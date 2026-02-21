@@ -50,7 +50,7 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
     assert_equal "src/first.rb", payload.fetch("heartbeats").first.fetch("entity")
     assert_equal "src/second.rb", payload.fetch("heartbeats").last.fetch("entity")
 
-    assert_includes mail.text_part.body.decoded, "/rails/active_storage/blobs/redirect/"
+    assert_includes mail.text_part.body.decoded, "/rails/active_storage/blobs/proxy/"
   end
 
   test "date-range export includes only heartbeats in range" do

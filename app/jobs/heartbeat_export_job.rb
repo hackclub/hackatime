@@ -66,7 +66,7 @@ class HeartbeatExportJob < ApplicationJob
         HeartbeatExportMailer.export_ready(
           user,
           recipient_email: recipient_email,
-          blob: blob,
+          blob_signed_id: blob.signed_id,
           filename: zip_filename
         ).deliver_now
       end
