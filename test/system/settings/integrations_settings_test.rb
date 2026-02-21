@@ -26,9 +26,10 @@ class IntegrationsSettingsTest < ApplicationSystemTestCase
     visit my_settings_integrations_path
 
     within("#user_slack_status") do
-      find("[role='checkbox']").click
-      click_on "Save Slack settings"
+      find("[role='checkbox']", wait: 10).click
     end
+
+    click_on "Save Slack settings"
 
     assert_text "Settings updated successfully"
     assert_equal true, @user.reload.uses_slack_status
