@@ -132,7 +132,7 @@ jobs:
         id: setup-chrome
         uses: browser-actions/setup-chrome@v2
         with:
-          chrome-version: stable
+          chrome-version: 142
           install-chromedriver: true
 
       - name: Install JavaScript dependencies
