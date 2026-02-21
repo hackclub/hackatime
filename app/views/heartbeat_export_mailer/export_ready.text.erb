@@ -2,6 +2,9 @@ Your heartbeat export is ready
 
 Hi <%= h(@user.display_name) %>,
 
-Your Hackatime heartbeat export has been generated and is attached to this email.
+Your Hackatime heartbeat export has been generated.
 
-If you didn't request this export, you can safely ignore this email.
+Download file: <%= @download_url %>
+Filename: <%= @filename %>
+
+This link will stop working after 7 days.

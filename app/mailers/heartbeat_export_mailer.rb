@@ -1,10 +1,8 @@
 class HeartbeatExportMailer < ApplicationMailer
-  def export_ready(user, recipient_email:, file_path:, filename:)
+  def export_ready(user, recipient_email:, blob:, filename:)
     @user = user
-    attachments[filename] = {
-      mime_type: "application/json",
-      content: File.binread(file_path)
-    }
+    @filename = filename
+    @download_url = rails_blob_url(blob, disposition: "attachment")
 
     mail(
       to: recipient_email,

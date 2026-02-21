@@ -656,6 +656,7 @@ DEPENDENCIES
   rswag-ui
   rubocop-rails-omakase
   ruby_identicon
+  rubyzip (~> 3.2)
   selenium-webdriver
   sentry-rails
   sentry-ruby
