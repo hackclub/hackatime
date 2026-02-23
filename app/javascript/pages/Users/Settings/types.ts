@@ -283,7 +283,10 @@ export type AdminPageProps = SettingsCommonProps & {
   paths: PathsProps;
 };
 
-export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean) => {
+export const buildSections = (
+  sectionPaths: SectionPaths,
+  adminVisible: boolean,
+) => {
   const sections = [
     {
       id: "profile" as SectionId,
@@ -317,8 +320,9 @@ export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean)
     },
     {
       id: "data" as SectionId,
-      label: "Data",
-      blurb: "Exports, imports, mirrors, migration jobs, and deletion controls.",
+      label: "Import & mirror + data",
+      blurb:
+        "Exports, imports, mirrors, migration jobs, and deletion controls.",
       path: sectionPaths.data,
     },
   ];

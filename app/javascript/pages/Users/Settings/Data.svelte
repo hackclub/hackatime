@@ -48,6 +48,9 @@
   let isStartingImport = $state(false);
   let isPolling = $state(false);
   let importSource = $state<DataPageProps["import_source"] | null>(null);
+  let backfillMode = $state<"all_time" | "date_range">("all_time");
+  let importStartDate = $state("");
+  let importEndDate = $state("");
   const importPollParams: { heartbeat_import_id?: string } = {};
   const tweenedProgress = tweened(0, { duration: 320, easing: cubicOut });
 
@@ -79,6 +82,16 @@
     { autoStart: false },
   );
 
+  const { start: startImportSourcePolling, stop: stopImportSourcePolling } =
+    usePoll(
+      10000,
+      {
+        only: ["import_source"],
+        preserveUrl: true,
+      },
+      { autoStart: false },
+    );
+
   onMount(() => {
     csrfToken =
       document
@@ -87,14 +100,14 @@
 
     syncImportFromProps(heartbeat_import);
     importSource = import_source || null;
+    importStartDate = importSource?.initial_backfill_start_date || "";
+    importEndDate = importSource?.initial_backfill_end_date || "";
+    backfillMode = importStartDate || importEndDate ? "date_range" : "all_time";
+    startImportSourcePolling();
 
-    const sourcePoll = window.setInterval(() => {
-      void pollImportSource();
-    }, 10000);
-
-    void pollImportSource();
-
-    return () => window.clearInterval(sourcePoll);
+    return () => {
+      stopImportSourcePolling();
+    };
   });
 
   $effect(() => {
@@ -103,6 +116,9 @@
 
   $effect(() => {
     importSource = import_source || null;
+    importStartDate = importSource?.initial_backfill_start_date || "";
+    importEndDate = importSource?.initial_backfill_end_date || "";
+    backfillMode = importStartDate || importEndDate ? "date_range" : "all_time";
   });
 
   function isTerminalImportState(state: string) {
@@ -198,32 +214,6 @@
     skippedCount = null;
     errorsCount = 0;
     void tweenedProgress.set(0);
-  }
-
-  async function pollImportSource() {
-    if (!importSource) {
-      return;
-    }
-
-    try {
-      const response = await fetch(paths.heartbeat_import_source_path, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-        credentials: "same-origin",
-      });
-      if (!response.ok) {
-        return;
-      }
-
-      const payload = (await response.json()) as {
-        import_source?: DataPageProps["import_source"];
-      };
-      importSource = payload.import_source || null;
-    } catch (_error) {
-      return;
-    }
   }
 
   async function startImport(event: SubmitEvent) {
@@ -323,7 +313,7 @@
 
     <section id="wakatime_import_source">
       <h2 class="text-xl font-semibold text-surface-content">
-        Import from WakaTime-Compatible Source
+        Import from WakaTime
       </h2>
       <p class="mt-1 text-sm text-muted">
         Sync heartbeats continuously from WakaTime or Wakapi compatibility
@@ -406,37 +396,101 @@
           {/if}
         </div>
 
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
+        <div class="rounded-md border border-surface-200 bg-surface p-3">
+          <p class="text-sm font-semibold text-surface-content">
+            Backfill scope
+          </p>
+          <div class="mt-2 flex flex-wrap items-center gap-4">
             <label
-              for="import_start_date"
-              class="mb-2 block text-sm text-surface-content"
+              class="inline-flex items-center gap-2 text-sm text-surface-content"
             >
-              Backfill start date
+              <input
+                type="radio"
+                name="backfill_mode"
+                value="all_time"
+                checked={backfillMode === "all_time"}
+                onchange={() => {
+                  backfillMode = "all_time";
+                  importStartDate = "";
+                  importEndDate = "";
+                }}
+                class="peer sr-only"
+              />
+              <span
+                class="h-4 w-4 rounded-full border border-surface-200 bg-surface ring-offset-2 ring-offset-surface transition peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"
+              ></span>
+              All time
             </label>
+            <label
+              class="inline-flex items-center gap-2 text-sm text-surface-content"
+            >
+              <input
+                type="radio"
+                name="backfill_mode"
+                value="date_range"
+                checked={backfillMode === "date_range"}
+                onchange={() => {
+                  backfillMode = "date_range";
+                }}
+                class="peer sr-only"
+              />
+              <span
+                class="h-4 w-4 rounded-full border border-surface-200 bg-surface ring-offset-2 ring-offset-surface transition peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"
+              ></span>
+              Specific date range
+            </label>
+          </div>
+
+          {#if backfillMode === "all_time"}
             <input
-              id="import_start_date"
-              type="date"
+              type="hidden"
               name="heartbeat_import_source[initial_backfill_start_date]"
-              value={importSource?.initial_backfill_start_date || ""}
-              class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+              value=""
             />
-          </div>
-          <div>
-            <label
-              for="import_end_date"
-              class="mb-2 block text-sm text-surface-content"
-            >
-              Backfill end date
-            </label>
             <input
-              id="import_end_date"
-              type="date"
+              type="hidden"
               name="heartbeat_import_source[initial_backfill_end_date]"
-              value={importSource?.initial_backfill_end_date || ""}
-              class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+              value=""
             />
-          </div>
+            <p class="mt-2 text-xs text-muted">
+              Imports from your earliest available day through today.
+            </p>
+          {:else}
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label
+                  for="import_start_date"
+                  class="mb-2 block text-sm text-surface-content"
+                >
+                  Start date
+                </label>
+                <input
+                  id="import_start_date"
+                  type="date"
+                  name="heartbeat_import_source[initial_backfill_start_date]"
+                  bind:value={importStartDate}
+                  required
+                  class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label
+                  for="import_end_date"
+                  class="mb-2 block text-sm text-surface-content"
+                >
+                  End date
+                </label>
+                <input
+                  id="import_end_date"
+                  type="date"
+                  name="heartbeat_import_source[initial_backfill_end_date]"
+                  bind:value={importEndDate}
+                  required
+                  class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+          {/if}
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
@@ -504,10 +558,11 @@
 
     <section id="wakatime_mirror">
       <h2 class="text-xl font-semibold text-surface-content">
-        Mirror to WakaTime-Compatible Destination
+        Mirror to WakaTime
       </h2>
       <p class="mt-1 text-sm text-muted">
-        Send direct-entry heartbeats to external WakaTime-compatible endpoints.
+        Send new heartbeats to external WakaTime-compatible endpoints. This
+        means that you can use WakaTime.com with Hackatime.
       </p>
 
       {#if mirrors.length > 0}

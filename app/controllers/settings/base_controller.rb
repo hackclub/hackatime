@@ -32,6 +32,7 @@ class Settings::BaseController < InertiaController
   def prepare_settings_page
     @is_own_settings = is_own_settings?
     @can_enable_slack_status = @user.slack_access_token.present? && @user.slack_scopes.include?("users.profile:write")
+    @imports_and_mirrors_enabled = Flipper.enabled?(:wakatime_imports_mirrors)
 
     @enabled_sailors_logs = SailorsLogNotificationPreference.where(
       slack_uid: @user.slack_uid,
@@ -60,8 +61,8 @@ class Settings::BaseController < InertiaController
 
     @general_badge_url = GithubReadmeStats.new(@user.id, "darcula").generate_badge_url
     @latest_api_key_token = @user.api_keys.last&.token
-    @mirrors = current_user.wakatime_mirrors.order(created_at: :desc)
-    @import_source = current_user.heartbeat_import_source
+    @mirrors = @imports_and_mirrors_enabled ? current_user.wakatime_mirrors.order(created_at: :desc) : []
+    @import_source = @imports_and_mirrors_enabled ? current_user.heartbeat_import_source : nil
   end
 
   def settings_page_props(active_section:, settings_update_path:)
@@ -227,7 +228,8 @@ class Settings::BaseController < InertiaController
         mirrors: serialized_mirrors(@mirrors)
       },
       ui: {
-        show_dev_import: Rails.env.development?
+        show_dev_import: Rails.env.development?,
+        show_imports_and_mirrors: @imports_and_mirrors_enabled
       },
       heartbeat_import: {
         import_id: heartbeat_import_id,
