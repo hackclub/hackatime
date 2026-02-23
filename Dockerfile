@@ -96,5 +96,6 @@ USER 1000:1000
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 # Start either web server or job worker based on WORKER env var
-EXPOSE 80
+EXPOSE 3000
+ENV HTTP_PORT="3000"
 CMD ["./bin/thrust", "./bin/rails", "server"]
