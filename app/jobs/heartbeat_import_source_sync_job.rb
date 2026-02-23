@@ -15,6 +15,8 @@ class HeartbeatImportSourceSyncJob < ApplicationJob
   )
 
   def perform(source_id)
+    return unless Flipper.enabled?(:wakatime_imports_mirrors)
+
     source = HeartbeatImportSource.find_by(id: source_id)
     return unless source&.sync_enabled?
     return if source.paused?
@@ -66,7 +68,13 @@ class HeartbeatImportSourceSyncJob < ApplicationJob
     end_date = source.initial_backfill_end_date || Date.current
 
     if start_date.blank?
-      start_date = source.client.fetch_all_time_since_today_start_date
+      begin
+        start_date = source.client.fetch_all_time_since_today_start_date
+      rescue => e
+        Rails.logger.error("Failed to fetch all_time_since_today for source #{source.id}: #{e.message}")
+        source.update!(status: :failed, last_error_message: e.message, last_error_at: Time.current)
+        return
+      end
     end
 
     if start_date > end_date

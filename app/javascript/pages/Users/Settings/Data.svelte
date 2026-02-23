@@ -99,14 +99,19 @@
         ?.getAttribute("content") || "";
 
     syncImportFromProps(heartbeat_import);
-    importSource = import_source || null;
-    importStartDate = importSource?.initial_backfill_start_date || "";
-    importEndDate = importSource?.initial_backfill_end_date || "";
-    backfillMode = importStartDate || importEndDate ? "date_range" : "all_time";
-    startImportSourcePolling();
+    if (ui.show_imports_and_mirrors) {
+      importSource = import_source || null;
+      importStartDate = importSource?.initial_backfill_start_date || "";
+      importEndDate = importSource?.initial_backfill_end_date || "";
+      backfillMode =
+        importStartDate || importEndDate ? "date_range" : "all_time";
+      startImportSourcePolling();
+    }
 
     return () => {
-      stopImportSourcePolling();
+      if (ui.show_imports_and_mirrors) {
+        stopImportSourcePolling();
+      }
     };
   });
 
@@ -115,6 +120,14 @@
   });
 
   $effect(() => {
+    if (!ui.show_imports_and_mirrors) {
+      importSource = null;
+      importStartDate = "";
+      importEndDate = "";
+      backfillMode = "all_time";
+      return;
+    }
+
     importSource = import_source || null;
     importStartDate = importSource?.initial_backfill_start_date || "";
     importEndDate = importSource?.initial_backfill_end_date || "";

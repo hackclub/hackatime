@@ -274,6 +274,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   end
 
   def enqueue_mirror_sync
+    return unless Flipper.enabled?(:wakatime_imports_mirrors)
+
     MirrorFanoutEnqueueJob.perform_later(@user.id)
   rescue => e
     Rails.logger.error("Error enqueuing mirror sync fanout: #{e.class.name} #{e.message}")

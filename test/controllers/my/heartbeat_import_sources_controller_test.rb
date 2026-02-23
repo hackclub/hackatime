@@ -1,6 +1,10 @@
 require "test_helper"
 
 class My::HeartbeatImportSourcesControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    Flipper.enable(:wakatime_imports_mirrors)
+  end
+
   test "requires auth for create" do
     post my_heartbeat_import_source_path, params: {
       heartbeat_import_source: {

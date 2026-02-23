@@ -13,6 +13,8 @@ class HeartbeatImportSourceSyncDayJob < ApplicationJob
   )
 
   def perform(source_id, date_string)
+    return unless Flipper.enabled?(:wakatime_imports_mirrors)
+
     source = HeartbeatImportSource.find_by(id: source_id)
     return unless source&.sync_enabled?
 

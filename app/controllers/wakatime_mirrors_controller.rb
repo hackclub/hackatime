@@ -1,6 +1,7 @@
 class WakatimeMirrorsController < ApplicationController
   before_action :set_user
   before_action :require_current_user
+  before_action :ensure_imports_and_mirrors_enabled
   before_action :set_mirror, only: [ :destroy ]
 
   def create
@@ -36,5 +37,11 @@ class WakatimeMirrorsController < ApplicationController
     unless @user == current_user
       redirect_to root_path, alert: "You are not authorized to access this page"
     end
+  end
+
+  def ensure_imports_and_mirrors_enabled
+    return if Flipper.enabled?(:wakatime_imports_mirrors)
+
+    redirect_to my_settings_data_path, alert: "Imports and mirrors are currently disabled."
   end
 end

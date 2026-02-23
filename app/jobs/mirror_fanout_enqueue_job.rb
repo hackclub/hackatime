@@ -4,6 +4,7 @@ class MirrorFanoutEnqueueJob < ApplicationJob
   DEBOUNCE_TTL = 10.seconds
 
   def perform(user_id)
+    return unless Flipper.enabled?(:wakatime_imports_mirrors)
     return if debounced?(user_id)
 
     User.find_by(id: user_id)&.wakatime_mirrors&.active&.pluck(:id)&.each do |mirror_id|

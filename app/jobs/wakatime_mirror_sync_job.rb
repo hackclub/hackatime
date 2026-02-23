@@ -22,6 +22,8 @@ class WakatimeMirrorSyncJob < ApplicationJob
   )
 
   def perform(mirror_id)
+    return unless Flipper.enabled?(:wakatime_imports_mirrors)
+
     mirror = WakatimeMirror.find_by(id: mirror_id)
     return unless mirror&.enabled?
 

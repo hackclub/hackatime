@@ -123,7 +123,9 @@ class My::HeartbeatImportSourcesController < ApplicationController
       last_error_message: source.last_error_message,
       last_error_at: source.last_error_at&.iso8601,
       consecutive_failures: source.consecutive_failures,
-      imported_count: current_user.heartbeats.where(source_type: :wakapi_import).count
+      imported_count: Rails.cache.fetch("user:#{current_user.id}:wakapi_import_count", expires_in: 5.minutes) do
+        current_user.heartbeats.where(source_type: :wakapi_import).count
+      end
     }
   end
 end
