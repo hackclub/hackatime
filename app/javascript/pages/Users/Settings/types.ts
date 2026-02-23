@@ -1,6 +1,7 @@
 export type SectionId =
   | "profile"
   | "integrations"
+  | "notifications"
   | "access"
   | "goals"
   | "badges"
@@ -61,6 +62,7 @@ export type UserProps = {
   username?: string | null;
   theme: string;
   uses_slack_status: boolean;
+  weekly_summary_email_enabled: boolean;
   hackatime_extension_text_type: string;
   allow_public_stats_lookup: boolean;
   trust_level: string;
@@ -255,6 +257,11 @@ export type AccessPageProps = SettingsCommonProps & {
   config_file: ConfigFileProps;
 };
 
+export type NotificationsPageProps = SettingsCommonProps & {
+  settings_update_path: string;
+  user: UserProps;
+};
+
 export type GoalsPageProps = SettingsCommonProps & {
   settings_update_path: string;
   create_goal_path: string;
@@ -297,6 +304,12 @@ export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean)
       label: "Integrations",
       blurb: "Slack status, GitHub link, and email sign-in addresses.",
       path: sectionPaths.integrations,
+    },
+    {
+      id: "notifications" as SectionId,
+      label: "Notifications",
+      blurb: "Email notifications and weekly summary preferences.",
+      path: sectionPaths.notifications,
     },
     {
       id: "access" as SectionId,
@@ -350,6 +363,8 @@ const hashSectionMap: Record<string, SectionId> = {
   user_slack_notifications: "integrations",
   user_github_account: "integrations",
   user_email_addresses: "integrations",
+  user_email_notifications: "notifications",
+  user_weekly_summary_email: "notifications",
   user_stats_badges: "badges",
   user_markscribe: "badges",
   user_heatmap: "badges",

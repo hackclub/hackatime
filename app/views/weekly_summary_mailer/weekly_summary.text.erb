@@ -1,0 +1,22 @@
+Your Hackatime weekly summary: <%= @period_label %>
+
+Hi <%= h(@user.display_name) %>,
+
+Total coding time: <%= short_time_simple(@total_seconds) %>
+Daily average: <%= short_time_simple(@daily_average_seconds) %>
+Active days: <%= @active_days %>/7
+Heartbeats: <%= @total_heartbeats %>
+
+<% if @total_seconds.zero? %>
+No coding activity was recorded this week.
+<% else %>
+Top projects:
+<% @top_projects.each do |project| %>
+- <%= project[:name] %>: <%= project[:duration_label] %>
+<% end %>
+
+Top languages:
+<% @top_languages.each do |language| %>
+- <%= language[:name] %>: <%= language[:duration_label] %>
+<% end %>
+<% end %>

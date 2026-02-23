@@ -78,11 +78,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
 
-    # LoopsMailer forces SMTP delivery even in test; temporarily override
-    original_delivery_method = LoopsMailer.delivery_method
-    LoopsMailer.delivery_method = :test
     post email_auth_path, params: { email: email, continue: oauth_path }
-    LoopsMailer.delivery_method = original_delivery_method
 
     assert_response :redirect
 
