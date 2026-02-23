@@ -158,6 +158,12 @@ Rails.application.routes.draw do
   post "my/settings/rotate_api_key", to: "settings/access#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
+    resource :heartbeat_import_source,
+      only: [ :create, :update, :show, :destroy ],
+      controller: "heartbeat_import_sources" do
+      post :sync, on: :collection, action: :sync_now
+    end
+
     resources :heartbeat_imports, only: [ :create, :show ]
 
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do

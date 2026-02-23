@@ -5,16 +5,17 @@ class WakatimeMirrorsController < ApplicationController
 
   def create
     @mirror = @user.wakatime_mirrors.build(mirror_params)
+    @mirror.request_host = request.host
     if @mirror.save
-      redirect_to my_settings_path, notice: "WakaTime mirror added successfully"
+      redirect_to my_settings_data_path, notice: "WakaTime mirror added successfully"
     else
-      redirect_to my_settings_path, alert: "Failed to add WakaTime mirror: #{@mirror.errors.full_messages.join(', ')}"
+      redirect_to my_settings_data_path, alert: "Failed to add WakaTime mirror: #{@mirror.errors.full_messages.join(', ')}"
     end
   end
 
   def destroy
     @mirror.destroy
-    redirect_to my_settings_path, notice: "WakaTime mirror removed successfully"
+    redirect_to my_settings_data_path, notice: "WakaTime mirror removed successfully"
   end
 
   private

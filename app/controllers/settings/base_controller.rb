@@ -61,6 +61,7 @@ class Settings::BaseController < InertiaController
     @general_badge_url = GithubReadmeStats.new(@user.id, "darcula").generate_badge_url
     @latest_api_key_token = @user.api_keys.last&.token
     @mirrors = current_user.wakatime_mirrors.order(created_at: :desc)
+    @import_source = current_user.heartbeat_import_source
   end
 
   def settings_page_props(active_section:, settings_update_path:)
@@ -127,7 +128,9 @@ class Settings::BaseController < InertiaController
         export_range_heartbeats_path: export_my_heartbeats_path,
         create_heartbeat_import_path: my_heartbeat_imports_path,
         create_deletion_path: create_deletion_path,
-        user_wakatime_mirrors_path: user_wakatime_mirrors_path(current_user)
+        user_wakatime_mirrors_path: user_wakatime_mirrors_path(current_user),
+        heartbeat_import_source_path: my_heartbeat_import_source_path,
+        heartbeat_import_source_sync_path: sync_my_heartbeat_import_source_path
       },
       options: {
         countries: ISO3166::Country.all.map { |country|
@@ -217,16 +220,11 @@ class Settings::BaseController < InertiaController
         heartbeats_last_7_days: number_with_delimiter(heartbeats_last_7_days),
         is_restricted: (@user.trust_level == "red")
       },
+      import_source: serialized_import_source(@import_source),
+      mirrors: serialized_mirrors(@mirrors),
       admin_tools: {
         visible: current_user.admin_level.in?(%w[admin superadmin]),
-        mirrors: @mirrors.map { |mirror|
-          {
-            id: mirror.id,
-            endpoint_url: mirror.endpoint_url,
-            last_synced_ago: (mirror.last_synced_at ? "#{time_ago_in_words(mirror.last_synced_at)} ago" : "Never"),
-            destroy_path: user_wakatime_mirror_path(current_user, mirror)
-          }
-        }
+        mirrors: serialized_mirrors(@mirrors)
       },
       ui: {
         show_dev_import: Rails.env.development?
@@ -275,5 +273,42 @@ class Settings::BaseController < InertiaController
 
   def is_own_settings?
     params["id"] == "my" || params["id"]&.blank?
+  end
+
+  def serialized_import_source(source)
+    return nil unless source
+
+    {
+      id: source.id,
+      provider: source.provider,
+      endpoint_url: source.endpoint_url,
+      sync_enabled: source.sync_enabled,
+      status: source.status,
+      initial_backfill_start_date: source.initial_backfill_start_date&.iso8601,
+      initial_backfill_end_date: source.initial_backfill_end_date&.iso8601,
+      backfill_cursor_date: source.backfill_cursor_date&.iso8601,
+      last_synced_at: source.last_synced_at&.iso8601,
+      last_synced_ago: (source.last_synced_at ? "#{time_ago_in_words(source.last_synced_at)} ago" : "Never"),
+      last_error_message: source.last_error_message,
+      last_error_at: source.last_error_at&.iso8601,
+      consecutive_failures: source.consecutive_failures,
+      imported_count: source.user.heartbeats.where(source_type: :wakapi_import).count
+    }
+  end
+
+  def serialized_mirrors(mirrors)
+    mirrors.map { |mirror|
+      {
+        id: mirror.id,
+        endpoint_url: mirror.endpoint_url,
+        enabled: mirror.enabled,
+        last_synced_at: mirror.last_synced_at&.iso8601,
+        last_synced_ago: (mirror.last_synced_at ? "#{time_ago_in_words(mirror.last_synced_at)} ago" : "Never"),
+        consecutive_failures: mirror.consecutive_failures,
+        last_error_message: mirror.last_error_message,
+        last_error_at: mirror.last_error_at&.iso8601,
+        destroy_path: user_wakatime_mirror_path(current_user, mirror)
+      }
+    }
   end
 end

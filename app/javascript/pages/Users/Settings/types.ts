@@ -86,6 +86,8 @@ export type PathsProps = {
   create_heartbeat_import_path: string;
   create_deletion_path: string;
   user_wakatime_mirrors_path: string;
+  heartbeat_import_source_path: string;
+  heartbeat_import_source_sync_path: string;
 };
 
 export type OptionsProps = {
@@ -161,7 +163,12 @@ export type AdminToolsProps = {
   mirrors: {
     id: number;
     endpoint_url: string;
+    enabled?: boolean;
+    last_synced_at?: string | null;
     last_synced_ago: string;
+    consecutive_failures?: number;
+    last_error_message?: string | null;
+    last_error_at?: string | null;
     destroy_path: string;
   }[];
 };
@@ -188,6 +195,23 @@ export type HeartbeatImportStatusProps = {
 export type HeartbeatImportProps = {
   import_id?: string | null;
   status?: HeartbeatImportStatusProps | null;
+};
+
+export type HeartbeatImportSourceProps = {
+  id: number;
+  provider: string;
+  endpoint_url: string;
+  sync_enabled: boolean;
+  status: string;
+  initial_backfill_start_date?: string | null;
+  initial_backfill_end_date?: string | null;
+  backfill_cursor_date?: string | null;
+  last_synced_at?: string | null;
+  last_synced_ago?: string | null;
+  last_error_message?: string | null;
+  last_error_at?: string | null;
+  consecutive_failures: number;
+  imported_count: number;
 };
 
 export type ErrorsProps = {
@@ -248,6 +272,8 @@ export type DataPageProps = SettingsCommonProps & {
   paths: PathsProps;
   migration: MigrationProps;
   data_export: DataExportProps;
+  import_source?: HeartbeatImportSourceProps | null;
+  mirrors: AdminToolsProps["mirrors"];
   ui: UiProps;
   heartbeat_import: HeartbeatImportProps;
 };
@@ -292,7 +318,7 @@ export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean)
     {
       id: "data" as SectionId,
       label: "Data",
-      blurb: "Exports, migration jobs, and account deletion controls.",
+      blurb: "Exports, imports, mirrors, migration jobs, and deletion controls.",
       path: sectionPaths.data,
     },
   ];
@@ -301,7 +327,7 @@ export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean)
     sections.push({
       id: "admin",
       label: "Admin",
-      blurb: "WakaTime mirror endpoints.",
+      blurb: "Administrative controls.",
       path: sectionPaths.admin,
     });
   }
@@ -327,9 +353,10 @@ const hashSectionMap: Record<string, SectionId> = {
   user_markscribe: "badges",
   user_heatmap: "badges",
   user_migration_assistant: "data",
+  wakatime_import_source: "data",
   download_user_data: "data",
   delete_account: "data",
-  wakatime_mirror: "admin",
+  wakatime_mirror: "data",
 };
 
 export const sectionFromHash = (hash: string): SectionId | null => {

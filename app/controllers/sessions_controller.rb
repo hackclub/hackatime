@@ -36,7 +36,7 @@ class SessionsController < ApplicationController
       PosthogService.identify(@user)
       PosthogService.capture(@user, "user_signed_in", { method: "hca" })
 
-      if @user.created_at > 5.seconds.ago
+      if @user.previously_new_record?
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       elsif session[:return_data]&.dig("url").present?
         return_url = session[:return_data].delete("url")
@@ -101,7 +101,7 @@ class SessionsController < ApplicationController
 
       if slack_state&.dig("close_window")
         redirect_to close_window_path
-      elsif @user.created_at > 5.seconds.ago
+      elsif @user.previously_new_record?
         session[:return_data] = { "url" => safe_return_url(slack_state&.dig("continue").presence) }
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
       elsif slack_state&.dig("continue").present? && safe_return_url(slack_state["continue"]).present?
