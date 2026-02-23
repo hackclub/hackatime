@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_21_113553) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_23_134705) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -257,6 +257,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_113553) do
     t.index ["name"], name: "index_heartbeat_editors_on_name", unique: true
   end
 
+  create_table "heartbeat_import_sources", force: :cascade do |t|
+    t.date "backfill_cursor_date"
+    t.integer "consecutive_failures", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.string "encrypted_api_key", null: false
+    t.string "endpoint_url", null: false
+    t.date "initial_backfill_end_date"
+    t.date "initial_backfill_start_date"
+    t.datetime "last_error_at"
+    t.text "last_error_message"
+    t.datetime "last_synced_at"
+    t.integer "provider", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.boolean "sync_enabled", default: true, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_heartbeat_import_sources_on_user_id", unique: true
+  end
+
   create_table "heartbeat_languages", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -356,6 +375,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_113553) do
     t.index ["user_id", "operating_system", "time"], name: "idx_heartbeats_user_operating_system_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
     t.index ["user_id", "project"], name: "index_heartbeats_on_user_id_and_project", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "source_type", "id"], name: "index_heartbeats_on_user_source_id_direct", where: "((source_type = 0) AND (deleted_at IS NULL))"
     t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
     t.index ["user_id", "time", "language"], name: "idx_heartbeats_user_time_language_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "language_id"], name: "idx_heartbeats_user_time_language_id", where: "(deleted_at IS NULL)"
@@ -647,10 +667,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_113553) do
   end
 
   create_table "wakatime_mirrors", force: :cascade do |t|
+    t.integer "consecutive_failures", default: 0, null: false
     t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
     t.string "encrypted_api_key", null: false
     t.string "endpoint_url", default: "https://wakatime.com/api/v1", null: false
+    t.datetime "last_error_at"
+    t.text "last_error_message"
     t.datetime "last_synced_at"
+    t.bigint "last_synced_heartbeat_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id", "endpoint_url"], name: "index_wakatime_mirrors_on_user_id_and_endpoint_url", unique: true
@@ -669,6 +694,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_113553) do
   add_foreign_key "email_verification_requests", "users"
   add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_branches", "users"
+  add_foreign_key "heartbeat_import_sources", "users"
   add_foreign_key "heartbeat_machines", "users"
   add_foreign_key "heartbeat_projects", "users"
   add_foreign_key "heartbeats", "heartbeat_branches", column: "branch_id"
