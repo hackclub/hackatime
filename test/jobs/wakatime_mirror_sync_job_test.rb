@@ -5,6 +5,14 @@ require "net/http"
 require "timeout"
 
 class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
+  setup do
+    Flipper.enable(:wakatime_imports_mirrors)
+  end
+
+  teardown do
+    Flipper.disable(:wakatime_imports_mirrors)
+  end
+
   class MockWakatimeServer
     attr_reader :base_url, :port
 
@@ -156,7 +164,9 @@ class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
         { status: 201, body: "{}", headers: { "Content-Type" => "application/json" } }
       end
 
-    WakatimeMirrorSyncJob.perform_now(mirror.id)
+    with_development_env do
+      WakatimeMirrorSyncJob.perform_now(mirror.id)
+    end
 
     assert_equal [ 25, 5 ], payload_batches.map(&:size)
     assert_equal 30, payload_batches.flatten.size
@@ -213,7 +223,9 @@ class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
     stub_request(:post, "https://wakatime.com/api/v1/users/current/heartbeats.bulk")
       .to_return(status: 401, body: "{}")
 
-    WakatimeMirrorSyncJob.perform_now(mirror.id)
+    with_development_env do
+      WakatimeMirrorSyncJob.perform_now(mirror.id)
+    end
 
     mirror.reload
     assert_not mirror.enabled
@@ -277,9 +289,7 @@ class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
       project: "import-project"
     )
 
-    with_development_env do
-      WakatimeMirrorSyncJob.perform_now(mirror.id)
-    end
+    WakatimeMirrorSyncJob.perform_now(mirror.id)
 
     requests = server.pop_requests
     assert_equal 1, requests.length
@@ -294,6 +304,27 @@ class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
     WebMock.disable_net_connect!(allow_localhost: false)
   end
 
+  test "does nothing when imports and mirrors are disabled" do
+    user = User.create!(timezone: "UTC")
+    mirror = user.wakatime_mirrors.create!(
+      endpoint_url: "https://wakatime.com/api/v1",
+      encrypted_api_key: "mirror-key"
+    )
+    create_heartbeat(
+      user: user,
+      source_type: :direct_entry,
+      entity: "src/direct.rb"
+    )
+    Flipper.disable(:wakatime_imports_mirrors)
+
+    stub_request(:post, "https://wakatime.com/api/v1/users/current/heartbeats.bulk")
+      .to_return(status: 201, body: "{}")
+
+    WakatimeMirrorSyncJob.perform_now(mirror.id)
+
+    assert_not_requested :post, "https://wakatime.com/api/v1/users/current/heartbeats.bulk"
+  end
+
   private
 
   def with_development_env
@@ -306,4 +337,5 @@ class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
     rails_singleton.alias_method :env, :__original_env_for_test
     rails_singleton.remove_method :__original_env_for_test
   end
+
 end

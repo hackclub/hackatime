@@ -175,6 +175,7 @@ export type AdminToolsProps = {
 
 export type UiProps = {
   show_dev_import: boolean;
+  show_imports_and_mirrors: boolean;
 };
 
 export type HeartbeatImportStatusProps = {
@@ -283,10 +284,7 @@ export type AdminPageProps = SettingsCommonProps & {
   paths: PathsProps;
 };
 
-export const buildSections = (
-  sectionPaths: SectionPaths,
-  adminVisible: boolean,
-) => {
+export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean) => {
   const sections = [
     {
       id: "profile" as SectionId,
@@ -320,9 +318,8 @@ export const buildSections = (
     },
     {
       id: "data" as SectionId,
-      label: "Import & mirror + data",
-      blurb:
-        "Exports, imports, mirrors, migration jobs, and deletion controls.",
+      label: "Data",
+      blurb: "Exports, imports, mirrors, migration jobs, and deletion controls.",
       path: sectionPaths.data,
     },
   ];

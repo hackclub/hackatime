@@ -2,6 +2,14 @@ require "test_helper"
 require "webmock/minitest"
 
 class HeartbeatImportSourceSyncJobTest < ActiveJob::TestCase
+  setup do
+    Flipper.enable(:wakatime_imports_mirrors)
+  end
+
+  teardown do
+    Flipper.disable(:wakatime_imports_mirrors)
+  end
+
   def create_source(user:, **attrs)
     user.create_heartbeat_import_source!(
       {
@@ -163,5 +171,17 @@ class HeartbeatImportSourceSyncJobTest < ActiveJob::TestCase
     source.reload
     assert source.failed?
     assert_equal 1, source.consecutive_failures
+  end
+
+  test "coordinator does nothing when imports and mirrors are disabled" do
+    GoodJob::Job.delete_all
+    user = User.create!(timezone: "UTC")
+    source = create_source(user: user)
+    Flipper.disable(:wakatime_imports_mirrors)
+
+    HeartbeatImportSourceSyncJob.perform_now(source.id)
+
+    assert_equal 0, queued_jobs_for("HeartbeatImportSourceSyncDayJob").count
+    assert_equal "idle", source.reload.status
   end
 end

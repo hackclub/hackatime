@@ -5,6 +5,10 @@ class My::HeartbeatImportSourcesControllerTest < ActionDispatch::IntegrationTest
     Flipper.enable(:wakatime_imports_mirrors)
   end
 
+  teardown do
+    Flipper.disable(:wakatime_imports_mirrors)
+  end
+
   test "requires auth for create" do
     post my_heartbeat_import_source_path, params: {
       heartbeat_import_source: {
@@ -90,5 +94,17 @@ class My::HeartbeatImportSourcesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_redirected_to my_settings_data_path
+  end
+
+  test "returns not found json when imports and mirrors are disabled" do
+    user = User.create!(timezone: "UTC")
+    sign_in_as(user)
+    Flipper.disable(:wakatime_imports_mirrors)
+
+    get my_heartbeat_import_source_path, as: :json
+
+    assert_response :not_found
+    payload = JSON.parse(response.body)
+    assert_equal "Imports and mirrors are currently disabled.", payload["error"]
   end
 end

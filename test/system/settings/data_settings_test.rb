@@ -5,8 +5,13 @@ class DataSettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
+    Flipper.enable(:wakatime_imports_mirrors)
     @user = User.create!(timezone: "UTC")
     sign_in_as(@user)
+  end
+
+  teardown do
+    Flipper.disable(:wakatime_imports_mirrors)
   end
 
   test "data settings page renders key sections" do
@@ -89,5 +94,15 @@ class DataSettingsTest < ApplicationSystemTestCase
     assert_text "Status:"
     assert_text "Imported heartbeats:"
     assert_button "Sync now"
+  end
+
+  test "imports and mirrors section is hidden when feature is disabled" do
+    Flipper.disable(:wakatime_imports_mirrors)
+
+    visit my_settings_data_path
+
+    assert_no_text "Imports & Mirrors"
+    assert_no_field "mirror_endpoint_url"
+    assert_no_field "import_endpoint_url"
   end
 end
