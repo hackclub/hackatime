@@ -1,6 +1,8 @@
 require "test_helper"
 
 class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
+  fixtures :users
+
   test "create rejects guests" do
     post my_heartbeat_imports_path
 
@@ -9,7 +11,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create rejects non-development environment" do
-    user = User.create!(timezone: "UTC")
+    user = users(:one)
     sign_in_as(user)
 
     post my_heartbeat_imports_path
@@ -19,7 +21,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show rejects non-development environment" do
-    user = User.create!(timezone: "UTC")
+    user = users(:one)
     sign_in_as(user)
 
     get my_heartbeat_import_path("import-123")
@@ -29,7 +31,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create returns error when file is missing" do
-    user = User.create!(timezone: "UTC")
+    user = users(:one)
     sign_in_as(user)
 
     with_development_env do
@@ -41,7 +43,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create returns error when file type is invalid" do
-    user = User.create!(timezone: "UTC")
+    user = users(:one)
     sign_in_as(user)
 
     with_development_env do
@@ -55,31 +57,56 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create starts import and returns status" do
-    user = User.create!(timezone: "UTC")
+    user = users(:one)
     sign_in_as(user)
-    expected_status = { "state" => "queued", "progress_percent" => 0 }
 
     with_development_env do
-      with_runner_stubs(start_return: "import-123", status_return: expected_status) do
-          post my_heartbeat_imports_path, params: {
-            heartbeat_file: uploaded_file
-          }
+      with_memory_cache do
+        post my_heartbeat_imports_path, params: {
+          heartbeat_file: uploaded_file
+        }
       end
     end
 
     assert_response :accepted
     body = JSON.parse(response.body)
-    assert_equal "import-123", body["import_id"]
+    assert body["import_id"].present?
     assert_equal "queued", body.dig("status", "state")
+    assert_equal 0, body.dig("status", "progress_percent")
+  end
+
+  test "show returns status for existing import" do
+    user = users(:one)
+    sign_in_as(user)
+
+    with_development_env do
+      with_memory_cache do
+        post my_heartbeat_imports_path, params: { heartbeat_file: uploaded_file }
+        import_id = JSON.parse(response.body).fetch("import_id")
+
+        get my_heartbeat_import_path(import_id)
+      end
+    end
+
+    assert_response :success
+    assert_equal "queued", JSON.parse(response.body).fetch("state")
+  end
+
+  test "show returns not found for unknown import id" do
+    user = users(:one)
+    sign_in_as(user)
+
+    with_development_env do
+      with_memory_cache do
+        get my_heartbeat_import_path("missing-import")
+      end
+    end
+
+    assert_response :not_found
+    assert_equal "Import not found", JSON.parse(response.body).fetch("error")
   end
 
   private
-
-  def sign_in_as(user)
-    token = user.sign_in_tokens.create!(auth_type: :email)
-    get auth_token_path(token: token.token)
-    assert_equal user.id, session[:user_id]
-  end
 
   def with_development_env
     rails_singleton = class << Rails; self; end
@@ -92,20 +119,12 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
     rails_singleton.remove_method :__original_env_for_test
   end
 
-  def with_runner_stubs(start_return:, status_return:)
-    runner_singleton = class << HeartbeatImportRunner; self; end
-    runner_singleton.alias_method :__original_start_for_test, :start
-    runner_singleton.alias_method :__original_status_for_test, :status
-    runner_singleton.define_method(:start) { |**| start_return }
-    runner_singleton.define_method(:status) { |**| status_return }
+  def with_memory_cache
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
     yield
   ensure
-    runner_singleton.remove_method :start
-    runner_singleton.remove_method :status
-    runner_singleton.alias_method :start, :__original_start_for_test
-    runner_singleton.alias_method :status, :__original_status_for_test
-    runner_singleton.remove_method :__original_start_for_test
-    runner_singleton.remove_method :__original_status_for_test
+    Rails.cache = original_cache
   end
 
   def uploaded_file(filename: "heartbeats.json", content_type: "application/json", content: '{"heartbeats":[]}')

@@ -2,6 +2,7 @@ export type SectionId =
   | "profile"
   | "integrations"
   | "access"
+  | "goals"
   | "badges"
   | "data"
   | "admin";
@@ -31,6 +32,27 @@ export type ThemeOption = {
   };
 };
 
+export type ProgrammingGoal = {
+  id: string;
+  period: "day" | "week" | "month";
+  target_seconds: number;
+  languages: string[];
+  projects: string[];
+  update_path: string;
+  destroy_path: string;
+};
+
+export type GoalForm = {
+  open: boolean;
+  mode: "create" | "edit";
+  goal_id: string | null;
+  period: string;
+  target_seconds: number;
+  languages: string[];
+  projects: string[];
+  errors: string[];
+};
+
 export type UserProps = {
   id: number;
   display_name: string;
@@ -46,6 +68,7 @@ export type UserProps = {
   github_uid?: string | null;
   github_username?: string | null;
   slack_uid?: string | null;
+  programming_goals: ProgrammingGoal[];
 };
 
 export type PathsProps = {
@@ -63,6 +86,8 @@ export type PathsProps = {
   create_heartbeat_import_path: string;
   create_deletion_path: string;
   user_wakatime_mirrors_path: string;
+  heartbeat_import_source_path: string;
+  heartbeat_import_source_sync_path: string;
 };
 
 export type OptionsProps = {
@@ -71,6 +96,12 @@ export type OptionsProps = {
   extension_text_types: Option[];
   themes: ThemeOption[];
   badge_themes: string[];
+  goals: {
+    periods: Option[];
+    preset_target_seconds: number[];
+    selectable_languages: Option[];
+    selectable_projects: Option[];
+  };
 };
 
 export type SlackProps = {
@@ -132,13 +163,19 @@ export type AdminToolsProps = {
   mirrors: {
     id: number;
     endpoint_url: string;
+    enabled?: boolean;
+    last_synced_at?: string | null;
     last_synced_ago: string;
+    consecutive_failures?: number;
+    last_error_message?: string | null;
+    last_error_at?: string | null;
     destroy_path: string;
   }[];
 };
 
 export type UiProps = {
   show_dev_import: boolean;
+  show_imports_and_mirrors: boolean;
 };
 
 export type HeartbeatImportStatusProps = {
@@ -159,6 +196,23 @@ export type HeartbeatImportStatusProps = {
 export type HeartbeatImportProps = {
   import_id?: string | null;
   status?: HeartbeatImportStatusProps | null;
+};
+
+export type HeartbeatImportSourceProps = {
+  id: number;
+  provider: string;
+  endpoint_url: string;
+  sync_enabled: boolean;
+  status: string;
+  initial_backfill_start_date?: string | null;
+  initial_backfill_end_date?: string | null;
+  backfill_cursor_date?: string | null;
+  last_synced_at?: string | null;
+  last_synced_ago?: string | null;
+  last_error_message?: string | null;
+  last_error_at?: string | null;
+  consecutive_failures: number;
+  imported_count: number;
 };
 
 export type ErrorsProps = {
@@ -201,6 +255,14 @@ export type AccessPageProps = SettingsCommonProps & {
   config_file: ConfigFileProps;
 };
 
+export type GoalsPageProps = SettingsCommonProps & {
+  settings_update_path: string;
+  create_goal_path: string;
+  user: UserProps;
+  options: OptionsProps;
+  goal_form?: GoalForm | null;
+};
+
 export type BadgesPageProps = SettingsCommonProps & {
   options: OptionsProps;
   badges: BadgesProps;
@@ -211,6 +273,8 @@ export type DataPageProps = SettingsCommonProps & {
   paths: PathsProps;
   migration: MigrationProps;
   data_export: DataExportProps;
+  import_source?: HeartbeatImportSourceProps | null;
+  mirrors: AdminToolsProps["mirrors"];
   ui: UiProps;
   heartbeat_import: HeartbeatImportProps;
 };
@@ -241,6 +305,12 @@ export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean)
       path: sectionPaths.access,
     },
     {
+      id: "goals" as SectionId,
+      label: "Goals",
+      blurb: "Set daily, weekly, or monthly programming targets.",
+      path: sectionPaths.goals,
+    },
+    {
       id: "badges" as SectionId,
       label: "Badges",
       blurb: "Shareable badges and profile snippets.",
@@ -249,7 +319,7 @@ export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean)
     {
       id: "data" as SectionId,
       label: "Data",
-      blurb: "Exports, migration jobs, and account deletion controls.",
+      blurb: "Exports, imports, mirrors, migration jobs, and deletion controls.",
       path: sectionPaths.data,
     },
   ];
@@ -258,7 +328,7 @@ export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean)
     sections.push({
       id: "admin",
       label: "Admin",
-      blurb: "WakaTime mirror endpoints.",
+      blurb: "Administrative controls.",
       path: sectionPaths.admin,
     });
   }
@@ -275,6 +345,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_hackatime_extension: "access",
   user_api_key: "access",
   user_config_file: "access",
+  user_programming_goals: "goals",
   user_slack_status: "integrations",
   user_slack_notifications: "integrations",
   user_github_account: "integrations",
@@ -283,9 +354,10 @@ const hashSectionMap: Record<string, SectionId> = {
   user_markscribe: "badges",
   user_heatmap: "badges",
   user_migration_assistant: "data",
+  wakatime_import_source: "data",
   download_user_data: "data",
   delete_account: "data",
-  wakatime_mirror: "admin",
+  wakatime_mirror: "data",
 };
 
 export const sectionFromHash = (hash: string): SectionId | null => {

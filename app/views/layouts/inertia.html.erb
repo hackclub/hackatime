@@ -38,14 +38,18 @@
       <meta name="user-is-viewer" content="<%= current_user.admin_level == 'viewer' %>">
     <% end %>
 
+    <% include_external_scripts = !Rails.env.test? %>
+
     <%= yield :head %>
 
-    <!-- Lets users record their screen from your site -->
-    <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
-    <script type="module" src="https://js.jam.dev/recorder.js"></script>
+    <% if include_external_scripts %>
+      <!-- Lets users record their screen from your site -->
+      <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
+      <script type="module" src="https://js.jam.dev/recorder.js"></script>
 
-    <!-- Captures user events and developer logs -->
-    <script type="module" src="https://js.jam.dev/capture.js"></script>
+      <!-- Captures user events and developer logs -->
+      <script type="module" src="https://js.jam.dev/capture.js"></script>
+    <% end %>
 
     <script type="application/ld+json">
       {
@@ -146,15 +150,22 @@
 
     <%= favicon_link_tag asset_path('favicon.png'), type: 'image/png' %>
 
-    <script defer data-domain="hackatime.hackclub.com" src="https://plausible.io/js/script.file-downloads.hash.js"></script>
+    <% if include_external_scripts %>
+      <script defer data-domain="hackatime.hackclub.com" src="https://plausible.io/js/script.file-downloads.hash.js"></script>
+    <% end %>
 
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>
-    <%= vite_stylesheet_tag "application" %>
+    <% include_vite_assets = !Rails.env.test? || ENV["INERTIA_SYSTEM_TEST"] == "1" %>
+    <% if include_vite_assets %>
+      <%= vite_stylesheet_tag "application" %>
+    <% end %>
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
-    <%= vite_client_tag %>
-    <%= vite_typescript_tag "inertia" %>
+    <% if include_vite_assets %>
+      <%= vite_client_tag %>
+      <%= vite_typescript_tag "inertia" %>
+    <% end %>
     <%= inertia_ssr_head %>
 
     <!--

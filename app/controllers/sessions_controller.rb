@@ -36,7 +36,7 @@ class SessionsController < ApplicationController
       PosthogService.identify(@user)
       PosthogService.capture(@user, "user_signed_in", { method: "hca" })
 
-      if @user.created_at > 5.seconds.ago
+      if @user.previously_new_record?
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       elsif session[:return_data]&.dig("url").present?
         return_url = session[:return_data].delete("url")
@@ -51,8 +51,16 @@ class SessionsController < ApplicationController
 
   def slack_new
     redirect_uri = url_for(action: :slack_create, only_path: false)
+    oauth_nonce = SecureRandom.hex(24)
+    session[:slack_oauth_state_nonce] = oauth_nonce
+    state_payload = {
+      token: oauth_nonce,
+      close_window: params[:close_window].present?,
+      continue: params[:continue]
+    }.to_json
+
     Rails.logger.info "Starting Slack OAuth flow with redirect URI: #{redirect_uri}"
-    redirect_to User.slack_authorize_url(redirect_uri, close_window: params[:close_window].present?, continue_param: params[:continue]),
+    redirect_to User.slack_authorize_url(redirect_uri, state: state_payload),
                 host: "https://slack.com",
                 allow_other_host: "https://slack.com"
   end
@@ -72,6 +80,12 @@ class SessionsController < ApplicationController
       return
     end
 
+    slack_state = parse_slack_state(params[:state])
+    unless valid_oauth_state?(provider: "Slack", session_key: :slack_oauth_state_nonce, received_nonce: slack_state&.dig("token"))
+      redirect_to root_path, alert: "Failed to authenticate with Slack"
+      return
+    end
+
     @user = User.from_slack_token(params[:code], redirect_uri)
 
     if @user&.persisted?
@@ -85,14 +99,13 @@ class SessionsController < ApplicationController
       PosthogService.identify(@user)
       PosthogService.capture(@user, "user_signed_in", { method: "slack" })
 
-      state = JSON.parse(params[:state]) rescue {}
-      if state["close_window"]
+      if slack_state&.dig("close_window")
         redirect_to close_window_path
-      elsif @user.created_at > 5.seconds.ago
-        session[:return_data] = { "url" => safe_return_url(state["continue"].presence) }
+      elsif @user.previously_new_record?
+        session[:return_data] = { "url" => safe_return_url(slack_state&.dig("continue").presence) }
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
-      elsif state["continue"].present? && safe_return_url(state["continue"]).present?
-        redirect_to safe_return_url(state["continue"]), notice: "Successfully signed in with Slack! Welcome!"
+      elsif slack_state&.dig("continue").present? && safe_return_url(slack_state["continue"]).present?
+        redirect_to safe_return_url(slack_state["continue"]), notice: "Successfully signed in with Slack! Welcome!"
       else
         redirect_to root_path, notice: "Successfully signed in with Slack! Welcome!"
       end
@@ -113,8 +126,10 @@ class SessionsController < ApplicationController
     end
 
     redirect_uri = url_for(action: :github_create, only_path: false)
+    oauth_nonce = SecureRandom.hex(24)
+    session[:github_oauth_state_nonce] = oauth_nonce
     Rails.logger.info "Starting GitHub OAuth flow with redirect URI: #{redirect_uri}"
-    redirect_to User.github_authorize_url(redirect_uri),
+    redirect_to User.github_authorize_url(redirect_uri, state: oauth_nonce),
                 allow_other_host: "https://github.com"
   end
 
@@ -130,6 +145,11 @@ class SessionsController < ApplicationController
       Rails.logger.error "GitHub OAuth error: #{params[:error]}"
       Sentry.capture_message("GitHub OAuth error: #{params[:error]}")
       redirect_to my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{Sentry.last_event_id}"
+      return
+    end
+
+    unless valid_oauth_state?(provider: "GitHub", session_key: :github_oauth_state_nonce, received_nonce: params[:state])
+      redirect_to my_settings_path, alert: "Failed to link GitHub account"
       return
     end
 
@@ -307,5 +327,27 @@ class SessionsController < ApplicationController
     session[:user_id] = nil
     session[:impersonater_user_id] = nil
     redirect_to root_path, notice: "Signed out!"
+  end
+
+  private
+
+  def parse_slack_state(raw_state)
+    JSON.parse(raw_state)
+  rescue JSON::ParserError, TypeError
+    nil
+  end
+
+  def valid_oauth_state?(provider:, session_key:, received_nonce:)
+    expected_nonce = session.delete(session_key)
+
+    if expected_nonce.blank? || received_nonce.blank?
+      Rails.logger.error("#{provider} OAuth state missing expected=#{expected_nonce.present?} received=#{received_nonce.present?}")
+      return false
+    end
+
+    return true if ActiveSupport::SecurityUtils.secure_compare(received_nonce.to_s, expected_nonce.to_s)
+
+    Rails.logger.error("#{provider} OAuth state mismatch")
+    false
   end
 end

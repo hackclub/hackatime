@@ -25,7 +25,11 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
               }
             }
           }
-        run_test!
+        run_test! do |response|
+          expect(response).to have_http_status(:ok)
+          body = JSON.parse(response.body)
+          expect(body).to include("id", "emails", "trust_factor")
+        end
       end
 
       response(401, 'unauthorized') do

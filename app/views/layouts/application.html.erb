@@ -169,7 +169,11 @@
           person_profiles: 'identified_only',
           capture_pageview: true,
           capture_pageleave: true,
-          autocapture: true
+          autocapture: true,
+          session_recording: {
+            maskAllInputs: false,
+            maskTextSelector: '[data-posthog-mask]'
+          }
         });
         <% if current_user %>
           posthog.identify('<%= current_user.id %>', {
@@ -184,8 +188,10 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
-    <%= vite_client_tag %>
-    <%= vite_typescript_tag "rails_modals", skip_preload_tags: true, preload_links_header: false %>
+    <% unless Rails.env.test? %>
+      <%= vite_client_tag %>
+      <%= vite_typescript_tag "rails_modals", skip_preload_tags: true, preload_links_header: false %>
+    <% end %>
     <% if Sentry.get_trace_propagation_meta %>
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>

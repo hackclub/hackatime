@@ -113,7 +113,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
+          POSTGRES_DB: app_test
 
     steps:
       - name: Checkout code
@@ -128,6 +128,18 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
 
+      # Pin Chrome to version 133 to avoid flaky system test failures.
+      # Chrome 134+ has a known bug causing intermittent Selenium/Capybara failures
+      # where session paths don't update correctly after visit() calls.
+      # See: https://github.com/teamcapybara/capybara/issues/2800
+      # Remove this pin once the upstream issue is resolved.
+      - name: Setup Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: 133
+          install-chromedriver: true
+
       - name: Install JavaScript dependencies
         run: bun install --frozen-lockfile
 
@@ -139,39 +151,22 @@ jobs:
       - name: Run tests
         env:
           RAILS_ENV: test
-          PARALLEL_WORKERS: 4
-          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
         run: |
           bin/rails db:create RAILS_ENV=test
           bin/rails db:schema:load RAILS_ENV=test
-          # Create additional test databases used by multi-db models
-          psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime;" || true
-          psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log;" || true
-          psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse;" || true
-          # Create per-worker variants for parallelized tests (e.g., test_wakatime_0)
-          for worker in $(seq 0 $((PARALLEL_WORKERS - 1))); do
-            psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime_${worker};" || true
-            psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log_${worker};" || true
-            psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse_${worker};" || true
-          done
-          # Mirror schema from primary test DB so cross-db models can query safely in tests
-          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_wakatime
-          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_sailors_log
-          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_warehouse
-          for worker in $(seq 0 $((PARALLEL_WORKERS - 1))); do
-            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_wakatime_${worker}
-            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_sailors_log_${worker}
-            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_warehouse_${worker}
-          done
           bin/rails test
+          bin/rails test:system
 
       - name: Ensure Swagger docs are up to date
         env:
           RAILS_ENV: test
-          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres

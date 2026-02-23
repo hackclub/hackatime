@@ -13,7 +13,12 @@ end
 Rails.application.routes.draw do
   # Redirect to localhost from 127.0.0.1 to use same IP address with Vite server
   constraints(host: "127.0.0.1") do
-    get "(*path)", to: redirect { |params, req| "#{req.protocol}localhost:#{req.port}/#{params[:path]}" }
+    get "(*path)", to: redirect { |params, req|
+      path = params[:path].to_s
+      query = req.query_string.presence
+      base = "#{req.protocol}localhost:#{req.port}/#{path}"
+      query ? "#{base}?#{query}" : base
+    }
   end
 
   mount Rswag::Api::Engine => "/api-docs"
@@ -142,6 +147,10 @@ Rails.application.routes.draw do
   patch "my/settings/integrations", to: "settings/integrations#update"
   get "my/settings/access", to: "settings/access#show", as: :my_settings_access
   patch "my/settings/access", to: "settings/access#update"
+  get "my/settings/goals", to: "settings/goals#show", as: :my_settings_goals
+  post "my/settings/goals", to: "settings/goals#create", as: :my_settings_goals_create
+  patch "my/settings/goals/:goal_id", to: "settings/goals#update", as: :my_settings_goal_update
+  delete "my/settings/goals/:goal_id", to: "settings/goals#destroy", as: :my_settings_goal_destroy
   get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
   get "my/settings/data", to: "settings/data#show", as: :my_settings_data
   get "my/settings/admin", to: "settings/admin#show", as: :my_settings_admin
@@ -149,6 +158,12 @@ Rails.application.routes.draw do
   post "my/settings/rotate_api_key", to: "settings/access#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
+    resource :heartbeat_import_source,
+      only: [ :create, :update, :show, :destroy ],
+      controller: "heartbeat_import_sources" do
+      post :sync, on: :collection, action: :sync_now
+    end
+
     resources :heartbeat_imports, only: [ :create, :show ]
 
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
@@ -161,7 +176,7 @@ Rails.application.routes.draw do
     # get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
       collection do
-        get :export
+        post :export
         post :import
       end
     end
@@ -291,7 +306,6 @@ Rails.application.routes.draw do
 
     namespace :internal do
       post "revoke", to: "revocations#create"
-      post "/can_i_have_a_magic_link_for/:id", to: "magic_links#create"
     end
   end
 

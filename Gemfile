@@ -144,6 +144,7 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  gem "webmock"
 end
 
 group :production do
@@ -164,3 +165,5 @@ gem "tailwindcss-rails", "~> 4.2"
 gem "inertia_rails", "~> 3.17"
 
 gem "vite_rails", "~> 3.0"
+
+gem "rubyzip", "~> 3.2"

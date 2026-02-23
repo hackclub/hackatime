@@ -111,6 +111,10 @@ class My::ProjectRepoMappingsController < InertiaController
     mappings = current_user.project_repo_mappings.includes(:repository)
     scoped_mappings = archived ? mappings.archived : mappings.active
     mappings_by_name = scoped_mappings.index_by(&:project_name)
+    repository_ids = scoped_mappings.where.not(repository_id: nil).distinct.pluck(:repository_id)
+    latest_user_commit_at_by_repo_id = Commit.where(user_id: current_user.id, repository_id: repository_ids)
+                                             .group(:repository_id)
+                                             .maximum(:created_at)
     archived_names = current_user.project_repo_mappings.archived.pluck(:project_name).index_with(true)
     labels_by_project_key = Flipper.enabled?(:hackatime_v1_import) ? current_user.project_labels.pluck(:project_key, :label).to_h : {}
 
@@ -137,7 +141,7 @@ class My::ProjectRepoMappingsController < InertiaController
         duration_label: format_duration(duration),
         duration_percent: 0,
         repo_url: mapping&.repo_url,
-        repository: repository_payload(mapping&.repository),
+        repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
         broken_name: broken_project_name?(project_key, display_name),
         manage_enabled: current_user.github_uid.present? && project_key.present?,
         edit_path: project_key.present? ? edit_my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
@@ -179,16 +183,22 @@ class My::ProjectRepoMappingsController < InertiaController
     key.blank? || name.downcase == "unknown" || key.match?(/<<.*>>/) || name.match?(/<<.*>>/)
   end
 
-  def repository_payload(repository)
+  def repository_payload(repository, latest_user_commit_at_by_repo_id = {})
     return nil unless repository
+
+    last_commit_at = effective_last_commit_at(repository, latest_user_commit_at_by_repo_id)
 
     {
       homepage: repository.homepage,
       stars: repository.stars,
       description: repository.description,
       formatted_languages: repository.formatted_languages,
-      last_commit_ago: repository.last_commit_at ? "#{helpers.time_ago_in_words(repository.last_commit_at)} ago" : nil
+      last_commit_ago: last_commit_at ? "#{helpers.time_ago_in_words(last_commit_at)} ago" : nil
     }
+  end
+
+  def effective_last_commit_at(repository, latest_user_commit_at_by_repo_id)
+    [ repository.last_commit_at, latest_user_commit_at_by_repo_id[repository.id] ].compact.max
   end
 
   def project_count(archived)
