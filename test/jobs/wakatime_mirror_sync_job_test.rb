@@ -202,7 +202,9 @@ class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
         { status: 201, body: "{}", headers: { "Content-Type" => "application/json" } }
       end
 
-    WakatimeMirrorSyncJob.perform_now(mirror.id)
+    with_development_env do
+      WakatimeMirrorSyncJob.perform_now(mirror.id)
+    end
 
     assert_equal 1, payload_batches.flatten.size
     assert_equal "src/new.rb", payload_batches.flatten.first["entity"]
