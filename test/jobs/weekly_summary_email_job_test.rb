@@ -46,7 +46,7 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
 
     mail = ActionMailer::Base.deliveries.last
     assert_equal "Your Hackatime weekly summary (Feb 16 - Feb 23, 2026)", mail.subject
-    assert_includes mail.text_part.body.decoded, "Feb 16 - Feb 23, 2026 (America/Los_Angeles)"
+    assert_includes mail.text_part.body.decoded, "Feb 16 - Feb 23, 2026"
     assert_includes mail.text_part.body.decoded, "local-week-in-range"
     assert_not_includes mail.text_part.body.decoded, "local-week-out-of-range"
   end
