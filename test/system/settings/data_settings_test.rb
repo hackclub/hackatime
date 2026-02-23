@@ -92,7 +92,7 @@ class DataSettingsTest < ApplicationSystemTestCase
     end
 
     assert_text "Status:"
-    assert_text "Imported heartbeats:"
+    assert_text "Imported:"
     assert_button "Sync now"
   end
 

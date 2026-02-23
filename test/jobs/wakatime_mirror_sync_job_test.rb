@@ -291,7 +291,9 @@ class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
       project: "import-project"
     )
 
-    WakatimeMirrorSyncJob.perform_now(mirror.id)
+    with_development_env do
+      WakatimeMirrorSyncJob.perform_now(mirror.id)
+    end
 
     requests = server.pop_requests
     assert_equal 1, requests.length
@@ -339,5 +341,4 @@ class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
     rails_singleton.alias_method :env, :__original_env_for_test
     rails_singleton.remove_method :__original_env_for_test
   end
-
 end
