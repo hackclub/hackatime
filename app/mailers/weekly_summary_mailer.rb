@@ -11,7 +11,7 @@ class WeeklySummaryMailer < ApplicationMailer
     @starts_at_local = @starts_at.in_time_zone(@timezone)
     @ends_at_local = @ends_at.in_time_zone(@timezone)
     @subject_period_label = "#{@starts_at_local.strftime("%b %-d")} - #{@ends_at_local.strftime("%b %-d, %Y")}"
-    @period_label = "#{@subject_period_label}"
+    @period_label = @subject_period_label
 
     coding_heartbeats = @user.heartbeats
       .coding_only

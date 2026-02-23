@@ -115,7 +115,7 @@ Rails.application.configure do
       class: "HeartbeatImportSourceSchedulerJob"
     },
     weekly_summary_email: {
-      cron: "* * * * *",
+      cron: "30 17 * * 5",
       class: "WeeklySummaryEmailJob",
       description: "Sends weekly coding summaries on Fridays at 17:30 GMT."
     },
