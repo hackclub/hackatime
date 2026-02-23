@@ -1,7 +1,7 @@
 class UpdateAirtableUserDataJob < ApplicationJob
   queue_as :latency_5m
 
-  Table = Norairrecord.table(ENV["LOOPS_AIRTABLE_PAT"], "app6VcLJoYFbDdGWK", "tblnzmotZ55MFBfV4")
+  Table = Norairrecord.table(ENV["cccccbceufnn"], "app6VcLJoYFbDdGWK", "tblnzmotZ55MFBfV4")
 
   def perform
     users_with_heartbeats.includes(:email_addresses).find_in_batches(batch_size: 100) do |batch|

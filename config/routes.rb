@@ -145,6 +145,8 @@ Rails.application.routes.draw do
   patch "my/settings/profile", to: "settings/profile#update"
   get "my/settings/integrations", to: "settings/integrations#show", as: :my_settings_integrations
   patch "my/settings/integrations", to: "settings/integrations#update"
+  get "my/settings/notifications", to: "settings/notifications#show", as: :my_settings_notifications
+  patch "my/settings/notifications", to: "settings/notifications#update"
   get "my/settings/access", to: "settings/access#show", as: :my_settings_access
   patch "my/settings/access", to: "settings/access#update"
   get "my/settings/goals", to: "settings/goals#show", as: :my_settings_goals
