@@ -5,12 +5,14 @@
   let {
     title,
     stats,
+    colorMap = {},
   }: {
     title: string;
     stats: Record<string, number>;
+    colorMap?: Record<string, string>;
   } = $props();
 
-  const PIE_COLORS = [
+  const FALLBACK_COLORS = [
     "#60a5fa",
     "#f472b6",
     "#fb923c",
@@ -42,6 +44,17 @@
     Object.entries(stats).map(([name, value]) => ({ name, value })),
   );
 
+  const colors = $derived.by(() => {
+    if (Object.keys(colorMap).length > 0) {
+      let fallbackIdx = 0;
+      return data.map(
+        (d) =>
+          colorMap[d.name] || FALLBACK_COLORS[fallbackIdx++ % FALLBACK_COLORS.length],
+      );
+    }
+    return FALLBACK_COLORS;
+  });
+
   const legendClasses = {
     root: "w-full px-2",
     swatches: "flex-wrap justify-center",
@@ -67,7 +80,7 @@
         {data}
         key="name"
         value="value"
-        cRange={PIE_COLORS}
+        cRange={colors}
         legend={true}
         padding={{ bottom: legendPadding }}
         props={{
