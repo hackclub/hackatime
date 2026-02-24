@@ -944,6 +944,12 @@ paths:
                     type: boolean
         '404':
           description: user not found
+        '422':
+          description: invalid date filter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/api/admin/v1/user/heartbeat_values":
     get:
       summary: Get heartbeat values
@@ -998,6 +1004,12 @@ paths:
                     type: integer
         '404':
           description: user not found
+        '422':
+          description: invalid date filter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/api/admin/v1/user/get_users_by_ip":
     get:
       summary: Get users by IP
@@ -1482,8 +1494,8 @@ paths:
                         email:
                           type: string
                           description: Primary email or "no email"
-        '403':
-          description: forbidden
+        '401':
+          description: unauthorized
   "/api/admin/v1/permissions":
     get:
       summary: List Permissions
@@ -1904,51 +1916,6 @@ paths:
                   type: string
               required:
               - token
-  "/api/internal/can_i_have_a_magic_link_for/{id}":
-    post:
-      summary: Create magic link
-      tags:
-      - Internal
-      description: Internal endpoint to generate magic login links for users via Slack
-        UID and Email.
-      security:
-      - InternalToken: []
-      parameters:
-      - name: id
-        in: path
-        description: Slack UID
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  magic_link:
-                    type: string
-                  existing:
-                    type: boolean
-        '400':
-          description: bad request
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  format: email
-                continue_param:
-                  type: string
-                return_data:
-                  type: object
-              required:
-              - email
   "/api/summary":
     get:
       summary: Get WakaTime-compatible summary
@@ -2396,8 +2363,9 @@ paths:
                     type: array
                     items:
                       type: array
-                      items:
-                        type: string
+                      minItems: 2
+                      maxItems: 2
+                      items: {}
       requestBody:
         content:
           application/json:
@@ -2594,7 +2562,7 @@ paths:
         '401':
           description: unauthorized
   "/my/heartbeats/export":
-    get:
+    post:
       summary: Export Heartbeats
       tags:
       - My Data
@@ -2621,8 +2589,8 @@ paths:
           format: date
         description: End date (YYYY-MM-DD)
       responses:
-        '200':
-          description: successful
+        '302':
+          description: redirect
   "/my/heartbeats/import":
     post:
       summary: Import Heartbeats
@@ -2825,16 +2793,20 @@ paths:
           type: string
       responses:
         '200':
-          description: successful
+          description: successful with invalid credentials
           content:
             text/plain:
               schema:
                 type: integer
                 example: 123456
-        '401':
-          description: unauthorized
         '404':
           description: user not found
+          content:
+            text/plain:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: invalid date
           content:
             text/plain:
               schema:
@@ -2893,6 +2865,12 @@ paths:
                           type: number
                         project:
                           type: string
+        '422':
+          description: invalid date
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
       security:
       - Bearer: []
         ApiKeyAuth: []
@@ -3225,6 +3203,12 @@ paths:
                 "$ref": "#/components/schemas/Error"
         '404':
           description: user not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: invalid date
           content:
             application/json:
               schema:

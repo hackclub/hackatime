@@ -1,0 +1,11 @@
+<h1 style="font-size: 20px; line-height: 28px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; margin: 16px 0 0 0;">
+  Your heartbeat export is ready
+</h1>
+<p style="font-size: 16px; line-height: 1.625; color: #334155; margin: 16px 0 0 0;">
+  Hi <%= h(@user.display_name) %>, your requested Hackatime heartbeat export is ready to download.
+</p>
+
+<%= render "shared/mailer/button", url: @download_url, label: "Download #{@filename}" %>
+<p style="font-size: 14px; line-height: 20px; color: #64748b; margin: 24px 0 0 0;">
+  This link will stop working after 7 days.
+</p>

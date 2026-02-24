@@ -6,7 +6,7 @@ permissions:
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   scan_ruby:
@@ -72,20 +72,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install JavaScript dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Run Svelte type checks
-        run: npm run check:svelte
+        run: bun run check:svelte
 
       - name: Run Svelte formatting checks
-        run: npm run format:svelte:check
+        run: bun run format:svelte:check
 
   zeitwerk:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -111,12 +108,11 @@ jobs:
         image: postgres:16-alpine
         ports:
           - 5432:5432
-        # needed because the postgres container does not provide a healthcheck
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
+          POSTGRES_DB: app_test
 
     steps:
       - name: Checkout code
@@ -128,57 +124,89 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install JavaScript dependencies
-        run: npm ci
-
       - name: Run tests
         env:
           RAILS_ENV: test
-          PARALLEL_WORKERS: 4
-          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
         run: |
           bin/rails db:create RAILS_ENV=test
           bin/rails db:schema:load RAILS_ENV=test
-          # Create additional test databases used by multi-db models
-          psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime;" || true
-          psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log;" || true
-          psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse;" || true
-          # Create per-worker variants for parallelized tests (e.g., test_wakatime_0)
-          for worker in $(seq 0 $((PARALLEL_WORKERS - 1))); do
-            psql -h localhost -U postgres -c "CREATE DATABASE test_wakatime_${worker};" || true
-            psql -h localhost -U postgres -c "CREATE DATABASE test_sailors_log_${worker};" || true
-            psql -h localhost -U postgres -c "CREATE DATABASE test_warehouse_${worker};" || true
-          done
-          # Mirror schema from primary test DB so cross-db models can query safely in tests
-          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_wakatime
-          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_sailors_log
-          pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_warehouse
-          for worker in $(seq 0 $((PARALLEL_WORKERS - 1))); do
-            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_wakatime_${worker}
-            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_sailors_log_${worker}
-            pg_dump -h localhost -U postgres --schema-only --no-owner --no-privileges test_db | psql -h localhost -U postgres test_warehouse_${worker}
-          done
           bin/rails test
 
       - name: Ensure Swagger docs are up to date
         env:
           RAILS_ENV: test
-          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
         run: |
           bin/rails rswag:specs:swaggerize
           git diff --exit-code swagger/v1/swagger.yaml
+
+  test_system:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      # Pin Chrome to version 133 to avoid flaky system test failures.
+      # Chrome 134+ has a known bug causing intermittent Selenium/Capybara failures
+      # where session paths don't update correctly after visit() calls.
+      # See: https://github.com/teamcapybara/capybara/issues/2800
+      # Remove this pin once the upstream issue is resolved.
+      - name: Setup Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: 133
+          install-chromedriver: true
+
+      - name: Install JavaScript dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Pre-build Vite assets for test
+        run: bin/vite build
+        env:
+          RAILS_ENV: test
+
+      - name: Run system tests
+        env:
+          RAILS_ENV: test
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+        run: |
+          bin/rails db:create RAILS_ENV=test
+          bin/rails db:schema:load RAILS_ENV=test
+          bin/rails test:system
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v6
@@ -187,57 +215,3 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
-
-  # test:
-  #   runs-on: blacksmith-4vcpu-ubuntu-2404
-
-  #   services:
-  #     postgres:
-  #       image: postgres:16-alpine
-  #       ports:
-  #         - 5432:5432
-  #       # needed because the postgres container does not provide a healthcheck
-  #       options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-  #       env:
-  #         POSTGRES_USER: postgres
-  #         POSTGRES_PASSWORD: postgres
-  #         POSTGRES_DB: test_db
-
-  #   # services:
-  #   #  redis:
-  #   #    image: redis
-  #   #    ports:
-  #   #      - 6379:6379
-  #   #    options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-  #   steps:
-  #     - name: Install packages
-  #       run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git pkg-config google-chrome-stable
-
-  #     - name: Checkout code
-  #       uses: actions/checkout@v6
-
-  #     - name: Set up Ruby
-  #       uses: ruby/setup-ruby@v1
-  #       with:
-  #         ruby-version: .ruby-version
-  #         bundler-cache: true
-
-  #     - name: Run tests
-  #       env:
-  #         RAILS_ENV: test
-  #         # REDIS_URL: redis://localhost:6379/0
-  #         TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
-  #         PGHOST: localhost
-  #         PGUSER: postgres
-  #         PGPASSWORD: postgres
-  #       run: |
-  #         bin/rails db:migrate RAILS_ENV=test
-  #         bin/rails test test:system
-
-  #     - name: Keep screenshots from failed system tests
-  #       uses: actions/upload-artifact@v6
-  #       if: failure()
-  #       with:
-  #         name: screenshots
-  #         path: ${{ github.workspace }}/tmp/screenshots
-  #         if-no-files-found: ignore

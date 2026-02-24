@@ -1,4 +1,5 @@
 require "test_helper"
+require "uri"
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -48,38 +49,36 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/oauth/authorize}
   end
 
-  # -- Minimal login: preserves continue param --
+  # -- Signin: preserves continue param --
 
-  test "minimal_login renders with continue param available for auth links" do
+  test "signin renders with continue param in inertia props" do
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
 
-    get minimal_login_path(continue: oauth_path)
+    get signin_path(continue: oauth_path)
 
     assert_response :success
-    assert_select "a[href*='continue']", minimum: 1
-    assert_select "input[name='continue'][value=?]", oauth_path
+    assert_inertia_component "Auth/SignIn"
+    assert_inertia_prop "continue_param", oauth_path
   end
 
-  test "minimal_login renders without continue param when not provided" do
-    get minimal_login_path
+  test "signin renders without continue param when not provided" do
+    get signin_path
 
     assert_response :success
-    assert_select "input[name='continue']", count: 0
+    assert_inertia_component "Auth/SignIn"
+    assert_inertia_prop "continue_param", nil
   end
 
   # -- Email auth: persists continue into sign-in token --
 
   test "email auth stores continue param in sign-in token" do
     user = User.create!
-    user.email_addresses.create!(email: "test@example.com")
+    email = "continue-test-#{SecureRandom.hex(4)}@example.com"
+    user.email_addresses.create!(email: email)
 
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
 
-    # LoopsMailer forces SMTP delivery even in test; temporarily override
-    original_delivery_method = LoopsMailer.delivery_method
-    LoopsMailer.delivery_method = :test
-    post email_auth_path, params: { email: "test@example.com", continue: oauth_path }
-    LoopsMailer.delivery_method = original_delivery_method
+    post email_auth_path, params: { email: email, continue: oauth_path }
 
     assert_response :redirect
 
@@ -141,6 +140,58 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "slack_new stores oauth nonce and embeds it in state" do
+    get slack_auth_path(close_window: true, continue: "/projects")
+
+    assert_response :redirect
+    assert_not_nil session[:slack_oauth_state_nonce]
+
+    redirect_query = Rack::Utils.parse_nested_query(URI.parse(response.redirect_url).query)
+    state = JSON.parse(redirect_query["state"])
+
+    assert_equal session[:slack_oauth_state_nonce], state["token"]
+    assert_equal true, state["close_window"]
+    assert_equal "/projects", state["continue"]
+  end
+
+  test "slack_create rejects oauth callback with mismatched state nonce" do
+    get slack_auth_path
+    expected_nonce = session[:slack_oauth_state_nonce]
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: "wrong-#{expected_nonce}" }.to_json }
+
+    assert_response :redirect
+    assert_redirected_to root_path
+    assert_nil session[:slack_oauth_state_nonce]
+  end
+
+  test "github_new stores oauth nonce and passes it in redirect state" do
+    user = User.create!
+    sign_in_as(user)
+
+    get github_auth_path
+
+    assert_response :redirect
+    assert_not_nil session[:github_oauth_state_nonce]
+
+    redirect_query = Rack::Utils.parse_nested_query(URI.parse(response.redirect_url).query)
+    assert_equal session[:github_oauth_state_nonce], redirect_query["state"]
+  end
+
+  test "github_create rejects oauth callback with mismatched state nonce" do
+    user = User.create!
+    sign_in_as(user)
+
+    get github_auth_path
+    expected_nonce = session[:github_oauth_state_nonce]
+
+    get "/auth/github/callback", params: { code: "oauth-code", state: "wrong-#{expected_nonce}" }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert_nil session[:github_oauth_state_nonce]
+  end
+
   test "expired token redirects to root with alert" do
     user = User.create!
     sign_in_token = user.sign_in_tokens.create!(
@@ -169,5 +220,82 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to root_path
     assert_nil session[:user_id]
+  end
+
+  test "github_unlink clears github fields for signed-in user" do
+    user = User.create!(github_uid: "12345", github_username: "octocat", github_access_token: "secret-token")
+    sign_in_as(user)
+
+    delete github_unlink_path
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+
+    user.reload
+    assert_nil user.github_uid
+    assert_nil user.github_username
+    assert_nil user.github_access_token
+  end
+
+  test "add_email creates email verification request" do
+    user = User.create!
+    sign_in_as(user)
+
+    assert_difference -> { user.reload.email_verification_requests.count }, 1 do
+      post add_email_auth_path, params: { email: "new-address@example.com" }
+    end
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert_equal "new-address@example.com", user.reload.email_verification_requests.last.email
+  end
+
+  test "unlink_email removes secondary signing-in email" do
+    user = User.create!
+    removable = user.email_addresses.create!(email: "remove-me@example.com", source: :signing_in)
+    user.email_addresses.create!(email: "keep-me@example.com", source: :signing_in)
+    sign_in_as(user)
+
+    assert_difference -> { user.reload.email_addresses.count }, -1 do
+      delete unlink_email_auth_path, params: { email: removable.email }
+    end
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert_not user.reload.email_addresses.exists?(email: removable.email)
+  end
+
+  test "auth token verifies email verification request token" do
+    user = User.create!
+    verification_request = user.email_verification_requests.create!(email: "verify-me@example.com")
+
+    assert_difference -> { user.reload.email_addresses.count }, 1 do
+      get auth_token_path(token: verification_request.token)
+    end
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert verification_request.reload.deleted_at.present?
+    assert user.reload.email_addresses.exists?(email: "verify-me@example.com")
+  end
+
+  test "impersonate and stop impersonating swaps active user session" do
+    admin = User.create!(admin_level: :admin)
+    target = User.create!
+    sign_in_as(admin)
+
+    get impersonate_user_path(target.id)
+
+    assert_response :redirect
+    assert_redirected_to root_path
+    assert_equal target.id, session[:user_id]
+    assert_equal admin.id, session[:impersonater_user_id]
+
+    get stop_impersonating_path
+
+    assert_response :redirect
+    assert_redirected_to root_path
+    assert_equal admin.id, session[:user_id]
+    assert_nil session[:impersonater_user_id]
   end
 end

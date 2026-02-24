@@ -6,12 +6,25 @@
   import ProjectTimelineChart from "./ProjectTimelineChart.svelte";
   import IntervalSelect from "./IntervalSelect.svelte";
   import MultiSelect from "./MultiSelect.svelte";
+  import GoalsProgressCard from "./GoalsProgressCard.svelte";
 
   let {
     data,
+    programmingGoalsProgress = [],
     onFiltersChange,
   }: {
     data: Record<string, any>;
+    programmingGoalsProgress?: {
+      id: string;
+      period: "day" | "week" | "month";
+      target_seconds: number;
+      tracked_seconds: number;
+      completion_percent: number;
+      complete: boolean;
+      languages: string[];
+      projects: string[];
+      period_end: string;
+    }[];
     onFiltersChange?: (search: string) => void;
   } = $props();
 
@@ -105,6 +118,8 @@
     />
   </div>
 
+  <GoalsProgressCard goals={programmingGoalsProgress} />
+
   <!-- Stats Grid -->
   <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
     <StatCard
@@ -153,7 +168,11 @@
     {/if}
 
     {#if Object.keys(langStats).length > 0}
-      <PieChart title="Languages" stats={langStats} />
+      <PieChart
+        title="Languages"
+        stats={langStats}
+        colorMap={data.language_colors || {}}
+      />
     {/if}
 
     {#if Object.keys(editorStats).length > 0}

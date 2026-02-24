@@ -14,6 +14,8 @@ RUN apt-get update -qq && \
     vim \
     nodejs \
     npm \
+    chromium \
+    chromium-driver \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
 
 # Install Bun
@@ -25,6 +27,9 @@ WORKDIR /app
 
 # Install npm dependencies for Vite
 COPY package.json bun.lock ./
+# Local file deps in package.json need to exist before bun install.
+COPY vendor/inertia/packages/core/package.json ./vendor/inertia/packages/core/package.json
+COPY vendor/inertia/packages/svelte/package.json ./vendor/inertia/packages/svelte/package.json
 RUN bun install
 
 # Install application dependencies

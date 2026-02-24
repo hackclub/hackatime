@@ -10,10 +10,38 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_23_212054) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
+
+  create_table "active_storage_attachments", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", force: :cascade do |t|
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.string "content_type"
+    t.datetime "created_at", null: false
+    t.string "filename", null: false
+    t.string "key", null: false
+    t.text "metadata"
+    t.string "service_name", null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "active_storage_variant_records", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
 
   create_table "admin_api_keys", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -102,6 +130,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.datetime "updated_at", null: false
     t.text "value"
     t.index ["feature_key", "key", "value"], name: "index_flipper_gates_on_feature_key_and_key_and_value", unique: true
+  end
+
+  create_table "goals", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "languages", default: [], null: false, array: true
+    t.string "period", null: false
+    t.string "projects", default: [], null: false, array: true
+    t.integer "target_seconds", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "period", "target_seconds", "languages", "projects"], name: "index_goals_on_user_and_scope", unique: true
+    t.index ["user_id"], name: "index_goals_on_user_id"
   end
 
   create_table "good_job_batches", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -217,6 +257,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.index ["name"], name: "index_heartbeat_editors_on_name", unique: true
   end
 
+  create_table "heartbeat_import_sources", force: :cascade do |t|
+    t.date "backfill_cursor_date"
+    t.integer "consecutive_failures", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.string "encrypted_api_key", null: false
+    t.string "endpoint_url", null: false
+    t.date "initial_backfill_end_date"
+    t.date "initial_backfill_start_date"
+    t.datetime "last_error_at"
+    t.text "last_error_message"
+    t.datetime "last_synced_at"
+    t.integer "provider", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.boolean "sync_enabled", default: true, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_heartbeat_import_sources_on_user_id", unique: true
+  end
+
   create_table "heartbeat_languages", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -316,6 +375,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.index ["user_id", "operating_system", "time"], name: "idx_heartbeats_user_operating_system_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
     t.index ["user_id", "project"], name: "index_heartbeats_on_user_id_and_project", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "source_type", "id"], name: "index_heartbeats_on_user_source_id_direct", where: "((source_type = 0) AND (deleted_at IS NULL))"
     t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
     t.index ["user_id", "time", "language"], name: "idx_heartbeats_user_time_language_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "language_id"], name: "idx_heartbeats_user_time_language_id", where: "(deleted_at IS NULL)"
@@ -559,6 +619,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.datetime "created_at", null: false
     t.boolean "default_timezone_leaderboard", default: true, null: false
     t.string "deprecated_name"
+    t.string "display_name_override"
     t.text "github_access_token"
     t.string "github_avatar_url"
     t.string "github_uid"
@@ -567,6 +628,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
+    t.text "profile_bio"
+    t.string "profile_bluesky_url"
+    t.string "profile_discord_url"
+    t.string "profile_github_url"
+    t.string "profile_linkedin_url"
+    t.string "profile_twitter_url"
+    t.string "profile_website_url"
     t.text "slack_access_token"
     t.string "slack_avatar_url"
     t.string "slack_scopes", default: [], array: true
@@ -579,6 +647,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
     t.datetime "updated_at", null: false
     t.string "username"
     t.boolean "uses_slack_status", default: false, null: false
+    t.boolean "weekly_summary_email_enabled", default: true, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
@@ -599,16 +668,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
   end
 
   create_table "wakatime_mirrors", force: :cascade do |t|
+    t.integer "consecutive_failures", default: 0, null: false
     t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
     t.string "encrypted_api_key", null: false
     t.string "endpoint_url", default: "https://wakatime.com/api/v1", null: false
+    t.datetime "last_error_at"
+    t.text "last_error_message"
     t.datetime "last_synced_at"
+    t.bigint "last_synced_heartbeat_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id", "endpoint_url"], name: "index_wakatime_mirrors_on_user_id_and_endpoint_url", unique: true
     t.index ["user_id"], name: "index_wakatime_mirrors_on_user_id"
   end
 
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "admin_api_keys", "users"
   add_foreign_key "api_keys", "users"
   add_foreign_key "commits", "repositories"
@@ -617,7 +693,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220822) do
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
+  add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_branches", "users"
+  add_foreign_key "heartbeat_import_sources", "users"
   add_foreign_key "heartbeat_machines", "users"
   add_foreign_key "heartbeat_projects", "users"
   add_foreign_key "heartbeats", "heartbeat_branches", column: "branch_id"

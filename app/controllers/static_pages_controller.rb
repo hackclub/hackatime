@@ -1,7 +1,7 @@
 class StaticPagesController < InertiaController
   include DashboardData
 
-  layout "inertia", only: :index
+  layout "inertia", only: %i[index wakatime_alternative]
 
   def index
     if current_user
@@ -34,9 +34,19 @@ class StaticPagesController < InertiaController
     end
   end
 
-  def minimal_login
-    @continue_param = params[:continue].presence
-    render :minimal_login, layout: "doorkeeper/application"
+  def signin
+    return redirect_to root_path if current_user
+    continue_param = params[:continue].presence
+    render inertia: "Auth/SignIn", props: {
+      hca_auth_path: hca_auth_path(continue: continue_param),
+      slack_auth_path: slack_auth_path(continue: continue_param),
+      email_auth_path: email_auth_path,
+      sign_in_email: params[:sign_in_email].present?,
+      show_dev_tool: Rails.env.development?,
+      dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
+      csrf_token: form_authenticity_token,
+      continue_param: continue_param
+    }
   end
 
   def project_durations
@@ -53,7 +63,7 @@ class StaticPagesController < InertiaController
 
     cached = Rails.cache.fetch(key, expires_in: 1.minute) do
       hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
-      labels = current_user.project_labels
+      labels = Flipper.enabled?(:hackatime_v1_import) ? current_user.project_labels : []
       projects = hb.group(:project).duration_seconds.filter_map do |proj, dur|
         next if dur <= 0
         m = @project_repo_mappings.find { |p| p.project_name == proj }
@@ -104,6 +114,18 @@ class StaticPagesController < InertiaController
     render partial: "streak"
   end
 
+  def wakatime_alternative
+    @page_title = "WakaTime Alternative - Free & Open Source Coding Time Tracker | Hackatime"
+    @meta_description = "Looking for a WakaTime alternative? Hackatime is a free, open source coding time tracker with all features unlocked. Compare features, pricing, and see why developers are switching."
+    @meta_keywords = "wakatime alternative, free time tracker, coding time tracker, open source wakatime, hackatime, developer analytics, programming stats"
+    @og_title = "WakaTime Alternative - Free & Open Source | Hackatime"
+    @og_description = @meta_description
+    @twitter_title = @og_title
+    @twitter_description = @meta_description
+
+    render inertia: "WakatimeAlternative"
+  end
+
   private
 
   def set_homepage_seo_content
@@ -131,7 +153,8 @@ class StaticPagesController < InertiaController
     {
       filterable_dashboard_data: filterable_dashboard_data,
       activity_graph: activity_graph_data,
-      today_stats: today_stats_data
+      today_stats: today_stats_data,
+      programming_goals_progress: programming_goals_progress_data
     }
   end
 
@@ -147,5 +170,19 @@ class StaticPagesController < InertiaController
       csrf_token: form_authenticity_token,
       home_stats: @home_stats || {}
     }
+  end
+
+  def programming_goals_progress_data
+    goals = current_user.goals.order(:id)
+    return [] if goals.blank?
+
+    goals_hash = ActiveSupport::Digest.hexdigest(
+      goals.pluck(:id, :period, :target_seconds, :languages, :projects).to_json
+    )
+    cache_key = "user_#{current_user.id}_programming_goals_progress_#{current_user.timezone}_#{goals_hash}"
+
+    Rails.cache.fetch(cache_key, expires_in: 1.minute) do
+      ProgrammingGoalsProgressService.new(user: current_user, goals: goals).call
+    end
   end
 end

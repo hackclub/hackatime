@@ -110,6 +110,15 @@ Rails.application.configure do
       class: "Cache::HeartbeatCountsJob",
       kwargs: { force_reload: true }
     },
+    heartbeat_import_source_scheduler: {
+      cron: "*/5 * * * *",
+      class: "HeartbeatImportSourceSchedulerJob"
+    },
+    weekly_summary_email: {
+      cron: "30 17 * * 5",
+      class: "WeeklySummaryEmailJob",
+      description: "Sends weekly coding summaries on Fridays at 17:30 GMT."
+    },
 
     geocode_users_without_country: {
       cron: "7 * * * *",

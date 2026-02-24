@@ -73,7 +73,7 @@ class TestWakatimeService
   def generate_summary_chunk(group_by)
     result = []
     @scope.group(group_by).duration_seconds.each do |key, value|
-      result << {
+      entry = {
         name: key.presence || "Other",
         total_seconds: value,
         text: ApplicationController.helpers.short_time_simple(value),
@@ -82,6 +82,8 @@ class TestWakatimeService
         percent: (100.0 * value / @total_seconds).round(2),
         digital: ApplicationController.helpers.digital_time(value)
       }
+      entry[:color] = LanguageUtils.color(key) if group_by == :language
+      result << entry
     end
     result = result.sort_by { |item| -item[:total_seconds] }
     result = result.first(@limit) if @limit.present?

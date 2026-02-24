@@ -16,8 +16,10 @@ services:
       - POSTGRES_HOST=db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secureorpheus123
+      - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
     depends_on:
       - db
+    command: ["sleep", "infinity"]
 
   db:
     image: postgres:16
@@ -33,4 +35,4 @@ services:
 volumes:
   harbor_postgres_data:
   bundle_cache:
-  node_modules: 
+  node_modules:
