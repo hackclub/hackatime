@@ -108,7 +108,53 @@ jobs:
         image: postgres:16-alpine
         ports:
           - 5432:5432
-        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Run tests
+        env:
+          RAILS_ENV: test
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: |
+          bin/rails db:create RAILS_ENV=test
+          bin/rails db:schema:load RAILS_ENV=test
+          bin/rails test
+
+      - name: Ensure Swagger docs are up to date
+        env:
+          RAILS_ENV: test
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: |
+          bin/rails rswag:specs:swaggerize
+          git diff --exit-code swagger/v1/swagger.yaml
+
+  test_system:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         env:
           POSTGRES_USER: postgres
@@ -148,7 +194,7 @@ jobs:
         env:
           RAILS_ENV: test
 
-      - name: Run tests
+      - name: Run system tests
         env:
           RAILS_ENV: test
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
@@ -160,19 +206,7 @@ jobs:
         run: |
           bin/rails db:create RAILS_ENV=test
           bin/rails db:schema:load RAILS_ENV=test
-          bin/rails test
           bin/rails test:system
-
-      - name: Ensure Swagger docs are up to date
-        env:
-          RAILS_ENV: test
-          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
-          PGHOST: localhost
-          PGUSER: postgres
-          PGPASSWORD: postgres
-        run: |
-          bin/rails rswag:specs:swaggerize
-          git diff --exit-code swagger/v1/swagger.yaml
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v6
@@ -181,57 +215,3 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
-
-  # test:
-  #   runs-on: ubuntu-latest
-
-  #   services:
-  #     postgres:
-  #       image: postgres:16-alpine
-  #       ports:
-  #         - 5432:5432
-  #       # needed because the postgres container does not provide a healthcheck
-  #       options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-  #       env:
-  #         POSTGRES_USER: postgres
-  #         POSTGRES_PASSWORD: postgres
-  #         POSTGRES_DB: test_db
-
-  #   # services:
-  #   #  redis:
-  #   #    image: redis
-  #   #    ports:
-  #   #      - 6379:6379
-  #   #    options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-  #   steps:
-  #     - name: Install packages
-  #       run: sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential git pkg-config google-chrome-stable
-
-  #     - name: Checkout code
-  #       uses: actions/checkout@v6
-
-  #     - name: Set up Ruby
-  #       uses: ruby/setup-ruby@v1
-  #       with:
-  #         ruby-version: .ruby-version
-  #         bundler-cache: true
-
-  #     - name: Run tests
-  #       env:
-  #         RAILS_ENV: test
-  #         # REDIS_URL: redis://localhost:6379/0
-  #         TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
-  #         PGHOST: localhost
-  #         PGUSER: postgres
-  #         PGPASSWORD: postgres
-  #       run: |
-  #         bin/rails db:migrate RAILS_ENV=test
-  #         bin/rails test test:system
-
-  #     - name: Keep screenshots from failed system tests
-  #       uses: actions/upload-artifact@v6
-  #       if: failure()
-  #       with:
-  #         name: screenshots
-  #         path: ${{ github.workspace }}/tmp/screenshots
-  #         if-no-files-found: ignore

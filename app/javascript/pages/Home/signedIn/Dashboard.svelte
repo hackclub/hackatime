@@ -168,7 +168,11 @@
     {/if}
 
     {#if Object.keys(langStats).length > 0}
-      <PieChart title="Languages" stats={langStats} />
+      <PieChart
+        title="Languages"
+        stats={langStats}
+        colorMap={data.language_colors || {}}
+      />
     {/if}
 
     {#if Object.keys(editorStats).length > 0}

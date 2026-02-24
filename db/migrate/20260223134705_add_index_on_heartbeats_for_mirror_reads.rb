@@ -8,7 +8,8 @@ class AddIndexOnHeartbeatsForMirrorReads < ActiveRecord::Migration[8.1]
       [ :user_id, :source_type, :id ],
       name: INDEX_NAME,
       where: "(source_type = 0 AND deleted_at IS NULL)",
-      algorithm: :concurrently
+      algorithm: :concurrently,
+      if_not_exists: true
   end
 
   def down

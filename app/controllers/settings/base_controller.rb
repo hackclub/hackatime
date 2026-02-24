@@ -21,6 +21,7 @@ class Settings::BaseController < InertiaController
     {
       "profile" => "Users/Settings/Profile",
       "integrations" => "Users/Settings/Integrations",
+      "notifications" => "Users/Settings/Notifications",
       "access" => "Users/Settings/Access",
       "goals" => "Users/Settings/Goals",
       "badges" => "Users/Settings/Badges",
@@ -81,6 +82,7 @@ class Settings::BaseController < InertiaController
       section_paths: {
         profile: my_settings_profile_path,
         integrations: my_settings_integrations_path,
+        notifications: my_settings_notifications_path,
         access: my_settings_access_path,
         goals: my_settings_goals_path,
         badges: my_settings_badges_path,
@@ -89,7 +91,7 @@ class Settings::BaseController < InertiaController
       },
       page_title: (@is_own_settings ? "My Settings" : "Settings | #{@user.display_name}"),
       heading: (@is_own_settings ? "Settings" : "Settings for #{@user.display_name}"),
-      subheading: "Manage your profile, integrations, access, goals, and data tools.",
+      subheading: "Manage your profile, integrations, notifications, access, goals, and data tools.",
       settings_update_path: settings_update_path,
       create_goal_path: my_settings_goals_create_path,
       username_max_length: User::USERNAME_MAX_LENGTH,
@@ -101,6 +103,7 @@ class Settings::BaseController < InertiaController
         username: @user.username,
         theme: @user.theme,
         uses_slack_status: @user.uses_slack_status,
+        weekly_summary_email_enabled: @user.weekly_summary_email_enabled,
         hackatime_extension_text_type: @user.hackatime_extension_text_type,
         allow_public_stats_lookup: @user.allow_public_stats_lookup,
         trust_level: @user.trust_level,

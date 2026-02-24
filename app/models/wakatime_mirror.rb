@@ -24,7 +24,7 @@ class WakatimeMirror < ApplicationRecord
   def post_heartbeats(payload)
     HTTP.timeout(connect: 5, read: 30, write: 10)
       .headers(
-        "Authorization" => "Basic #{Base64.strict_encode64("#{encrypted_api_key}:")}",
+        "Authorization" => "Basic #{Base64.strict_encode64(encrypted_api_key)}",
         "Content-Type" => "application/json"
       )
       .post("#{endpoint_url}/users/current/heartbeats.bulk", json: payload)
