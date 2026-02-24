@@ -49,7 +49,8 @@
       let fallbackIdx = 0;
       return data.map(
         (d) =>
-          colorMap[d.name] || FALLBACK_COLORS[fallbackIdx++ % FALLBACK_COLORS.length],
+          colorMap[d.name] ||
+          FALLBACK_COLORS[fallbackIdx++ % FALLBACK_COLORS.length],
       );
     }
     return FALLBACK_COLORS;
