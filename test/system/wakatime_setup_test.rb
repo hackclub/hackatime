@@ -24,7 +24,7 @@ class WakatimeSetupTest < ApplicationSystemTestCase
     assert_text "api_url"
 
     # Switch back to macOS / Linux tab
-    click_on "macOS / Linux"
+    click_on "macOS / Linux / Codespaces"
     assert_text "curl -fsSL"
   end
 end
