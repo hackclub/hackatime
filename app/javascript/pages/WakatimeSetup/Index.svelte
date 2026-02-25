@@ -14,9 +14,17 @@
   let { current_user_api_key, setup_os, api_url, heartbeat_check_url }: Props =
     $props();
 
-  let activeSection = $derived(
-    setup_os === "windows" ? "windows" : "mac-linux",
-  );
+  let activeSection = $state(setup_os === "windows" ? "windows" : "mac-linux");
+  let isWindows = setup_os === "windows";
+
+  const tabBase =
+    "flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]";
+  const tabActive = "bg-darkless text-surface-content shadow-sm";
+  const tabInactive = "text-secondary hover:text-surface-content";
+  function tabClass(section: string) {
+    return `${tabBase} ${activeSection === section ? tabActive : tabInactive}`;
+  }
+
   let hasHeartbeat = $state(false);
   let heartbeatTimeAgo = $state("");
   let checkCount = $state(0);
@@ -34,12 +42,11 @@
   ];
 
   const sharedTitle = "Configure Hackatime";
-  const sharedSubtitle =
+  const macLinuxSubtitle =
     "This creates your config file and validates your API key. And if you're using VS Code, a JetBrains IDE, Zed, or Xcode, we'll even set up the plugins for you!";
-
-  function toggleSection(section: string) {
-    activeSection = section;
-  }
+  const windowsSubtitle =
+    "This creates your config file and validates your API key. And if you're using VS Code, a JetBrains IDE, or Zed, we'll even set up the plugins for you!";
+  const advancedSubtitle = macLinuxSubtitle;
 
   function showSuccess(timeAgo: string) {
     hasHeartbeat = true;
@@ -126,11 +133,32 @@
         {/if}
       </div>
 
+      <div class="flex gap-1 p-1 bg-darker border border-darkless rounded-xl">
+        <button
+          class={tabClass("mac-linux")}
+          onclick={() => (activeSection = "mac-linux")}
+        >
+          macOS / Linux{isWindows ? " / WSL" : ""} / Codespaces
+        </button>
+        <button
+          class={tabClass("windows")}
+          onclick={() => (activeSection = "windows")}
+        >
+          Windows
+        </button>
+        <button
+          class={tabClass("advanced")}
+          onclick={() => (activeSection = "advanced")}
+        >
+          Advanced
+        </button>
+      </div>
+
       {#if activeSection === "mac-linux"}
         <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm">
           <div class="mb-6">
             <h3 class="text-xl font-semibold mb-2">{sharedTitle}</h3>
-            <p class="text-secondary text-sm">{sharedSubtitle}</p>
+            <p class="text-secondary text-sm">{macLinuxSubtitle}</p>
           </div>
 
           <div
@@ -242,7 +270,7 @@
         <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm">
           <div class="mb-6">
             <h3 class="text-xl font-semibold mb-2">{sharedTitle}</h3>
-            <p class="text-secondary text-sm">{sharedSubtitle}</p>
+            <p class="text-secondary text-sm">{windowsSubtitle}</p>
           </div>
 
           <div class="space-y-4">
@@ -330,7 +358,7 @@
         <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm">
           <div class="mb-6">
             <h3 class="text-xl font-semibold mb-2">{sharedTitle}</h3>
-            <p class="text-secondary text-sm">{sharedSubtitle}</p>
+            <p class="text-secondary text-sm">{advancedSubtitle}</p>
           </div>
 
           <div class="bg-purple/10 border border-purple/20 rounded-lg p-4 mb-4">
