@@ -14,9 +14,8 @@
   let { current_user_api_key, setup_os, api_url, heartbeat_check_url }: Props =
     $props();
 
-  let activeSection = $derived(
-    setup_os === "windows" ? "windows" : "mac-linux",
-  );
+  let activeSection = $state(setup_os === "windows" ? "windows" : "mac-linux");
+  let isWindows = setup_os === "windows";
   let hasHeartbeat = $state(false);
   let heartbeatTimeAgo = $state("");
   let checkCount = $state(0);
@@ -36,10 +35,6 @@
   const sharedTitle = "Configure Hackatime";
   const sharedSubtitle =
     "This creates your config file and validates your API key. And if you're using VS Code, a JetBrains IDE, Zed, or Xcode, we'll even set up the plugins for you!";
-
-  function toggleSection(section: string) {
-    activeSection = section;
-  }
 
   function showSuccess(timeAgo: string) {
     hasHeartbeat = true;
@@ -124,6 +119,36 @@
             </Button>
           </div>
         {/if}
+      </div>
+
+      <div class="flex gap-1 p-1 bg-darker border border-darkless rounded-xl">
+        <button
+          class="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] {activeSection ===
+          'mac-linux'
+            ? 'bg-darkless text-surface-content shadow-sm'
+            : 'text-secondary hover:text-surface-content'}"
+          onclick={() => (activeSection = "mac-linux")}
+        >
+          macOS / Linux{isWindows ? " / WSL" : ""} / Codespaces
+        </button>
+        <button
+          class="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] {activeSection ===
+          'windows'
+            ? 'bg-darkless text-surface-content shadow-sm'
+            : 'text-secondary hover:text-surface-content'}"
+          onclick={() => (activeSection = "windows")}
+        >
+          Windows
+        </button>
+        <button
+          class="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] {activeSection ===
+          'advanced'
+            ? 'bg-darkless text-surface-content shadow-sm'
+            : 'text-secondary hover:text-surface-content'}"
+          onclick={() => (activeSection = "advanced")}
+        >
+          Advanced
+        </button>
       </div>
 
       {#if activeSection === "mac-linux"}
