@@ -43,7 +43,7 @@
 
   const sharedTitle = "Configure Hackatime";
   const sharedSubtitle =
-    "This creates your config file and validates your API key. And if you're using VS Code, a JetBrains IDE, Zed, or Xcode, we'll even set up the plugins for you!";
+    "This creates your config file and validates your API key. And if you're using VS Code, a JetBrains IDE, or Zed, we'll even set up the plugins for you!";
 
   function showSuccess(timeAgo: string) {
     hasHeartbeat = true;
