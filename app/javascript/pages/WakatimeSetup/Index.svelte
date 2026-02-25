@@ -46,7 +46,7 @@
     "This creates your config file and validates your API key. And if you're using VS Code, a JetBrains IDE, Zed, or Xcode, we'll even set up the plugins for you!";
   const windowsSubtitle =
     "This creates your config file and validates your API key. And if you're using VS Code, a JetBrains IDE, or Zed, we'll even set up the plugins for you!";
-  const advancedSubtitle = windowsSubtitle;
+  const advancedSubtitle = macLinuxSubtitle;
 
   function showSuccess(timeAgo: string) {
     hasHeartbeat = true;
