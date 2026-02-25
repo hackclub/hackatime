@@ -42,8 +42,11 @@
   ];
 
   const sharedTitle = "Configure Hackatime";
-  const sharedSubtitle =
+  const macLinuxSubtitle =
+    "This creates your config file and validates your API key. And if you're using VS Code, a JetBrains IDE, Zed, or Xcode, we'll even set up the plugins for you!";
+  const windowsSubtitle =
     "This creates your config file and validates your API key. And if you're using VS Code, a JetBrains IDE, or Zed, we'll even set up the plugins for you!";
+  const advancedSubtitle = windowsSubtitle;
 
   function showSuccess(timeAgo: string) {
     hasHeartbeat = true;
@@ -155,7 +158,7 @@
         <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm">
           <div class="mb-6">
             <h3 class="text-xl font-semibold mb-2">{sharedTitle}</h3>
-            <p class="text-secondary text-sm">{sharedSubtitle}</p>
+            <p class="text-secondary text-sm">{macLinuxSubtitle}</p>
           </div>
 
           <div
@@ -267,7 +270,7 @@
         <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm">
           <div class="mb-6">
             <h3 class="text-xl font-semibold mb-2">{sharedTitle}</h3>
-            <p class="text-secondary text-sm">{sharedSubtitle}</p>
+            <p class="text-secondary text-sm">{windowsSubtitle}</p>
           </div>
 
           <div class="space-y-4">
@@ -355,7 +358,7 @@
         <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm">
           <div class="mb-6">
             <h3 class="text-xl font-semibold mb-2">{sharedTitle}</h3>
-            <p class="text-secondary text-sm">{sharedSubtitle}</p>
+            <p class="text-secondary text-sm">{advancedSubtitle}</p>
           </div>
 
           <div class="bg-purple/10 border border-purple/20 rounded-lg p-4 mb-4">
