@@ -16,6 +16,15 @@
 
   let activeSection = $state(setup_os === "windows" ? "windows" : "mac-linux");
   let isWindows = setup_os === "windows";
+
+  const tabBase =
+    "flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]";
+  const tabActive = "bg-darkless text-surface-content shadow-sm";
+  const tabInactive = "text-secondary hover:text-surface-content";
+  function tabClass(section: string) {
+    return `${tabBase} ${activeSection === section ? tabActive : tabInactive}`;
+  }
+
   let hasHeartbeat = $state(false);
   let heartbeatTimeAgo = $state("");
   let checkCount = $state(0);
@@ -123,28 +132,19 @@
 
       <div class="flex gap-1 p-1 bg-darker border border-darkless rounded-xl">
         <button
-          class="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] {activeSection ===
-          'mac-linux'
-            ? 'bg-darkless text-surface-content shadow-sm'
-            : 'text-secondary hover:text-surface-content'}"
+          class={tabClass("mac-linux")}
           onclick={() => (activeSection = "mac-linux")}
         >
           macOS / Linux{isWindows ? " / WSL" : ""} / Codespaces
         </button>
         <button
-          class="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] {activeSection ===
-          'windows'
-            ? 'bg-darkless text-surface-content shadow-sm'
-            : 'text-secondary hover:text-surface-content'}"
+          class={tabClass("windows")}
           onclick={() => (activeSection = "windows")}
         >
           Windows
         </button>
         <button
-          class="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] {activeSection ===
-          'advanced'
-            ? 'bg-darkless text-surface-content shadow-sm'
-            : 'text-secondary hover:text-surface-content'}"
+          class={tabClass("advanced")}
           onclick={() => (activeSection = "advanced")}
         >
           Advanced
