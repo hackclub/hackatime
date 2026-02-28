@@ -45,6 +45,9 @@ class DocsController < InertiaController
   # Docs are publicly accessible - no authentication required
 
   def index
+    @page_title = "Hackatime Docs - Setup Guides for 75+ Code Editors & IDEs"
+    @meta_description = "Get started with Hackatime in minutes. Step-by-step setup guides for VS Code, JetBrains, vim, Neovim, Sublime Text, and 70+ more editors and IDEs."
+
     render inertia: "Docs/Index", props: {
       popular_editors: POPULAR_EDITORS,
       all_editors: ALL_EDITORS

@@ -4,7 +4,7 @@ Allow: /
 # Important pages for crawling
 Allow: /docs
 Allow: /docs/*
-Allow: /leaderboard
+Allow: /leaderboards
 
 # Disallow private/internal pages
 Disallow: /my/
