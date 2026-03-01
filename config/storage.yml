@@ -13,6 +13,8 @@ r2:
   region: auto
   bucket: <%= ENV["S3_BUCKET"] %>
   endpoint: <%= ENV["S3_ENDPOINT"] %>
+  request_checksum_calculation: when_required
+  response_checksum_validation: when_required
 
 # Remember not to checkin your GCS keyfile to a repository
 # google:
