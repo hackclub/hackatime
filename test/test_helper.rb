@@ -1,7 +1,6 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
-require "webmock/minitest"
 require "nokogiri"
 require "json"
 
@@ -29,10 +28,6 @@ module ActiveSupport
     ]
 
     # Add more helper methods to be used by all tests here...
-
-    setup do
-      stub_request(:get, /fonts\.googleapis\.com/).to_return(status: 200, body: "", headers: {})
-    end
   end
 end
 

@@ -1,4 +1,5 @@
 require "test_helper"
+require "webmock/minitest"
 require "socket"
 require "net/http"
 require "timeout"
