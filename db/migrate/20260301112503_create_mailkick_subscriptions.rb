@@ -6,6 +6,6 @@ class CreateMailkickSubscriptions < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :mailkick_subscriptions, [:subscriber_type, :subscriber_id, :list], unique: true, name: "index_mailkick_subscriptions_on_subscriber_and_list"
+    add_index :mailkick_subscriptions, [ :subscriber_type, :subscriber_id, :list ], unique: true, name: "index_mailkick_subscriptions_on_subscriber_and_list"
   end
 end

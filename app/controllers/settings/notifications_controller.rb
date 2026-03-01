@@ -13,7 +13,7 @@ class Settings::NotificationsController < Settings::BaseController
       @user.unsubscribe(list) if @user.subscribed?(list)
     end
 
-    PosthogService.capture(@user, "settings_updated", { fields: ["weekly_summary_email_enabled"] })
+    PosthogService.capture(@user, "settings_updated", { fields: [ "weekly_summary_email_enabled" ] })
     redirect_to my_settings_notifications_path, notice: "Settings updated successfully"
   end
 
