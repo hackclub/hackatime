@@ -304,7 +304,7 @@ class WakatimeMirrorSyncJobTest < ActiveJob::TestCase
     assert_match(/\ABasic /, requests.first.fetch(:authorization).to_s)
   ensure
     server&.stop
-    WebMock.disable_net_connect!(allow_localhost: true)
+    WebMock.disable_net_connect!(allow_localhost: false)
   end
 
   test "does nothing when imports and mirrors are disabled" do
