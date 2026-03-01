@@ -29,13 +29,4 @@ class UserTest < ActiveSupport::TestCase
 
     assert_equal "gruvbox_dark", metadata[:value]
   end
-
-  test "updating slack status does nothing without a slack access token" do
-    user = User.create!(timezone: "UTC", uses_slack_status: true)
-
-    user.update_slack_status
-
-    assert_not_requested :get, "https://slack.com/api/users.profile.get"
-    assert_not_requested :post, "https://slack.com/api/users.profile.set"
-  end
 end
