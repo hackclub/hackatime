@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_01_112933) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_01_125356) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -685,6 +685,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_01_112933) do
     t.datetime "updated_at", null: false
     t.string "username"
     t.boolean "uses_slack_status", default: false, null: false
+    t.boolean "weekly_summary_email_enabled", default: false, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
