@@ -37,7 +37,7 @@ class ProgrammingGoalsProgressService
 
   def tracked_seconds_for_goal(goal, now:)
     time_window = time_window_for(goal.period, now: now)
-    scope = user.heartbeats.coding_only.where(time: time_window.begin.to_i..time_window.end.to_i)
+    scope = user.heartbeats.where(time: time_window.begin.to_i..time_window.end.to_i)
     scope = scope.where(project: goal.projects) if goal.projects.any?
 
     if goal.languages.any?
