@@ -1,22 +1,31 @@
-Your Hackatime weekly summary: <%= @period_label %>
+Hackatime — Your Coding Recap
+==============================
+<%= @period_label %>
 
 Hi <%= h(@user.display_name) %>,
 
-Total coding time: <%= short_time_simple(@total_seconds) %>
-Daily average: <%= short_time_simple(@daily_average_seconds) %>
-Active days: <%= @active_days %>/7
-Heartbeats: <%= @total_heartbeats %>
+Here's your weekly coding snapshot from Hackatime.
 
+OVERVIEW
+--------
+Total coding time:  <%= short_time_simple(@total_seconds) %>
+Daily average:      <%= short_time_simple(@daily_average_seconds) %>
+Active days:        <%= @active_days %>/7
+Heartbeats:         <%= @total_heartbeats %>
 <% if @total_seconds.zero? %>
-No coding activity was recorded this week.
+
+No coding activity was recorded this week. Start a new session and your next summary will include your project and language breakdown.
 <% else %>
-Top projects:
-<% @top_projects.each do |project| %>
-- <%= project[:name] %>: <%= project[:duration_label] %>
+
+TOP PROJECTS
+------------
+<% @top_projects.each do |project| -%>
+  • <%= project[:name] %> - <%= project[:duration_label] %>
 <% end %>
 
-Top languages:
-<% @top_languages.each do |language| %>
-- <%= language[:name] %>: <%= language[:duration_label] %>
-<% end %>
+TOP LANGUAGES
+-------------
+<% @top_languages.each do |language| -%>
+  • <%= language[:name] %> - <%= language[:duration_label] %>
+<% end -%>
 <% end %>

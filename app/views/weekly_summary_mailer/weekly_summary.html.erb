@@ -1,55 +1,55 @@
-<h1 style="font-size: 24px; line-height: 32px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; margin: 8px 0 0 0;">
+<h1 class="text-2xl font-bold text-gray-900 tracking-tight mt-2 mb-0">
   Your coding recap
 </h1>
-<p style="font-size: 14px; line-height: 20px; color: #334155; margin: 8px 0 0 0;">
+<p class="text-sm text-gray-600 mt-2 mb-0">
   <%= @period_label %>
 </p>
-<p style="font-size: 16px; line-height: 24px; color: #334155; margin: 16px 0 0 0;">
+<p class="text-base text-gray-700 mt-4 mb-0">
   Hi <%= h(@user.display_name) %>, here is your weekly coding snapshot from Hackatime.
 </p>
 
-<div style="margin-top: 24px; border: 1px solid #dbe4ee; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
-  <div style="padding: 18px 20px; border-bottom: 1px solid #e2e8f0; background-color: #f8fafc;">
-    <p style="font-size: 13px; line-height: 18px; color: #64748b; margin: 0;">Total coding time</p>
-    <p style="font-size: 34px; line-height: 38px; letter-spacing: -0.02em; font-weight: 700; color: #0f172a; margin: 8px 0 0 0;">
+<div class="mt-6 rounded-xl overflow-hidden bg-white" style="border: 1px solid #dbe4ee;">
+  <div class="px-5 py-4 bg-gray-50" style="border-bottom: 1px solid #e2e8f0;">
+    <p class="text-xs text-gray-400 m-0">Total coding time</p>
+    <p class="text-3xl font-bold text-gray-900 tracking-tight mt-2 mb-0">
       <%= short_time_simple(@total_seconds) %>
     </p>
   </div>
 
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
     <tr>
-      <td style="width: 33.33%; padding: 14px 16px; border-right: 1px solid #e2e8f0; vertical-align: top;">
-        <p style="font-size: 12px; line-height: 16px; color: #64748b; margin: 0;">Daily average</p>
-        <p style="font-size: 18px; line-height: 24px; font-weight: 600; color: #0f172a; margin: 4px 0 0 0;"><%= short_time_simple(@daily_average_seconds) %></p>
+      <td class="px-4 py-3 align-top" style="width: 33.33%; border-right: 1px solid #e2e8f0;">
+        <p class="text-xs text-gray-400 m-0">Daily average</p>
+        <p class="text-lg font-semibold text-gray-900 mt-1 mb-0"><%= short_time_simple(@daily_average_seconds) %></p>
       </td>
-      <td style="width: 33.33%; padding: 14px 16px; border-right: 1px solid #e2e8f0; vertical-align: top;">
-        <p style="font-size: 12px; line-height: 16px; color: #64748b; margin: 0;">Active days</p>
-        <p style="font-size: 18px; line-height: 24px; font-weight: 600; color: #0f172a; margin: 4px 0 0 0;"><%= @active_days %>/7</p>
+      <td class="px-4 py-3 align-top" style="width: 33.33%; border-right: 1px solid #e2e8f0;">
+        <p class="text-xs text-gray-400 m-0">Active days</p>
+        <p class="text-lg font-semibold text-gray-900 mt-1 mb-0"><%= @active_days %>/7</p>
       </td>
-      <td style="width: 33.33%; padding: 14px 16px; vertical-align: top;">
-        <p style="font-size: 12px; line-height: 16px; color: #64748b; margin: 0;">Heartbeats</p>
-        <p style="font-size: 18px; line-height: 24px; font-weight: 600; color: #0f172a; margin: 4px 0 0 0;"><%= @total_heartbeats %></p>
+      <td class="px-4 py-3 align-top" style="width: 33.33%;">
+        <p class="text-xs text-gray-400 m-0">Heartbeats</p>
+        <p class="text-lg font-semibold text-gray-900 mt-1 mb-0"><%= @total_heartbeats %></p>
       </td>
     </tr>
   </table>
 </div>
 
 <% if @total_seconds.zero? %>
-  <div style="margin-top: 24px; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 10px; background-color: #f8fafc;">
-    <p style="font-size: 14px; line-height: 20px; color: #334155; margin: 0;">
+  <div class="mt-6 p-4 rounded-lg bg-gray-50" style="border: 1px solid #e2e8f0;">
+    <p class="text-sm text-gray-700 m-0">
       No coding activity was recorded this week. Start a new session and your next summary will include your project and language breakdown.
     </p>
   </div>
 <% else %>
-  <div style="margin-top: 24px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; background-color: #ffffff;">
-    <p style="font-size: 15px; line-height: 20px; font-weight: 700; color: #0f172a; margin: 0;">Top projects</p>
+  <div class="mt-6 p-4 rounded-lg bg-white" style="border: 1px solid #e2e8f0;">
+    <p class="text-sm font-bold text-gray-900 m-0">Top projects</p>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse; margin-top: 10px;">
       <% @top_projects.each_with_index do |project, index| %>
         <tr>
-          <td style="font-size: 14px; line-height: 20px; color: #334155; padding: 10px 0; <%= index.positive? ? 'border-top: 1px solid #e2e8f0;' : '' %>">
+          <td class="text-sm text-gray-700 py-2.5" style="<%= index.positive? ? 'border-top: 1px solid #e2e8f0;' : '' %>">
             <%= project[:name] %>
           </td>
-          <td align="right" style="font-size: 14px; line-height: 20px; font-weight: 600; color: #0f172a; padding: 10px 0; <%= index.positive? ? 'border-top: 1px solid #e2e8f0;' : '' %>">
+          <td align="right" class="text-sm font-semibold text-gray-900 py-2.5" style="<%= index.positive? ? 'border-top: 1px solid #e2e8f0;' : '' %>">
             <%= project[:duration_label] %>
           </td>
         </tr>
@@ -57,15 +57,15 @@
     </table>
   </div>
 
-  <div style="margin-top: 16px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; background-color: #ffffff;">
-    <p style="font-size: 15px; line-height: 20px; font-weight: 700; color: #0f172a; margin: 0;">Top languages</p>
+  <div class="mt-4 p-4 rounded-lg bg-white" style="border: 1px solid #e2e8f0;">
+    <p class="text-sm font-bold text-gray-900 m-0">Top languages</p>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse; margin-top: 10px;">
       <% @top_languages.each_with_index do |language, index| %>
         <tr>
-          <td style="font-size: 14px; line-height: 20px; color: #334155; padding: 10px 0; <%= index.positive? ? 'border-top: 1px solid #e2e8f0;' : '' %>">
+          <td class="text-sm text-gray-700 py-2.5" style="<%= index.positive? ? 'border-top: 1px solid #e2e8f0;' : '' %>">
             <%= language[:name] %>
           </td>
-          <td align="right" style="font-size: 14px; line-height: 20px; font-weight: 600; color: #0f172a; padding: 10px 0; <%= index.positive? ? 'border-top: 1px solid #e2e8f0;' : '' %>">
+          <td align="right" class="text-sm font-semibold text-gray-900 py-2.5" style="<%= index.positive? ? 'border-top: 1px solid #e2e8f0;' : '' %>">
             <%= language[:duration_label] %>
           </td>
         </tr>
