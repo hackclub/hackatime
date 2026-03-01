@@ -10,7 +10,7 @@ class WeeklySummaryEmailJob < ApplicationJob
     # now_utc = reference_time.utc
     # return unless send_window?(now_utc)
 
-    # User.where(weekly_summary_email_enabled: true).find_each do |user|
+    # User.subscribed("weekly_summary").find_each do |user|
     #   recipient_email = user.email_addresses.order(:id).pick(:email)
     #   next if recipient_email.blank?
 

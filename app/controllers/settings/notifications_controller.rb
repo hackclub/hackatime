@@ -4,13 +4,17 @@ class Settings::NotificationsController < Settings::BaseController
   end
 
   def update
-    if @user.update(notifications_params)
-      PosthogService.capture(@user, "settings_updated", { fields: notifications_params.keys })
-      redirect_to my_settings_notifications_path, notice: "Settings updated successfully"
+    list = "weekly_summary"
+    enabled = params.dig(:user, :weekly_summary_email_enabled)
+
+    if enabled == "1" || enabled == true
+      @user.subscribe(list) unless @user.subscribed?(list)
     else
-      flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
-      render_notifications(status: :unprocessable_entity)
+      @user.unsubscribe(list) if @user.subscribed?(list)
     end
+
+    PosthogService.capture(@user, "settings_updated", { fields: ["weekly_summary_email_enabled"] })
+    redirect_to my_settings_notifications_path, notice: "Settings updated successfully"
   end
 
   private
@@ -21,9 +25,5 @@ class Settings::NotificationsController < Settings::BaseController
       settings_update_path: my_settings_notifications_path,
       status: status
     )
-  end
-
-  def notifications_params
-    params.require(:user).permit(:weekly_summary_email_enabled)
   end
 end

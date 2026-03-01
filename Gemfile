@@ -171,3 +171,7 @@ gem "vite_rails", "~> 3.0"
 gem "rubyzip", "~> 3.2"
 
 gem "aws-sdk-s3", require: false
+
+gem "notable"
+
+gem "mailkick"

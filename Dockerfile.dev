@@ -48,5 +48,9 @@ RUN git config --system http.timeout 30 && \
 EXPOSE 3000
 EXPOSE 3036
 
+# Disable dev warnings
+RUN skylight disable_dev_warning
+RUN bundle config set default_cli_command install --global
+
 # Start the main process
-CMD ["rails", "server", "-b", "0.0.0.0"] 
+CMD ["rails", "server", "-b", "0.0.0.0"]
