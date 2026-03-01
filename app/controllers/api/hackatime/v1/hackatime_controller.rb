@@ -254,6 +254,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       results << [ new_heartbeat.attributes, 201 ]
       should_enqueue_mirror_sync ||= source_type == :direct_entry
     rescue => e
+      Sentry.capture_exception(e)
       Rails.logger.error("Error creating heartbeat: #{e.class.name} #{e.message}")
       results << [ { error: e.message, type: e.class.name }, 422 ]
     end

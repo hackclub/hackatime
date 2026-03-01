@@ -19,7 +19,7 @@ class NotificationsSettingsTest < ApplicationSystemTestCase
   end
 
   test "notifications settings updates weekly summary email preference" do
-    @user.update!(weekly_summary_email_enabled: true)
+    @user.subscribe("weekly_summary") unless @user.subscribed?("weekly_summary")
 
     visit my_settings_notifications_path
 
@@ -30,6 +30,6 @@ class NotificationsSettingsTest < ApplicationSystemTestCase
     click_on "Save notification settings"
 
     assert_text "Settings updated successfully"
-    assert_equal false, @user.reload.weekly_summary_email_enabled
+    assert_not @user.reload.subscribed?("weekly_summary")
   end
 end

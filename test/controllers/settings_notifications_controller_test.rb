@@ -13,14 +13,27 @@ class SettingsNotificationsControllerTest < ActionDispatch::IntegrationTest
     assert_inertia_component "Users/Settings/Notifications"
   end
 
-  test "notifications update persists weekly summary email preference" do
+  test "notifications update subscribes user to weekly summary" do
     user = users(:one)
+    user.unsubscribe("weekly_summary") if user.subscribed?("weekly_summary")
+    sign_in_as(user)
+
+    patch my_settings_notifications_path, params: { user: { weekly_summary_email_enabled: "1" } }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_notifications_path
+    assert user.reload.subscribed?("weekly_summary")
+  end
+
+  test "notifications update unsubscribes user from weekly summary" do
+    user = users(:one)
+    user.subscribe("weekly_summary") unless user.subscribed?("weekly_summary")
     sign_in_as(user)
 
     patch my_settings_notifications_path, params: { user: { weekly_summary_email_enabled: "0" } }
 
     assert_response :redirect
     assert_redirected_to my_settings_notifications_path
-    assert_equal false, user.reload.weekly_summary_email_enabled
+    assert_not user.reload.subscribed?("weekly_summary")
   end
 end

@@ -304,6 +304,8 @@ GEM
       net-imap
       net-pop
       net-smtp
+    mailkick (2.0.0)
+      activesupport (>= 7.1)
     marcel (1.1.0)
     matrix (0.4.3)
     mcp (0.7.1)
@@ -680,6 +682,7 @@ DEPENDENCIES
   kamal
   letter_opener
   letter_opener_web (~> 3.0)
+  mailkick
   memory_profiler
   norairrecord (~> 0.5.1)
   oj
