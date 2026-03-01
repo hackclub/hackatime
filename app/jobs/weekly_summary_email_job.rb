@@ -25,7 +25,7 @@ class WeeklySummaryEmailJob < ApplicationJob
       .arel
       .exists
 
-    User.subscribed("weekly_summary").where(
+    User.where(weekly_summary_email_enabled: true).where(
       users[:created_at].gteq(cutoff).or(recent_activity_exists)
     )
   end
