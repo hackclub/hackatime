@@ -18,7 +18,11 @@
   }: NotificationsPageProps = $props();
 
   let csrfToken = $state("");
-  let weeklySummaryEmailEnabled = $state(user.weekly_summary_email_enabled);
+  let weeklySummaryEmailEnabled = $state(true);
+
+  $effect(() => {
+    weeklySummaryEmailEnabled = user.weekly_summary_email_enabled;
+  });
 
   onMount(() => {
     csrfToken =

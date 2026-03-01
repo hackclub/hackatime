@@ -304,8 +304,6 @@ GEM
       net-imap
       net-pop
       net-smtp
-    mailkick (2.0.0)
-      activesupport (>= 7.1)
     marcel (1.1.0)
     matrix (0.4.3)
     mcp (0.7.1)
@@ -357,9 +355,6 @@ GEM
       faraday (>= 1.0, < 3.0)
       faraday-net_http_persistent
       net-http-persistent
-    notable (0.6.1)
-      activesupport (>= 7.1)
-      safely_block (>= 0.4)
     oj (3.16.15)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
@@ -534,7 +529,6 @@ GEM
     ruby_identicon (0.0.6)
       chunky_png (~> 1.4.0)
     rubyzip (3.2.2)
-    safely_block (0.5.0)
     sanitize (7.0.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.16.8)
@@ -686,10 +680,8 @@ DEPENDENCIES
   kamal
   letter_opener
   letter_opener_web (~> 3.0)
-  mailkick
   memory_profiler
   norairrecord (~> 0.5.1)
-  notable
   oj
   paper_trail
   pg

@@ -17,13 +17,10 @@ class SettingsNotificationsControllerTest < ActionDispatch::IntegrationTest
     user = users(:one)
     sign_in_as(user)
 
-    user.subscribe("weekly_summary")
-    assert user.subscribed?("weekly_summary")
-
     patch my_settings_notifications_path, params: { user: { weekly_summary_email_enabled: "0" } }
 
     assert_response :redirect
     assert_redirected_to my_settings_notifications_path
-    assert_not user.reload.subscribed?("weekly_summary")
+    assert_equal false, user.reload.weekly_summary_email_enabled
   end
 end

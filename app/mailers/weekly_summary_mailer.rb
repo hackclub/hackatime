@@ -3,7 +3,6 @@ class WeeklySummaryMailer < ApplicationMailer
 
   def weekly_summary(user, recipient_email:, starts_at:, ends_at:)
     @user = user
-    @unsubscribe_url = mailkick_unsubscribe_url(@user, "weekly_summary")
     user_timezone = ActiveSupport::TimeZone[@user.timezone]
     @timezone = user_timezone || ActiveSupport::TimeZone["UTC"]
     @timezone_label = user_timezone ? @user.timezone : @timezone.tzinfo.identifier
@@ -14,7 +13,9 @@ class WeeklySummaryMailer < ApplicationMailer
     @subject_period_label = "#{@starts_at_local.strftime("%b %-d")} - #{@ends_at_local.strftime("%b %-d, %Y")}"
     @period_label = @subject_period_label
 
-    coding_heartbeats = @user.heartbeats.where(time: @starts_at.to_f...@ends_at.to_f)
+    coding_heartbeats = @user.heartbeats
+      .coding_only
+      .where(time: @starts_at.to_f...@ends_at.to_f)
 
     @total_seconds = coding_heartbeats.duration_seconds
     @daily_average_seconds = (@total_seconds / 7.0).round
