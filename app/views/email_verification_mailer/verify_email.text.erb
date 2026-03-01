@@ -1,12 +1,12 @@
-Verify your email address for Hackatime
+Hackatime — Verify Your Email
+==============================
 
 Hi <%= h(@user.display_name) %>,
 
-You've requested to add <%= @verification_request.email %> to your Hackatime account.
-Click the link below to verify this email address:
+Please confirm that you want to add <%= @verification_request.email %> to your Hackatime account:
 
 <%= @verification_url %>
 
-This link will expire in 30 minutes and can only be used once.
+This link expires in 30 minutes and can only be used once.
 
-If you didn't request this email, you can safely ignore it.
+If you didn't request this, you can safely ignore this email.

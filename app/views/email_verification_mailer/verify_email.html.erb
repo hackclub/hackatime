@@ -1,13 +1,13 @@
-<h1 style="font-size: 20px; line-height: 28px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; margin: 16px 0 0 0;">
+<h1 class="text-xl font-bold text-gray-900 tracking-tight mt-4 mb-0">
   Verify your email address
 </h1>
-<p style="font-size: 16px; line-height: 1.625; color: #334155; margin: 16px 0 0 0;">
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
   Hi <%= h(@user.display_name) %>, please confirm that you want to add
   <strong><%= @verification_request.email %></strong> to your Hackatime account.
 </p>
 
 <%= render "shared/mailer/button", url: @verification_url, label: "Verify email address" %>
 
-<p style="font-size: 14px; line-height: 20px; color: #64748b; margin: 24px 0 0 0;">
+<p class="text-sm leading-5 text-gray-400 mt-6 mb-0">
   If you didn't request this change, you can ignore this email.
 </p>
