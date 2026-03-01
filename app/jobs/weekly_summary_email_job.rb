@@ -27,6 +27,6 @@ class WeeklySummaryEmailJob < ApplicationJob
 
     User.subscribed("weekly_summary").where(
       users[:created_at].gteq(cutoff).or(recent_activity_exists)
-    )
+    ).where.not(id: DeletionRequest.active.select(:user_id))
   end
 end

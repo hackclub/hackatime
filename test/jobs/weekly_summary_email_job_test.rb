@@ -31,6 +31,10 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
     unsubscribed_recent_coder.unsubscribe("weekly_summary")
     create_coding_heartbeat(unsubscribed_recent_coder, cutoff + 3.hours, "unsubscribed", "Ruby")
 
+    pending_deletion_user = User.create!(timezone: "UTC")
+    DeletionRequest.create_for_user!(pending_deletion_user)
+    create_coding_heartbeat(pending_deletion_user, cutoff + 4.hours, "pending-deletion", "Ruby")
+
     assert_difference -> { GoodJob::Job.where(job_class: "WeeklySummaryUserEmailJob").count }, 2 do
       WeeklySummaryEmailJob.perform_now(reference_time)
     end
@@ -56,6 +60,16 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
     user = User.create!(timezone: "UTC")
     user.email_addresses.create!(email: "unsubscribed-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
     user.unsubscribe("weekly_summary")
+
+    assert_no_difference -> { ActionMailer::Base.deliveries.count } do
+      WeeklySummaryUserEmailJob.perform_now(user.id, Time.utc(2026, 3, 1, 12, 0, 0).iso8601)
+    end
+  end
+
+  test "does not send user summary email when user has pending deletion request" do
+    user = User.create!(timezone: "UTC")
+    user.email_addresses.create!(email: "pending-deletion-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
+    DeletionRequest.create_for_user!(user)
 
     assert_no_difference -> { ActionMailer::Base.deliveries.count } do
       WeeklySummaryUserEmailJob.perform_now(user.id, Time.utc(2026, 3, 1, 12, 0, 0).iso8601)

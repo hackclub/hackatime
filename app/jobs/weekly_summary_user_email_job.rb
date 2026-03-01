@@ -5,6 +5,7 @@ class WeeklySummaryUserEmailJob < ApplicationJob
     user = User.find_by(id: user_id)
     return if user.nil?
     return unless user.subscribed?("weekly_summary")
+    return if user.pending_deletion?
 
     recipient_email = user.email_addresses.order(:id).pick(:email)
     return if recipient_email.blank?
