@@ -280,6 +280,7 @@ class Api::V1::StatsController < ApplicationController
 
       JSON.parse(response.body)["user"]["id"]
     rescue => e
+      Sentry.capture_exception(e)
       Rails.logger.error("Error finding user by email: #{e}")
       nil
     end
