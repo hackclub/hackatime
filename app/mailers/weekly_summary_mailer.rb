@@ -15,7 +15,6 @@ class WeeklySummaryMailer < ApplicationMailer
     @period_label = @subject_period_label
 
     coding_heartbeats = @user.heartbeats
-      .coding_only
       .where(time: @starts_at.to_f...@ends_at.to_f)
 
     @total_seconds = coding_heartbeats.duration_seconds
