@@ -115,6 +115,8 @@ Rails.application.routes.draw do
   get "/auth/close_window", to: "sessions#close_window", as: :close_window
   delete "signout", to: "sessions#destroy", as: "signout"
 
+  get "/leaderboard", to: redirect("/leaderboards", status: 301)
+
   resources :leaderboards, only: [ :index ] do
     get :entries, on: :collection
   end

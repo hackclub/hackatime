@@ -1,10 +1,10 @@
-Your heartbeat export is ready
+Hackatime — Your Export is Ready
+==================================
 
 Hi <%= h(@user.display_name) %>,
 
-Your Hackatime heartbeat export has been generated.
+Your heartbeat export (<%= @filename %>) is ready to download:
 
-Download file: <%= @download_url %>
-Filename: <%= @filename %>
+<%= @download_url %>
 
-This link will stop working after 7 days.
+This link will expire in 7 days.

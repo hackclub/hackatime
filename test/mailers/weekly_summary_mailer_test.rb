@@ -3,9 +3,9 @@ require "test_helper"
 class WeeklySummaryMailerTest < ActionMailer::TestCase
   setup do
     @user = User.create!(
-      timezone: "UTC",
-      weekly_summary_email_enabled: true
+      timezone: "UTC"
     )
+    @user.subscribe("weekly_summary")
     @recipient_email = "weekly-mailer-#{SecureRandom.hex(4)}@example.com"
     @user.email_addresses.create!(email: @recipient_email, source: :signing_in)
   end
@@ -30,7 +30,7 @@ class WeeklySummaryMailerTest < ActionMailer::TestCase
     assert_includes mail.html_part.body.decoded, "Your coding recap"
     assert_includes mail.html_part.body.decoded, "Top projects"
     assert_includes mail.text_part.body.decoded, "Feb 20 - Feb 27, 2026"
-    assert_includes mail.text_part.body.decoded, "Top languages:"
+    assert_includes mail.text_part.body.decoded, "TOP LANGUAGES"
     assert_includes mail.text_part.body.decoded, "hackatime-web"
     assert_not_includes mail.html_part.body.decoded.downcase, "gradient"
   end

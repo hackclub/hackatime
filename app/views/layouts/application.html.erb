@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>">
+<html lang="en" class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>">
   <head>
-    <title><%= @page_title || content_for(:title) || 'Hackatime' %></title>
+    <title><%= @page_title || content_for(:title) || 'Hackatime - Free & Open Source Coding Time Tracker' %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -158,6 +158,7 @@
     <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
 
     <%= favicon_link_tag asset_path('favicon.png'), type: 'image/png' %>
+    <link rel="apple-touch-icon" href="<%= asset_path('favicon.png') %>">
 
     <script defer data-domain="hackatime.hackclub.com" src="https://plausible.io/js/script.file-downloads.hash.js"></script>
 

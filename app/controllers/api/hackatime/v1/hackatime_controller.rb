@@ -254,6 +254,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       results << [ new_heartbeat.attributes, 201 ]
       should_enqueue_mirror_sync ||= source_type == :direct_entry
     rescue => e
+      Sentry.capture_exception(e)
       Rails.logger.error("Error creating heartbeat: #{e.class.name} #{e.message}")
       results << [ { error: e.message, type: e.class.name }, 422 ]
     end
@@ -270,6 +271,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     end
   rescue => e
     # never raise an error here because it will break the heartbeat flow
+    Sentry.capture_exception(e)
     Rails.logger.error("Error queuing project mapping: #{e.class.name} #{e.message}")
   end
 
@@ -278,6 +280,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
     MirrorFanoutEnqueueJob.perform_later(@user.id)
   rescue => e
+    Sentry.capture_exception(e)
     Rails.logger.error("Error enqueuing mirror sync fanout: #{e.class.name} #{e.message}")
   end
 

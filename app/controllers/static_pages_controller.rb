@@ -129,8 +129,8 @@ class StaticPagesController < InertiaController
   private
 
   def set_homepage_seo_content
-    @page_title = @og_title = @twitter_title = "Hackatime - See How Much You Code"
-    @meta_description = @og_description = @twitter_description = "Free and open source. Works with VS Code, JetBrains IDEs, vim, emacs, and 70+ other editors. Built and made free for teenagers by Hack Club."
+    @page_title = @og_title = @twitter_title = "Hackatime - Track How Much You Code | Free & Open Source"
+    @meta_description = @og_description = @twitter_description = "Free and open-source coding time tracker. Works with VS Code, JetBrains, vim, emacs, and 70+ editors. Built by Hack Club for teenage developers."
     @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
   end
 

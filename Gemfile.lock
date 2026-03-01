@@ -77,10 +77,29 @@ GEM
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
       uri (>= 0.13.1)
-    addressable (2.8.8)
+    addressable (2.8.9)
       public_suffix (>= 2.0.2, < 8.0)
     ast (2.4.3)
     autotuner (1.1.0)
+    aws-eventstream (1.4.0)
+    aws-partitions (1.1220.0)
+    aws-sdk-core (3.242.0)
+      aws-eventstream (~> 1, >= 1.3.0)
+      aws-partitions (~> 1, >= 1.992.0)
+      aws-sigv4 (~> 1.9)
+      base64
+      bigdecimal
+      jmespath (~> 1, >= 1.6.1)
+      logger
+    aws-sdk-kms (1.122.0)
+      aws-sdk-core (~> 3, >= 3.241.4)
+      aws-sigv4 (~> 1.5)
+    aws-sdk-s3 (1.213.0)
+      aws-sdk-core (~> 3, >= 3.241.4)
+      aws-sdk-kms (~> 1)
+      aws-sigv4 (~> 1.5)
+    aws-sigv4 (1.12.1)
+      aws-eventstream (~> 1, >= 1.0.2)
     base64 (0.3.0)
     bcrypt_pbkdf (1.1.2)
     better_html (2.2.0)
@@ -94,7 +113,7 @@ GEM
     bindex (0.8.1)
     bootsnap (1.23.0)
       msgpack (~> 1.2)
-    brakeman (8.0.2)
+    brakeman (8.0.4)
       racc
     builder (3.3.0)
     bullet (8.1.0)
@@ -125,6 +144,8 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
+    css_parser (2.0.0)
+      addressable
     csv (3.3.5)
     date (3.5.1)
     debug (1.11.1)
@@ -141,7 +162,7 @@ GEM
     drb (2.2.3)
     dry-cli (1.4.1)
     ed25519 (1.4.0)
-    erb (6.0.1)
+    erb (6.0.2)
     erb_lint (0.9.0)
       activesupport
       better_html (>= 2.0.1)
@@ -179,14 +200,14 @@ GEM
       ffi (>= 1.15.5)
       rake
     flamegraph (0.9.5)
-    flipper (1.3.6)
+    flipper (1.4.0)
       concurrent-ruby (< 2)
-    flipper-active_record (1.3.6)
+    flipper-active_record (1.4.0)
       activerecord (>= 4.2, < 9)
-      flipper (~> 1.3.6)
-    flipper-ui (1.3.6)
+      flipper (~> 1.4.0)
+    flipper-ui (1.4.0)
       erubi (>= 1.0.0, < 2.0.0)
-      flipper (~> 1.3.6)
+      flipper (~> 1.4.0)
       rack (>= 1.4, < 4)
       rack-protection (>= 1.5.3, < 5.0.0)
       rack-session (>= 1.0.2, < 3.0.0)
@@ -212,6 +233,7 @@ GEM
     hashie (5.1.0)
       logger
     htmlcompressor (0.4.0)
+    htmlentities (4.4.2)
     http (5.3.1)
       addressable (~> 2.8)
       http-cookie (~> 1.0)
@@ -240,6 +262,7 @@ GEM
     jbuilder (2.14.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
+    jmespath (1.6.2)
     json (2.18.1)
     json-schema (6.1.0)
       addressable (~> 2.8)
@@ -281,13 +304,18 @@ GEM
       net-imap
       net-pop
       net-smtp
+    mailkick (2.0.0)
+      activesupport (>= 7.1)
     marcel (1.1.0)
     matrix (0.4.3)
+    mcp (0.7.1)
+      json-schema (>= 4.1)
     memory_profiler (1.1.0)
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
-    minitest (6.0.1)
+    minitest (6.0.2)
+      drb (~> 2.0)
       prism (~> 1.5)
     msgpack (1.8.0)
     multipart-post (2.4.1)
@@ -329,6 +357,9 @@ GEM
       faraday (>= 1.0, < 3.0)
       faraday-net_http_persistent
       net-http-persistent
+    notable (0.6.1)
+      activesupport (>= 7.1)
+      safely_block (>= 0.4)
     oj (3.16.15)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
@@ -350,6 +381,14 @@ GEM
       concurrent-ruby (~> 1)
     pp (0.6.3)
       prettyprint
+    premailer (1.28.0)
+      addressable
+      css_parser (>= 1.19.0)
+      htmlentities (>= 4.0.0)
+    premailer-rails (1.12.0)
+      actionmailer (>= 3)
+      net-smtp
+      premailer (~> 1.7, >= 1.7.9)
     prettyprint (0.2.0)
     prism (1.9.0)
     propshaft (1.3.1)
@@ -406,8 +445,8 @@ GEM
       activesupport (>= 5.0.0)
       minitest
       nokogiri (>= 1.6)
-    rails-html-sanitizer (1.6.2)
-      loofah (~> 2.21)
+    rails-html-sanitizer (1.7.0)
+      loofah (~> 2.25)
       nokogiri (>= 1.15.7, != 1.16.7, != 1.16.6, != 1.16.5, != 1.16.4, != 1.16.3, != 1.16.2, != 1.16.1, != 1.16.0.rc1, != 1.16.0)
     railties (8.1.2)
       actionpack (= 8.1.2)
@@ -436,7 +475,7 @@ GEM
     rspec-expectations (3.13.5)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-mocks (3.13.7)
+    rspec-mocks (3.13.8)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
     rspec-rails (8.0.3)
@@ -459,10 +498,11 @@ GEM
     rswag-ui (2.17.0)
       actionpack (>= 5.2, < 8.2)
       railties (>= 5.2, < 8.2)
-    rubocop (1.84.2)
+    rubocop (1.85.0)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
+      mcp (~> 0.6)
       parallel (~> 1.10)
       parser (>= 3.3.0.2)
       rainbow (>= 2.2.2, < 4.0)
@@ -494,6 +534,7 @@ GEM
     ruby_identicon (0.0.6)
       chunky_png (~> 1.4.0)
     rubyzip (3.2.2)
+    safely_block (0.5.0)
     sanitize (7.0.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.16.8)
@@ -504,10 +545,10 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
-    sentry-rails (6.3.1)
+    sentry-rails (6.4.0)
       railties (>= 5.2.0)
-      sentry-ruby (~> 6.3.1)
-    sentry-ruby (6.3.1)
+      sentry-ruby (~> 6.4.0)
+    sentry-ruby (6.4.0)
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
       logger
@@ -530,13 +571,13 @@ GEM
       activejob (>= 7.2)
       activerecord (>= 7.2)
       railties (>= 7.2)
-    sqlite3 (2.9.0-aarch64-linux-gnu)
-    sqlite3 (2.9.0-aarch64-linux-musl)
-    sqlite3 (2.9.0-arm-linux-gnu)
-    sqlite3 (2.9.0-arm-linux-musl)
-    sqlite3 (2.9.0-arm64-darwin)
-    sqlite3 (2.9.0-x86_64-linux-gnu)
-    sqlite3 (2.9.0-x86_64-linux-musl)
+    sqlite3 (2.9.1-aarch64-linux-gnu)
+    sqlite3 (2.9.1-aarch64-linux-musl)
+    sqlite3 (2.9.1-arm-linux-gnu)
+    sqlite3 (2.9.1-arm-linux-musl)
+    sqlite3 (2.9.1-arm64-darwin)
+    sqlite3 (2.9.1-x86_64-linux-gnu)
+    sqlite3 (2.9.1-x86_64-linux-musl)
     sshkit (1.25.0)
       base64
       logger
@@ -579,17 +620,16 @@ GEM
     vite_rails (3.0.20)
       railties (>= 5.1, < 9)
       vite_ruby (~> 3.0, >= 3.2.2)
-    vite_ruby (3.9.2)
+    vite_ruby (3.9.3)
       dry-cli (>= 0.7, < 2)
       logger (~> 1.6)
       mutex_m
       rack-proxy (~> 0.6, >= 0.6.1)
       zeitwerk (~> 2.2)
-    web-console (4.2.1)
-      actionview (>= 6.0.0)
-      activemodel (>= 6.0.0)
+    web-console (4.3.0)
+      actionview (>= 8.0.0)
       bindex (>= 0.4.0)
-      railties (>= 6.0.0)
+      railties (>= 8.0.0)
     webmock (3.26.1)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
@@ -619,6 +659,7 @@ PLATFORMS
 DEPENDENCIES
   activerecord-import
   autotuner (~> 1.0)
+  aws-sdk-s3
   bootsnap
   brakeman
   bullet
@@ -645,12 +686,15 @@ DEPENDENCIES
   kamal
   letter_opener
   letter_opener_web (~> 3.0)
+  mailkick
   memory_profiler
   norairrecord (~> 0.5.1)
+  notable
   oj
   paper_trail
   pg
   posthog-ruby
+  premailer-rails
   propshaft
   puma (>= 5.0)
   query_count

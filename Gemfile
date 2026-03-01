@@ -152,6 +152,8 @@ group :production do
   gem "cloudflare-rails"
 end
 
+gem "premailer-rails"
+
 gem "htmlcompressor", "~> 0.4.0"
 
 gem "doorkeeper", "~> 5.8"
@@ -167,3 +169,9 @@ gem "inertia_rails", "~> 3.17"
 gem "vite_rails", "~> 3.0"
 
 gem "rubyzip", "~> 3.2"
+
+gem "aws-sdk-s3", require: false
+
+gem "notable"
+
+gem "mailkick"
