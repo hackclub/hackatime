@@ -201,6 +201,27 @@ class User < ApplicationRecord
     email.can_unlink? && can_delete_emails?
   end
 
+  # Backward-compatible shim for the removed users.weekly_summary_email_enabled column.
+  # Some call sites still read/write this method directly.
+  def weekly_summary_email_enabled
+    subscribed?("weekly_summary")
+  end
+
+  def weekly_summary_email_enabled?
+    weekly_summary_email_enabled
+  end
+
+  def weekly_summary_email_enabled=(value)
+    list = "weekly_summary"
+    enabled = ActiveModel::Type::Boolean.new.cast(value)
+
+    if enabled
+      subscribe(list) unless subscribed?(list)
+    else
+      unsubscribe(list) if subscribed?(list)
+    end
+  end
+
   if Rails.env.development?
     def self.slow_find_by_email(email)
       EmailAddress.find_by(email: email)&.user
