@@ -5,14 +5,11 @@ class User < ApplicationRecord
   include ::SlackIntegration
   include ::GithubIntegration
 
-  has_subscriptions
-
   USERNAME_MAX_LENGTH = 21 # going over 21 overflows the navbar
 
   has_paper_trail
 
   after_create :track_signup
-  after_create :subscribe_to_default_lists
   before_validation :normalize_username
   encrypts :slack_access_token, :github_access_token, :hca_access_token
 
@@ -29,6 +26,7 @@ class User < ApplicationRecord
 
   attribute :allow_public_stats_lookup, :boolean, default: true
   attribute :default_timezone_leaderboard, :boolean, default: true
+  attribute :weekly_summary_email_enabled, :boolean, default: true
 
   def country_name
     ISO3166::Country.new(country_code).common_name
@@ -326,10 +324,6 @@ class User < ApplicationRecord
   def track_signup
     PosthogService.identify(self)
     PosthogService.capture(self, "account_created", { source: "signup" })
-  end
-
-  def subscribe_to_default_lists
-    # no-op: weekly_summary_email_enabled defaults to false
   end
 
   def normalize_username

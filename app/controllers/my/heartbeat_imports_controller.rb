@@ -22,7 +22,6 @@ class My::HeartbeatImportsController < ApplicationController
       status: status
     }, status: :accepted
   rescue => e
-    Sentry.capture_exception(e)
     Rails.logger.error("Error starting heartbeat import for user #{current_user&.id}: #{e.message}")
     render json: { error: "error reading file: #{e.message}" }, status: :internal_server_error
   end
