@@ -23,6 +23,7 @@ class Settings::AccessController < Settings::BaseController
       render json: { token: new_api_key.token }, status: :ok
     end
   rescue => e
+    Sentry.capture_exception(e)
     Rails.logger.error("error rotate #{e.class.name} #{e.message}")
     render json: { error: "cant rotate" }, status: :unprocessable_entity
   end

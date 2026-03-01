@@ -6,3 +6,4 @@ package-lock.json
 tsconfig.json
 tsconfig.*.json
 db/migrate/
+config/languages.yml

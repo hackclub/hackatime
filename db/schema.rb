@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_23_212054) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_01_112933) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -410,6 +410,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_212054) do
     t.index ["start_date"], name: "index_leaderboards_on_start_date", where: "(deleted_at IS NULL)"
   end
 
+  create_table "mailkick_subscriptions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "list"
+    t.bigint "subscriber_id"
+    t.string "subscriber_type"
+    t.datetime "updated_at", null: false
+    t.index ["subscriber_type", "subscriber_id", "list"], name: "index_mailkick_subscriptions_on_subscriber_and_list", unique: true
+  end
+
+  create_table "notable_jobs", force: :cascade do |t|
+    t.datetime "created_at"
+    t.text "job"
+    t.string "job_id"
+    t.text "note"
+    t.string "note_type"
+    t.string "queue"
+    t.float "queued_time"
+    t.float "runtime"
+  end
+
+  create_table "notable_requests", force: :cascade do |t|
+    t.text "action"
+    t.datetime "created_at"
+    t.string "ip"
+    t.text "note"
+    t.string "note_type"
+    t.text "params"
+    t.text "referrer"
+    t.string "request_id"
+    t.float "request_time"
+    t.integer "status"
+    t.text "url"
+    t.text "user_agent"
+    t.bigint "user_id"
+    t.string "user_type"
+    t.index ["user_type", "user_id"], name: "index_notable_requests_on_user"
+  end
+
   create_table "oauth_access_grants", force: :cascade do |t|
     t.bigint "application_id", null: false
     t.datetime "created_at", null: false
@@ -647,7 +685,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_212054) do
     t.datetime "updated_at", null: false
     t.string "username"
     t.boolean "uses_slack_status", default: false, null: false
-    t.boolean "weekly_summary_email_enabled", default: true, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true

@@ -3,9 +3,9 @@ require "test_helper"
 class WeeklySummaryMailerTest < ActionMailer::TestCase
   setup do
     @user = User.create!(
-      timezone: "UTC",
-      weekly_summary_email_enabled: true
+      timezone: "UTC"
     )
+    @user.subscribe("weekly_summary")
     @recipient_email = "weekly-mailer-#{SecureRandom.hex(4)}@example.com"
     @user.email_addresses.create!(email: @recipient_email, source: :signing_in)
   end
