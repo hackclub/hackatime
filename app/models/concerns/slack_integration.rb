@@ -45,6 +45,7 @@ module SlackIntegration
 
   def update_slack_status
     return unless uses_slack_status?
+    return unless slack_access_token.present?
 
     current_status_response = HTTP.auth("Bearer #{slack_access_token}")
       .get("https://slack.com/api/users.profile.get")
