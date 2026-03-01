@@ -3,6 +3,7 @@ class WeeklySummaryMailer < ApplicationMailer
 
   def weekly_summary(user, recipient_email:, starts_at:, ends_at:)
     @user = user
+    @unsubscribe_url = mailkick_unsubscribe_url(@user, "weekly_summary")
     user_timezone = ActiveSupport::TimeZone[@user.timezone]
     @timezone = user_timezone || ActiveSupport::TimeZone["UTC"]
     @timezone_label = user_timezone ? @user.timezone : @timezone.tzinfo.identifier

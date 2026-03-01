@@ -30,6 +30,8 @@ class WeeklySummaryMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.decoded, "TOP LANGUAGES"
     assert_includes mail.text_part.body.decoded, "hackatime-web"
     assert_not_includes mail.html_part.body.decoded.downcase, "gradient"
+    assert_includes mail.html_part.body.decoded, "Unsubscribe"
+    assert_includes mail.header["List-Unsubscribe"].to_s, "/mailkick/subscriptions/"
   end
 
   private

@@ -52,6 +52,16 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
     end
   end
 
+  test "does not send user summary email when user is unsubscribed before perform" do
+    user = User.create!(timezone: "UTC")
+    user.email_addresses.create!(email: "unsubscribed-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
+    user.unsubscribe("weekly_summary")
+
+    assert_no_difference -> { ActionMailer::Base.deliveries.count } do
+      WeeklySummaryUserEmailJob.perform_now(user.id, Time.utc(2026, 3, 1, 12, 0, 0).iso8601)
+    end
+  end
+
   private
 
   def create_coding_heartbeat(user, time, project, language)

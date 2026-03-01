@@ -4,6 +4,7 @@ class WeeklySummaryUserEmailJob < ApplicationJob
   def perform(user_id, now_utc_iso8601)
     user = User.find_by(id: user_id)
     return if user.nil?
+    return unless user.subscribed?("weekly_summary")
 
     recipient_email = user.email_addresses.order(:id).pick(:email)
     return if recipient_email.blank?
