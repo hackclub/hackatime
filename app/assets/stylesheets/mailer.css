@@ -1,5 +1,12 @@
 /*
  * Tailwind-named utility classes with static values for email client compatibility.
+ *
+ * "Wait, this is stupid. Can I not just use Tailwind directly?" AHAHAHAHAHA no. Believe me I tried.
+ * (Well, technically you can, you just get super patchy support in email clients).
+ *
+ * The two big ones are:
+ * - Tailwind 4 requires `oklch`, not supported in most email clients: https://www.caniemail.com/features/css-modern-color/
+ * - Tailwind 4 requires CSS variables, which has less thatn 50% coverage: https://www.caniemail.com/features/css-variables/
  */
 
 .wrapper {
