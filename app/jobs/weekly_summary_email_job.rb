@@ -2,7 +2,10 @@ class WeeklySummaryEmailJob < ApplicationJob
   queue_as :literally_whenever
 
   def perform(reference_time = Time.current)
-    # See https://hackclub.slack.com/archives/D083UR1DR7V/p1772321709715969
+    # Weekly summary delivery is intentionally disabled for now.
+    # Context: https://hackclub.slack.com/archives/D083UR1DR7V/p1772321709715969
+    # Keep this no-op until we explicitly decide to turn the campaign back on.
+    reference_time
 
     # now_utc = reference_time.utc
     # return unless send_window?(now_utc)

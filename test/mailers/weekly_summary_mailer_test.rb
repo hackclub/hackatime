@@ -30,7 +30,7 @@ class WeeklySummaryMailerTest < ActionMailer::TestCase
     assert_includes mail.html_part.body.decoded, "Your coding recap"
     assert_includes mail.html_part.body.decoded, "Top projects"
     assert_includes mail.text_part.body.decoded, "Feb 20 - Feb 27, 2026"
-    assert_includes mail.text_part.body.decoded, "Top languages:"
+    assert_includes mail.text_part.body.decoded, "TOP LANGUAGES"
     assert_includes mail.text_part.body.decoded, "hackatime-web"
     assert_not_includes mail.html_part.body.decoded.downcase, "gradient"
   end

@@ -30,7 +30,7 @@ class HeartbeatExportMailerTest < ActionMailer::TestCase
     assert_equal 0, mail.attachments.size
 
     assert_includes mail.html_part.body.decoded, "Your heartbeat export is ready"
-    assert_includes mail.text_part.body.decoded, "Your Hackatime heartbeat export has been generated"
+    assert_includes mail.text_part.body.decoded, "Your heartbeat export (heartbeats_test.zip) is ready to download"
     assert_includes mail.text_part.body.decoded, @user.display_name
     assert_includes mail.text_part.body.decoded, "/rails/active_storage/"
     assert_includes mail.text_part.body.decoded, "heartbeats_test.zip"
