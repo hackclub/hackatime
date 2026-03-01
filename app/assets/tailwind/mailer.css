@@ -1,5 +1,0 @@
-@import "tailwindcss" source(none) theme(static);
-@source "../../views/layouts/mailer.html.erb";
-@source "../../views/layouts/mailer/**/*.erb";
-@source "../../views/*_mailer/**/*.erb";
-@source "../../views/shared/mailer/**/*.erb";
