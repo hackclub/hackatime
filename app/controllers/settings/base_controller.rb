@@ -103,7 +103,7 @@ class Settings::BaseController < InertiaController
         username: @user.username,
         theme: @user.theme,
         uses_slack_status: @user.uses_slack_status,
-        weekly_summary_email_enabled: @user.weekly_summary_email_enabled,
+        weekly_summary_email_enabled: @user.subscribed?("weekly_summary"),
         hackatime_extension_text_type: @user.hackatime_extension_text_type,
         allow_public_stats_lookup: @user.allow_public_stats_lookup,
         trust_level: @user.trust_level,
