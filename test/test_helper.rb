@@ -5,6 +5,8 @@ require "webmock/minitest"
 require "nokogiri"
 require "json"
 
+WebMock.disable_net_connect!(allow_localhost: true)
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
