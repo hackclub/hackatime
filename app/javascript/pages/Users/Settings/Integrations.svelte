@@ -143,7 +143,7 @@
         <div class="mt-3 flex flex-wrap gap-3">
           <a
             href={paths.github_auth_path}
-            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90"
           >
             Reconnect GitHub
           </a>
