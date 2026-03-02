@@ -193,18 +193,11 @@ module ApplicationHelper
   end
 
   def display_language_name(language)
-    return "Unknown" if language.blank?
+    LanguageUtils.display_name(language)
+  end
 
-    case language.downcase
-    when "typescript" then "TypeScript"
-    when "javascript" then "JavaScript"
-    when "html" then "HTML"
-    when "css" then "CSS"
-    when "json" then "JSON"
-    when "sql" then "SQL"
-    when "yaml" then "YAML"
-    else language.capitalize
-    end
+  def language_color(language)
+    LanguageUtils.color(language)
   end
 
   def modal_open_button(modal_id, text, **options)

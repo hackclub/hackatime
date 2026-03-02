@@ -42,7 +42,7 @@ FROM base AS build
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs npm && \
+    apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install npm dependencies for Vite
@@ -68,6 +68,9 @@ RUN bundle exec bootsnap precompile app/ lib/
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails tailwindcss:build
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+
+# Generate static llms.txt files for LLM consumption
+RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails docs:generate_llms
 
 # Final stage for app image
 FROM base

@@ -8,7 +8,7 @@
           <div class="flex items-center gap-3">
             <div class="w-24 text-sm text-muted truncate"><%= ApplicationController.helpers.display_language_name(language) || 'Unknown' %></div>
             <div class="flex-1 h-6 bg-darkless rounded-full overflow-hidden relative">
-              <div class="h-full bg-primary rounded-full flex items-center justify-end pr-2" style="width: <%= [(duration.to_f.finite? ? duration.to_f : 0) / max_duration * 100, 100].min.round %>%">
+              <div class="h-full rounded-full flex items-center justify-end pr-2" style="background-color: <%= ApplicationController.helpers.language_color(language) %>; width: <%= [(duration.to_f.finite? ? duration.to_f : 0) / max_duration * 100, 100].min.round %>%">
                 <span class="text-xs font-medium text-on-primary"><%= ApplicationController.helpers.short_time_simple(duration) %></span>
               </div>
             </div>

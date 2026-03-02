@@ -1,13 +1,41 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <style>
-      /* Email styles need to be inline */
-    </style>
-  </head>
-
-  <body>
-    <%= yield %>
-  </body>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" data-premailer="ignore">
+  <%= stylesheet_link_tag "mailer" %>
+</head>
+<body class="m-0 p-0 bg-gray-50 text-gray-900 text-base leading-relaxed" style="font-family: 'Spline Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div class="w-full py-5 px-5 mx-auto max-w-[600px]">
+    <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th class="text-left font-normal">
+            <%= render "layouts/mailer/header" %>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="px-4 pt-2 pb-6">
+              <%= yield %>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="px-4 py-5 text-center text-xs text-gray-400">
+              <% if @unsubscribe_url.present? %>
+                <p class="my-1">Don't want to get these anymore? <%= link_to "Unsubscribe", @unsubscribe_url, style: "color: #9ca3af; text-decoration: underline;" %></p>
+              <% end %>
+              <p class="my-1">15 Falls Road, Shelburne, VT 05482, United States</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
 </html>

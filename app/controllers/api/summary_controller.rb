@@ -60,13 +60,11 @@ module Api
         now = Time.current
 
         if from_date.present? && to_date.present?
-          begin
-            from = Time.zone.parse(from_date).beginning_of_day
-            to = Time.zone.parse(to_date).end_of_day
-            return from..to
-          rescue
-            return nil
-          end
+          from = parse_explicit_date(from_date, boundary: :start)
+          to = parse_explicit_date(to_date, boundary: :end)
+          return nil if from.nil? || to.nil?
+
+          return from..to
         end
 
         interval ||= range # Allow range parameter as an alias for interval
@@ -155,6 +153,15 @@ module Api
           digital: ApplicationController.helpers.digital_time(total_seconds)
         }
       end.compact
+    end
+
+    def parse_explicit_date(raw_value, boundary:)
+      parsed = Time.zone.parse(raw_value.to_s)
+      return nil if parsed.nil?
+
+      boundary == :start ? parsed.beginning_of_day : parsed.end_of_day
+    rescue ArgumentError, TypeError
+      nil
     end
   end
 end

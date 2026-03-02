@@ -1,0 +1,2 @@
+# Keep this fixture file present so Rails truncates admin_api_keys
+# during fixture setup. System and integration tests may replace users fixtures.

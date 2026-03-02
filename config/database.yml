@@ -25,11 +25,6 @@ development:
     encoding: unicode
     url: <%= ENV['SAILORS_LOG_DATABASE_URL'] %>
     replica: true
-  warehouse:
-    adapter: postgresql
-    encoding: unicode
-    url: <%= ENV['WAREHOUSE_DATABASE_URL'] %>
-    replica: true
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -38,27 +33,17 @@ test:
   primary:
     <<: *default
     adapter: postgresql
-    database: test_db
-    username: postgres
-    password: postgres
-    # url: <%= ENV['TEST_DATABASE_URL'] %>
+    database: app_test
+    url: <%= ENV['TEST_DATABASE_URL'] %>
   wakatime:
     adapter: postgresql
-    database: test_wakatime
-    username: postgres
-    password: postgres
+    database: app_test
+    url: <%= ENV['TEST_DATABASE_URL'] %>
     replica: true
   sailors_log:
     adapter: postgresql
-    database: test_sailors_log
-    username: postgres
-    password: postgres
-    replica: true
-  warehouse:
-    adapter: postgresql
-    database: test_warehouse
-    username: postgres
-    password: postgres
+    database: app_test
+    url: <%= ENV['TEST_DATABASE_URL'] %>
     replica: true
 
 # Store production database in the storage/ directory, which by default
@@ -79,11 +64,6 @@ production:
     adapter: postgresql
     encoding: unicode
     url: <%= ENV['SAILORS_LOG_DATABASE_URL'] %>
-    replica: true
-  warehouse:
-    adapter: postgresql
-    encoding: unicode
-    url: <%= ENV['WAREHOUSE_DATABASE_URL'] %>
     replica: true
   cache:
     <<: *default

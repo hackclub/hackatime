@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Link, usePoll } from "@inertiajs/svelte";
   import Button from "../components/Button.svelte";
+  import CountryFlag from "../components/CountryFlag.svelte";
   import Modal from "../components/Modal.svelte";
   import type { Snippet } from "svelte";
   import { onMount, onDestroy } from "svelte";
@@ -89,17 +90,19 @@
   let navOpen = $state(false);
   let logoutOpen = $state(false);
   let currentlyExpanded = $state(false);
-  let flashVisible = $state(layout.nav.flash.length > 0);
+  let flashVisible = $state(false);
   let flashHiding = $state(false);
   const flashHideDelay = 6000;
   const flashExitDuration = 250;
+  const currentlyHackingPollInterval = () =>
+    layout.currently_hacking?.interval || 30000;
 
   const toggleNav = () => (navOpen = !navOpen);
   const closeNav = () => (navOpen = false);
   const openLogout = () => (logoutOpen = true);
   const closeLogout = () => (logoutOpen = false);
 
-  usePoll(layout.currently_hacking?.interval || 30000, {
+  usePoll(currentlyHackingPollInterval(), {
     only: ["currently_hacking"],
   });
 
@@ -148,14 +151,8 @@
     return `${hoursAgo} ${plur("hour", hoursAgo)} ago, ${users} ${plur("person", users)} logged time. '${phrase}.'`;
   };
 
-  const countryFlagEmoji = (countryCode?: string | null) => {
-    if (!countryCode) return "";
-    return countryCode
-      .toUpperCase()
-      .replace(/./g, (char) =>
-        String.fromCodePoint(127397 + char.charCodeAt(0)),
-      );
-  };
+  const footerStatsText = () =>
+    `${layout.footer.heartbeat_recent_count} ${plur("heartbeat", layout.footer.heartbeat_recent_count)} (${layout.footer.heartbeat_recent_imported_count} imported) in the past 24 hours. (DB: ${layout.footer.query_count} ${plur("query", layout.footer.query_count)}, ${layout.footer.query_cache_count} cached) (CACHE: ${layout.footer.cache_hits} hits, ${layout.footer.cache_misses} misses) (${layout.footer.requests_per_second})`;
 
   const streakThemeClasses = (streakDays: number) => {
     if (streakDays >= 30) {
@@ -312,7 +309,13 @@
       />
     </svg>
   </Button>
-  <div class="nav-overlay" class:open={navOpen} onclick={closeNav}></div>
+  <button
+    type="button"
+    class="nav-overlay"
+    class:open={navOpen}
+    onclick={closeNav}
+    aria-label="Close navigation menu"
+  ></button>
 
   <aside
     class="flex flex-col min-h-screen w-52 bg-dark text-surface-content px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
@@ -349,7 +352,10 @@
                   title={layout.nav.current_user.country_name ||
                     layout.nav.current_user.country_code}
                 >
-                  {countryFlagEmoji(layout.nav.current_user.country_code)}
+                  <CountryFlag
+                    countryCode={layout.nav.current_user.country_code}
+                    countryName={layout.nav.current_user.country_name}
+                  />
                 </span>
               {/if}
             </div>
@@ -593,14 +599,7 @@
             class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
             >{layout.footer.git_version}</a
           >
-          from {layout.footer.server_start_time_ago} ago.
-          {plur("heartbeat", layout.footer.heartbeat_recent_count)}
-          ({layout.footer.heartbeat_recent_imported_count} imported) in the past 24
-          hours. (DB: {layout.footer.query_count}
-          {plur("query", layout.footer.query_count)}, {layout.footer
-            .query_cache_count} cached) (CACHE: {layout.footer.cache_hits} hits,
-          {layout.footer.cache_misses} misses) ({layout.footer
-            .requests_per_second})
+          from {layout.footer.server_start_time_ago} ago. {footerStatsText()}
         </p>
         {#if layout.show_stop_impersonating}
           <a
@@ -628,9 +627,12 @@
   <div
     class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
   >
-    <div
+    <button
+      type="button"
       class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between"
       onclick={toggleCurrentlyHacking}
+      aria-expanded={currentlyExpanded}
+      aria-label="Toggle currently hacking list"
     >
       <div class="text-surface-content text-sm font-medium">
         <div class="flex items-center">
@@ -638,7 +640,7 @@
           <span class="text-base">{countLabel()}</span>
         </div>
       </div>
-    </div>
+    </button>
 
     {#if currentlyExpanded}
       {#if layout.currently_hacking.users.length === 0}

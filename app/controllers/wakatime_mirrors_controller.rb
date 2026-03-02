@@ -1,20 +1,22 @@
 class WakatimeMirrorsController < ApplicationController
   before_action :set_user
   before_action :require_current_user
+  before_action :ensure_imports_and_mirrors_enabled
   before_action :set_mirror, only: [ :destroy ]
 
   def create
     @mirror = @user.wakatime_mirrors.build(mirror_params)
+    @mirror.request_host = request.host
     if @mirror.save
-      redirect_to my_settings_path, notice: "WakaTime mirror added successfully"
+      redirect_to my_settings_data_path, notice: "WakaTime mirror added successfully"
     else
-      redirect_to my_settings_path, alert: "Failed to add WakaTime mirror: #{@mirror.errors.full_messages.join(', ')}"
+      redirect_to my_settings_data_path, alert: "Failed to add WakaTime mirror: #{@mirror.errors.full_messages.join(', ')}"
     end
   end
 
   def destroy
     @mirror.destroy
-    redirect_to my_settings_path, notice: "WakaTime mirror removed successfully"
+    redirect_to my_settings_data_path, notice: "WakaTime mirror removed successfully"
   end
 
   private
@@ -35,5 +37,11 @@ class WakatimeMirrorsController < ApplicationController
     unless @user == current_user
       redirect_to root_path, alert: "You are not authorized to access this page"
     end
+  end
+
+  def ensure_imports_and_mirrors_enabled
+    return if Flipper.enabled?(:wakatime_imports_mirrors)
+
+    redirect_to my_settings_data_path, alert: "Imports and mirrors are currently disabled."
   end
 end

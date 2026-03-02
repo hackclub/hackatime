@@ -59,7 +59,7 @@ gem "query_count"
 gem "rack-attack"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-# gem "image_processing", "~> 1.2"
+gem "image_processing", "~> 1.2"
 
 # Use dotenv for environment variables
 gem "dotenv-rails"
@@ -144,12 +144,15 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  gem "webmock"
 end
 
 group :production do
   # fix request.remote_ip in prod [https://github.com/modosc/cloudflare-rails?tab=readme-ov-file]
   gem "cloudflare-rails"
 end
+
+gem "premailer-rails"
 
 gem "htmlcompressor", "~> 0.4.0"
 
@@ -164,3 +167,9 @@ gem "tailwindcss-rails", "~> 4.2"
 gem "inertia_rails", "~> 3.17"
 
 gem "vite_rails", "~> 3.0"
+
+gem "rubyzip", "~> 3.2"
+
+gem "aws-sdk-s3", require: false
+
+gem "mailkick"

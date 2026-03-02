@@ -12,7 +12,8 @@ RSpec.describe 'Api::V1::My', type: :request do
 
   def login_browser_user
     allow_any_instance_of(ActionController::Base).to receive(:protect_against_forgery?).and_return(false)
-    allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(user)
+    sign_in_token = user.sign_in_tokens.create!(auth_type: :email)
+    get "/auth/token/#{sign_in_token.token}"
   end
 
   path '/api/v1/my/heartbeats/most_recent' do
@@ -74,7 +75,7 @@ RSpec.describe 'Api::V1::My', type: :request do
   end
 
   path '/my/heartbeats/export' do
-    get('Export Heartbeats') do
+    post('Export Heartbeats') do
       tags 'My Data'
       description 'Export your heartbeats as a JSON file.'
       security [ Bearer: [], ApiKeyAuth: [] ]
@@ -84,7 +85,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
       parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
 
-      response(200, 'successful') do
+      response(302, 'redirect') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:all_data) { true }
@@ -113,11 +114,15 @@ RSpec.describe 'Api::V1::My', type: :request do
       response(302, 'redirect') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
-        let(:heartbeat_file) { Rack::Test::UploadedFile.new(Rails.root.join('spec/fixtures/heartbeats.json'), 'application/json') }
+        let(:heartbeat_file) do
+          Rack::Test::UploadedFile.new(
+            StringIO.new("[]"),
+            "application/json",
+            original_filename: "heartbeats.json"
+          )
+        end
 
         before do
-           FileUtils.mkdir_p(Rails.root.join('spec/fixtures'))
-           File.write(Rails.root.join('spec/fixtures/heartbeats.json'), '[]') unless File.exist?(Rails.root.join('spec/fixtures/heartbeats.json'))
            login_browser_user
         end
         run_test!
@@ -130,7 +135,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       tags 'My Projects'
       description 'List mappings between local project names and Git repositories.'
       security [ Bearer: [], ApiKeyAuth: [] ]
-      produces 'application/json', 'text/html'
+      produces 'text/html'
 
       parameter name: :interval, in: :query, type: :string, description: 'Time interval (e.g., daily, weekly). Default: daily'
       parameter name: :from, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
@@ -259,7 +264,15 @@ RSpec.describe 'Api::V1::My', type: :request do
 
         before do
           login_browser_user
-          allow(MigrateUserFromHackatimeJob).to receive(:perform_later)
+          @hackatime_v1_import_was_enabled = Flipper.enabled?(:hackatime_v1_import)
+          Flipper.enable(:hackatime_v1_import)
+        end
+        after do
+          if @hackatime_v1_import_was_enabled
+            Flipper.enable(:hackatime_v1_import)
+          else
+            Flipper.disable(:hackatime_v1_import)
+          end
         end
         run_test!
       end

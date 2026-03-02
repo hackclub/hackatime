@@ -13,8 +13,8 @@ module OauthAuthentication
       URI.parse("#{HCAService.host}/oauth/authorize?#{params.to_query}")
     end
 
-    def slack_authorize_url(redirect_uri, close_window: false, continue_param: nil)
-      state = {
+    def slack_authorize_url(redirect_uri, state: nil, close_window: false, continue_param: nil)
+      state ||= {
         token: SecureRandom.hex(24),
         close_window: close_window,
         continue: continue_param
@@ -30,11 +30,11 @@ module OauthAuthentication
       URI.parse("https://slack.com/oauth/v2/authorize?#{params.to_query}")
     end
 
-    def github_authorize_url(redirect_uri)
+    def github_authorize_url(redirect_uri, state: nil)
       params = {
         client_id: ENV["GITHUB_CLIENT_ID"],
         redirect_uri: redirect_uri,
-        state: SecureRandom.hex(24),
+        state: state || SecureRandom.hex(24),
         scope: "user:email"
       }
 
@@ -149,15 +149,12 @@ module OauthAuthentication
         })
 
       data = JSON.parse(response.body.to_s)
-      Rails.logger.info "GitHub OAuth response: #{data.inspect}"
       return nil unless data["access_token"]
 
       user_response = HTTP.auth("Bearer #{data['access_token']}")
         .get("https://api.github.com/user")
 
       user_data = JSON.parse(user_response.body.to_s)
-      Rails.logger.info "GitHub user data: #{user_data.inspect}"
-      Rails.logger.info "GitHub user ID type: #{user_data['id'].class}"
 
       github_uid = user_data["id"]
       other_users = User.where(github_uid: github_uid).where.not(id: current_user.id).where.not(github_access_token: nil)

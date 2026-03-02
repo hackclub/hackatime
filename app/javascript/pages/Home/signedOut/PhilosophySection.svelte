@@ -25,7 +25,8 @@
           </h3>
           <p class="text-secondary text-base leading-relaxed">
             Other trackers delete your history after two weeks unless you pay.
-            Hackatime stores it indefinitely.
+            Hackatime stores it indefinitely, making it a perfect alternative to
+            WakaTime.
           </p>
         </div>
         <div class="p-8 bg-darker border border-surface-200 rounded-lg">

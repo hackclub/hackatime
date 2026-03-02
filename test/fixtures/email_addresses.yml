@@ -1,0 +1,9 @@
+one:
+  user_id: 1
+  email: "user-one@example.com"
+  source: 0
+
+two:
+  user_id: 2
+  email: "user-two@example.com"
+  source: 0

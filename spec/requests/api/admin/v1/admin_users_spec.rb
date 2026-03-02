@@ -82,7 +82,7 @@ RSpec.describe 'Api::Admin::V1::AdminUsers', type: :request do
         run_test!
       end
 
-      response(403, 'forbidden') do
+      response(401, 'unauthorized') do
         let(:Authorization) { "Bearer viewer-api-key" }
         run_test!
       end

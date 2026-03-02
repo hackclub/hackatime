@@ -1,0 +1,6 @@
+<div class="px-4 text-left">
+  <a href="<%= root_url %>" target="_blank">
+    <% logo_url = "#{root_url.chomp('/')}#{image_path('favicon.png')}" %>
+    <%= image_tag(logo_url, alt: "Hackatime", style: "height: 2rem", height: "32") %>
+  </a>
+</div>

@@ -56,7 +56,7 @@ en:
         secret_hashed: "Secret hashed"
         scopes: "Scopes"
         confidential: "Confidential"
-        callback_urls: "Callback urls"
+        callback_urls: "Callback URLs"
         actions: "Actions"
         not_defined: "Not defined"
 

@@ -1,0 +1,14 @@
+one:
+  id: 1
+  timezone: "UTC"
+  slack_uid: "U0001"
+
+two:
+  id: 2
+  timezone: "UTC"
+  slack_uid: "U0002"
+
+three:
+  id: 3
+  timezone: "UTC"
+  slack_uid: "U0003"

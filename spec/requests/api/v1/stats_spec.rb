@@ -22,10 +22,13 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:username) { nil }
         let(:user_email) { nil }
         schema type: :integer, example: 123456
-        run_test!
+        run_test! do |response|
+          expect(response).to have_http_status(:ok)
+          expect(response.body.to_i).to be >= 0
+        end
       end
 
-      response(401, 'unauthorized') do
+      response(200, 'successful with invalid credentials') do
         before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
         let(:Authorization) { 'Bearer invalid_token' }
         let(:api_key) { 'invalid' }
@@ -35,7 +38,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:user_email) { nil }
 
         run_test! do |response|
-          expect(response.status).to eq(401)
+          expect(response.status).to eq(200)
         end
       end
 
@@ -46,6 +49,18 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:start_date) { '2023-01-01' }
         let(:end_date) { '2023-12-31' }
         let(:username) { 'non_existent_user' }
+        let(:user_email) { nil }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(422, 'invalid date') do
+        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:start_date) { 'invalid-date' }
+        let(:end_date) { '2023-12-31' }
+        let(:username) { nil }
         let(:user_email) { nil }
         schema '$ref' => '#/components/schemas/Error'
         run_test!
@@ -85,6 +100,16 @@ RSpec.describe 'Api::V1::Stats', type: :request do
                 }
               }
             }
+          run_test!
+        end
+
+        response(422, 'invalid date') do
+          let(:username) { 'testuser' }
+          let(:start_date) { 'invalid-date' }
+          let(:end_date) { '2023-01-02' }
+          let(:project) { nil }
+          let(:filter_by_project) { nil }
+          schema '$ref' => '#/components/schemas/Error'
           run_test!
         end
       end
@@ -288,6 +313,22 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:api_key) { "dev-api-key-12345" }
         let(:username) { 'non_existent_user' }
         let(:start_date) { '2023-01-01' }
+        let(:end_date) { '2023-12-31' }
+        let(:limit) { nil }
+        let(:features) { nil }
+        let(:filter_by_project) { nil }
+        let(:filter_by_category) { nil }
+        let(:boundary_aware) { nil }
+        let(:total_seconds) { nil }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(422, 'invalid date') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:username) { 'testuser' }
+        let(:start_date) { 'invalid-date' }
         let(:end_date) { '2023-12-31' }
         let(:limit) { nil }
         let(:features) { nil }

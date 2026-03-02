@@ -73,6 +73,8 @@ class LeaderboardsController < ApplicationController
   end
 
   def calculate_untracked_entries(ids)
+    return 0 unless Flipper.enabled?(:hackatime_v1_import)
+
     range = @period_type == :last_7_days ? ((Date.current - 6.days).beginning_of_day...Date.current.end_of_day) : Date.current.all_day
     ids_set = ids.to_set
 

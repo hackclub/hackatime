@@ -7,7 +7,7 @@ require "json"
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
-    parallelize(workers: :number_of_processors)
+    parallelize(workers: ENV.fetch("PARALLEL_WORKERS", 2).to_i)
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
@@ -17,6 +17,8 @@ module ActiveSupport
       "physical_mails",
       "api_keys",
       "heartbeats",
+      "users",
+      "email_addresses",
       "project_repo_mappings",
       "repositories",
       "sailors_log_leaderboards",
@@ -26,6 +28,21 @@ module ActiveSupport
     ]
 
     # Add more helper methods to be used by all tests here...
+  end
+end
+
+module SystemTestAuthHelper
+  def sign_in_as(user)
+    token = user.sign_in_tokens.create!(auth_type: :email)
+    visit auth_token_path(token: token.token)
+  end
+end
+
+module IntegrationTestAuthHelper
+  def sign_in_as(user)
+    token = user.sign_in_tokens.create!(auth_type: :email)
+    get auth_token_path(token: token.token)
+    assert_equal user.id, session[:user_id]
   end
 end
 
@@ -56,5 +73,6 @@ module InertiaTestHelper
 end
 
 class ActionDispatch::IntegrationTest
+  include IntegrationTestAuthHelper
   include InertiaTestHelper
 end

@@ -46,7 +46,13 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
               }
             }
           }
-        run_test!
+        run_test! do |response|
+          expect(response).to have_http_status(:ok)
+          body = JSON.parse(response.body)
+          expect(body["users"]).to be_an(Array)
+          returned_ids = body["users"].map { |entry| entry["id"] }
+          expect(returned_ids & [ u1.id, u2.id ]).not_to be_empty
+        end
       end
     end
   end
@@ -191,6 +197,27 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
         let(:offset) { 0 }
         run_test!
       end
+
+      response(422, 'invalid date filter') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user) do
+          u = User.create!(username: 'hb_user_invalid_date')
+          EmailAddress.create!(user: u, email: 'hb-invalid@example.com')
+          u
+        end
+        let(:user_id) { user.id }
+        let(:start_date) { 'not-a-date' }
+        let(:end_date) { nil }
+        let(:project) { nil }
+        let(:language) { nil }
+        let(:entity) { nil }
+        let(:editor) { nil }
+        let(:machine) { nil }
+        let(:limit) { 10 }
+        let(:offset) { 0 }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
     end
   end
 
@@ -237,6 +264,22 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
         let(:start_date) { nil }
         let(:end_date) { nil }
         let(:limit) { 5000 }
+        run_test!
+      end
+
+      response(422, 'invalid date filter') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user) do
+          u = User.create!(username: 'projects_invalid')
+          EmailAddress.create!(user: u, email: 'projects-invalid@example.com')
+          u
+        end
+        let(:user_id) { user.id }
+        let(:field) { 'projects' }
+        let(:start_date) { 'not-a-date' }
+        let(:end_date) { nil }
+        let(:limit) { 5000 }
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
     end

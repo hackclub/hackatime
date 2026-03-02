@@ -45,8 +45,6 @@ class AttemptProjectRepoMappingJob < ApplicationJob
     response = HTTP.auth("Bearer #{@user.github_access_token}")
       .get("https://api.github.com/repos/#{org_name}/#{project_name}")
 
-    Rails.logger.info "GitHub org repos response: #{response.body}"
-
     while response.status.moved_permanently?
       # when the repo is transferred/renamed, we get a redirect to follow
       sleep 1
@@ -56,9 +54,16 @@ class AttemptProjectRepoMappingJob < ApplicationJob
 
     return nil unless response.status.success?
 
-    repo = JSON.parse(response.body)
+    body = response.body.to_s
+    Rails.logger.info "GitHub repo response for #{org_name}/#{project_name}: #{body.truncate(500)}"
+    return nil if body.blank?
+
+    repo = JSON.parse(body)
     puts "repo: #{repo}"
     repo["html_url"]
+  rescue JSON::ParserError => e
+    Rails.logger.error "Failed to parse GitHub repo response: #{e.message}"
+    nil
   end
 
   def list_orgs

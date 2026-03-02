@@ -24,12 +24,15 @@ class Settings::ProfileController < Settings::BaseController
   end
 
   def profile_params
-    params.require(:user).permit(
+    permitted = params.require(:user).permit(
       :timezone,
       :country_code,
       :allow_public_stats_lookup,
       :username,
       :theme,
     )
+
+    permitted[:country_code] = nil if permitted[:country_code].blank?
+    permitted
   end
 end

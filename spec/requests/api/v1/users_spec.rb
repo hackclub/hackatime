@@ -20,7 +20,12 @@ RSpec.describe 'Api::V1::Users', type: :request do
             user_id: { type: :integer, example: 42 },
             email: { type: :string, example: 'test@example.com' }
           }
-        run_test!
+        run_test! do |response|
+          expect(response).to have_http_status(:ok)
+          body = JSON.parse(response.body)
+          expect(body["email"]).to eq(email)
+          expect(body["user_id"]).to be_present
+        end
       end
 
       response(404, 'not found') do

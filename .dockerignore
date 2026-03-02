@@ -45,6 +45,10 @@
 
 # Ignore development files
 /.devcontainer
+pg-dump-all-*
+*.dump
+*.sql
+*.sql.gz
 
 # Ignore Docker-related files
 /.dockerignore

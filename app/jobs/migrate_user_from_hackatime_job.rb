@@ -10,6 +10,8 @@ class MigrateUserFromHackatimeJob < ApplicationJob
   )
 
   def perform(user_id)
+    return unless Flipper.enabled?(:hackatime_v1_import)
+
     @user = User.find(user_id)
     # Import from Hackatime
     return unless @user.slack_uid.present?

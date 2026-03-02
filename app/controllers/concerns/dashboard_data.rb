@@ -72,6 +72,10 @@ module DashboardData
           }.to_h
         end
 
+        if result["language_stats"].present?
+          result[:language_colors] = LanguageUtils.colors_for(result["language_stats"].keys)
+        end
+
         result[:weekly_project_stats] = (0..11).to_h do |w|
           ws = w.weeks.ago.beginning_of_week
           [ ws.to_date.iso8601, hb.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
