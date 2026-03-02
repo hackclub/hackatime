@@ -141,12 +141,9 @@
           </a>
         </div>
         <div class="mt-3 flex flex-wrap gap-3">
-          <a
-            href={paths.github_auth_path}
-            class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-opacity hover:opacity-90"
-          >
+          <Button href={paths.github_auth_path} native class="rounded-md">
             Reconnect GitHub
-          </a>
+          </Button>
           <Button
             type="button"
             variant="surface"
