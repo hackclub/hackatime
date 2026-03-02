@@ -29,7 +29,17 @@ ENCRYPTION_DETERMINISTIC_KEY=32characterrandomstring12345678902
 ENCRYPTION_KEY_DERIVATION_SALT=16charssalt1234
 ```
 
-Comment out the `LOOPS_API_KEY` for the local letter opener, otherwise the app will try to send out a email and fail.
+Then, visit <https://hca.dinosaurbbq.org>, log-in, and navigate to the "Developers' Corner" and "app yourself up", specifying a callback url of `http://localhost:3000/auth/hca/callback` and minimum scopes of `email`, `slack_id`, and `verification_status`. Then, fill out the following fields in your `.env` file:
+
+```env
+# Hack Club Account
+HCA_CLIENT_ID=<hca_client_id>
+HCA_CLIENT_SECRET=<hca_client_secret>
+```
+
+Comment out the `LOOPS_API_KEY` for the local letter opener, otherwise the app will try to send out a email and fail. 
+
+Great! Now you're ready to run Hackatime locally!
 
 ## Build & Run the project
 
