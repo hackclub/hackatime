@@ -310,6 +310,7 @@ Rails.application.routes.draw do
 
     namespace :internal do
       post "revoke", to: "revocations#create"
+      post "revoke_normal", to: "revocations_normal#create"
     end
   end
 
