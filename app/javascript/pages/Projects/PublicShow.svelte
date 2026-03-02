@@ -1,0 +1,79 @@
+<script lang="ts">
+  import { Link } from "@inertiajs/svelte";
+  import Button from "../../components/Button.svelte";
+  import ProjectStatsContent from "./ProjectStatsContent.svelte";
+
+  let {
+    page_title,
+    project_name,
+    username,
+    profile_path,
+    since_date,
+    repo_url,
+    total_time_label,
+    language_count,
+    branch_count,
+    file_count,
+    language_stats,
+    language_colors,
+    file_stats,
+    branch_stats,
+  }: {
+    page_title: string;
+    project_name: string;
+    username: string;
+    profile_path: string;
+    since_date?: string | null;
+    repo_url?: string | null;
+    total_time_label: string;
+    language_count: number;
+    branch_count: number;
+    file_count: number;
+    language_stats: Record<string, number>;
+    language_colors: Record<string, string>;
+    file_stats: [string, number][];
+    branch_stats: [string, number][];
+  } = $props();
+</script>
+
+<svelte:head>
+  <title>{page_title}</title>
+</svelte:head>
+
+<div class="mx-auto max-w-7xl">
+  <div class="mb-6">
+    <Link
+      href={profile_path}
+      class="text-sm text-muted transition-colors hover:text-primary"
+    >
+      ← @{username}'s profile
+    </Link>
+    <h1 class="mt-1 text-3xl font-bold text-surface-content">
+      {project_name}
+    </h1>
+    {#if since_date}
+      <p class="mt-1 text-sm text-muted">
+        {total_time_label} · Since {since_date}
+      </p>
+    {/if}
+  </div>
+
+  <ProjectStatsContent
+    {total_time_label}
+    {language_count}
+    {branch_count}
+    {file_count}
+    {language_stats}
+    {language_colors}
+    {file_stats}
+    {branch_stats}
+  />
+
+  {#if repo_url}
+    <div class="mt-6 text-center">
+      <Button href={repo_url} native variant="surface" size="sm">
+        View Repository
+      </Button>
+    </div>
+  {/if}
+</div>
