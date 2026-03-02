@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maintenance | Hackatime</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #121212;
+        --text-main: #ffffff;
+        --text-muted: #a1a1aa;
+        --accent: #e4e4e7;
+        --nav-link: #d4d4d8;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg);
+        color: var(--text-main);
+        font-family: "Spline Sans", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Top Banner */
+      .top-bar {
+        background-color: #1a1a1a;
+        font-size: 12px;
+        padding: 8px 0;
+        text-align: center;
+        color: var(--text-muted);
+        border-bottom: 1px solid #27272a;
+      }
+
+      /* Navigation */
+      nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 2rem 5%;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .logo {
+        font-weight: 700;
+        font-size: 1.5rem;
+        letter-spacing: -1px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        border: 2px solid white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .nav-links a {
+        color: var(--nav-link);
+        text-decoration: none;
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      /* Hero Section */
+      .hero {
+        padding: 80px 5% 40px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        font-family: "Spline Sans", sans-serif;
+        font-size: clamp(3rem, 8vw, 6rem);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+        font-weight: 800;
+        margin: 0;
+        max-width: 1000px;
+      }
+
+      .cta-pill {
+        display: inline-block;
+        background: var(--accent);
+        color: black;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-weight: 600;
+        text-decoration: none;
+        margin-top: 40px;
+        font-size: 16px;
+        transition: opacity 0.2s;
+      }
+
+      /* Content / FAQ Area */
+      .content-grid {
+        padding: 60px 5%;
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        border-top: 1px solid #27272a;
+      }
+
+      .faq-title {
+        font-family: "Spline Sans", sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+
+      .faq-text {
+        color: var(--text-muted);
+        line-height: 1.6;
+        font-size: 18px;
+        max-width: 500px;
+      }
+
+      @media (max-width: 768px) {
+        .nav-links,
+        .top-bar {
+          display: none;
+        }
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 3.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top-bar">An official service from Hack Club</div>
+
+    <nav>
+      <div class="logo">
+        <div class="logo-icon">H</div>
+        Hackatime
+      </div>
+      <div class="nav-links">
+        <a href="https://github.com/hackclub/hackatime">GitHub</a>
+      </div>
+    </nav>
+
+    <main class="hero">
+      <h1>Hackatime is down for maintenance.</h1>
+      <span class="cta-pill">Est. time: 20 minutes</span>
+    </main>
+
+    <section class="content-grid">
+      <div>
+        <div class="faq-title">Can I still work on my projects?</div>
+        <p class="faq-text">
+          Yes. Once Hackatime comes back up, your editor extensions will
+          automatically reconnect to our servers and upload your tracked time.
+        </p>
+      </div>
+      <div>
+        <div class="faq-title">Why the maintenance?</div>
+        <p class="faq-text">
+          We are performing scheduled updates to improve infrastructure
+          reliability. We appreciate your patience during this brief downtime.
+        </p>
+      </div>
+    </section>
+  </body>
+</html>

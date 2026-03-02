@@ -2,6 +2,7 @@
 
 class ErrorsController < ApplicationController
   skip_before_action :verify_authenticity_token
+  before_action :render_maintenance_page, except: :not_found
 
   def bad_request
     @status_code = 400
@@ -32,7 +33,20 @@ class ErrorsController < ApplicationController
     render_error
   end
 
+  def service_unavailable
+    @status_code = 503
+    @title = "Service Unavailable"
+    @message = "The service is temporarily unavailable. Please try again later."
+    render_error
+  end
+
   private
+
+  def render_maintenance_page
+    return unless ENV["MAINTENANCE_MODE"].present?
+
+    render file: Rails.root.join("public", "maintenance.html"), layout: false, status: 503, content_type: "text/html"
+  end
 
   def render_error
     respond_to do |format|
