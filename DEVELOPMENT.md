@@ -54,6 +54,12 @@ We'll now setup the database. In your container shell, run the following:
 app# bin/rails db:create db:schema:load db:seed
 ```
 
+Run the Vite build with SSR (server-side-rendering):
+
+```bash
+app# bin/vite build --ssr
+```
+
 Now, let's start up the app!
 
 ```bash
