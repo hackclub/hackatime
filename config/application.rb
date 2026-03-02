@@ -57,6 +57,9 @@ module Harbor
       secure: Rails.env.production?,
       httponly: true
 
+    require_relative "../lib/maintenance_mode_middleware"
+    config.middleware.insert_before Rack::Attack, MaintenanceModeMiddleware
+
     config.middleware.use Rack::Attack
     config.exceptions_app = routes
   end
