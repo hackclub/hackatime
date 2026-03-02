@@ -36,7 +36,7 @@ module Api
         return nil unless token
         t = token.to_s
         return t if t.length <= 8
-        "#{t[0,4]}...#{t[-4,4]}"
+        "#{t[0, 4]}...#{t[-4, 4]}"
       end
 
       private def authenticate!
