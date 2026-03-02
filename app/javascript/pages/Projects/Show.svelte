@@ -64,12 +64,34 @@
 
   let urlInput: HTMLInputElement | undefined = $state();
 
-  const copyShareUrl = () => {
-    if (!share_url || !urlInput) return;
-    urlInput.select();
-    document.execCommand("copy");
-    copied = true;
-    setTimeout(() => (copied = false), 2000);
+  const copyShareUrl = async () => {
+    if (!share_url) return;
+    try {
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        (typeof window === "undefined" || window.isSecureContext)
+      ) {
+        await navigator.clipboard.writeText(share_url);
+      } else if (typeof document !== "undefined") {
+        const textArea = document.createElement("textarea");
+        textArea.value = share_url;
+        textArea.setAttribute("readonly", "");
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        textArea.style.pointerEvents = "none";
+        document.body.appendChild(textArea);
+        textArea.select();
+        textArea.setSelectionRange(0, textArea.value.length);
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textArea);
+        if (!successful) return;
+      }
+      copied = true;
+      setTimeout(() => (copied = false), 2000);
+    } catch {
+      // silently fail
+    }
   };
 
   const toggleShare = () => {

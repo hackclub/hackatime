@@ -105,13 +105,6 @@ class ProfilesController < InertiaController
 
   private
 
-  def shorten_file_path(entity)
-    return entity if entity.blank?
-    parts = entity.split("/")
-    return entity if parts.length <= 3
-    "#{parts.first}/…/#{parts.last(2).join("/")}"
-  end
-
   def find_user
     @user = User.find_by(username: params[:username])
   end

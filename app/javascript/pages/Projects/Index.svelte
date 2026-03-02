@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import { Link, router } from "@inertiajs/svelte";
   import { onMount } from "svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
@@ -247,8 +247,13 @@
             {@const projectHref = project.project_key
               ? `/my/projects/${encodeURIComponent(project.project_key)}`
               : null}
-            <Link
-              href={projectHref || "#"}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              onclick={() => projectHref && router.visit(projectHref)}
+              onkeydown={(e) =>
+                e.key === "Enter" && projectHref && router.visit(projectHref)}
+              role={projectHref ? "link" : undefined}
+              tabindex={projectHref ? 0 : undefined}
               class="block h-full rounded-xl border border-primary bg-dark shadow-xs backdrop-blur-sm transition-all duration-300 hover:border-primary/80 hover:shadow-md {projectHref
                 ? 'cursor-pointer'
                 : 'pointer-events-none'}"
@@ -536,7 +541,7 @@
                   </div>
                 {/if}
               </article>
-            </Link>
+            </div>
           {/each}
         </div>
       {/if}

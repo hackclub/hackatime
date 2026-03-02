@@ -302,13 +302,6 @@ class My::ProjectRepoMappingsController < InertiaController
     }
   end
 
-  def shorten_file_path(entity)
-    return entity if entity.blank?
-    parts = entity.split("/")
-    return entity if parts.length <= 3
-    "#{parts.first}/…/#{parts.last(2).join("/")}"
-  end
-
   def project_activity_graph(project_name)
     tz = current_user.timezone
     unless TZInfo::Timezone.all_identifiers.include?(tz)
