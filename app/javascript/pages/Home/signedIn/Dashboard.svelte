@@ -7,6 +7,7 @@
   import IntervalSelect from "./IntervalSelect.svelte";
   import MultiSelect from "./MultiSelect.svelte";
   import GoalsProgressCard from "./GoalsProgressCard.svelte";
+  import type { ProgrammingGoalProgress } from "../../../types/index";
 
   let {
     data,
@@ -14,17 +15,7 @@
     onFiltersChange,
   }: {
     data: Record<string, any>;
-    programmingGoalsProgress?: {
-      id: string;
-      period: "day" | "week" | "month";
-      target_seconds: number;
-      tracked_seconds: number;
-      completion_percent: number;
-      complete: boolean;
-      languages: string[];
-      projects: string[];
-      period_end: string;
-    }[];
+    programmingGoalsProgress?: ProgrammingGoalProgress[];
     onFiltersChange?: (search: string) => void;
   } = $props();
 

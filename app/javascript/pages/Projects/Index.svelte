@@ -244,8 +244,13 @@
           class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6"
         >
           {#each projects_data.projects as project (project.id)}
+            {@const projectHref = project.project_key ? `/my/projects/${encodeURIComponent(project.project_key)}` : null}
+            <Link
+              href={projectHref || "#"}
+              class="block h-full rounded-xl border border-primary bg-dark shadow-xs backdrop-blur-sm transition-all duration-300 hover:border-primary/80 hover:shadow-md {projectHref ? 'cursor-pointer' : 'pointer-events-none'}"
+            >
             <article
-              class="flex h-full flex-col gap-4 rounded-xl border border-primary bg-dark p-6 shadow-xs backdrop-blur-sm transition-all duration-300"
+              class="flex h-full flex-col gap-4 p-6"
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0 flex-1">
@@ -273,7 +278,8 @@
                   {/if}
                 </div>
 
-                <div class="flex shrink-0 items-center gap-2">
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="flex shrink-0 items-center gap-2" onclick={(e) => e.stopPropagation()}>
                   {#if project.repository?.homepage}
                     <a
                       href={project.repository.homepage}
@@ -479,7 +485,8 @@
               {/if}
 
               {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
-                <div class="mt-1 border-t border-surface-200/40 pt-4">
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="mt-1 border-t border-surface-200/40 pt-4" onclick={(e) => e.stopPropagation()}>
                   <form
                     method="post"
                     action={project.update_path}
@@ -521,6 +528,7 @@
                 </div>
               {/if}
             </article>
+            </Link>
           {/each}
         </div>
       {/if}

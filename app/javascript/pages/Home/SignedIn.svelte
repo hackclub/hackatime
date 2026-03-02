@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Deferred, router } from "@inertiajs/svelte";
-  import type { ActivityGraphData } from "../../types/index";
+  import type { ActivityGraphData, SocialProofUser, FilterableDashboardData, TodayStats, ProgrammingGoalProgress } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
   import SetupNotice from "./signedIn/SetupNotice.svelte";
@@ -10,55 +10,6 @@
   import DashboardSkeleton from "./signedIn/DashboardSkeleton.svelte";
   import ActivityGraph from "./signedIn/ActivityGraph.svelte";
   import ActivityGraphSkeleton from "./signedIn/ActivityGraphSkeleton.svelte";
-
-  type SocialProofUser = { display_name: string; avatar_url: string };
-
-  type FilterableDashboardData = {
-    total_time: number;
-    total_heartbeats: number;
-    top_project: string | null;
-    top_language: string | null;
-    top_editor: string | null;
-    top_operating_system: string | null;
-    project_durations: Record<string, number>;
-    language_stats: Record<string, number>;
-    editor_stats: Record<string, number>;
-    operating_system_stats: Record<string, number>;
-    category_stats: Record<string, number>;
-    weekly_project_stats: Record<string, Record<string, number>>;
-    project: string[];
-    language: string[];
-    editor: string[];
-    operating_system: string[];
-    category: string[];
-    selected_interval: string;
-    selected_from: string;
-    selected_to: string;
-    selected_project: string[];
-    selected_language: string[];
-    selected_editor: string[];
-    selected_operating_system: string[];
-    selected_category: string[];
-  };
-
-  type TodayStats = {
-    show_logged_time_sentence: boolean;
-    todays_duration_display: string;
-    todays_languages: string[];
-    todays_editors: string[];
-  };
-
-  type ProgrammingGoalProgress = {
-    id: string;
-    period: "day" | "week" | "month";
-    target_seconds: number;
-    tracked_seconds: number;
-    completion_percent: number;
-    complete: boolean;
-    languages: string[];
-    projects: string[];
-    period_end: string;
-  };
 
   let {
     flavor_text,
