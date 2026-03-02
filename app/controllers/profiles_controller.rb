@@ -81,7 +81,7 @@ class ProfilesController < InertiaController
     file_stats = hb.group(:entity).duration_seconds
       .reject { |e, dur| e.blank? || dur < 60 }
       .sort_by { |_, d| -d }.first(50)
-      .map { |entity, dur| [ shorten_file_path(entity), dur ] }
+      .map { |entity, dur| [ helpers.shorten_file_path(entity), dur ] }
 
     branch_stats = hb.group(:branch).duration_seconds
       .reject { |b, _| b.blank? }

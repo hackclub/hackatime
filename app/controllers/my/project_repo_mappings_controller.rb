@@ -272,7 +272,7 @@ class My::ProjectRepoMappingsController < InertiaController
       .sort_by { |_, d| -d }
 
     file_stats = all_file_stats.first(50)
-      .map { |entity, dur| [ shorten_file_path(entity), dur ] }
+      .map { |entity, dur| [ helpers.shorten_file_path(entity), dur ] }
 
     branch_stats = hb.group(:branch).duration_seconds
       .reject { |b, _| b.blank? }

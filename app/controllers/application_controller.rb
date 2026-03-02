@@ -88,10 +88,4 @@ class ApplicationController < ActionController::Base
     Cache::ActiveUsersGraphDataJob.perform_now
   end
 
-  def shorten_file_path(entity)
-    return entity if entity.blank?
-    parts = entity.split("/")
-    return entity if parts.length <= 3
-    "#{parts.first}/…/#{parts.last(2).join("/")}"
-  end
 end
