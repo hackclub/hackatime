@@ -311,9 +311,12 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def project_activity_graph(project_name)
     tz = current_user.timezone
+    unless TZInfo::Timezone.all_identifiers.include?(tz)
+      tz = "UTC"
+    end
     hb = current_user.heartbeats.where(project: project_name)
 
-    day_trunc = Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{tz}')")
+    day_trunc = Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE #{ActiveRecord::Base.connection.quote(tz)})")
 
     durations = hb.select(day_trunc.as("day_group"))
       .where(time: 365.days.ago..Time.current)
