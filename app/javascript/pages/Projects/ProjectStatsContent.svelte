@@ -8,8 +8,6 @@
 
   let {
     total_time_label,
-    language_count,
-    branch_count,
     file_count,
     language_stats = {},
     language_colors = {},
@@ -21,8 +19,6 @@
     activity_graph,
   }: {
     total_time_label: string;
-    language_count: number;
-    branch_count: number;
     file_count: number;
     language_stats: Record<string, number>;
     language_colors: Record<string, string>;
@@ -33,14 +29,32 @@
     branch_stats: [string, number][];
     activity_graph?: ActivityGraphData | null;
   } = $props();
+
+  const topKey = (
+    stats: Record<string, number> | [string, number][] | undefined,
+  ): string => {
+    if (!stats) return "—";
+    if (Array.isArray(stats)) return stats.length > 0 ? stats[0][0] : "—";
+    const entries = Object.entries(stats);
+    return entries.length > 0 ? entries[0][0] : "—";
+  };
+
+  const daysActive = $derived(
+    activity_graph
+      ? Object.values(activity_graph.duration_by_date).filter((d) => d > 0)
+          .length
+      : 0,
+  );
 </script>
 
 <div class="space-y-6">
-  <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
     <StatCard label="Total Time" value={total_time_label} highlight />
-    <StatCard label="Languages" value={String(language_count)} />
-    <StatCard label="Branches" value={String(branch_count)} />
-    <StatCard label="Files" value={String(file_count)} />
+    <StatCard label="Top Language" value={topKey(language_stats)} />
+    <StatCard label="Top Branch" value={topKey(branch_stats)} />
+    <StatCard label="Top File" value={topKey(file_stats)} />
+    <StatCard label="Top Category" value={topKey(category_stats)} />
+    <StatCard label="Days Active" value={`${daysActive} days active`} />
   </div>
 
   {#if file_stats.length > 0}

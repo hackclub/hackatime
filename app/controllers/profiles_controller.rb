@@ -95,8 +95,6 @@ class ProfilesController < InertiaController
       since_date: since_date,
       repo_url: mapping.repo_url,
       total_time_label: h.short_time_detailed(total_time),
-      language_count: language_stats.size,
-      branch_count: branch_stats.size,
       file_count: hb.select(:entity).distinct.count,
       language_stats: language_stats,
       language_colors: language_stats.present? ? LanguageUtils.colors_for(language_stats.keys) : {},

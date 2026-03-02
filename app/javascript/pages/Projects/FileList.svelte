@@ -23,9 +23,7 @@
   );
 </script>
 
-<div
-  class="rounded-xl border border-surface-200 bg-dark/50 p-6"
->
+<div class="rounded-xl border border-surface-200 bg-dark/50 p-6">
   <div class="mb-4 flex items-baseline justify-between gap-2">
     <h3 class="text-lg font-semibold text-surface-content/90">Files</h3>
     {#if totalFileCount > 0}

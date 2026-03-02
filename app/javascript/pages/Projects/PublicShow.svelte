@@ -11,8 +11,6 @@
     since_date,
     repo_url,
     total_time_label,
-    language_count,
-    branch_count,
     file_count,
     language_stats,
     language_colors,
@@ -26,8 +24,6 @@
     since_date?: string | null;
     repo_url?: string | null;
     total_time_label: string;
-    language_count: number;
-    branch_count: number;
     file_count: number;
     language_stats: Record<string, number>;
     language_colors: Record<string, string>;
@@ -60,8 +56,6 @@
 
   <ProjectStatsContent
     {total_time_label}
-    {language_count}
-    {branch_count}
     {file_count}
     {language_stats}
     {language_colors}

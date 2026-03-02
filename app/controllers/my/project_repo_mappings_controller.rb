@@ -290,8 +290,6 @@ class My::ProjectRepoMappingsController < InertiaController
     {
       total_time: total_time,
       total_time_label: format_duration(total_time),
-      language_count: language_stats.size,
-      branch_count: branch_stats.size,
       file_count: hb.select(:entity).distinct.count,
       language_stats: language_stats,
       language_colors: language_colors,

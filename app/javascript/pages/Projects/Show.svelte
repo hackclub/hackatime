@@ -74,10 +74,16 @@
 
   const toggleShare = () => {
     toggling = true;
-    router.patch(toggle_share_path, {}, {
-      preserveScroll: true,
-      onFinish: () => { toggling = false; },
-    });
+    router.patch(
+      toggle_share_path,
+      {},
+      {
+        preserveScroll: true,
+        onFinish: () => {
+          toggling = false;
+        },
+      },
+    );
   };
 </script>
 
@@ -144,8 +150,8 @@
   <Deferred data="project_stats">
     {#snippet fallback()}
       <div class="animate-pulse space-y-6">
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {#each Array(4) as _}
+        <div class="grid grid-cols-1 gap-4">
+          {#each Array(6) as _}
             <div class="h-20 rounded-xl bg-darkless"></div>
           {/each}
         </div>
@@ -161,8 +167,6 @@
       {#if project_stats}
         <ProjectStatsContent
           total_time_label={project_stats.total_time_label}
-          language_count={project_stats.language_count}
-          branch_count={project_stats.branch_count}
           file_count={project_stats.file_count}
           language_stats={project_stats.language_stats}
           language_colors={project_stats.language_colors}
@@ -189,7 +193,9 @@
 <Modal
   bind:open={shareModalOpen}
   title="Share project"
-  description={is_shared ? "Anyone with the link can view this project's stats." : "Share a public link so anyone can view this project's stats."}
+  description={is_shared
+    ? "Anyone with the link can view this project's stats."
+    : "Share a public link so anyone can view this project's stats."}
   maxWidth="max-w-sm"
   hasBody
   bodyClass="mb-4"
@@ -206,7 +212,12 @@
           class="flex-1 rounded-lg border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content"
           onclick={(e) => e.currentTarget.select()}
         />
-        <Button type="button" variant="primary" size="sm" onclick={copyShareUrl}>
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          onclick={copyShareUrl}
+        >
           {copied ? "Copied!" : "Copy"}
         </Button>
       </div>

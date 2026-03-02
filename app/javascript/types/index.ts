@@ -41,8 +41,6 @@ export type ActivityGraphData = {
 export type ProjectStats = {
   total_time: number;
   total_time_label: string;
-  language_count: number;
-  branch_count: number;
   file_count: number;
   language_stats: Record<string, number>;
   language_colors: Record<string, string>;

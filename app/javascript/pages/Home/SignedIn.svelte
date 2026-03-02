@@ -1,6 +1,12 @@
 <script lang="ts">
   import { Deferred, router } from "@inertiajs/svelte";
-  import type { ActivityGraphData, SocialProofUser, FilterableDashboardData, TodayStats, ProgrammingGoalProgress } from "../../types/index";
+  import type {
+    ActivityGraphData,
+    SocialProofUser,
+    FilterableDashboardData,
+    TodayStats,
+    ProgrammingGoalProgress,
+  } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
   import SetupNotice from "./signedIn/SetupNotice.svelte";
