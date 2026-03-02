@@ -58,7 +58,7 @@ module Harbor
       httponly: true
 
     require_relative "../lib/maintenance_mode_middleware"
-    config.middleware.insert_before Rack::Attack, MaintenanceModeMiddleware
+    config.middleware.insert_before 0, MaintenanceModeMiddleware
 
     config.middleware.use Rack::Attack
     config.exceptions_app = routes
