@@ -31,7 +31,7 @@ ENCRYPTION_DETERMINISTIC_KEY=32characterrandomstring12345678902
 ENCRYPTION_KEY_DERIVATION_SALT=16charssalt1234
 ```
 
-Visit <https://hca.dinosaurbbq.org>, log in with an email address, navigate to the "Developers' Corner" and "app yourself up", specifying  a callback url of `http://localhost:3000/auth/hca/callback` and minimum scopes of `email`, `slack_id`, and `verification_status`. 
+Visit <https://hca.dinosaurbbq.org>, log in with an email address, then enable Developer Mode in HCA settings. After that, navigate to the "Developers' Corner" and "app yourself up", specifying a callback URL of `http://localhost:3000/auth/hca/callback` and minimum scopes of `email`, `slack_id`, and `verification_status`. 
 
 Then, fill out the following fields in your `.env` file:
 
