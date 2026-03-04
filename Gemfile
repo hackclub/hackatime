@@ -156,7 +156,7 @@ gem "premailer-rails"
 
 gem "htmlcompressor", "~> 0.4.0"
 
-gem "doorkeeper", "~> 5.8"
+gem "doorkeeper", "~> 5.9"
 
 gem "autotuner", "~> 1.0"
 
