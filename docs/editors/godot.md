@@ -8,7 +8,7 @@ Follow these steps to start tracking your game development in Godot with Hackati
 
 **[hackatime.hackclub.com](https://hackatime.hackclub.com)**
 
-Sign in with your Hack Club Slack account. If you haven't created one yet, head to **[shiba.hackclub.com](https://shiba.hackclub.com)** and enter your email address to get a link to the Slack :)
+Sign in with your Hack Club Slack account. If you haven't created one yet, head to **[hackclub.com/slack](https://hackclub.com/slack)** to join the Slack :)
 
 ## 2: Set up Hackatime
 
@@ -22,7 +22,7 @@ This will set some environment variables and tell Hackatime where to "phone home
 
 **[godotengine.org/download](https://godotengine.org/download)**
 
-Download the Godot binary! Make sure you get the **regular version** and not the .NET version - web exports (required for Shiba) aren't supported with .NET.
+Download the Godot binary! Make sure you get the **regular version** and not the .NET version - web exports aren't supported with .NET.
 
 If you're on Linux and know what you're doing, make sure to check your distro's package manager for any special builds.
 
