@@ -15,17 +15,18 @@
       /></svg
     >
     <span class="text-3xl font-bold block ml-2"
-      >Hold up! Your account has been banned for suspicious activity.</span
+      >Hold up! Your account has been banned for fraudulent activity.</span
     >
   </div>
   <div>
     <p class="text-primary text-left text-lg mb-2">
-      <b>What does this mean?</b> Your account was convicted for fraud or abuse of
-      Hackatime, such as using methods to gain an unfair advantage on the leaderboards
-      or attempting to manipulate your coding time in any way. This restricts your
-      access to participate in public leaderboards, but Hackatime will still track
-      and display your time. This may also affect your ability to participate in current
-      and future Hack Club events.
+      <b>What does this mean?</b> Your account was found to be engaging in
+      fraud or abuse of Hackatime. This includes using methods to gain an
+      unfair advantage on the leaderboards or attempting to manipulate
+      your coding time in any way. This ban restricts your ability to
+      participate in public leaderboards, but Hackatime will still track
+      and display your time. Your ability to participate in current and
+      future Hack Club events may also be affected.
     </p>
     <p class="text-primary text-left text-lg mb-2">
       <b>What can I do?</b> Account bans are non-negotiable, and will not be
@@ -40,7 +41,7 @@
       > on Slack. We do not respond in any other channel, DM or thread.
     </p>
     <p class="text-primary text-left text-lg mb-0">
-      <b>Can I know what caused this?</b> No. We do not disclose the patterns that
+      <b>Can I get more details?</b> No. We do not disclose the patterns that
       were detected. Releasing this information would only benefit fraudsters. The
       fraud team regularly investigates claims of false bans to increase the effectiveness
       of our detection systems to combat fraud.
