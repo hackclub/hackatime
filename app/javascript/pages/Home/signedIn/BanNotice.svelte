@@ -40,10 +40,10 @@
       > on Slack. We do not respond in any other channel, DM or thread.
     </p>
     <p class="text-primary text-left text-lg mb-0">
-      <b>What caused this?</b> We do not disclose the patterns that were
-      detected. Releasing this information would only benefit fraudsters. The fraud
-      team regularly investigates claims of false bans to increase the effectiveness
-      of our detection systems to combat fraud.
+      <b>What caused this?</b> We do not disclose the patterns that were detected.
+      Releasing this information would only benefit fraudsters. The fraud team regularly
+      investigates claims of false bans to increase the effectiveness of our detection
+      systems to combat fraud.
     </p>
   </div>
 </div>
