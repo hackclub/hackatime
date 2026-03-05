@@ -174,7 +174,7 @@
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
         >
-          Start tracking
+          Login
         </Link>
       </nav>
     </div>
@@ -388,7 +388,7 @@ api_key = YOUR_API_KEY_HERE</code
         >
           Start tracking for free
         </Link>
-        <p class="text-secondary text-sm mt-4">Takes 2 minutes to set up.</p>
+        <p class="text-secondary text-sm mt-4">Takes just minutes to set up.</p>
       </div>
     </div>
   </section>

@@ -103,7 +103,7 @@
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
         >
-          Start tracking
+          Login
         </Link>
       </nav>
     </div>
@@ -128,7 +128,7 @@
           href="/signin"
           class="px-7 py-3.5 bg-primary text-on-primary rounded-md font-semibold text-base hover:opacity-90 transition-colors"
         >
-          Start tracking
+          Login
         </Link>
         <Link
           href="/docs"
