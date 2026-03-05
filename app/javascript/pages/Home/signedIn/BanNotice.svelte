@@ -15,7 +15,7 @@
       /></svg
     >
     <span class="text-3xl font-bold block ml-2"
-      >Hold up! Your account has been banned for fraudulent activity.</span
+      >Hold up! Your account has been banned for suspicious activity.</span
     >
   </div>
   <div>
@@ -40,7 +40,7 @@
       > on Slack. We do not respond in any other channel, DM or thread.
     </p>
     <p class="text-primary text-left text-lg mb-0">
-      <b>Can I get more details?</b> No. We do not disclose the patterns that were
+      <b>What caused this?</b> We do not disclose the patterns that were
       detected. Releasing this information would only benefit fraudsters. The fraud
       team regularly investigates claims of false bans to increase the effectiveness
       of our detection systems to combat fraud.
