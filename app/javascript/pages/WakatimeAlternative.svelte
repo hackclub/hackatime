@@ -135,6 +135,7 @@
     "Open source - audit the code, contribute, or self-host",
     "Privacy-first - only metadata tracked, never your code",
     "Community leaderboards - see how you stack up against peers",
+    "Track time for non-coding or web editors",
   ];
 </script>
 

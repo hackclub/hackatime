@@ -3,7 +3,7 @@
     <h2
       class="text-3xl md:text-4xl font-semibold text-surface-content text-center tracking-tight mb-12"
     >
-      Start tracking in minutes.
+      Start tracking in just minutes.
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
       <div class="border-l-2 border-surface-200 pl-4">
