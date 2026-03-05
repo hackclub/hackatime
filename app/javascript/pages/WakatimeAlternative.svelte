@@ -174,7 +174,7 @@
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
         >
-          Login
+          Get Started
         </Link>
       </nav>
     </div>
