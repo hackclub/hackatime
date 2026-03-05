@@ -22,7 +22,8 @@
           Run Installer
         </h3>
         <p class="text-secondary text-base leading-relaxed">
-          Run the unified setup command which configures plugins for most editors.
+          Run the unified setup command which configures plugins for most
+          editors.
         </p>
       </div>
       <div class="border-l-2 border-surface-200 pl-4">
@@ -31,7 +32,7 @@
           Configure
         </h3>
         <p class="text-secondary text-base leading-relaxed">
-          Done! Your work is now trackeed across project repositories. 
+          Done! Your work is now trackeed across project repositories.
         </p>
       </div>
     </div>
