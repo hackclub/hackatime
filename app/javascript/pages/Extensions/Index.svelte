@@ -20,6 +20,7 @@
       description:
         "Check a user's Hackatime streak in Slack.",
       install: "https://hackclub.enterprise.slack.com/archives/C0AJLGZ73NE",
+      buttonLabel: "Try out!",
     },
   ];
 </script>
@@ -57,7 +58,7 @@
             rel="noopener noreferrer"
             class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-primary text-on-primary font-medium text-sm hover:opacity-90 transition-opacity"
           >
-            <span>Install</span>
+            <span>{extension.buttonLabel ?? "Install"}</span>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
