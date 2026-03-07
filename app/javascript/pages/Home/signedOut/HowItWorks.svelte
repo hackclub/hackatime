@@ -32,7 +32,7 @@
           Configure
         </h3>
         <p class="text-secondary text-base leading-relaxed">
-          Done! Your work is now trackeed across project repositories.
+          Done! Your work is now tracked across project repositories.
         </p>
       </div>
     </div>
