@@ -18,7 +18,7 @@
       name: "HackaStreak",
       source: "https://github.com/hippogriff101/HackaStreak",
       description:
-        "Check a user's Hackatime Streak through Slack!",
+        "Check a user's Hackatime streak in Slack.",
       install: "https://hackclub.enterprise.slack.com/archives/C0AJLGZ73NE",
     },
   ];
