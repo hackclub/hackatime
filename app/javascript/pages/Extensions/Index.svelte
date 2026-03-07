@@ -20,7 +20,7 @@
       description:
         "Check a user's Hackatime streak in Slack.",
       install: "https://hackclub.enterprise.slack.com/archives/C0AJLGZ73NE",
-      buttonLabel: "Try out!",
+      buttonLabel: "Try it out!",
     },
   ];
 </script>
