@@ -8,7 +8,7 @@ Follow these steps to start tracking your game development in Godot with Hackati
 
 **[hackatime.hackclub.com](https://hackatime.hackclub.com)**
 
-Sign in with your Hack Club Slack account. If you haven't created one yet, head to **[shiba.hackclub.com](https://shiba.hackclub.com)** and enter your email address to get a link to the Slack :)
+Sign in with your Hack Club Slack account. If you haven't created one yet, head to **[hackclub.com/slack](https://hackclub.com/slack)** to join the Slack :)
 
 ## 2: Set up Hackatime
 
@@ -22,13 +22,11 @@ This will set some environment variables and tell Hackatime where to "phone home
 
 **[godotengine.org/download](https://godotengine.org/download)**
 
-Download the Godot binary! Make sure you get the **regular version** and not the .NET version - web exports (required for Shiba) aren't supported with .NET.
+Download the Godot binary! Make sure you get the **regular version** and not the .NET version - web exports aren't supported with .NET.
 
 If you're on Linux and know what you're doing, make sure to check your distro's package manager for any special builds.
 
 ## 4: Create a New Godot Project
-
-![Create New Project](/images/setup/godot-new-project.png)
 
 If you'd like to be able to run your game in browser, choose the **Mobile** renderer. Otherwise, **Forward+** is a good option.
 
@@ -45,8 +43,6 @@ If you'd like to be able to run your game in browser, choose the **Mobile** rend
 
 **Note:** If you can't find it, make sure that you created a project already & aren't searching from the project library page!
 
-![Asset Library Search](/images/setup/godot-asset-search.png)
-
 **Ignore any warnings that appear during installation.**
 
 ### Alternative: Manual Installation
@@ -60,8 +56,6 @@ If you'd like to be able to run your game in browser, choose the **Mobile** rend
 2. Find **"Godot Super Wakatime"** in the list
 3. **Enable** the plugin
 4. You'll be prompted to enter your WakaTime API key (this should be automatically configured from step 2!)
-
-![Enable Plugin](/images/setup/godot-enable-plugin.png)
 
 **Important:** You need to install Godot Super WakaTime for every project (it's a Godot limitation)
 
