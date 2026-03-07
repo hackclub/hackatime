@@ -135,6 +135,7 @@
     "Open source - audit the code, contribute, or self-host",
     "Privacy-first - only metadata tracked, never your code",
     "Community leaderboards - see how you stack up against peers",
+    "Track time for non-coding or web editors",
   ];
 </script>
 
@@ -174,7 +175,7 @@
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
         >
-          Start tracking
+          Get Started
         </Link>
       </nav>
     </div>
@@ -388,7 +389,7 @@ api_key = YOUR_API_KEY_HERE</code
         >
           Start tracking for free
         </Link>
-        <p class="text-secondary text-sm mt-4">Takes 2 minutes to set up.</p>
+        <p class="text-secondary text-sm mt-4">Takes just minutes to set up.</p>
       </div>
     </div>
   </section>

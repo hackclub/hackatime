@@ -15,10 +15,10 @@
     <h2
       class="text-3xl md:text-4xl font-semibold text-on-primary tracking-tight mb-4"
     >
-      Start tracking your code.
+      Start tracking your technical work.
     </h2>
     <p class="text-on-primary/90 text-lg mb-10">
-      Join {usersTracked} users who have tracked {hoursTracked}+ hours of coding
+      Join {usersTracked} users who have tracked {hoursTracked}+ hours of work
       with Hackatime.
     </p>
     <Link
