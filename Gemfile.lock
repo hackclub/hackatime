@@ -153,7 +153,7 @@ GEM
       reline (>= 0.3.8)
     diff-lcs (1.6.2)
     domain_name (0.6.20240107)
-    doorkeeper (5.8.2)
+    doorkeeper (5.9.0)
       railties (>= 5)
     dotenv (3.2.0)
     dotenv-rails (3.2.0)
@@ -663,7 +663,7 @@ DEPENDENCIES
   cloudflare-rails
   countries
   debug
-  doorkeeper (~> 5.8)
+  doorkeeper (~> 5.9)
   dotenv-rails
   erb_lint
   faker
