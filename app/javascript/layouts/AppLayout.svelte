@@ -408,8 +408,8 @@
           <a
             href={layout.nav.login_path}
             class="block px-4 py-2 rounded-md transition text-on-primary font-semibold bg-primary hover:bg-secondary text-center"
-            >Get Started/a >
-          </a>
+            >Get Started</a
+          >
         </div>
       {/if}
 
