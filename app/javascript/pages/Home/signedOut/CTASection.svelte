@@ -15,7 +15,7 @@
     <h2
       class="text-3xl md:text-4xl font-semibold text-on-primary tracking-tight mb-4"
     >
-      Start tracking your technical work.
+      What are you waiting for?
     </h2>
     <p class="text-on-primary/90 text-lg mb-10">
       Join {usersTracked} users who have tracked {hoursTracked}+ hours of work
