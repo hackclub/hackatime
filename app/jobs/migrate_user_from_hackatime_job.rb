@@ -87,7 +87,7 @@ class MigrateUserFromHackatimeJob < ApplicationJob
         records.max_by { |r| r[:time] }
       end
 
-      Heartbeat.upsert_all(records_to_upsert, unique_by: [ :fields_hash ])
+      Heartbeat.upsert_all(records_to_upsert, unique_by: %i[fields_hash time])
     end
   end
 

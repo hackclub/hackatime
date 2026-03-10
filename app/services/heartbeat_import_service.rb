@@ -114,7 +114,7 @@ class HeartbeatImportService
     end
 
     ActiveRecord::Base.logger.silence do
-      result = Heartbeat.upsert_all(records, unique_by: [ :fields_hash ])
+      result = Heartbeat.upsert_all(records, unique_by: %i[fields_hash time])
       result.length
     end
   end
