@@ -128,6 +128,11 @@ Rails.application.configure do
       cron: "0 0 * * *",
       class: "CleanupSuccessfulJobsJob"
     },
+    create_heartbeat_partitions: {
+      cron: "0 0 * * *",
+      class: "CreateHeartbeatPartitionsJob",
+      description: "Creates future monthly heartbeat partitions 3 months ahead"
+    },
     process_account_deletions: {
       cron: "0 2 * * *",
       class: "ProcessAccountDeletionsJob",

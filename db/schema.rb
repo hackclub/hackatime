@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_01_200002) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_04_121229) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -315,33 +315,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_01_200002) do
     t.index ["value"], name: "index_heartbeat_user_agents_on_value", unique: true
   end
 
-  create_table "heartbeats", force: :cascade do |t|
+  create_table "heartbeats", id: false, options: "PARTITION BY RANGE (\"time\")", force: :cascade do |t|
     t.string "branch"
-    t.bigint "branch_id"
     t.string "category"
-    t.bigint "category_id"
     t.datetime "created_at", null: false
     t.integer "cursorpos"
     t.datetime "deleted_at"
     t.string "dependencies", default: [], array: true
     t.string "editor"
-    t.bigint "editor_id"
     t.string "entity"
     t.text "fields_hash"
+    t.bigserial "id", null: false
     t.inet "ip_address"
     t.boolean "is_write"
     t.string "language"
-    t.bigint "language_id"
     t.integer "line_additions"
     t.integer "line_deletions"
     t.integer "lineno"
     t.integer "lines"
     t.string "machine"
-    t.bigint "machine_id"
     t.string "operating_system"
-    t.bigint "operating_system_id"
     t.string "project"
-    t.bigint "project_id"
     t.integer "project_root_count"
     t.bigint "raw_heartbeat_upload_id"
     t.integer "source_type", null: false
@@ -349,40 +343,1428 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_01_200002) do
     t.string "type"
     t.datetime "updated_at", null: false
     t.string "user_agent"
-    t.bigint "user_agent_id"
     t.bigint "user_id", null: false
     t.integer "ysws_program", default: 0, null: false
-    t.index ["branch_id"], name: "index_heartbeats_on_branch_id"
-    t.index ["category", "time"], name: "index_heartbeats_on_category_and_time"
-    t.index ["category_id"], name: "index_heartbeats_on_category_id"
-    t.index ["editor_id"], name: "index_heartbeats_on_editor_id"
-    t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
-    t.index ["ip_address"], name: "index_heartbeats_on_ip_address"
-    t.index ["language_id"], name: "index_heartbeats_on_language_id"
-    t.index ["machine"], name: "index_heartbeats_on_machine"
-    t.index ["machine_id"], name: "index_heartbeats_on_machine_id"
-    t.index ["operating_system_id"], name: "index_heartbeats_on_operating_system_id"
-    t.index ["project", "time"], name: "index_heartbeats_on_project_and_time"
-    t.index ["project"], name: "index_heartbeats_on_project"
-    t.index ["project_id"], name: "index_heartbeats_on_project_id"
-    t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
-    t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
-    t.index ["user_agent_id"], name: "index_heartbeats_on_user_agent_id"
-    t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
-    t.index ["user_id", "language", "time"], name: "idx_heartbeats_user_language_time", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "operating_system", "time"], name: "idx_heartbeats_user_operating_system_time", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
-    t.index ["user_id", "project"], name: "index_heartbeats_on_user_id_and_project", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "source_type", "id"], name: "index_heartbeats_on_user_source_id_direct", where: "((source_type = 0) AND (deleted_at IS NULL))"
-    t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
-    t.index ["user_id", "time", "language"], name: "idx_heartbeats_user_time_language_stats", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "time", "language_id"], name: "idx_heartbeats_user_time_language_id", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "time", "project_id"], name: "idx_heartbeats_user_time_project_id", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
-    t.index ["user_id"], name: "index_heartbeats_on_user_id"
+    t.index ["fields_hash", "time"], name: "idx_heartbeats_part_fields_hash_uniq", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "idx_heartbeats_part_ip", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "idx_heartbeats_part_machine", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "idx_heartbeats_part_current_hacking", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "idx_heartbeats_part_user_category_time", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "idx_heartbeats_part_user_editor_time", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "idx_heartbeats_part_user_id_direct", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "idx_heartbeats_part_user_ip_id", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "idx_heartbeats_part_user_language_time", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "idx_heartbeats_part_user_os_time", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "idx_heartbeats_part_user_project_time", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "idx_heartbeats_part_user_time", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_01", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_01_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_01_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_01_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_01_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_01_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_01_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_01_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_01_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_01_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_01_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_01_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_01_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_02", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_02_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_02_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_02_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_02_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_02_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_02_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_02_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_02_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_02_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_02_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_02_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_02_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_03", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_03_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_03_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_03_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_03_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_03_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_03_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_03_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_03_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_03_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_03_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_03_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_03_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_04", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_04_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_04_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_04_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_04_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_04_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_04_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_04_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_04_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_04_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_04_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_04_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_04_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_05", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_05_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_05_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_05_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_05_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_05_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_05_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_05_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_05_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_05_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_05_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_05_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_05_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_06", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_06_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_06_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_06_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_06_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_06_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_06_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_06_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_06_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_06_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_06_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_06_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_06_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_07", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_07_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_07_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_07_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_07_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_07_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_07_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_07_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_07_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_07_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_07_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_07_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_07_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_08", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_08_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_08_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_08_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_08_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_08_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_08_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_08_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_08_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_08_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_08_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_08_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_08_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_09", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_09_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_09_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_09_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_09_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_09_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_09_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_09_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_09_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_09_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_09_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_09_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_09_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_10", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_10_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_10_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_10_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_10_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_10_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_10_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_10_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_10_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_10_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_10_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_10_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_10_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_11", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_11_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_11_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_11_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_11_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_11_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_11_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_11_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_11_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_11_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_11_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_11_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_11_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2024_12", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2024_12_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2024_12_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2024_12_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2024_12_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2024_12_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2024_12_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_12_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2024_12_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2024_12_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2024_12_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2024_12_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2024_12_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_01", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_01_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_01_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_01_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_01_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_01_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_01_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_01_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_01_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_01_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_01_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_01_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_01_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_02", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_02_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_02_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_02_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_02_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_02_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_02_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_02_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_02_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_02_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_02_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_02_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_02_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_03", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_03_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_03_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_03_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_03_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_03_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_03_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_03_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_03_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_03_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_03_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_03_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_03_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_04", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_04_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_04_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_04_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_04_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_04_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_04_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_04_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_04_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_04_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_04_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_04_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_04_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_05", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_05_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_05_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_05_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_05_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_05_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_05_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_05_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_05_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_05_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_05_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_05_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_05_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_06", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_06_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_06_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_06_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_06_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_06_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_06_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_06_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_06_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_06_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_06_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_06_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_06_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_07", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_07_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_07_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_07_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_07_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_07_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_07_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_07_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_07_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_07_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_07_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_07_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_07_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_08", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_08_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_08_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_08_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_08_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_08_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_08_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_08_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_08_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_08_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_08_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_08_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_08_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_09", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_09_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_09_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_09_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_09_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_09_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_09_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_09_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_09_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_09_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_09_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_09_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_09_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_10", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_10_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_10_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_10_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_10_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_10_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_10_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_10_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_10_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_10_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_10_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_10_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_10_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_11", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_11_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_11_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_11_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_11_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_11_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_11_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_11_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_11_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_11_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_11_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_11_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_11_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2025_12", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2025_12_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2025_12_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2025_12_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2025_12_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2025_12_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2025_12_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_12_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2025_12_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2025_12_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2025_12_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2025_12_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2025_12_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2026_01", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2026_01_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2026_01_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2026_01_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2026_01_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2026_01_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2026_01_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_01_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_01_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2026_01_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2026_01_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2026_01_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2026_01_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2026_02", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2026_02_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2026_02_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2026_02_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2026_02_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2026_02_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2026_02_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_02_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_02_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2026_02_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2026_02_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2026_02_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2026_02_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2026_03", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2026_03_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2026_03_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2026_03_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2026_03_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2026_03_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2026_03_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_03_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_03_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2026_03_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2026_03_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2026_03_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2026_03_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2026_04", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2026_04_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2026_04_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2026_04_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2026_04_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2026_04_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2026_04_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_04_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_04_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2026_04_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2026_04_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2026_04_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2026_04_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2026_05", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2026_05_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2026_05_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2026_05_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2026_05_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2026_05_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2026_05_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_05_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_05_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2026_05_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2026_05_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2026_05_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2026_05_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_2026_06", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_2026_06_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_2026_06_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_2026_06_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_2026_06_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_2026_06_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_2026_06_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_06_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_2026_06_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_2026_06_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_2026_06_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_2026_06_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_2026_06_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_before_2024", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_before_2024_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_before_2024_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_before_2024_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_before_2024_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_before_2024_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_before_2024_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_before_2024_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_before_2024_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_before_2024_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_before_2024_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_before_2024_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_before_2024_user_id_time_idx", where: "(deleted_at IS NULL)"
+  end
+
+  create_table "heartbeats_default", id: false, options: "INHERITS (heartbeats)", force: :cascade do |t|
+    t.string "branch"
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.integer "cursorpos"
+    t.datetime "deleted_at"
+    t.string "dependencies", default: [], array: true
+    t.string "editor"
+    t.string "entity"
+    t.text "fields_hash"
+    t.bigint "id", default: -> { "nextval('heartbeats_id_seq'::regclass)" }, null: false
+    t.inet "ip_address"
+    t.boolean "is_write"
+    t.string "language"
+    t.integer "line_additions"
+    t.integer "line_deletions"
+    t.integer "lineno"
+    t.integer "lines"
+    t.string "machine"
+    t.string "operating_system"
+    t.string "project"
+    t.integer "project_root_count"
+    t.bigint "raw_heartbeat_upload_id"
+    t.integer "source_type", null: false
+    t.float "time", null: false
+    t.string "type"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.integer "ysws_program", default: 0, null: false
+    t.index ["fields_hash", "time"], name: "heartbeats_default_fields_hash_time_idx", unique: true, where: "(deleted_at IS NULL)"
+    t.index ["ip_address"], name: "heartbeats_default_ip_address_idx", where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["machine"], name: "heartbeats_default_machine_idx", where: "((deleted_at IS NULL) AND (machine IS NOT NULL))"
+    t.index ["time"], name: "heartbeats_default_time_idx", order: :desc, where: "((deleted_at IS NULL) AND (source_type = 0) AND ((category)::text = 'coding'::text))"
+    t.index ["user_id", "category", "time"], name: "heartbeats_default_user_id_category_time_idx", where: "((deleted_at IS NULL) AND (category IS NOT NULL))"
+    t.index ["user_id", "editor", "time"], name: "heartbeats_default_user_id_editor_time_idx", where: "((deleted_at IS NULL) AND (editor IS NOT NULL))"
+    t.index ["user_id", "id"], name: "heartbeats_default_user_id_id_idx", where: "((deleted_at IS NULL) AND (source_type = 0))"
+    t.index ["user_id", "id"], name: "heartbeats_default_user_id_id_idx1", order: { id: :desc }, where: "((deleted_at IS NULL) AND (ip_address IS NOT NULL))"
+    t.index ["user_id", "language", "time"], name: "heartbeats_default_user_id_language_time_idx", where: "((deleted_at IS NULL) AND (language IS NOT NULL))"
+    t.index ["user_id", "operating_system", "time"], name: "heartbeats_default_user_id_operating_system_time_idx", where: "((deleted_at IS NULL) AND (operating_system IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "heartbeats_default_user_id_project_time_idx", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "time"], name: "heartbeats_default_user_id_time_idx", where: "(deleted_at IS NULL)"
   end
 
   create_table "leaderboard_entries", force: :cascade do |t|
@@ -529,6 +1911,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_01_200002) do
     t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.string "project_name", null: false
+    t.datetime "public_shared_at"
     t.string "repo_url"
     t.bigint "repository_id"
     t.datetime "updated_at", null: false
@@ -737,16 +2120,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_01_200002) do
   add_foreign_key "heartbeat_import_sources", "users"
   add_foreign_key "heartbeat_machines", "users"
   add_foreign_key "heartbeat_projects", "users"
-  add_foreign_key "heartbeats", "heartbeat_branches", column: "branch_id"
-  add_foreign_key "heartbeats", "heartbeat_categories", column: "category_id"
-  add_foreign_key "heartbeats", "heartbeat_editors", column: "editor_id"
-  add_foreign_key "heartbeats", "heartbeat_languages", column: "language_id"
-  add_foreign_key "heartbeats", "heartbeat_machines", column: "machine_id"
-  add_foreign_key "heartbeats", "heartbeat_operating_systems", column: "operating_system_id"
-  add_foreign_key "heartbeats", "heartbeat_projects", column: "project_id"
-  add_foreign_key "heartbeats", "heartbeat_user_agents", column: "user_agent_id"
-  add_foreign_key "heartbeats", "raw_heartbeat_uploads"
-  add_foreign_key "heartbeats", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
   add_foreign_key "leaderboard_entries", "users"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
