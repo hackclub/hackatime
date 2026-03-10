@@ -5,19 +5,14 @@ class DataSettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
-    Flipper.enable(:wakatime_imports)
     @user = User.create!(timezone: "UTC")
     sign_in_as(@user)
-  end
-
-  teardown do
-    Flipper.disable(:wakatime_imports)
   end
 
   test "data settings page renders key sections" do
     assert_settings_page(
       path: my_settings_data_path,
-      marker_text: "Migration Assistant"
+      marker_text: "Download Data"
     )
 
     assert_text "Download Data"
@@ -45,29 +40,5 @@ class DataSettingsTest < ApplicationSystemTestCase
     assert_current_path deletion_path, ignore_query: true
     assert_text "Account Scheduled for Deletion"
     assert_text "I changed my mind"
-  end
-
-  test "imports section is hidden when feature is disabled" do
-    Flipper.disable(:wakatime_imports)
-
-    visit my_settings_data_path
-
-    assert_no_field "import_endpoint_url"
-  end
-
-  test "data settings can configure import source and show status panel" do
-    visit my_settings_data_path
-
-    fill_in "import_endpoint_url", with: "https://wakatime.com/api/v1"
-    fill_in "import_api_key", with: "import-key-#{SecureRandom.hex(8)}"
-
-    assert_difference -> { HeartbeatImportSource.count }, +1 do
-      click_on "Create source"
-      assert_text "Import source configured successfully."
-    end
-
-    assert_text "Status:"
-    assert_text "Imported:"
-    assert_button "Sync now"
   end
 end

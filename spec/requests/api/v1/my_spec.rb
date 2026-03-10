@@ -98,38 +98,6 @@ RSpec.describe 'Api::V1::My', type: :request do
     end
   end
 
-  path '/my/heartbeats/import' do
-    post('Import Heartbeats') do
-      tags 'My Data'
-      description 'Import heartbeats from a JSON file.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
-      consumes 'multipart/form-data'
-      produces 'application/json'
-
-      parameter name: :heartbeat_file,
-                in: :formData,
-                schema: { type: :string, format: :binary },
-                description: 'JSON file containing heartbeats'
-
-      response(302, 'redirect') do
-        let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { 'dev-api-key-12345' }
-        let(:heartbeat_file) do
-          Rack::Test::UploadedFile.new(
-            StringIO.new("[]"),
-            "application/json",
-            original_filename: "heartbeats.json"
-          )
-        end
-
-        before do
-           login_browser_user
-        end
-        run_test!
-      end
-    end
-  end
-
   path '/my/projects' do
     get('List Project Repo Mappings') do
       tags 'My Projects'
@@ -246,34 +214,6 @@ RSpec.describe 'Api::V1::My', type: :request do
         let(:api_key) { 'dev-api-key-12345' }
 
         before { login_browser_user }
-        run_test!
-      end
-    end
-  end
-
-  path '/my/settings/migrate_heartbeats' do
-    post('Migrate Heartbeats') do
-      tags 'My Settings'
-      description 'Trigger a migration of heartbeats from legacy formats or systems.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
-      produces 'application/json'
-
-      response(302, 'redirect') do
-        let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { 'dev-api-key-12345' }
-
-        before do
-          login_browser_user
-          @hackatime_v1_import_was_enabled = Flipper.enabled?(:hackatime_v1_import)
-          Flipper.enable(:hackatime_v1_import)
-        end
-        after do
-          if @hackatime_v1_import_was_enabled
-            Flipper.enable(:hackatime_v1_import)
-          else
-            Flipper.disable(:hackatime_v1_import)
-          end
-        end
         run_test!
       end
     end

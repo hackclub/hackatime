@@ -156,18 +156,9 @@ Rails.application.routes.draw do
   get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
   get "my/settings/data", to: "settings/data#show", as: :my_settings_data
   get "my/settings/admin", to: "settings/admin#show", as: :my_settings_admin
-  post "my/settings/migrate_heartbeats", to: "settings/data#migrate_heartbeats", as: :my_settings_migrate_heartbeats
   post "my/settings/rotate_api_key", to: "settings/access#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
-    resource :heartbeat_import_source,
-      only: [ :create, :update, :show, :destroy ],
-      controller: "heartbeat_import_sources" do
-      post :sync, on: :collection, action: :sync_now
-    end
-
-    resources :heartbeat_imports, only: [ :create, :show ]
-
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
       member do
         patch :archive
@@ -179,7 +170,6 @@ Rails.application.routes.draw do
     resources :heartbeats, only: [] do
       collection do
         post :export
-        post :import
       end
     end
   end

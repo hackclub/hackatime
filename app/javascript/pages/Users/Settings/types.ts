@@ -82,13 +82,9 @@ export type PathsProps = {
   add_email_path: string;
   unlink_email_path: string;
   rotate_api_key_path: string;
-  migrate_heartbeats_path: string;
   export_all_heartbeats_path: string;
   export_range_heartbeats_path: string;
-  create_heartbeat_import_path: string;
   create_deletion_path: string;
-  heartbeat_import_source_path: string;
-  heartbeat_import_source_sync_path: string;
 };
 
 export type OptionsProps = {
@@ -147,11 +143,6 @@ export type ConfigFileProps = {
   api_url: string;
 };
 
-export type MigrationProps = {
-  enabled: boolean;
-  jobs: { id: string; status: string }[];
-};
-
 export type DataExportProps = {
   total_heartbeats: string;
   total_coding_time: string;
@@ -161,46 +152,6 @@ export type DataExportProps = {
 
 export type AdminToolsProps = {
   visible: boolean;
-};
-
-export type UiProps = {
-  show_dev_import: boolean;
-  show_imports: boolean;
-};
-
-export type HeartbeatImportStatusProps = {
-  import_id: string;
-  state: string;
-  progress_percent: number;
-  processed_count: number;
-  total_count: number | null;
-  imported_count: number | null;
-  skipped_count: number | null;
-  errors_count: number;
-  message: string;
-  updated_at: string;
-  started_at?: string;
-  finished_at?: string;
-};
-
-export type HeartbeatImportProps = {
-  import_id?: string | null;
-  status?: HeartbeatImportStatusProps | null;
-};
-
-export type HeartbeatImportSourceProps = {
-  id: number;
-  provider: string;
-  endpoint_url: string;
-  sync_enabled: boolean;
-  status: string;
-  backfill_cursor_date?: string | null;
-  last_synced_at?: string | null;
-  last_synced_ago?: string | null;
-  last_error_message?: string | null;
-  last_error_at?: string | null;
-  consecutive_failures: number;
-  imported_count: number;
 };
 
 export type ErrorsProps = {
@@ -264,11 +215,7 @@ export type BadgesPageProps = SettingsCommonProps & {
 export type DataPageProps = SettingsCommonProps & {
   user: UserProps;
   paths: PathsProps;
-  migration: MigrationProps;
   data_export: DataExportProps;
-  import_source?: HeartbeatImportSourceProps | null;
-  ui: UiProps;
-  heartbeat_import: HeartbeatImportProps;
 };
 
 export type AdminPageProps = SettingsCommonProps & {
@@ -320,7 +267,7 @@ export const buildSections = (
     {
       id: "data" as SectionId,
       label: "Data",
-      blurb: "Exports, imports, migration jobs, and deletion controls.",
+      blurb: "Exports, downloads, and deletion controls.",
       path: sectionPaths.data,
     },
   ];
@@ -356,8 +303,6 @@ const hashSectionMap: Record<string, SectionId> = {
   user_stats_badges: "badges",
   user_markscribe: "badges",
   user_heatmap: "badges",
-  user_migration_assistant: "data",
-  wakatime_import_source: "data",
   download_user_data: "data",
   delete_account: "data",
 };
