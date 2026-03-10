@@ -100,9 +100,7 @@ class My::HeartbeatImportSourcesController < ApplicationController
     params.require(:heartbeat_import_source).permit(
       :endpoint_url,
       :encrypted_api_key,
-      :sync_enabled,
-      :initial_backfill_start_date,
-      :initial_backfill_end_date
+      :sync_enabled
     )
   end
 
@@ -115,8 +113,6 @@ class My::HeartbeatImportSourcesController < ApplicationController
       endpoint_url: source.endpoint_url,
       sync_enabled: source.sync_enabled,
       status: source.status,
-      initial_backfill_start_date: source.initial_backfill_start_date&.iso8601,
-      initial_backfill_end_date: source.initial_backfill_end_date&.iso8601,
       backfill_cursor_date: source.backfill_cursor_date&.iso8601,
       last_synced_at: source.last_synced_at&.iso8601,
       last_synced_ago: source.last_synced_at ? view_context.time_ago_in_words(source.last_synced_at) : nil,

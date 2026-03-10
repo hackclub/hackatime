@@ -631,8 +631,6 @@ CREATE TABLE public.heartbeat_import_sources (
     created_at timestamp(6) without time zone NOT NULL,
     encrypted_api_key character varying NOT NULL,
     endpoint_url character varying NOT NULL,
-    initial_backfill_end_date date,
-    initial_backfill_start_date date,
     last_error_at timestamp(6) without time zone,
     last_error_message text,
     last_synced_at timestamp(6) without time zone,
@@ -10477,6 +10475,7 @@ ALTER TABLE ONLY public.admin_api_keys
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260310150000'),
 ('20260310112820'),
 ('20260304121229'),
 ('20260301200002'),

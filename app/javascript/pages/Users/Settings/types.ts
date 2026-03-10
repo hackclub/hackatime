@@ -194,8 +194,6 @@ export type HeartbeatImportSourceProps = {
   endpoint_url: string;
   sync_enabled: boolean;
   status: string;
-  initial_backfill_start_date?: string | null;
-  initial_backfill_end_date?: string | null;
   backfill_cursor_date?: string | null;
   last_synced_at?: string | null;
   last_synced_ago?: string | null;

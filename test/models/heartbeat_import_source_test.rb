@@ -8,14 +8,14 @@ class HeartbeatImportSourceTest < ActiveSupport::TestCase
       user: user,
       provider: :wakatime_compatible,
       endpoint_url: "https://wakatime.com/api/v1",
-      encrypted_api_key: "abc123"
+      encrypted_api_key: "waka_00000000-0000-0000-0000-000000000001"
     )
 
     duplicate = HeartbeatImportSource.new(
       user: user,
       provider: :wakatime_compatible,
       endpoint_url: "https://wakapi.dev/api/compat/wakatime/v1",
-      encrypted_api_key: "xyz789"
+      encrypted_api_key: "waka_00000000-0000-0000-0000-000000000002"
     )
 
     assert_not duplicate.valid?
@@ -27,24 +27,10 @@ class HeartbeatImportSourceTest < ActiveSupport::TestCase
       user: User.create!(timezone: "UTC"),
       provider: :wakatime_compatible,
       endpoint_url: "http://example.com/api/v1",
-      encrypted_api_key: "abc123"
+      encrypted_api_key: "waka_00000000-0000-0000-0000-000000000001"
     )
 
     assert_not source.valid?
     assert_includes source.errors[:endpoint_url], "must use https"
-  end
-
-  test "validates backfill date range order" do
-    source = HeartbeatImportSource.new(
-      user: User.create!(timezone: "UTC"),
-      provider: :wakatime_compatible,
-      endpoint_url: "https://example.com/api/v1",
-      encrypted_api_key: "abc123",
-      initial_backfill_start_date: Date.new(2026, 2, 10),
-      initial_backfill_end_date: Date.new(2026, 2, 1)
-    )
-
-    assert_not source.valid?
-    assert_includes source.errors[:initial_backfill_end_date], "must be on or after the start date"
   end
 end

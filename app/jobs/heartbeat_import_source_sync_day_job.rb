@@ -94,7 +94,7 @@ class HeartbeatImportSourceSyncDayJob < ApplicationJob
     return unless source.backfill_cursor_date == completed_date
 
     next_date = completed_date + 1.day
-    end_date = source.initial_backfill_end_date || Date.current
+    end_date = Date.current
 
     if next_date > end_date
       source.update!(status: :syncing, backfill_cursor_date: nil)

@@ -57,35 +57,12 @@ class HeartbeatImportSourceSyncJobTest < ActiveJob::TestCase
     assert_equal(Date.current - 5.days, source.backfill_cursor_date)
   end
 
-  test "range override limits scheduled days" do
-    GoodJob::Job.delete_all
-    user = User.create!(timezone: "UTC")
-    start_date = Date.current - 2.days
-    end_date = Date.current - 1.day
-    source = create_source(
-      user: user,
-      initial_backfill_start_date: start_date,
-      initial_backfill_end_date: end_date
-    )
-
-    HeartbeatImportSourceSyncJob.perform_now(source.id)
-
-    day_jobs = queued_jobs_for("HeartbeatImportSourceSyncDayJob")
-    day_args = day_jobs.map { |job| job.serialized_params.fetch("arguments").last }
-
-    assert_equal 2, day_jobs.count
-    assert_includes day_args, start_date.iso8601
-    assert_includes day_args, end_date.iso8601
-  end
-
   test "ongoing sync enqueues today and yesterday" do
     GoodJob::Job.delete_all
     user = User.create!(timezone: "UTC")
     source = create_source(
       user: user,
       status: :syncing,
-      initial_backfill_start_date: Date.current - 7.days,
-      initial_backfill_end_date: Date.current,
       backfill_cursor_date: nil,
       last_synced_at: Time.current
     )

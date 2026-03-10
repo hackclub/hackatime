@@ -47,9 +47,6 @@
   let isStartingImport = $state(false);
   let isPolling = $state(false);
   let importSource = $state<DataPageProps["import_source"] | null>(null);
-  let backfillMode = $state<"all_time" | "date_range">("all_time");
-  let importStartDate = $state("");
-  let importEndDate = $state("");
   const apiKeyPattern =
     "(waka_)?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
   const importPollParams: { heartbeat_import_id?: string } = {};
@@ -102,10 +99,6 @@
     syncImportFromProps(heartbeat_import);
     if (ui.show_imports) {
       importSource = import_source || null;
-      importStartDate = importSource?.initial_backfill_start_date || "";
-      importEndDate = importSource?.initial_backfill_end_date || "";
-      backfillMode =
-        importStartDate || importEndDate ? "date_range" : "all_time";
       startImportSourcePolling();
     }
 
@@ -123,16 +116,10 @@
   $effect(() => {
     if (!ui.show_imports) {
       importSource = null;
-      importStartDate = "";
-      importEndDate = "";
-      backfillMode = "all_time";
       return;
     }
 
     importSource = import_source || null;
-    importStartDate = importSource?.initial_backfill_start_date || "";
-    importEndDate = importSource?.initial_backfill_end_date || "";
-    backfillMode = importStartDate || importEndDate ? "date_range" : "all_time";
   });
 
   function isTerminalImportState(state: string) {
@@ -395,116 +382,40 @@
               >
                 API Key
               </label>
-              <input
-                id="import_api_key"
-                type="password"
-                name="heartbeat_import_source[encrypted_api_key]"
-                required={!importSource}
-                placeholder="waka_xxxxxxxxxxxx"
-                pattern={apiKeyPattern}
-                title="Must be a valid UUID, optionally prefixed with waka_"
-                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-              />
-              <p class="mt-1 text-xs text-muted">
-                {#if importSource}
-                  Leave blank to keep the existing key.
-                {:else}
-                  Find this in your WakaTime account settings.
-                {/if}
-              </p>
-            </div>
-
-            <div>
-              <p class="text-sm font-semibold text-surface-content">
-                Backfill scope
-              </p>
-              <div class="mt-2 flex flex-wrap items-center gap-4">
-                <label
-                  class="inline-flex items-center gap-2 text-sm text-surface-content"
-                >
-                  <input
-                    type="radio"
-                    name="backfill_mode"
-                    value="all_time"
-                    checked={backfillMode === "all_time"}
-                    onchange={() => {
-                      backfillMode = "all_time";
-                      importStartDate = "";
-                      importEndDate = "";
-                    }}
-                    class="peer sr-only"
-                  />
-                  <span
-                    class="h-4 w-4 rounded-full border border-surface-200 bg-surface ring-offset-2 ring-offset-surface transition peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"
-                  ></span>
-                  All time
-                </label>
-                <label
-                  class="inline-flex items-center gap-2 text-sm text-surface-content"
-                >
-                  <input
-                    type="radio"
-                    name="backfill_mode"
-                    value="date_range"
-                    checked={backfillMode === "date_range"}
-                    onchange={() => {
-                      backfillMode = "date_range";
-                    }}
-                    class="peer sr-only"
-                  />
-                  <span
-                    class="h-4 w-4 rounded-full border border-surface-200 bg-surface ring-offset-2 ring-offset-surface transition peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"
-                  ></span>
-                  Specific date range
-                </label>
-              </div>
-
-              {#if backfillMode === "all_time"}
+              {#if importSource}
                 <input
-                  type="hidden"
-                  name="heartbeat_import_source[initial_backfill_start_date]"
-                  value=""
+                  id="import_api_key_display"
+                  type="password"
+                  disabled
+                  value="waka_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted opacity-60 cursor-not-allowed"
                 />
+                <p class="mt-1 text-xs text-muted">
+                  Key is set. Enter a new key below to replace it.
+                </p>
                 <input
-                  type="hidden"
-                  name="heartbeat_import_source[initial_backfill_end_date]"
-                  value=""
+                  id="import_api_key"
+                  type="password"
+                  name="heartbeat_import_source[encrypted_api_key]"
+                  placeholder="Paste new key to replace"
+                  pattern={apiKeyPattern}
+                  title="Must be a valid UUID, optionally prefixed with waka_"
+                  class="mt-2 w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
                 />
               {:else}
-                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label
-                      for="import_start_date"
-                      class="mb-2 block text-sm text-surface-content"
-                    >
-                      Start date
-                    </label>
-                    <input
-                      id="import_start_date"
-                      type="date"
-                      name="heartbeat_import_source[initial_backfill_start_date]"
-                      bind:value={importStartDate}
-                      required
-                      class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      for="import_end_date"
-                      class="mb-2 block text-sm text-surface-content"
-                    >
-                      End date
-                    </label>
-                    <input
-                      id="import_end_date"
-                      type="date"
-                      name="heartbeat_import_source[initial_backfill_end_date]"
-                      bind:value={importEndDate}
-                      required
-                      class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                </div>
+                <input
+                  id="import_api_key"
+                  type="password"
+                  name="heartbeat_import_source[encrypted_api_key]"
+                  required
+                  placeholder="waka_xxxxxxxxxxxx"
+                  pattern={apiKeyPattern}
+                  title="Must be a valid UUID, optionally prefixed with waka_"
+                  class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+                />
+                <p class="mt-1 text-xs text-muted">
+                  Find this in your WakaTime account settings.
+                </p>
               {/if}
             </div>
 
