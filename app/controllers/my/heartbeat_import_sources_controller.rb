@@ -1,6 +1,6 @@
 class My::HeartbeatImportSourcesController < ApplicationController
   before_action :ensure_current_user
-  before_action :ensure_imports_and_mirrors_enabled
+  before_action :ensure_imports_enabled
 
   def create
     if current_user.heartbeat_import_source.present?
@@ -78,13 +78,13 @@ class My::HeartbeatImportSourcesController < ApplicationController
     redirect_to root_path, alert: "You must be logged in to view this page." unless current_user
   end
 
-  def ensure_imports_and_mirrors_enabled
-    return if Flipper.enabled?(:wakatime_imports_mirrors)
+  def ensure_imports_enabled
+    return if Flipper.enabled?(:wakatime_imports)
 
     if request.format.json?
-      render json: { error: "Imports and mirrors are currently disabled." }, status: :not_found
+      render json: { error: "Imports are currently disabled." }, status: :not_found
     else
-      redirect_to my_settings_data_path, alert: "Imports and mirrors are currently disabled."
+      redirect_to my_settings_data_path, alert: "Imports are currently disabled."
     end
   end
 

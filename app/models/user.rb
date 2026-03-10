@@ -135,7 +135,6 @@ class User < ApplicationRecord
     primary_key: :slack_uid,
     class_name: "SailorsLog"
 
-  has_many :wakatime_mirrors, dependent: :destroy
   has_one :heartbeat_import_source, dependent: :destroy
 
   scope :search_identity, ->(term) {

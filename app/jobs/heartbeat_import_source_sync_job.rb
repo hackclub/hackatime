@@ -3,8 +3,6 @@ class HeartbeatImportSourceSyncJob < ApplicationJob
 
   include GoodJob::ActiveJobExtensions::Concurrency
 
-  BACKFILL_WINDOW_DAYS = 5
-
   retry_on WakatimeCompatibleClient::TransientError,
     wait: ->(executions) { (executions**2).seconds + rand(1..4).seconds },
     attempts: 8
@@ -15,7 +13,7 @@ class HeartbeatImportSourceSyncJob < ApplicationJob
   )
 
   def perform(source_id)
-    return unless Flipper.enabled?(:wakatime_imports_mirrors)
+    return unless Flipper.enabled?(:wakatime_imports)
 
     source = HeartbeatImportSource.find_by(id: source_id)
     return unless source&.sync_enabled?
@@ -24,7 +22,7 @@ class HeartbeatImportSourceSyncJob < ApplicationJob
     initialize_backfill_if_needed(source)
 
     if source.backfilling?
-      schedule_backfill_window(source)
+      schedule_next_backfill_day(source)
       return
     end
 
@@ -36,24 +34,24 @@ class HeartbeatImportSourceSyncJob < ApplicationJob
       sync_enabled: false,
       status: :paused,
       last_error_message: e.message.to_s.truncate(500),
-      last_error_at: Time.current,
-      consecutive_failures: source.consecutive_failures.to_i + 1
+      last_error_at: Time.current
     )
+    HeartbeatImportSource.increment_counter(:consecutive_failures, source.id) if source
   rescue WakatimeCompatibleClient::TransientError => e
     source&.update!(
       status: source&.backfilling? ? :backfilling : :failed,
       last_error_message: e.message.to_s.truncate(500),
-      last_error_at: Time.current,
-      consecutive_failures: source.consecutive_failures.to_i + 1
+      last_error_at: Time.current
     )
+    HeartbeatImportSource.increment_counter(:consecutive_failures, source.id) if source
     raise
   rescue WakatimeCompatibleClient::RequestError => e
     source&.update!(
       status: :failed,
       last_error_message: e.message.to_s.truncate(500),
-      last_error_at: Time.current,
-      consecutive_failures: source.consecutive_failures.to_i + 1
+      last_error_at: Time.current
     )
+    HeartbeatImportSource.increment_counter(:consecutive_failures, source.id) if source
   end
 
   private
@@ -68,13 +66,7 @@ class HeartbeatImportSourceSyncJob < ApplicationJob
     end_date = source.initial_backfill_end_date || Date.current
 
     if start_date.blank?
-      begin
-        start_date = source.client.fetch_all_time_since_today_start_date
-      rescue => e
-        Rails.logger.error("Failed to fetch all_time_since_today for source #{source.id}: #{e.message}")
-        source.update!(status: :failed, last_error_message: e.message, last_error_at: Time.current)
-        return
-      end
+      start_date = source.client.fetch_all_time_since_today_start_date
     end
 
     if start_date > end_date
@@ -98,7 +90,9 @@ class HeartbeatImportSourceSyncJob < ApplicationJob
     )
   end
 
-  def schedule_backfill_window(source)
+  BACKFILL_WINDOW_SIZE = 5
+
+  def schedule_next_backfill_day(source)
     cursor = source.backfill_cursor_date
     end_date = source.initial_backfill_end_date || Date.current
     return if cursor.blank?
@@ -109,18 +103,17 @@ class HeartbeatImportSourceSyncJob < ApplicationJob
       return
     end
 
-    window_end = [ cursor + (BACKFILL_WINDOW_DAYS - 1).days, end_date ].min
-    (cursor..window_end).each do |date|
+    days_scheduled = 0
+    date = cursor
+    while date <= end_date && days_scheduled < BACKFILL_WINDOW_SIZE
       enqueue_day_sync(source, date)
+      days_scheduled += 1
+      date += 1.day
     end
 
-    next_cursor = window_end + 1.day
+    source.update!(backfill_cursor_date: date)
 
-    if next_cursor > end_date
-      source.update!(status: :syncing, backfill_cursor_date: nil)
-      self.class.perform_later(source.id)
-    else
-      source.update!(status: :backfilling, backfill_cursor_date: next_cursor)
+    if date <= end_date
       self.class.perform_later(source.id)
     end
   end

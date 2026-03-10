@@ -33,7 +33,7 @@ class Settings::BaseController < InertiaController
   def prepare_settings_page
     @is_own_settings = is_own_settings?
     @can_enable_slack_status = @user.slack_access_token.present? && @user.slack_scopes.include?("users.profile:write")
-    @imports_and_mirrors_enabled = Flipper.enabled?(:wakatime_imports_mirrors)
+    @imports_enabled = Flipper.enabled?(:wakatime_imports)
 
     @enabled_sailors_logs = SailorsLogNotificationPreference.where(
       slack_uid: @user.slack_uid,
@@ -62,8 +62,7 @@ class Settings::BaseController < InertiaController
 
     @general_badge_url = GithubReadmeStats.new(@user.id, "darcula").generate_badge_url
     @latest_api_key_token = @user.api_keys.last&.token
-    @mirrors = @imports_and_mirrors_enabled ? current_user.wakatime_mirrors.order(created_at: :desc) : []
-    @import_source = @imports_and_mirrors_enabled ? current_user.heartbeat_import_source : nil
+    @import_source = @imports_enabled ? current_user.heartbeat_import_source : nil
   end
 
   def settings_page_props(active_section:, settings_update_path:)
@@ -132,7 +131,6 @@ class Settings::BaseController < InertiaController
         export_range_heartbeats_path: export_my_heartbeats_path,
         create_heartbeat_import_path: my_heartbeat_imports_path,
         create_deletion_path: create_deletion_path,
-        user_wakatime_mirrors_path: user_wakatime_mirrors_path(current_user),
         heartbeat_import_source_path: my_heartbeat_import_source_path,
         heartbeat_import_source_sync_path: sync_my_heartbeat_import_source_path
       },
@@ -225,14 +223,12 @@ class Settings::BaseController < InertiaController
         is_restricted: (@user.trust_level == "red")
       },
       import_source: serialized_import_source(@import_source),
-      mirrors: serialized_mirrors(@mirrors),
       admin_tools: {
-        visible: current_user.admin_level.in?(%w[admin superadmin]),
-        mirrors: serialized_mirrors(@mirrors)
+        visible: current_user.admin_level.in?(%w[admin superadmin])
       },
       ui: {
         show_dev_import: Rails.env.development?,
-        show_imports_and_mirrors: @imports_and_mirrors_enabled
+        show_imports: @imports_enabled
       },
       heartbeat_import: {
         import_id: heartbeat_import_id,
@@ -300,22 +296,6 @@ class Settings::BaseController < InertiaController
       imported_count: Rails.cache.fetch("user:#{source.user_id}:wakapi_import_count", expires_in: 5.minutes) do
         source.user.heartbeats.where(source_type: :wakapi_import).count
       end
-    }
-  end
-
-  def serialized_mirrors(mirrors)
-    mirrors.map { |mirror|
-      {
-        id: mirror.id,
-        endpoint_url: mirror.endpoint_url,
-        enabled: mirror.enabled,
-        last_synced_at: mirror.last_synced_at&.iso8601,
-        last_synced_ago: (mirror.last_synced_at ? "#{time_ago_in_words(mirror.last_synced_at)} ago" : "Never"),
-        consecutive_failures: mirror.consecutive_failures,
-        last_error_message: mirror.last_error_message,
-        last_error_at: mirror.last_error_at&.iso8601,
-        destroy_path: user_wakatime_mirror_path(current_user, mirror)
-      }
     }
   end
 end

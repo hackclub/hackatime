@@ -84,13 +84,15 @@ class Heartbeat < ApplicationRecord
 
   # This is to prevent Rails from trying to use STI even though we have a "type" column
   self.inheritance_column = nil
+  # Partitioned tables don't auto-detect PK; set it explicitly
+  self.primary_key = "id"
 
   belongs_to :user
   belongs_to :raw_heartbeat_upload, optional: true
 
   validates :time, presence: true
 
-  # after_create :mirror_to_wakatime
+
 
   def self.recent_count
     Cache::HeartbeatCountsJob.perform_now[:recent_count]
@@ -126,8 +128,4 @@ class Heartbeat < ApplicationRecord
       self.fields_hash = self.class.generate_fields_hash(self.attributes)
     end
   end
-
-  # def mirror_to_wakatime
-  #   WakatimeMirror.mirror_heartbeat(self)
-  # end
 end

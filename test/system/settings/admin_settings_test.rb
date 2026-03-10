@@ -20,6 +20,6 @@ class AdminSettingsTest < ApplicationSystemTestCase
     @user.update!(admin_level: :admin)
 
     visit my_settings_admin_path
-    assert_text "Mirror and import controls are available under Data settings for all users."
+    assert_text "Import controls are available under Data settings for all users."
   end
 end

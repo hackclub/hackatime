@@ -27,7 +27,6 @@
     migration,
     data_export,
     import_source,
-    mirrors,
     ui,
     heartbeat_import,
     errors,
@@ -51,6 +50,8 @@
   let backfillMode = $state<"all_time" | "date_range">("all_time");
   let importStartDate = $state("");
   let importEndDate = $state("");
+  const apiKeyPattern =
+    "(waka_)?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
   const importPollParams: { heartbeat_import_id?: string } = {};
   const tweenedProgress = tweened(0, { duration: 320, easing: cubicOut });
 
@@ -99,7 +100,7 @@
         ?.getAttribute("content") || "";
 
     syncImportFromProps(heartbeat_import);
-    if (ui.show_imports_and_mirrors) {
+    if (ui.show_imports) {
       importSource = import_source || null;
       importStartDate = importSource?.initial_backfill_start_date || "";
       importEndDate = importSource?.initial_backfill_end_date || "";
@@ -109,7 +110,7 @@
     }
 
     return () => {
-      if (ui.show_imports_and_mirrors) {
+      if (ui.show_imports) {
         stopImportSourcePolling();
       }
     };
@@ -120,7 +121,7 @@
   });
 
   $effect(() => {
-    if (!ui.show_imports_and_mirrors) {
+    if (!ui.show_imports) {
       importSource = null;
       importStartDate = "";
       importEndDate = "";
@@ -291,40 +292,47 @@
   {admin_tools}
 >
   <div class="space-y-8">
-    <section id="user_migration_assistant">
-      <h2 class="text-xl font-semibold text-surface-content">
-        Migration Assistant
-      </h2>
-      <p class="mt-1 text-sm text-muted">
-        Queue migration of heartbeats and API keys from legacy Hackatime.
-      </p>
-      <form method="post" action={paths.migrate_heartbeats_path} class="mt-4">
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
-        <Button type="submit" class="rounded-md" disabled={!migration.enabled}
-          >Start migration</Button
-        >
-      </form>
-      {#if !migration.enabled}
-        <p class="mt-2 text-xs text-muted">
-          Hackatime v1 import is currently disabled due to an integration issue.
-          We're working on reinstating imports!
+    {#if !ui.show_imports}
+      <section id="user_migration_assistant">
+        <h2 class="text-xl font-semibold text-surface-content">
+          Migration Assistant
+        </h2>
+        <p class="mt-1 text-sm text-muted">
+          Queue migration of heartbeats and API keys from legacy Hackatime.
         </p>
-      {/if}
+        {#if !migration.enabled}
+          <div
+            class="mt-3 flex items-start gap-2 rounded-md border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200"
+          >
+            <span class="mt-0.5 shrink-0">⚠️</span>
+            <p>
+              Hackatime v1 import is currently disabled due to an integration
+              issue. We're working on reinstating imports!
+            </p>
+          </div>
+        {/if}
+        <form method="post" action={paths.migrate_heartbeats_path} class="mt-4">
+          <input type="hidden" name="authenticity_token" value={csrfToken} />
+          <Button type="submit" class="rounded-md" disabled={!migration.enabled}
+            >Start migration</Button
+          >
+        </form>
 
-      {#if migration.jobs.length > 0}
-        <div class="mt-4 space-y-2">
-          {#each migration.jobs as job}
-            <div
-              class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content"
-            >
-              Job {job.id}: {job.status}
-            </div>
-          {/each}
-        </div>
-      {/if}
-    </section>
+        {#if migration.jobs.length > 0}
+          <div class="mt-4 space-y-2">
+            {#each migration.jobs as job}
+              <div
+                class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content"
+              >
+                Job {job.id}: {job.status}
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </section>
+    {/if}
 
-    {#if ui.show_imports_and_mirrors}
+    {#if ui.show_imports}
       <div class="mt-4 space-y-7">
         <section id="wakatime_import_source">
           <h3 class="text-lg font-semibold text-surface-content">
@@ -355,7 +363,7 @@
           <form
             method="post"
             action={paths.heartbeat_import_source_path}
-            class="mt-3 space-y-3 rounded-md border border-surface-200 bg-surface p-3"
+            class="mt-3 space-y-3"
           >
             <input type="hidden" name="authenticity_token" value={csrfToken} />
             {#if importSource}
@@ -392,16 +400,21 @@
                 type="password"
                 name="heartbeat_import_source[encrypted_api_key]"
                 required={!importSource}
+                placeholder="waka_xxxxxxxxxxxx"
+                pattern={apiKeyPattern}
+                title="Must be a valid UUID, optionally prefixed with waka_"
                 class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
               />
-              {#if importSource}
-                <p class="mt-1 text-xs text-muted">
+              <p class="mt-1 text-xs text-muted">
+                {#if importSource}
                   Leave blank to keep the existing key.
-                </p>
-              {/if}
+                {:else}
+                  Find this in your WakaTime account settings.
+                {/if}
+              </p>
             </div>
 
-            <div class="rounded-md border border-surface-200 bg-darker p-3">
+            <div>
               <p class="text-sm font-semibold text-surface-content">
                 Backfill scope
               </p>
@@ -495,23 +508,34 @@
               {/if}
             </div>
 
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-4">
               <input
                 type="hidden"
                 name="heartbeat_import_source[sync_enabled]"
                 value="0"
               />
               <label
-                class="inline-flex items-center gap-2 text-sm text-surface-content"
+                class="inline-flex cursor-pointer items-center gap-3 text-sm text-surface-content"
               >
-                <input
-                  type="checkbox"
-                  name="heartbeat_import_source[sync_enabled]"
-                  value="1"
-                  checked={importSource ? importSource.sync_enabled : true}
-                  class="h-4 w-4 rounded border-surface-200 bg-surface text-primary"
-                />
-                Continuous sync enabled
+                <span class="relative inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    name="heartbeat_import_source[sync_enabled]"
+                    value="1"
+                    checked={importSource ? importSource.sync_enabled : true}
+                    class="peer sr-only"
+                  />
+                  <span
+                    class="h-5 w-9 rounded-full border border-surface-200 bg-surface transition peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"
+                  ></span>
+                  <span
+                    class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-muted transition-transform peer-checked:translate-x-4 peer-checked:bg-white"
+                  ></span>
+                </span>
+                Continuous sync
+                <span class="text-xs text-muted"
+                  >Automatically sync future heartbeats</span
+                >
               </label>
               {#if importSource}
                 <label
@@ -528,7 +552,7 @@
               {/if}
             </div>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="flex justify-end">
               <Button type="submit" variant="primary">
                 {importSource ? "Update source" : "Create source"}
               </Button>
@@ -567,102 +591,6 @@
               </form>
             </div>
           {/if}
-        </section>
-
-        <section id="wakatime_mirror">
-          <h3 class="text-lg font-semibold text-surface-content">
-            Mirror to WakaTime
-          </h3>
-
-          {#if mirrors.length > 0}
-            <div class="mt-3 space-y-2">
-              {#each mirrors as mirror}
-                <div
-                  class="rounded-md border border-surface-200 bg-surface p-3"
-                >
-                  <p class="text-sm font-semibold text-surface-content">
-                    {mirror.endpoint_url}
-                  </p>
-                  <p class="mt-1 text-xs text-muted">
-                    Status: {mirror.enabled ? "enabled" : "paused"}
-                  </p>
-                  <p class="mt-1 text-xs text-muted">
-                    Last synced: {mirror.last_synced_ago}
-                  </p>
-                  {#if mirror.last_error_message}
-                    <p class="mt-1 text-xs text-red-300">
-                      Last error: {mirror.last_error_message}
-                    </p>
-                  {/if}
-                  {#if mirror.consecutive_failures && mirror.consecutive_failures > 0}
-                    <p class="mt-1 text-xs text-muted">
-                      Consecutive failures: {mirror.consecutive_failures}
-                    </p>
-                  {/if}
-                  <form
-                    method="post"
-                    action={mirror.destroy_path}
-                    class="mt-3"
-                    onsubmit={(event) => {
-                      if (!window.confirm("Delete this mirror endpoint?")) {
-                        event.preventDefault();
-                      }
-                    }}
-                  >
-                    <input type="hidden" name="_method" value="delete" />
-                    <input
-                      type="hidden"
-                      name="authenticity_token"
-                      value={csrfToken}
-                    />
-                    <Button type="submit" variant="surface" size="xs">
-                      Delete mirror
-                    </Button>
-                  </form>
-                </div>
-              {/each}
-            </div>
-          {/if}
-
-          <form
-            method="post"
-            action={paths.user_wakatime_mirrors_path}
-            class="mt-3 space-y-3 rounded-md border border-surface-200 bg-surface p-3"
-          >
-            <input type="hidden" name="authenticity_token" value={csrfToken} />
-            <div>
-              <label
-                for="mirror_endpoint_url"
-                class="mb-2 block text-sm text-surface-content"
-              >
-                Endpoint URL
-              </label>
-              <input
-                id="mirror_endpoint_url"
-                type="url"
-                name="wakatime_mirror[endpoint_url]"
-                value="https://wakatime.com/api/v1"
-                required
-                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-              />
-            </div>
-            <div>
-              <label
-                for="mirror_key"
-                class="mb-2 block text-sm text-surface-content"
-              >
-                WakaTime API Key
-              </label>
-              <input
-                id="mirror_key"
-                type="password"
-                name="wakatime_mirror[encrypted_api_key]"
-                required
-                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-              />
-            </div>
-            <Button type="submit" variant="primary">Add mirror</Button>
-          </form>
         </section>
       </div>
     {/if}

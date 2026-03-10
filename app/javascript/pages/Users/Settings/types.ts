@@ -87,7 +87,6 @@ export type PathsProps = {
   export_range_heartbeats_path: string;
   create_heartbeat_import_path: string;
   create_deletion_path: string;
-  user_wakatime_mirrors_path: string;
   heartbeat_import_source_path: string;
   heartbeat_import_source_sync_path: string;
 };
@@ -162,22 +161,11 @@ export type DataExportProps = {
 
 export type AdminToolsProps = {
   visible: boolean;
-  mirrors: {
-    id: number;
-    endpoint_url: string;
-    enabled?: boolean;
-    last_synced_at?: string | null;
-    last_synced_ago: string;
-    consecutive_failures?: number;
-    last_error_message?: string | null;
-    last_error_at?: string | null;
-    destroy_path: string;
-  }[];
 };
 
 export type UiProps = {
   show_dev_import: boolean;
-  show_imports_and_mirrors: boolean;
+  show_imports: boolean;
 };
 
 export type HeartbeatImportStatusProps = {
@@ -281,7 +269,6 @@ export type DataPageProps = SettingsCommonProps & {
   migration: MigrationProps;
   data_export: DataExportProps;
   import_source?: HeartbeatImportSourceProps | null;
-  mirrors: AdminToolsProps["mirrors"];
   ui: UiProps;
   heartbeat_import: HeartbeatImportProps;
 };
@@ -291,7 +278,10 @@ export type AdminPageProps = SettingsCommonProps & {
   paths: PathsProps;
 };
 
-export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean) => {
+export const buildSections = (
+  sectionPaths: SectionPaths,
+  adminVisible: boolean,
+) => {
   const sections = [
     {
       id: "profile" as SectionId,
@@ -332,7 +322,7 @@ export const buildSections = (sectionPaths: SectionPaths, adminVisible: boolean)
     {
       id: "data" as SectionId,
       label: "Data",
-      blurb: "Exports, imports, mirrors, migration jobs, and deletion controls.",
+      blurb: "Exports, imports, migration jobs, and deletion controls.",
       path: sectionPaths.data,
     },
   ];
@@ -372,7 +362,6 @@ const hashSectionMap: Record<string, SectionId> = {
   wakatime_import_source: "data",
   download_user_data: "data",
   delete_account: "data",
-  wakatime_mirror: "data",
 };
 
 export const sectionFromHash = (hash: string): SectionId | null => {

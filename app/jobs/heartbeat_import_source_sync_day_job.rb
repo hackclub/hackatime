@@ -13,7 +13,7 @@ class HeartbeatImportSourceSyncDayJob < ApplicationJob
   )
 
   def perform(source_id, date_string)
-    return unless Flipper.enabled?(:wakatime_imports_mirrors)
+    return unless Flipper.enabled?(:wakatime_imports)
 
     source = HeartbeatImportSource.find_by(id: source_id)
     return unless source&.sync_enabled?
@@ -28,49 +28,81 @@ class HeartbeatImportSourceSyncDayJob < ApplicationJob
       last_error_at: nil,
       consecutive_failures: 0
     )
+
+    advance_backfill_cursor(source, date)
   rescue WakatimeCompatibleClient::AuthenticationError => e
     source&.update!(
       sync_enabled: false,
       status: :paused,
       last_error_message: e.message.to_s.truncate(500),
-      last_error_at: Time.current,
-      consecutive_failures: source.consecutive_failures.to_i + 1
+      last_error_at: Time.current
     )
+    HeartbeatImportSource.increment_counter(:consecutive_failures, source.id)
   rescue WakatimeCompatibleClient::TransientError => e
     source&.update!(
       status: source&.backfilling? ? :backfilling : :failed,
       last_error_message: e.message.to_s.truncate(500),
-      last_error_at: Time.current,
-      consecutive_failures: source.consecutive_failures.to_i + 1
+      last_error_at: Time.current
     )
+    HeartbeatImportSource.increment_counter(:consecutive_failures, source.id)
     raise
   rescue WakatimeCompatibleClient::RequestError => e
     source&.update!(
       status: :failed,
       last_error_message: e.message.to_s.truncate(500),
-      last_error_at: Time.current,
-      consecutive_failures: source.consecutive_failures.to_i + 1
+      last_error_at: Time.current
     )
+    HeartbeatImportSource.increment_counter(:consecutive_failures, source.id)
   rescue ArgumentError => e
     source&.update!(
       status: :failed,
       last_error_message: e.message.to_s.truncate(500),
-      last_error_at: Time.current,
-      consecutive_failures: source.consecutive_failures.to_i + 1
+      last_error_at: Time.current
     )
+    HeartbeatImportSource.increment_counter(:consecutive_failures, source.id)
   end
 
   private
 
+  UPSERT_BATCH_SIZE = 500
+
   def upsert_heartbeats(user_id, rows)
-    normalized = rows.filter_map { |row| normalize_row(user_id, row) }
+    dropped_count = 0
+    normalized = rows.filter_map do |row|
+      result = normalize_row(user_id, row)
+      dropped_count += 1 if result.nil?
+      result
+    end
+
+    if dropped_count > 0
+      Rails.logger.warn("HeartbeatImportSourceSyncDayJob: dropped #{dropped_count}/#{rows.size} rows during normalization")
+    end
+
     return if normalized.empty?
 
     deduped_records = normalized.group_by { |record| record[:fields_hash] }.map do |_, records|
       records.max_by { |record| record[:time].to_f }
     end
 
-    Heartbeat.upsert_all(deduped_records, unique_by: [ :fields_hash ])
+    deduped_records.each_slice(UPSERT_BATCH_SIZE) do |batch|
+      Heartbeat.upsert_all(batch, unique_by: %i[fields_hash time])
+    end
+  end
+
+  def advance_backfill_cursor(source, completed_date)
+    return unless source.backfilling?
+    return unless source.backfill_cursor_date == completed_date
+
+    next_date = completed_date + 1.day
+    end_date = source.initial_backfill_end_date || Date.current
+
+    if next_date > end_date
+      source.update!(status: :syncing, backfill_cursor_date: nil)
+    else
+      source.update!(backfill_cursor_date: next_date)
+    end
+
+    HeartbeatImportSourceSyncJob.perform_later(source.id)
   end
 
   def normalize_row(user_id, row)
@@ -132,8 +164,8 @@ class HeartbeatImportSourceSyncDayJob < ApplicationJob
       return normalized
     end
 
-    parsed = Time.parse(value.to_s).to_f
-    return parsed if parsed.positive?
+    parsed = Time.zone.parse(value.to_s)&.to_f
+    return parsed if parsed&.positive?
 
     nil
   rescue ArgumentError

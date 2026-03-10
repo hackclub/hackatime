@@ -26,8 +26,7 @@
     <div class="space-y-3">
       <h2 class="text-xl font-semibold text-surface-content">Admin</h2>
       <p class="text-sm text-muted">
-        Mirror and import controls are available under Data settings for all
-        users.
+        Import controls are available under Data settings for all users.
       </p>
     </div>
   {:else}

@@ -185,15 +185,7 @@ RSpec.configure do |config|
               resource_id: { type: :integer, nullable: true }
             }
           },
-          WakatimeMirror: {
-            type: :object,
-            properties: {
-              id: { type: :integer, example: 7 },
-              target_url: { type: :string, example: 'https://api.wakatime.com/api/v1/users/current/heartbeats' },
-              last_sync_at: { type: :string, format: 'date-time', nullable: true },
-              status: { type: :string, example: 'active' }
-            }
-          },
+
           ProjectRepoMapping: {
             type: :object,
             properties: {

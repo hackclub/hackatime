@@ -2,18 +2,18 @@ require "test_helper"
 
 class My::HeartbeatImportSourcesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    Flipper.enable(:wakatime_imports_mirrors)
+    Flipper.enable(:wakatime_imports)
   end
 
   teardown do
-    Flipper.disable(:wakatime_imports_mirrors)
+    Flipper.disable(:wakatime_imports)
   end
 
   test "requires auth for create" do
     post my_heartbeat_import_source_path, params: {
       heartbeat_import_source: {
         endpoint_url: "https://wakatime.com/api/v1",
-        encrypted_api_key: "api-key"
+        encrypted_api_key: "waka_00000000-0000-0000-0000-000000000001"
       }
     }
 
@@ -31,7 +31,7 @@ class My::HeartbeatImportSourcesControllerTest < ActionDispatch::IntegrationTest
         post my_heartbeat_import_source_path, params: {
           heartbeat_import_source: {
             endpoint_url: "https://wakatime.com/api/v1",
-            encrypted_api_key: "api-key",
+            encrypted_api_key: "waka_00000000-0000-0000-0000-000000000001",
             sync_enabled: "1"
           }
         }
@@ -47,7 +47,7 @@ class My::HeartbeatImportSourcesControllerTest < ActionDispatch::IntegrationTest
     source = user.create_heartbeat_import_source!(
       provider: :wakatime_compatible,
       endpoint_url: "https://wakatime.com/api/v1",
-      encrypted_api_key: "api-key"
+      encrypted_api_key: "waka_00000000-0000-0000-0000-000000000001"
     )
     sign_in_as(user)
 
@@ -64,7 +64,7 @@ class My::HeartbeatImportSourcesControllerTest < ActionDispatch::IntegrationTest
     source = user.create_heartbeat_import_source!(
       provider: :wakatime_compatible,
       endpoint_url: "https://wakatime.com/api/v1",
-      encrypted_api_key: "api-key",
+      encrypted_api_key: "waka_00000000-0000-0000-0000-000000000001",
       sync_enabled: true
     )
     sign_in_as(user)
@@ -84,7 +84,7 @@ class My::HeartbeatImportSourcesControllerTest < ActionDispatch::IntegrationTest
     user.create_heartbeat_import_source!(
       provider: :wakatime_compatible,
       endpoint_url: "https://wakatime.com/api/v1",
-      encrypted_api_key: "api-key"
+      encrypted_api_key: "waka_00000000-0000-0000-0000-000000000001"
     )
     sign_in_as(user)
 
@@ -96,15 +96,15 @@ class My::HeartbeatImportSourcesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to my_settings_data_path
   end
 
-  test "returns not found json when imports and mirrors are disabled" do
+  test "returns not found json when imports are disabled" do
     user = User.create!(timezone: "UTC")
     sign_in_as(user)
-    Flipper.disable(:wakatime_imports_mirrors)
+    Flipper.disable(:wakatime_imports)
 
     get my_heartbeat_import_source_path, as: :json
 
     assert_response :not_found
     payload = JSON.parse(response.body)
-    assert_equal "Imports and mirrors are currently disabled.", payload["error"]
+    assert_equal "Imports are currently disabled.", payload["error"]
   end
 end

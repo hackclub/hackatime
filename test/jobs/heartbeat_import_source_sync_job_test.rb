@@ -3,11 +3,11 @@ require "webmock/minitest"
 
 class HeartbeatImportSourceSyncJobTest < ActiveJob::TestCase
   setup do
-    Flipper.enable(:wakatime_imports_mirrors)
+    Flipper.enable(:wakatime_imports)
   end
 
   teardown do
-    Flipper.disable(:wakatime_imports_mirrors)
+    Flipper.disable(:wakatime_imports)
   end
 
   def create_source(user:, **attrs)
@@ -15,7 +15,7 @@ class HeartbeatImportSourceSyncJobTest < ActiveJob::TestCase
       {
         provider: :wakatime_compatible,
         endpoint_url: "https://wakatime.com/api/v1",
-        encrypted_api_key: "import-key",
+        encrypted_api_key: "waka_00000000-0000-0000-0000-000000000001",
         sync_enabled: true,
         status: :idle
       }.merge(attrs)
@@ -173,11 +173,11 @@ class HeartbeatImportSourceSyncJobTest < ActiveJob::TestCase
     assert_equal 1, source.consecutive_failures
   end
 
-  test "coordinator does nothing when imports and mirrors are disabled" do
+  test "coordinator does nothing when imports are disabled" do
     GoodJob::Job.delete_all
     user = User.create!(timezone: "UTC")
     source = create_source(user: user)
-    Flipper.disable(:wakatime_imports_mirrors)
+    Flipper.disable(:wakatime_imports)
 
     HeartbeatImportSourceSyncJob.perform_now(source.id)
 
