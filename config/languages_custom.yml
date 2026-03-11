@@ -1,0 +1,9 @@
+# Custom language definitions for Hackatime.
+# Entries here take priority over config/languages.yml.
+
+Lapse:
+  type: programming
+  color: "#C850C0"
+  tm_scope: none
+  ace_mode: text
+  language_id: 999900001
