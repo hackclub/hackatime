@@ -1,4 +1,4 @@
-class MigrateAdminLevelsOnUsers < ActiveRecord::Migration[7.0]
+class MigrateAdminLevelsOnUsers < ActiveRecord::Migration[8.1]
   def up
     add_column :users, :admin_level, :integer, default: 0, null: false
 

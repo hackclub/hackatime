@@ -1,5 +1,5 @@
 
-class UniquenessIndexToHashOnHeartbeats < ActiveRecord::Migration[8.0]
+class UniquenessIndexToHashOnHeartbeats < ActiveRecord::Migration[8.1]
   def change
     attributes = [
       :user_id,

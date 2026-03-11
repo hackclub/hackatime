@@ -1,7 +1,7 @@
 class Heartbeat < ApplicationRecord
 end
 
-class AddSourceToHeartbeats < ActiveRecord::Migration[8.0]
+class AddSourceToHeartbeats < ActiveRecord::Migration[8.1]
   def change
     add_column :heartbeats, :source_type, :integer
 

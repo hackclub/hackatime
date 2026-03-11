@@ -1,4 +1,4 @@
-class CreateProjectRepoMappings < ActiveRecord::Migration[8.0]
+class CreateProjectRepoMappings < ActiveRecord::Migration[8.1]
   def change
     create_table :project_repo_mappings do |t|
       t.references :user, null: false, foreign_key: true

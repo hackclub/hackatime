@@ -1,4 +1,4 @@
-class AddIndexToHeartbeatsProject < ActiveRecord::Migration[8.0]
+class AddIndexToHeartbeatsProject < ActiveRecord::Migration[8.1]
   # this is what i got from stackoverflow
   disable_ddl_transaction!
 

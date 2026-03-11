@@ -1,4 +1,4 @@
-class AddDeletedAtToEmailVerificationRequests < ActiveRecord::Migration[8.0]
+class AddDeletedAtToEmailVerificationRequests < ActiveRecord::Migration[8.1]
   def change
     add_column :email_verification_requests, :deleted_at, :datetime
   end
