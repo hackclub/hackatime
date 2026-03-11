@@ -6,7 +6,7 @@ module LanguageUtils
       base = YAML.load_file(Rails.root.join("config/languages.yml"))
       custom_path = Rails.root.join("config/languages_custom.yml")
       custom = File.exist?(custom_path) ? YAML.load_file(custom_path) : {}
-      base.merge(custom)
+      base.deep_merge(custom)
     end
   end
 
