@@ -1,4 +1,4 @@
-class CreateWakatimeMirrors < ActiveRecord::Migration[8.0]
+class CreateWakatimeMirrors < ActiveRecord::Migration[8.1]
   def change
     create_table :wakatime_mirrors do |t|
       t.references :user, null: false, foreign_key: true

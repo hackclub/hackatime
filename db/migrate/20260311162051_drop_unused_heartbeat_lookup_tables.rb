@@ -1,4 +1,4 @@
-class DropUnusedHeartbeatLookupTables < ActiveRecord::Migration[8.0]
+class DropUnusedHeartbeatLookupTables < ActiveRecord::Migration[8.1]
   def change
     remove_foreign_key :heartbeats, :heartbeat_branches, column: :branch_id, if_exists: true
     remove_foreign_key :heartbeats, :heartbeat_categories, column: :category_id, if_exists: true

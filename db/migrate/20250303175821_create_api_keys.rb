@@ -1,4 +1,4 @@
-class CreateApiKeys < ActiveRecord::Migration[8.0]
+class CreateApiKeys < ActiveRecord::Migration[8.1]
   def change
     create_table :api_keys do |t|
       t.belongs_to :user, null: false, foreign_key: true

@@ -1,4 +1,4 @@
-class CreateSailorsLogNotificationPreferences < ActiveRecord::Migration[8.0]
+class CreateSailorsLogNotificationPreferences < ActiveRecord::Migration[8.1]
   def change
     create_table :sailors_log_notification_preferences do |t|
       t.string :slack_uid, null: false

@@ -1,4 +1,4 @@
-class MoveEmailsToEmailAddresses < ActiveRecord::Migration[8.0]
+class MoveEmailsToEmailAddresses < ActiveRecord::Migration[8.1]
   def up
     execute <<-SQL
       INSERT INTO email_addresses (email, user_id, created_at, updated_at)
