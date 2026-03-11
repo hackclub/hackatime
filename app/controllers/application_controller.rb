@@ -87,4 +87,5 @@ class ApplicationController < ActionController::Base
   def active_users_graph_data
     Cache::ActiveUsersGraphDataJob.perform_now
   end
+
 end
