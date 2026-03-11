@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_11_170528) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_11_162930) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -290,7 +290,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_11_170528) do
     t.index ["project"], name: "index_heartbeats_on_project"
     t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
     t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
-    t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
