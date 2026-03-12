@@ -79,7 +79,6 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
     admin_key = user.admin_api_keys.create!(name: "Infra", token: original_token)
     admin_key.revoke!
 
-    # Token format still matches ADMIN_KEY_REGEX, but AdminApiKey.active won't find it.
     post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json
 
     assert_response :unprocessable_entity

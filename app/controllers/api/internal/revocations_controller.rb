@@ -9,21 +9,10 @@ module Api
 
         return render_error("Token is required") unless token.present?
 
-        case token
-        when ADMIN_KEY_REGEX
-          key = AdminApiKey.active.find_by(token:)
-          token_type = "Hackatime Admin API Key"
-        when REGULAR_KEY_REGEX
-          key = ApiKey.find_by(token:)
-          token_type = "Hackatime API Key"
-        else
-          return render_error("Token doesn't match any supported type")
-        end
-
-        user = key&.user
-        original_key_name = key&.name
-
+        key, user, token_type = find_key_info(token)
+        return render_error("Token doesn't match any supported type") unless token_type
         return render_error("Token is invalid or already revoked") unless key.present?
+        original_key_name = key.name
         return render_error("Token is invalid or already revoked") unless revoke_key(key)
 
         render json: {
@@ -36,6 +25,20 @@ module Api
       end
 
       private
+
+      def find_key_info(token)
+        if token.match?(ADMIN_KEY_REGEX)
+          key = AdminApiKey.active.find_by(token:)
+          return [ key, key&.user, "Hackatime Admin API Key" ]
+        end
+
+        if token.match?(REGULAR_KEY_REGEX)
+          key = ApiKey.find_by(token:)
+          return [ key, key&.user, "Hackatime API Key" ]
+        end
+
+        [ nil, nil, nil ]
+      end
 
       def revoke_key(key)
         if key.is_a?(AdminApiKey)
