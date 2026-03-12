@@ -14,7 +14,6 @@
     settings_update_path,
     user,
     errors,
-    admin_tools,
   }: NotificationsPageProps = $props();
 
   let csrfToken = $state("");
@@ -35,7 +34,6 @@
   {heading}
   {subheading}
   {errors}
-  {admin_tools}
 >
   <div class="space-y-8">
     <section id="user_email_notifications">

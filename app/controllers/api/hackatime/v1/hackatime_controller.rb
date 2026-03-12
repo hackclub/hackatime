@@ -219,7 +219,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def handle_heartbeat(heartbeat_array)
     results = []
-    should_enqueue_mirror_sync = false
     heartbeat_array.each do |heartbeat|
       source_type = :direct_entry
 
@@ -252,7 +251,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       end
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
-      should_enqueue_mirror_sync ||= source_type == :direct_entry
     rescue => e
       Sentry.capture_exception(e)
       Rails.logger.error("Error creating heartbeat: #{e.class.name} #{e.message}")
@@ -260,7 +258,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     end
 
     PosthogService.capture_once_per_day(@user, "heartbeat_sent", { heartbeat_count: heartbeat_array.size })
-    enqueue_mirror_sync if should_enqueue_mirror_sync
     results
   end
 
@@ -272,14 +269,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   rescue => e
     # never raise an error here because it will break the heartbeat flow
     Rails.logger.error("Error queuing project mapping: #{e.class.name} #{e.message}")
-  end
-
-  def enqueue_mirror_sync
-    return unless Flipper.enabled?(:wakatime_imports_mirrors)
-
-    MirrorFanoutEnqueueJob.perform_later(@user.id)
-  rescue => e
-    Rails.logger.error("Error enqueuing mirror sync fanout: #{e.class.name} #{e.message}")
   end
 
   def check_lockout

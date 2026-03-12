@@ -26,7 +26,6 @@
     user,
     options,
     errors,
-    admin_tools,
     goal_form,
   }: GoalsPageProps = $props();
 
@@ -203,7 +202,6 @@
   {heading}
   {subheading}
   {errors}
-  {admin_tools}
 >
   <div>
     <section id="user_programming_goals">

@@ -18,7 +18,6 @@
     options,
     badges,
     errors,
-    admin_tools,
   }: ProfilePageProps = $props();
 
   let csrfToken = $state("");
@@ -45,7 +44,6 @@
   {heading}
   {subheading}
   {errors}
-  {admin_tools}
 >
   <div class="space-y-8">
     <section id="user_region">

@@ -12,11 +12,10 @@
     heading,
     subheading,
     errors,
-    admin_tools,
     children,
   }: SettingsCommonProps & { children?: Snippet } = $props();
 
-  const sections = $derived(buildSections(section_paths, admin_tools.visible));
+  const sections = $derived(buildSections(section_paths));
   const knownSectionIds = $derived(
     new Set(sections.map((section) => section.id)),
   );

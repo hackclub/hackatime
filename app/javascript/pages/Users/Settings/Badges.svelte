@@ -12,7 +12,6 @@
     options,
     badges,
     errors,
-    admin_tools,
   }: BadgesPageProps = $props();
 
   const defaultTheme = (themes: string[]) =>
@@ -60,7 +59,6 @@
   {heading}
   {subheading}
   {errors}
-  {admin_tools}
 >
   <div class="space-y-8">
     <section id="user_stats_badges">

@@ -19,7 +19,6 @@
     emails,
     paths,
     errors,
-    admin_tools,
   }: IntegrationsPageProps = $props();
 
   let csrfToken = $state("");
@@ -45,7 +44,6 @@
   {heading}
   {subheading}
   {errors}
-  {admin_tools}
 >
   <div class="space-y-8">
     <section id="user_slack_status">
