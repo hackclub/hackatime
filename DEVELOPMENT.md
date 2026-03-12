@@ -31,6 +31,16 @@ ENCRYPTION_DETERMINISTIC_KEY=32characterrandomstring12345678902
 ENCRYPTION_KEY_DERIVATION_SALT=16charssalt1234
 ```
 
+Visit <https://hca.dinosaurbbq.org>, log in with an email address, then enable Developer Mode in HCA settings. After that, navigate to the "Developers' Corner" and "app yourself up", specifying a callback URL of `http://localhost:3000/auth/hca/callback` and minimum scopes of `email`, `slack_id`, and `verification_status`. 
+
+Then, fill out the following fields in your `.env` file:
+
+```env
+# Hack Club Account
+HCA_CLIENT_ID=<hca_client_id>
+HCA_CLIENT_SECRET=<hca_client_secret>
+```
+
 Start the containers:
 
 ```sh
@@ -42,6 +52,12 @@ We'll now setup the database. In your container shell, run the following:
 
 ```bash
 app# bin/rails db:create db:schema:load db:seed
+```
+
+Run the Vite build with SSR (server-side-rendering):
+
+```bash
+app# bin/vite build --ssr
 ```
 
 Now, let's start up the app!

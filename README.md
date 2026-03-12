@@ -14,3 +14,7 @@
 ## Local development
 
 Please read [DEVELOPMENT.md](DEVELOPMENT.md) for instructions on setting up and running the project locally.
+
+## Installer repo
+
+Looking for the installer code? It's over at [hackclub/hackatime-setup](https://github.com/hackclub/hackatime-setup).

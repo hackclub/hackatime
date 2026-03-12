@@ -12,8 +12,7 @@ module Api
         key, user = find_revocable_key_and_owner(token)
 
         return render json: { success: false } unless key.present?
-
-        revoke_key!(key)
+        return render json: { success: false } unless revoke_key!(key)
 
         render json: {
           success: true,
@@ -31,6 +30,8 @@ module Api
         end
 
         if token.match?(REGULAR_KEY_REGEX)
+          # TODO: ApiKey currently has no active/revoked scope.
+          # If one is added, prefer ApiKey.active here for consistency.
           key = ApiKey.find_by(token:)
           return [ key, key&.user ]
         end
@@ -39,9 +40,14 @@ module Api
       end
 
       def revoke_key!(key)
-        return key.revoke! if key.is_a?(AdminApiKey)
-
-        key.user.rotate_api_key!
+        if key.is_a?(AdminApiKey)
+          key.revoke!
+        else
+          key.user.rotate_api_key!
+        end
+      rescue ActiveRecord::ActiveRecordError => e
+        Rails.logger.error("Revocation failed for #{key.class}##{key.id}: #{e.class} #{e.message}")
+        false
       end
 
       private def authenticate!
