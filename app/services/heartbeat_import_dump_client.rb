@@ -91,7 +91,7 @@ class HeartbeatImportDumpClient
 
   def headers
     {
-      "Authorization" => "Basic #{Base64.strict_encode64(@api_key)}",
+      "Authorization" => "Basic #{Base64.strict_encode64(basic_auth_credential)}",
       "Accept" => "application/json",
       "Content-Type" => "application/json"
     }
@@ -108,5 +108,9 @@ class HeartbeatImportDumpClient
     end
   rescue URI::InvalidURIError
     { "Accept" => "application/json,application/octet-stream,*/*" }
+  end
+
+  def basic_auth_credential
+    @source_kind == "wakatime_dump" ? "#{@api_key}:" : @api_key
   end
 end
