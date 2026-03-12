@@ -220,11 +220,12 @@ class HeartbeatImportRunner
 
   def self.normalize_provider(provider)
     normalized_provider = provider.to_s
-    return normalized_provider if HeartbeatImportRun.source_kinds.key?(normalized_provider)
 
     aliases = {
       "wakatime" => "wakatime_dump",
-      "hackatime_v1" => "hackatime_v1_dump"
+      "hackatime_v1" => "hackatime_v1_dump",
+      "wakatime_dump" => "wakatime_dump",
+      "hackatime_v1_dump" => "hackatime_v1_dump"
     }
 
     aliases.fetch(normalized_provider) { raise InvalidProviderError, "Unsupported import provider." }

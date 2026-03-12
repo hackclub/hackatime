@@ -259,7 +259,8 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
     }
   end
 
-  def assert_redirected_with_import_error(_message)
+  def assert_redirected_with_import_error(message)
     assert_redirected_to my_settings_data_url
+    assert_equal message, session[:inertia_errors]&.dig(:import)
   end
 end
