@@ -9,7 +9,7 @@ module Api
 
         return head 400 unless token.present?
 
-        key, user = revocable_key_and_owner(token)
+        key, user = find_revocable_key_and_owner(token)
 
         return render json: { success: false } unless key.present?
 
@@ -24,7 +24,7 @@ module Api
 
       private
 
-      def revocable_key_and_owner(token)
+      def find_revocable_key_and_owner(token)
         if token.match?(ADMIN_KEY_REGEX)
           key = AdminApiKey.active.find_by(token:)
           return [ key, key&.user ]
@@ -41,10 +41,7 @@ module Api
       def revoke_key!(key)
         return key.revoke! if key.is_a?(AdminApiKey)
 
-        key.update!(
-          token: SecureRandom.uuid_v4,
-          name: "#{key.name}_revoked_#{SecureRandom.hex(8)}"
-        )
+        key.user.rotate_api_key!
       end
 
       private def authenticate!

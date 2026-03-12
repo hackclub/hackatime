@@ -14,14 +14,10 @@ class Settings::AccessController < Settings::BaseController
   end
 
   def rotate_api_key
-    @user.api_keys.transaction do
-      @user.api_keys.destroy_all
+    new_api_key = @user.rotate_api_key!
 
-      new_api_key = @user.api_keys.create!(name: "Hackatime key")
-
-      PosthogService.capture(@user, "api_key_rotated")
-      render json: { token: new_api_key.token }, status: :ok
-    end
+    PosthogService.capture(@user, "api_key_rotated")
+    render json: { token: new_api_key.token }, status: :ok
   rescue => e
     Sentry.capture_exception(e)
     Rails.logger.error("error rotate #{e.class.name} #{e.message}")
