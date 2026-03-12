@@ -75,12 +75,7 @@ jobs:
           if [ "${{ steps.existing_pr.outputs.pr_exists }}" = "true" ]; then
             echo "Existing PR #${{ steps.existing_pr.outputs.pr_number }} updated via force-push."
           else
-            read -r -d '' PR_BODY << 'EOF' || true
-## Summary
-- Updates `config/languages.yml` to the latest version from [github-linguist/linguist](https://github.com/github-linguist/linguist)
-
-This PR was automatically created by the **Update Linguist** workflow.
-EOF
+            PR_BODY="## Summary"$'\n'"- Updates \`config/languages.yml\` to the latest version from [github-linguist/linguist](https://github.com/github-linguist/linguist)"$'\n\n'"This PR was automatically created by the **Update Linguist** workflow."
             gh pr create \
               --title "Update Linguist languages.yml to latest upstream" \
               --head "auto/update-linguist" \
