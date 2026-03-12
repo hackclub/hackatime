@@ -25,22 +25,18 @@ class Settings::BaseController < InertiaController
       "access" => "Users/Settings/Access",
       "goals" => "Users/Settings/Goals",
       "badges" => "Users/Settings/Badges",
-      "data" => "Users/Settings/Data",
-      "admin" => "Users/Settings/Admin"
+      "data" => "Users/Settings/Data"
     }.fetch(active_section.to_s, "Users/Settings/Profile")
   end
 
   def prepare_settings_page
     @is_own_settings = is_own_settings?
     @can_enable_slack_status = @user.slack_access_token.present? && @user.slack_scopes.include?("users.profile:write")
-    @imports_and_mirrors_enabled = Flipper.enabled?(:wakatime_imports_mirrors)
-
+    @imports_enabled = Flipper.enabled?(:imports, @user)
     @enabled_sailors_logs = SailorsLogNotificationPreference.where(
       slack_uid: @user.slack_uid,
       enabled: true,
     ).where.not(slack_channel_id: SailorsLog::DEFAULT_CHANNELS)
-
-    @heartbeats_migration_jobs = @user.data_migration_jobs
 
     @projects = @user.project_repo_mappings.distinct.pluck(:project_name)
     heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
@@ -62,20 +58,12 @@ class Settings::BaseController < InertiaController
 
     @general_badge_url = GithubReadmeStats.new(@user.id, "darcula").generate_badge_url
     @latest_api_key_token = @user.api_keys.last&.token
-    @mirrors = @imports_and_mirrors_enabled ? current_user.wakatime_mirrors.order(created_at: :desc) : []
-    @import_source = @imports_and_mirrors_enabled ? current_user.heartbeat_import_source : nil
+    @latest_heartbeat_import = @user.heartbeat_import_runs.latest_first.first
   end
 
   def settings_page_props(active_section:, settings_update_path:)
     heartbeats_last_7_days = @user.heartbeats.where("time >= ?", 7.days.ago.to_f).count
     channel_ids = @enabled_sailors_logs.pluck(:slack_channel_id)
-    heartbeat_import_id = nil
-    heartbeat_import_status = nil
-
-    if active_section.to_s == "data" && Rails.env.development?
-      heartbeat_import_id = params[:heartbeat_import_id].presence
-      heartbeat_import_status = HeartbeatImportRunner.status(user: @user, import_id: heartbeat_import_id) if heartbeat_import_id
-    end
 
     {
       active_section: active_section,
@@ -86,8 +74,7 @@ class Settings::BaseController < InertiaController
         access: my_settings_access_path,
         goals: my_settings_goals_path,
         badges: my_settings_badges_path,
-        data: my_settings_data_path,
-        admin: my_settings_admin_path
+        data: my_settings_data_path
       },
       page_title: (@is_own_settings ? "My Settings" : "Settings | #{@user.display_name}"),
       heading: (@is_own_settings ? "Settings" : "Settings for #{@user.display_name}"),
@@ -127,14 +114,10 @@ class Settings::BaseController < InertiaController
         add_email_path: add_email_auth_path,
         unlink_email_path: unlink_email_auth_path,
         rotate_api_key_path: my_settings_rotate_api_key_path,
-        migrate_heartbeats_path: my_settings_migrate_heartbeats_path,
         export_all_heartbeats_path: export_my_heartbeats_path(all_data: "true"),
         export_range_heartbeats_path: export_my_heartbeats_path,
         create_heartbeat_import_path: my_heartbeat_imports_path,
-        create_deletion_path: create_deletion_path,
-        user_wakatime_mirrors_path: user_wakatime_mirrors_path(current_user),
-        heartbeat_import_source_path: my_heartbeat_import_source_path,
-        heartbeat_import_source_sync_path: sync_my_heartbeat_import_source_path
+        create_deletion_path: create_deletion_path
       },
       options: {
         countries: ISO3166::Country.all.map { |country|
@@ -205,18 +188,9 @@ class Settings::BaseController < InertiaController
       config_file: {
         content: generated_wakatime_config(@latest_api_key_token),
         has_api_key: @latest_api_key_token.present?,
-        empty_message: "No API key is available yet. Migrate heartbeats or rotate your API key to generate one.",
+        empty_message: "No API key is available yet. Rotate your API key to generate one.",
         api_key: @latest_api_key_token,
         api_url: "https://#{request.host_with_port}/api/hackatime/v1"
-      },
-      migration: {
-        enabled: Flipper.enabled?(:hackatime_v1_import),
-        jobs: @heartbeats_migration_jobs.map { |job|
-          {
-            id: job.id,
-            status: job.status
-          }
-        }
       },
       data_export: {
         total_heartbeats: number_with_delimiter(@user.heartbeats.count),
@@ -224,19 +198,12 @@ class Settings::BaseController < InertiaController
         heartbeats_last_7_days: number_with_delimiter(heartbeats_last_7_days),
         is_restricted: (@user.trust_level == "red")
       },
-      import_source: serialized_import_source(@import_source),
-      mirrors: serialized_mirrors(@mirrors),
-      admin_tools: {
-        visible: current_user.admin_level.in?(%w[admin superadmin]),
-        mirrors: serialized_mirrors(@mirrors)
-      },
+      imports_enabled: @imports_enabled,
+      remote_import_cooldown_until: HeartbeatImportRunner.remote_import_cooldown_until(user: @user)&.iso8601,
+      latest_heartbeat_import: HeartbeatImportRunner.serialize(@latest_heartbeat_import),
       ui: {
         show_dev_import: Rails.env.development?,
-        show_imports_and_mirrors: @imports_and_mirrors_enabled
-      },
-      heartbeat_import: {
-        import_id: heartbeat_import_id,
-        status: heartbeat_import_status
+        show_imports: @imports_enabled
       },
       errors: {
         full_messages: @user.errors.full_messages,
@@ -278,44 +245,5 @@ class Settings::BaseController < InertiaController
 
   def is_own_settings?
     params["id"] == "my" || params["id"]&.blank?
-  end
-
-  def serialized_import_source(source)
-    return nil unless source
-
-    {
-      id: source.id,
-      provider: source.provider,
-      endpoint_url: source.endpoint_url,
-      sync_enabled: source.sync_enabled,
-      status: source.status,
-      initial_backfill_start_date: source.initial_backfill_start_date&.iso8601,
-      initial_backfill_end_date: source.initial_backfill_end_date&.iso8601,
-      backfill_cursor_date: source.backfill_cursor_date&.iso8601,
-      last_synced_at: source.last_synced_at&.iso8601,
-      last_synced_ago: (source.last_synced_at ? "#{time_ago_in_words(source.last_synced_at)} ago" : "Never"),
-      last_error_message: source.last_error_message,
-      last_error_at: source.last_error_at&.iso8601,
-      consecutive_failures: source.consecutive_failures,
-      imported_count: Rails.cache.fetch("user:#{source.user_id}:wakapi_import_count", expires_in: 5.minutes) do
-        source.user.heartbeats.where(source_type: :wakapi_import).count
-      end
-    }
-  end
-
-  def serialized_mirrors(mirrors)
-    mirrors.map { |mirror|
-      {
-        id: mirror.id,
-        endpoint_url: mirror.endpoint_url,
-        enabled: mirror.enabled,
-        last_synced_at: mirror.last_synced_at&.iso8601,
-        last_synced_ago: (mirror.last_synced_at ? "#{time_ago_in_words(mirror.last_synced_at)} ago" : "Never"),
-        consecutive_failures: mirror.consecutive_failures,
-        last_error_message: mirror.last_error_message,
-        last_error_at: mirror.last_error_at&.iso8601,
-        destroy_path: user_wakatime_mirror_path(current_user, mirror)
-      }
-    }
   end
 end

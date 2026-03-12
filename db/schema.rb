@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_11_170528) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_12_134424) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -232,6 +232,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_11_170528) do
     t.index ["priority", "scheduled_at"], name: "index_good_jobs_on_priority_scheduled_at_unfinished_unlocked", where: "((finished_at IS NULL) AND (locked_by_id IS NULL))"
     t.index ["queue_name", "scheduled_at"], name: "index_good_jobs_on_queue_name_and_scheduled_at", where: "(finished_at IS NULL)"
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at", where: "(finished_at IS NULL)"
+  end
+
+  create_table "heartbeat_import_runs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "encrypted_api_key"
+    t.text "error_message"
+    t.integer "errors_count", default: 0, null: false
+    t.datetime "finished_at"
+    t.integer "imported_count"
+    t.text "message"
+    t.integer "processed_count", default: 0, null: false
+    t.string "remote_dump_id"
+    t.string "remote_dump_status"
+    t.float "remote_percent_complete"
+    t.datetime "remote_requested_at"
+    t.integer "skipped_count"
+    t.string "source_filename"
+    t.integer "source_kind", null: false
+    t.datetime "started_at"
+    t.integer "state", default: 0, null: false
+    t.integer "total_count"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "created_at"], name: "index_heartbeat_import_runs_on_user_id_and_created_at"
+    t.index ["user_id", "state"], name: "index_heartbeat_import_runs_on_user_id_and_state"
+    t.index ["user_id"], name: "index_heartbeat_import_runs_on_user_id"
   end
 
   create_table "heartbeat_import_sources", force: :cascade do |t|
@@ -654,6 +680,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_11_170528) do
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
   add_foreign_key "goals", "users"
+  add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
   add_foreign_key "heartbeats", "raw_heartbeat_uploads"
   add_foreign_key "heartbeats", "users"

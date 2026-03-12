@@ -13,7 +13,8 @@ class AccessSettingsTest < ApplicationSystemTestCase
   test "access settings page renders key sections" do
     assert_settings_page(
       path: my_settings_access_path,
-      marker_text: "Time Tracking Setup"
+      marker_text: "Time Tracking Setup",
+      card_count: 4
     )
 
     assert_text "Extension Display"

@@ -5,19 +5,21 @@ class DataSettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
-    Flipper.enable(:wakatime_imports_mirrors)
     @user = User.create!(timezone: "UTC")
     sign_in_as(@user)
   end
 
   teardown do
-    Flipper.disable(:wakatime_imports_mirrors)
+    Flipper.disable(:imports)
   end
 
   test "data settings page renders key sections" do
+    Flipper.enable_actor(:imports, @user)
+
     assert_settings_page(
       path: my_settings_data_path,
-      marker_text: "Migration Assistant"
+      marker_text: "Imports",
+      card_count: 3
     )
 
     assert_text "Download Data"
@@ -47,62 +49,39 @@ class DataSettingsTest < ApplicationSystemTestCase
     assert_text "I changed my mind"
   end
 
-  test "regular user can add and delete mirror endpoint from data settings" do
+  test "imports card is visible when feature is enabled for the user" do
+    Flipper.enable_actor(:imports, @user)
+
     visit my_settings_data_path
 
-    endpoint_url = "https://example-wakatime.invalid/api/v1"
-    fill_in "mirror_endpoint_url", with: endpoint_url
-    fill_in "mirror_key", with: "mirror-key-#{SecureRandom.hex(8)}"
-
-    assert_difference -> { @user.reload.wakatime_mirrors.count }, +1 do
-      click_on "Add mirror"
-      assert_text "WakaTime mirror added successfully"
-    end
-
-    assert_text endpoint_url
-
-    assert_difference -> { @user.reload.wakatime_mirrors.count }, -1 do
-      accept_confirm do
-        click_on "Delete mirror"
-      end
-      assert_text "WakaTime mirror removed successfully"
-    end
+    assert_text "Imports"
+    assert_text "WakaTime"
+    assert_text "Hackatime v1"
+    assert_field "remote_import_api_key"
+    assert_text "Start remote import"
   end
 
-  test "data settings rejects hackatime mirror endpoint" do
+  test "imports card is hidden when feature is disabled" do
     visit my_settings_data_path
 
-    fill_in "mirror_endpoint_url", with: "https://hackatime.hackclub.com/api/v1"
-    fill_in "mirror_key", with: "mirror-key-#{SecureRandom.hex(8)}"
-    click_on "Add mirror"
-
-    assert_text "cannot target this Hackatime host"
-    assert_equal 0, @user.reload.wakatime_mirrors.count
+    assert_no_text "Request a one-time heartbeat dump from WakaTime or legacy Hackatime."
+    assert_no_field "remote_import_api_key"
+    assert_no_button "Start remote import"
   end
 
-  test "data settings can configure import source and show status panel" do
-    visit my_settings_data_path
+  test "data settings shows remote import cooldown notice" do
+    Flipper.enable_actor(:imports, @user)
 
-    fill_in "import_endpoint_url", with: "https://wakatime.com/api/v1"
-    fill_in "import_api_key", with: "import-key-#{SecureRandom.hex(8)}"
-
-    assert_difference -> { HeartbeatImportSource.count }, +1 do
-      click_on "Create source"
-      assert_text "Import source configured successfully."
-    end
-
-    assert_text "Status:"
-    assert_text "Imported:"
-    assert_button "Sync now"
-  end
-
-  test "imports and mirrors section is hidden when feature is disabled" do
-    Flipper.disable(:wakatime_imports_mirrors)
+    @user.heartbeat_import_runs.create!(
+      source_kind: :wakatime_dump,
+      state: :waiting_for_dump,
+      encrypted_api_key: "secret",
+      remote_requested_at: 1.hour.ago,
+      message: "Waiting..."
+    )
 
     visit my_settings_data_path
 
-    assert_no_text "Imports & Mirrors"
-    assert_no_field "mirror_endpoint_url"
-    assert_no_field "import_endpoint_url"
+    assert_text "Remote imports can be started again after"
   end
 end

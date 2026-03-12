@@ -1,12 +1,15 @@
 module SettingsSystemTestHelpers
   private
 
-  def assert_settings_page(path:, marker_text:)
+  def assert_settings_page(path:, marker_text:, card_count: 1)
     visit path
 
     assert_current_path path, ignore_query: true
     assert_text "Settings"
     assert_text marker_text
+    assert_selector "[data-settings-shell]"
+    assert_selector "[data-settings-content]"
+    assert_selector "[data-settings-card]", minimum: card_count
   end
 
   def choose_select_option(select_id, option_text)
