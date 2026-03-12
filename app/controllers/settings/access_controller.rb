@@ -14,7 +14,7 @@ class Settings::AccessController < Settings::BaseController
   end
 
   def rotate_api_key
-    new_api_key = @user.rotate_api_key!
+    new_api_key = @user.rotate_api_keys!
 
     PosthogService.capture(@user, "api_key_rotated")
     render json: { token: new_api_key.token }, status: :ok

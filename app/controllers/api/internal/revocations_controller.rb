@@ -7,49 +7,49 @@ module Api
       def create
         token = params[:token]
 
-        return head 400 unless token.present?
+        return render_error("Token is required") unless token.present?
 
-        key, user = find_revocable_key_and_owner(token)
+        case token
+        when ADMIN_KEY_REGEX
+          key = AdminApiKey.active.find_by(token:)
+          token_type = "Hackatime Admin API Key"
+        when REGULAR_KEY_REGEX
+          key = ApiKey.find_by(token:)
+          token_type = "Hackatime API Key"
+        else
+          return render_error("Token doesn't match any supported type")
+        end
 
-        return render_revocation_failure unless key.present?
-        return render_revocation_failure unless revoke_key!(key)
+        user = key&.user
+        original_key_name = key&.name
+
+        return render_error("Token is invalid or already revoked") unless key.present?
+        return render_error("Token is invalid or already revoked") unless revoke_key(key)
 
         render json: {
           success: true,
+          status: "complete",
+          token_type: token_type,
           owner_email: user.email_addresses.first&.email,
-          key_name: key.name
-        }.compact_blank
+          key_name: original_key_name
+        }.compact_blank, status: :created
       end
 
       private
 
-      def find_revocable_key_and_owner(token)
-        if token.match?(ADMIN_KEY_REGEX)
-          key = AdminApiKey.active.find_by(token:)
-          return [ key, key&.user ]
-        end
-
-        if token.match?(REGULAR_KEY_REGEX)
-          key = ApiKey.find_by(token:)
-          return [ key, key&.user ]
-        end
-
-        [ nil, nil ]
-      end
-
-      def revoke_key!(key)
+      def revoke_key(key)
         if key.is_a?(AdminApiKey)
           key.revoke!
         else
-          key.user.rotate_api_key!(api_key: key)
+          key.user.rotate_single_api_key!(key)
         end
       rescue ActiveRecord::ActiveRecordError => e
         Rails.logger.error("Revocation failed for #{key.class}##{key.id}: #{e.class} #{e.message}")
         false
       end
 
-      def render_revocation_failure
-        render json: { success: false }, status: :unprocessable_entity
+      def render_error(message)
+        render json: { success: false, error: message }, status: :unprocessable_entity
       end
 
       private def authenticate!

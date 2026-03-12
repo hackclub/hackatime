@@ -18,8 +18,10 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
 
     post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json
 
-    assert_response :success
+    assert_response :created
     assert_equal true, response.parsed_body["success"]
+    assert_equal "complete", response.parsed_body["status"]
+    assert_equal "Hackatime API Key", response.parsed_body["token_type"]
     assert_equal email_address.email, response.parsed_body["owner_email"]
     assert_equal key.name, response.parsed_body["key_name"]
 
@@ -30,7 +32,8 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
     post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json
 
     assert_response :unprocessable_entity
-    assert_equal({ "success" => false }, response.parsed_body)
+    assert_equal false, response.parsed_body["success"]
+    assert_equal "Token is invalid or already revoked", response.parsed_body["error"]
   end
 
   test "returns success false for valid regular UUID token that does not exist" do
@@ -39,14 +42,16 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
     post "/api/internal/revoke", params: { token: token }, headers: auth_headers, as: :json
 
     assert_response :unprocessable_entity
-    assert_equal({ "success" => false }, response.parsed_body)
+    assert_equal false, response.parsed_body["success"]
+    assert_equal "Token is invalid or already revoked", response.parsed_body["error"]
   end
 
   test "returns success false for token that matches neither regex" do
     post "/api/internal/revoke", params: { token: "not-a-valid-token" }, headers: auth_headers, as: :json
 
     assert_response :unprocessable_entity
-    assert_equal({ "success" => false }, response.parsed_body)
+    assert_equal false, response.parsed_body["success"]
+    assert_equal "Token doesn't match any supported type", response.parsed_body["error"]
   end
 
   test "revokes admin key" do
@@ -56,14 +61,30 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
 
     post "/api/internal/revoke", params: { token: admin_key.token }, headers: auth_headers, as: :json
 
-    assert_response :success
+    assert_response :created
     assert_equal true, response.parsed_body["success"]
+    assert_equal "complete", response.parsed_body["status"]
+    assert_equal "Hackatime Admin API Key", response.parsed_body["token_type"]
 
     admin_key.reload
     assert_equal email_address.email, response.parsed_body["owner_email"]
-    assert_equal admin_key.name, response.parsed_body["key_name"]
+    assert_equal "Infra", response.parsed_body["key_name"]
     assert_not_nil admin_key.revoked_at
     assert_includes admin_key.name, "_revoked_"
+  end
+
+  test "returns error for already-revoked admin key" do
+    user = User.create!(timezone: "UTC")
+    original_token = "hka_#{SecureRandom.hex(32)}"
+    admin_key = user.admin_api_keys.create!(name: "Infra", token: original_token)
+    admin_key.revoke!
+
+    # Token format still matches ADMIN_KEY_REGEX, but AdminApiKey.active won't find it.
+    post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal false, response.parsed_body["success"]
+    assert_equal "Token is invalid or already revoked", response.parsed_body["error"]
   end
 
   private

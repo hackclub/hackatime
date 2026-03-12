@@ -12,12 +12,14 @@ RSpec.describe 'Api::Internal', type: :request do
       parameter name: :payload, in: :body, schema: {
         type: :object,
         properties: {
-          token: { type: :string }
+          token: { type: :string },
+          submitter: { type: :string },
+          comment: { type: :string }
         },
         required: [ 'token' ]
       }
 
-      response(200, 'successful') do
+      response(201, 'created') do
         let(:Authorization) { "Bearer test_revocation_key" }
         let(:user) { User.create!(timezone: "UTC") }
         let!(:email_address) { user.email_addresses.create!(email: "internal@example.com", source: :signing_in) }
@@ -35,6 +37,8 @@ RSpec.describe 'Api::Internal', type: :request do
         schema type: :object,
           properties: {
             success: { type: :boolean },
+            status: { type: :string },
+            token_type: { type: :string },
             owner_email: { type: :string, nullable: true },
             key_name: { type: :string, nullable: true }
           }
@@ -42,6 +46,8 @@ RSpec.describe 'Api::Internal', type: :request do
           body = JSON.parse(response.body)
 
           expect(body["success"]).to eq(true)
+          expect(body["status"]).to eq("complete")
+          expect(body["token_type"]).to eq("Hackatime API Key")
           expect(body["owner_email"]).to eq(email_address.email)
           expect(body["key_name"]).to eq(api_key.name)
         end
@@ -61,24 +67,10 @@ RSpec.describe 'Api::Internal', type: :request do
 
         schema type: :object,
           properties: {
-            success: { type: :boolean }
+            success: { type: :boolean },
+            error: { type: :string }
           },
-          required: [ 'success' ]
-        run_test!
-      end
-
-      response(400, 'bad request') do
-        let(:Authorization) { "Bearer test_revocation_key" }
-        let(:payload) { { token: nil } }
-
-        before do
-          ENV["HKA_REVOCATION_KEY"] = "test_revocation_key"
-        end
-
-        after do
-          ENV.delete("HKA_REVOCATION_KEY")
-        end
-
+          required: [ 'success', 'error' ]
         run_test!
       end
     end
