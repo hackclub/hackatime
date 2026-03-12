@@ -3,34 +3,32 @@ class My::HeartbeatImportsController < ApplicationController
 
   def create
     if params[:heartbeat_file].blank? && params[:heartbeat_import].blank?
-      render json: { error: "No import data provided." }, status: :unprocessable_entity
+      redirect_with_import_error("No import data provided.")
       return
     end
 
-    run = if params[:heartbeat_file].present?
+    if params[:heartbeat_file].present?
       start_dev_upload!
     else
       start_remote_import!
     end
 
-    render json: {
-      import_id: run.id.to_s,
-      status: HeartbeatImportRunner.serialize(run)
-    }, status: :accepted
+    redirect_to my_settings_data_path
   rescue DevelopmentOnlyError => e
-    render json: { error: e.message }, status: :forbidden
+    redirect_with_import_error(e.message)
   rescue HeartbeatImportRunner::FeatureDisabledError => e
-    render json: { error: e.message }, status: :not_found
+    redirect_with_import_error(e.message)
   rescue HeartbeatImportRunner::CooldownError => e
-    render json: { error: e.message, retry_at: e.retry_at.iso8601 }, status: :too_many_requests
+    flash[:cooldown_until] = e.retry_at.iso8601
+    redirect_with_import_error(e.message)
   rescue HeartbeatImportRunner::ActiveImportError => e
-    render json: { error: e.message }, status: :conflict
+    redirect_with_import_error(e.message)
   rescue HeartbeatImportRunner::InvalidProviderError, ActionController::ParameterMissing => e
-    render json: { error: e.message }, status: :unprocessable_entity
+    redirect_with_import_error(e.message)
   rescue => e
     Sentry.capture_exception(e)
     Rails.logger.error("Error starting heartbeat import for user #{current_user&.id}: #{e.message}")
-    render json: { error: "error reading file: #{e.message}" }, status: :internal_server_error
+    redirect_with_import_error("error reading file: #{e.message}")
   end
 
   def show
@@ -85,6 +83,10 @@ class My::HeartbeatImportsController < ApplicationController
     return if Rails.env.development?
 
     raise DevelopmentOnlyError, "Heartbeat import is only available in development."
+  end
+
+  def redirect_with_import_error(message)
+    redirect_to my_settings_data_path, inertia: { errors: { import: message } }
   end
 
   def remote_import_params

@@ -30,8 +30,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     post my_heartbeat_imports_path, params: { heartbeat_file: uploaded_file }
 
-    assert_response :forbidden
-    assert_equal "Heartbeat import is only available in development.", JSON.parse(response.body)["error"]
+    assert_redirected_with_import_error("Heartbeat import is only available in development.")
   end
 
   test "create returns error when no import data is provided" do
@@ -40,8 +39,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     post my_heartbeat_imports_path
 
-    assert_response :unprocessable_entity
-    assert_equal "No import data provided.", JSON.parse(response.body)["error"]
+    assert_redirected_with_import_error("No import data provided.")
   end
 
   test "create returns error when dev upload file type is invalid" do
@@ -54,8 +52,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_response :unprocessable_entity
-    assert_equal "pls upload only json (download from the button above it)", JSON.parse(response.body)["error"]
+    assert_redirected_with_import_error("pls upload only json (download from the button above it)")
   end
 
   test "create starts dev upload import" do
@@ -70,11 +67,11 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_response :accepted
-    body = JSON.parse(response.body)
-    assert body["import_id"].present?
-    assert_equal "queued", body.dig("status", "state")
-    assert_equal "dev_upload", body.dig("status", "source_kind")
+    run = user.heartbeat_import_runs.order(:created_at).last
+
+    assert_redirected_to my_settings_data_url
+    assert_equal "queued", run.state
+    assert_equal "dev_upload", run.source_kind
   end
 
   test "remote create rejects users without the imports feature" do
@@ -83,8 +80,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
 
-    assert_response :not_found
-    assert_equal "Imports are not enabled for this user.", JSON.parse(response.body)["error"]
+    assert_redirected_with_import_error("Imports are not enabled for this user.")
   end
 
   test "remote create rejects during cooldown" do
@@ -101,8 +97,8 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
 
-    assert_response :too_many_requests
-    assert_equal "Remote imports are limited to once every 4 hours.", JSON.parse(response.body)["error"]
+    assert_redirected_with_import_error("Remote imports are limited to once every 4 hours.")
+    assert flash[:cooldown_until].present?
   end
 
   test "remote create rejects when another import is active" do
@@ -118,8 +114,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
 
-    assert_response :conflict
-    assert_equal "Another import is already in progress.", JSON.parse(response.body)["error"]
+    assert_redirected_with_import_error("Another import is already in progress.")
   end
 
   test "remote create starts wakatime import" do
@@ -133,10 +128,11 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_response :accepted
-    body = JSON.parse(response.body)
-    assert_equal "wakatime_dump", body.dig("status", "source_kind")
-    assert_equal "queued", body.dig("status", "state")
+    run = user.heartbeat_import_runs.order(:created_at).last
+
+    assert_redirected_to my_settings_data_url
+    assert_equal "wakatime_dump", run.source_kind
+    assert_equal "queued", run.state
   end
 
   test "remote create starts hackatime v1 import" do
@@ -150,10 +146,11 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_response :accepted
-    body = JSON.parse(response.body)
-    assert_equal "hackatime_v1_dump", body.dig("status", "source_kind")
-    assert_equal "queued", body.dig("status", "state")
+    run = user.heartbeat_import_runs.order(:created_at).last
+
+    assert_redirected_to my_settings_data_url
+    assert_equal "hackatime_v1_dump", run.source_kind
+    assert_equal "queued", run.state
   end
 
   test "show returns status for existing import" do
@@ -260,5 +257,9 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
         api_key: "remote-key-#{SecureRandom.hex(8)}"
       }
     }
+  end
+
+  def assert_redirected_with_import_error(_message)
+    assert_redirected_to my_settings_data_url
   end
 end

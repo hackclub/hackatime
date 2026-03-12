@@ -1,19 +1,11 @@
 <script lang="ts">
-  import { Form } from "@inertiajs/svelte";
-  import { onMount } from "svelte";
+  import { Form, usePoll } from "@inertiajs/svelte";
   import { tweened } from "svelte/motion";
   import { cubicOut } from "svelte/easing";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { DataPageProps, HeartbeatImportStatusProps } from "./types";
-
-  type ImportCreateResponse = {
-    import_id?: string;
-    status?: HeartbeatImportStatusProps;
-    error?: string;
-    retry_at?: string;
-  };
 
   const PROVIDERS = [
     {
@@ -44,7 +36,6 @@
     errors,
   }: DataPageProps = $props();
 
-  let csrfToken = $state("");
   let selectedFile = $state<File | null>(null);
   let remoteProvider =
     $state<(typeof PROVIDERS)[number]["value"]>("wakatime_dump");
@@ -62,13 +53,14 @@
   let remoteDumpStatus = $state<string | null>(null);
   let remotePercentComplete = $state<number | null>(null);
   let sourceFilename = $state<string | null>(null);
-  let devSubmitError = $state("");
-  let remoteSubmitError = $state("");
   let remoteCooldownUntil = $state<string | null>(null);
-  let isStartingDevImport = $state(false);
-  let isStartingRemoteImport = $state(false);
-  let pollingHandle = $state<number | null>(null);
   const tweenedProgress = tweened(0, { duration: 320, easing: cubicOut });
+
+  const { start: startPolling, stop: stopPolling } = usePoll(
+    1000,
+    { only: ["latest_heartbeat_import", "remote_import_cooldown_until"] },
+    { autoStart: false },
+  );
 
   const importInProgress = $derived(
     importState === "queued" ||
@@ -88,19 +80,6 @@
       : false,
   );
 
-  onMount(() => {
-    csrfToken =
-      document
-        .querySelector("meta[name='csrf-token']")
-        ?.getAttribute("content") || "";
-
-    syncImport(latest_heartbeat_import, true);
-
-    return () => {
-      stopPolling();
-    };
-  });
-
   $effect(() => {
     if (remote_import_cooldown_until) {
       remoteCooldownUntil = remote_import_cooldown_until;
@@ -108,61 +87,11 @@
   });
 
   $effect(() => {
-    syncImport(latest_heartbeat_import);
+    syncImport(latest_heartbeat_import, true);
   });
 
   function isTerminalImportState(state: string) {
     return state === "completed" || state === "failed";
-  }
-
-  function importStatusPath(id: string) {
-    return paths.heartbeat_import_path.replace("__IMPORT_ID__", id);
-  }
-
-  function stopPolling() {
-    if (pollingHandle) {
-      window.clearInterval(pollingHandle);
-      pollingHandle = null;
-    }
-  }
-
-  function startPolling() {
-    if (!importId || isTerminalImportState(importState) || pollingHandle) {
-      return;
-    }
-
-    pollingHandle = window.setInterval(() => {
-      void pollImportStatus();
-    }, 1000);
-  }
-
-  async function pollImportStatus() {
-    if (!importId) {
-      return;
-    }
-
-    try {
-      const response = await fetch(importStatusPath(importId), {
-        headers: { Accept: "application/json" },
-        credentials: "same-origin",
-      });
-      const payload = (await response.json()) as HeartbeatImportStatusProps & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Import status could not be loaded.");
-      }
-
-      syncImport(payload, true);
-    } catch (_error) {
-      if (importInProgress) {
-        importMessage =
-          "Connection issue while checking import status. Retrying...";
-      } else {
-        stopPolling();
-      }
-    }
   }
 
   function formatCount(value: number | null) {
@@ -245,122 +174,6 @@
 
     startPolling();
   }
-
-  function resetImportState() {
-    importState = "queued";
-    importMessage = "Queued import.";
-    importErrorMessage = "";
-    processedCount = 0;
-    totalCount = null;
-    importedCount = null;
-    skippedCount = null;
-    errorsCount = 0;
-    remoteDumpStatus = null;
-    remotePercentComplete = null;
-    sourceFilename = null;
-    void tweenedProgress.set(0);
-  }
-
-  async function startDevImport(event: SubmitEvent) {
-    event.preventDefault();
-    devSubmitError = "";
-
-    if (!selectedFile) {
-      devSubmitError = "Please choose a JSON file to import.";
-      return;
-    }
-
-    isStartingDevImport = true;
-    resetImportState();
-    stopPolling();
-
-    const formData = new FormData();
-    formData.append("heartbeat_file", selectedFile);
-
-    try {
-      const response = await fetch(paths.create_heartbeat_import_path, {
-        method: "POST",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-          Accept: "application/json",
-        },
-        credentials: "same-origin",
-        body: formData,
-      });
-      const payload = (await response.json()) as ImportCreateResponse;
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Unable to start import.");
-      }
-
-      if (!payload.status) {
-        throw new Error("Unable to start import.");
-      }
-
-      syncImport(payload.status, true);
-      startPolling();
-    } catch (error) {
-      importState = "failed";
-      importMessage = "Import failed to start.";
-      devSubmitError =
-        error instanceof Error ? error.message : "Unable to start import.";
-    } finally {
-      isStartingDevImport = false;
-    }
-  }
-
-  async function startRemoteImport(event: SubmitEvent) {
-    event.preventDefault();
-    remoteSubmitError = "";
-
-    if (!remoteApiKey.trim()) {
-      remoteSubmitError = "API key is required.";
-      return;
-    }
-
-    isStartingRemoteImport = true;
-    resetImportState();
-    stopPolling();
-
-    const formData = new FormData();
-    formData.append("heartbeat_import[provider]", remoteProvider);
-    formData.append("heartbeat_import[api_key]", remoteApiKey);
-
-    try {
-      const response = await fetch(paths.create_heartbeat_import_path, {
-        method: "POST",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-          Accept: "application/json",
-        },
-        credentials: "same-origin",
-        body: formData,
-      });
-      const payload = (await response.json()) as ImportCreateResponse;
-
-      if (!response.ok) {
-        if (payload.retry_at) {
-          remoteCooldownUntil = payload.retry_at;
-        }
-        throw new Error(payload.error || "Unable to start import.");
-      }
-
-      if (!payload.status) {
-        throw new Error("Unable to start import.");
-      }
-
-      remoteApiKey = "";
-      syncImport(payload.status, true);
-      startPolling();
-    } catch (error) {
-      importState = "failed";
-      importMessage = "Import failed to start.";
-      remoteSubmitError =
-        error instanceof Error ? error.message : "Unable to start import.";
-    } finally {
-      isStartingRemoteImport = false;
-    }
-  }
 </script>
 
 <SettingsShell
@@ -372,131 +185,139 @@
   {errors}
 >
   {#if ui.show_imports}
-    <SectionCard
-      id="user_imports"
-      title="Imports"
-      description="Request a one-time heartbeat dump from WakaTime or legacy Hackatime."
-      wide
+    <Form
+      method="post"
+      action={paths.create_heartbeat_import_path}
+      resetOnSuccess={["heartbeat_import[api_key]"]}
     >
-      {#if remoteCooldownActive && remoteCooldownUntil}
-        <p
-          class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
+      {#snippet children({ processing, errors: formErrors })}
+        <SectionCard
+          id="user_imports"
+          title="Imports"
+          description="Request a one-time heartbeat dump from WakaTime or legacy Hackatime."
+          wide
         >
-          Remote imports can be started again after {formatDateTime(
-            remoteCooldownUntil,
-          )}.
-        </p>
-      {/if}
-
-      <form
-        id="remote-import-form"
-        class="mt-4 space-y-4 rounded-md border border-surface-200 bg-surface p-4"
-        onsubmit={startRemoteImport}
-      >
-        <div class="space-y-3">
-          {#each PROVIDERS as provider}
-            <label
-              class="flex cursor-pointer items-start gap-3 rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content"
+          {#if remoteCooldownActive && remoteCooldownUntil}
+            <p
+              class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
             >
-              <input
-                type="radio"
-                name="import_provider"
-                value={provider.value}
-                checked={remoteProvider === provider.value}
-                onchange={() => {
-                  remoteProvider = provider.value;
-                }}
-                class="mt-1 h-4 w-4 border-surface-200 bg-surface text-primary"
-              />
-              <span class="space-y-1">
-                <span class="block font-semibold">{provider.label}</span>
-                <span class="block text-xs text-muted">{provider.helper}</span>
-              </span>
-            </label>
-          {/each}
-        </div>
+              Remote imports can be started again after {formatDateTime(
+                remoteCooldownUntil,
+              )}.
+            </p>
+          {/if}
 
-        <div class="max-w-2xl">
-          <label
-            for="remote_import_api_key"
-            class="mb-2 block text-sm text-surface-content"
+          <div
+            class="mt-4 space-y-4 rounded-md border border-surface-200 bg-surface p-4"
           >
-            API Key
-          </label>
-          <input
-            id="remote_import_api_key"
-            type="password"
-            bind:value={remoteApiKey}
-            class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-surface-content focus:border-primary focus:outline-none"
-            disabled={importInProgress || isStartingRemoteImport}
-          />
-        </div>
-
-        {#if remoteSubmitError}
-          <p class="text-sm text-red-300">{remoteSubmitError}</p>
-        {/if}
-
-        {#if importState !== "idle" && latestImportIsRemote}
-          <div class="rounded-md border border-surface-200 bg-darker p-3">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <p class="text-sm font-medium text-surface-content">
-                  {providerLabel(importSourceKind)}
-                </p>
-                <p class="text-xs text-muted">Status: {importState}</p>
-              </div>
-              <p class="text-sm font-semibold text-primary">
-                {Math.round($tweenedProgress)}%
-              </p>
+            <div class="space-y-3">
+              {#each PROVIDERS as provider}
+                <label
+                  class="flex cursor-pointer items-start gap-3 rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content"
+                >
+                  <input
+                    type="radio"
+                    name="heartbeat_import[provider]"
+                    value={provider.value}
+                    bind:group={remoteProvider}
+                    class="mt-1 h-4 w-4 border-surface-200 bg-surface text-primary"
+                    disabled={importInProgress || processing}
+                  />
+                  <span class="space-y-1">
+                    <span class="block font-semibold">{provider.label}</span>
+                    <span class="block text-xs text-muted">
+                      {provider.helper}
+                    </span>
+                  </span>
+                </label>
+              {/each}
             </div>
-            <progress
-              max="100"
-              value={$tweenedProgress}
-              class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
-            ></progress>
-            {#if remoteDumpStatus}
-              <p class="mt-2 text-sm text-muted">
-                Remote dump: {remoteDumpStatus}
-                {#if remotePercentComplete !== null}
-                  ({Math.round(remotePercentComplete)}%)
+
+            <div class="max-w-2xl">
+              <label
+                for="remote_import_api_key"
+                class="mb-2 block text-sm text-surface-content"
+              >
+                API Key
+              </label>
+              <input
+                id="remote_import_api_key"
+                name="heartbeat_import[api_key]"
+                type="password"
+                bind:value={remoteApiKey}
+                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-surface-content focus:border-primary focus:outline-none"
+                disabled={importInProgress || processing}
+              />
+            </div>
+
+            {#if formErrors.import}
+              <p class="text-sm text-red-300">{formErrors.import}</p>
+            {/if}
+
+            {#if importState !== "idle" && latestImportIsRemote}
+              <div class="rounded-md border border-surface-200 bg-darker p-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-sm font-medium text-surface-content">
+                      {providerLabel(importSourceKind)}
+                    </p>
+                    <p class="text-xs text-muted">Status: {importState}</p>
+                  </div>
+                  <p class="text-sm font-semibold text-primary">
+                    {Math.round($tweenedProgress)}%
+                  </p>
+                </div>
+                <progress
+                  max="100"
+                  value={$tweenedProgress}
+                  class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
+                ></progress>
+                {#if remoteDumpStatus}
+                  <p class="mt-2 text-sm text-muted">
+                    Remote dump: {remoteDumpStatus}
+                    {#if remotePercentComplete !== null}
+                      ({Math.round(remotePercentComplete)}%)
+                    {/if}
+                  </p>
                 {/if}
-              </p>
-            {/if}
-            {#if importErrorMessage}
-              <p class="mt-1 text-sm text-red-300">{importErrorMessage}</p>
-            {/if}
-            {#if importState === "completed"}
-              <p class="mt-1 text-sm text-muted">
-                Imported: {formatCount(importedCount)}. Skipped {formatCount(
-                  skippedCount,
-                )} duplicates and {errorsCount.toLocaleString()} errors.
-              </p>
+                {#if importErrorMessage}
+                  <p class="mt-1 text-sm text-red-300">
+                    {importErrorMessage}
+                  </p>
+                {/if}
+                {#if importState === "completed"}
+                  <p class="mt-1 text-sm text-muted">
+                    Imported: {formatCount(importedCount)}. Skipped {formatCount(
+                      skippedCount,
+                    )} duplicates and {errorsCount.toLocaleString()} errors.
+                  </p>
+                {/if}
+              </div>
             {/if}
           </div>
-        {/if}
-      </form>
 
-      {#snippet footer()}
-        <Button
-          type="submit"
-          variant="primary"
-          form="remote-import-form"
-          disabled={!imports_enabled ||
-            remoteCooldownActive ||
-            !remoteApiKey.trim() ||
-            importInProgress ||
-            isStartingRemoteImport}
-        >
-          {#if isStartingRemoteImport}
-            Starting remote import...
-          {:else if importInProgress && latestImportIsRemote}
-            Import in progress...
-          {:else}
-            Start remote import
-          {/if}
-        </Button>
+          {#snippet footer()}
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={!imports_enabled ||
+                remoteCooldownActive ||
+                !remoteApiKey.trim() ||
+                importInProgress ||
+                processing}
+            >
+              {#if processing}
+                Starting remote import...
+              {:else if importInProgress && latestImportIsRemote}
+                Import in progress...
+              {:else}
+                Start remote import
+              {/if}
+            </Button>
+          {/snippet}
+        </SectionCard>
       {/snippet}
-    </SectionCard>
+    </Form>
   {/if}
 
   <SectionCard
@@ -585,89 +406,99 @@
       </div>
 
       {#if ui.show_dev_import}
-        <form
+        <Form
+          method="post"
+          action={paths.create_heartbeat_import_path}
           class="mt-4 rounded-md border border-surface-200 bg-darker p-4"
-          onsubmit={startDevImport}
+          resetOnSuccess={["heartbeat_file"]}
+          onSuccess={() => {
+            selectedFile = null;
+          }}
         >
-          <label
-            class="mb-2 block text-sm text-surface-content"
-            for="heartbeat_file"
-          >
-            Import heartbeats (development only)
-          </label>
-          <input
-            id="heartbeat_file"
-            type="file"
-            accept=".json,application/json"
-            disabled={importInProgress || isStartingDevImport}
-            onchange={(event) => {
-              const target = event.currentTarget as HTMLInputElement;
-              selectedFile = target.files?.[0] ?? null;
-            }}
-            class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content disabled:cursor-not-allowed disabled:opacity-60"
-          />
-
-          {#if devSubmitError}
-            <p class="mt-2 text-sm text-red-300">{devSubmitError}</p>
-          {/if}
-
-          <Button
-            type="submit"
-            variant="surface"
-            class="mt-3 rounded-md"
-            disabled={!selectedFile || importInProgress || isStartingDevImport}
-          >
-            {#if isStartingDevImport}
-              Starting import...
-            {:else if importInProgress && latestImportIsDev}
-              Importing...
-            {:else}
-              Import file
-            {/if}
-          </Button>
-
-          {#if importState !== "idle" && latestImportIsDev}
-            <div
-              class="mt-4 rounded-md border border-surface-200 bg-surface p-3"
+          {#snippet children({ processing, errors: formErrors })}
+            <label
+              class="mb-2 block text-sm text-surface-content"
+              for="heartbeat_file"
             >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-medium text-surface-content">
-                    {providerLabel(importSourceKind)}
+              Import heartbeats (development only)
+            </label>
+            <input
+              id="heartbeat_file"
+              name="heartbeat_file"
+              type="file"
+              accept=".json,application/json"
+              required
+              disabled={importInProgress || processing}
+              onchange={(event) => {
+                const target = event.currentTarget as HTMLInputElement;
+                selectedFile = target.files?.[0] ?? null;
+              }}
+              class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content disabled:cursor-not-allowed disabled:opacity-60"
+            />
+
+            {#if formErrors.import}
+              <p class="mt-2 text-sm text-red-300">{formErrors.import}</p>
+            {/if}
+
+            <Button
+              type="submit"
+              variant="surface"
+              class="mt-3 rounded-md"
+              disabled={!selectedFile || importInProgress || processing}
+            >
+              {#if processing}
+                Starting import...
+              {:else if importInProgress && latestImportIsDev}
+                Importing...
+              {:else}
+                Import file
+              {/if}
+            </Button>
+
+            {#if importState !== "idle" && latestImportIsDev}
+              <div
+                class="mt-4 rounded-md border border-surface-200 bg-surface p-3"
+              >
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm font-medium text-surface-content">
+                      {providerLabel(importSourceKind)}
+                    </p>
+                    <p class="text-xs text-muted">Status: {importState}</p>
+                  </div>
+                  <p class="text-sm font-semibold text-primary">
+                    {Math.round($tweenedProgress)}%
                   </p>
-                  <p class="text-xs text-muted">Status: {importState}</p>
                 </div>
-                <p class="text-sm font-semibold text-primary">
-                  {Math.round($tweenedProgress)}%
+                <progress
+                  max="100"
+                  value={$tweenedProgress}
+                  class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
+                ></progress>
+                <p class="mt-2 text-sm text-muted">
+                  {formatCount(processedCount)} / {formatCount(totalCount)}
+                  processed
                 </p>
+                {#if sourceFilename}
+                  <p class="mt-1 text-sm text-muted">File: {sourceFilename}</p>
+                {/if}
+                {#if importMessage}
+                  <p class="mt-1 text-sm text-muted">{importMessage}</p>
+                {/if}
+                {#if importErrorMessage}
+                  <p class="mt-1 text-sm text-red-300">{importErrorMessage}</p>
+                {/if}
+                {#if importState === "completed"}
+                  <p class="mt-1 text-sm text-muted">
+                    Imported: {formatCount(importedCount)}. Skipped {formatCount(
+                      skippedCount,
+                    )} duplicates and {errorsCount.toLocaleString()} errors.
+                  </p>
+                {/if}
               </div>
-              <progress
-                max="100"
-                value={$tweenedProgress}
-                class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
-              ></progress>
-              <p class="mt-2 text-sm text-muted">
-                {formatCount(processedCount)} / {formatCount(totalCount)} processed
-              </p>
-              {#if sourceFilename}
-                <p class="mt-1 text-sm text-muted">File: {sourceFilename}</p>
-              {/if}
-              {#if importMessage}
-                <p class="mt-1 text-sm text-muted">{importMessage}</p>
-              {/if}
-              {#if importErrorMessage}
-                <p class="mt-1 text-sm text-red-300">{importErrorMessage}</p>
-              {/if}
-              {#if importState === "completed"}
-                <p class="mt-1 text-sm text-muted">
-                  Imported: {formatCount(importedCount)}. Skipped {formatCount(
-                    skippedCount,
-                  )} duplicates and {errorsCount.toLocaleString()} errors.
-                </p>
-              {/if}
-            </div>
-          {/if}
-        </form>
+            {/if}
+          {/snippet}
+        </Form>
       {/if}
     {/if}
   </SectionCard>
@@ -681,25 +512,19 @@
       hasBody={false}
     >
       {#snippet footer()}
-        <form
+        <Form
           method="post"
           action={paths.create_deletion_path}
           class="m-0"
-          onsubmit={(event) => {
-            if (
-              !window.confirm(
-                "Submit account deletion request? This action starts the deletion process.",
-              )
-            ) {
-              event.preventDefault();
-            }
-          }}
+          onBefore={() =>
+            window.confirm(
+              "Submit account deletion request? This action starts the deletion process.",
+            )}
         >
-          <input type="hidden" name="authenticity_token" value={csrfToken} />
           <Button type="submit" variant="surface" class="rounded-md">
             Request deletion
           </Button>
-        </form>
+        </Form>
       {/snippet}
     </SectionCard>
   {:else}
