@@ -1,8 +1,6 @@
 require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
-  fixtures :users, :api_keys
-
   test "theme defaults to gruvbox dark" do
     user = User.new
 
@@ -33,7 +31,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "rotate_api_key! replaces existing api keys with a new one" do
-    user = users(:one)
+    user = User.create!(timezone: "UTC", slack_uid: "U#{SecureRandom.hex(8)}")
+    user.api_keys.create!(name: "Original key")
     original_token = user.api_keys.first.token
     user.api_keys.create!(name: "Secondary key")
 
@@ -46,7 +45,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "rotate_api_key! creates a key when none exists" do
-    user = users(:three)
+    user = User.create!(timezone: "UTC", slack_uid: "U#{SecureRandom.hex(8)}")
 
     assert_equal 0, user.api_keys.count
 

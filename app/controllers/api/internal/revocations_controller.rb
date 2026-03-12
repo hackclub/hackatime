@@ -11,8 +11,8 @@ module Api
 
         key, user = find_revocable_key_and_owner(token)
 
-        return render json: { success: false } unless key.present?
-        return render json: { success: false } unless revoke_key!(key)
+        return render_revocation_failure unless key.present?
+        return render_revocation_failure unless revoke_key!(key)
 
         render json: {
           success: true,
@@ -41,11 +41,15 @@ module Api
         if key.is_a?(AdminApiKey)
           key.revoke!
         else
-          key.user.rotate_api_key!
+          key.user.rotate_api_key!(api_key: key)
         end
       rescue ActiveRecord::ActiveRecordError => e
         Rails.logger.error("Revocation failed for #{key.class}##{key.id}: #{e.class} #{e.message}")
         false
+      end
+
+      def render_revocation_failure
+        render json: { success: false }, status: :unprocessable_entity
       end
 
       private def authenticate!

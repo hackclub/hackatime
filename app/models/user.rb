@@ -305,7 +305,14 @@ class User < ApplicationRecord
     sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
   end
 
-  def rotate_api_key!
+  def rotate_api_key!(api_key: nil)
+    if api_key.present?
+      raise ActiveRecord::RecordNotFound unless api_key.user_id == id
+
+      api_key.update!(token: SecureRandom.uuid_v4)
+      return api_key
+    end
+
     api_keys.transaction do
       api_keys.destroy_all
       api_keys.create!(name: "Hackatime key")
