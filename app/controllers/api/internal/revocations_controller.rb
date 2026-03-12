@@ -30,8 +30,6 @@ module Api
         end
 
         if token.match?(REGULAR_KEY_REGEX)
-          # TODO: ApiKey currently has no active/revoked scope.
-          # If one is added, prefer ApiKey.active here for consistency.
           key = ApiKey.find_by(token:)
           return [ key, key&.user ]
         end
