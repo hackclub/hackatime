@@ -117,7 +117,6 @@ class Settings::BaseController < InertiaController
         export_all_heartbeats_path: export_my_heartbeats_path(all_data: "true"),
         export_range_heartbeats_path: export_my_heartbeats_path,
         create_heartbeat_import_path: my_heartbeat_imports_path,
-        heartbeat_import_path: my_heartbeat_import_path("__IMPORT_ID__"),
         create_deletion_path: create_deletion_path
       },
       options: {

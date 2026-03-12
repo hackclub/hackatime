@@ -116,7 +116,6 @@ class HeartbeatImportService
       @block = block
       @depth = 0
       @current_heartbeat = nil
-      @current_key = nil
       @heartbeat_array_depths = []
       @field_array_stack = []
     end
@@ -157,7 +156,6 @@ class HeartbeatImportService
       return unless @current_heartbeat
 
       if key
-        @current_key = key
         @current_heartbeat[key] = value
       elsif @field_array_stack.any?
         @current_heartbeat[@field_array_stack.last] << value

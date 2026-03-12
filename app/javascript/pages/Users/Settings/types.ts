@@ -96,7 +96,6 @@ export type PathsProps = {
   export_all_heartbeats_path: string;
   export_range_heartbeats_path: string;
   create_heartbeat_import_path: string;
-  heartbeat_import_path: string;
   create_deletion_path: string;
 };
 
