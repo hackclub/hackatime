@@ -4,6 +4,7 @@
   import Modal from "../../../components/Modal.svelte";
   import MultiSelectCombobox from "../../../components/MultiSelectCombobox.svelte";
   import Select from "../../../components/Select.svelte";
+  import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { GoalsPageProps, ProgrammingGoal } from "./types";
 
@@ -203,97 +204,93 @@
   {subheading}
   {errors}
 >
-  <div>
-    <section id="user_programming_goals">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 class="text-xl font-semibold text-surface-content">
-            Programming Goals
-          </h2>
-          <p class="mt-1 text-sm text-muted">Set up to {MAX_GOALS} goals.</p>
-        </div>
+  <SectionCard
+    id="user_programming_goals"
+    title="Programming Goals"
+    description={`Set up to ${MAX_GOALS} goals for your daily, weekly, or monthly coding targets.`}
+    footerClass="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+  >
+    <div class="flex items-center justify-between gap-3">
+      <p
+        class="text-xs font-semibold uppercase tracking-wider text-secondary/80 sm:text-sm"
+      >
+        {activeGoalSummary}
+      </p>
+    </div>
 
-        <div class="flex items-center gap-3">
-          <p
-            class="text-xs font-semibold uppercase tracking-wider text-secondary/80 sm:text-sm"
-          >
-            {activeGoalSummary}
-          </p>
-          <Button
-            type="button"
-            variant="primary"
-            class="rounded-md px-3 py-2"
-            onclick={openCreateModal}
-            disabled={hasReachedGoalLimit || submitting}
-          >
-            New goal
-          </Button>
-        </div>
+    {#if goals.length === 0}
+      <div
+        class="mt-4 rounded-md border border-surface-200 bg-darker/30 px-4 py-5 text-center"
+      >
+        <p class="text-sm text-muted">
+          Set a goal to track your coding consistency.
+        </p>
       </div>
-
-      {#if goals.length === 0}
-        <div
-          class="mt-4 rounded-md border border-surface-200 bg-darker/30 px-4 py-5 text-center"
-        >
-          <p class="text-sm text-muted">
-            Set a goal to track your coding consistency.
-          </p>
-          <Button
-            type="button"
-            class="mt-4 rounded-md"
-            onclick={openCreateModal}
-            disabled={submitting}
+    {:else}
+      <div
+        class="mt-4 overflow-hidden rounded-md border border-surface-200 bg-darker/30"
+      >
+        {#each goals as goal (goal.id)}
+          <article
+            class="flex flex-wrap items-start justify-between gap-3 border-b border-surface-200 px-4 py-3 last:border-b-0"
           >
-            Add new goal...
-          </Button>
-        </div>
-      {:else}
-        <div
-          class="mt-4 overflow-hidden rounded-md border border-surface-200 bg-darker/30"
-        >
-          {#each goals as goal (goal.id)}
-            <article
-              class="flex flex-wrap items-start justify-between gap-3 border-b border-surface-200 px-4 py-3 last:border-b-0"
-            >
-              <div class="min-w-0">
-                <p class="text-sm font-semibold text-surface-content">
-                  {formatPeriod(goal.period)}: {formatDuration(
-                    goal.target_seconds,
-                  )}
-                </p>
-                <p class="mt-1 truncate text-xs text-muted">
-                  {scopeSubtitle(goal)}
-                </p>
-              </div>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-surface-content">
+                {formatPeriod(goal.period)}: {formatDuration(
+                  goal.target_seconds,
+                )}
+              </p>
+              <p class="mt-1 truncate text-xs text-muted">
+                {scopeSubtitle(goal)}
+              </p>
+            </div>
 
-              <div class="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="surface"
-                  size="xs"
-                  class="rounded-md"
-                  onclick={() => openEditModal(goal)}
-                  disabled={submitting}
-                >
-                  Edit
-                </Button>
-                <Button
-                  type="button"
-                  variant="surface"
-                  size="xs"
-                  class="rounded-md"
-                  onclick={() => deleteGoal(goal)}
-                  disabled={submitting}
-                >
-                  Delete
-                </Button>
-              </div>
-            </article>
-          {/each}
-        </div>
-      {/if}
-    </section>
-  </div>
+            <div class="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="surface"
+                size="xs"
+                class="rounded-md"
+                onclick={() => openEditModal(goal)}
+                disabled={submitting}
+              >
+                Edit
+              </Button>
+              <Button
+                type="button"
+                variant="surface"
+                size="xs"
+                class="rounded-md"
+                onclick={() => deleteGoal(goal)}
+                disabled={submitting}
+              >
+                Delete
+              </Button>
+            </div>
+          </article>
+        {/each}
+      </div>
+    {/if}
+
+    {#snippet footer()}
+      <p class="text-sm text-muted">
+        {#if hasReachedGoalLimit}
+          Goal limit reached. Delete an existing goal before adding another.
+        {:else}
+          Add a goal to stay accountable across languages and projects.
+        {/if}
+      </p>
+      <Button
+        type="button"
+        variant="primary"
+        class="rounded-md px-3 py-2"
+        onclick={openCreateModal}
+        disabled={hasReachedGoalLimit || submitting}
+      >
+        New goal
+      </Button>
+    {/snippet}
+  </SectionCard>
 </SettingsShell>
 
 <Modal

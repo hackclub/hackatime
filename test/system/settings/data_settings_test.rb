@@ -18,7 +18,8 @@ class DataSettingsTest < ApplicationSystemTestCase
 
     assert_settings_page(
       path: my_settings_data_path,
-      marker_text: "Imports"
+      marker_text: "Imports",
+      card_count: 3
     )
 
     assert_text "Download Data"

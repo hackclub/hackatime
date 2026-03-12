@@ -9,6 +9,18 @@ export type SectionId =
 
 export type SectionPaths = Record<SectionId, string>;
 
+export type SettingsSection = {
+  id: SectionId;
+  label: string;
+  blurb: string;
+  path: string;
+};
+
+export type SettingsSubsection = {
+  id: string;
+  label: string;
+};
+
 export type Option = {
   label: string;
   value: string;
@@ -243,50 +255,94 @@ export type DataPageProps = SettingsCommonProps & {
   latest_heartbeat_import?: HeartbeatImportStatusProps | null;
   ui: UiProps;
 };
-export const buildSections = (sectionPaths: SectionPaths) => [
+
+export const buildSections = (
+  sectionPaths: SectionPaths,
+): SettingsSection[] => [
   {
-    id: "profile" as SectionId,
+    id: "profile",
     label: "Profile",
     blurb: "Username, region, timezone, and privacy.",
     path: sectionPaths.profile,
   },
   {
-    id: "integrations" as SectionId,
+    id: "integrations",
     label: "Integrations",
     blurb: "Slack status, GitHub link, and email sign-in addresses.",
     path: sectionPaths.integrations,
   },
   {
-    id: "notifications" as SectionId,
+    id: "notifications",
     label: "Notifications",
     blurb: "Email notifications and weekly summary preferences.",
     path: sectionPaths.notifications,
   },
   {
-    id: "access" as SectionId,
+    id: "access",
     label: "Access",
     blurb: "Time tracking setup, extension options, and API key access.",
     path: sectionPaths.access,
   },
   {
-    id: "goals" as SectionId,
+    id: "goals",
     label: "Goals",
     blurb: "Set daily, weekly, or monthly programming targets.",
     path: sectionPaths.goals,
   },
   {
-    id: "badges" as SectionId,
+    id: "badges",
     label: "Badges",
     blurb: "Shareable badges and profile snippets.",
     path: sectionPaths.badges,
   },
   {
-    id: "data" as SectionId,
+    id: "data",
     label: "Data",
     blurb: "Exports, imports, and deletion controls.",
     path: sectionPaths.data,
   },
 ];
+
+const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
+  profile: [
+    { id: "user_region", label: "Region" },
+    { id: "user_username", label: "Username" },
+    { id: "user_privacy", label: "Privacy" },
+    { id: "user_theme", label: "Theme" },
+  ],
+  integrations: [
+    { id: "user_slack_status", label: "Slack status" },
+    { id: "user_slack_notifications", label: "Slack channels" },
+    { id: "user_github_account", label: "GitHub" },
+    { id: "user_email_addresses", label: "Email addresses" },
+  ],
+  notifications: [
+    { id: "user_email_notifications", label: "Email notifications" },
+  ],
+  access: [
+    { id: "user_tracking_setup", label: "Setup" },
+    { id: "user_hackatime_extension", label: "Extension display" },
+    { id: "user_api_key", label: "API key" },
+    { id: "user_config_file", label: "Config file" },
+  ],
+  goals: [
+    { id: "user_programming_goals", label: "Programming goals" },
+  ],
+  badges: [
+    { id: "user_stats_badges", label: "Stats badges" },
+    { id: "user_markscribe", label: "Markscribe" },
+    { id: "user_heatmap", label: "Heatmap" },
+  ],
+  data: [
+    { id: "user_imports", label: "Imports" },
+    { id: "download_user_data", label: "Download data" },
+    { id: "delete_account", label: "Account deletion" },
+  ],
+};
+
+export const buildSubsections = (
+  activeSection: SectionId,
+): SettingsSubsection[] => subsectionMap[activeSection] || [];
 
 const hashSectionMap: Record<string, SectionId> = {
   user_region: "profile",
@@ -294,6 +350,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_username: "profile",
   user_privacy: "profile",
   user_theme: "profile",
+  user_tracking_setup: "access",
   user_hackatime_extension: "access",
   user_api_key: "access",
   user_config_file: "access",

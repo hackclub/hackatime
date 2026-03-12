@@ -3,6 +3,7 @@
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
   import Select from "../../../components/Select.svelte";
+  import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { AccessPageProps } from "./types";
 
@@ -93,114 +94,120 @@
   {subheading}
   {errors}
 >
-  <div class="space-y-8">
-    <section>
-      <h2 class="text-xl font-semibold text-surface-content">
-        Time Tracking Setup
-      </h2>
-      <p class="mt-1 text-sm text-muted">
-        Use the setup guide if you are configuring a new editor or device.
-      </p>
-      <Button href={paths.wakatime_setup_path} class="mt-4">
-        Open setup guide
+  <SectionCard
+    id="user_tracking_setup"
+    title="Time Tracking Setup"
+    description="Use the setup guide if you are configuring a new editor or device."
+  >
+    <p class="text-sm text-muted">
+      Hackatime uses the WakaTime plugin ecosystem, so the setup guide covers
+      editor installation, API keys, and API URL configuration.
+    </p>
+
+    {#snippet footer()}
+      <Button href={paths.wakatime_setup_path}>Open setup guide</Button>
+    {/snippet}
+  </SectionCard>
+
+  <SectionCard
+    id="user_hackatime_extension"
+    title="Extension Display"
+    description="Choose how coding time appears in the extension status text."
+  >
+    <form
+      id="access-extension-form"
+      method="post"
+      action={settings_update_path}
+      class="space-y-4"
+    >
+      <input type="hidden" name="_method" value="patch" />
+      <input type="hidden" name="authenticity_token" value={csrfToken} />
+
+      <div>
+        <label
+          for="extension_type"
+          class="mb-2 block text-sm text-surface-content"
+        >
+          Display style
+        </label>
+        <Select
+          id="extension_type"
+          name="user[hackatime_extension_text_type]"
+          value={user.hackatime_extension_text_type}
+          items={options.extension_text_types}
+        />
+      </div>
+    </form>
+
+    {#snippet footer()}
+      <Button type="submit" variant="primary" form="access-extension-form">
+        Save extension settings
       </Button>
-    </section>
+    {/snippet}
+  </SectionCard>
 
-    <section id="user_hackatime_extension">
-      <h2 class="text-xl font-semibold text-surface-content">
-        Extension Display
-      </h2>
-      <p class="mt-1 text-sm text-muted">
-        Choose how coding time appears in the extension status text.
+  <SectionCard
+    id="user_api_key"
+    title="API Key"
+    description="Rotate your API key if you think it has been exposed."
+    hasBody={Boolean(rotatedApiKeyError || rotatedApiKey)}
+  >
+    {#if rotatedApiKeyError}
+      <p
+        class="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red"
+      >
+        {rotatedApiKeyError}
       </p>
-      <form method="post" action={settings_update_path} class="mt-4 space-y-4">
-        <input type="hidden" name="_method" value="patch" />
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
+    {/if}
 
-        <div>
-          <label
-            for="extension_type"
-            class="mb-2 block text-sm text-surface-content"
-          >
-            Display style
-          </label>
-          <Select
-            id="extension_type"
-            name="user[hackatime_extension_text_type]"
-            value={user.hackatime_extension_text_type}
-            items={options.extension_text_types}
-          />
-        </div>
+    {#if rotatedApiKey}
+      <div class="rounded-md border border-surface-200 bg-darker p-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted">
+          New API key
+        </p>
+        <code class="mt-2 block break-all text-sm text-surface-content"
+          >{rotatedApiKey}</code
+        >
+        <Button
+          type="button"
+          variant="surface"
+          size="xs"
+          class="mt-3"
+          onclick={copyApiKey}
+        >
+          {apiKeyCopied ? "Copied" : "Copy key"}
+        </Button>
+      </div>
+    {/if}
 
-        <Button type="submit" variant="primary">Save extension settings</Button>
-      </form>
-    </section>
-
-    <section id="user_api_key">
-      <h2 class="text-xl font-semibold text-surface-content">API Key</h2>
-      <p class="mt-1 text-sm text-muted">
-        Rotate your API key if you think it has been exposed.
-      </p>
+    {#snippet footer()}
       <Button
         type="button"
-        class="mt-4"
         onclick={openRotateApiKeyModal}
         disabled={rotatingApiKey}
       >
         {rotatingApiKey ? "Rotating..." : "Rotate API key"}
       </Button>
+    {/snippet}
+  </SectionCard>
 
-      {#if rotatedApiKeyError}
-        <p
-          class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red"
-        >
-          {rotatedApiKeyError}
-        </p>
-      {/if}
-
-      {#if rotatedApiKey}
-        <div class="mt-4 rounded-md border border-surface-200 bg-darker p-3">
-          <p class="text-xs font-semibold uppercase tracking-wide text-muted">
-            New API key
-          </p>
-          <code class="mt-2 block break-all text-sm text-surface-content"
-            >{rotatedApiKey}</code
-          >
-          <Button
-            type="button"
-            variant="surface"
-            size="xs"
-            class="mt-3"
-            onclick={copyApiKey}
-          >
-            {apiKeyCopied ? "Copied" : "Copy key"}
-          </Button>
-        </div>
-      {/if}
-    </section>
-
-    <section id="user_config_file">
-      <h2 class="text-xl font-semibold text-surface-content">
-        WakaTime Config File
-      </h2>
-      <p class="mt-1 text-sm text-muted">
-        Copy this into your <code class="rounded bg-darker px-1 py-0.5 text-xs"
-          >~/.wakatime.cfg</code
-        > file.
+  <SectionCard
+    id="user_config_file"
+    title="WakaTime Config File"
+    description="Copy this into your ~/.wakatime.cfg file."
+    wide
+  >
+    {#if config_file.has_api_key && config_file.content}
+      <pre
+        class="overflow-x-auto rounded-md border border-surface-200 bg-darker p-4 text-xs text-surface-content">{config_file.content}</pre>
+    {:else}
+      <p
+        class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
+      >
+        {config_file.empty_message}
       </p>
-
-      {#if config_file.has_api_key && config_file.content}
-        <pre
-          class="mt-4 overflow-x-auto rounded-md border border-surface-200 bg-darker p-4 text-xs text-surface-content">{config_file.content}</pre>
-      {:else}
-        <p
-          class="mt-4 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
-        >
-          {config_file.empty_message}
-        </p>
-      {/if}
-    </section>
-  </div>
+    {/if}
+  </SectionCard>
 </SettingsShell>
 
 <Modal
