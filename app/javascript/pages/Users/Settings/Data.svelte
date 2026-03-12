@@ -364,15 +364,11 @@
 
       <div class="mt-4 space-y-3">
         <Form method="post" action={paths.export_all_heartbeats_path}>
-          {#snippet children({ processing })}
-            <Button
-              type="submit"
-              class="rounded-md cursor-default"
-              disabled={processing}
-            >
-              {processing ? "Exporting..." : "Export all heartbeats"}
-            </Button>
-          {/snippet}
+        <Button
+          type="submit"
+          class="rounded-md"
+          disabled={processing}
+        >
         </Form>
 
         <Form
