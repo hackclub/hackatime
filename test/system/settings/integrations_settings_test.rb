@@ -12,7 +12,8 @@ class IntegrationsSettingsTest < ApplicationSystemTestCase
   test "integrations settings page renders key sections" do
     assert_settings_page(
       path: my_settings_integrations_path,
-      marker_text: "Slack Status Sync"
+      marker_text: "Slack Status Sync",
+      card_count: 4
     )
 
     assert_text "Slack Channel Notifications"

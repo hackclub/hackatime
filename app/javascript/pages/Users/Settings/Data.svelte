@@ -1,20 +1,24 @@
 <script lang="ts">
-  import { usePoll, Form } from "@inertiajs/svelte";
-  import { onMount } from "svelte";
+  import { Form, usePoll } from "@inertiajs/svelte";
   import { tweened } from "svelte/motion";
   import { cubicOut } from "svelte/easing";
   import Button from "../../../components/Button.svelte";
+  import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
-  import type { DataPageProps } from "./types";
+  import type { DataPageProps, HeartbeatImportStatusProps } from "./types";
 
-  type ImportStatusPayload = NonNullable<
-    DataPageProps["heartbeat_import"]["status"]
-  >;
-  type ImportCreateResponse = {
-    import_id?: string;
-    status?: ImportStatusPayload;
-    error?: string;
-  };
+  const PROVIDERS = [
+    {
+      value: "wakatime_dump",
+      label: "WakaTime",
+      helper: "Request a one-time heartbeat dump from WakaTime.",
+    },
+    {
+      value: "hackatime_v1_dump",
+      label: "Hackatime v1",
+      helper: "Request a one-time heartbeat dump from legacy Hackatime.",
+    },
+  ] as const;
 
   let {
     active_section,
@@ -24,137 +28,70 @@
     subheading,
     user,
     paths,
-    migration,
     data_export,
-    import_source,
-    mirrors,
+    imports_enabled,
+    remote_import_cooldown_until,
+    latest_heartbeat_import,
     ui,
-    heartbeat_import,
     errors,
-    admin_tools,
   }: DataPageProps = $props();
 
-  let csrfToken = $state("");
   let selectedFile = $state<File | null>(null);
+  let remoteProvider =
+    $state<(typeof PROVIDERS)[number]["value"]>("wakatime_dump");
+  let remoteApiKey = $state("");
   let importId = $state("");
   let importState = $state("idle");
+  let importSourceKind = $state("");
   let importMessage = $state("");
-  let submitError = $state("");
+  let importErrorMessage = $state("");
   let processedCount = $state<number | null>(null);
   let totalCount = $state<number | null>(null);
   let importedCount = $state<number | null>(null);
   let skippedCount = $state<number | null>(null);
   let errorsCount = $state(0);
-  let isStartingImport = $state(false);
-  let isPolling = $state(false);
-  let importSource = $state<DataPageProps["import_source"] | null>(null);
-  let backfillMode = $state<"all_time" | "date_range">("all_time");
-  let importStartDate = $state("");
-  let importEndDate = $state("");
-  const importPollParams: { heartbeat_import_id?: string } = {};
+  let remoteDumpStatus = $state<string | null>(null);
+  let remotePercentComplete = $state<number | null>(null);
+  let sourceFilename = $state<string | null>(null);
+  let remoteCooldownUntil = $state<string | null>(null);
   const tweenedProgress = tweened(0, { duration: 320, easing: cubicOut });
 
-  const importInProgress = $derived(
-    importState === "queued" ||
-      importState === "counting" ||
-      importState === "running",
-  );
-
-  const { start: startStatusPolling, stop: stopStatusPolling } = usePoll(
+  const { start: startPolling, stop: stopPolling } = usePoll(
     1000,
-    {
-      only: ["heartbeat_import"],
-      data: importPollParams,
-      preserveUrl: true,
-      onHttpException: () => {
-        if (importInProgress) {
-          importMessage =
-            "Connection issue while checking import status. Retrying...";
-        }
-      },
-      onNetworkError: () => {
-        if (importInProgress) {
-          importMessage =
-            "Connection issue while checking import status. Retrying...";
-        }
-      },
-    },
+    { only: ["latest_heartbeat_import", "remote_import_cooldown_until"] },
     { autoStart: false },
   );
 
-  const { start: startImportSourcePolling, stop: stopImportSourcePolling } =
-    usePoll(
-      10000,
-      {
-        only: ["import_source"],
-        preserveUrl: true,
-      },
-      { autoStart: false },
-    );
+  const importInProgress = $derived(
+    importState === "queued" ||
+      importState === "requesting_dump" ||
+      importState === "waiting_for_dump" ||
+      importState === "downloading_dump" ||
+      importState === "importing",
+  );
+  const latestImportIsRemote = $derived(
+    importSourceKind === "wakatime_dump" ||
+      importSourceKind === "hackatime_v1_dump",
+  );
+  const latestImportIsDev = $derived(importSourceKind === "dev_upload");
+  const remoteCooldownActive = $derived(
+    remoteCooldownUntil
+      ? new Date(remoteCooldownUntil).getTime() > Date.now()
+      : false,
+  );
 
-  onMount(() => {
-    csrfToken =
-      document
-        .querySelector("meta[name='csrf-token']")
-        ?.getAttribute("content") || "";
-
-    syncImportFromProps(heartbeat_import);
-    if (ui.show_imports_and_mirrors) {
-      importSource = import_source || null;
-      importStartDate = importSource?.initial_backfill_start_date || "";
-      importEndDate = importSource?.initial_backfill_end_date || "";
-      backfillMode =
-        importStartDate || importEndDate ? "date_range" : "all_time";
-      startImportSourcePolling();
+  $effect(() => {
+    if (remote_import_cooldown_until) {
+      remoteCooldownUntil = remote_import_cooldown_until;
     }
-
-    return () => {
-      if (ui.show_imports_and_mirrors) {
-        stopImportSourcePolling();
-      }
-    };
   });
 
   $effect(() => {
-    syncImportFromProps(heartbeat_import);
-  });
-
-  $effect(() => {
-    if (!ui.show_imports_and_mirrors) {
-      importSource = null;
-      importStartDate = "";
-      importEndDate = "";
-      backfillMode = "all_time";
-      return;
-    }
-
-    importSource = import_source || null;
-    importStartDate = importSource?.initial_backfill_start_date || "";
-    importEndDate = importSource?.initial_backfill_end_date || "";
-    backfillMode = importStartDate || importEndDate ? "date_range" : "all_time";
+    syncImport(latest_heartbeat_import, true);
   });
 
   function isTerminalImportState(state: string) {
     return state === "completed" || state === "failed";
-  }
-
-  function stopPolling() {
-    stopStatusPolling();
-    delete importPollParams.heartbeat_import_id;
-    isPolling = false;
-  }
-
-  function startPolling() {
-    if (!importId) {
-      return;
-    }
-    if (isPolling && importPollParams.heartbeat_import_id === importId) {
-      return;
-    }
-    stopStatusPolling();
-    importPollParams.heartbeat_import_id = importId;
-    startStatusPolling();
-    isPolling = true;
   }
 
   function formatCount(value: number | null) {
@@ -164,120 +101,78 @@
     return value.toLocaleString();
   }
 
-  function applyImportStatus(status: Partial<ImportStatusPayload>) {
+  function formatDateTime(value: string | null) {
+    if (!value) {
+      return "—";
+    }
+
+    return new Date(value).toLocaleString();
+  }
+
+  function providerLabel(sourceKind: string) {
+    if (sourceKind === "wakatime_dump") {
+      return "WakaTime";
+    }
+    if (sourceKind === "hackatime_v1_dump") {
+      return "Hackatime v1";
+    }
+    if (sourceKind === "dev_upload") {
+      return "Development upload";
+    }
+    return "Import";
+  }
+
+  function applyImportStatus(status: Partial<HeartbeatImportStatusProps>) {
     const state = status.state || "idle";
     const progress = Number(status.progress_percent ?? 0);
     const normalizedProgress = Number.isFinite(progress)
       ? Math.min(Math.max(progress, 0), 100)
       : 0;
 
+    importId = status.import_id || importId;
     importState = state;
+    importSourceKind = status.source_kind || importSourceKind;
     importMessage = status.message || importMessage;
+    importErrorMessage = status.error_message || "";
     processedCount = status.processed_count ?? processedCount;
     totalCount = status.total_count ?? totalCount;
     importedCount = status.imported_count ?? importedCount;
     skippedCount = status.skipped_count ?? skippedCount;
     errorsCount = status.errors_count ?? errorsCount;
+    remoteDumpStatus = status.remote_dump_status ?? remoteDumpStatus;
+    remotePercentComplete =
+      status.remote_percent_complete ?? remotePercentComplete;
+    sourceFilename = status.source_filename ?? sourceFilename;
+    if (status.cooldown_until) {
+      remoteCooldownUntil = status.cooldown_until;
+    }
     void tweenedProgress.set(normalizedProgress);
   }
 
-  function syncImportFromProps(
-    serverImport: DataPageProps["heartbeat_import"],
+  function syncImport(
+    serverImport:
+      | DataPageProps["latest_heartbeat_import"]
+      | HeartbeatImportStatusProps
+      | null
+      | undefined,
+    force = false,
   ) {
     if (!serverImport) {
       return;
     }
 
-    if (serverImport.import_id) {
-      if (importId && serverImport.import_id !== importId) {
-        return;
-      }
-      importId = serverImport.import_id;
-    }
-
-    if (serverImport.import_id && !serverImport.status) {
-      stopPolling();
-      importState = "failed";
-      importMessage = "Import status could not be found.";
+    if (!force && importId && serverImport.import_id !== importId) {
       return;
     }
 
-    if (!serverImport.status) {
-      return;
-    }
+    applyImportStatus(serverImport);
 
-    applyImportStatus(serverImport.status);
-    if (isTerminalImportState(serverImport.status.state)) {
+    if (isTerminalImportState(serverImport.state)) {
       stopPolling();
       return;
     }
 
-    if (importId) {
-      startPolling();
-    }
-  }
-
-  function resetImportState() {
-    importState = "queued";
-    importMessage = "Queued import.";
-    submitError = "";
-    processedCount = 0;
-    totalCount = null;
-    importedCount = null;
-    skippedCount = null;
-    errorsCount = 0;
-    void tweenedProgress.set(0);
-  }
-
-  async function startImport(event: SubmitEvent) {
-    event.preventDefault();
-    submitError = "";
-
-    if (!selectedFile) {
-      submitError = "Please choose a JSON file to import.";
-      return;
-    }
-
-    isStartingImport = true;
-    resetImportState();
-    stopPolling();
-
-    const formData = new FormData();
-    formData.append("heartbeat_file", selectedFile);
-
-    try {
-      const response = await fetch(paths.create_heartbeat_import_path, {
-        method: "POST",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-          Accept: "application/json",
-        },
-        credentials: "same-origin",
-        body: formData,
-      });
-      const payload = (await response.json()) as ImportCreateResponse;
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Unable to start import.");
-      }
-
-      if (!payload.import_id) {
-        throw new Error("Unable to start import.");
-      }
-
-      importId = payload.import_id;
-      if (payload.status) {
-        applyImportStatus(payload.status);
-      }
-      startPolling();
-    } catch (error) {
-      importState = "failed";
-      importMessage = "Import failed to start.";
-      submitError =
-        error instanceof Error ? error.message : "Unable to start import.";
-    } finally {
-      isStartingImport = false;
-    }
+    startPolling();
   }
 </script>
 
@@ -288,478 +183,235 @@
   {heading}
   {subheading}
   {errors}
-  {admin_tools}
 >
-  <div class="space-y-8">
-    <section id="user_migration_assistant">
-      <h2 class="text-xl font-semibold text-surface-content">
-        Migration Assistant
-      </h2>
-      <p class="mt-1 text-sm text-muted">
-        Queue migration of heartbeats and API keys from legacy Hackatime.
-      </p>
-      <form method="post" action={paths.migrate_heartbeats_path} class="mt-4">
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
-        <Button type="submit" class="rounded-md" disabled={!migration.enabled}
-          >Start migration</Button
+  {#if ui.show_imports}
+    <Form
+      method="post"
+      action={paths.create_heartbeat_import_path}
+      resetOnSuccess={["heartbeat_import[api_key]"]}
+    >
+      {#snippet children({ processing, errors: formErrors })}
+        <SectionCard
+          id="user_imports"
+          title="Imports"
+          description="Request a one-time heartbeat dump from WakaTime or legacy Hackatime."
+          wide
         >
-      </form>
-      {#if !migration.enabled}
-        <p class="mt-2 text-xs text-muted">
-          Hackatime v1 import is currently disabled due to an integration issue.
-          We're working on reinstating imports!
-        </p>
-      {/if}
-
-      {#if migration.jobs.length > 0}
-        <div class="mt-4 space-y-2">
-          {#each migration.jobs as job}
-            <div
-              class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content"
+          {#if remoteCooldownActive && remoteCooldownUntil}
+            <p
+              class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
             >
-              Job {job.id}: {job.status}
-            </div>
-          {/each}
-        </div>
-      {/if}
-    </section>
-
-    {#if ui.show_imports_and_mirrors}
-      <div class="mt-4 space-y-7">
-        <section id="wakatime_import_source">
-          <h3 class="text-lg font-semibold text-surface-content">
-            Import from WakaTime
-          </h3>
-
-          {#if importSource}
-            <div
-              class="mt-3 rounded-md border border-surface-200 bg-surface p-3"
-            >
-              <p class="text-sm text-surface-content">
-                Status: <span class="font-semibold">{importSource.status}</span>
-              </p>
-              <p class="mt-1 text-xs text-muted">
-                Last synced: {importSource.last_synced_ago || "Never"}
-              </p>
-              <p class="mt-1 text-xs text-muted">
-                Imported: {importSource.imported_count.toLocaleString()}
-              </p>
-              {#if importSource.last_error_message}
-                <p class="mt-1 text-xs text-red-300">
-                  Last error: {importSource.last_error_message}
-                </p>
-              {/if}
-            </div>
+              Remote imports can be started again after {formatDateTime(
+                remoteCooldownUntil,
+              )}.
+            </p>
           {/if}
 
-          <form
-            method="post"
-            action={paths.heartbeat_import_source_path}
-            class="mt-3 space-y-3 rounded-md border border-surface-200 bg-surface p-3"
+          <div
+            class="mt-4 space-y-4 rounded-md border border-surface-200 bg-surface p-4"
           >
-            <input type="hidden" name="authenticity_token" value={csrfToken} />
-            {#if importSource}
-              <input type="hidden" name="_method" value="patch" />
-            {/if}
-
-            <div>
-              <label
-                for="import_endpoint_url"
-                class="mb-2 block text-sm text-surface-content"
-              >
-                Endpoint URL
-              </label>
-              <input
-                id="import_endpoint_url"
-                type="url"
-                name="heartbeat_import_source[endpoint_url]"
-                required
-                value={importSource?.endpoint_url ||
-                  "https://wakatime.com/api/v1"}
-                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-              />
+            <div class="space-y-3">
+              {#each PROVIDERS as provider}
+                <label
+                  class="flex cursor-pointer items-start gap-3 rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content"
+                >
+                  <input
+                    type="radio"
+                    name="heartbeat_import[provider]"
+                    value={provider.value}
+                    bind:group={remoteProvider}
+                    class="mt-1 h-4 w-4 border-surface-200 bg-surface text-primary"
+                    disabled={importInProgress || processing}
+                  />
+                  <span class="space-y-1">
+                    <span class="block font-semibold">{provider.label}</span>
+                    <span class="block text-xs text-muted">
+                      {provider.helper}
+                    </span>
+                  </span>
+                </label>
+              {/each}
             </div>
 
-            <div>
+            <div class="max-w-2xl">
               <label
-                for="import_api_key"
+                for="remote_import_api_key"
                 class="mb-2 block text-sm text-surface-content"
               >
                 API Key
               </label>
               <input
-                id="import_api_key"
+                id="remote_import_api_key"
+                name="heartbeat_import[api_key]"
                 type="password"
-                name="heartbeat_import_source[encrypted_api_key]"
-                required={!importSource}
-                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+                bind:value={remoteApiKey}
+                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-surface-content focus:border-primary focus:outline-none"
+                disabled={importInProgress || processing}
               />
-              {#if importSource}
-                <p class="mt-1 text-xs text-muted">
-                  Leave blank to keep the existing key.
-                </p>
-              {/if}
             </div>
 
-            <div class="rounded-md border border-surface-200 bg-darker p-3">
-              <p class="text-sm font-semibold text-surface-content">
-                Backfill scope
-              </p>
-              <div class="mt-2 flex flex-wrap items-center gap-4">
-                <label
-                  class="inline-flex items-center gap-2 text-sm text-surface-content"
-                >
-                  <input
-                    type="radio"
-                    name="backfill_mode"
-                    value="all_time"
-                    checked={backfillMode === "all_time"}
-                    onchange={() => {
-                      backfillMode = "all_time";
-                      importStartDate = "";
-                      importEndDate = "";
-                    }}
-                    class="peer sr-only"
-                  />
-                  <span
-                    class="h-4 w-4 rounded-full border border-surface-200 bg-surface ring-offset-2 ring-offset-surface transition peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"
-                  ></span>
-                  All time
-                </label>
-                <label
-                  class="inline-flex items-center gap-2 text-sm text-surface-content"
-                >
-                  <input
-                    type="radio"
-                    name="backfill_mode"
-                    value="date_range"
-                    checked={backfillMode === "date_range"}
-                    onchange={() => {
-                      backfillMode = "date_range";
-                    }}
-                    class="peer sr-only"
-                  />
-                  <span
-                    class="h-4 w-4 rounded-full border border-surface-200 bg-surface ring-offset-2 ring-offset-surface transition peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"
-                  ></span>
-                  Specific date range
-                </label>
+            {#if formErrors.import}
+              <p class="text-sm text-red-300">{formErrors.import}</p>
+            {/if}
+
+            {#if importState !== "idle" && latestImportIsRemote}
+              <div class="rounded-md border border-surface-200 bg-darker p-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-sm font-medium text-surface-content">
+                      {providerLabel(importSourceKind)}
+                    </p>
+                    <p class="text-xs text-muted">Status: {importState}</p>
+                  </div>
+                  <p class="text-sm font-semibold text-primary">
+                    {Math.round($tweenedProgress)}%
+                  </p>
+                </div>
+                <progress
+                  max="100"
+                  value={$tweenedProgress}
+                  class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
+                ></progress>
+                {#if remoteDumpStatus}
+                  <p class="mt-2 text-sm text-muted">
+                    Remote dump: {remoteDumpStatus}
+                    {#if remotePercentComplete !== null}
+                      ({Math.round(remotePercentComplete)}%)
+                    {/if}
+                  </p>
+                {/if}
+                {#if importErrorMessage}
+                  <p class="mt-1 text-sm text-red-300">
+                    {importErrorMessage}
+                  </p>
+                {/if}
+                {#if importState === "completed"}
+                  <p class="mt-1 text-sm text-muted">
+                    Imported: {formatCount(importedCount)}. Skipped {formatCount(
+                      skippedCount,
+                    )} duplicates and {errorsCount.toLocaleString()} errors.
+                  </p>
+                {/if}
               </div>
+            {/if}
+          </div>
 
-              {#if backfillMode === "all_time"}
-                <input
-                  type="hidden"
-                  name="heartbeat_import_source[initial_backfill_start_date]"
-                  value=""
-                />
-                <input
-                  type="hidden"
-                  name="heartbeat_import_source[initial_backfill_end_date]"
-                  value=""
-                />
+          {#snippet footer()}
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={!imports_enabled ||
+                remoteCooldownActive ||
+                !remoteApiKey.trim() ||
+                importInProgress ||
+                processing}
+            >
+              {#if processing}
+                Starting remote import...
+              {:else if importInProgress && latestImportIsRemote}
+                Import in progress...
               {:else}
-                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label
-                      for="import_start_date"
-                      class="mb-2 block text-sm text-surface-content"
-                    >
-                      Start date
-                    </label>
-                    <input
-                      id="import_start_date"
-                      type="date"
-                      name="heartbeat_import_source[initial_backfill_start_date]"
-                      bind:value={importStartDate}
-                      required
-                      class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      for="import_end_date"
-                      class="mb-2 block text-sm text-surface-content"
-                    >
-                      End date
-                    </label>
-                    <input
-                      id="import_end_date"
-                      type="date"
-                      name="heartbeat_import_source[initial_backfill_end_date]"
-                      bind:value={importEndDate}
-                      required
-                      class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                </div>
+                Start remote import
               {/if}
-            </div>
+            </Button>
+          {/snippet}
+        </SectionCard>
+      {/snippet}
+    </Form>
+  {/if}
 
-            <div class="flex flex-wrap items-center gap-3">
-              <input
-                type="hidden"
-                name="heartbeat_import_source[sync_enabled]"
-                value="0"
-              />
-              <label
-                class="inline-flex items-center gap-2 text-sm text-surface-content"
-              >
-                <input
-                  type="checkbox"
-                  name="heartbeat_import_source[sync_enabled]"
-                  value="1"
-                  checked={importSource ? importSource.sync_enabled : true}
-                  class="h-4 w-4 rounded border-surface-200 bg-surface text-primary"
-                />
-                Continuous sync enabled
-              </label>
-              {#if importSource}
-                <label
-                  class="inline-flex items-center gap-2 text-sm text-surface-content"
-                >
-                  <input
-                    type="checkbox"
-                    name="heartbeat_import_source[rerun_backfill]"
-                    value="1"
-                    class="h-4 w-4 rounded border-surface-200 bg-surface text-primary"
-                  />
-                  Re-run backfill
-                </label>
-              {/if}
-            </div>
-
-            <div class="flex flex-wrap gap-2">
-              <Button type="submit" variant="primary">
-                {importSource ? "Update source" : "Create source"}
-              </Button>
-            </div>
-          </form>
-
-          {#if importSource}
-            <div class="mt-3 flex flex-wrap gap-2">
-              <form
-                method="post"
-                action={paths.heartbeat_import_source_sync_path}
-              >
-                <input
-                  type="hidden"
-                  name="authenticity_token"
-                  value={csrfToken}
-                />
-                <Button type="submit" variant="surface">Sync now</Button>
-              </form>
-              <form
-                method="post"
-                action={paths.heartbeat_import_source_path}
-                onsubmit={(event) => {
-                  if (!window.confirm("Remove import source configuration?")) {
-                    event.preventDefault();
-                  }
-                }}
-              >
-                <input type="hidden" name="_method" value="delete" />
-                <input
-                  type="hidden"
-                  name="authenticity_token"
-                  value={csrfToken}
-                />
-                <Button type="submit" variant="surface">Remove source</Button>
-              </form>
-            </div>
-          {/if}
-        </section>
-
-        <section id="wakatime_mirror">
-          <h3 class="text-lg font-semibold text-surface-content">
-            Mirror to WakaTime
-          </h3>
-
-          {#if mirrors.length > 0}
-            <div class="mt-3 space-y-2">
-              {#each mirrors as mirror}
-                <div
-                  class="rounded-md border border-surface-200 bg-surface p-3"
-                >
-                  <p class="text-sm font-semibold text-surface-content">
-                    {mirror.endpoint_url}
-                  </p>
-                  <p class="mt-1 text-xs text-muted">
-                    Status: {mirror.enabled ? "enabled" : "paused"}
-                  </p>
-                  <p class="mt-1 text-xs text-muted">
-                    Last synced: {mirror.last_synced_ago}
-                  </p>
-                  {#if mirror.last_error_message}
-                    <p class="mt-1 text-xs text-red-300">
-                      Last error: {mirror.last_error_message}
-                    </p>
-                  {/if}
-                  {#if mirror.consecutive_failures && mirror.consecutive_failures > 0}
-                    <p class="mt-1 text-xs text-muted">
-                      Consecutive failures: {mirror.consecutive_failures}
-                    </p>
-                  {/if}
-                  <form
-                    method="post"
-                    action={mirror.destroy_path}
-                    class="mt-3"
-                    onsubmit={(event) => {
-                      if (!window.confirm("Delete this mirror endpoint?")) {
-                        event.preventDefault();
-                      }
-                    }}
-                  >
-                    <input type="hidden" name="_method" value="delete" />
-                    <input
-                      type="hidden"
-                      name="authenticity_token"
-                      value={csrfToken}
-                    />
-                    <Button type="submit" variant="surface" size="xs">
-                      Delete mirror
-                    </Button>
-                  </form>
-                </div>
-              {/each}
-            </div>
-          {/if}
-
-          <form
-            method="post"
-            action={paths.user_wakatime_mirrors_path}
-            class="mt-3 space-y-3 rounded-md border border-surface-200 bg-surface p-3"
-          >
-            <input type="hidden" name="authenticity_token" value={csrfToken} />
-            <div>
-              <label
-                for="mirror_endpoint_url"
-                class="mb-2 block text-sm text-surface-content"
-              >
-                Endpoint URL
-              </label>
-              <input
-                id="mirror_endpoint_url"
-                type="url"
-                name="wakatime_mirror[endpoint_url]"
-                value="https://wakatime.com/api/v1"
-                required
-                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-              />
-            </div>
-            <div>
-              <label
-                for="mirror_key"
-                class="mb-2 block text-sm text-surface-content"
-              >
-                WakaTime API Key
-              </label>
-              <input
-                id="mirror_key"
-                type="password"
-                name="wakatime_mirror[encrypted_api_key]"
-                required
-                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-              />
-            </div>
-            <Button type="submit" variant="primary">Add mirror</Button>
-          </form>
-        </section>
+  <SectionCard
+    id="download_user_data"
+    title="Download Data"
+    description="Download your coding history as JSON for backups or analysis."
+    wide
+  >
+    {#if data_export.is_restricted}
+      <p
+        class="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200"
+      >
+        Data export is currently restricted for this account.
+      </p>
+    {:else}
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
+          <p class="text-xs uppercase tracking-wide text-muted">
+            Total heartbeats
+          </p>
+          <p class="mt-1 text-lg font-semibold text-surface-content">
+            {data_export.total_heartbeats}
+          </p>
+        </div>
+        <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
+          <p class="text-xs uppercase tracking-wide text-muted">
+            Total coding time
+          </p>
+          <p class="mt-1 text-lg font-semibold text-surface-content">
+            {data_export.total_coding_time}
+          </p>
+        </div>
+        <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
+          <p class="text-xs uppercase tracking-wide text-muted">Last 7 days</p>
+          <p class="mt-1 text-lg font-semibold text-surface-content">
+            {data_export.heartbeats_last_7_days}
+          </p>
+        </div>
       </div>
-    {/if}
 
-    <section id="download_user_data">
-      <h2 class="text-xl font-semibold text-surface-content">Download Data</h2>
+      <p class="mt-3 text-sm text-muted">
+        Exports are generated in the background and emailed to you.
+      </p>
 
-      {#if data_export.is_restricted}
-        <p
-          class="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200"
+      <div class="mt-4 space-y-3">
+        <Form method="post" action={paths.export_all_heartbeats_path}>
+          {#snippet children({ processing })}
+            <Button type="submit" class="rounded-md" disabled={processing}>
+              {processing ? "Exporting..." : "Export all heartbeats"}
+            </Button>
+          {/snippet}
+        </Form>
+
+        <Form
+          method="post"
+          action={paths.export_range_heartbeats_path}
+          class="grid grid-cols-1 gap-3 rounded-md border border-surface-200 bg-darker p-4 sm:grid-cols-3"
         >
-          Data export is currently restricted for this account.
-        </p>
-      {:else}
-        <p class="mt-1 text-sm text-muted">
-          Download your coding history as JSON for backups or analysis.
-        </p>
+          {#snippet children({ processing })}
+            <input
+              type="date"
+              name="start_date"
+              required
+              class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+            />
+            <input
+              type="date"
+              name="end_date"
+              required
+              class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+            />
+            <Button
+              type="submit"
+              variant="surface"
+              class="rounded-md"
+              disabled={processing}
+            >
+              {processing ? "Exporting..." : "Export date range"}
+            </Button>
+          {/snippet}
+        </Form>
+      </div>
 
-        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Total heartbeats
-            </p>
-            <p class="mt-1 text-lg font-semibold text-surface-content">
-              {data_export.total_heartbeats}
-            </p>
-          </div>
-          <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Total coding time
-            </p>
-            <p class="mt-1 text-lg font-semibold text-surface-content">
-              {data_export.total_coding_time}
-            </p>
-          </div>
-          <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Last 7 days
-            </p>
-            <p class="mt-1 text-lg font-semibold text-surface-content">
-              {data_export.heartbeats_last_7_days}
-            </p>
-          </div>
-        </div>
-
-        <p class="mt-2 text-sm text-muted">
-          Exports are generated in the background and emailed to you.
-        </p>
-
-        <div class="mt-4 space-y-3">
-          <Form method="post" action={paths.export_all_heartbeats_path}>
-            {#snippet children({ processing })}
-              <Button
-                type="submit"
-                class="rounded-md cursor-default"
-                disabled={processing}
-              >
-                {processing ? "Exporting..." : "Export all heartbeats"}
-              </Button>
-            {/snippet}
-          </Form>
-
-          <Form
-            method="post"
-            action={paths.export_range_heartbeats_path}
-            class="grid grid-cols-1 gap-3 rounded-md border border-surface-200 bg-darker p-4 sm:grid-cols-3"
-          >
-            {#snippet children({ processing })}
-              <input
-                type="date"
-                name="start_date"
-                required
-                class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-              />
-              <input
-                type="date"
-                name="end_date"
-                required
-                class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-              />
-              <Button
-                type="submit"
-                variant="surface"
-                class="rounded-md"
-                disabled={processing}
-              >
-                {processing ? "Exporting..." : "Export date range"}
-              </Button>
-            {/snippet}
-          </Form>
-        </div>
-
-        {#if ui.show_dev_import}
-          <form
-            class="mt-4 rounded-md border border-surface-200 bg-darker p-4"
-            onsubmit={startImport}
-          >
+      {#if ui.show_dev_import}
+        <Form
+          method="post"
+          action={paths.create_heartbeat_import_path}
+          class="mt-4 rounded-md border border-surface-200 bg-darker p-4"
+          resetOnSuccess={["heartbeat_file"]}
+          onSuccess={() => {
+            selectedFile = null;
+          }}
+        >
+          {#snippet children({ processing, errors: formErrors })}
             <label
               class="mb-2 block text-sm text-surface-content"
               for="heartbeat_file"
@@ -768,9 +420,11 @@
             </label>
             <input
               id="heartbeat_file"
+              name="heartbeat_file"
               type="file"
               accept=".json,application/json"
-              disabled={importInProgress || isStartingImport}
+              required
+              disabled={importInProgress || processing}
               onchange={(event) => {
                 const target = event.currentTarget as HTMLInputElement;
                 selectedFile = target.files?.[0] ?? null;
@@ -778,33 +432,36 @@
               class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content disabled:cursor-not-allowed disabled:opacity-60"
             />
 
-            {#if submitError}
-              <p class="mt-2 text-sm text-red-300">{submitError}</p>
+            {#if formErrors.import}
+              <p class="mt-2 text-sm text-red-300">{formErrors.import}</p>
             {/if}
 
             <Button
               type="submit"
               variant="surface"
               class="mt-3 rounded-md"
-              disabled={!selectedFile || importInProgress || isStartingImport}
+              disabled={!selectedFile || importInProgress || processing}
             >
-              {#if isStartingImport}
+              {#if processing}
                 Starting import...
-              {:else if importInProgress}
+              {:else if importInProgress && latestImportIsDev}
                 Importing...
               {:else}
                 Import file
               {/if}
             </Button>
 
-            {#if importState !== "idle"}
+            {#if importState !== "idle" && latestImportIsDev}
               <div
                 class="mt-4 rounded-md border border-surface-200 bg-surface p-3"
               >
                 <div class="flex items-center justify-between">
-                  <p class="text-sm font-medium text-surface-content">
-                    Status: {importState}
-                  </p>
+                  <div>
+                    <p class="text-sm font-medium text-surface-content">
+                      {providerLabel(importSourceKind)}
+                    </p>
+                    <p class="text-xs text-muted">Status: {importState}</p>
+                  </div>
                   <p class="text-sm font-semibold text-primary">
                     {Math.round($tweenedProgress)}%
                   </p>
@@ -815,60 +472,69 @@
                   class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
                 ></progress>
                 <p class="mt-2 text-sm text-muted">
-                  {formatCount(processedCount)} / {formatCount(totalCount)} processed
+                  {formatCount(processedCount)} / {formatCount(totalCount)}
+                  processed
                 </p>
+                {#if sourceFilename}
+                  <p class="mt-1 text-sm text-muted">File: {sourceFilename}</p>
+                {/if}
                 {#if importMessage}
                   <p class="mt-1 text-sm text-muted">{importMessage}</p>
+                {/if}
+                {#if importErrorMessage}
+                  <p class="mt-1 text-sm text-red-300">{importErrorMessage}</p>
                 {/if}
                 {#if importState === "completed"}
                   <p class="mt-1 text-sm text-muted">
                     Imported: {formatCount(importedCount)}. Skipped {formatCount(
                       skippedCount,
-                    )} duplicates and {errorsCount.toLocaleString()} errors
+                    )} duplicates and {errorsCount.toLocaleString()} errors.
                   </p>
                 {/if}
               </div>
             {/if}
-          </form>
-        {/if}
+          {/snippet}
+        </Form>
       {/if}
-    </section>
+    {/if}
+  </SectionCard>
 
-    <section id="delete_account">
-      <h2 class="text-xl font-semibold text-surface-content">
-        Account Deletion
-      </h2>
-      {#if user.can_request_deletion}
-        <p class="mt-1 text-sm text-muted">
-          Request permanent deletion. The account enters a waiting period before
-          final removal.
-        </p>
-        <form
+  {#if user.can_request_deletion}
+    <SectionCard
+      id="delete_account"
+      title="Account Deletion"
+      description="Request permanent deletion. The account enters a waiting period before final removal."
+      tone="danger"
+      hasBody={false}
+    >
+      {#snippet footer()}
+        <Form
           method="post"
           action={paths.create_deletion_path}
-          class="mt-4"
-          onsubmit={(event) => {
-            if (
-              !window.confirm(
-                "Submit account deletion request? This action starts the deletion process.",
-              )
-            ) {
-              event.preventDefault();
-            }
-          }}
+          class="m-0"
+          onBefore={() =>
+            window.confirm(
+              "Submit account deletion request? This action starts the deletion process.",
+            )}
         >
-          <input type="hidden" name="authenticity_token" value={csrfToken} />
           <Button type="submit" variant="surface" class="rounded-md">
             Request deletion
           </Button>
-        </form>
-      {:else}
-        <p
-          class="mt-3 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
-        >
-          Deletion request is unavailable for this account right now.
-        </p>
-      {/if}
-    </section>
-  </div>
+        </Form>
+      {/snippet}
+    </SectionCard>
+  {:else}
+    <SectionCard
+      id="delete_account"
+      title="Account Deletion"
+      description="Request permanent deletion. The account enters a waiting period before final removal."
+      tone="danger"
+    >
+      <p
+        class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
+      >
+        Deletion request is unavailable for this account right now.
+      </p>
+    </SectionCard>
+  {/if}
 </SettingsShell>

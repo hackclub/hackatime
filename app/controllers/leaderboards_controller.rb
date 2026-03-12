@@ -68,16 +68,7 @@ class LeaderboardsController < ApplicationController
     entries_scope = leaderboard_entries_scope
     ids = entries_scope.distinct.pluck(:user_id)
     @user_on_leaderboard = current_user && ids.include?(current_user.id)
-    @untracked_entries = calculate_untracked_entries(ids) unless @user_on_leaderboard || country_scope?
+    @untracked_entries = 0
     @total_entries = entries_scope.count
-  end
-
-  def calculate_untracked_entries(ids)
-    return 0 unless Flipper.enabled?(:hackatime_v1_import)
-
-    range = @period_type == :last_7_days ? ((Date.current - 6.days).beginning_of_day...Date.current.end_of_day) : Date.current.all_day
-    ids_set = ids.to_set
-
-    Hackatime::Heartbeat.where(time: range).distinct.pluck(:user_id).count { |uid| !ids_set.include?(uid) }
   end
 end

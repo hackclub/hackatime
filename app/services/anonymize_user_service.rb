@@ -64,7 +64,7 @@ class AnonymizeUserService
     user.admin_api_keys.destroy_all
     user.sign_in_tokens.destroy_all
     user.email_verification_requests.destroy_all
-    user.wakatime_mirrors.destroy_all
+    user.heartbeat_import_runs.destroy_all
     user.project_repo_mappings.destroy_all
     user.goals.destroy_all
 
