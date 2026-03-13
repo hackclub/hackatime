@@ -44,7 +44,7 @@ class PullRepoCommitsJob < ApplicationJob
         process_commits(user, commits_data, repository)
 
       elsif response.status.code == 401 # Unauthorized
-        Rails.logger.error "[PullRepoCommitsJob] Unauthorized (401) for User ##{user.id}. GitHub token expired/invalid. URL: #{api_url}"
+        report_message("[PullRepoCommitsJob] Unauthorized (401) for User ##{user.id}. GitHub token expired/invalid. URL: #{api_url}")
         user.update!(github_access_token: nil)
         Rails.logger.info "[PullRepoCommitsJob] Cleared invalid GitHub token for User ##{user.id}. User will need to re-authenticate."
       elsif response.status.code == 404
@@ -56,18 +56,18 @@ class PullRepoCommitsJob < ApplicationJob
           Rails.logger.warn "[PullRepoCommitsJob] GitHub API rate limit exceeded for User ##{user.id}. Retrying in #{delay_seconds}s."
           self.class.set(wait: delay_seconds.seconds).perform_later(user.id, owner, repo)
         else
-          Rails.logger.error "[PullRepoCommitsJob] GitHub API forbidden (403) for User ##{user.id}. Response: #{response.body.to_s.truncate(500)}"
+          report_message("[PullRepoCommitsJob] GitHub API forbidden (403) for User ##{user.id}. Response: #{response.body.to_s.truncate(500)}")
         end
       else
-        Rails.logger.error "[PullRepoCommitsJob] GitHub API error for User ##{user.id}. Status: #{response.status}. Response: #{response.body.to_s.truncate(500)}"
+        report_message("[PullRepoCommitsJob] GitHub API error for User ##{user.id}. Status: #{response.status}. Response: #{response.body.to_s.truncate(500)}")
         raise "GitHub API Error: Status #{response.status}" if response.status.server_error?
       end
 
     rescue HTTP::Error => e
-      Rails.logger.error "[PullRepoCommitsJob] HTTP Error fetching commits for #{owner}/#{repo} (User ##{user.id}): #{e.message}"
+      report_error(e, message: "[PullRepoCommitsJob] HTTP Error fetching commits for #{owner}/#{repo} (User ##{user.id})")
       raise # Re-raise to allow GoodJob to retry based on retry_on
     rescue JSON::ParserError => e
-      Rails.logger.error "[PullRepoCommitsJob] JSON Parse Error for #{owner}/#{repo} (User ##{user.id}): #{e.message}"
+      report_error(e, message: "[PullRepoCommitsJob] JSON Parse Error for #{owner}/#{repo} (User ##{user.id})")
       raise # Re-raise to allow GoodJob to retry based on retry_on
     end
   end
@@ -126,10 +126,10 @@ class PullRepoCommitsJob < ApplicationJob
           Rails.logger.warn "[PullRepoCommitsJob] Failed to fetch commit details for #{commit_sha}: #{commit_response.status}"
         end
       rescue HTTP::Error => e
-        Rails.logger.error "[PullRepoCommitsJob] HTTP Error fetching commit details for #{commit_sha}: #{e.message}"
+        report_error(e, message: "[PullRepoCommitsJob] HTTP Error fetching commit details for #{commit_sha}")
         next
       rescue JSON::ParserError => e
-        Rails.logger.error "[PullRepoCommitsJob] JSON Parse Error for commit details #{commit_sha}: #{e.message}"
+        report_error(e, message: "[PullRepoCommitsJob] JSON Parse Error for commit details #{commit_sha}")
         next
       end
     end

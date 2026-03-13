@@ -76,12 +76,12 @@ class DataSettingsTest < ApplicationSystemTestCase
       source_kind: :wakatime_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret",
-      remote_requested_at: 1.hour.ago,
+      remote_requested_at: 2.minutes.ago, # 2 min ago means cooldown has ~6 min left
       message: "Waiting..."
     )
 
     visit my_settings_data_path
 
-    assert_text "Remote imports can be started again after"
+    assert_text "Available again in"
   end
 end

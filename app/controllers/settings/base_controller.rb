@@ -62,6 +62,10 @@ class Settings::BaseController < InertiaController
   end
 
   def settings_page_props(active_section:, settings_update_path:)
+    if active_section.to_s == "data" && @latest_heartbeat_import.present?
+      @latest_heartbeat_import = HeartbeatImportRunner.refresh_remote_run!(@latest_heartbeat_import)
+    end
+
     heartbeats_last_7_days = @user.heartbeats.where("time >= ?", 7.days.ago.to_f).count
     channel_ids = @enabled_sailors_logs.pluck(:slack_channel_id)
 

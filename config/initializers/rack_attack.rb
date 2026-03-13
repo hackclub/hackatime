@@ -10,6 +10,7 @@ class Rack::Attack
       TOKENS = bypass_value.split(",").map(&:strip).reject(&:empty?).freeze
       Rails.logger.info "RACK_ATTACK_BYPASS loaded #{TOKENS.length} let me in tokens"
     rescue => e
+      Sentry.capture_exception(e)
       Rails.logger.error "RACK_ATTACK_BYPASS failed to read, you fucked it up #{e.message} raw: #{ENV['RACK_ATTACK_BYPASS'].inspect}"
       TOKENS = [].freeze
     end

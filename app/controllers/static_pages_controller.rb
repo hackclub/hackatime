@@ -167,7 +167,8 @@ class StaticPagesController < InertiaController
       show_dev_tool: Rails.env.development?,
       dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
       csrf_token: form_authenticity_token,
-      home_stats: @home_stats || {}
+      home_stats: @home_stats || {},
+      flash: inertia_flash_messages
     }
   end
 

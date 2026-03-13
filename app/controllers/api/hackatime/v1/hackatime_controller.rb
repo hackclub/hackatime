@@ -18,7 +18,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       #     [{...heartbeat_data}, 201]
       #   ]
       # }
-      heartbeat_array = heartbeat_bulk_params[:heartbeats].map(&:to_h)
+      heartbeat_array = heartbeat_bulk_params[:heartbeats]
 
       if heartbeat_array.empty?
         return render json: { error: "No data provided..." }, status: :bad_request
@@ -32,7 +32,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       # {
       #   ...heartbeat_data
       # }
-      heartbeat_array = Array(heartbeat_params)
+      heartbeat_array = Array.wrap(heartbeat_params)
 
       if heartbeat_array.empty? || heartbeat_params.blank?
         return render json: { error: "No data provided..." }, status: :bad_request
@@ -217,10 +217,26 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     end || {}
   end
 
+  LAST_LANGUAGE_SENTINEL = "<<LAST_LANGUAGE>>"
+
   def handle_heartbeat(heartbeat_array)
     results = []
+    last_language = nil
     heartbeat_array.each do |heartbeat|
+      heartbeat = heartbeat.to_h.with_indifferent_access
       source_type = :direct_entry
+
+      # Resolve <<LAST_LANGUAGE>> sentinel to the most recently used language.
+      # Check within the current batch first, then fall back to the DB.
+      if heartbeat[:language] == LAST_LANGUAGE_SENTINEL
+        heartbeat[:language] = last_language || @user.heartbeats
+          .where.not(language: [ nil, "", LAST_LANGUAGE_SENTINEL ])
+          .order(time: :desc)
+          .pick(:language)
+      end
+
+      # Track the last known language for subsequent heartbeats in this batch.
+      last_language = heartbeat[:language] if heartbeat[:language].present?
 
       # Fallback to :plugin if :user_agent is not set
       fallback_value = heartbeat.delete(:plugin)
@@ -252,8 +268,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
     rescue => e
-      Sentry.capture_exception(e)
-      Rails.logger.error("Error creating heartbeat: #{e.class.name} #{e.message}")
+      report_error(e, message: "Error creating heartbeat")
       results << [ { error: e.message, type: e.class.name }, 422 ]
     end
 
@@ -268,7 +283,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     end
   rescue => e
     # never raise an error here because it will break the heartbeat flow
-    Rails.logger.error("Error queuing project mapping: #{e.class.name} #{e.message}")
+    report_error(e, message: "Error queuing project mapping")
   end
 
   def check_lockout

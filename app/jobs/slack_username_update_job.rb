@@ -19,7 +19,7 @@ class SlackUsernameUpdateJob < ApplicationJob
           user.update_from_slack
           user.save!
         rescue => e
-          Rails.logger.error "Failed to update Slack username and avatar for user #{user.id}: #{e.message}"
+          report_error(e, message: "Failed to update Slack username and avatar for user #{user.id}")
         end
       end
   end

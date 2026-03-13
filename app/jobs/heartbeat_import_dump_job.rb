@@ -3,42 +3,56 @@ class HeartbeatImportDumpJob < ApplicationJob
 
   include GoodJob::ActiveJobExtensions::Concurrency
 
-  POLL_INTERVAL = 30.seconds
+  good_job_control_concurrency_with(
+    total_limit: 1,
+    key: -> { "heartbeat_import_dump_job_#{arguments.first}" },
+    drop: true
+  )
+
+  POLL_INTERVAL = 3.seconds
+  MAX_POLL_DURATION = 30.minutes
 
   retry_on HeartbeatImportDumpClient::TransientError,
     wait: ->(executions) { (executions**2).seconds + rand(1..4).seconds },
-    attempts: 8
-
-  good_job_control_concurrency_with(
-    key: -> { "heartbeat_import_dump_job_#{arguments.first}" },
-    total_limit: 1
-  )
+    attempts: 8 do |job, error|
+      HeartbeatImportRunner.fail_run_for_error!(
+        import_run_id: job.arguments.first,
+        error:
+      )
+    end
 
   def perform(import_run_id)
     run = HeartbeatImportRun.includes(:user).find_by(id: import_run_id)
-    return unless run&.remote?
-    return if run.terminal?
-
-    unless Flipper.enabled?(:imports, run.user)
-      fail_run!(run, "Imports are no longer enabled for this user.")
-      return
-    end
+    return unless runnable?(run)
 
     client = HeartbeatImportDumpClient.new(source_kind: run.source_kind, api_key: run.encrypted_api_key)
-
-    if run.remote_dump_id.blank?
-      request_dump!(run, client)
-      return
-    end
-
-    sync_dump!(run, client)
+    process_dump!(run, current_dump_for(run, client))
+  rescue HeartbeatImportDumpClient::ManualDownloadLinkRequiredError => e
+    handle_manual_download_link_required!(run, e.message)
   rescue HeartbeatImportDumpClient::AuthenticationError => e
-    fail_run!(run, e.message)
+    fail_run!(run, e)
   rescue HeartbeatImportDumpClient::RequestError => e
-    fail_run!(run, e.message)
+    fail_run!(run, e)
   end
 
   private
+
+  def runnable?(run)
+    return false unless run&.remote?
+    return false if run.terminal?
+    return false unless run.remote_dump_pollable?
+
+    return true if Flipper.enabled?(:imports, run.user)
+
+    fail_run!(run, "Imports are no longer enabled for this user.")
+    false
+  end
+
+  def current_dump_for(run, client)
+    return request_dump!(run, client) if run.remote_dump_id.blank?
+
+    fetch_dump!(run, client)
+  end
 
   def request_dump!(run, client)
     run.update!(
@@ -59,45 +73,70 @@ class HeartbeatImportDumpJob < ApplicationJob
       error_message: nil
     )
 
-    enqueue_poll(run)
+    dump
   end
 
-  def sync_dump!(run, client)
+  def fetch_dump!(run, client)
     dump = client.list_dumps.find { |item| item[:id] == run.remote_dump_id.to_s }
     raise HeartbeatImportDumpClient::RequestError, "Data dump #{run.remote_dump_id} was not found." if dump.blank?
 
-    if dump[:has_failed] || dump[:is_stuck]
+    dump
+  end
+
+  def process_dump!(run, dump)
+    if dump_failed?(dump)
       fail_run!(run, "The remote provider could not finish preparing the data dump.")
       return
     end
 
-    if dump[:is_processing] || dump[:download_url].blank?
-      run.update!(
-        state: :waiting_for_dump,
-        remote_dump_status: dump[:status],
-        remote_percent_complete: dump[:percent_complete],
-        message: waiting_message(dump),
-        error_message: nil
-      )
-      enqueue_poll(run)
+    if dump_ready_for_download?(dump)
+      queue_download!(run, dump)
       return
     end
 
-    run.update!(
-      state: :downloading_dump,
-      remote_dump_status: dump[:status],
-      remote_percent_complete: dump[:percent_complete].positive? ? dump[:percent_complete] : 100.0,
-      message: "Downloading data dump...",
-      error_message: nil
-    )
+    mark_waiting!(run, dump)
 
-    file_content = client.download_dump(dump[:download_url])
-    file_path = HeartbeatImportRunner.persist_remote_download(run:, file_content:)
+    if poll_timed_out?(run)
+      fail_run!(run, "Data dump did not complete within #{(MAX_POLL_DURATION / 60).to_i} minutes.")
+      return
+    end
 
-    HeartbeatImportJob.perform_later(run.id, file_path)
+    schedule_poll(run)
   end
 
-  def enqueue_poll(run)
+  def poll_timed_out?(run)
+    requested_at = run.remote_requested_at || run.started_at || run.created_at
+    requested_at <= MAX_POLL_DURATION.ago
+  end
+
+  def dump_failed?(dump)
+    dump[:has_failed] || dump[:is_stuck]
+  end
+
+  def dump_ready_for_download?(dump)
+    !dump[:is_processing] && dump[:download_url].present?
+  end
+
+  def queue_download!(run, dump)
+    HeartbeatImportRunner.queue_remote_download(
+      run:,
+      download_url: dump[:download_url],
+      remote_dump_status: dump[:status],
+      remote_percent_complete: dump[:percent_complete].positive? ? dump[:percent_complete] : 100.0
+    )
+  end
+
+  def mark_waiting!(run, dump)
+    run.update!(
+      state: :waiting_for_dump,
+      remote_dump_status: dump[:status],
+      remote_percent_complete: dump[:percent_complete],
+      message: waiting_message(dump),
+      error_message: nil
+    )
+  end
+
+  def schedule_poll(run)
     self.class.set(wait: POLL_INTERVAL).perform_later(run.id)
   end
 
@@ -109,14 +148,34 @@ class HeartbeatImportDumpJob < ApplicationJob
     "#{status} (#{percent.round}%)"
   end
 
-  def fail_run!(run, message)
-    run.update!(
-      state: :failed,
-      remote_dump_status: run.remote_dump_status.presence || "failed",
-      message: "Import failed: #{message}",
-      error_message: message,
-      finished_at: Time.current
+  def fail_run!(run, error)
+    HeartbeatImportRunner.fail_run!(
+      run,
+      message: HeartbeatImportRunner.failure_message_for(run:, error:),
+      remote_dump_status: run.remote_dump_status.presence || "failed"
     )
-    run.clear_sensitive_fields!
+  end
+
+  def handle_manual_download_link_required!(run, message)
+    recipient_email = HeartbeatImportRunner.recipient_email_for(run.user)
+
+    if recipient_email.present?
+      HeartbeatImportMailer.wakatime_manual_download_required(
+        run.user,
+        recipient_email:
+      ).deliver_later
+      HeartbeatImportRunner.fail_run!(
+        run,
+        message: "WakaTime needs a recent export download link. Check your email for the next step.",
+        notify: false,
+        remote_dump_status: run.remote_dump_status.presence || "failed"
+      )
+    else
+      HeartbeatImportRunner.fail_run!(
+        run,
+        message: "#{message} Add an email address to your account, then try again.",
+        remote_dump_status: run.remote_dump_status.presence || "failed"
+      )
+    end
   end
 end

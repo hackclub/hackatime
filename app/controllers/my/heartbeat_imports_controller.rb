@@ -1,5 +1,8 @@
 class My::HeartbeatImportsController < ApplicationController
-  before_action :ensure_current_user
+  layout "inertia"
+
+  before_action :ensure_current_user, only: %i[create show]
+  before_action :authenticate_user!, only: :wakatime_download_link
 
   def create
     if params[:heartbeat_file].blank? && params[:heartbeat_import].blank?
@@ -21,13 +24,12 @@ class My::HeartbeatImportsController < ApplicationController
   rescue HeartbeatImportRunner::CooldownError => e
     flash[:cooldown_until] = e.retry_at.iso8601
     redirect_with_import_error(e.message)
-  rescue HeartbeatImportRunner::ActiveImportError => e
+  rescue HeartbeatImportRunner::ActiveImportError, HeartbeatImportRunner::InvalidDownloadUrlError => e
     redirect_with_import_error(e.message)
   rescue HeartbeatImportRunner::InvalidProviderError, ActionController::ParameterMissing => e
     redirect_with_import_error(e.message)
   rescue => e
-    Sentry.capture_exception(e)
-    Rails.logger.error("Error starting heartbeat import for user #{current_user&.id}: #{e.message}")
+    report_error(e, message: "Error starting heartbeat import for user #{current_user&.id}")
     redirect_with_import_error("error reading file: #{e.message}")
   end
 
@@ -39,6 +41,14 @@ class My::HeartbeatImportsController < ApplicationController
     else
       render json: { error: "Import not found" }, status: :not_found
     end
+  end
+
+  def wakatime_download_link
+    render inertia: "HeartbeatImports/WakatimeDownloadLink", props: {
+      page_title: "Paste your WakaTime export link",
+      create_heartbeat_import_path: my_heartbeat_imports_path,
+      data_settings_path: my_settings_data_path
+    }
   end
 
   private
@@ -62,6 +72,14 @@ class My::HeartbeatImportsController < ApplicationController
 
   def start_remote_import!
     heartbeat_import = remote_import_params
+    if heartbeat_import[:download_url].present?
+      HeartbeatImportRunner.start_wakatime_download_link_import(
+        user: current_user,
+        download_url: heartbeat_import[:download_url]
+      )
+      return
+    end
+
     if heartbeat_import[:api_key].blank?
       raise HeartbeatImportRunner::InvalidProviderError, "API key is required."
     end
@@ -71,12 +89,6 @@ class My::HeartbeatImportsController < ApplicationController
       provider: heartbeat_import[:provider],
       api_key: heartbeat_import[:api_key]
     )
-  end
-
-  def ensure_current_user
-    return if current_user
-
-    render json: { error: "You must be logged in to view this page." }, status: :unauthorized
   end
 
   def ensure_development
@@ -90,6 +102,12 @@ class My::HeartbeatImportsController < ApplicationController
   end
 
   def remote_import_params
-    params.require(:heartbeat_import).permit(:provider, :api_key)
+    params.require(:heartbeat_import).permit(:provider, :api_key, :download_url)
+  end
+
+  def ensure_current_user
+    return if current_user
+
+    render json: { error: "You must be logged in to view this page." }, status: :unauthorized
   end
 end
