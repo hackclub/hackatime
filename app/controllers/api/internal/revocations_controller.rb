@@ -7,50 +7,52 @@ module Api
       def create
         token = params[:token]
 
-        return head 400 unless token.present?
+        return render_error("Token is required") unless token.present?
 
-        key, user = revocable_key_and_owner(token)
-
-        return render json: { success: false } unless key.present?
-        return render json: { success: false } unless revoke_key!(key)
+        key, user, token_type = find_key_info(token)
+        return render_error("Token doesn't match any supported type") unless token_type
+        return render_error("Token is invalid or already revoked") unless key.present?
+        original_key_name = key.name
+        return render_error("Token is invalid or already revoked") unless revoke_key(key)
 
         render json: {
           success: true,
+          status: "complete",
+          token_type: token_type,
           owner_email: user.email_addresses.first&.email,
-          key_name: key.name
-        }.compact_blank
+          key_name: original_key_name
+        }.compact_blank, status: :created
       end
 
       private
 
-      def revocable_key_and_owner(token)
+      def find_key_info(token)
         if token.match?(ADMIN_KEY_REGEX)
           key = AdminApiKey.active.find_by(token:)
-          return [ key, key&.user ]
+          return [ key, key&.user, "Hackatime Admin API Key" ]
         end
 
         if token.match?(REGULAR_KEY_REGEX)
-          # TODO: ApiKey currently has no active/revoked scope.
-          # If one is added, prefer ApiKey.active here for consistency.
           key = ApiKey.find_by(token:)
-          return [ key, key&.user ]
+          return [ key, key&.user, "Hackatime API Key" ]
         end
 
-        [ nil, nil ]
+        [ nil, nil, nil ]
       end
 
-      def revoke_key!(key)
+      def revoke_key(key)
         if key.is_a?(AdminApiKey)
           key.revoke!
         else
-          key.update(
-            token: SecureRandom.uuid_v4,
-            name: "#{key.name}_revoked_#{SecureRandom.hex(8)}"
-          )
+          key.user.rotate_single_api_key!(key)
         end
       rescue ActiveRecord::ActiveRecordError => e
         Rails.logger.error("Revocation failed for #{key.class}##{key.id}: #{e.class} #{e.message}")
         false
+      end
+
+      def render_error(message)
+        render json: { success: false, error: message }, status: :unprocessable_entity
       end
 
       private def authenticate!

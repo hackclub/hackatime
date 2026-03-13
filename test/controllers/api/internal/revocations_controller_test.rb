@@ -12,13 +12,18 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
 
   test "revokes regular ApiKey by rolling token" do
     user = User.create!(timezone: "UTC")
+    email_address = user.email_addresses.create!(email: "regular@example.com", source: :signing_in)
     original_token = SecureRandom.uuid_v4
     key = user.api_keys.create!(name: "Desktop", token: original_token)
 
     post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json
 
-    assert_response :success
+    assert_response :created
     assert_equal true, response.parsed_body["success"]
+    assert_equal "complete", response.parsed_body["status"]
+    assert_equal "Hackatime API Key", response.parsed_body["token_type"]
+    assert_equal email_address.email, response.parsed_body["owner_email"]
+    assert_equal key.name, response.parsed_body["key_name"]
 
     key.reload
     assert_not_equal original_token, key.token
@@ -26,8 +31,9 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
 
     post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json
 
-    assert_response :success
-    assert_equal({ "success" => false }, response.parsed_body)
+    assert_response :unprocessable_entity
+    assert_equal false, response.parsed_body["success"]
+    assert_equal "Token is invalid or already revoked", response.parsed_body["error"]
   end
 
   test "returns success false for valid regular UUID token that does not exist" do
@@ -35,59 +41,52 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
 
     post "/api/internal/revoke", params: { token: token }, headers: auth_headers, as: :json
 
-    assert_response :success
-    assert_equal({ "success" => false }, response.parsed_body)
+    assert_response :unprocessable_entity
+    assert_equal false, response.parsed_body["success"]
+    assert_equal "Token is invalid or already revoked", response.parsed_body["error"]
   end
 
   test "returns success false for token that matches neither regex" do
     post "/api/internal/revoke", params: { token: "not-a-valid-token" }, headers: auth_headers, as: :json
 
-    assert_response :success
-    assert_equal({ "success" => false }, response.parsed_body)
-  end
-
-  test "returns success false when regular key revoke update fails" do
-    user = User.create!(timezone: "UTC")
-    colliding_token = SecureRandom.uuid_v4
-    user.api_keys.create!(name: "Existing", token: colliding_token)
-
-    key = user.api_keys.create!(name: "Desktop")
-    original_token = key.token
-
-    with_stubbed_uuid_v4(colliding_token) do
-      post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json
-    end
-
-    assert_response :success
-    assert_equal({ "success" => false }, response.parsed_body)
-
-    key.reload
-    assert_equal original_token, key.token
+    assert_response :unprocessable_entity
+    assert_equal false, response.parsed_body["success"]
+    assert_equal "Token doesn't match any supported type", response.parsed_body["error"]
   end
 
   test "revokes admin key" do
     user = User.create!(timezone: "UTC")
+    email_address = user.email_addresses.create!(email: "admin@example.com", source: :signing_in)
     admin_key = user.admin_api_keys.create!(name: "Infra", token: "hka_#{SecureRandom.hex(32)}")
 
     post "/api/internal/revoke", params: { token: admin_key.token }, headers: auth_headers, as: :json
 
-    assert_response :success
+    assert_response :created
     assert_equal true, response.parsed_body["success"]
+    assert_equal "complete", response.parsed_body["status"]
+    assert_equal "Hackatime Admin API Key", response.parsed_body["token_type"]
 
     admin_key.reload
+    assert_equal email_address.email, response.parsed_body["owner_email"]
+    assert_equal "Infra", response.parsed_body["key_name"]
     assert_not_nil admin_key.revoked_at
     assert_includes admin_key.name, "_revoked_"
   end
 
-  private
+  test "returns error for already-revoked admin key" do
+    user = User.create!(timezone: "UTC")
+    original_token = "hka_#{SecureRandom.hex(32)}"
+    admin_key = user.admin_api_keys.create!(name: "Infra", token: original_token)
+    admin_key.revoke!
 
-  def with_stubbed_uuid_v4(value)
-    original_uuid_v4 = SecureRandom.method(:uuid_v4)
-    SecureRandom.define_singleton_method(:uuid_v4) { value }
-    yield
-  ensure
-    SecureRandom.define_singleton_method(:uuid_v4, original_uuid_v4)
+    post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal false, response.parsed_body["success"]
+    assert_equal "Token is invalid or already revoked", response.parsed_body["error"]
   end
+
+  private
 
   def auth_headers
     {
