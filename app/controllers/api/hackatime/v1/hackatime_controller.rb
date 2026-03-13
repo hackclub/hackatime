@@ -32,7 +32,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       # {
       #   ...heartbeat_data
       # }
-      heartbeat_array = Array(heartbeat_params)
+      heartbeat_array = Array.wrap(heartbeat_params.to_h)
 
       if heartbeat_array.empty? || heartbeat_params.blank?
         return render json: { error: "No data provided..." }, status: :bad_request
