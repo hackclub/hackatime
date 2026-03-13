@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Form, usePoll } from "@inertiajs/svelte";
+  import { cubicOut } from "svelte/easing";
+  import { tweened } from "svelte/motion";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
@@ -52,6 +54,7 @@
   let remotePercentComplete = $state<number | null>(null);
   let sourceFilename = $state<string | null>(null);
   let remoteCooldownUntil = $state<string | null>(null);
+  const tweenedProgress = tweened(0, { duration: 320, easing: cubicOut });
 
   const { start: startPolling, stop: stopPolling } = usePoll(
     1000,
@@ -111,19 +114,6 @@
     return new Date(value).toLocaleString();
   }
 
-  function formatRelativeTime(value: string | null) {
-    if (!value) return "—";
-
-    const diff = new Date(value).getTime() - Date.now();
-    if (diff <= 0) return "now";
-
-    const seconds = Math.ceil(diff / 1000);
-    if (seconds < 60) return `${seconds}s`;
-
-    const minutes = Math.ceil(seconds / 60);
-    return `${minutes}m`;
-  }
-
   function providerLabel(sourceKind: string) {
     if (sourceKind === "wakatime_dump") {
       return "WakaTime";
@@ -141,6 +131,11 @@
   }
 
   function applyImportStatus(status: Partial<HeartbeatImportStatusProps>) {
+    const progress = Number(status.progress_percent ?? 0);
+    const normalizedProgress = Number.isFinite(progress)
+      ? Math.min(Math.max(progress, 0), 100)
+      : 0;
+
     importId = status.import_id || importId;
     importState = status.state || "idle";
     importSourceKind = status.source_kind || importSourceKind;
@@ -158,6 +153,7 @@
     if (status.cooldown_until) {
       remoteCooldownUntil = status.cooldown_until;
     }
+    void tweenedProgress.set(normalizedProgress);
   }
 
   function prettyStatus(state: string): string {
@@ -231,6 +227,16 @@
           wide
           footerClass=""
         >
+          {#if remoteCooldownActive && remoteCooldownUntil}
+            <p
+              class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
+            >
+              Remote imports can be started again after {formatDateTime(
+                remoteCooldownUntil,
+              )}.
+            </p>
+          {/if}
+
           <div class="space-y-4">
             <div class="space-y-3">
               {#each PROVIDERS as provider}
@@ -278,68 +284,69 @@
 
             {#if importState !== "idle" && latestImportIsRemote}
               <div
-                class="flex flex-wrap items-center gap-2 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm"
+                class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm"
               >
-                {#if importInProgress}
-                  <svg
-                    class="h-4 w-4 shrink-0 animate-spin text-primary"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      class="opacity-25"
-                    />
-                    <path
-                      d="M4 12a8 8 0 018-8"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                {/if}
-                <span class="text-surface-content">
-                  {providerLabel(importSourceKind)}
-                </span>
-                <span class="text-muted">·</span>
-                <span
-                  class={importState === "failed"
-                    ? "text-red-300"
-                    : importState === "completed"
-                      ? "text-green-300"
-                      : "text-muted"}
-                >
-                  {prettyStatus(importState)}
-                </span>
-                {#if importErrorMessage}
-                  <span class="text-red-300">{importErrorMessage}</span>
-                {/if}
-                {#if importState === "completed"}
-                  <span class="text-muted">
-                    {formatCount(importedCount)} imported, {formatCount(
-                      skippedCount,
-                    )} skipped
+                <div class="flex flex-wrap items-center gap-2">
+                  {#if importInProgress}
+                    <svg
+                      class="h-4 w-4 shrink-0 animate-spin text-primary"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        class="opacity-25"
+                      />
+                      <path
+                        d="M4 12a8 8 0 018-8"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  {/if}
+                  <span class="text-surface-content">
+                    {providerLabel(importSourceKind)}
                   </span>
-                {/if}
+                  <span class="text-muted">·</span>
+                  <span
+                    class={importState === "failed"
+                      ? "text-red-300"
+                      : importState === "completed"
+                        ? "text-green-300"
+                        : "text-muted"}
+                  >
+                    {prettyStatus(importState)}
+                  </span>
+                  <span class="font-medium text-primary">
+                    {Math.round($tweenedProgress)}%
+                  </span>
+                  {#if importErrorMessage}
+                    <span class="text-red-300">{importErrorMessage}</span>
+                  {/if}
+                  {#if importState === "completed"}
+                    <span class="text-muted">
+                      {formatCount(importedCount)} imported, {formatCount(
+                        skippedCount,
+                      )} skipped
+                    </span>
+                  {/if}
+                </div>
+                <progress
+                  max="100"
+                  value={$tweenedProgress}
+                  class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
+                ></progress>
               </div>
             {/if}
           </div>
 
           {#snippet footer()}
-            <div
-              class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between"
-            >
-              {#if remoteCooldownActive && remoteCooldownUntil}
-                <p class="text-sm text-muted sm:mr-auto">
-                  Available again in {formatRelativeTime(remoteCooldownUntil)}
-                </p>
-              {:else}
-                <div></div>
-              {/if}
+            <div class="flex justify-end">
               <div class="w-full sm:w-auto">
                 <Button
                   type="submit"
@@ -500,53 +507,63 @@
 
             {#if importState !== "idle" && latestImportIsDev}
               <div
-                class="mt-4 flex items-center gap-2 rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm"
+                class="mt-4 rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm"
               >
-                {#if importInProgress}
-                  <svg
-                    class="h-4 w-4 shrink-0 animate-spin text-primary"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      class="opacity-25"
-                    />
-                    <path
-                      d="M4 12a8 8 0 018-8"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                {/if}
-                <span class="text-surface-content">
-                  {sourceFilename || providerLabel(importSourceKind)}
-                </span>
-                <span class="text-muted">·</span>
-                <span
-                  class={importState === "failed"
-                    ? "text-red-300"
-                    : importState === "completed"
-                      ? "text-green-300"
-                      : "text-muted"}
-                >
-                  {prettyStatus(importState)}
-                </span>
-                {#if importErrorMessage}
-                  <span class="text-red-300">{importErrorMessage}</span>
-                {/if}
-                {#if importState === "completed"}
-                  <span class="text-muted">
-                    {formatCount(importedCount)} imported, {formatCount(
-                      skippedCount,
-                    )} skipped
+                <div class="flex flex-wrap items-center gap-2">
+                  {#if importInProgress}
+                    <svg
+                      class="h-4 w-4 shrink-0 animate-spin text-primary"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        class="opacity-25"
+                      />
+                      <path
+                        d="M4 12a8 8 0 018-8"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  {/if}
+                  <span class="text-surface-content">
+                    {sourceFilename || providerLabel(importSourceKind)}
                   </span>
-                {/if}
+                  <span class="text-muted">·</span>
+                  <span
+                    class={importState === "failed"
+                      ? "text-red-300"
+                      : importState === "completed"
+                        ? "text-green-300"
+                        : "text-muted"}
+                  >
+                    {prettyStatus(importState)}
+                  </span>
+                  <span class="font-medium text-primary">
+                    {Math.round($tweenedProgress)}%
+                  </span>
+                  {#if importErrorMessage}
+                    <span class="text-red-300">{importErrorMessage}</span>
+                  {/if}
+                  {#if importState === "completed"}
+                    <span class="text-muted">
+                      {formatCount(importedCount)} imported, {formatCount(
+                        skippedCount,
+                      )} skipped
+                    </span>
+                  {/if}
+                </div>
+                <progress
+                  max="100"
+                  value={$tweenedProgress}
+                  class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
+                ></progress>
               </div>
             {/if}
           {/snippet}

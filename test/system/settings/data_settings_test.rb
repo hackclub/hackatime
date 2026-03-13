@@ -76,7 +76,7 @@ class DataSettingsTest < ApplicationSystemTestCase
       source_kind: :wakatime_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret",
-      remote_requested_at: 1.hour.ago,
+      remote_requested_at: 1.minute.ago,
       message: "Waiting..."
     )
 
