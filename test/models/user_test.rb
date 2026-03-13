@@ -54,6 +54,8 @@ class UserTest < ActiveSupport::TestCase
     assert_equal user.id, new_api_key.user_id
     assert_equal "Hackatime key", new_api_key.name
     assert_equal [ new_api_key.id ], user.api_keys.reload.pluck(:id)
+  end
+
   test "flipper id uses the user id" do
     user = User.create!(timezone: "UTC")
 
