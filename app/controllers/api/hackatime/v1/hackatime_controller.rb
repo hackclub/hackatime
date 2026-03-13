@@ -217,11 +217,26 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     end || {}
   end
 
+  LAST_LANGUAGE_SENTINEL = "<<LAST_LANGUAGE>>"
+
   def handle_heartbeat(heartbeat_array)
     results = []
+    last_language = nil
     heartbeat_array.each do |heartbeat|
       heartbeat = heartbeat.to_h.with_indifferent_access
       source_type = :direct_entry
+
+      # Resolve <<LAST_LANGUAGE>> sentinel to the most recently used language.
+      # Check within the current batch first, then fall back to the DB.
+      if heartbeat[:language] == LAST_LANGUAGE_SENTINEL
+        heartbeat[:language] = last_language || @user.heartbeats
+          .where.not(language: [ nil, "", LAST_LANGUAGE_SENTINEL ])
+          .order(time: :desc)
+          .pick(:language)
+      end
+
+      # Track the last known language for subsequent heartbeats in this batch.
+      last_language = heartbeat[:language] if heartbeat[:language].present?
 
       # Fallback to :plugin if :user_agent is not set
       fallback_value = heartbeat.delete(:plugin)
