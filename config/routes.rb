@@ -158,7 +158,11 @@ Rails.application.routes.draw do
   post "my/settings/rotate_api_key", to: "settings/access#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
-    resources :heartbeat_imports, only: [ :create, :show ]
+    resources :heartbeat_imports, only: [ :create, :show ] do
+      collection do
+        get :wakatime_download_link
+      end
+    end
 
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
       member do

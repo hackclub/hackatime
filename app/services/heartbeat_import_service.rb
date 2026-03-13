@@ -74,13 +74,15 @@ class HeartbeatImportService
     }
 
   rescue => e
+    # Capture partial progress at time of error - some batches may have already been flushed
+    # and those heartbeats are in the database, so report accurate counts
     {
       success: false,
       error: e.message,
-      imported_count: 0,
-      total_count: 0,
-      skipped_count: 0,
-      errors: [ e.message ]
+      imported_count: imported_count,
+      total_count: total_count,
+      skipped_count: total_count - imported_count,
+      errors: errors + [ e.message ]
     }
   end
 

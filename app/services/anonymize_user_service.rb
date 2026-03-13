@@ -64,6 +64,14 @@ class AnonymizeUserService
     user.admin_api_keys.destroy_all
     user.sign_in_tokens.destroy_all
     user.email_verification_requests.destroy_all
+    # (for now at least) the tables still *exist* but we just removed the model files etc
+    # so we need to delete the records ourselves.
+    ActiveRecord::Base.connection.execute(
+      ActiveRecord::Base.sanitize_sql([ "DELETE FROM wakatime_mirrors WHERE user_id = ?", user.id ])
+    )
+    ActiveRecord::Base.connection.execute(
+      ActiveRecord::Base.sanitize_sql([ "DELETE FROM heartbeat_import_sources WHERE user_id = ?", user.id ])
+    )
     user.heartbeat_import_runs.destroy_all
     user.project_repo_mappings.destroy_all
     user.goals.destroy_all

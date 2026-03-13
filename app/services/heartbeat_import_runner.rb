@@ -1,5 +1,4 @@
 require "fileutils"
-require "stringio"
 require "zlib"
 
 class HeartbeatImportRunner
@@ -13,12 +12,13 @@ class HeartbeatImportRunner
 
     def initialize(retry_at)
       @retry_at = retry_at
-      super("Remote imports are limited to once every 4 hours.")
+      super("Remote imports are limited to once every 8 minutes.")
     end
   end
 
   class FeatureDisabledError < StandardError; end
   class InvalidProviderError < StandardError; end
+  class InvalidDownloadUrlError < StandardError; end
 
   def self.start_dev_upload(user:, uploaded_file:)
     ensure_no_active_import!(user)
@@ -33,6 +33,8 @@ class HeartbeatImportRunner
     file_path = persist_uploaded_file(uploaded_file, run.id)
     HeartbeatImportJob.perform_later(run.id, file_path)
     run
+  rescue ActiveRecord::RecordNotUnique
+    raise ActiveImportError, "Another import is already in progress."
   end
 
   def self.start_remote_import(user:, provider:, api_key:)
@@ -49,6 +51,28 @@ class HeartbeatImportRunner
 
     HeartbeatImportDumpJob.perform_later(run.id)
     run
+  rescue ActiveRecord::RecordNotUnique
+    raise ActiveImportError, "Another import is already in progress."
+  end
+
+  def self.start_wakatime_download_link_import(user:, download_url:)
+    ensure_imports_enabled!(user)
+    ensure_no_active_import!(user)
+
+    unless HeartbeatImportDumpClient.valid_wakatime_download_url?(download_url)
+      raise InvalidDownloadUrlError, "Download link must start with https://wakatime.s3.amazonaws.com."
+    end
+
+    run = user.heartbeat_import_runs.create!(
+      source_kind: :wakatime_download_link,
+      state: :queued,
+      message: "Queued import."
+    )
+
+    queue_remote_download(run:, download_url:, remote_dump_status: "Manual download link received")
+    run
+  rescue ActiveRecord::RecordNotUnique
+    raise ActiveImportError, "Another import is already in progress."
   end
 
   def self.find_run(user:, import_id:)
@@ -60,16 +84,9 @@ class HeartbeatImportRunner
   end
 
   def self.refresh_remote_run!(run)
-    return run unless run&.remote?
-    return run unless run.active_import?
-    return run unless Flipper.enabled?(:imports, run.user)
-    return run if run.updated_at > REMOTE_REFRESH_THROTTLE.ago
+    return run unless refreshable_remote_run?(run)
 
-    if inline_good_job_execution?
-      HeartbeatImportDumpJob.perform_now(run.id)
-    else
-      HeartbeatImportDumpJob.perform_later(run.id)
-    end
+    HeartbeatImportDumpJob.perform_later(run.id)
 
     run.reload
   rescue => e
@@ -78,7 +95,26 @@ class HeartbeatImportRunner
   end
 
   def self.remote_import_cooldown_until(user:)
+    return nil if user.admin_level_superadmin?
+
     HeartbeatImportRun.remote_cooldown_until_for(user)
+  end
+
+  def self.refreshable_remote_run?(run)
+    run&.remote? &&
+      run.remote_dump_pollable? &&
+      Flipper.enabled?(:imports, run.user) &&
+      run.updated_at <= REMOTE_REFRESH_THROTTLE.ago &&
+      run.encrypted_api_key.present? &&
+      !dump_job_pending_for?(run) # Prevent duplicate job enqueuing
+  end
+
+  def self.dump_job_pending_for?(run)
+    GoodJob::Job.where(
+      job_class: "HeartbeatImportDumpJob",
+      finished_at: nil,
+      error: nil
+    ).where("serialized_params -> 'arguments' -> 0 = to_jsonb(?::text)", run.id.to_s).exists?
   end
 
   def self.serialize(run)
@@ -98,7 +134,7 @@ class HeartbeatImportRunner
       error_message: run.error_message,
       remote_dump_status: run.remote_dump_status,
       remote_percent_complete: run.remote_percent_complete,
-      cooldown_until: run.cooldown_until&.iso8601,
+      cooldown_until: remote_import_cooldown_until(user: run.user)&.iso8601,
       source_filename: run.source_filename,
       updated_at: run.updated_at.iso8601,
       started_at: run.started_at&.iso8601,
@@ -113,7 +149,6 @@ class HeartbeatImportRunner
       return if run.terminal?
 
       user = run.user
-      file_content = decode_file_content(File.binread(file_path)).force_encoding("UTF-8")
 
       run.update!(
         state: :importing,
@@ -123,55 +158,59 @@ class HeartbeatImportRunner
         message: "Importing heartbeats..."
       )
 
-      result = HeartbeatImportService.import_from_file(
-        file_content,
-        user,
-        progress_interval: PROGRESS_INTERVAL,
-        on_progress: lambda { |processed_count|
-          run.update_columns(
-            processed_count: processed_count,
-            message: "Importing heartbeats...",
-            updated_at: Time.current
-          )
-        }
-      )
+      result = import_file_streaming(file_path, user, run)
 
       if result[:success]
-        run.update!(
-          state: :completed,
-          processed_count: result[:total_count],
-          total_count: result[:total_count],
-          imported_count: result[:imported_count],
-          skipped_count: result[:skipped_count],
-          errors_count: result[:errors].size,
-          message: build_success_message(result),
-          error_message: nil,
-          finished_at: Time.current
-        )
-        reset_sailors_log!(user) if run.remote?
+        complete_run!(run, result:)
       else
-        run.update!(
-          state: :failed,
+        fail_run!(
+          run,
+          message: result[:error],
           imported_count: result[:imported_count],
           skipped_count: result[:skipped_count],
-          errors_count: result[:errors].size,
-          message: "Import failed: #{result[:error]}",
-          error_message: result[:error],
-          finished_at: Time.current
+          errors_count: result[:errors].size
         )
       end
     end
   rescue => e
-    HeartbeatImportRun.find_by(id: import_run_id)&.update!(
-      state: :failed,
-      message: "Import failed: #{e.message}",
-      error_message: e.message,
-      finished_at: Time.current
-    )
+    run = HeartbeatImportRun.includes(:user).find_by(id: import_run_id)
+    fail_run!(run, message: e.message) if run && !run.terminal?
+    Sentry.capture_exception(e) # Track unexpected errors
   ensure
     FileUtils.rm_f(file_path) if file_path.present?
-    HeartbeatImportRun.find_by(id: import_run_id)&.clear_sensitive_fields!
-    ActiveRecord::Base.connection_handler.clear_active_connections!
+    ActiveRecord::Base.connection_pool.release_connection
+  end
+
+  def self.import_file_streaming(file_path, user, run)
+    File.open(file_path, "rb") do |file|
+      magic_bytes = file.read(2)
+      file.rewind
+
+      io = if magic_bytes == [ 0x1f, 0x8b ].pack("C*")
+        Zlib::GzipReader.new(file)
+      else
+        file
+      end
+
+      begin
+        result = HeartbeatImportService.import_from_file(
+          io,
+          user,
+          progress_interval: PROGRESS_INTERVAL,
+          on_progress: lambda { |processed_count|
+            run.update_columns(
+              processed_count: processed_count,
+              message: "Importing heartbeats...",
+              updated_at: Time.current
+            )
+          }
+        )
+      ensure
+        io.close if io.respond_to?(:close) && io != file
+      end
+
+      result
+    end
   end
 
   def self.persist_uploaded_file(uploaded_file, import_run_id)
@@ -188,8 +227,20 @@ class HeartbeatImportRunner
     FileUtils.mkdir_p(TMP_DIR)
 
     file_path = TMP_DIR.join("#{run.id}-remote.json")
-    File.binwrite(file_path, decode_file_content(file_content))
+    File.binwrite(file_path, file_content) # Write raw bytes, let run_import handle decompression
     file_path.to_s
+  end
+
+  def self.queue_remote_download(run:, download_url:, remote_dump_status: nil, remote_percent_complete: nil)
+    run.update!(
+      state: :downloading_dump,
+      remote_dump_status: remote_dump_status || run.remote_dump_status,
+      remote_percent_complete: remote_percent_complete.nil? ? run.remote_percent_complete : remote_percent_complete,
+      message: "Downloading data dump...",
+      error_message: nil
+    )
+
+    HeartbeatImportRemoteDownloadJob.perform_later(run.id, download_url)
   end
 
   def self.build_success_message(result)
@@ -197,6 +248,70 @@ class HeartbeatImportRunner
     return message if result[:skipped_count].zero?
 
     "#{message} Skipped #{result[:skipped_count]} duplicate heartbeats."
+  end
+
+  def self.complete_run!(run, result:)
+    run.update!(
+      state: :completed,
+      processed_count: result[:total_count],
+      total_count: result[:total_count],
+      imported_count: result[:imported_count],
+      skipped_count: result[:skipped_count],
+      errors_count: result[:errors].size,
+      message: build_success_message(result),
+      error_message: nil,
+      finished_at: Time.current
+    )
+
+    run.clear_sensitive_fields!
+    send_completion_email(run)
+  end
+
+  def self.fail_run!(
+    run,
+    message:,
+    imported_count: run.imported_count,
+    skipped_count: run.skipped_count,
+    errors_count: run.errors_count,
+    remote_dump_status: run.remote_dump_status.presence || "failed",
+    notify: true
+  )
+    run.update!(
+      state: :failed,
+      imported_count:,
+      skipped_count:,
+      errors_count:,
+      remote_dump_status: run.remote? ? remote_dump_status : run.remote_dump_status,
+      message: "Import failed: #{message}",
+      error_message: message,
+      finished_at: Time.current
+    )
+
+    send_failure_email(run) if notify
+    run.clear_sensitive_fields!
+  end
+
+  def self.fail_run_for_error!(import_run_id:, error:, notify: true)
+    run = HeartbeatImportRun.includes(:user).find_by(id: import_run_id)
+    return unless run
+    return if run.terminal?
+
+    fail_run!(run, message: failure_message_for(run:, error:), notify:)
+  end
+
+  def self.failure_message_for(run:, error:)
+    case error
+    when HeartbeatImportDumpClient::AuthenticationError
+      "#{import_source_name(run)} rejected the import because the API key is invalid."
+    when HeartbeatImportDumpClient::TransientError
+      transient_failure_message_for(run:, error:)
+    else
+      error.respond_to?(:message) ? error.message : error.to_s
+    end
+  end
+
+  def self.import_source_name(run)
+    run.hackatime_v1_dump? ? "Hackatime v1" : "WakaTime"
   end
 
   def self.ensure_imports_enabled!(user)
@@ -231,23 +346,54 @@ class HeartbeatImportRunner
     aliases.fetch(normalized_provider) { raise InvalidProviderError, "Unsupported import provider." }
   end
 
-  def self.decode_file_content(file_content)
-    return file_content unless file_content&.bytes&.first(2) == [ 0x1f, 0x8b ]
+  def self.transient_failure_message_for(run:, error:)
+    return provider_error_message_for(run) if error.status.to_i >= 500
 
-    gz_reader = Zlib::GzipReader.new(StringIO.new(file_content))
-    gz_reader.read
-  ensure
-    gz_reader&.close
+    "#{import_source_name(run)} could not be reached while processing the import. Please try again."
   end
 
-  def self.reset_sailors_log!(user)
-    return unless user.sailors_log.present?
+  def self.provider_error_message_for(run)
+    message = "#{import_source_name(run)} ran into an error while processing the import."
+    return message unless run.hackatime_v1_dump?
 
-    user.sailors_log.update!(projects_summary: {})
-    user.sailors_log.send(:initialize_projects_summary)
+    "#{message} Please reach out to #hackatime-help on Slack."
   end
 
-  def self.inline_good_job_execution?
-    Rails.env.development? && Rails.application.config.good_job.execution_mode == :inline
+  def self.send_completion_email(run)
+    return unless send_import_email?(run)
+
+    recipient_email = recipient_email_for(run.user)
+    return if recipient_email.blank?
+
+    HeartbeatImportMailer.import_completed(
+      run.user,
+      run:,
+      recipient_email:
+    ).deliver_later
+  rescue => e
+    Rails.logger.error("Failed to send heartbeat import completion email for run #{run.id}: #{e.message}")
+  end
+
+  def self.send_failure_email(run)
+    return unless send_import_email?(run)
+
+    recipient_email = recipient_email_for(run.user)
+    return if recipient_email.blank?
+
+    HeartbeatImportMailer.import_failed(
+      run.user,
+      run:,
+      recipient_email:
+    ).deliver_later
+  rescue => e
+    Rails.logger.error("Failed to send heartbeat import failure email for run #{run.id}: #{e.message}")
+  end
+
+  def self.send_import_email?(run)
+    !run.dev_upload?
+  end
+
+  def self.recipient_email_for(user)
+    user.email_addresses.order(:id).pick(:email)
   end
 end

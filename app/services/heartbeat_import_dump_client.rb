@@ -1,12 +1,25 @@
 class HeartbeatImportDumpClient
-  class AuthenticationError < StandardError; end
-  class TransientError < StandardError; end
-  class RequestError < StandardError; end
+  class ResponseError < StandardError
+    attr_reader :status
+
+    def initialize(message = nil, status: nil)
+      @status = status
+      super(message)
+    end
+  end
+
+  class AuthenticationError < ResponseError; end
+  class TransientError < ResponseError; end
+  class RequestError < ResponseError; end
+  class ManualDownloadLinkRequiredError < RequestError; end
+  class ExistingDumpInProgressError < RequestError; end
 
   BASE_URLS = {
     "wakatime_dump" => "https://wakatime.com/api/v1",
+    "wakatime_download_link" => "https://wakatime.com/api/v1",
     "hackatime_v1_dump" => "https://waka.hackclub.com/api/v1"
   }.freeze
+  WAKATIME_DOWNLOAD_HOST = "wakatime.s3.amazonaws.com".freeze
 
   TIMEOUTS = {
     connect: 5,
@@ -28,6 +41,8 @@ class HeartbeatImportDumpClient
     )
 
     normalize_dump(body.fetch("data"))
+  rescue ExistingDumpInProgressError
+    current_processing_dump!
   end
 
   def list_dumps
@@ -47,6 +62,16 @@ class HeartbeatImportDumpClient
     BASE_URLS.fetch(source_kind.to_s)
   end
 
+  def self.valid_wakatime_download_url?(download_url)
+    uri = URI.parse(download_url.to_s)
+
+    uri.scheme == "https" &&
+      uri.host == WAKATIME_DOWNLOAD_HOST &&
+      uri.path.present?
+  rescue URI::InvalidURIError
+    false
+  end
+
   private
 
   def request_json(method:, path:, json: nil)
@@ -57,7 +82,7 @@ class HeartbeatImportDumpClient
       request.public_send(method, "#{@endpoint_url}#{path}", json:)
     end
 
-    handle_response_errors(response)
+    handle_response_errors(response, method:, path:)
     JSON.parse(response.to_s)
   rescue HTTP::TimeoutError, HTTP::ConnectionError => e
     raise TransientError, e.message
@@ -65,11 +90,39 @@ class HeartbeatImportDumpClient
     raise RequestError, "Invalid JSON response"
   end
 
-  def handle_response_errors(response)
+  def handle_response_errors(response, method: nil, path: nil)
     status = response.status.to_i
-    raise AuthenticationError, "Authentication failed (#{status})" if [ 401, 403 ].include?(status)
-    raise TransientError, "Request failed with status #{status}" if status == 408 || status == 429 || status >= 500
-    raise RequestError, "Request failed with status #{status}" unless response.status.success?
+    raise AuthenticationError.new("Authentication failed (#{status})", status:) if [ 401, 403 ].include?(status)
+    raise TransientError.new("Request failed with status #{status}", status:) if status == 408 || status == 429 || status >= 500
+    if manual_download_link_required?(status:, method:, path:)
+      raise ManualDownloadLinkRequiredError.new("WakaTime requires a recent export download link.", status:)
+    end
+    if existing_dump_in_progress?(response, status:, method:, path:)
+      raise ExistingDumpInProgressError.new("Hackatime v1 already has an export in progress.", status:)
+    end
+    raise RequestError.new("Request failed with status #{status}", status:) unless response.status.success?
+  end
+
+  def manual_download_link_required?(status:, method:, path:)
+    status == 400 &&
+      @source_kind == "wakatime_dump" &&
+      method == :post &&
+      path == "/users/current/data_dumps"
+  end
+
+  def existing_dump_in_progress?(response, status:, method:, path:)
+    status == 400 &&
+      @source_kind == "hackatime_v1_dump" &&
+      method == :post &&
+      path == "/users/current/data_dumps" &&
+      response.to_s.include?("a data export is already in progress")
+  end
+
+  def current_processing_dump!
+    dump = list_dumps.find { |item| item[:type] == "heartbeats" && item[:is_processing] }
+    return dump if dump.present?
+
+    raise RequestError.new("Hackatime v1 reported an active data export, but none could be found.", status: 400)
   end
 
   def normalize_dump(dump)

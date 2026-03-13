@@ -171,7 +171,7 @@ export type HeartbeatImportStatusProps = {
   import_id: string;
   state: string;
   source_kind: string;
-  progress_percent: number;
+  progress_percent: number | null; // null during importing when total is unknown
   processed_count: number;
   total_count: number | null;
   imported_count: number | null;
@@ -324,9 +324,7 @@ const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
     { id: "user_api_key", label: "API key" },
     { id: "user_config_file", label: "Config file" },
   ],
-  goals: [
-    { id: "user_programming_goals", label: "Programming goals" },
-  ],
+  goals: [{ id: "user_programming_goals", label: "Programming goals" }],
   badges: [
     { id: "user_stats_badges", label: "Stats badges" },
     { id: "user_markscribe", label: "Markscribe" },
@@ -341,7 +339,11 @@ const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
 
 export const buildSubsections = (
   activeSection: SectionId,
-): SettingsSubsection[] => subsectionMap[activeSection] || [];
+  exclude?: Set<string>,
+): SettingsSubsection[] => {
+  const items = subsectionMap[activeSection] || [];
+  return exclude?.size ? items.filter((item) => !exclude.has(item.id)) : items;
+};
 
 const hashSectionMap: Record<string, SectionId> = {
   user_region: "profile",
