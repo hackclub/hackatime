@@ -18,7 +18,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       #     [{...heartbeat_data}, 201]
       #   ]
       # }
-      heartbeat_array = heartbeat_bulk_params[:heartbeats].map(&:to_h)
+      heartbeat_array = heartbeat_bulk_params[:heartbeats]
 
       if heartbeat_array.empty?
         return render json: { error: "No data provided..." }, status: :bad_request
@@ -32,7 +32,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       # {
       #   ...heartbeat_data
       # }
-      heartbeat_array = Array.wrap(heartbeat_params.to_h)
+      heartbeat_array = Array.wrap(heartbeat_params)
 
       if heartbeat_array.empty? || heartbeat_params.blank?
         return render json: { error: "No data provided..." }, status: :bad_request
@@ -220,6 +220,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   def handle_heartbeat(heartbeat_array)
     results = []
     heartbeat_array.each do |heartbeat|
+      heartbeat = heartbeat.to_h.with_indifferent_access
       source_type = :direct_entry
 
       # Fallback to :plugin if :user_agent is not set
