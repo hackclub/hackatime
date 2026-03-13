@@ -1,4 +1,4 @@
-class AddPartialUniqueIndexToHeartbeatFieldsHash < ActiveRecord::Migration[8.0]
+class AddPartialUniqueIndexToHeartbeatFieldsHash < ActiveRecord::Migration[8.1]
   def change
     # Add a partial index that only applies to non-deleted records
     add_index :heartbeats, :fields_hash,

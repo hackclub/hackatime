@@ -12,7 +12,8 @@ class BadgesSettingsTest < ApplicationSystemTestCase
   test "badges settings page renders key sections" do
     assert_settings_page(
       path: my_settings_badges_path,
-      marker_text: "Stats Badges"
+      marker_text: "Stats Badges",
+      card_count: 3
     )
 
     assert_text "Markscribe Template"

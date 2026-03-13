@@ -1,4 +1,4 @@
-class CreateSailorsLogLeaderboards < ActiveRecord::Migration[8.0]
+class CreateSailorsLogLeaderboards < ActiveRecord::Migration[8.1]
   def change
     create_table :sailors_log_leaderboards do |t|
       t.string :slack_channel_id

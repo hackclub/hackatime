@@ -54,5 +54,31 @@ class UserTest < ActiveSupport::TestCase
     assert_equal user.id, new_api_key.user_id
     assert_equal "Hackatime key", new_api_key.name
     assert_equal [ new_api_key.id ], user.api_keys.reload.pluck(:id)
+  test "flipper id uses the user id" do
+    user = User.create!(timezone: "UTC")
+
+    assert_equal "User;#{user.id}", user.flipper_id
+  end
+
+  test "active remote heartbeat import run only counts remote imports" do
+    user = User.create!(timezone: "UTC")
+
+    assert_not user.active_remote_heartbeat_import_run?
+
+    user.heartbeat_import_runs.create!(
+      source_kind: :dev_upload,
+      state: :queued,
+      source_filename: "dev.json"
+    )
+
+    assert_not user.active_remote_heartbeat_import_run?
+
+    user.heartbeat_import_runs.create!(
+      source_kind: :wakatime_dump,
+      state: :waiting_for_dump,
+      encrypted_api_key: "secret"
+    )
+
+    assert user.active_remote_heartbeat_import_run?
   end
 end

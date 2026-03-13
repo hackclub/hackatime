@@ -1,4 +1,4 @@
-class CreateTrustLevelAuditLogs < ActiveRecord::Migration[8.0]
+class CreateTrustLevelAuditLogs < ActiveRecord::Migration[8.1]
   def change
     create_table :trust_level_audit_logs do |t|
       t.references :user, null: false, foreign_key: true, index: true

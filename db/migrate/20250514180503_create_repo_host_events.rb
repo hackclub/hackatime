@@ -1,4 +1,4 @@
-class CreateRepoHostEvents < ActiveRecord::Migration[8.0]
+class CreateRepoHostEvents < ActiveRecord::Migration[8.1]
   def change
     # id: false because we are defining a custom string primary key 'id'
     create_table :repo_host_events, id: false do |t|

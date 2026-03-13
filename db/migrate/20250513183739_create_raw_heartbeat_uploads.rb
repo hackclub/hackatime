@@ -1,4 +1,4 @@
-class CreateRawHeartbeatUploads < ActiveRecord::Migration[8.0]
+class CreateRawHeartbeatUploads < ActiveRecord::Migration[8.1]
   def change
     create_table :raw_heartbeat_uploads do |t|
       t.jsonb :request_headers, null: false

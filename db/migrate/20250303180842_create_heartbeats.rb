@@ -1,4 +1,4 @@
-class CreateHeartbeats < ActiveRecord::Migration[8.0]
+class CreateHeartbeats < ActiveRecord::Migration[8.1]
   def change
     create_table :heartbeats do |t|
       t.belongs_to :user, null: false, foreign_key: true

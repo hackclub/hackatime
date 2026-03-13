@@ -1,4 +1,4 @@
-class AddTrustLevelToUsers < ActiveRecord::Migration[7.1]
+class AddTrustLevelToUsers < ActiveRecord::Migration[8.1]
   def up
     add_column :users, :trust_level, :integer, default: 0, null: false
 

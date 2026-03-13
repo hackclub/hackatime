@@ -98,33 +98,34 @@ RSpec.describe 'Api::V1::My', type: :request do
     end
   end
 
-  path '/my/heartbeats/import' do
-    post('Import Heartbeats') do
+  path '/my/heartbeat_imports' do
+    post('Create Heartbeat Import') do
       tags 'My Data'
-      description 'Import heartbeats from a JSON file.'
+      description 'Start a development upload import or a one-time remote dump import.'
       security [ Bearer: [], ApiKeyAuth: [] ]
       consumes 'multipart/form-data'
       produces 'application/json'
 
-      parameter name: :heartbeat_file,
+      parameter name: :"heartbeat_import[provider]",
                 in: :formData,
-                schema: { type: :string, format: :binary },
-                description: 'JSON file containing heartbeats'
+                schema: { type: :string, enum: %w[wakatime_dump hackatime_v1_dump] },
+                description: 'Remote import provider preset'
+      parameter name: :"heartbeat_import[api_key]",
+                in: :formData,
+                schema: { type: :string },
+                description: 'API key for the selected remote import provider'
 
-      response(302, 'redirect') do
+      response(202, 'accepted') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
-        let(:heartbeat_file) do
-          Rack::Test::UploadedFile.new(
-            StringIO.new("[]"),
-            "application/json",
-            original_filename: "heartbeats.json"
-          )
-        end
+        let(:"heartbeat_import[provider]") { "wakatime_dump" }
+        let(:"heartbeat_import[api_key]") { "test-api-key" }
 
         before do
-           login_browser_user
+          login_browser_user
+          Flipper.enable_actor(:imports, user)
         end
+        after { Flipper.disable(:imports) }
         run_test!
       end
     end
@@ -251,29 +252,29 @@ RSpec.describe 'Api::V1::My', type: :request do
     end
   end
 
-  path '/my/settings/migrate_heartbeats' do
-    post('Migrate Heartbeats') do
-      tags 'My Settings'
-      description 'Trigger a migration of heartbeats from legacy formats or systems.'
+  path '/my/heartbeat_imports/{id}' do
+    get('Get Heartbeat Import Status') do
+      tags 'My Data'
+      description 'Fetch the latest state for a heartbeat import run.'
       security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
-      response(302, 'redirect') do
+      parameter name: :id, in: :path, type: :string, description: 'Heartbeat import run id'
+
+      response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
+        let(:id) do
+          HeartbeatImportRun.create!(
+            user: user,
+            source_kind: :dev_upload,
+            state: :completed,
+            source_filename: "heartbeats.json",
+            message: "Completed."
+          ).id
+        end
 
-        before do
-          login_browser_user
-          @hackatime_v1_import_was_enabled = Flipper.enabled?(:hackatime_v1_import)
-          Flipper.enable(:hackatime_v1_import)
-        end
-        after do
-          if @hackatime_v1_import_was_enabled
-            Flipper.enable(:hackatime_v1_import)
-          else
-            Flipper.disable(:hackatime_v1_import)
-          end
-        end
+        before { login_browser_user }
         run_test!
       end
     end
