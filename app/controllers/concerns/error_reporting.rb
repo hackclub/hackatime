@@ -1,15 +1,16 @@
+# frozen_string_literal: true
+
 module ErrorReporting
   extend ActiveSupport::Concern
 
-  # Report an exception to both Sentry and Rails.logger
+  # Prefer this over calling Sentry and logger separately to keep reporting consistent.
   # Usage: report_error(exception, message: "optional context")
   def report_error(exception, message: nil, extra: {})
-    full_message = message ? "#{message}: #{exception.message}" : exception.message
-    Rails.logger.error(full_message)
-    Sentry.capture_exception(exception, extra: extra)
+    Rails.logger.error(message || exception.message)
+    Sentry.capture_exception(exception, extra: extra.merge(message: message).compact)
   end
 
-  # Report a message (non-exception) to both Sentry and Rails.logger
+  # Prefer this for non-exception events that still warrant Sentry visibility.
   # Usage: report_message("Something bad happened", level: :error)
   def report_message(message, level: :error, extra: {})
     Rails.logger.send(level, message)
