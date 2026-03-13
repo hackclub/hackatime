@@ -38,26 +38,21 @@
   let remoteProvider =
     $state<(typeof PROVIDERS)[number]["value"]>("wakatime_dump");
   let remoteApiKey = $state("");
-  let importId = $state("");
-  let importState = $state("idle");
-  let importSourceKind = $state("");
-  let importMessage = $state("");
-  let importErrorMessage = $state("");
-  let processedCount = $state<number | null>(null);
-  let totalCount = $state<number | null>(null);
-  let importedCount = $state<number | null>(null);
-  let skippedCount = $state<number | null>(null);
-  let errorsCount = $state(0);
-  let remoteDumpStatus = $state<string | null>(null);
-  let remotePercentComplete = $state<number | null>(null);
-  let sourceFilename = $state<string | null>(null);
-  let remoteCooldownUntil = $state<string | null>(null);
+  // overlay state: set after a successful form submit, cleared on terminal state
+  let importOverlay = $state<Partial<HeartbeatImportStatusProps> | null>(null);
 
   const { start: startPolling, stop: stopPolling } = usePoll(
     1000,
     { only: ["latest_heartbeat_import", "remote_import_cooldown_until"] },
     { autoStart: false },
   );
+
+  // Merge server data with any in-flight overlay updates
+  const activeImport = $derived(
+    importOverlay ?? latest_heartbeat_import ?? null,
+  );
+  const importState = $derived(activeImport?.state ?? "idle");
+  const importSourceKind = $derived(activeImport?.source_kind ?? "");
 
   const importInProgress = $derived(
     importState === "queued" ||
@@ -72,91 +67,58 @@
       importSourceKind === "hackatime_v1_dump",
   );
   const latestImportIsDev = $derived(importSourceKind === "dev_upload");
+
+  const effectiveRemoteCooldownUntil = $derived(
+    activeImport?.cooldown_until ?? remote_import_cooldown_until ?? null,
+  );
   const remoteCooldownActive = $derived(
-    remoteCooldownUntil
-      ? new Date(remoteCooldownUntil).getTime() > Date.now()
+    effectiveRemoteCooldownUntil
+      ? new Date(effectiveRemoteCooldownUntil).getTime() > Date.now()
       : false,
   );
-
-  $effect(() => {
-    if (remote_import_cooldown_until) {
-      remoteCooldownUntil = remote_import_cooldown_until;
-    }
-  });
 
   const hiddenSubsections = $derived(
     ui.show_imports ? undefined : new Set(["user_imports"]),
   );
 
+  // react to server-side import updates (from polling)
   $effect(() => {
-    syncImport(latest_heartbeat_import, true);
+    const imp = latest_heartbeat_import;
+    if (!imp) return;
+
+    if (imp.state === "completed" || imp.state === "failed") {
+      stopPolling();
+      importOverlay = null; // let server state take over
+    } else {
+      startPolling();
+    }
   });
 
-  function isTerminalImportState(state: string) {
-    return state === "completed" || state === "failed";
-  }
-
-  function formatCount(value: number | null) {
-    if (value === null || value === undefined) {
-      return "—";
-    }
+  function formatCount(value: number | null | undefined) {
+    if (value == null) return "—";
     return value.toLocaleString();
-  }
-
-  function formatDateTime(value: string | null) {
-    if (!value) {
-      return "—";
-    }
-
-    return new Date(value).toLocaleString();
   }
 
   function formatRelativeTime(value: string | null) {
     if (!value) return "—";
-
     const diff = new Date(value).getTime() - Date.now();
     if (diff <= 0) return "now";
-
     const seconds = Math.ceil(diff / 1000);
     if (seconds < 60) return `${seconds}s`;
-
-    const minutes = Math.ceil(seconds / 60);
-    return `${minutes}m`;
+    return `${Math.ceil(seconds / 60)}m`;
   }
 
   function providerLabel(sourceKind: string) {
-    if (sourceKind === "wakatime_dump") {
-      return "WakaTime";
-    }
-    if (sourceKind === "wakatime_download_link") {
-      return "WakaTime";
-    }
-    if (sourceKind === "hackatime_v1_dump") {
-      return "Hackatime v1";
-    }
-    if (sourceKind === "dev_upload") {
-      return "Development upload";
-    }
-    return "Import";
-  }
-
-  function applyImportStatus(status: Partial<HeartbeatImportStatusProps>) {
-    importId = status.import_id || importId;
-    importState = status.state || "idle";
-    importSourceKind = status.source_kind || importSourceKind;
-    importMessage = status.message || importMessage;
-    importErrorMessage = status.error_message || "";
-    processedCount = status.processed_count ?? processedCount;
-    totalCount = status.total_count ?? totalCount;
-    importedCount = status.imported_count ?? importedCount;
-    skippedCount = status.skipped_count ?? skippedCount;
-    errorsCount = status.errors_count ?? errorsCount;
-    remoteDumpStatus = status.remote_dump_status ?? remoteDumpStatus;
-    remotePercentComplete =
-      status.remote_percent_complete ?? remotePercentComplete;
-    sourceFilename = status.source_filename ?? sourceFilename;
-    if (status.cooldown_until) {
-      remoteCooldownUntil = status.cooldown_until;
+    switch (sourceKind) {
+      case "wakatime_dump":
+      case "wakatime_download_link":
+        return "WakaTime";
+      case "hackatime_v1_dump":
+        return "Hackatime v1";
+      case "dev_upload":
+        return "Development upload";
+      default:
+        return "Import";
     }
   }
 
@@ -181,29 +143,8 @@
     }
   }
 
-  function syncImport(
-    serverImport:
-      | DataPageProps["latest_heartbeat_import"]
-      | HeartbeatImportStatusProps
-      | null
-      | undefined,
-    force = false,
-  ) {
-    if (!serverImport) {
-      return;
-    }
-
-    if (!force && importId && serverImport.import_id !== importId) {
-      return;
-    }
-
-    applyImportStatus(serverImport);
-
-    if (isTerminalImportState(serverImport.state)) {
-      stopPolling();
-      return;
-    }
-
+  function onImportSuccess(data: HeartbeatImportStatusProps) {
+    importOverlay = data;
     startPolling();
   }
 </script>
@@ -222,6 +163,8 @@
       method="post"
       action={paths.create_heartbeat_import_path}
       resetOnSuccess={["heartbeat_import[api_key]"]}
+      onSuccess={({ detail }) =>
+        onImportSuccess(detail.page.props.latest_heartbeat_import)}
     >
       {#snippet children({ processing, errors: formErrors })}
         <SectionCard
@@ -315,13 +258,13 @@
                 >
                   {prettyStatus(importState)}
                 </span>
-                {#if importErrorMessage}
-                  <span class="text-red-300">{importErrorMessage}</span>
+                {#if activeImport?.error_message}
+                  <span class="text-red-300">{activeImport.error_message}</span>
                 {/if}
                 {#if importState === "completed"}
                   <span class="text-muted">
-                    {formatCount(importedCount)} imported, {formatCount(
-                      skippedCount,
+                    {formatCount(activeImport?.imported_count)} imported, {formatCount(
+                      activeImport?.skipped_count,
                     )} skipped
                   </span>
                 {/if}
@@ -333,9 +276,11 @@
             <div
               class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between"
             >
-              {#if remoteCooldownActive && remoteCooldownUntil}
+              {#if remoteCooldownActive && effectiveRemoteCooldownUntil}
                 <p class="text-sm text-muted sm:mr-auto">
-                  Available again in {formatRelativeTime(remoteCooldownUntil)}
+                  Available again in {formatRelativeTime(
+                    effectiveRemoteCooldownUntil,
+                  )}
                 </p>
               {:else}
                 <div></div>
@@ -525,7 +470,8 @@
                   </svg>
                 {/if}
                 <span class="text-surface-content">
-                  {sourceFilename || providerLabel(importSourceKind)}
+                  {activeImport?.source_filename ||
+                    providerLabel(importSourceKind)}
                 </span>
                 <span class="text-muted">·</span>
                 <span
@@ -537,13 +483,13 @@
                 >
                   {prettyStatus(importState)}
                 </span>
-                {#if importErrorMessage}
-                  <span class="text-red-300">{importErrorMessage}</span>
+                {#if activeImport?.error_message}
+                  <span class="text-red-300">{activeImport.error_message}</span>
                 {/if}
                 {#if importState === "completed"}
                   <span class="text-muted">
-                    {formatCount(importedCount)} imported, {formatCount(
-                      skippedCount,
+                    {formatCount(activeImport?.imported_count)} imported, {formatCount(
+                      activeImport?.skipped_count,
                     )} skipped
                   </span>
                 {/if}

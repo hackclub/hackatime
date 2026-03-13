@@ -39,10 +39,58 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
 
     run.reload
     assert_equal "completed", run.state
+    assert_nil run.encrypted_api_key
     assert_equal 1, ActionMailer::Base.deliveries.size
     assert_equal "Your WakaTime import is complete", ActionMailer::Base.deliveries.last.subject
   ensure
     file&.unlink
+  end
+
+  test "run_import does not overwrite a completed run if completion follow-up fails" do
+    user = User.create!(timezone: "UTC")
+    user.email_addresses.create!(email: "post-complete-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
+    run = user.heartbeat_import_runs.create!(
+      source_kind: :wakatime_dump,
+      state: :queued,
+      encrypted_api_key: "secret"
+    )
+
+    file = Tempfile.new([ "heartbeats", ".json" ])
+    file.write(
+      {
+        heartbeats: [
+          {
+            entity: "/tmp/test.rb",
+            type: "file",
+            time: 1_700_000_000.0,
+            project: "hackatime",
+            language: "Ruby",
+            is_write: true
+          }
+        ]
+      }.to_json
+    )
+    file.close
+
+    singleton_class = HeartbeatImportRunner.singleton_class
+    singleton_class.alias_method :__original_send_completion_email_for_test, :send_completion_email
+    singleton_class.define_method(:send_completion_email) do |_completed_run|
+      raise "mail transport failed"
+    end
+
+    begin
+      HeartbeatImportRunner.run_import(import_run_id: run.id, file_path: file.path)
+    ensure
+      singleton_class.alias_method :send_completion_email, :__original_send_completion_email_for_test
+      singleton_class.remove_method :__original_send_completion_email_for_test
+      file&.unlink
+    end
+
+    run.reload
+    assert_equal "completed", run.state
+    assert_nil run.error_message
+    assert_nil run.encrypted_api_key
+    assert_empty ActionMailer::Base.deliveries
   end
 
   test "fail_run_for_error! emails the user about invalid api keys" do
@@ -62,6 +110,7 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
     run.reload
     assert_equal "failed", run.state
     assert_equal "WakaTime rejected the import because the API key is invalid.", run.error_message
+    assert_nil run.encrypted_api_key
     assert_equal 1, ActionMailer::Base.deliveries.size
     assert_equal "Your WakaTime import failed", ActionMailer::Base.deliveries.last.subject
   end
@@ -83,6 +132,7 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
     run.reload
     assert_equal "failed", run.state
     assert_equal "Hackatime v1 ran into an error while processing the import. Please reach out to #hackatime-help on Slack.", run.error_message
+    assert_nil run.encrypted_api_key
     assert_equal 1, ActionMailer::Base.deliveries.size
     assert_equal "Your Hackatime v1 import failed", ActionMailer::Base.deliveries.last.subject
   end

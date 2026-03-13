@@ -172,10 +172,9 @@ class HeartbeatImportRunner
     end
   rescue => e
     run = HeartbeatImportRun.includes(:user).find_by(id: import_run_id)
-    fail_run!(run, message: e.message) if run
+    fail_run!(run, message: e.message) if run && !run.terminal?
   ensure
     FileUtils.rm_f(file_path) if file_path.present?
-    HeartbeatImportRun.find_by(id: import_run_id)&.clear_sensitive_fields!
     ActiveRecord::Base.connection_handler.clear_active_connections!
   end
 
@@ -229,7 +228,7 @@ class HeartbeatImportRunner
       finished_at: Time.current
     )
 
-    reset_sailors_log!(run.user) unless run.dev_upload?
+    run.clear_sensitive_fields!
     send_completion_email(run)
   end
 
@@ -319,13 +318,6 @@ class HeartbeatImportRunner
     gz_reader.read
   ensure
     gz_reader&.close
-  end
-
-  def self.reset_sailors_log!(user)
-    return unless user.sailors_log.present?
-
-    user.sailors_log.update!(projects_summary: {})
-    user.sailors_log.send(:initialize_projects_summary)
   end
 
   def self.transient_failure_message_for(run:, error:)
