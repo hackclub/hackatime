@@ -51,7 +51,6 @@
     { autoStart: false },
   );
 
-  // Determine if we should use overlay or server state
   const serverHasImport = $derived(latest_heartbeat_import != null);
   const serverState = $derived(latest_heartbeat_import?.state);
   const isServerTerminal = $derived(
@@ -107,7 +106,6 @@
     ui.show_imports ? undefined : new Set(["user_imports"]),
   );
 
-  // Effect for polling control - runs when import state changes
   $effect(() => {
     if (importInProgress) {
       startPolling();
@@ -116,18 +114,15 @@
     }
   });
 
-  // Effect to clear overlay when server catches up or timeout occurs
   $effect(() => {
     if (!importOverlay) return;
 
-    // Clear overlay if server has terminal state
     if (isServerTerminal && serverHasImport) {
       importOverlay = null;
       overlayStartTime = null;
       return;
     }
 
-    // Set up timeout to clear stale overlay
     if (overlayStartTime) {
       const elapsed = Date.now() - overlayStartTime;
       const remaining = Math.max(0, OVERLAY_TIMEOUT_MS - elapsed);

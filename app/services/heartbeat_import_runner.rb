@@ -71,6 +71,8 @@ class HeartbeatImportRunner
 
     queue_remote_download(run:, download_url:, remote_dump_status: "Manual download link received")
     run
+  rescue ActiveRecord::RecordNotUnique
+    raise ActiveImportError, "Another import is already in progress."
   end
 
   def self.find_run(user:, import_id:)
@@ -110,10 +112,9 @@ class HeartbeatImportRunner
   def self.dump_job_pending_for?(run)
     GoodJob::Job.where(
       job_class: "HeartbeatImportDumpJob",
-      serialized_params: run.id.to_s,
       finished_at: nil,
       error: nil
-    ).exists?
+    ).where("serialized_params -> 'arguments' -> 0 = to_jsonb(?::text)", run.id.to_s).exists?
   end
 
   def self.serialize(run)
@@ -182,7 +183,6 @@ class HeartbeatImportRunner
 
   def self.import_file_streaming(file_path, user, run)
     File.open(file_path, "rb") do |file|
-      # Check for gzip magic bytes
       magic_bytes = file.read(2)
       file.rewind
 
