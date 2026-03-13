@@ -41,13 +41,15 @@ class UserTest < ActiveSupport::TestCase
 
     assert_not user.active_remote_heartbeat_import_run?
 
-    user.heartbeat_import_runs.create!(
+    # An active non-remote (dev_upload) import should not count as a remote import.
+    # Use a separate user because the unique index prevents two active imports per user.
+    other_user = User.create!(timezone: "UTC")
+    other_user.heartbeat_import_runs.create!(
       source_kind: :dev_upload,
       state: :queued,
       source_filename: "dev.json"
     )
-
-    assert_not user.active_remote_heartbeat_import_run?
+    assert_not other_user.active_remote_heartbeat_import_run?
 
     user.heartbeat_import_runs.create!(
       source_kind: :wakatime_dump,
