@@ -3,6 +3,8 @@ module OauthAuthentication
   include ErrorReporting
 
   class_methods do
+    include ErrorReporting
+
     def hca_authorize_url(redirect_uri)
       params = {
         redirect_uri:,
@@ -133,8 +135,7 @@ module OauthAuthentication
       user.save!
       user
     rescue => e
-      report_error(e, message: "Error creating user from Slack data")
-      Rails.logger.error e.backtrace.join("\n")
+      report_error(e, message: "Error creating user from Slack data: #{e.message}")
       nil
     end
 
@@ -176,8 +177,7 @@ module OauthAuthentication
 
       current_user
     rescue => e
-      report_error(e, message: "Error linking GitHub account")
-      Rails.logger.error e.backtrace.join("\n")
+      report_error(e, message: "Error linking GitHub account: #{e.message}")
       nil
     end
   end

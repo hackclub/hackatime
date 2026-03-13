@@ -16,7 +16,6 @@ class SessionsController < ApplicationController
         return
       end
 
-      Rails.logger.error "HCA OAuth error: #{params[:error]}"
       report_message("HCA OAuth error: #{params[:error]}")
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth. Error ID: #{Sentry.last_event_id}"
       return
@@ -70,7 +69,6 @@ class SessionsController < ApplicationController
         return
       end
 
-      Rails.logger.error "Slack OAuth error: #{params[:error]}"
       report_message("Slack OAuth error: #{params[:error]}")
       redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
       return
@@ -133,7 +131,6 @@ class SessionsController < ApplicationController
     redirect_uri = url_for(action: :github_create, only_path: false)
 
     if params[:error].present?
-      Rails.logger.error "GitHub OAuth error: #{params[:error]}"
       report_message("GitHub OAuth error: #{params[:error]}")
       redirect_to my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{Sentry.last_event_id}"
       return

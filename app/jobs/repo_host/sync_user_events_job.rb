@@ -2,6 +2,8 @@ require "http" # Make sure 'http' gem is available
 
 module RepoHost
   class SyncUserEventsJob < ApplicationJob
+    include ErrorReporting
+
     queue_as :literally_whenever
 
     # MAX_API_PAGES_TO_FETCH: Max pages to fetch. GitHub's /users/{username}/events endpoint
@@ -68,9 +70,9 @@ module RepoHost
 
         begin
           response = http_client_for_github.get(api_url)
-          rescue HTTP::Error => e
-            report_error(e, message: "RepoHost::SyncUserEventsJob: HTTP Error for User ##{@user.id} on page #{current_page}")
-            break
+        rescue HTTP::Error => e
+          report_error(e, message: "RepoHost::SyncUserEventsJob: HTTP Error for User ##{@user.id} on page #{current_page}")
+          break
         end
 
         unless response.status.success?
