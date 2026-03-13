@@ -178,8 +178,6 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   end
 
   test "refreshable_remote_run? stops once a remote import is downloading or importing" do
-    Flipper.enable_actor(:imports, User.first)
-
     %i[downloading_dump importing].each do |state|
       user = User.create!(timezone: "UTC")
       Flipper.enable_actor(:imports, user)
