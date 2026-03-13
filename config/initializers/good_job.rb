@@ -5,9 +5,8 @@ Rails.application.configure do
   config.good_job.cleanup_interval_seconds = 3600
 
   if Rails.env.development?
-    config.good_job.enable_listening = false
-    config.good_job.poll_interval = -1 # Disable polling
-    config.good_job.execution_mode = :inline # Run jobs inline in development
+    config.good_job.execution_mode = :async # Run jobs in background threads in development
+    config.good_job.poll_interval = 5 # Poll every 5 seconds for scheduled jobs
   else
     config.good_job.execution_mode = :external # Use external execution mode in production and staging
   end

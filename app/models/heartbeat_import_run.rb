@@ -1,9 +1,10 @@
 class HeartbeatImportRun < ApplicationRecord
-  COOLDOWN = 4.hours
+  COOLDOWN = 8.minutes
 
   TERMINAL_STATES = %w[completed failed].freeze
   ACTIVE_STATES = %w[queued requesting_dump waiting_for_dump downloading_dump importing].freeze
   REMOTE_SOURCE_KINDS = %w[wakatime_dump hackatime_v1_dump].freeze
+  WAKATIME_SOURCE_KINDS = %w[wakatime_dump wakatime_download_link].freeze
 
   belongs_to :user
 
@@ -12,7 +13,8 @@ class HeartbeatImportRun < ApplicationRecord
   enum :source_kind, {
     dev_upload: 0,
     wakatime_dump: 1,
-    hackatime_v1_dump: 2
+    hackatime_v1_dump: 2,
+    wakatime_download_link: 3
   }
 
   enum :state, {
@@ -25,14 +27,18 @@ class HeartbeatImportRun < ApplicationRecord
     failed: 6
   }
 
-  validates :encrypted_api_key, presence: true, on: :create, unless: :dev_upload?
+  validates :encrypted_api_key, presence: true, on: :create, if: :remote?
 
   scope :latest_first, -> { order(created_at: :desc) }
   scope :active_imports, -> { where(state: states.values_at(*ACTIVE_STATES)) }
   scope :remote_imports, -> { where(source_kind: source_kinds.values_at(*REMOTE_SOURCE_KINDS)) }
 
   def remote?
-    !dev_upload?
+    REMOTE_SOURCE_KINDS.include?(source_kind)
+  end
+
+  def wakatime?
+    WAKATIME_SOURCE_KINDS.include?(source_kind)
   end
 
   def terminal?

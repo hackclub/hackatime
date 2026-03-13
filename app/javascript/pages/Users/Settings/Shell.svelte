@@ -14,10 +14,11 @@
     subheading,
     errors,
     children,
-  }: SettingsCommonProps & { children?: Snippet } = $props();
+    hidden_subsections,
+  }: SettingsCommonProps & { children?: Snippet; hidden_subsections?: Set<string> } = $props();
 
   const sections = $derived(buildSections(section_paths));
-  const subsections = $derived(buildSubsections(active_section));
+  const subsections = $derived(buildSubsections(active_section, hidden_subsections));
   const knownSectionIds = $derived(
     new Set(sections.map((section) => section.id)),
   );

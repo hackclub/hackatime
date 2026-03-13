@@ -341,7 +341,11 @@ const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
 
 export const buildSubsections = (
   activeSection: SectionId,
-): SettingsSubsection[] => subsectionMap[activeSection] || [];
+  exclude?: Set<string>,
+): SettingsSubsection[] => {
+  const items = subsectionMap[activeSection] || [];
+  return exclude?.size ? items.filter((item) => !exclude.has(item.id)) : items;
+};
 
 const hashSectionMap: Record<string, SectionId> = {
   user_region: "profile",

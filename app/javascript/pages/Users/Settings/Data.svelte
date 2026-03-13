@@ -1,7 +1,5 @@
 <script lang="ts">
   import { Form, usePoll } from "@inertiajs/svelte";
-  import { tweened } from "svelte/motion";
-  import { cubicOut } from "svelte/easing";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
@@ -54,7 +52,6 @@
   let remotePercentComplete = $state<number | null>(null);
   let sourceFilename = $state<string | null>(null);
   let remoteCooldownUntil = $state<string | null>(null);
-  const tweenedProgress = tweened(0, { duration: 320, easing: cubicOut });
 
   const { start: startPolling, stop: stopPolling } = usePoll(
     1000,
@@ -71,6 +68,7 @@
   );
   const latestImportIsRemote = $derived(
     importSourceKind === "wakatime_dump" ||
+      importSourceKind === "wakatime_download_link" ||
       importSourceKind === "hackatime_v1_dump",
   );
   const latestImportIsDev = $derived(importSourceKind === "dev_upload");
@@ -85,6 +83,10 @@
       remoteCooldownUntil = remote_import_cooldown_until;
     }
   });
+
+  const hiddenSubsections = $derived(
+    ui.show_imports ? undefined : new Set(["user_imports"]),
+  );
 
   $effect(() => {
     syncImport(latest_heartbeat_import, true);
@@ -109,8 +111,24 @@
     return new Date(value).toLocaleString();
   }
 
+  function formatRelativeTime(value: string | null) {
+    if (!value) return "—";
+
+    const diff = new Date(value).getTime() - Date.now();
+    if (diff <= 0) return "now";
+
+    const seconds = Math.ceil(diff / 1000);
+    if (seconds < 60) return `${seconds}s`;
+
+    const minutes = Math.ceil(seconds / 60);
+    return `${minutes}m`;
+  }
+
   function providerLabel(sourceKind: string) {
     if (sourceKind === "wakatime_dump") {
+      return "WakaTime";
+    }
+    if (sourceKind === "wakatime_download_link") {
       return "WakaTime";
     }
     if (sourceKind === "hackatime_v1_dump") {
@@ -123,14 +141,8 @@
   }
 
   function applyImportStatus(status: Partial<HeartbeatImportStatusProps>) {
-    const state = status.state || "idle";
-    const progress = Number(status.progress_percent ?? 0);
-    const normalizedProgress = Number.isFinite(progress)
-      ? Math.min(Math.max(progress, 0), 100)
-      : 0;
-
     importId = status.import_id || importId;
-    importState = state;
+    importState = status.state || "idle";
     importSourceKind = status.source_kind || importSourceKind;
     importMessage = status.message || importMessage;
     importErrorMessage = status.error_message || "";
@@ -146,7 +158,27 @@
     if (status.cooldown_until) {
       remoteCooldownUntil = status.cooldown_until;
     }
-    void tweenedProgress.set(normalizedProgress);
+  }
+
+  function prettyStatus(state: string): string {
+    switch (state) {
+      case "queued":
+        return "Queued…";
+      case "requesting_dump":
+        return "Requesting heartbeats…";
+      case "waiting_for_dump":
+        return "Waiting for heartbeats…";
+      case "downloading_dump":
+        return "Downloading heartbeats…";
+      case "importing":
+        return "Importing heartbeats…";
+      case "completed":
+        return "Done!";
+      case "failed":
+        return "Failed";
+      default:
+        return state;
+    }
   }
 
   function syncImport(
@@ -183,6 +215,7 @@
   {heading}
   {subheading}
   {errors}
+  hidden_subsections={hiddenSubsections}
 >
   {#if ui.show_imports}
     <Form
@@ -196,20 +229,9 @@
           title="Imports"
           description="Request a one-time heartbeat dump from WakaTime or legacy Hackatime."
           wide
+          footerClass=""
         >
-          {#if remoteCooldownActive && remoteCooldownUntil}
-            <p
-              class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
-            >
-              Remote imports can be started again after {formatDateTime(
-                remoteCooldownUntil,
-              )}.
-            </p>
-          {/if}
-
-          <div
-            class="mt-4 space-y-4 rounded-md border border-surface-200 bg-surface p-4"
-          >
+          <div class="space-y-4">
             <div class="space-y-3">
               {#each PROVIDERS as provider}
                 <label
@@ -245,7 +267,7 @@
                 name="heartbeat_import[api_key]"
                 type="password"
                 bind:value={remoteApiKey}
-                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-surface-content focus:border-primary focus:outline-none"
+                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-base text-surface-content focus:border-primary focus:outline-none"
                 disabled={importInProgress || processing}
               />
             </div>
@@ -255,65 +277,90 @@
             {/if}
 
             {#if importState !== "idle" && latestImportIsRemote}
-              <div class="rounded-md border border-surface-200 bg-darker p-3">
-                <div class="flex items-center justify-between gap-3">
-                  <div>
-                    <p class="text-sm font-medium text-surface-content">
-                      {providerLabel(importSourceKind)}
-                    </p>
-                    <p class="text-xs text-muted">Status: {importState}</p>
-                  </div>
-                  <p class="text-sm font-semibold text-primary">
-                    {Math.round($tweenedProgress)}%
-                  </p>
-                </div>
-                <progress
-                  max="100"
-                  value={$tweenedProgress}
-                  class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
-                ></progress>
-                {#if remoteDumpStatus}
-                  <p class="mt-2 text-sm text-muted">
-                    Remote dump: {remoteDumpStatus}
-                    {#if remotePercentComplete !== null}
-                      ({Math.round(remotePercentComplete)}%)
-                    {/if}
-                  </p>
+              <div
+                class="flex flex-wrap items-center gap-2 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm"
+              >
+                {#if importInProgress}
+                  <svg
+                    class="h-4 w-4 shrink-0 animate-spin text-primary"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      class="opacity-25"
+                    />
+                    <path
+                      d="M4 12a8 8 0 018-8"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                    />
+                  </svg>
                 {/if}
+                <span class="text-surface-content">
+                  {providerLabel(importSourceKind)}
+                </span>
+                <span class="text-muted">·</span>
+                <span
+                  class={importState === "failed"
+                    ? "text-red-300"
+                    : importState === "completed"
+                      ? "text-green-300"
+                      : "text-muted"}
+                >
+                  {prettyStatus(importState)}
+                </span>
                 {#if importErrorMessage}
-                  <p class="mt-1 text-sm text-red-300">
-                    {importErrorMessage}
-                  </p>
+                  <span class="text-red-300">{importErrorMessage}</span>
                 {/if}
                 {#if importState === "completed"}
-                  <p class="mt-1 text-sm text-muted">
-                    Imported: {formatCount(importedCount)}. Skipped {formatCount(
+                  <span class="text-muted">
+                    {formatCount(importedCount)} imported, {formatCount(
                       skippedCount,
-                    )} duplicates and {errorsCount.toLocaleString()} errors.
-                  </p>
+                    )} skipped
+                  </span>
                 {/if}
               </div>
             {/if}
           </div>
 
           {#snippet footer()}
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={!imports_enabled ||
-                remoteCooldownActive ||
-                !remoteApiKey.trim() ||
-                importInProgress ||
-                processing}
+            <div
+              class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between"
             >
-              {#if processing}
-                Starting remote import...
-              {:else if importInProgress && latestImportIsRemote}
-                Import in progress...
+              {#if remoteCooldownActive && remoteCooldownUntil}
+                <p class="text-sm text-muted sm:mr-auto">
+                  Available again in {formatRelativeTime(remoteCooldownUntil)}
+                </p>
               {:else}
-                Start remote import
+                <div></div>
               {/if}
-            </Button>
+              <div class="w-full sm:w-auto">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  class="w-full"
+                  disabled={!imports_enabled ||
+                    remoteCooldownActive ||
+                    !remoteApiKey.trim() ||
+                    importInProgress ||
+                    processing}
+                >
+                  {#if processing}
+                    Starting remote import...
+                  {:else if importInProgress && latestImportIsRemote}
+                    Import in progress...
+                  {:else}
+                    Start remote import
+                  {/if}
+                </Button>
+              </div>
+            </div>
           {/snippet}
         </SectionCard>
       {/snippet}
@@ -453,43 +500,52 @@
 
             {#if importState !== "idle" && latestImportIsDev}
               <div
-                class="mt-4 rounded-md border border-surface-200 bg-surface p-3"
+                class="mt-4 flex items-center gap-2 rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm"
               >
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-medium text-surface-content">
-                      {providerLabel(importSourceKind)}
-                    </p>
-                    <p class="text-xs text-muted">Status: {importState}</p>
-                  </div>
-                  <p class="text-sm font-semibold text-primary">
-                    {Math.round($tweenedProgress)}%
-                  </p>
-                </div>
-                <progress
-                  max="100"
-                  value={$tweenedProgress}
-                  class="mt-2 h-2 w-full rounded-full bg-surface-200 accent-primary"
-                ></progress>
-                <p class="mt-2 text-sm text-muted">
-                  {formatCount(processedCount)} / {formatCount(totalCount)}
-                  processed
-                </p>
-                {#if sourceFilename}
-                  <p class="mt-1 text-sm text-muted">File: {sourceFilename}</p>
+                {#if importInProgress}
+                  <svg
+                    class="h-4 w-4 shrink-0 animate-spin text-primary"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      class="opacity-25"
+                    />
+                    <path
+                      d="M4 12a8 8 0 018-8"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                    />
+                  </svg>
                 {/if}
-                {#if importMessage}
-                  <p class="mt-1 text-sm text-muted">{importMessage}</p>
-                {/if}
+                <span class="text-surface-content">
+                  {sourceFilename || providerLabel(importSourceKind)}
+                </span>
+                <span class="text-muted">·</span>
+                <span
+                  class={importState === "failed"
+                    ? "text-red-300"
+                    : importState === "completed"
+                      ? "text-green-300"
+                      : "text-muted"}
+                >
+                  {prettyStatus(importState)}
+                </span>
                 {#if importErrorMessage}
-                  <p class="mt-1 text-sm text-red-300">{importErrorMessage}</p>
+                  <span class="text-red-300">{importErrorMessage}</span>
                 {/if}
                 {#if importState === "completed"}
-                  <p class="mt-1 text-sm text-muted">
-                    Imported: {formatCount(importedCount)}. Skipped {formatCount(
+                  <span class="text-muted">
+                    {formatCount(importedCount)} imported, {formatCount(
                       skippedCount,
-                    )} duplicates and {errorsCount.toLocaleString()} errors.
-                  </p>
+                    )} skipped
+                  </span>
                 {/if}
               </div>
             {/if}

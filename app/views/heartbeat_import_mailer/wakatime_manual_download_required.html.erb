@@ -1,0 +1,15 @@
+<h1 class="text-xl font-bold text-gray-900 tracking-tight mt-4 mb-0">
+  Your WakaTime import needs one more step
+</h1>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  Hi <%= h(@user.display_name) %>, WakaTime rejected the automatic import because you requested an export there within the past 7 days.
+</p>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  Go to <%= link_to "WakaTime account settings", "https://wakatime.com/settings/account" %>, find the latest export, right click <strong>Download</strong>, choose <strong>Copy link</strong>, and paste that link into Hackatime.
+</p>
+
+<%= render "shared/mailer/button", url: @manual_download_url, label: "Paste export link" %>
+
+<p class="text-sm leading-5 text-gray-400 mt-6 mb-0">
+  Only links from <code>https://wakatime.s3.amazonaws.com</code> are accepted.
+</p>
