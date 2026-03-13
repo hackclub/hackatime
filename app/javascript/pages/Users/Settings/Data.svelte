@@ -163,8 +163,7 @@
       method="post"
       action={paths.create_heartbeat_import_path}
       resetOnSuccess={["heartbeat_import[api_key]"]}
-      onSuccess={({ detail }) =>
-        onImportSuccess(detail.page.props.latest_heartbeat_import)}
+      onSuccess={(page) => onImportSuccess(page.props.latest_heartbeat_import)}
     >
       {#snippet children({ processing, errors: formErrors })}
         <SectionCard
