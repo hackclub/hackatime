@@ -1,8 +1,6 @@
 class HeartbeatImportDumpJob < ApplicationJob
   queue_as :latency_10s
 
-  include GoodJob::ActiveJobExtensions::Concurrency
-
   POLL_INTERVAL = 3.seconds
   MAX_POLL_DURATION = 30.minutes
 
@@ -14,11 +12,6 @@ class HeartbeatImportDumpJob < ApplicationJob
         error:
       )
     end
-
-  good_job_control_concurrency_with(
-    key: -> { "heartbeat_import_dump_job_#{arguments.first}" },
-    total_limit: 1
-  )
 
   def perform(import_run_id)
     run = HeartbeatImportRun.includes(:user).find_by(id: import_run_id)
@@ -39,6 +32,7 @@ class HeartbeatImportDumpJob < ApplicationJob
   def runnable?(run)
     return false unless run&.remote?
     return false if run.terminal?
+    return false unless run.remote_dump_pollable?
 
     return true if Flipper.enabled?(:imports, run.user)
 

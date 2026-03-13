@@ -81,11 +81,7 @@ class HeartbeatImportRunner
   def self.refresh_remote_run!(run)
     return run unless refreshable_remote_run?(run)
 
-    if inline_good_job_execution?
-      HeartbeatImportDumpJob.perform_now(run.id)
-    else
-      HeartbeatImportDumpJob.perform_later(run.id)
-    end
+    HeartbeatImportDumpJob.perform_later(run.id)
 
     run.reload
   rescue => e
@@ -101,7 +97,7 @@ class HeartbeatImportRunner
 
   def self.refreshable_remote_run?(run)
     run&.remote? &&
-      run.active_import? &&
+      run.remote_dump_pollable? &&
       Flipper.enabled?(:imports, run.user) &&
       run.updated_at <= REMOTE_REFRESH_THROTTLE.ago &&
       run.encrypted_api_key.present?
@@ -381,9 +377,5 @@ class HeartbeatImportRunner
 
   def self.recipient_email_for(user)
     user.email_addresses.order(:id).pick(:email)
-  end
-
-  def self.inline_good_job_execution?
-    Rails.env.development? && Rails.application.config.good_job.execution_mode == :inline
   end
 end

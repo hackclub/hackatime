@@ -123,4 +123,20 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
 
     assert_nil payload[:cooldown_until]
   end
+
+  test "refreshable_remote_run? stops once a remote import is downloading or importing" do
+    user = User.create!(timezone: "UTC")
+    Flipper.enable_actor(:imports, user)
+
+    %i[downloading_dump importing].each do |state|
+      run = user.heartbeat_import_runs.create!(
+        source_kind: :wakatime_dump,
+        state: state,
+        encrypted_api_key: "secret"
+      )
+      run.update_column(:updated_at, 10.seconds.ago)
+
+      assert_not HeartbeatImportRunner.refreshable_remote_run?(run)
+    end
+  end
 end

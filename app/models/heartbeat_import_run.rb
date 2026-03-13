@@ -3,6 +3,7 @@ class HeartbeatImportRun < ApplicationRecord
 
   TERMINAL_STATES = %w[completed failed].freeze
   ACTIVE_STATES = %w[queued requesting_dump waiting_for_dump downloading_dump importing].freeze
+  REMOTE_DUMP_POLLABLE_STATES = %w[queued requesting_dump waiting_for_dump].freeze
   REMOTE_SOURCE_KINDS = %w[wakatime_dump hackatime_v1_dump].freeze
   WAKATIME_SOURCE_KINDS = %w[wakatime_dump wakatime_download_link].freeze
 
@@ -47,6 +48,10 @@ class HeartbeatImportRun < ApplicationRecord
 
   def active_import?
     ACTIVE_STATES.include?(state)
+  end
+
+  def remote_dump_pollable?
+    REMOTE_DUMP_POLLABLE_STATES.include?(state)
   end
 
   def cooldown_until

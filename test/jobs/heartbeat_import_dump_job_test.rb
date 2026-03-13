@@ -103,6 +103,36 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
     assert_equal "Pending…...", run.message
   end
 
+  test "ignores stale dump poll jobs once the import has started downloading or importing" do
+    user = User.create!(timezone: "UTC")
+    Flipper.enable_actor(:imports, user)
+
+    %i[downloading_dump importing].each do |state|
+      run = user.heartbeat_import_runs.create!(
+        source_kind: :hackatime_v1_dump,
+        state: state,
+        encrypted_api_key: "secret",
+        remote_dump_id: "dump-456",
+        remote_requested_at: Time.current,
+        message: "#{state.to_s.humanize}..."
+      )
+
+      fake_client = Object.new
+      fake_client.define_singleton_method(:list_dumps) do
+        raise "list_dumps should not be called for #{state}"
+      end
+
+      with_dump_client(fake_client) do
+        assert_no_enqueued_jobs only: HeartbeatImportRemoteDownloadJob do
+          HeartbeatImportDumpJob.perform_now(run.id)
+        end
+      end
+
+      run.reload
+      assert_equal state.to_s, run.state
+    end
+  end
+
   test "fails the run when dump polling exceeds the timeout window" do
     user = User.create!(timezone: "UTC")
     user.email_addresses.create!(email: "timeout-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
