@@ -13,8 +13,8 @@ class WeeklySummaryUserEmailJob < ApplicationJob
     now_utc = Time.zone.parse(now_utc_iso8601)
     user_timezone = ActiveSupport::TimeZone[user.timezone] || ActiveSupport::TimeZone["UTC"]
     user_now = now_utc.in_time_zone(user_timezone)
-    ends_at_local = user_now.beginning_of_week(:monday)
-    starts_at_local = ends_at_local - 1.week
+    starts_at_local = user_now.beginning_of_week(:sunday)
+    ends_at_local = user_now
 
     WeeklySummaryMailer.weekly_summary(
       user,
