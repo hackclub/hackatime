@@ -67,6 +67,10 @@ class HeartbeatImportRun < ApplicationRecord
       return remote_percent_complete.to_f.clamp(0, 100).round
     end
 
+    # During importing, total_count is unknown until complete
+    # Return nil to indicate indeterminate progress
+    return nil if importing?
+
     return 0 unless total_count.to_i.positive?
 
     ((processed_count.to_f / total_count.to_f) * 100).clamp(0, 100).round

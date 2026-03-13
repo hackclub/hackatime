@@ -1,5 +1,4 @@
 require "fileutils"
-require "stringio"
 require "zlib"
 
 class HeartbeatImportRunner
@@ -34,6 +33,8 @@ class HeartbeatImportRunner
     file_path = persist_uploaded_file(uploaded_file, run.id)
     HeartbeatImportJob.perform_later(run.id, file_path)
     run
+  rescue ActiveRecord::RecordNotUnique
+    raise ActiveImportError, "Another import is already in progress."
   end
 
   def self.start_remote_import(user:, provider:, api_key:)
@@ -50,6 +51,8 @@ class HeartbeatImportRunner
 
     HeartbeatImportDumpJob.perform_later(run.id)
     run
+  rescue ActiveRecord::RecordNotUnique
+    raise ActiveImportError, "Another import is already in progress."
   end
 
   def self.start_wakatime_download_link_import(user:, download_url:)
@@ -100,7 +103,17 @@ class HeartbeatImportRunner
       run.remote_dump_pollable? &&
       Flipper.enabled?(:imports, run.user) &&
       run.updated_at <= REMOTE_REFRESH_THROTTLE.ago &&
-      run.encrypted_api_key.present?
+      run.encrypted_api_key.present? &&
+      !dump_job_pending_for?(run) # Prevent duplicate job enqueuing
+  end
+
+  def self.dump_job_pending_for?(run)
+    GoodJob::Job.where(
+      job_class: "HeartbeatImportDumpJob",
+      serialized_params: run.id.to_s,
+      finished_at: nil,
+      error: nil
+    ).exists?
   end
 
   def self.serialize(run)
@@ -135,7 +148,6 @@ class HeartbeatImportRunner
       return if run.terminal?
 
       user = run.user
-      file_content = decode_file_content(File.binread(file_path)).force_encoding("UTF-8")
 
       run.update!(
         state: :importing,
@@ -145,18 +157,7 @@ class HeartbeatImportRunner
         message: "Importing heartbeats..."
       )
 
-      result = HeartbeatImportService.import_from_file(
-        file_content,
-        user,
-        progress_interval: PROGRESS_INTERVAL,
-        on_progress: lambda { |processed_count|
-          run.update_columns(
-            processed_count: processed_count,
-            message: "Importing heartbeats...",
-            updated_at: Time.current
-          )
-        }
-      )
+      result = import_file_streaming(file_path, user, run)
 
       if result[:success]
         complete_run!(run, result:)
@@ -173,9 +174,43 @@ class HeartbeatImportRunner
   rescue => e
     run = HeartbeatImportRun.includes(:user).find_by(id: import_run_id)
     fail_run!(run, message: e.message) if run && !run.terminal?
+    Sentry.capture_exception(e) # Track unexpected errors
   ensure
     FileUtils.rm_f(file_path) if file_path.present?
-    ActiveRecord::Base.connection_handler.clear_active_connections!
+    ActiveRecord::Base.connection_pool.release_connection
+  end
+
+  def self.import_file_streaming(file_path, user, run)
+    File.open(file_path, "rb") do |file|
+      # Check for gzip magic bytes
+      magic_bytes = file.read(2)
+      file.rewind
+
+      io = if magic_bytes == [ 0x1f, 0x8b ].pack("C*")
+        Zlib::GzipReader.new(file)
+      else
+        file
+      end
+
+      begin
+        result = HeartbeatImportService.import_from_file(
+          io,
+          user,
+          progress_interval: PROGRESS_INTERVAL,
+          on_progress: lambda { |processed_count|
+            run.update_columns(
+              processed_count: processed_count,
+              message: "Importing heartbeats...",
+              updated_at: Time.current
+            )
+          }
+        )
+      ensure
+        io.close if io.respond_to?(:close) && io != file
+      end
+
+      result
+    end
   end
 
   def self.persist_uploaded_file(uploaded_file, import_run_id)
@@ -192,7 +227,7 @@ class HeartbeatImportRunner
     FileUtils.mkdir_p(TMP_DIR)
 
     file_path = TMP_DIR.join("#{run.id}-remote.json")
-    File.binwrite(file_path, decode_file_content(file_content))
+    File.binwrite(file_path, file_content) # Write raw bytes, let run_import handle decompression
     file_path.to_s
   end
 
@@ -311,15 +346,6 @@ class HeartbeatImportRunner
     aliases.fetch(normalized_provider) { raise InvalidProviderError, "Unsupported import provider." }
   end
 
-  def self.decode_file_content(file_content)
-    return file_content unless file_content&.bytes&.first(2) == [ 0x1f, 0x8b ]
-
-    gz_reader = Zlib::GzipReader.new(StringIO.new(file_content))
-    gz_reader.read
-  ensure
-    gz_reader&.close
-  end
-
   def self.transient_failure_message_for(run:, error:)
     return provider_error_message_for(run) if error.status.to_i >= 500
 
@@ -343,7 +369,7 @@ class HeartbeatImportRunner
       run.user,
       run:,
       recipient_email:
-    ).deliver_now
+    ).deliver_later
   rescue => e
     Rails.logger.error("Failed to send heartbeat import completion email for run #{run.id}: #{e.message}")
   end
@@ -358,7 +384,7 @@ class HeartbeatImportRunner
       run.user,
       run:,
       recipient_email:
-    ).deliver_now
+    ).deliver_later
   rescue => e
     Rails.logger.error("Failed to send heartbeat import failure email for run #{run.id}: #{e.message}")
   end

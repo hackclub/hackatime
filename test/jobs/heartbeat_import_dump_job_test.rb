@@ -104,10 +104,12 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
   end
 
   test "ignores stale dump poll jobs once the import has started downloading or importing" do
-    user = User.create!(timezone: "UTC")
-    Flipper.enable_actor(:imports, user)
+    Flipper.enable_actor(:imports, User.first)
 
     %i[downloading_dump importing].each do |state|
+      user = User.create!(timezone: "UTC")
+      Flipper.enable_actor(:imports, user)
+
       run = user.heartbeat_import_runs.create!(
         source_kind: :hackatime_v1_dump,
         state: state,
@@ -183,8 +185,7 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
     assert_equal "failed", run.state
     assert_equal "Import failed: WakaTime rejected the import because the API key is invalid.", run.message
     assert_nil run.encrypted_api_key
-    assert_equal 1, ActionMailer::Base.deliveries.size
-    assert_equal "Your WakaTime import failed", ActionMailer::Base.deliveries.last.subject
+    assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob
   end
 
   test "emails the user when wakatime requires a manual download link" do
@@ -209,9 +210,7 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
     run.reload
     assert_equal "failed", run.state
     assert_equal "WakaTime needs a recent export download link. Check your email for the next step.", run.error_message
-    assert_equal 1, ActionMailer::Base.deliveries.size
-    assert_equal "Your WakaTime import needs an export link", ActionMailer::Base.deliveries.last.subject
-    assert_equal [ user.email_addresses.first.email ], ActionMailer::Base.deliveries.last.to
+    assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob
   end
 
   private

@@ -1,12 +1,18 @@
 require "test_helper"
 
 class HeartbeatImportRunnerTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   setup do
     ActionMailer::Base.deliveries.clear
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
   end
 
   teardown do
     ActionMailer::Base.deliveries.clear
+    clear_enqueued_jobs
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
   test "run_import emails the user when a wakatime import succeeds" do
@@ -40,8 +46,7 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
     run.reload
     assert_equal "completed", run.state
     assert_nil run.encrypted_api_key
-    assert_equal 1, ActionMailer::Base.deliveries.size
-    assert_equal "Your WakaTime import is complete", ActionMailer::Base.deliveries.last.subject
+    assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob
   ensure
     file&.unlink
   end
@@ -111,8 +116,7 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
     assert_equal "failed", run.state
     assert_equal "WakaTime rejected the import because the API key is invalid.", run.error_message
     assert_nil run.encrypted_api_key
-    assert_equal 1, ActionMailer::Base.deliveries.size
-    assert_equal "Your WakaTime import failed", ActionMailer::Base.deliveries.last.subject
+    assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob
   end
 
   test "fail_run_for_error! includes slack guidance for hackatime v1 provider errors" do
@@ -133,8 +137,7 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
     assert_equal "failed", run.state
     assert_equal "Hackatime v1 ran into an error while processing the import. Please reach out to #hackatime-help on Slack.", run.error_message
     assert_nil run.encrypted_api_key
-    assert_equal 1, ActionMailer::Base.deliveries.size
-    assert_equal "Your Hackatime v1 import failed", ActionMailer::Base.deliveries.last.subject
+    assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob
   end
 
   test "start_remote_import bypasses cooldown for superadmins" do
@@ -175,10 +178,12 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   end
 
   test "refreshable_remote_run? stops once a remote import is downloading or importing" do
-    user = User.create!(timezone: "UTC")
-    Flipper.enable_actor(:imports, user)
+    Flipper.enable_actor(:imports, User.first)
 
     %i[downloading_dump importing].each do |state|
+      user = User.create!(timezone: "UTC")
+      Flipper.enable_actor(:imports, user)
+
       run = user.heartbeat_import_runs.create!(
         source_kind: :wakatime_dump,
         state: state,

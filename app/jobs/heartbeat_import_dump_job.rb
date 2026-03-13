@@ -1,6 +1,14 @@
 class HeartbeatImportDumpJob < ApplicationJob
   queue_as :latency_10s
 
+  include GoodJob::ActiveJobExtensions::Concurrency
+
+  good_job_control_concurrency_with(
+    total_limit: 1,
+    key: -> { "heartbeat_import_dump_job_#{arguments.first}" },
+    drop: true
+  )
+
   POLL_INTERVAL = 3.seconds
   MAX_POLL_DURATION = 30.minutes
 
@@ -155,7 +163,7 @@ class HeartbeatImportDumpJob < ApplicationJob
       HeartbeatImportMailer.wakatime_manual_download_required(
         run.user,
         recipient_email:
-      ).deliver_now
+      ).deliver_later
       HeartbeatImportRunner.fail_run!(
         run,
         message: "WakaTime needs a recent export download link. Check your email for the next step.",

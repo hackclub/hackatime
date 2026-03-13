@@ -18,6 +18,9 @@
     },
   ] as const;
 
+  // Maximum time to show optimistic overlay before falling back to server state (5 minutes)
+  const OVERLAY_TIMEOUT_MS = 5 * 60 * 1000;
+
   let {
     active_section,
     section_paths,
@@ -38,8 +41,9 @@
   let remoteProvider =
     $state<(typeof PROVIDERS)[number]["value"]>("wakatime_dump");
   let remoteApiKey = $state("");
-  // overlay state: set after a successful form submit, cleared on terminal state
+  // overlay state: set after a successful form submit, cleared when server confirms or timeout
   let importOverlay = $state<Partial<HeartbeatImportStatusProps> | null>(null);
+  let overlayStartTime = $state<number | null>(null);
 
   const { start: startPolling, stop: stopPolling } = usePoll(
     1000,
@@ -47,10 +51,32 @@
     { autoStart: false },
   );
 
-  // Merge server data with any in-flight overlay updates
-  const activeImport = $derived(
-    importOverlay ?? latest_heartbeat_import ?? null,
+  // Determine if we should use overlay or server state
+  const serverHasImport = $derived(latest_heartbeat_import != null);
+  const serverState = $derived(latest_heartbeat_import?.state);
+  const isServerTerminal = $derived(
+    serverState === "completed" || serverState === "failed",
   );
+  const isOverlayStale = $derived(() => {
+    if (!overlayStartTime) return false;
+    return Date.now() - overlayStartTime > OVERLAY_TIMEOUT_MS;
+  });
+
+  // Clear overlay when server confirms the import or overlay times out
+  const effectiveImport = $derived(() => {
+    // If overlay is stale, discard it
+    if (isOverlayStale()) {
+      return latest_heartbeat_import;
+    }
+    // If server has caught up to terminal state, prefer server state
+    if (isServerTerminal && importOverlay) {
+      return latest_heartbeat_import;
+    }
+    // Otherwise prefer overlay if it exists
+    return importOverlay ?? latest_heartbeat_import;
+  });
+
+  const activeImport = $derived(effectiveImport());
   const importState = $derived(activeImport?.state ?? "idle");
   const importSourceKind = $derived(activeImport?.source_kind ?? "");
 
@@ -81,16 +107,38 @@
     ui.show_imports ? undefined : new Set(["user_imports"]),
   );
 
-  // react to server-side import updates (from polling)
+  // Effect for polling control - runs when import state changes
   $effect(() => {
-    const imp = latest_heartbeat_import;
-    if (!imp) return;
-
-    if (imp.state === "completed" || imp.state === "failed") {
-      stopPolling();
-      importOverlay = null; // let server state take over
-    } else {
+    if (importInProgress) {
       startPolling();
+    } else {
+      stopPolling();
+    }
+  });
+
+  // Effect to clear overlay when server catches up or timeout occurs
+  $effect(() => {
+    if (!importOverlay) return;
+
+    // Clear overlay if server has terminal state
+    if (isServerTerminal && serverHasImport) {
+      importOverlay = null;
+      overlayStartTime = null;
+      return;
+    }
+
+    // Set up timeout to clear stale overlay
+    if (overlayStartTime) {
+      const elapsed = Date.now() - overlayStartTime;
+      const remaining = Math.max(0, OVERLAY_TIMEOUT_MS - elapsed);
+
+      const timeoutId = setTimeout(() => {
+        importOverlay = null;
+        overlayStartTime = null;
+        stopPolling();
+      }, remaining);
+
+      return () => clearTimeout(timeoutId);
     }
   });
 
@@ -145,6 +193,7 @@
 
   function onImportSuccess(data: HeartbeatImportStatusProps) {
     importOverlay = data;
+    overlayStartTime = Date.now();
     startPolling();
   }
 </script>

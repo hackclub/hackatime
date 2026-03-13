@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_12_134424) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_13_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -258,6 +258,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_12_134424) do
     t.index ["user_id", "created_at"], name: "index_heartbeat_import_runs_on_user_id_and_created_at"
     t.index ["user_id", "state"], name: "index_heartbeat_import_runs_on_user_id_and_state"
     t.index ["user_id"], name: "index_heartbeat_import_runs_on_user_id"
+    t.index ["user_id"], name: "index_heartbeat_import_runs_on_user_id_active", unique: true, where: "(state = ANY (ARRAY[0, 1, 2, 3, 4]))"
   end
 
   create_table "heartbeat_import_sources", force: :cascade do |t|
