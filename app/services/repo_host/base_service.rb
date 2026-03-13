@@ -1,5 +1,5 @@
 module RepoHost
-  class BaseService
+  class BaseService < ApplicationService
     def initialize(user, repo_url)
       @user = user
       @repo_url = repo_url
@@ -47,7 +47,7 @@ module RepoHost
         Rails.logger.warn "[#{self.class.name}] Repository #{owner}/#{repo} not found (404)"
         nil
       else
-        Rails.logger.error "[#{self.class.name}] API error. Status: #{response.status}"
+        report_message("[#{self.class.name}] API error. Status: #{response.status}")
         nil
       end
     end

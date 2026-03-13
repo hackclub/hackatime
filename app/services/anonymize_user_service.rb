@@ -1,4 +1,4 @@
-class AnonymizeUserService
+class AnonymizeUserService < ApplicationService
   def self.call(user)
     new(user).call
   end
@@ -14,8 +14,7 @@ class AnonymizeUserService
       destroy_associated_records
     end
   rescue StandardError => e
-    Sentry.capture_exception(e, extra: { user_id: user.id })
-    Rails.logger.error "AnonymizeUserService failed for user #{user.id}: #{e.message}"
+    report_error(e, message: "AnonymizeUserService failed for user #{user.id}", extra: { user_id: user.id })
     raise
   end
 

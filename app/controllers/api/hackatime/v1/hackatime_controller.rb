@@ -268,8 +268,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
     rescue => e
-      Sentry.capture_exception(e)
-      Rails.logger.error("Error creating heartbeat: #{e.class.name} #{e.message}")
+      report_error(e, message: "Error creating heartbeat")
       results << [ { error: e.message, type: e.class.name }, 422 ]
     end
 
@@ -284,7 +283,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     end
   rescue => e
     # never raise an error here because it will break the heartbeat flow
-    Rails.logger.error("Error queuing project mapping: #{e.class.name} #{e.message}")
+    report_error(e, message: "Error queuing project mapping")
   end
 
   def check_lockout

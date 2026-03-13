@@ -2,6 +2,8 @@ require "http" # Make sure 'http' gem is available
 
 module RepoHost
   class SyncUserEventsJob < ApplicationJob
+    include ErrorReporting
+
     queue_as :literally_whenever
 
     # MAX_API_PAGES_TO_FETCH: Max pages to fetch. GitHub's /users/{username}/events endpoint
@@ -38,7 +40,7 @@ module RepoHost
       # when :gitlab
       #   process_gitlab_events
       else
-        Rails.logger.error "RepoHost::SyncUserEventsJob: Unknown provider '#{@provider_sym}' for User ##{@user.id}. Skipping."
+        report_message("RepoHost::SyncUserEventsJob: Unknown provider '#{@provider_sym}' for User ##{@user.id}. Skipping.")
         return
       end
       Rails.logger.info "Finished event sync for User ##{@user.id}, Provider: #{@provider_sym}."
@@ -69,7 +71,7 @@ module RepoHost
         begin
           response = http_client_for_github.get(api_url)
         rescue HTTP::Error => e
-          Rails.logger.error "RepoHost::SyncUserEventsJob: HTTP Error for User ##{@user.id} on page #{current_page}: #{e.message}"
+          report_error(e, message: "RepoHost::SyncUserEventsJob: HTTP Error for User ##{@user.id} on page #{current_page}")
           break
         end
 
@@ -141,7 +143,7 @@ module RepoHost
     def handle_github_api_error(response, page_number)
       error_details = response.parse rescue response.body.to_s.truncate(255)
       log_message = "RepoHost::SyncUserEventsJob: GitHub API Error for User ##{@user.id} on page #{page_number}: Status #{response.status}, Body: #{error_details}"
-      Rails.logger.error log_message
+      report_message(log_message)
 
       case response.status.code
       when 401 # Unauthorized
@@ -158,7 +160,7 @@ module RepoHost
       when 422 # Unprocessable Entity - often if the user has been suspended
         Rails.logger.warn "GitHub API returned 422 for User ##{@user.id}. User might be suspended. Sync aborted. Details: #{error_details}"
       else
-        Rails.logger.error "Unhandled GitHub API error for User ##{@user.id}: #{response.status}. Sync aborted."
+        report_message("Unhandled GitHub API error for User ##{@user.id}: #{response.status}. Sync aborted.")
       end
     end
   end

@@ -7,7 +7,7 @@ class OneTime::SetUserTimezoneFromSlackJob < ApplicationJob
         user.set_timezone_from_slack
         user.save!
       rescue => e
-        Rails.logger.error "Failed to update timezone for user #{user.id}: #{e.message}"
+        report_error(e, message: "Failed to update timezone for user #{user.id}")
       end
     end
   end
