@@ -71,7 +71,7 @@
               <span class={checked ? "text-[10px]" : "hidden"}>✓</span>
             {/snippet}
           </Checkbox.Root>
-          Weekly coding summary email (sent Fridays at 5:30 PM GMT)
+          Weekly coding summary email (sent Sundays at 6:30 PM GMT)
         </label>
         <p class="mt-2 text-xs text-muted">
           Includes your weekly coding time, top projects, and top languages.

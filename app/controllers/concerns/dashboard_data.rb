@@ -19,7 +19,11 @@ module DashboardData
           options = current_user.heartbeats.distinct.pluck(f).compact_blank
           options = options.reject { |n| archived.include?(n) } if f == :project
           result[f] = options.map { |k|
-            f == :language ? k.categorize_language : (%i[operating_system editor].include?(f) ? k.capitalize : k)
+            if f == :language then k.categorize_language
+            elsif f == :editor then h.display_editor_name(k)
+            elsif f == :operating_system then h.display_os_name(k)
+            else k
+            end
           }.uniq
 
           next unless params[f].present?
