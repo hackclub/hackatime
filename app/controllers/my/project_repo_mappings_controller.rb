@@ -31,7 +31,7 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def update
     if @project_repo_mapping.new_record?
-      @project_repo_mapping.project_name = CGI.unescape(params[:project_name])
+      @project_repo_mapping.project_name = params[:project_name]
     end
 
     if @project_repo_mapping.update(project_repo_mapping_params)
@@ -68,16 +68,14 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def set_project_repo_mapping_for_edit
-    decoded_project_name = CGI.unescape(params[:project_name])
     @project_repo_mapping = current_user.project_repo_mappings.find_or_initialize_by(
-      project_name: decoded_project_name
+      project_name: params[:project_name]
     )
   end
 
   def set_project_repo_mapping
-    decoded_project_name = CGI.unescape(params[:project_name])
     @project_repo_mapping = current_user.project_repo_mappings.find_or_create_by!(
-      project_name: decoded_project_name
+      project_name: params[:project_name]
     )
   end
 
@@ -143,10 +141,10 @@ class My::ProjectRepoMappingsController < InertiaController
         repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
         broken_name: broken_project_name?(project_key, display_name),
         manage_enabled: current_user.github_uid.present? && project_key.present?,
-        edit_path: project_key.present? ? edit_my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
-        update_path: project_key.present? ? my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
-        archive_path: project_key.present? ? archive_my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
-        unarchive_path: project_key.present? ? unarchive_my_project_repo_mapping_path(CGI.escape(project_key)) : nil
+        edit_path: project_key.present? ? edit_my_project_repo_mapping_path(project_key) : nil,
+        update_path: project_key.present? ? my_project_repo_mapping_path(project_key) : nil,
+        archive_path: project_key.present? ? archive_my_project_repo_mapping_path(project_key) : nil,
+        unarchive_path: project_key.present? ? unarchive_my_project_repo_mapping_path(project_key) : nil
       }
     end.sort_by { |project| -project[:duration_seconds] }
 

@@ -110,9 +110,9 @@ Rails.application.configure do
       kwargs: { force_reload: true }
     },
     weekly_summary_email: {
-      cron: "30 17 * * 5",
+      cron: "30 18 * * 0",
       class: "WeeklySummaryEmailJob",
-      description: "Sends weekly coding summaries on Fridays at 17:30 GMT."
+      description: "Sends weekly coding summaries on Sundays at 18:30 GMT."
     },
 
     geocode_users_without_country: {

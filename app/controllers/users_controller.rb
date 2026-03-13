@@ -2,6 +2,7 @@ class UsersController < InertiaController
   layout "inertia", only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
 
   before_action :ensure_current_user_for_setup, only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
+  before_action :set_wakatime_setup_meta, only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
   before_action :require_admin, only: [ :update_trust_level ]
 
   def wakatime_setup
@@ -86,7 +87,14 @@ class UsersController < InertiaController
   private
 
   def ensure_current_user_for_setup
-    redirect_to root_path, alert: "You need to log in!" if current_user.nil?
+    redirect_to signin_path(continue: request.fullpath), alert: "Please sign in to set up your editor." if current_user.nil?
+  end
+
+  def set_wakatime_setup_meta
+    @page_title       = "Set Up Your Editor - Hackatime"
+    @meta_description = "Connect your code editor to Hackatime in minutes. Install the WakaTime plugin and start tracking your coding time for free."
+    @og_title         = "Set Up Your Editor - Hackatime"
+    @og_description   = "Connect your code editor to Hackatime in minutes. Install the WakaTime plugin and start tracking your coding time for free."
   end
 
   def require_admin
