@@ -32,7 +32,7 @@ class SyncStaleRepoMetadataJob < ApplicationJob
             mapping.update!(repository: repo)
             repos_to_sync[repo.id] = repo
           rescue => e
-            Rails.logger.error "[SyncStaleRepoMetadataJob] Failed to create repository for mapping #{mapping.id}: #{e.message}"
+            report_error(e, message: "[SyncStaleRepoMetadataJob] Failed to create repository for mapping #{mapping.id}")
           end
         end
       end

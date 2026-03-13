@@ -29,8 +29,7 @@ class My::HeartbeatImportsController < ApplicationController
   rescue HeartbeatImportRunner::InvalidProviderError, ActionController::ParameterMissing => e
     redirect_with_import_error(e.message)
   rescue => e
-    Sentry.capture_exception(e)
-    Rails.logger.error("Error starting heartbeat import for user #{current_user&.id}: #{e.message}")
+    report_error(e, message: "Error starting heartbeat import for user #{current_user&.id}")
     redirect_with_import_error("error reading file: #{e.message}")
   end
 

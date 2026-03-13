@@ -1,7 +1,11 @@
 require "fileutils"
 require "zlib"
 
-class HeartbeatImportRunner
+class HeartbeatImportRunner < ApplicationService
+  class << self
+    include ErrorReporting
+  end
+
   PROGRESS_INTERVAL = 250
   REMOTE_REFRESH_THROTTLE = 5.seconds
   TMP_DIR = Rails.root.join("tmp", "heartbeat_imports")
@@ -90,7 +94,7 @@ class HeartbeatImportRunner
 
     run.reload
   rescue => e
-    Rails.logger.error("Error refreshing heartbeat import run #{run&.id}: #{e.message}")
+    report_error(e, message: "Error refreshing heartbeat import run #{run&.id}")
     run
   end
 
@@ -175,7 +179,7 @@ class HeartbeatImportRunner
   rescue => e
     run = HeartbeatImportRun.includes(:user).find_by(id: import_run_id)
     fail_run!(run, message: e.message) if run && !run.terminal?
-    Sentry.capture_exception(e) # Track unexpected errors
+    report_error(e, message: "HeartbeatImportDumpJob failed") # Track unexpected errors
   ensure
     FileUtils.rm_f(file_path) if file_path.present?
     ActiveRecord::Base.connection_pool.release_connection
@@ -371,7 +375,7 @@ class HeartbeatImportRunner
       recipient_email:
     ).deliver_later
   rescue => e
-    Rails.logger.error("Failed to send heartbeat import completion email for run #{run.id}: #{e.message}")
+    report_error(e, message: "Failed to send heartbeat import completion email for run #{run.id}")
   end
 
   def self.send_failure_email(run)
@@ -386,7 +390,7 @@ class HeartbeatImportRunner
       recipient_email:
     ).deliver_later
   rescue => e
-    Rails.logger.error("Failed to send heartbeat import failure email for run #{run.id}: #{e.message}")
+    report_error(e, message: "Failed to send heartbeat import failure email for run #{run.id}")
   end
 
   def self.send_import_email?(run)

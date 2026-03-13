@@ -249,7 +249,7 @@ class User < ApplicationRecord
     if as_tz
       self.timezone = as_tz.name
     else
-      Rails.logger.error "Invalid timezone #{timezone} for user #{id}"
+      report_message("Invalid timezone #{timezone} for user #{id}")
     end
   end
 

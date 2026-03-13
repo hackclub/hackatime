@@ -53,8 +53,7 @@ module Api
           render json: { error: user.errors.full_messages }, status: :unprocessable_entity
         end
       rescue => e
-        Sentry.capture_exception(e)
-        Rails.logger.error "Error creating user from external Slack data: #{e.message}"
+        report_error(e, message: "Error creating user from external Slack data")
         render json: { error: "Internal server error" }, status: :internal_server_error
       end
 

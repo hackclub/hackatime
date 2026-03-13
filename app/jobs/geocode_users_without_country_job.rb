@@ -86,8 +86,7 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
     return nil unless result&.country_code.present?
     result.country_code.upcase
   rescue => e
-    Rails.logger.error "geocode fail on #{ip}: #{e.message}"
-    Sentry.capture_exception(e)
+    report_error(e, message: "geocode fail on #{ip}")
     nil
   end
 
@@ -98,8 +97,7 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
     return nil unless tz&.tzinfo&.respond_to?(:country_code)
     tz.tzinfo.country_code&.upcase
   rescue => e
-    Rails.logger.error "timezone geocode fail for #{timezone}: #{e.message}"
-    Sentry.capture_exception(e)
+    report_error(e, message: "timezone geocode fail for #{timezone}")
     nil
   end
 end

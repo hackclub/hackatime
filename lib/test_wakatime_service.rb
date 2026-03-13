@@ -1,4 +1,5 @@
 include ApplicationHelper
+include ErrorReporting
 
 class TestWakatimeService
   def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil, boundary_aware: false)
@@ -123,7 +124,7 @@ class TestWakatimeService
       end
     end
   rescue => e
-    Rails.logger.error("Error parsing user agent string: #{e.message}")
+    report_error(e, message: "Error parsing user agent string")
     { os: "", editor: "", err: "failed to parse user agent string" }
   end
 
@@ -161,7 +162,7 @@ class TestWakatimeService
       nil
     end
   rescue ArgumentError => e
-    Rails.logger.error("Error converting timestamp: #{e.message}")
+    report_error(e, message: "Error converting timestamp")
     nil
   end
 end

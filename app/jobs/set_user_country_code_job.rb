@@ -29,8 +29,7 @@ class SetUserCountryCodeJob < ApplicationJob
         user.update!(country_code: country_code)
       end
     rescue => e
-      Rails.logger.error "timezone geocode fail for #{@user.timezone}: #{e.message}"
-      Sentry.capture_exception(e)
+      report_error(e, message: "timezone geocode fail for #{@user.timezone}")
     end
   end
 
@@ -53,8 +52,7 @@ class SetUserCountryCodeJob < ApplicationJob
       result.country_code.upcase
 
     rescue => e
-      Rails.logger.error "geocode fail on #{ip}: #{e.message}"
-      Sentry.capture_exception(e)
+      report_error(e, message: "geocode fail on #{ip}")
     end
   end
 end

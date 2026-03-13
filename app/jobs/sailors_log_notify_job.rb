@@ -48,7 +48,7 @@ class SailorsLogNotifyJob < ApplicationJob
       slsn.update(sent: true)
       SailorsLogTeletypeJob.perform_later(message)
     else
-      Rails.logger.error("Failed to send Slack notification: #{response_data["error"]}")
+      report_message("Failed to send Slack notification: #{response_data["error"]}")
       ignorable_errors = %w[channel_not_found is_archived]
       if ignorable_errors.include?(response_data["error"])
         # disable any preferences for this channel

@@ -11,7 +11,7 @@ class DeletionRequestsController < ApplicationController
     @deletion_request = DeletionRequest.create_for_user!(current_user)
     redirect_to deletion_path
   rescue ActiveRecord::RecordInvalid => e
-    Sentry.capture_exception(e)
+    report_error(e, message: "Deletion request creation failed")
     redirect_to my_settings_path
   end
 

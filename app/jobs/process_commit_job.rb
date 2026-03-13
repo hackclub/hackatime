@@ -37,7 +37,7 @@ class ProcessCommitJob < ApplicationJob
     # when :gitlab
     #   process_gitlab_commit(user, commit_sha, commit_api_url, repository)
     else
-      Rails.logger.error "[ProcessCommitJob] Unknown provider '#{provider_sym}' for commit #{commit_sha}."
+      report_message("[ProcessCommitJob] Unknown provider '#{provider_sym}' for commit #{commit_sha}.")
     end
   end
 
@@ -61,13 +61,13 @@ class ProcessCommitJob < ApplicationJob
 
         api_commit_sha = commit_data_json["sha"]
         unless api_commit_sha == commit_sha
-          Rails.logger.error "[ProcessCommitJob] SHA mismatch for User ##{user.id}. Expected #{commit_sha}, API returned #{api_commit_sha}. URL: #{commit_api_url}"
+          report_message("[ProcessCommitJob] SHA mismatch for User ##{user.id}. Expected #{commit_sha}, API returned #{api_commit_sha}. URL: #{commit_api_url}")
           return # Critical data integrity issue
         end
 
         committer_date_str = commit_data_json.dig("commit", "committer", "date")
         unless committer_date_str
-          Rails.logger.error "[ProcessCommitJob] Committer date not found in API response for commit #{commit_sha}. Data: #{commit_data_json.inspect}"
+          report_message("[ProcessCommitJob] Committer date not found in API response for commit #{commit_sha}.")
           return
         end
 
@@ -75,8 +75,8 @@ class ProcessCommitJob < ApplicationJob
           # API dates are typically ISO8601 (UTC). Time.zone.parse respects the application's zone.
           # It's good practice to store in UTC, which parse will do correctly for ISO8601.
           commit_actual_created_at = Time.zone.parse(committer_date_str)
-        rescue ArgumentError
-          Rails.logger.error "[ProcessCommitJob] Invalid committer date format '#{committer_date_str}' for commit #{commit_sha}."
+        rescue ArgumentError => e
+          report_error(e, message: "[ProcessCommitJob] Invalid committer date format '#{committer_date_str}' for commit #{commit_sha}.")
           return
         end
 
@@ -90,7 +90,7 @@ class ProcessCommitJob < ApplicationJob
         Rails.logger.info "[ProcessCommitJob] Successfully processed commit #{api_commit_sha} for User ##{user.id}."
 
       elsif response.status.code == 401 # Unauthorized
-        Rails.logger.error "[ProcessCommitJob] Unauthorized (401) for User ##{user.id}. GitHub token expired/invalid. URL: #{commit_api_url}"
+        report_message("[ProcessCommitJob] Unauthorized (401) for User ##{user.id}. GitHub token expired/invalid. URL: #{commit_api_url}")
         user.update!(github_access_token: nil)
         Rails.logger.info "[ProcessCommitJob] Cleared invalid GitHub token for User ##{user.id}. User will need to re-authenticate."
       elsif response.status.code == 404
@@ -102,21 +102,21 @@ class ProcessCommitJob < ApplicationJob
           Rails.logger.warn "[ProcessCommitJob] GitHub API rate limit exceeded for User ##{user.id}. Retrying in #{delay_seconds}s. URL: #{commit_api_url}"
           self.class.set(wait: delay_seconds.seconds).perform_later(user.id, commit_sha, commit_api_url, "github", repository&.id)
         else
-          Rails.logger.error "[ProcessCommitJob] GitHub API forbidden (403) for User ##{user.id}. URL: #{commit_api_url}. Response: #{response.body.to_s.truncate(500)}"
+          report_message("[ProcessCommitJob] GitHub API forbidden (403) for User ##{user.id}. URL: #{commit_api_url}. Response: #{response.body.to_s.truncate(500)}")
         end
       else
-        Rails.logger.error "[ProcessCommitJob] GitHub API error for User ##{user.id}. Status: #{response.status}. URL: #{commit_api_url}. Response: #{response.body.to_s.truncate(500)}"
+        report_message("[ProcessCommitJob] GitHub API error for User ##{user.id}. Status: #{response.status}. URL: #{commit_api_url}. Response: #{response.body.to_s.truncate(500)}")
         raise "GitHub API Error: Status #{response.status}" if response.status.server_error? # Trigger retry for server errors
       end
 
     rescue HTTP::Error => e # Covers TimeoutError, ConnectionError
-      Rails.logger.error "[ProcessCommitJob] HTTP Error fetching commit #{commit_sha} for User ##{user.id}: #{e.message}. URL: #{commit_api_url}"
+      report_error(e, message: "[ProcessCommitJob] HTTP Error fetching commit #{commit_sha} for User ##{user.id}. URL: #{commit_api_url}")
       raise # Re-raise to allow GoodJob to retry based on retry_on
     rescue JSON::ParserError => e
-      Rails.logger.error "[ProcessCommitJob] JSON Parse Error for commit #{commit_sha} (User ##{user.id}): #{e.message}. URL: #{commit_api_url}. Body: #{response&.body&.to_s&.truncate(200)}"
+      report_error(e, message: "[ProcessCommitJob] JSON Parse Error for commit #{commit_sha} (User ##{user.id}). URL: #{commit_api_url}. Body: #{response&.body&.to_s&.truncate(200)}")
       # Malformed JSON usually isn't temporary, so might not retry unless API is known to be flaky.
     rescue ActiveRecord::RecordInvalid => e
-      Rails.logger.error "[ProcessCommitJob] Validation failed for commit #{commit_sha} (User ##{user.id}): #{e.message}"
+      report_error(e, message: "[ProcessCommitJob] Validation failed for commit #{commit_sha} (User ##{user.id})")
     end
   end
 
