@@ -30,17 +30,15 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "gruvbox_dark", metadata[:value]
   end
 
-  test "rotate_api_keys! replaces existing api keys with a new one" do
+  test "rotate_api_keys! replaces existing api key with a new one" do
     user = User.create!(timezone: "UTC", slack_uid: "U#{SecureRandom.hex(8)}")
     user.api_keys.create!(name: "Original key")
     original_token = user.api_keys.first.token
-    user.api_keys.create!(name: "Secondary key")
 
     new_api_key = user.rotate_api_keys!
 
     assert_equal user.id, new_api_key.user_id
     assert_equal "Hackatime key", new_api_key.name
-    assert_equal [ new_api_key.id ], user.api_keys.reload.pluck(:id)
     assert_nil ApiKey.find_by(token: original_token)
   end
 

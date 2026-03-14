@@ -47,7 +47,7 @@ module Api
           key.user.rotate_single_api_key!(key)
         end
       rescue ActiveRecord::ActiveRecordError => e
-        Rails.logger.error("Revocation failed for #{key.class}##{key.id}: #{e.class} #{e.message}")
+        report_error(e)
         false
       end
 
