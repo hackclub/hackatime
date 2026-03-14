@@ -154,7 +154,7 @@ class My::ProjectRepoMappingsController < InertiaController
       project[:duration_percent] = ((project[:duration_seconds].to_f / max_duration) * 100).round(1)
     end
 
-    total_time = cached[:total_time].to_i
+    total_time = projects.sum { |p| p[:duration_seconds] }
 
     {
       total_time_seconds: total_time,
