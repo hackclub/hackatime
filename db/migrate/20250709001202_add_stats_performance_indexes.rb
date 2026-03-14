@@ -1,4 +1,4 @@
-class AddStatsPerformanceIndexes < ActiveRecord::Migration[8.0]
+class AddStatsPerformanceIndexes < ActiveRecord::Migration[8.1]
   def change
     add_index :heartbeats, [ :user_id, :time, :project ],
               name: "idx_heartbeats_user_time_project_stats",

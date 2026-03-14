@@ -14,6 +14,8 @@
 
   type HomeStats = { seconds_tracked?: number; users_tracked?: number };
 
+  type FlashMessage = { message: string; class_name: string };
+
   let {
     hca_auth_path,
     slack_auth_path,
@@ -23,6 +25,7 @@
     dev_magic_link,
     csrf_token,
     home_stats,
+    flash = [],
   }: {
     hca_auth_path: string;
     slack_auth_path: string;
@@ -32,6 +35,7 @@
     dev_magic_link?: string | null;
     csrf_token: string;
     home_stats: HomeStats;
+    flash?: FlashMessage[];
   } = $props();
 
   let previousTheme = $state<string | null>(null);
@@ -59,10 +63,53 @@
       : 0,
   );
   const usersTracked = $derived(home_stats?.users_tracked ?? 0);
+
+  let flashVisible = $state(false);
+  let flashHiding = $state(false);
+  const flashHideDelay = 6000;
+  const flashExitDuration = 250;
+
+  $effect(() => {
+    if (!flash.length) {
+      flashVisible = false;
+      flashHiding = false;
+      return;
+    }
+
+    flashVisible = true;
+    flashHiding = false;
+    let removeTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    const hideTimeoutId = setTimeout(() => {
+      flashHiding = true;
+      removeTimeoutId = setTimeout(() => {
+        flashVisible = false;
+        flashHiding = false;
+      }, flashExitDuration);
+    }, flashHideDelay);
+
+    return () => {
+      clearTimeout(hideTimeoutId);
+      if (removeTimeoutId) clearTimeout(removeTimeoutId);
+    };
+  });
 </script>
 
 <div class="landing-page min-h-screen w-full bg-darker text-surface-content">
-  <!-- Fixed Header -->
+  {#if flashVisible && flash.length > 0}
+    <div
+      class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] w-full max-w-md px-4 space-y-2"
+    >
+      {#each flash as item}
+        <div
+          class={`flash-message shadow-lg flash-message--enter ${flashHiding ? "flash-message--leaving" : ""} ${item.class_name}`}
+        >
+          {item.message}
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <!-- Fixed -->
   <header
     class="fixed top-0 w-full bg-darker/95 backdrop-blur-sm z-50 border-b border-surface-200/60"
   >
@@ -103,7 +150,7 @@
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
         >
-          Start tracking
+          Sign in
         </Link>
       </nav>
     </div>

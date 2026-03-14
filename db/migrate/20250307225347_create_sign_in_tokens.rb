@@ -1,4 +1,4 @@
-class CreateSignInTokens < ActiveRecord::Migration[8.0]
+class CreateSignInTokens < ActiveRecord::Migration[8.1]
   def change
     create_table :sign_in_tokens do |t|
       t.string :token

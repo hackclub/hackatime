@@ -2611,26 +2611,28 @@ paths:
       responses:
         '302':
           description: redirect
-  "/my/heartbeats/import":
+  "/my/heartbeat_imports":
     post:
-      summary: Import Heartbeats
+      summary: Create Heartbeat Import
       tags:
       - My Data
-      description: Import heartbeats from a JSON file.
+      description: Start a development upload import or a one-time remote dump import.
       security:
       - Bearer: []
         ApiKeyAuth: []
       parameters: []
       responses:
-        '302':
-          description: redirect
+        '202':
+          description: accepted
       requestBody:
         content:
           multipart/form-data:
             schema:
               type: string
-              format: binary
-        description: JSON file containing heartbeats
+              enum:
+              - wakatime_dump
+              - hackatime_v1_dump
+        description: Remote import provider preset
   "/my/projects":
     get:
       summary: List Project Repo Mappings
@@ -2743,18 +2745,25 @@ paths:
       responses:
         '200':
           description: successful
-  "/my/settings/migrate_heartbeats":
-    post:
-      summary: Migrate Heartbeats
+  "/my/heartbeat_imports/{id}":
+    get:
+      summary: Get Heartbeat Import Status
       tags:
-      - My Settings
-      description: Trigger a migration of heartbeats from legacy formats or systems.
+      - My Data
+      description: Fetch the latest state for a heartbeat import run.
       security:
       - Bearer: []
         ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: Heartbeat import run id
+        required: true
+        schema:
+          type: string
       responses:
-        '302':
-          description: redirect
+        '200':
+          description: successful
   "/deletion":
     post:
       summary: Create Deletion Request

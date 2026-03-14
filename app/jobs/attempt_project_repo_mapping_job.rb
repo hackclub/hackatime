@@ -62,7 +62,7 @@ class AttemptProjectRepoMappingJob < ApplicationJob
     puts "repo: #{repo}"
     repo["html_url"]
   rescue JSON::ParserError => e
-    Rails.logger.error "Failed to parse GitHub repo response: #{e.message}"
+    report_error(e, message: "Failed to parse GitHub repo response")
     nil
   end
 
@@ -79,7 +79,7 @@ class AttemptProjectRepoMappingJob < ApplicationJob
 
     parsed_response
   rescue JSON::ParserError => e
-    Rails.logger.error "Failed to parse GitHub orgs response: #{e.message}"
+    report_error(e, message: "Failed to parse GitHub orgs response")
     []
   end
 end

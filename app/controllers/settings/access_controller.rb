@@ -19,8 +19,7 @@ class Settings::AccessController < Settings::BaseController
     PosthogService.capture(@user, "api_key_rotated")
     render json: { token: new_api_key.token }, status: :ok
   rescue => e
-    Sentry.capture_exception(e)
-    Rails.logger.error("error rotate #{e.class.name} #{e.message}")
+    report_error(e, message: "error rotate #{e.class.name}")
     render json: { error: "cant rotate" }, status: :unprocessable_entity
   end
 

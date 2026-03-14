@@ -36,7 +36,7 @@ class SyncRepoMetadataJob < ApplicationJob
         raise
       end
     rescue => e
-      Rails.logger.error "[SyncRepoMetadataJob] Unexpected error: #{e.message}"
+      report_error(e, message: "[SyncRepoMetadataJob] Unexpected error")
       raise # Retry for other errors
     end
   end

@@ -72,7 +72,7 @@ class HeartbeatExportJob < ApplicationJob
       end
     end
   rescue ArgumentError => e
-    Rails.logger.error("Heartbeat export failed for user #{user_id}: #{e.message}")
+    report_error(e, message: "Heartbeat export failed for user #{user_id}")
   end
 
   private

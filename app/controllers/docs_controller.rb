@@ -97,7 +97,7 @@ class DocsController < InertiaController
       format.md { render plain: content, content_type: "text/markdown" }
     end
   rescue => e
-    Rails.logger.error "Error loading docs: #{e.message}"
+    report_error(e, message: "Error loading docs")
     render_not_found
   end
 

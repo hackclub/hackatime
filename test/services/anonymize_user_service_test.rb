@@ -67,4 +67,29 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
 
     assert heartbeat.reload.deleted_at.present?
   end
+
+  test "anonymization removes legacy encrypted import credentials" do
+    user = User.create!(username: "legacy_#{SecureRandom.hex(3)}")
+    connection = ActiveRecord::Base.connection
+    now = connection.quote(Time.current)
+
+    connection.execute(<<~SQL.squish)
+      INSERT INTO wakatime_mirrors (user_id, encrypted_api_key, endpoint_url, created_at, updated_at)
+      VALUES (#{user.id}, 'secret', 'https://wakatime.com/api/v1', #{now}, #{now})
+    SQL
+    connection.execute(<<~SQL.squish)
+      INSERT INTO heartbeat_import_sources (
+        user_id, encrypted_api_key, endpoint_url, provider, status, sync_enabled, created_at, updated_at
+      )
+      VALUES (#{user.id}, 'secret', 'https://wakatime.com/api/v1', 0, 0, TRUE, #{now}, #{now})
+    SQL
+
+    assert_equal 1, connection.select_value("SELECT COUNT(*) FROM wakatime_mirrors WHERE user_id = #{user.id}").to_i
+    assert_equal 1, connection.select_value("SELECT COUNT(*) FROM heartbeat_import_sources WHERE user_id = #{user.id}").to_i
+
+    AnonymizeUserService.call(user)
+
+    assert_equal 0, connection.select_value("SELECT COUNT(*) FROM wakatime_mirrors WHERE user_id = #{user.id}").to_i
+    assert_equal 0, connection.select_value("SELECT COUNT(*) FROM heartbeat_import_sources WHERE user_id = #{user.id}").to_i
+  end
 end

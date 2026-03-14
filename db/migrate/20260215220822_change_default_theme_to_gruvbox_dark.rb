@@ -1,4 +1,4 @@
-class ChangeDefaultThemeToGruvboxDark < ActiveRecord::Migration[8.0]
+class ChangeDefaultThemeToGruvboxDark < ActiveRecord::Migration[8.1]
   def up
     return unless column_exists?(:users, :theme)
 

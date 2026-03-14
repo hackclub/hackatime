@@ -63,11 +63,10 @@ class StaticPagesController < InertiaController
 
     cached = Rails.cache.fetch(key, expires_in: 1.minute) do
       hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
-      labels = Flipper.enabled?(:hackatime_v1_import) ? current_user.project_labels : []
       projects = hb.group(:project).duration_seconds.filter_map do |proj, dur|
         next if dur <= 0
         m = @project_repo_mappings.find { |p| p.project_name == proj }
-        { project: labels.find { |p| p.project_key == proj }&.label || proj || "Unknown",
+        { project: proj || "Unknown",
           project_key: proj, repo_url: m&.repo_url, repository: m&.repository,
           has_mapping: m.present?, duration: dur }
       end.sort_by { |p| -p[:duration] }
@@ -168,7 +167,8 @@ class StaticPagesController < InertiaController
       show_dev_tool: Rails.env.development?,
       dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
       csrf_token: form_authenticity_token,
-      home_stats: @home_stats || {}
+      home_stats: @home_stats || {},
+      flash: inertia_flash_messages
     }
   end
 

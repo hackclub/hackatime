@@ -1,0 +1,11 @@
+<h1 class="text-xl font-bold text-gray-900 tracking-tight mt-4 mb-0">
+  Your <%= h(@source_name) %> import failed
+</h1>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  Hi <%= h(@user.display_name) %>, your <%= h(@source_name) %> import could not be completed.
+</p>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  <%= h(@run.error_message) %>
+</p>
+
+<%= render "shared/mailer/button", url: @settings_url, label: "Open data settings" %>
