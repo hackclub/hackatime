@@ -13,6 +13,11 @@ class Repository < ApplicationRecord
     last_synced_at.nil? || last_synced_at < 1.day.ago
   end
 
+  # Get owner/repo format (e.g., "hackclub/hackatime")
+  def full_path
+    "#{owner}/#{name}"
+  end
+
   # Get formatted languages list
   def formatted_languages
     return nil if languages.blank?

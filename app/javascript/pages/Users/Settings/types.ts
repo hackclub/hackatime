@@ -138,7 +138,7 @@ export type BadgesProps = {
   general_badge_url: string;
   project_badge_url?: string | null;
   project_badge_base_url?: string | null;
-  projects: string[];
+  projects: Array<{ display_name: string; repo_path: string }>;
   profile_url?: string | null;
   markscribe_template: string;
   markscribe_reference_url: string;

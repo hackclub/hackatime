@@ -38,10 +38,16 @@ class Settings::BaseController < InertiaController
       enabled: true,
     ).where.not(slack_channel_id: SailorsLog::DEFAULT_CHANNELS)
 
-    @projects = @user.project_repo_mappings.distinct.pluck(:project_name)
+    # Get projects with both display names and owner/repo format
+    @projects = @user.project_repo_mappings.includes(:repository).distinct.map do |mapping|
+      {
+        display_name: mapping.project_name,
+        repo_path: mapping.repository&.full_path || mapping.project_name
+      }
+    end
     heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
     goal_languages = []
-    goal_projects = @projects.dup
+    goal_projects = @projects.map { |p| p[:display_name] }
 
     heartbeat_language_and_projects.each do |language, project|
       categorized_language = language&.categorize_language
@@ -52,8 +58,8 @@ class Settings::BaseController < InertiaController
     @goal_selectable_languages = goal_languages.uniq.sort
     @goal_selectable_projects = goal_projects.uniq.sort
     @work_time_stats_base_url = @user.slack_uid.present? ? "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/" : nil
-    @work_time_stats_url = if @work_time_stats_base_url.present?
-      "#{@work_time_stats_base_url}#{@projects.first || 'example'}"
+    @work_time_stats_url = if @work_time_stats_base_url.present? && @projects.first.present?
+      "#{@work_time_stats_base_url}#{@projects.first[:repo_path]}"
     end
 
     @general_badge_url = GithubReadmeStats.new(@user.id, "darcula").generate_badge_url
