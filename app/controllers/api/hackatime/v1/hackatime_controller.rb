@@ -65,11 +65,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         goal_progress = ProgrammingGoalsProgressService.new(user: @user, goals: [ daily_goal ]).call.first
 
         if goal_progress
-          # Format text as "tracked / goal today" (e.g., "42m / 3h today")
-          tracked_text = ApplicationController.helpers.short_time_simple(goal_progress[:tracked_seconds])
+          # Append goal progress to the user's preferred text format
+          user_text = result[:data][:grand_total][:text]
           goal_text = ApplicationController.helpers.short_time_simple(daily_goal.target_seconds)
 
-          result[:data][:grand_total][:text] = "#{tracked_text} / #{goal_text} today"
+          result[:data][:grand_total][:text] = "#{user_text} / #{goal_text} today"
           result[:data][:goal] = {
             target_seconds: daily_goal.target_seconds,
             tracked_seconds: goal_progress[:tracked_seconds],

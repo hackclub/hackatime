@@ -103,13 +103,16 @@ class Settings::BaseController < InertiaController
     }
   end
 
-  def options_props
-    heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
-    projects = @user.project_repo_mappings.includes(:repository).distinct.map do |mapping|
+  def project_list
+    @project_list ||= @user.project_repo_mappings.includes(:repository).distinct.map do |mapping|
       { display_name: mapping.project_name, repo_path: mapping.repository&.full_path || mapping.project_name }
     end
+  end
+
+  def options_props
+    heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
     goal_languages = []
-    goal_projects = projects.map { |p| p[:display_name] }
+    goal_projects = project_list.map { |p| p[:display_name] }
 
     heartbeat_language_and_projects.each do |language, project|
       categorized_language = language&.categorize_language
@@ -143,19 +146,16 @@ class Settings::BaseController < InertiaController
   end
 
   def badges_props
-    projects = @user.project_repo_mappings.includes(:repository).distinct.map do |mapping|
-      { display_name: mapping.project_name, repo_path: mapping.repository&.full_path || mapping.project_name }
-    end
     work_time_stats_base_url = @user.slack_uid.present? ? "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/" : nil
-    work_time_stats_url = if work_time_stats_base_url.present? && projects.first.present?
-      "#{work_time_stats_base_url}#{projects.first[:repo_path]}"
+    work_time_stats_url = if work_time_stats_base_url.present? && project_list.first.present?
+      "#{work_time_stats_base_url}#{project_list.first[:repo_path]}"
     end
 
     {
       general_badge_url: GithubReadmeStats.new(@user.id, "darcula").generate_badge_url,
       project_badge_url: work_time_stats_url,
       project_badge_base_url: work_time_stats_base_url,
-      projects: projects,
+      projects: project_list,
       profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
       markscribe_template: '{{ wakatimeDoubleCategoryBar "Languages:" wakatimeData.Languages "Projects:" wakatimeData.Projects 5 }}',
       markscribe_reference_url: "https://github.com/taciturnaxolotl/markscribe#your-wakatime-languages-formated-as-a-bar",
