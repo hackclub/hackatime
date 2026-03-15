@@ -377,7 +377,9 @@
         <div class="mt-3 h-4 w-64 animate-pulse rounded bg-surface-200"></div>
       {/snippet}
 
-      {#if data_export?.is_restricted}
+      {#if !data_export}
+        <!-- waiting for deferred data -->
+      {:else if data_export.is_restricted}
         <p
           class="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200"
         >
