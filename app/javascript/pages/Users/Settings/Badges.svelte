@@ -178,4 +178,26 @@
         class="mt-2 overflow-x-auto text-xs text-surface-content">{badges.heatmap_badge_url}</pre>
     </div>
   </SectionCard>
+  <SectionCard
+    id="user_hackabox"
+    title="HackaBox Gist"
+    description="Fork the HackaBox template repository to create a pinned profile gist with your coding stats, updated daily."
+    wide
+  >
+    <p class="mt-3 text-sm text-muted">
+      Reference:
+      <a
+        href={badges.hackabox_repo_url}
+        target="_blank"
+        class="text-primary underline"
+      >
+        hackabox setup instructions
+      </a>
+    </p>
+    <img
+      src={badges.hackabox_preview_image_url}
+      alt="Example hackabox output"
+      class="mt-4 w-full max-w-3xl rounded-md border border-surface-200"
+    />
+  </SectionCard>
 </SettingsShell>
