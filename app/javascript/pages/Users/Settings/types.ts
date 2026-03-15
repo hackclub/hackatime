@@ -145,6 +145,8 @@ export type BadgesProps = {
   markscribe_preview_image_url: string;
   heatmap_badge_url: string;
   heatmap_config_url: string;
+  hackabox_repo_url: string;
+  hackabox_preview_image_url: string;
 };
 
 export type ConfigFileProps = {
@@ -329,6 +331,7 @@ const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
     { id: "user_stats_badges", label: "Stats badges" },
     { id: "user_markscribe", label: "Markscribe" },
     { id: "user_heatmap", label: "Heatmap" },
+    { id: "user_hackabox", label: "Hackabox" },
   ],
   data: [
     { id: "user_imports", label: "Imports" },
@@ -365,6 +368,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_stats_badges: "badges",
   user_markscribe: "badges",
   user_heatmap: "badges",
+  user_hackabox: "badges",
   user_imports: "data",
   download_user_data: "data",
   delete_account: "data",
