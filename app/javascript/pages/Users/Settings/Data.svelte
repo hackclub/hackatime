@@ -224,14 +224,14 @@
             <div class="space-y-3">
               {#each PROVIDERS as provider}
                 <label
-                  class="flex cursor-pointer items-start gap-3 rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content"
+                  class="flex cursor-pointer items-start gap-3 rounded-md border border-surface-200 bg-surface-100 px-3 py-3 text-sm text-surface-content hover:border-surface-300"
                 >
                   <input
                     type="radio"
                     name="heartbeat_import[provider]"
                     value={provider.value}
                     bind:group={remoteProvider}
-                    class="mt-1 h-4 w-4 border-surface-200 bg-surface text-primary"
+                    class="mt-1 h-4 w-4 shrink-0 cursor-pointer border-2 border-surface-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
                     disabled={importInProgress || processing}
                   />
                   <span class="space-y-1">
