@@ -21,9 +21,9 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :created
     assert_equal true, response.parsed_body["success"]
     assert_equal "complete", response.parsed_body["status"]
-    assert_equal "Hackatime API Key", response.parsed_body["token_type"]
+    assert_equal key.name, response.parsed_body["token_type"]
     assert_equal email_address.email, response.parsed_body["owner_email"]
-    assert_equal key.name, response.parsed_body["key_name"]
+    assert_not_includes response.parsed_body.keys, "key_name"
 
     key.reload
     assert_not_equal original_token, key.token
@@ -64,7 +64,7 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :created
     assert_equal true, response.parsed_body["success"]
     assert_equal "complete", response.parsed_body["status"]
-    assert_equal "Hackatime Admin API Key", response.parsed_body["token_type"]
+    assert_equal "Infra", response.parsed_body["token_type"]
 
     admin_key.reload
     assert_equal email_address.email, response.parsed_body["owner_email"]

@@ -9,19 +9,21 @@ module Api
 
         return render_error("Token is required") unless token.present?
 
-        key, user, token_type = find_key_info(token)
-        return render_error("Token doesn't match any supported type") unless token_type
+        key, user, token_type, token_format = find_key_info(token)
+        return render_error("Token doesn't match any supported type") unless token_format
         return render_error("Token is invalid or already revoked") unless key.present?
         original_key_name = key.name
         return render_error("Token is invalid or already revoked") unless revoke_key(key)
 
-        render json: {
+        response_payload = {
           success: true,
           status: "complete",
           token_type: token_type,
-          owner_email: user.email_addresses.first&.email,
-          key_name: original_key_name
-        }.compact_blank, status: :created
+          owner_email: user.email_addresses.first&.email
+        }
+        response_payload[:key_name] = original_key_name if token_format == :admin
+
+        render json: response_payload.compact_blank, status: :created
       end
 
       private
@@ -29,15 +31,15 @@ module Api
       def find_key_info(token)
         if token.match?(ADMIN_KEY_REGEX)
           key = AdminApiKey.active.find_by(token:)
-          return [ key, key&.user, "Hackatime Admin API Key" ]
+          return [ key, key&.user, key&.name, :admin ]
         end
 
         if token.match?(REGULAR_KEY_REGEX)
           key = ApiKey.find_by(token:)
-          return [ key, key&.user, "Hackatime API Key" ]
+          return [ key, key&.user, key&.name, :regular ]
         end
 
-        [ nil, nil, nil ]
+        [ nil, nil, nil, nil ]
       end
 
       def revoke_key(key)
