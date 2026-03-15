@@ -248,7 +248,7 @@ export type BadgesPageProps = SettingsCommonProps & {
 export type DataPageProps = SettingsCommonProps & {
   user: UserProps;
   paths: PathsProps;
-  data_export: DataExportProps;
+  data_export?: DataExportProps;
   imports_enabled: boolean;
   remote_import_cooldown_until?: string | null;
   latest_heartbeat_import?: HeartbeatImportStatusProps | null;

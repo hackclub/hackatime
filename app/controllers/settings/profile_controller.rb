@@ -23,6 +23,16 @@ class Settings::ProfileController < Settings::BaseController
     )
   end
 
+  def section_props
+    {
+      settings_update_path: my_settings_profile_path,
+      username_max_length: User::USERNAME_MAX_LENGTH,
+      user: user_props,
+      options: options_props,
+      badges: badges_props
+    }
+  end
+
   def profile_params
     permitted = params.require(:user).permit(
       :timezone,

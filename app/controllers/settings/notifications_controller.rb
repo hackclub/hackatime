@@ -32,4 +32,11 @@ class Settings::NotificationsController < Settings::BaseController
       status: status
     )
   end
+
+  def section_props
+    {
+      settings_update_path: my_settings_notifications_path,
+      user: user_props
+    }
+  end
 end
