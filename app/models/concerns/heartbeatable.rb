@@ -223,8 +223,8 @@ module Heartbeatable
 
         capped_diffs = scope
           .select("#{group_expr} as grouped_time, CASE
-            WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout})
+            WHEN LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time) IS NULL THEN 0
+            ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time), #{timeout})
           END as diff")
           .where.not(time: nil)
           .unscope(:group)
