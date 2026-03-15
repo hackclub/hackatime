@@ -180,8 +180,8 @@
   </SectionCard>
   <SectionCard
     id="user_hackabox"
-    title="HackaBox Gist"
-    description="Fork the HackaBox template repository to create a pinned profile gist with your coding stats, updated daily."
+    title="Hackabox Gist"
+    description="Fork the Hackabox template repository to create a pinned profile gist with your coding stats, updated daily."
     wide
   >
     <p class="mt-3 text-sm text-muted">
