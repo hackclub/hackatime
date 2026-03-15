@@ -1,0 +1,25 @@
+<div class="mt-6 rounded-xl overflow-hidden summary-hero">
+  <div class="px-5 pt-5 pb-4">
+    <p class="text-xs font-medium text-brand uppercase tracking-wide m-0">Total coding time</p>
+    <p class="text-3xl font-bold text-gray-900 tracking-tight mt-2 mb-0">
+      <%= short_time_simple(@total_seconds) %>
+    </p>
+  </div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="summary-stats-row">
+    <tr>
+      <td class="px-5 py-3 align-top w-1\/3 border-r">
+        <p class="text-xs text-gray-400 m-0">Daily average</p>
+        <p class="text-lg font-semibold text-gray-900 mt-1 mb-0"><%= short_time_simple(@daily_average_seconds) %></p>
+      </td>
+      <td class="px-5 py-3 align-top w-1\/3 border-r">
+        <p class="text-xs text-gray-400 m-0">Active days</p>
+        <p class="text-lg font-semibold text-gray-900 mt-1 mb-0"><%= @active_days %><span class="text-gray-400 font-normal">/7</span></p>
+      </td>
+      <td class="px-5 py-3 align-top w-1\/3">
+        <p class="text-xs text-gray-400 m-0">Heartbeats</p>
+        <p class="text-lg font-semibold text-gray-900 mt-1 mb-0"><%= number_with_delimiter(@total_heartbeats) %></p>
+      </td>
+    </tr>
+  </table>
+</div>

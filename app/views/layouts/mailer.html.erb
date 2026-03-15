@@ -26,11 +26,14 @@
         </tr>
         <tr>
           <td>
-            <div class="px-4 py-5 text-center text-xs text-gray-400">
+            <div class="px-4 pt-6 pb-4 text-center text-xs text-gray-400" style="border-top: 1px solid #e5e7eb; margin-top: 1rem;">
               <% if @unsubscribe_url.present? %>
-                <p class="my-1">Don't want to get these anymore? <%= link_to "Unsubscribe", @unsubscribe_url, style: "color: #9ca3af; text-decoration: underline;" %></p>
+                <p class="my-1">
+                    Don't want to get these anymore?
+                    <%= link_to "Unsubscribe", @unsubscribe_url, style: "color: #9ca3af; text-decoration: underline;" %>
+                </p>
               <% end %>
-              <p class="my-1">15 Falls Road, Shelburne, VT 05482, United States</p>
+              <p class="my-1" style="color: #c0c5cc;">15 Falls Road, Shelburne, VT 05482, United States</p>
             </div>
           </td>
         </tr>
