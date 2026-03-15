@@ -4,7 +4,7 @@
   import Modal from "../../components/Modal.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
   import ProjectStatsContent from "./ProjectStatsContent.svelte";
-  import type { ProjectStats } from "../../types/index";
+  import type { ProjectShowProps } from "../../types/index";
 
   let {
     page_title,
@@ -19,20 +19,7 @@
     from = "",
     to = "",
     project_stats,
-  }: {
-    page_title: string;
-    project_name: string;
-    back_path: string;
-    since_date?: string | null;
-    repo_url?: string | null;
-    is_shared: boolean;
-    share_url?: string | null;
-    toggle_share_path: string;
-    interval?: string | null;
-    from?: string | null;
-    to?: string | null;
-    project_stats?: ProjectStats;
-  } = $props();
+  }: ProjectShowProps = $props();
 
   let shareModalOpen = $state(false);
   let copied = $state(false);
@@ -62,31 +49,10 @@
     });
   };
 
-  let urlInput: HTMLInputElement | undefined = $state();
-
   const copyShareUrl = async () => {
     if (!share_url) return;
     try {
-      if (
-        typeof navigator !== "undefined" &&
-        navigator.clipboard &&
-        (typeof window === "undefined" || window.isSecureContext)
-      ) {
-        await navigator.clipboard.writeText(share_url);
-      } else if (typeof document !== "undefined") {
-        const textArea = document.createElement("textarea");
-        textArea.value = share_url;
-        textArea.setAttribute("readonly", "");
-        textArea.style.position = "fixed";
-        textArea.style.opacity = "0";
-        textArea.style.pointerEvents = "none";
-        document.body.appendChild(textArea);
-        textArea.select();
-        textArea.setSelectionRange(0, textArea.value.length);
-        const successful = document.execCommand("copy");
-        document.body.removeChild(textArea);
-        if (!successful) return;
-      }
+      await navigator.clipboard.writeText(share_url);
       copied = true;
       setTimeout(() => (copied = false), 2000);
     } catch {

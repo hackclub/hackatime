@@ -89,6 +89,36 @@ export type TodayStats = {
   todays_editors: string[];
 };
 
+export type ProjectShowProps = {
+  page_title: string;
+  project_name: string;
+  back_path: string;
+  since_date?: string | null;
+  repo_url?: string | null;
+  is_shared: boolean;
+  share_url?: string | null;
+  toggle_share_path: string;
+  interval?: string | null;
+  from?: string | null;
+  to?: string | null;
+  project_stats?: ProjectStats;
+};
+
+export type PublicProjectShowProps = {
+  page_title: string;
+  project_name: string;
+  username: string;
+  profile_path: string;
+  since_date?: string | null;
+  repo_url?: string | null;
+  total_time_label: string;
+  file_count: number;
+  language_stats: Record<string, number>;
+  language_colors: Record<string, string>;
+  file_stats: [string, number][];
+  branch_stats: [string, number][];
+};
+
 export type ProgrammingGoalProgress = {
   id: string;
   period: "day" | "week" | "month";

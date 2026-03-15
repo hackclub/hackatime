@@ -2,6 +2,7 @@
   import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import ProjectStatsContent from "./ProjectStatsContent.svelte";
+  import type { PublicProjectShowProps } from "../../types/index";
 
   let {
     page_title,
@@ -16,20 +17,7 @@
     language_colors,
     file_stats,
     branch_stats,
-  }: {
-    page_title: string;
-    project_name: string;
-    username: string;
-    profile_path: string;
-    since_date?: string | null;
-    repo_url?: string | null;
-    total_time_label: string;
-    file_count: number;
-    language_stats: Record<string, number>;
-    language_colors: Record<string, string>;
-    file_stats: [string, number][];
-    branch_stats: [string, number][];
-  } = $props();
+  }: PublicProjectShowProps = $props();
 </script>
 
 <svelte:head>
