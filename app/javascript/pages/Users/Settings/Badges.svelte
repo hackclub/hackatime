@@ -200,5 +200,4 @@
       class="mt-4 w-full max-w-3xl rounded-md border border-surface-200"
     />
   </SectionCard>
-  
 </SettingsShell>

@@ -189,7 +189,7 @@ class Settings::BaseController < InertiaController
         heatmap_badge_url: "https://heatmap.shymike.dev/?id=#{@user.id}&timezone=#{@user.timezone}",
         heatmap_config_url: "https://hackatime-heatmap.shymike.dev/?id=#{@user.id}&timezone=#{@user.timezone}",
         hackabox_repo_url: "https://github.com/quackclub/hacka-box",
-        hackabox_preview_image_url: "https://user-cdn.hackclub-assets.com/019cef81-366a-7543-ad7c-21b738310f23/image.png",
+        hackabox_preview_image_url: "https://user-cdn.hackclub-assets.com/019cef81-366a-7543-ad7c-21b738310f23/image.png"
       },
       config_file: {
         content: generated_wakatime_config(@latest_api_key_token),
