@@ -19,7 +19,7 @@
     themes.includes("darcula") ? "darcula" : themes[0] || "default";
 
   let selectedTheme = $state("default");
-  let selectedProject = $state("");
+  let selectedProject = $state<string>("");
 
   $effect(() => {
     if (
@@ -36,8 +36,11 @@
       return;
     }
 
-    if (!badges.projects.includes(selectedProject)) {
-      selectedProject = badges.projects[0];
+    const projectRepoPath = badges.projects.find(
+      (p) => p.repo_path === selectedProject,
+    );
+    if (!projectRepoPath) {
+      selectedProject = badges.projects[0]?.repo_path || "";
     }
   });
 
@@ -49,7 +52,8 @@
 
   const projectBadgeUrl = () => {
     if (!badges.project_badge_base_url || !selectedProject) return "";
-    return `${badges.project_badge_base_url}${encodeURIComponent(selectedProject)}`;
+    // selectedProject is already in owner/repo format
+    return `${badges.project_badge_base_url}${selectedProject}`;
   };
 </script>
 
@@ -108,8 +112,8 @@
           id="badge_project"
           bind:value={selectedProject}
           items={badges.projects.map((project) => ({
-            value: project,
-            label: project,
+            value: project.repo_path,
+            label: project.display_name,
           }))}
         />
         <div class="mt-4 rounded-md border border-surface-200 bg-darker p-4">

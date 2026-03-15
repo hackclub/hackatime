@@ -5,4 +5,13 @@ class Settings::BadgesController < Settings::BaseController
       settings_update_path: my_settings_profile_path
     )
   end
+
+  private
+
+  def section_props
+    {
+      options: options_props,
+      badges: badges_props
+    }
+  end
 end

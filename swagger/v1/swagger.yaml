@@ -1695,7 +1695,23 @@ paths:
                             example: 7200.0
                           text:
                             type: string
-                            example: 2 hrs
+                            example: 2h 30m / 4h today
+                      goal:
+                        type: object
+                        nullable: true
+                        properties:
+                          target_seconds:
+                            type: number
+                            example: 14400
+                          tracked_seconds:
+                            type: number
+                            example: 9000
+                          completion_percent:
+                            type: number
+                            example: 62
+                          complete:
+                            type: boolean
+                            example: false
         '401':
           description: unauthorized
   "/api/hackatime/v1/users/current/stats/last_7_days":

@@ -60,11 +60,9 @@
   {#if footer}
     <div
       data-settings-footer
-      class="border-t border-surface-200 bg-surface-100/60 px-5 py-3.5 sm:px-6 sm:py-4"
+      class={`border-t border-surface-200 bg-surface-100/60 px-5 py-3.5 sm:px-6 sm:py-4 ${footerClass}`}
     >
-      <div class={`${contentWidth} ${footerClass}`}>
-        {@render footer()}
-      </div>
+      {@render footer()}
     </div>
   {/if}
 </section>

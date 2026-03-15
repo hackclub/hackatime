@@ -8,7 +8,7 @@ Follow these steps to start tracking your game development in Godot with Hackati
 
 **[hackatime.hackclub.com](https://hackatime.hackclub.com)**
 
-Sign in with your Hack Club Slack account. If you haven't created one yet, head to **[shiba.hackclub.com](https://shiba.hackclub.com)** and enter your email address to get a link to the Slack :)
+Sign in with your Hackatime account (or create one if you don't have one yet)!
 
 ## 2: Set up Hackatime
 
@@ -22,9 +22,7 @@ This will set some environment variables and tell Hackatime where to "phone home
 
 **[godotengine.org/download](https://godotengine.org/download)**
 
-Download the Godot binary! Make sure you get the **regular version** and not the .NET version - web exports (required for Shiba) aren't supported with .NET.
-
-If you're on Linux and know what you're doing, make sure to check your distro's package manager for any special builds.
+Download the Godot binary! If you're on Linux and know what you're doing, make sure to check your distro's package manager for any special builds.
 
 ## 4: Create a New Godot Project
 
@@ -65,19 +63,11 @@ If you'd like to be able to run your game in browser, choose the **Mobile** rend
 
 **Important:** You need to install Godot Super WakaTime for every project (it's a Godot limitation)
 
-## ✅ All Done!
+## All Done!
 
 After you're finished, make sure to check **[hackatime.hackclub.com](https://hackatime.hackclub.com)** after a little while and ensure you're logging progress!
 
 You can also try some **[wakatime.com/plugins](https://wakatime.com/plugins)** if you'd like to log time spent editing your project in other programs.
-
-## Features
-
-This Hack Club-approved plugin provides:
-- **Accurate tracking** - Differentiates between script editing and scene building
-- **Detailed metrics** - Counts keystrokes as coding, mouse clicks as scene work
-- **Smart detection** - Tracks scene structure changes and file modifications
-- **Seamless integration** - Works with your existing Hackatime setup
 
 ## Troubleshooting
 

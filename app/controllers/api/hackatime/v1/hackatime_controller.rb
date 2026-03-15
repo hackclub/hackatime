@@ -46,14 +46,39 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   def status_bar_today
     Time.use_zone(@user.timezone) do
       hbt = @user.heartbeats.today
+      total_seconds = hbt.duration_seconds
+
+      # Check if user has a daily goal
+      daily_goal = @user.goals.find_by(period: "day")
+
       result = {
         data: {
           grand_total: {
-            text: @user.format_extension_text(hbt.duration_seconds),
-            total_seconds: hbt.duration_seconds
+            text: @user.format_extension_text(total_seconds),
+            total_seconds: total_seconds
           }
         }
       }
+
+      # Include goal information if daily goal exists
+      if daily_goal
+        goal_progress = ProgrammingGoalsProgressService.new(user: @user, goals: [ daily_goal ]).call.first
+
+        if goal_progress
+          # Append goal progress to the user's preferred text format
+          user_text = result[:data][:grand_total][:text]
+          goal_text = ApplicationController.helpers.short_time_simple(daily_goal.target_seconds)
+
+          result[:data][:grand_total][:text] = "#{user_text} / #{goal_text} today"
+          result[:data][:goal] = {
+            target_seconds: daily_goal.target_seconds,
+            tracked_seconds: goal_progress[:tracked_seconds],
+            completion_percent: goal_progress[:completion_percent],
+            complete: goal_progress[:complete]
+          }
+        end
+      end
+
       render json: result
     end
   end
