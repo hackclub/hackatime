@@ -17,7 +17,8 @@ class WeeklySummaryMailer < ApplicationMailer
     coding_heartbeats = @user.heartbeats.where(time: @starts_at.to_f...@ends_at.to_f)
 
     @total_seconds = coding_heartbeats.duration_seconds
-    @daily_average_seconds = (@total_seconds / 7.0).round
+    num_days = [ (@ends_at - @starts_at) / 1.day, 1 ].max
+    @daily_average_seconds = (@total_seconds / num_days).round
     @total_heartbeats = coding_heartbeats.count
     @active_days = active_days_count(coding_heartbeats)
     @top_projects = breakdown(coding_heartbeats, :project)

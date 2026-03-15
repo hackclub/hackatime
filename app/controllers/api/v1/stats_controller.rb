@@ -12,7 +12,7 @@ class Api::V1::StatsController < ApplicationController
 
     query = Heartbeat.where(time: start_date..end_date)
     if params[:username].present?
-      user = User.find_by(username: params[:username]) || User.find_by(slack_uid: params[:username])
+      user = lookup_user(params[:username])
       return render json: { error: "User not found" }, status: :not_found unless user
 
       query = query.where(user_id: user.id)
@@ -278,8 +278,7 @@ class Api::V1::StatsController < ApplicationController
 
       JSON.parse(response.body)["user"]["id"]
     rescue => e
-      Sentry.capture_exception(e)
-      Rails.logger.error("Error finding user by email: #{e}")
+      report_error(e, message: "Error finding user by email")
       nil
     end
 

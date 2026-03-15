@@ -1,4 +1,4 @@
-class SwitchLeaderboardEntriesToUserId < ActiveRecord::Migration[8.0]
+class SwitchLeaderboardEntriesToUserId < ActiveRecord::Migration[8.1]
   def up
     # Add user_id column
     add_column :leaderboard_entries, :user_id, :bigint

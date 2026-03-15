@@ -16,8 +16,7 @@ class SessionsController < ApplicationController
         return
       end
 
-      Rails.logger.error "HCA OAuth error: #{params[:error]}"
-      Sentry.capture_message("HCA OAuth error: #{params[:error]}")
+      report_message("HCA OAuth error: #{params[:error]}")
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth. Error ID: #{Sentry.last_event_id}"
       return
     end
@@ -28,10 +27,6 @@ class SessionsController < ApplicationController
 
     if @user&.persisted?
       session[:user_id] = @user.id
-
-      if Flipper.enabled?(:hackatime_v1_import) && @user.data_migration_jobs.empty?
-        MigrateUserFromHackatimeJob.perform_later(@user.id)
-      end
 
       PosthogService.identify(@user)
       PosthogService.capture(@user, "user_signed_in", { method: "hca" })
@@ -74,8 +69,7 @@ class SessionsController < ApplicationController
         return
       end
 
-      Rails.logger.error "Slack OAuth error: #{params[:error]}"
-      Sentry.capture_message("Slack OAuth error: #{params[:error]}")
+      report_message("Slack OAuth error: #{params[:error]}")
       redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
       return
     end
@@ -91,11 +85,6 @@ class SessionsController < ApplicationController
     if @user&.persisted?
       session[:user_id] = @user.id
 
-      if Flipper.enabled?(:hackatime_v1_import) && @user.data_migration_jobs.empty?
-        # if they don't have a data migration job, add one to the queue
-        MigrateUserFromHackatimeJob.perform_later(@user.id)
-      end
-
       PosthogService.identify(@user)
       PosthogService.capture(@user, "user_signed_in", { method: "slack" })
 
@@ -110,7 +99,7 @@ class SessionsController < ApplicationController
         redirect_to root_path, notice: "Successfully signed in with Slack! Welcome!"
       end
     else
-      Rails.logger.error "Failed to create/update user from Slack data"
+      report_message("Failed to create/update user from Slack data")
       redirect_to root_path, alert: "Failed to sign in with Slack"
     end
   end
@@ -142,8 +131,7 @@ class SessionsController < ApplicationController
     redirect_uri = url_for(action: :github_create, only_path: false)
 
     if params[:error].present?
-      Rails.logger.error "GitHub OAuth error: #{params[:error]}"
-      Sentry.capture_message("GitHub OAuth error: #{params[:error]}")
+      report_message("GitHub OAuth error: #{params[:error]}")
       redirect_to my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{Sentry.last_event_id}"
       return
     end
@@ -159,7 +147,7 @@ class SessionsController < ApplicationController
       PosthogService.capture(@user, "github_linked")
       redirect_to my_settings_path, notice: "Successfully linked GitHub account!"
     else
-      Rails.logger.error "Failed to link GitHub account"
+      report_message("Failed to link GitHub account")
       redirect_to my_settings_path, alert: "Failed to link GitHub account"
     end
   end
@@ -341,13 +329,13 @@ class SessionsController < ApplicationController
     expected_nonce = session.delete(session_key)
 
     if expected_nonce.blank? || received_nonce.blank?
-      Rails.logger.error("#{provider} OAuth state missing expected=#{expected_nonce.present?} received=#{received_nonce.present?}")
+      report_message("#{provider} OAuth state missing expected=#{expected_nonce.present?} received=#{received_nonce.present?}")
       return false
     end
 
     return true if ActiveSupport::SecurityUtils.secure_compare(received_nonce.to_s, expected_nonce.to_s)
 
-    Rails.logger.error("#{provider} OAuth state mismatch")
+    report_message("#{provider} OAuth state mismatch")
     false
   end
 end

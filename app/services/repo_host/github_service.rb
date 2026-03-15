@@ -87,7 +87,7 @@ module RepoHost
         0
       end
     rescue => e
-      Rails.logger.error "[#{self.class.name}] Error fetching commit count for #{owner}/#{repo}: #{e.message}"
+      report_error(e, message: "[#{self.class.name}] Error fetching commit count for #{owner}/#{repo}")
       0
     end
   end

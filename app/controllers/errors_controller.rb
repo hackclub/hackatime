@@ -32,6 +32,13 @@ class ErrorsController < ApplicationController
     render_error
   end
 
+  def service_unavailable
+    @status_code = 503
+    @title = "Service Unavailable"
+    @message = "The service is temporarily unavailable. Please try again later."
+    render_error
+  end
+
   private
 
   def render_error

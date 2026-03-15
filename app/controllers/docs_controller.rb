@@ -11,8 +11,8 @@ class DocsController < InertiaController
   ].freeze
 
   ALL_EDITORS = [
-    [ "Android Studio", "android-studio" ], [ "AppCode", "appcode" ], [ "Aptana", "aptana" ],
-    [ "Arduino IDE", "arduino-ide" ], [ "Azure Data Studio", "azure-data-studio" ],
+    [ "Android Studio", "android-studio" ], [ "Antigravity", "antigravity" ], [ "AppCode", "appcode" ],
+    [ "Aptana", "aptana" ], [ "Arduino IDE", "arduino-ide" ], [ "Azure Data Studio", "azure-data-studio" ],
     [ "Brackets", "brackets" ],
     [ "C++ Builder", "c++-builder" ],
     [ "CLion", "clion" ], [ "Cloud9", "cloud9" ], [ "Coda", "coda" ],
@@ -97,7 +97,7 @@ class DocsController < InertiaController
       format.md { render plain: content, content_type: "text/markdown" }
     end
   rescue => e
-    Rails.logger.error "Error loading docs: #{e.message}"
+    report_error(e, message: "Error loading docs")
     render_not_found
   end
 

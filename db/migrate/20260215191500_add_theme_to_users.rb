@@ -1,4 +1,4 @@
-class AddThemeToUsers < ActiveRecord::Migration[8.0]
+class AddThemeToUsers < ActiveRecord::Migration[8.1]
   def change
     add_column :users, :theme, :integer, default: 0, null: false, if_not_exists: true
   end

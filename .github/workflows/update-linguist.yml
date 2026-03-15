@@ -1,0 +1,84 @@
+name: Update Linguist languages.yml
+
+on:
+  schedule:
+    - cron: "0 * * * *" # every hour
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-linguist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Fetch upstream languages.yml
+        id: fetch
+        run: |
+          curl -sSfL \
+            "https://raw.githubusercontent.com/github-linguist/linguist/HEAD/lib/linguist/languages.yml" \
+            -o /tmp/languages.yml
+
+          UPSTREAM_SHA=$(git hash-object /tmp/languages.yml)
+          LOCAL_SHA=$(git hash-object config/languages.yml)
+
+          echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
+          echo "local_sha=${LOCAL_SHA}" >> "$GITHUB_OUTPUT"
+
+          if [ "$UPSTREAM_SHA" = "$LOCAL_SHA" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            cp /tmp/languages.yml config/languages.yml
+          fi
+
+      - name: Check for existing PR
+        if: steps.fetch.outputs.changed == 'true'
+        id: existing_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list \
+            --head "auto/update-linguist" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [ -n "$PR_NUMBER" ]; then
+            echo "pr_exists=true" >> "$GITHUB_OUTPUT"
+            echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          else
+            echo "pr_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push update
+        if: steps.fetch.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B auto/update-linguist
+          git add config/languages.yml
+          git commit -m "Update Linguist languages.yml to latest upstream"
+          git push --force origin auto/update-linguist
+
+      - name: Create or update PR
+        if: steps.fetch.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.existing_pr.outputs.pr_exists }}" = "true" ]; then
+            echo "Existing PR #${{ steps.existing_pr.outputs.pr_number }} updated via force-push."
+          else
+            PR_BODY="## Summary"$'\n'"- Updates \`config/languages.yml\` to the latest version from [github-linguist/linguist](https://github.com/github-linguist/linguist)"$'\n\n'"This PR was automatically created by the **Update Linguist** workflow."
+            gh pr create \
+              --title "Update Linguist languages.yml to latest upstream" \
+              --head "auto/update-linguist" \
+              --base "main" \
+              --body "$PR_BODY"
+          fi

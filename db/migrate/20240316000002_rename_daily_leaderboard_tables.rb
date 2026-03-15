@@ -1,4 +1,4 @@
-class RenameDailyLeaderboardTables < ActiveRecord::Migration[8.0]
+class RenameDailyLeaderboardTables < ActiveRecord::Migration[8.1]
   def change
     rename_table :daily_leaderboards, :leaderboards
     rename_table :daily_leaderboard_entries, :leaderboard_entries

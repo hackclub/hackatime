@@ -1,4 +1,4 @@
-class HackClubGeocoderService
+class HackClubGeocoderService < ApplicationService
   BASE_URL = "https://geocoder.hackclub.com"
 
   def self.geoip(ip_address)
@@ -43,11 +43,11 @@ class HackClubGeocoderService
     if response.is_a?(Net::HTTPSuccess)
       JSON.parse(response.body)
     else
-      Rails.logger.error "HackClub Geocoder API error: #{response.code} #{response.body}"
+      report_message("HackClub Geocoder API error: #{response.code} #{response.body}")
       nil
     end
   rescue => e
-    Rails.logger.error "HackClub Geocoder API request failed: #{e.message}"
+    report_error(e, message: "HackClub Geocoder API request failed")
     nil
   end
 end

@@ -31,7 +31,7 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def update
     if @project_repo_mapping.new_record?
-      @project_repo_mapping.project_name = CGI.unescape(params[:project_name])
+      @project_repo_mapping.project_name = params[:project_name]
     end
 
     if @project_repo_mapping.update(project_repo_mapping_params)
@@ -104,16 +104,14 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def set_project_repo_mapping_for_edit
-    decoded_project_name = CGI.unescape(params[:project_name])
     @project_repo_mapping = current_user.project_repo_mappings.find_or_initialize_by(
-      project_name: decoded_project_name
+      project_name: params[:project_name]
     )
   end
 
   def set_project_repo_mapping
-    decoded_project_name = CGI.unescape(params[:project_name])
     @project_repo_mapping = current_user.project_repo_mappings.find_or_create_by!(
-      project_name: decoded_project_name
+      project_name: params[:project_name]
     )
   end
 
@@ -152,7 +150,6 @@ class My::ProjectRepoMappingsController < InertiaController
                                              .group(:repository_id)
                                              .maximum(:created_at)
     archived_names = current_user.project_repo_mappings.archived.pluck(:project_name).index_with(true)
-    labels_by_project_key = Flipper.enabled?(:hackatime_v1_import) ? current_user.project_labels.pluck(:project_key, :label).to_h : {}
 
     cached = Rails.cache.fetch(project_durations_cache_key, expires_in: 1.minute) do
       hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
@@ -167,7 +164,7 @@ class My::ProjectRepoMappingsController < InertiaController
       next if archived_names.key?(project_key) != archived
 
       mapping = mappings_by_name[project_key]
-      display_name = labels_by_project_key[project_key].presence || project_key.presence || "Unknown"
+      display_name = project_key.presence || "Unknown"
 
       {
         id: project_card_id(project_key),
@@ -180,10 +177,10 @@ class My::ProjectRepoMappingsController < InertiaController
         repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
         broken_name: broken_project_name?(project_key, display_name),
         manage_enabled: current_user.github_uid.present? && project_key.present?,
-        edit_path: project_key.present? ? edit_my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
-        update_path: project_key.present? ? my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
-        archive_path: project_key.present? ? archive_my_project_repo_mapping_path(CGI.escape(project_key)) : nil,
-        unarchive_path: project_key.present? ? unarchive_my_project_repo_mapping_path(CGI.escape(project_key)) : nil
+        edit_path: project_key.present? ? edit_my_project_repo_mapping_path(project_key) : nil,
+        update_path: project_key.present? ? my_project_repo_mapping_path(project_key) : nil,
+        archive_path: project_key.present? ? archive_my_project_repo_mapping_path(project_key) : nil,
+        unarchive_path: project_key.present? ? unarchive_my_project_repo_mapping_path(project_key) : nil
       }
     end.sort_by { |project| -project[:duration_seconds] }
 
@@ -193,7 +190,7 @@ class My::ProjectRepoMappingsController < InertiaController
       project[:duration_percent] = ((project[:duration_seconds].to_f / max_duration) * 100).round(1)
     end
 
-    total_time = cached[:total_time].to_i
+    total_time = projects.sum { |p| p[:duration_seconds] }
 
     {
       total_time_seconds: total_time,

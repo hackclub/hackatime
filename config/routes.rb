@@ -134,8 +134,6 @@ Rails.application.routes.draw do
     member do
       patch :update_trust_level
     end
-    resource :wakatime_mirrors, only: [ :create ]
-    resources :wakatime_mirrors, only: [ :destroy ]
   end
 
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
@@ -158,18 +156,14 @@ Rails.application.routes.draw do
   delete "my/settings/goals/:goal_id", to: "settings/goals#destroy", as: :my_settings_goal_destroy
   get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
   get "my/settings/data", to: "settings/data#show", as: :my_settings_data
-  get "my/settings/admin", to: "settings/admin#show", as: :my_settings_admin
-  post "my/settings/migrate_heartbeats", to: "settings/data#migrate_heartbeats", as: :my_settings_migrate_heartbeats
   post "my/settings/rotate_api_key", to: "settings/access#rotate_api_key", as: :my_settings_rotate_api_key
 
   namespace :my do
-    resource :heartbeat_import_source,
-      only: [ :create, :update, :show, :destroy ],
-      controller: "heartbeat_import_sources" do
-      post :sync, on: :collection, action: :sync_now
+    resources :heartbeat_imports, only: [ :create, :show ] do
+      collection do
+        get :wakatime_download_link
+      end
     end
-
-    resources :heartbeat_imports, only: [ :create, :show ]
 
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
       member do
@@ -183,7 +177,6 @@ Rails.application.routes.draw do
     resources :heartbeats, only: [] do
       collection do
         post :export
-        post :import
       end
     end
   end
@@ -332,4 +325,5 @@ Rails.application.routes.draw do
   match "/404", to: "errors#not_found", via: :all
   match "/422", to: "errors#unprocessable_entity", via: :all
   match "/500", to: "errors#internal_server_error", via: :all
+  match "/503", to: "errors#service_unavailable", via: :all
 end

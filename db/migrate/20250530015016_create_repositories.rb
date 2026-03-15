@@ -1,4 +1,4 @@
-class CreateRepositories < ActiveRecord::Migration[8.0]
+class CreateRepositories < ActiveRecord::Migration[8.1]
   def change
     create_table :repositories do |t|
       t.string :url

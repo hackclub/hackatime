@@ -1,4 +1,4 @@
-class CreateEmailVerificationRequests < ActiveRecord::Migration[8.0]
+class CreateEmailVerificationRequests < ActiveRecord::Migration[8.1]
   def change
     create_table :email_verification_requests do |t|
       t.string :email
