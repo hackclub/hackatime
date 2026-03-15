@@ -1,4 +1,4 @@
-class AddUniqueIndexToSailorsLogNotificationPreferences < ActiveRecord::Migration[8.0]
+class AddUniqueIndexToSailorsLogNotificationPreferences < ActiveRecord::Migration[8.1]
   def change
     add_index :sailors_log_notification_preferences,
               [ :slack_uid, :slack_channel_id ],

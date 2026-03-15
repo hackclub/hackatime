@@ -90,7 +90,17 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
                   type: :object,
                   properties: {
                     total_seconds: { type: :number, example: 7200.0 },
-                    text: { type: :string, example: '2 hrs' }
+                    text: { type: :string, example: '2h 30m / 4h today' }
+                  }
+                },
+                goal: {
+                  type: :object,
+                  nullable: true,
+                  properties: {
+                    target_seconds: { type: :number, example: 14400 },
+                    tracked_seconds: { type: :number, example: 9000 },
+                    completion_percent: { type: :number, example: 62 },
+                    complete: { type: :boolean, example: false }
                   }
                 }
               }

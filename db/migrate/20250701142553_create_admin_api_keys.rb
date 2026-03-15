@@ -1,4 +1,4 @@
-class CreateAdminApiKeys < ActiveRecord::Migration[8.0]
+class CreateAdminApiKeys < ActiveRecord::Migration[8.1]
   def change
     create_table :admin_api_keys do |t|
       t.references :user, null: false, foreign_key: true

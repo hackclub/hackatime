@@ -3,16 +3,6 @@ class Settings::DataController < Settings::BaseController
     render_data
   end
 
-  def migrate_heartbeats
-    unless Flipper.enabled?(:hackatime_v1_import)
-      redirect_to my_settings_data_path, alert: "Hackatime v1 import is currently disabled"
-      return
-    end
-
-    MigrateUserFromHackatimeJob.perform_later(@user.id)
-    redirect_to my_settings_data_path, notice: "Heartbeats & api keys migration started"
-  end
-
   private
 
   def render_data(status: :ok)
@@ -21,5 +11,33 @@ class Settings::DataController < Settings::BaseController
       settings_update_path: my_settings_profile_path,
       status: status
     )
+  end
+
+  def section_props
+    imports_enabled = Flipper.enabled?(:imports, @user)
+    latest_import = @user.heartbeat_import_runs.latest_first.first
+    if latest_import.present?
+      latest_import = HeartbeatImportRunner.refresh_remote_run!(latest_import)
+    end
+
+    {
+      user: user_props,
+      paths: paths_props,
+      data_export: InertiaRails.defer {
+        {
+          total_heartbeats: number_with_delimiter(@user.heartbeats.count),
+          total_coding_time: @user.heartbeats.duration_simple,
+          heartbeats_last_7_days: number_with_delimiter(@user.heartbeats.where("time >= ?", 7.days.ago.to_f).count),
+          is_restricted: (@user.trust_level == "red")
+        }
+      },
+      imports_enabled: imports_enabled,
+      remote_import_cooldown_until: HeartbeatImportRunner.remote_import_cooldown_until(user: @user)&.iso8601,
+      latest_heartbeat_import: HeartbeatImportRunner.serialize(latest_import),
+      ui: {
+        show_dev_import: Rails.env.development?,
+        show_imports: imports_enabled
+      }
+    }
   end
 end

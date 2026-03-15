@@ -29,4 +29,34 @@ class UserTest < ActiveSupport::TestCase
 
     assert_equal "gruvbox_dark", metadata[:value]
   end
+
+  test "flipper id uses the user id" do
+    user = User.create!(timezone: "UTC")
+
+    assert_equal "User;#{user.id}", user.flipper_id
+  end
+
+  test "active remote heartbeat import run only counts remote imports" do
+    user = User.create!(timezone: "UTC")
+
+    assert_not user.active_remote_heartbeat_import_run?
+
+    # An active non-remote (dev_upload) import should not count as a remote import.
+    # Use a separate user because the unique index prevents two active imports per user.
+    other_user = User.create!(timezone: "UTC")
+    other_user.heartbeat_import_runs.create!(
+      source_kind: :dev_upload,
+      state: :queued,
+      source_filename: "dev.json"
+    )
+    assert_not other_user.active_remote_heartbeat_import_run?
+
+    user.heartbeat_import_runs.create!(
+      source_kind: :wakatime_dump,
+      state: :waiting_for_dump,
+      encrypted_api_key: "secret"
+    )
+
+    assert user.active_remote_heartbeat_import_run?
+  end
 end

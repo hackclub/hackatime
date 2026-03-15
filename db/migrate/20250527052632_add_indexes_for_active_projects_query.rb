@@ -1,4 +1,4 @@
-class AddIndexesForActiveProjectsQuery < ActiveRecord::Migration[8.0]
+class AddIndexesForActiveProjectsQuery < ActiveRecord::Migration[8.1]
   def change
     add_index :heartbeats, [ :source_type, :time, :user_id, :project ],
               name: 'index_heartbeats_on_source_type_time_user_project'

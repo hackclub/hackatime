@@ -14,8 +14,7 @@
 
 <div
   class={`
-    relative flex flex-col justify-start p-4 rounded-xl border transition-all duration-200 h-full
-    ${subtitle ? "pb-6" : ""}
+    flex flex-col justify-start p-4 rounded-xl border transition-all duration-200 h-full
     ${
       highlight
         ? "bg-primary/10 border-primary/30"
@@ -34,8 +33,7 @@
     {value || "—"}
   </div>
   {#if subtitle}
-    <span
-      class="absolute bottom-2 left-4 text-xs text-secondary font-normal opacity-70"
+    <span class="mt-1 text-sm text-secondary font-normal opacity-70"
       >{subtitle}</span
     >
   {/if}

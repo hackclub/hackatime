@@ -27,6 +27,8 @@ class HeartbeatExportTest < ApplicationSystemTestCase
   test "submitting export date range enqueues job and shows notice" do
     visit my_settings_data_path
 
+    assert_text "Export all heartbeats" # wait till it's loaded
+
     start_date = 7.days.ago.to_date.iso8601
     end_date = Date.current.iso8601
     set_date_input("start_date", start_date)

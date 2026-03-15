@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  include ErrorReporting
+
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user
   before_action :initialize_cache_counters

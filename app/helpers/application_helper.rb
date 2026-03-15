@@ -167,9 +167,9 @@ module ApplicationHelper
     return "Unknown" if editor.blank?
 
     case editor.downcase
-    when "vscode" then "VS Code"
+    when "vscode", "vs code" then "VS Code"
     when "pycharm" then "PyCharm"
-    when "intellij" then "IntelliJ IDEA"
+    when "intellij", "intellijidea" then "IntelliJ IDEA"
     when "webstorm" then "WebStorm"
     when "phpstorm" then "PhpStorm"
     when "datagrip" then "DataGrip"
@@ -178,6 +178,7 @@ module ApplicationHelper
     when "visual studio" then "Visual Studio"
     when "sublime text" then "Sublime Text"
     when "iterm2" then "iTerm2"
+    when "rubymine" then "RubyMine"
     else editor.capitalize
     end
   end
@@ -188,6 +189,8 @@ module ApplicationHelper
     case os.downcase
     when "darwin" then "macOS"
     when "macos" then "macOS"
+    when "wsl" then "WSL"
+    when "mozilla" then "Firefox"
     else os.capitalize
     end
   end

@@ -1,4 +1,4 @@
-class CreateEmailAddresses < ActiveRecord::Migration[8.0]
+class CreateEmailAddresses < ActiveRecord::Migration[8.1]
   def change
     create_table :email_addresses do |t|
       t.string :email

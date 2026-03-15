@@ -79,9 +79,9 @@ class ScanRepoEventsForCommitsJob < ApplicationJob
         potential_commits_buffer.clear
       end
     rescue JSON::ParserError => e
-      Rails.logger.error "[ScanRepoEventsForCommitsJob] Failed to parse raw_event_payload for Event ID #{event.id}: #{e.message}"
+      report_error(e, message: "[ScanRepoEventsForCommitsJob] Failed to parse raw_event_payload for Event ID #{event.id}")
     rescue => e # Catch other potential errors during event processing
-      Rails.logger.error "[ScanRepoEventsForCommitsJob] Error processing Event ID #{event.id}: #{e.message}\n#{e.backtrace.take(5).join("\n")}"
+      report_error(e, message: "[ScanRepoEventsForCommitsJob] Error processing Event ID #{event.id}")
     end
 
     # Process any remaining commits in the buffer

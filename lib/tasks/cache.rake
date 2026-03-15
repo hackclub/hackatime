@@ -21,6 +21,7 @@ namespace :cache do
         puts "✓ #{job_class.name} completed"
       rescue => e
         puts "✗ #{job_class.name} failed: #{e.message}"
+        Sentry.capture_exception(e)
         Rails.logger.error("Cache warmup failed for #{job_class.name}: #{e.class.name} #{e.message}")
       end
     end

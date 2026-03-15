@@ -2,6 +2,13 @@
 
 ![VS Code](/images/editor-icons/vs-code-128.png)
 
+## Automatic Setup
+
+1. Configure your editor by using our [simple installer](https://hackatime.hackclub.com/my/wakatime_setup)
+2. Restart VS Code and start coding!
+
+---
+
 Let's set up VS Code to count how much time you spend coding!
 
 ## Step 1: Make a Hackatime Account
@@ -10,7 +17,7 @@ Go to [Hackatime](https://hackatime.hackclub.com) and make an account. Then log 
 
 ## Step 2: Get Your Settings Ready
 
-Click this link to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup). It will set up your account so it works with VS Code.
+Click this link to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup). It will set up your device so it works with Hackatime.
 
 ## Step 3: Add the Plugin to VS Code
 
@@ -18,7 +25,7 @@ Click this link to the [setup page](https://hackatime.hackclub.com/my/wakatime_s
 2. Click the squares icon on the left (Extensions)
 3. Type "WakaTime" in the search box
 4. Click the **Install** button next to WakaTime
-5. VS Code might ask you to restart - click **Reload** if it does
+5. VS Code might ask you to reload your extensions to get it working - click **Reload Extensions** if it does
 
 That's it! The plugin will use your settings from Step 2.
 

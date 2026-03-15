@@ -8,7 +8,7 @@ class UserSlackStatusUpdateJob < ApplicationJob
       begin
         user.update_slack_status
       rescue => e
-        Rails.logger.error "Failed to update Slack status for user #{user.slack_uid}: #{e.message}"
+        report_error(e, message: "Failed to update Slack status for user #{user.slack_uid}")
       end
     end
   end

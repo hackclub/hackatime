@@ -17,8 +17,7 @@ class Settings::NotificationsController < Settings::BaseController
       PosthogService.capture(@user, "settings_updated", { fields: [ "weekly_summary_email_enabled" ] })
       redirect_to my_settings_notifications_path, notice: "Settings updated successfully"
     rescue => e
-      Sentry.capture_exception(e)
-      Rails.logger.error("Failed to update notification settings: #{e.message}")
+      report_error(e, message: "Failed to update notification settings")
       flash.now[:error] = "Failed to update settings, sorry :("
       render_notifications(status: :unprocessable_entity)
     end
@@ -32,5 +31,12 @@ class Settings::NotificationsController < Settings::BaseController
       settings_update_path: my_settings_notifications_path,
       status: status
     )
+  end
+
+  def section_props
+    {
+      settings_update_path: my_settings_notifications_path,
+      user: user_props
+    }
   end
 end

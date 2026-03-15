@@ -1,5 +1,6 @@
 class PosthogService
   class << self
+    include ErrorReporting
     def capture(user_or_id, event, properties = {})
       return unless $posthog
 
@@ -11,7 +12,7 @@ class PosthogService
         properties: properties
       )
     rescue => e
-      Rails.logger.error "PostHog capture error: #{e.message}"
+      report_error(e, message: "PostHog capture error")
     end
 
     def identify(user, properties = {})
@@ -29,7 +30,7 @@ class PosthogService
         }.merge(properties)
       )
     rescue => e
-      Rails.logger.error "PostHog identify error: #{e.message}"
+      report_error(e, message: "PostHog identify error")
     end
 
     def capture_once_per_day(user, event, properties = {})
@@ -41,7 +42,7 @@ class PosthogService
       capture(user, event, properties)
       Rails.cache.write(cache_key, true, expires_at: Date.current.end_of_day + 1.hour)
     rescue => e
-      Rails.logger.error "PostHog capture_once_per_day error: #{e.message}"
+      report_error(e, message: "PostHog capture_once_per_day error")
     end
   end
 end

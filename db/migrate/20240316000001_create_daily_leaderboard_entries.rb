@@ -1,4 +1,4 @@
-class CreateDailyLeaderboardEntries < ActiveRecord::Migration[8.0]
+class CreateDailyLeaderboardEntries < ActiveRecord::Migration[8.1]
   def change
     create_table :daily_leaderboard_entries do |t|
       t.references :daily_leaderboard, null: false, foreign_key: true

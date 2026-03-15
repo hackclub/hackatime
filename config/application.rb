@@ -56,7 +56,6 @@ module Harbor
       expire_after: 14.days,
       secure: Rails.env.production?,
       httponly: true
-
     config.middleware.use Rack::Attack
     config.exceptions_app = routes
   end
