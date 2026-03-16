@@ -18,10 +18,6 @@
 </script>
 
 <div class="text-left mt-2 mb-4 flex flex-col">
-  <p class="mb-4 text-xl text-primary">
-    Hello friend! Looks like you are new around here, let's get you set up so
-    you can start tracking your coding time.
-  </p>
   <div
     class="mb-4 rounded-xl border border-primary/40 bg-surface-100/70 p-4 md:p-5"
   >

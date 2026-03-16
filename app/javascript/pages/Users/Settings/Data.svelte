@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Form, usePoll } from "@inertiajs/svelte";
+  import { Deferred, Form, usePoll } from "@inertiajs/svelte";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
@@ -61,17 +61,13 @@
     return Date.now() - overlayStartTime > OVERLAY_TIMEOUT_MS;
   });
 
-  // Clear overlay when server confirms the import or overlay times out
   const effectiveImport = $derived(() => {
-    // If overlay is stale, discard it
     if (isOverlayStale()) {
       return latest_heartbeat_import;
     }
-    // If server has caught up to terminal state, prefer server state
     if (isServerTerminal && importOverlay) {
       return latest_heartbeat_import;
     }
-    // Otherwise prefer overlay if it exists
     return importOverlay ?? latest_heartbeat_import;
   });
 
@@ -224,14 +220,14 @@
             <div class="space-y-3">
               {#each PROVIDERS as provider}
                 <label
-                  class="flex cursor-pointer items-start gap-3 rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content"
+                  class="flex cursor-pointer items-start gap-3 rounded-md border border-surface-200 bg-surface-100 px-3 py-3 text-sm text-surface-content hover:border-surface-300"
                 >
                   <input
                     type="radio"
                     name="heartbeat_import[provider]"
                     value={provider.value}
                     bind:group={remoteProvider}
-                    class="mt-1 h-4 w-4 border-surface-200 bg-surface text-primary"
+                    class="mt-1 h-4 w-4 shrink-0 cursor-pointer border-2 border-surface-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
                     disabled={importInProgress || processing}
                   />
                   <span class="space-y-1">
@@ -297,9 +293,9 @@
                 <span class="text-muted">·</span>
                 <span
                   class={importState === "failed"
-                    ? "text-red-300"
+                    ? "text-red-500 dark:text-red-300"
                     : importState === "completed"
-                      ? "text-green-300"
+                      ? "text-primary"
                       : "text-muted"}
                 >
                   {prettyStatus(importState)}
@@ -364,187 +360,211 @@
     description="Download your coding history as JSON for backups or analysis."
     wide
   >
-    {#if data_export.is_restricted}
-      <p
-        class="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200"
-      >
-        Data export is currently restricted for this account.
-      </p>
-    {:else}
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-          <p class="text-xs uppercase tracking-wide text-muted">
-            Total heartbeats
-          </p>
-          <p class="mt-1 text-lg font-semibold text-surface-content">
-            {data_export.total_heartbeats}
-          </p>
-        </div>
-        <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-          <p class="text-xs uppercase tracking-wide text-muted">
-            Total coding time
-          </p>
-          <p class="mt-1 text-lg font-semibold text-surface-content">
-            {data_export.total_coding_time}
-          </p>
-        </div>
-        <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-          <p class="text-xs uppercase tracking-wide text-muted">Last 7 days</p>
-          <p class="mt-1 text-lg font-semibold text-surface-content">
-            {data_export.heartbeats_last_7_days}
-          </p>
-        </div>
-      </div>
-
-      <p class="mt-3 text-sm text-muted">
-        Exports are generated in the background and emailed to you.
-      </p>
-
-      <div class="mt-4 space-y-3">
-        <Form method="post" action={paths.export_all_heartbeats_path}>
-          {#snippet children({ processing })}
-            <Button type="submit" class="rounded-md" disabled={processing}>
-              {processing ? "Exporting..." : "Export all heartbeats"}
-            </Button>
-          {/snippet}
-        </Form>
-
-        <Form
-          method="post"
-          action={paths.export_range_heartbeats_path}
-          class="grid grid-cols-1 gap-3 rounded-md border border-surface-200 bg-darker p-4 sm:grid-cols-3"
-        >
-          {#snippet children({ processing })}
-            <input
-              type="date"
-              name="start_date"
-              required
-              class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-            />
-            <input
-              type="date"
-              name="end_date"
-              required
-              class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-            />
-            <Button
-              type="submit"
-              variant="surface"
-              class="rounded-md"
-              disabled={processing}
+    <Deferred data="data_export">
+      {#snippet fallback()}
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {#each Array(3) as _}
+            <div
+              class="rounded-md border border-surface-200 bg-darker px-3 py-3"
             >
-              {processing ? "Exporting..." : "Export date range"}
-            </Button>
-          {/snippet}
-        </Form>
-      </div>
-
-      {#if ui.show_dev_import}
-        <Form
-          method="post"
-          action={paths.create_heartbeat_import_path}
-          class="mt-4 rounded-md border border-surface-200 bg-darker p-4"
-          resetOnSuccess={["heartbeat_file"]}
-          onSuccess={() => {
-            selectedFile = null;
-          }}
-        >
-          {#snippet children({ processing, errors: formErrors })}
-            <label
-              class="mb-2 block text-sm text-surface-content"
-              for="heartbeat_file"
-            >
-              Import heartbeats (development only)
-            </label>
-            <input
-              id="heartbeat_file"
-              name="heartbeat_file"
-              type="file"
-              accept=".json,application/json"
-              required
-              disabled={importInProgress || processing}
-              onchange={(event) => {
-                const target = event.currentTarget as HTMLInputElement;
-                selectedFile = target.files?.[0] ?? null;
-              }}
-              class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content disabled:cursor-not-allowed disabled:opacity-60"
-            />
-
-            {#if formErrors.import}
-              <p class="mt-2 text-sm text-red-300">{formErrors.import}</p>
-            {/if}
-
-            <Button
-              type="submit"
-              variant="surface"
-              class="mt-3 rounded-md"
-              disabled={!selectedFile || importInProgress || processing}
-            >
-              {#if processing}
-                Starting import...
-              {:else if importInProgress && latestImportIsDev}
-                Importing...
-              {:else}
-                Import file
-              {/if}
-            </Button>
-
-            {#if importState !== "idle" && latestImportIsDev}
+              <div class="h-3 w-24 animate-pulse rounded bg-surface-200"></div>
               <div
-                class="mt-4 flex items-center gap-2 rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm"
+                class="mt-3 h-5 w-16 animate-pulse rounded bg-surface-200"
+              ></div>
+            </div>
+          {/each}
+        </div>
+        <div class="mt-3 h-4 w-64 animate-pulse rounded bg-surface-200"></div>
+      {/snippet}
+
+      {#if !data_export}
+        <!-- waiting for deferred data -->
+      {:else if data_export.is_restricted}
+        <p
+          class="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red-200"
+        >
+          Data export is currently restricted for this account.
+        </p>
+      {:else}
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Total heartbeats
+            </p>
+            <p class="mt-1 text-lg font-semibold text-surface-content">
+              {data_export.total_heartbeats}
+            </p>
+          </div>
+          <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Total coding time
+            </p>
+            <p class="mt-1 text-lg font-semibold text-surface-content">
+              {data_export.total_coding_time}
+            </p>
+          </div>
+          <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Last 7 days
+            </p>
+            <p class="mt-1 text-lg font-semibold text-surface-content">
+              {data_export.heartbeats_last_7_days}
+            </p>
+          </div>
+        </div>
+
+        <p class="mt-3 text-sm text-muted">
+          Exports are generated in the background and emailed to you.
+        </p>
+
+        <div class="mt-4 space-y-3">
+          <Form method="post" action={paths.export_all_heartbeats_path}>
+            {#snippet children({ processing })}
+              <Button type="submit" class="rounded-md" disabled={processing}>
+                {processing ? "Exporting..." : "Export all heartbeats"}
+              </Button>
+            {/snippet}
+          </Form>
+
+          <Form
+            method="post"
+            action={paths.export_range_heartbeats_path}
+            class="grid grid-cols-1 gap-3 rounded-md border border-surface-200 bg-darker p-4 sm:grid-cols-3"
+          >
+            {#snippet children({ processing })}
+              <input
+                type="date"
+                name="start_date"
+                required
+                class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+              />
+              <input
+                type="date"
+                name="end_date"
+                required
+                class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+              />
+              <Button
+                type="submit"
+                variant="surface"
+                class="rounded-md"
+                disabled={processing}
               >
-                {#if importInProgress}
-                  <svg
-                    class="h-4 w-4 shrink-0 animate-spin text-primary"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      class="opacity-25"
-                    />
-                    <path
-                      d="M4 12a8 8 0 018-8"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                    />
-                  </svg>
+                {processing ? "Exporting..." : "Export date range"}
+              </Button>
+            {/snippet}
+          </Form>
+        </div>
+
+        {#if ui.show_dev_import}
+          <Form
+            method="post"
+            action={paths.create_heartbeat_import_path}
+            class="mt-4 rounded-md border border-surface-200 bg-darker p-4"
+            resetOnSuccess={["heartbeat_file"]}
+            onSuccess={() => {
+              selectedFile = null;
+            }}
+          >
+            {#snippet children({ processing, errors: formErrors })}
+              <label
+                class="mb-2 block text-sm text-surface-content"
+                for="heartbeat_file"
+              >
+                Import heartbeats (development only)
+              </label>
+              <input
+                id="heartbeat_file"
+                name="heartbeat_file"
+                type="file"
+                accept=".json,application/json"
+                required
+                disabled={importInProgress || processing}
+                onchange={(event) => {
+                  const target = event.currentTarget as HTMLInputElement;
+                  selectedFile = target.files?.[0] ?? null;
+                }}
+                class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content disabled:cursor-not-allowed disabled:opacity-60"
+              />
+
+              {#if formErrors.import}
+                <p class="mt-2 text-sm text-red-300">{formErrors.import}</p>
+              {/if}
+
+              <Button
+                type="submit"
+                variant="surface"
+                class="mt-3 rounded-md"
+                disabled={!selectedFile || importInProgress || processing}
+              >
+                {#if processing}
+                  Starting import...
+                {:else if importInProgress && latestImportIsDev}
+                  Importing...
+                {:else}
+                  Import file
                 {/if}
-                <span class="text-surface-content">
-                  {activeImport?.source_filename ||
-                    providerLabel(importSourceKind)}
-                </span>
-                <span class="text-muted">·</span>
-                <span
-                  class={importState === "failed"
-                    ? "text-red-300"
-                    : importState === "completed"
-                      ? "text-green-300"
-                      : "text-muted"}
+              </Button>
+
+              {#if importState !== "idle" && latestImportIsDev}
+                <div
+                  class="mt-4 flex items-center gap-2 rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm"
                 >
-                  {prettyStatus(importState)}
-                </span>
-                {#if activeImport?.error_message}
-                  <span class="text-red-300">{activeImport.error_message}</span>
-                {/if}
-                {#if importState === "completed"}
-                  <span class="text-muted">
-                    {formatCount(activeImport?.imported_count)} imported, {formatCount(
-                      activeImport?.skipped_count,
-                    )} skipped
+                  {#if importInProgress}
+                    <svg
+                      class="h-4 w-4 shrink-0 animate-spin text-primary"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        class="opacity-25"
+                      />
+                      <path
+                        d="M4 12a8 8 0 018-8"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  {/if}
+                  <span class="text-surface-content">
+                    {activeImport?.source_filename ||
+                      providerLabel(importSourceKind)}
                   </span>
-                {/if}
-              </div>
-            {/if}
-          {/snippet}
-        </Form>
+                  <span class="text-muted">·</span>
+                  <span
+                    class={importState === "failed"
+                      ? "text-red-300"
+                      : importState === "completed"
+                        ? "text-green-300"
+                        : "text-muted"}
+                  >
+                    {prettyStatus(importState)}
+                  </span>
+                  {#if activeImport?.error_message}
+                    <span class="text-red-300"
+                      >{activeImport.error_message}</span
+                    >
+                  {/if}
+                  {#if importState === "completed"}
+                    <span class="text-muted">
+                      {formatCount(activeImport?.imported_count)} imported, {formatCount(
+                        activeImport?.skipped_count,
+                      )} skipped
+                    </span>
+                  {/if}
+                </div>
+              {/if}
+            {/snippet}
+          </Form>
+        {/if}
       {/if}
-    {/if}
+    </Deferred>
   </SectionCard>
 
   {#if user.can_request_deletion}

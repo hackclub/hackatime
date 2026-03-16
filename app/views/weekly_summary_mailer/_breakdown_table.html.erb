@@ -1,0 +1,18 @@
+<%# locals: (title:, items:, spacing_class: "mt-6") %>
+<div class="<%= spacing_class %> rounded-xl overflow-hidden bg-white summary-card">
+  <div class="px-5 py-3 summary-card-header">
+    <p class="text-xs font-semibold text-brand uppercase tracking-wide m-0"><%= title %></p>
+  </div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+    <% items.each_with_index do |item, index| %>
+      <tr>
+        <td class="text-sm text-gray-700 px-5 py-3 <%= 'border-t border-gray-100' if index.positive? %>">
+          <%= item[:name] %>
+        </td>
+        <td align="right" class="text-sm font-semibold text-gray-900 px-5 py-3 whitespace-nowrap <%= 'border-t border-gray-100' if index.positive? %>">
+          <%= item[:duration_label] %>
+        </td>
+      </tr>
+    <% end %>
+  </table>
+</div>

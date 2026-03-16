@@ -40,10 +40,21 @@ class Settings::GoalsController < Settings::BaseController
     extra_props = {}
     extra_props[:goal_form] = goal_form if goal_form
 
-    render inertia: settings_component_for("goals"), props: settings_page_props(
+    render_settings_page(
       active_section: "goals",
-      settings_update_path: my_settings_goals_path
-    ).merge(extra_props), status: status
+      settings_update_path: my_settings_goals_path,
+      status: status,
+      extra_props: extra_props
+    )
+  end
+
+  def section_props
+    {
+      settings_update_path: my_settings_goals_path,
+      create_goal_path: my_settings_goals_create_path,
+      user: user_props,
+      options: options_props
+    }
   end
 
   def goal_params

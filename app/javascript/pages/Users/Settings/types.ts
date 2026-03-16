@@ -138,13 +138,15 @@ export type BadgesProps = {
   general_badge_url: string;
   project_badge_url?: string | null;
   project_badge_base_url?: string | null;
-  projects: string[];
+  projects: Array<{ display_name: string; repo_path: string }>;
   profile_url?: string | null;
   markscribe_template: string;
   markscribe_reference_url: string;
   markscribe_preview_image_url: string;
   heatmap_badge_url: string;
   heatmap_config_url: string;
+  hackabox_repo_url: string;
+  hackabox_preview_image_url: string;
 };
 
 export type ConfigFileProps = {
@@ -248,7 +250,7 @@ export type BadgesPageProps = SettingsCommonProps & {
 export type DataPageProps = SettingsCommonProps & {
   user: UserProps;
   paths: PathsProps;
-  data_export: DataExportProps;
+  data_export?: DataExportProps;
   imports_enabled: boolean;
   remote_import_cooldown_until?: string | null;
   latest_heartbeat_import?: HeartbeatImportStatusProps | null;
@@ -329,6 +331,7 @@ const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
     { id: "user_stats_badges", label: "Stats badges" },
     { id: "user_markscribe", label: "Markscribe" },
     { id: "user_heatmap", label: "Heatmap" },
+    { id: "user_hackabox", label: "Hackabox" },
   ],
   data: [
     { id: "user_imports", label: "Imports" },
@@ -365,6 +368,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_stats_badges: "badges",
   user_markscribe: "badges",
   user_heatmap: "badges",
+  user_hackabox: "badges",
   user_imports: "data",
   download_user_data: "data",
   delete_account: "data",

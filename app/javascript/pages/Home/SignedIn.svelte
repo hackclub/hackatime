@@ -125,9 +125,7 @@
       {ssp_users_recent}
       {ssp_users_size}
     />
-  {/if}
-
-  {#if github_uid_blank}
+  {:else if github_uid_blank}
     <GitHubLinkBanner {github_auth_path} />
   {/if}
 
