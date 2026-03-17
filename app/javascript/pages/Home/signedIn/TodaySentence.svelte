@@ -16,7 +16,7 @@
 
 <p>
   {#if show_logged_time_sentence}
-    You've logged
+    Today, you've logged
     {todays_duration_display}
     {#if todays_languages.length > 0 || todays_editors.length > 0}
       across
