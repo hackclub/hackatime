@@ -38,7 +38,7 @@ You can check that it's installed correctly through your `PATH` environment vari
 
 You can either download the binary from [GitHub Releases](https://github.com/mrnossiom/wakatime-ls/releases/latest), or if you have `cargo` installed: `cargo install wakatime-ls`.
 
-Please note that there are not binaries for Windows available on GitHub releases, if you're on Windows, you will have to use `cargo install wakatime-ls`
+Please note that there are no binaries for Windows available on GitHub releases, if you're on Windows, you will have to use `cargo install wakatime-ls`
 
 You can check that it's installed correctly through your `PATH` environment variable by running `which wakatime-ls` (Linux/MacOS) or `where wakatime-ls` (Windows) in your terminal.
 
