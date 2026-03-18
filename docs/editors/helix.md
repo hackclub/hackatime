@@ -42,7 +42,7 @@ Please note that there are no binaries for Windows available on GitHub releases,
 
 You can check that it's installed correctly through your `PATH` environment variable by running `which wakatime-ls` (Linux/MacOS) or `where wakatime-ls` (Windows) in your terminal.
 
-## 6. Configure Helix's Languages
+## 6: Configure Helix's Languages
 
 The way this method works relies on having an [LSP](https://microsoft.github.io/language-server-protocol/) tracking your code changes, as Helix does not currently have a plugin system. This means that you have to add this LSP to every language you're planning to use.
 
