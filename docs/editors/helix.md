@@ -92,7 +92,7 @@ language-servers = [ "rust-analyzer" ]
 name = "rust"
 language-servers = [ "rust-analyzer", "wakatime" ]
 ```
-4. Your final `languages.toml` may look something look this:
+4. Your final `languages.toml` may look something like this:
 ```toml
 [language-server.wakatime]
 command = "wakatime-ls"
