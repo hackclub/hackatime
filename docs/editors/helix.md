@@ -30,7 +30,7 @@ Download the Helix binary, or if you know what you're doing, use your distro's p
 
 This binary is required for Helix to be able to send your time to Hackatime.
 
-You can check that it's installed correctly through your `PATH` environment variable by running `which wakatime` (Linux/MacOS) or `where wakatime` (Windows) in your terminal.
+You can check that it's installed correctly through your `PATH` environment variable by running `which wakatime-cli` or `which wakatime` (Linux/macOS) or `where wakatime-cli` or `where wakatime` (Windows) in your terminal.
 
 ## 5: Install `wakatime-ls`
 
