@@ -42,7 +42,7 @@ Please note that there are no binaries for Windows available on GitHub releases,
 
 You can check that it's installed correctly through your `PATH` environment variable by running `which wakatime-ls` (Linux/MacOS) or `where wakatime-ls` (Windows) in your terminal.
 
-## 6: Configure Helix's Languages
+## 6: Configure Helix's languages
 
 The way this method works relies on having an [LSP](https://microsoft.github.io/language-server-protocol/) tracking your code changes, as Helix does not currently have a plugin system. This means that you have to add this LSP to every language you're planning to use.
 
@@ -119,7 +119,7 @@ name = "javascript"
 language-servers = [ "typescript-language-server", "wakatime" ]
 ```
 
-## All Done!
+## All done!
 
 After you're finished setting everything up, restart Helix, then make sure to check **[hackatime.hackclub.com](https://hackatime.hackclub.com)** after a little while and ensure you're logging progress!
 
@@ -129,5 +129,5 @@ You can also try some **[wakatime.com/plugins](https://wakatime.com/plugins)** i
 
 - **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) first.
 - **LSP hasn't started?** Type `:lsp-restart ` in Helix for it to autocomplete the active LSPs. If `wakatime` isn't listed, then it's not setup in your `languages.toml` correctly.
-- **Language Server Exited?** This error will show up if you haven't installed everything correctly. Double check that `wakatime` and `wakatime-ls` are installed using `which` (Linux/MacOS) or `where` (Windows).
+- **Language server exited?** This error will show up if you haven't installed everything correctly. Double check that `wakatime` and `wakatime-ls` are installed using `which` (Linux/MacOS) or `where` (Windows).
 - **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
