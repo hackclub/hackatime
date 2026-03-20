@@ -277,6 +277,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         source_type = :test_entry
       end
 
+      heartbeat[:project] = heartbeat[:project]&.gsub(/[[:cntrl:]]/, "")&.strip
+
       attrs = heartbeat.merge({
         user_id: @user.id,
         source_type: source_type,
