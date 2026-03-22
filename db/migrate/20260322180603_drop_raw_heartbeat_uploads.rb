@@ -1,5 +1,5 @@
 class DropRawHeartbeatUploads < ActiveRecord::Migration[8.1]
-  def change
+  def up
     if foreign_key_exists?(:heartbeats, :raw_heartbeat_uploads)
       remove_foreign_key :heartbeats, :raw_heartbeat_uploads
     end
@@ -7,14 +7,12 @@ class DropRawHeartbeatUploads < ActiveRecord::Migration[8.1]
       remove_index :heartbeats, :raw_heartbeat_upload_id
     end
     if column_exists?(:heartbeats, :raw_heartbeat_upload_id)
-      remove_column :heartbeats, :raw_heartbeat_upload_id, :bigint
+      remove_column :heartbeats, :raw_heartbeat_upload_id
     end
-    drop_table :raw_heartbeat_uploads, if_exists: true do |t|
-      t.text :body
-      t.bigint :user_id
-      t.datetime :created_at, null: false
-      t.datetime :updated_at, null: false
-      t.index :user_id
-    end
+    drop_table :raw_heartbeat_uploads, if_exists: true
+  end
+
+  def down
+    raise ActiveRecord::IrreversibleMigration
   end
 end
