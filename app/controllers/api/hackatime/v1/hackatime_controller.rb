@@ -4,7 +4,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   skip_before_action :enforce_lockout
   before_action :check_lockout, only: [ :push_heartbeats ]
 
-
   def push_heartbeats
     # Handle both single and bulk heartbeats based on format
     if params["format"] == "bulk"
@@ -210,8 +209,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       }
     end.sort_by { |item| -item[:total_seconds] }
   end
-
-
 
   def headers_to_json
     request.headers

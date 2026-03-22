@@ -87,7 +87,6 @@ class Heartbeat < ApplicationRecord
 
   belongs_to :user
 
-
   validates :time, presence: true
 
   # after_create :mirror_to_wakatime
