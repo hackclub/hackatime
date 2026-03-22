@@ -3,7 +3,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   skip_before_action :verify_authenticity_token
   skip_before_action :enforce_lockout
   before_action :check_lockout, only: [ :push_heartbeats ]
-  before_action :set_raw_heartbeat_upload, only: [ :push_heartbeats ], if: :is_blank?
+
 
   def push_heartbeats
     # Handle both single and bulk heartbeats based on format
@@ -175,11 +175,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   private
 
-  def is_blank?
-    body = body_to_json
-    body.present? && (body.is_a?(Array) ? body.any? : true)
-  end
-
   def calculate_category_stats(heartbeats, category)
     durations = heartbeats.group(category).duration_seconds
 
@@ -216,12 +211,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     end.sort_by { |item| -item[:total_seconds] }
   end
 
-  def set_raw_heartbeat_upload
-    @raw_heartbeat_upload = RawHeartbeatUpload.create!(
-      request_headers: headers_to_json,
-      request_body: body_to_json
-    )
-  end
+
 
   def headers_to_json
     request.headers
@@ -288,10 +278,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         machine: request.headers["X-Machine-Name"]
       })
       new_heartbeat = Heartbeat.find_or_create_by(attrs)
-      if @raw_heartbeat_upload.present? && new_heartbeat.persisted?
-        new_heartbeat.raw_heartbeat_upload ||= @raw_heartbeat_upload
-        new_heartbeat.save! if new_heartbeat.changed?
-      end
+
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
     rescue => e
