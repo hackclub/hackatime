@@ -86,7 +86,6 @@ class Heartbeat < ApplicationRecord
   self.inheritance_column = nil
 
   belongs_to :user
-  belongs_to :raw_heartbeat_upload, optional: true
 
   validates :time, presence: true
 
