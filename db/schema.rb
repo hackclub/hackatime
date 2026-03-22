@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_13_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_22_180603) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -301,7 +301,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_13_140000) do
     t.string "operating_system"
     t.string "project"
     t.integer "project_root_count"
-    t.bigint "raw_heartbeat_upload_id"
     t.integer "source_type", null: false
     t.float "time", null: false
     t.string "type"
@@ -315,7 +314,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_13_140000) do
     t.index ["machine"], name: "index_heartbeats_on_machine"
     t.index ["project", "time"], name: "index_heartbeats_on_project_and_time"
     t.index ["project"], name: "index_heartbeats_on_project"
-    t.index ["raw_heartbeat_upload_id"], name: "index_heartbeats_on_raw_heartbeat_upload_id"
     t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time", where: "(deleted_at IS NULL)"
@@ -486,13 +484,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_13_140000) do
     t.index ["user_id", "archived_at"], name: "index_project_repo_mappings_on_user_id_and_archived_at"
     t.index ["user_id", "project_name"], name: "index_project_repo_mappings_on_user_id_and_project_name", unique: true
     t.index ["user_id"], name: "index_project_repo_mappings_on_user_id"
-  end
-
-  create_table "raw_heartbeat_uploads", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.jsonb "request_body", null: false
-    t.jsonb "request_headers", null: false
-    t.datetime "updated_at", null: false
   end
 
   create_table "repo_host_events", id: :string, force: :cascade do |t|
@@ -683,7 +674,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_13_140000) do
   add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
-  add_foreign_key "heartbeats", "raw_heartbeat_uploads"
   add_foreign_key "heartbeats", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
   add_foreign_key "leaderboard_entries", "users"
