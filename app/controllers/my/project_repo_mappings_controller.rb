@@ -129,6 +129,8 @@ class My::ProjectRepoMappingsController < InertiaController
 
       mapping = mappings_by_name[project_key]
       display_name = project_key.presence || "Unknown"
+      broken = broken_project_name?(project_key, display_name)
+      url_safe = !broken && project_key.present?
 
       {
         id: project_card_id(project_key),
@@ -139,12 +141,12 @@ class My::ProjectRepoMappingsController < InertiaController
         duration_percent: 0,
         repo_url: mapping&.repo_url,
         repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
-        broken_name: broken_project_name?(project_key, display_name),
-        manage_enabled: current_user.github_uid.present? && project_key.present?,
-        edit_path: project_key.present? ? edit_my_project_repo_mapping_path(project_key) : nil,
-        update_path: project_key.present? ? my_project_repo_mapping_path(project_key) : nil,
-        archive_path: project_key.present? ? archive_my_project_repo_mapping_path(project_key) : nil,
-        unarchive_path: project_key.present? ? unarchive_my_project_repo_mapping_path(project_key) : nil
+        broken_name: broken,
+        manage_enabled: current_user.github_uid.present? && url_safe,
+        edit_path: url_safe ? edit_my_project_repo_mapping_path(project_key) : nil,
+        update_path: url_safe ? my_project_repo_mapping_path(project_key) : nil,
+        archive_path: url_safe ? archive_my_project_repo_mapping_path(project_key) : nil,
+        unarchive_path: url_safe ? unarchive_my_project_repo_mapping_path(project_key) : nil
       }
     end.sort_by { |project| -project[:duration_seconds] }
 
@@ -177,7 +179,7 @@ class My::ProjectRepoMappingsController < InertiaController
     key = project_key.to_s
     name = display_name.to_s
 
-    key.blank? || name.downcase == "unknown" || key.match?(/<<.*>>/) || name.match?(/<<.*>>/)
+    key.blank? || name.downcase == "unknown" || key.match?(/<<.*>>/) || name.match?(/<<.*>>/) || key.match?(/[\r\n]/)
   end
 
   def repository_payload(repository, latest_user_commit_at_by_repo_id = {})
