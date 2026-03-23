@@ -1,4 +1,6 @@
 module RepoHost
+  class RateLimitError < StandardError; end
+
   class BaseService < ApplicationService
     def initialize(user, repo_url)
       @user = user
@@ -56,7 +58,7 @@ module RepoHost
       if response.headers["X-RateLimit-Remaining"]&.to_i == 0
         reset_time = Time.at(response.headers["X-RateLimit-Reset"].to_i)
         delay_seconds = [ (reset_time - Time.current).ceil, 5 ].max
-        Rails.logger.warn "[#{self.class.name}] Rate limit exceeded. Reset in #{delay_seconds}s"
+        raise RateLimitError, "Rate limit exceeded for #{owner}/#{repo}. Reset in #{delay_seconds}s"
       end
       nil
     end
