@@ -105,7 +105,7 @@ class Settings::BaseController < InertiaController
 
   def project_list
     @project_list ||= @user.project_repo_mappings.includes(:repository).distinct.map do |mapping|
-      { display_name: mapping.project_name, repo_path: mapping.repository&.full_path || mapping.project_name }
+      { display_name: mapping.project_name, repo_path: mapping.repository&.full_path }
     end
   end
 
@@ -147,7 +147,7 @@ class Settings::BaseController < InertiaController
 
   def badges_props
     work_time_stats_base_url = @user.slack_uid.present? ? "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/" : nil
-    work_time_stats_url = if work_time_stats_base_url.present? && project_list.first.present?
+    work_time_stats_url = if work_time_stats_base_url.present? && project_list.first&.dig(:repo_path).present?
       "#{work_time_stats_base_url}#{project_list.first[:repo_path]}"
     end
 
