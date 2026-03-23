@@ -35,6 +35,25 @@ module LanguageUtils
     data.keys.find { |name| name.downcase == key }
   end
 
+  # Builds a lookup from file extension → canonical language name.
+  def self.extension_map
+    @extension_map ||= begin
+      map = {}
+      data.each do |name, info|
+        (info["extensions"] || []).each { |ext| map[ext.downcase] = name }
+      end
+      map
+    end
+  end
+
+  # Detect language from a file entity's extension.
+  def self.detect_from_extension(entity)
+    return nil if entity.blank?
+    ext = File.extname(entity).downcase
+    return nil if ext.blank?
+    extension_map[ext]
+  end
+
   # Canonical display name: "js" → "JavaScript", "cpp" → "C++"
   def self.display_name(raw)
     return "Unknown" if raw.blank?

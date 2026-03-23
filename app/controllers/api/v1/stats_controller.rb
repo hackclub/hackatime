@@ -248,6 +248,9 @@ class Api::V1::StatsController < ApplicationController
     user = User.find_by(slack_uid: id)
     return user if user
 
+    user = User.find_by(hca_id: id)
+    return user if user
+
     # email lookup, but you really should not be using this cuz like wtf
     # if identifier.include?("@")
     #   email_record = EmailAddress.find_by(email: identifier)

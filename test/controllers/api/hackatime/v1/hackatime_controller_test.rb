@@ -104,7 +104,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal "Python", heartbeats.last.language
   end
 
-  test "single heartbeat with <<LAST_LANGUAGE>> and no prior heartbeats stores nil language" do
+  test "single heartbeat with <<LAST_LANGUAGE>> and no prior heartbeats infers language from extension" do
     user = User.create!(timezone: "UTC")
     api_key = user.api_keys.create!(name: "primary")
 
@@ -128,7 +128,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
 
     assert_response :accepted
     heartbeat = Heartbeat.order(:id).last
-    assert_nil heartbeat.language
+    assert_equal "Ruby", heartbeat.language
   end
 
   test "bulk heartbeat normalizes permitted params" do

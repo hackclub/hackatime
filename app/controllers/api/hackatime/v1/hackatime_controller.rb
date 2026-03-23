@@ -247,6 +247,12 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
           .pick(:language)
       end
 
+      # Infer language from file extension when client sends blank or Unknown
+      if heartbeat[:language].blank? || heartbeat[:language] == "Unknown"
+        inferred = LanguageUtils.detect_from_extension(heartbeat[:entity])
+        heartbeat[:language] = inferred if inferred
+      end
+
       # Track the last known language for subsequent heartbeats in this batch.
       last_language = heartbeat[:language] if heartbeat[:language].present?
 

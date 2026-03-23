@@ -201,6 +201,8 @@ Rails.application.routes.draw do
       get "leaderboard/weekly", to: "leaderboard#weekly"
 
       get "stats", to: "stats#show"
+      get "badge/:user_id/*project", to: "badges#show"
+
       get "users/:username/stats", to: "stats#user_stats"
       get "users/:username/heartbeats/spans", to: "stats#user_spans"
       get "users/:username/trust_factor", to: "stats#trust_factor"
