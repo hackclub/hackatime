@@ -7,10 +7,10 @@ const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {
 });
 
 createInertiaApp({
-  // Disable progress bar
-  //
   // see https://inertia-rails.dev/guide/progress-indicators
-  // progress: false,
+  progress: {
+    color: 'var(--color-primary)',
+  },
 
   resolve: (name) => {
     const component = pages[`../pages/${name}.svelte`];
