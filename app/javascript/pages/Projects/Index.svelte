@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import { Link, router } from "@inertiajs/svelte";
   import { onMount } from "svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
@@ -156,6 +156,17 @@
   const closeStatusChangeModal = () => {
     statusChangeModalOpen = false;
     pendingStatusAction = null;
+  };
+
+  const confirmStatusChange = () => {
+    if (!pendingStatusAction) return;
+    router.patch(pendingStatusAction.path, {}, {
+      preserveScroll: true,
+      onSuccess: () => {
+        statusChangeModalOpen = false;
+        pendingStatusAction = null;
+      },
+    });
   };
 
   const cardActionClass =
@@ -567,17 +578,14 @@
         >
           Cancel
         </Button>
-        <form method="post" action={pendingStatusAction.path} class="m-0">
-          <input type="hidden" name="_method" value="patch" />
-          <input type="hidden" name="authenticity_token" value={csrfToken} />
-          <Button
-            type="submit"
-            variant="primary"
-            class="h-10 w-full text-on-primary"
-          >
-            {pendingStatusAction.confirmLabel}
-          </Button>
-        </form>
+        <Button
+          type="button"
+          variant="primary"
+          class="h-10 w-full text-on-primary"
+          onclick={confirmStatusChange}
+        >
+          {pendingStatusAction.confirmLabel}
+        </Button>
       </div>
     {/if}
   {/snippet}
