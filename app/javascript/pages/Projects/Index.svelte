@@ -160,13 +160,17 @@
 
   const confirmStatusChange = () => {
     if (!pendingStatusAction) return;
-    router.patch(pendingStatusAction.path, {}, {
-      preserveScroll: true,
-      onSuccess: () => {
-        statusChangeModalOpen = false;
-        pendingStatusAction = null;
+    router.patch(
+      pendingStatusAction.path,
+      {},
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          statusChangeModalOpen = false;
+          pendingStatusAction = null;
+        },
       },
-    });
+    );
   };
 
   const cardActionClass =
