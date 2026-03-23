@@ -3,6 +3,7 @@ class SyncRepoMetadataJob < ApplicationJob
 
   retry_on HTTP::TimeoutError, HTTP::ConnectionError, wait: :exponentially_longer, attempts: 3
   retry_on JSON::ParserError, wait: 10.seconds, attempts: 2
+  retry_on RepoHost::RateLimitError, wait: 15.minutes, attempts: 3
 
   def perform(repository_id)
     repository = Repository.find_by(id: repository_id)
