@@ -42,7 +42,7 @@
 
   type Footer = {
     git_version: string;
-    commit_link: string;
+    commit_link: string | null;
     server_start_time_ago: string;
     heartbeat_recent_count: number;
     heartbeat_recent_imported_count: number;
@@ -594,11 +594,16 @@
         <p
           class="brightness-60 hover:brightness-100 transition-all duration-200"
         >
-          Using Inertia. Build <a
-            href={layout.footer.commit_link}
-            class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
-            >{layout.footer.git_version}</a
-          >
+          Using Inertia. Build
+          {#if layout.footer.commit_link}
+            <a
+              href={layout.footer.commit_link}
+              class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
+              >{layout.footer.git_version}</a
+            >
+          {:else}
+            <span>{layout.footer.git_version}</span>
+          {/if}
           from {layout.footer.server_start_time_ago} ago. {footerStatsText()}
         </p>
         {#if layout.show_stop_impersonating}
