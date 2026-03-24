@@ -6,6 +6,12 @@ class Heartbeat < ClickhouseRecord
 
   time_range_filterable_field :time
 
+  before_create :set_fields_hash!, if: -> { fields_hash.blank? }
+
+  def set_fields_hash!
+    self.fields_hash = self.class.generate_fields_hash(attributes)
+  end
+
   scope :today, -> { where(time: Time.current.beginning_of_day.to_i..Time.current.end_of_day.to_i) }
   scope :recent, -> { where("time > ?", 24.hours.ago.to_i) }
 

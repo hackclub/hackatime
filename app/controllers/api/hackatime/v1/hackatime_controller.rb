@@ -234,7 +234,41 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   def handle_heartbeat(heartbeat_array)
     results = []
     last_language = nil
-    heartbeat_array.each do |heartbeat|
+    prepared = prepare_heartbeat_attrs(heartbeat_array)
+    all_hashes = prepared.map { |p| p[:fields_hash] }.compact
+    existing_hashes = if all_hashes.any?
+      Heartbeat.where(fields_hash: all_hashes).pluck(:fields_hash).to_set
+    else
+      Set.new
+    end
+
+    prepared.each do |item|
+      heartbeat = item[:attrs]
+      fields_hash = item[:fields_hash]
+      source_type = item[:source_type]
+
+      if existing_hashes.include?(fields_hash)
+        existing = Heartbeat.where(fields_hash: fields_hash).first
+        queue_project_mapping(heartbeat[:project])
+        results << [ existing.attributes, 201 ]
+      else
+        new_heartbeat = Heartbeat.create!(heartbeat.merge(fields_hash: fields_hash))
+        existing_hashes.add(fields_hash)
+        queue_project_mapping(heartbeat[:project])
+        results << [ new_heartbeat.attributes, 201 ]
+      end
+    rescue => e
+      report_error(e, message: "Error creating heartbeat")
+      results << [ { error: e.message, type: e.class.name }, 422 ]
+    end
+
+    PosthogService.capture_once_per_day(@user, "heartbeat_sent", { heartbeat_count: heartbeat_array.size })
+    results
+  end
+
+  def prepare_heartbeat_attrs(heartbeat_array)
+    last_language = nil
+    heartbeat_array.filter_map do |heartbeat|
       heartbeat = heartbeat.to_h.with_indifferent_access
       source_type = :direct_entry
 
@@ -283,19 +317,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       # ^^ They say safety laws are written in blood. Well, so is this line!
       # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
       fields_hash = Heartbeat.generate_fields_hash(attrs)
-      new_heartbeat = Heartbeat.find_or_create_by(fields_hash: fields_hash) do |hb|
-        hb.assign_attributes(attrs)
-      end
-
-      queue_project_mapping(heartbeat[:project])
-      results << [ new_heartbeat.attributes, 201 ]
-    rescue => e
-      report_error(e, message: "Error creating heartbeat")
-      results << [ { error: e.message, type: e.class.name }, 422 ]
+      { attrs: attrs, fields_hash: fields_hash, source_type: source_type }
     end
-
-    PosthogService.capture_once_per_day(@user, "heartbeat_sent", { heartbeat_count: heartbeat_array.size })
-    results
   end
 
   def queue_project_mapping(project_name)
