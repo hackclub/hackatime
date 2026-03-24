@@ -3,6 +3,10 @@ class Cache::HomeStatsJob < Cache::ActivityJob
 
   private
 
+  def cache_key
+    "#{super}/#{summary_refresh_version}"
+  end
+
   def calculate
     result = HeartbeatUserDailySummary.connection.select_one(<<~SQL)
       SELECT
@@ -15,5 +19,20 @@ class Cache::HomeStatsJob < Cache::ActivityJob
       users_tracked: result["users_tracked"].to_i,
       seconds_tracked: result["seconds_tracked"].to_i
     }
+  end
+
+  def summary_refresh_version
+    connection = HeartbeatUserDailySummary.connection
+    database = connection.select_value("SELECT currentDatabase()")
+
+    connection.select_value(<<~SQL)&.to_i || 0
+      SELECT toUnixTimestamp(last_success_time)
+      FROM system.view_refreshes
+      WHERE database = #{connection.quote(database)}
+        AND view = 'heartbeat_user_daily_summary_mv'
+      LIMIT 1
+    SQL
+  rescue StandardError
+    0
   end
 end
