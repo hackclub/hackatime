@@ -95,7 +95,6 @@
       preserveState: true,
       preserveScroll: true,
       replace: true,
-      async: true,
     });
   }
 </script>
