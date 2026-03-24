@@ -79,11 +79,6 @@ Rails.application.configure do
       class: "Cache::CurrentlyHackingJob",
       kwargs: { force_reload: true }
     },
-    aggregate_user_daily_summary: {
-      cron: "*/10 * * * *",
-      class: "AggregateUserDailySummaryJob",
-      description: "Aggregates heartbeats into per-user daily summaries for home stats."
-    },
     cache_home_stats: {
       cron: "*/10 * * * *",
       class: "Cache::HomeStatsJob",

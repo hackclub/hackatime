@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_24_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_24_000003) do
   # TABLE: schema_migrations
   # SQL: CREATE TABLE schema_migrations ( `version` String, `active` Int8 DEFAULT 1, `ver` DateTime DEFAULT now() ) ENGINE = ReplacingMergeTree(ver) ORDER BY (version)
   execute <<~SQL
@@ -92,5 +92,41 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000002) do
     PARTITION BY toYYYYMM(toDateTime(toUInt32(time)))
     ORDER BY (user_id, toDate(toDateTime(toUInt32(time))), project, id)
     SETTINGS index_granularity = 8192
+  SQL
+
+  # TABLE: heartbeat_user_daily_summary_mv
+  # SQL: CREATE MATERIALIZED VIEW heartbeat_user_daily_summary_mv REFRESH EVERY 10 MINUTE TO heartbeat_user_daily_summary ( `user_id` Int64, `day` Date, `duration_s` Float64, `heartbeats` UInt32 ) AS SELECT user_id, toDate(toDateTime(toUInt32(time))) AS day, sum(diff) AS duration_s, toUInt32(count()) AS heartbeats FROM ( SELECT user_id, time, least(greatest(time - lagInFrame(time, 1, time) OVER (PARTITION BY user_id ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), 120) AS diff FROM heartbeats FINAL WHERE (time IS NOT NULL) AND (time >= 0) AND (time <= 253402300799) ) GROUP BY user_id, day
+  execute <<~SQL
+    CREATE MATERIALIZED VIEW IF NOT EXISTS heartbeat_user_daily_summary_mv
+    REFRESH EVERY 10 MINUTE
+    TO heartbeat_user_daily_summary
+    AS
+    SELECT
+        user_id,
+        toDate(toDateTime(toUInt32(time))) AS day,
+        sum(diff) AS duration_s,
+        toUInt32(count()) AS heartbeats
+    FROM
+    (
+        SELECT
+            user_id,
+            time,
+            least(
+                greatest(
+                    time - lagInFrame(time, 1, time) OVER (
+                        PARTITION BY user_id
+                        ORDER BY time ASC
+                        ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+                    ),
+                    0
+                ),
+                120
+            ) AS diff
+        FROM heartbeats FINAL
+        WHERE time IS NOT NULL
+          AND time >= 0
+          AND time <= 253402300799
+    )
+    GROUP BY user_id, day
   SQL
 end
