@@ -1,3 +1,12 @@
+<%
+clickhouse_port = ENV.fetch("CLICKHOUSE_PORT", 8123).to_i
+clickhouse_ssl = if ENV.key?("CLICKHOUSE_SSL")
+  %w[1 true yes on].include?(ENV["CLICKHOUSE_SSL"].to_s.downcase)
+else
+  clickhouse_port == 8443
+end
+%>
+
 # SQLite. Versions 3.8.0 and up are supported.
 #   gem install sqlite3
 #
@@ -23,7 +32,8 @@ development:
   clickhouse:
     adapter: clickhouse
     host: <%= ENV.fetch('CLICKHOUSE_HOST', 'clickhouse') %>
-    port: <%= ENV.fetch('CLICKHOUSE_PORT', 8123) %>
+    port: <%= clickhouse_port %>
+    ssl: <%= clickhouse_ssl %>
     database: <%= ENV.fetch('CLICKHOUSE_DATABASE', 'hackatime_development') %>
     username: <%= ENV.fetch('CLICKHOUSE_USERNAME', 'default') %>
     password: <%= ENV.fetch('CLICKHOUSE_PASSWORD', '') %>
@@ -46,7 +56,8 @@ test:
   clickhouse:
     adapter: clickhouse
     host: <%= ENV.fetch('CLICKHOUSE_HOST', 'clickhouse') %>
-    port: <%= ENV.fetch('CLICKHOUSE_PORT', 8123) %>
+    port: <%= clickhouse_port %>
+    ssl: <%= clickhouse_ssl %>
     database: hackatime_test
     username: <%= ENV.fetch('CLICKHOUSE_USERNAME', 'default') %>
     password: <%= ENV.fetch('CLICKHOUSE_PASSWORD', '') %>
@@ -79,7 +90,8 @@ production:
   clickhouse:
     adapter: clickhouse
     host: <%= ENV.fetch('CLICKHOUSE_HOST', 'clickhouse') %>
-    port: <%= ENV.fetch('CLICKHOUSE_PORT', 8123) %>
+    port: <%= clickhouse_port %>
+    ssl: <%= clickhouse_ssl %>
     database: <%= ENV.fetch('CLICKHOUSE_DATABASE', 'hackatime_production') %>
     username: <%= ENV.fetch('CLICKHOUSE_USERNAME', 'default') %>
     password: <%= ENV.fetch('CLICKHOUSE_PASSWORD', '') %>
