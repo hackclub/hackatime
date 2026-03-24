@@ -131,6 +131,9 @@ GEM
     childprocess (5.1.0)
       logger (~> 1.5)
     chunky_png (1.4.0)
+    clickhouse-activerecord (1.6.7)
+      activerecord (>= 7.1, < 9.0)
+      bundler (>= 1.13.4)
     cloudflare-rails (7.0.0)
       actionpack (>= 7.2.0, < 8.2.0)
       activesupport (>= 7.2.0, < 8.2.0)
@@ -652,6 +655,7 @@ DEPENDENCIES
   brakeman
   bullet
   capybara
+  clickhouse-activerecord
   cloudflare-rails
   countries
   debug

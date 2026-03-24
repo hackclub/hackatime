@@ -58,7 +58,7 @@ module Api
                 FROM heartbeats
                 WHERE user_id = ?
                 AND time >= ? AND time <= ?
-                AND (lineno IS NOT NULL OR cursorpos IS NOT NULL)
+                AND (lineno > 0 OR cursorpos > 0)
                 LIMIT 1000000
             ),
             daily_stats AS (
@@ -83,7 +83,7 @@ module Api
                     any(lineno) AS lineno,
                     any(cursorpos) AS cursorpos
                 FROM quantized_heartbeats
-                WHERE lineno IS NOT NULL
+                WHERE lineno > 0
                 GROUP BY day_start, qx, qy_lineno
             ) AS lineno_pixels
             UNION ALL
@@ -94,7 +94,7 @@ module Api
                     any(lineno) AS lineno,
                     any(cursorpos) AS cursorpos
                 FROM quantized_heartbeats
-                WHERE cursorpos IS NOT NULL
+                WHERE cursorpos > 0
                 GROUP BY day_start, qx, qy_cursorpos
             ) AS cursorpos_pixels
             ORDER BY time ASC
@@ -218,7 +218,7 @@ module Api
             SELECT
               machine,
               uniq(user_id) AS machine_frequency,
-              groupArray(DISTINCT user_id) AS user_ids
+              groupUniqArray(user_id) AS user_ids
             FROM heartbeats
             WHERE machine != '' AND machine IS NOT NULL
               AND time > ?

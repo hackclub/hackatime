@@ -108,8 +108,10 @@ class HeartbeatImportService
     end
 
     ActiveRecord::Base.logger.silence do
-      Heartbeat.insert_all(records)
-      records.length
+      existing_hashes = Heartbeat.where(fields_hash: records.map { |r| r[:fields_hash] }).pluck(:fields_hash).to_set
+      new_records = records.reject { |r| existing_hashes.include?(r[:fields_hash]) }
+      Heartbeat.insert_all(new_records) if new_records.any?
+      new_records.length
     end
   end
 

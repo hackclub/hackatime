@@ -48,9 +48,10 @@ class WeeklySummaryMailer < ApplicationMailer
 
   def active_days_count(scope)
     timezone = @timezone_label
+    tz_quoted = Heartbeat.connection.quote(timezone)
     # ClickHouse-compatible: count distinct days using toDate with timezone
     result = Heartbeat.connection.select_value(<<~SQL)
-      SELECT uniq(toDate(toDateTime(toUInt32(time), '#{timezone}')))
+      SELECT uniq(toDate(toDateTime(toUInt32(time), #{tz_quoted})))
       FROM (#{scope.where.not(time: nil).to_sql}) AS hb
     SQL
     result.to_i

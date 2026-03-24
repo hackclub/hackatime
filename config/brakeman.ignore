@@ -3,13 +3,59 @@
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "06ca3650eaeb8d28e062c1c6dcbeab95fb2ccd0c5bb49165ad469bcb6b791d3e",
+      "fingerprint": "8bfb27cde848a37932bdcee60ced12ea578880374edf0f4b12da7b2b6fc32269",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/mailers/weekly_summary_mailer.rb",
+      "line": 53,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Heartbeat.connection.select_value(\"SELECT uniq(toDate(toDateTime(toUInt32(time), '#{@timezone_label}')))\nFROM (#{scope.where.not(:time => nil).to_sql}) AS hb\n\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "WeeklySummaryMailer",
+        "method": "active_days_count"
+      },
+      "user_input": "@timezone_label",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "Timezone is validated via ActiveSupport::TimeZone lookup"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "9b9294560765ae07af31fffc430808dc95ab2be8514b051e6d8fe06b49488832",
       "check_name": "SQL",
       "message": "Possible SQL injection",
       "file": "app/models/concerns/heartbeatable.rb",
-      "line": 175,
+      "line": 134,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Arel.sql(\"DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{(user_timezone or \"UTC\")}')\")",
+      "code": "connection.select_all(\"SELECT\\n  user_id,\\n  toDate(toDateTime(toUInt32(time))) AS day_group,\\n  toInt64(coalesce(sum(diff), 0)) AS duration\\nFROM (\\n  SELECT\\n    user_id,\\n    time,\\n    least(\\n      time - lagInFrame(time) OVER (PARTITION BY user_id, toDate(toDateTime(toUInt32(time))) ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW),\\n      #{heartbeat_timeout_duration.to_i}\\n    ) AS diff\\n  FROM heartbeats\\n  WHERE user_id IN (#{user_ids.select do\\n Rails.cache.read_multi(*user_ids.map do\\n \\\"user_streak_#{id}\\\"\\n end)[\\\"user_streak_#{id}\\\"].nil?\\n end.join(\\\",\\\")})\\n    AND category = 'coding'\\n    AND time >= 0 AND time <= 253402300799\\n    AND time >= #{[start_date, 30.days.ago].max.to_f}\\n    AND time <= #{Time.current.to_f}\\n)\\nGROUP BY user_id, day_group\\n\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "daily_streaks_for_users"
+      },
+      "user_input": "user_ids.select do\n Rails.cache.read_multi(*user_ids.map do\n \"user_streak_#{id}\"\n end)[\"user_streak_#{id}\"].nil?\n end.join(\",\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "user_ids are integer IDs from internal queries, not user input"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "c3d4e314e4dbd66500b55b2a0edc8b337ec85f907eb151248ba5c109e679c7fb",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 205,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_all(\"SELECT\\n  toDate(toDateTime(toUInt32(time), '#{(user_timezone or \\\"UTC\\\")}')) AS day_group,\\n  toInt64(coalesce(sum(diff), 0)) AS duration\\nFROM (\\n  SELECT\\n    time,\\n    least(\\n      time - lagInFrame(time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW),\\n      #{heartbeat_timeout_duration.to_i}\\n    ) AS diff\\n  FROM (#{with_valid_timestamps.where(:time => ((start_date.to_f..end_date.to_f))).to_sql}) AS hb\\n)\\nGROUP BY day_group\\nORDER BY day_group\\n\")",
       "render_path": null,
       "location": {
         "type": "method",
@@ -21,7 +67,7 @@
       "cwe_id": [
         89
       ],
-      "note": ""
+      "note": "Timezone is validated against TZInfo::Timezone.all_identifiers"
     },
     {
       "warning_type": "SQL Injection",
