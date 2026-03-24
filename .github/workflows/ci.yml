@@ -113,6 +113,11 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: app_test
+      clickhouse:
+        image: clickhouse/clickhouse-server:latest
+        ports:
+          - 8123:8123
+        options: --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - name: Checkout code
@@ -130,6 +135,7 @@ jobs:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
           PGHOST: localhost
           PGUSER: postgres
+          CLICKHOUSE_HOST: localhost
           PGPASSWORD: postgres
         run: |
           bin/rails db:create RAILS_ENV=test
@@ -142,6 +148,7 @@ jobs:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
           PGHOST: localhost
           PGUSER: postgres
+          CLICKHOUSE_HOST: localhost
           PGPASSWORD: postgres
         run: |
           bin/rails rswag:specs:swaggerize
@@ -160,6 +167,11 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: app_test
+      clickhouse:
+        image: clickhouse/clickhouse-server:latest
+        ports:
+          - 8123:8123
+        options: --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - name: Checkout code
@@ -200,6 +212,7 @@ jobs:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
           PGHOST: localhost
           PGUSER: postgres
+          CLICKHOUSE_HOST: localhost
           PGPASSWORD: postgres
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
           CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
