@@ -103,6 +103,4 @@ class Heartbeat < ClickhouseRecord
   def self.indexed_attributes
     %w[user_id branch category dependencies editor entity language machine operating_system project type user_agent line_additions line_deletions lineno lines cursorpos project_root_count time is_write]
   end
-
-
 end
