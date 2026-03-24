@@ -2,6 +2,10 @@ require "test_helper"
 require "webmock/minitest"
 
 class HeartbeatImportDumpClientTest < ActiveSupport::TestCase
+  setup do
+    WebMock.disable_net_connect!(allow_localhost: true)
+  end
+
   test "valid_wakatime_download_url? only accepts wakatime s3 links over https" do
     assert HeartbeatImportDumpClient.valid_wakatime_download_url?("https://wakatime.s3.amazonaws.com/export.json?signature=abc")
     assert_not HeartbeatImportDumpClient.valid_wakatime_download_url?("http://wakatime.s3.amazonaws.com/export.json")
