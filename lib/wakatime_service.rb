@@ -2,6 +2,8 @@ include ApplicationHelper
 include ErrorReporting
 
 class WakatimeService
+  include WakatimeShared
+
   def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil)
     @scope = scope || Heartbeat.all
     @user = user
@@ -84,43 +86,13 @@ class WakatimeService
     result
   end
 
-  def self.parse_user_agent(user_agent)
-    # Based on https://github.com/muety/wakapi/blob/b3668085c01dc0724d8330f4d51efd5b5aecaeb2/utils/http.go#L89
+  def self.categorize_language(language)
+    return nil if language.blank?
 
-    # Regex pattern to match wakatime client user agents
-    user_agent_pattern = /wakatime\/[^ ]+ \(([^)]+)\)(?: [^ ]+ ([^\/]+)(?:\/([^\/]+))?)?/
-
-    if matches = user_agent.match(user_agent_pattern)
-      os = matches[1].split("-").first
-
-      editor = matches[2]
-      editor ||= ""
-
-      { os: os, editor: editor, err: nil }
-    else
-      # Try parsing as browser user agent as fallback
-      if browser_ua = user_agent.match(/^([^\/]+)\/([^\/\s]+)/)
-        # If "wakatime" is present, assume it's the browser extension
-        if user_agent.include?("wakatime") then
-            full_os = user_agent.split(" ")[1]
-            if full_os.present?
-              os = full_os.include?("_") ? full_os.split("_")[0] : full_os
-              { os: os, editor: browser_ua[1].downcase, err: nil }
-            else
-              { os: "", editor: "", err: "failed to parse user agent string" }
-            end
-        else
-          { os: browser_ua[1], editor: browser_ua[2], err: nil }
-        end
-      else
-        { os: "", editor: "", err: "failed to parse user agent string" }
-      end
-    end
-  rescue => e
-    report_error(e, message: "Error parsing user agent string")
-    { os: "", editor: "", err: "failed to parse user agent string" }
+    LanguageUtils.display_name(language)
   end
 
+  private
 
   def transform_display_name(group_by, key)
     value = key.presence || "Other"
@@ -135,14 +107,6 @@ class WakatimeService
       value
     end
   end
-
-  def self.categorize_language(language)
-    return nil if language.blank?
-
-    LanguageUtils.display_name(language)
-  end
-
-  private
 
   def summary_cache_key
     [
@@ -161,24 +125,5 @@ class WakatimeService
     return HeartbeatCacheInvalidator.version_for(@user) if @user.present?
 
     @scope.maximum(:time).to_i
-  end
-
-  def convert_to_unix_timestamp(timestamp)
-    # our lord and savior stack overflow for this bit of code
-    return nil if timestamp.nil?
-
-    case timestamp
-    when String
-      Time.parse(timestamp).to_i
-    when Time, DateTime, Date
-      timestamp.to_i
-    when Numeric
-      timestamp.to_i
-    else
-      nil
-    end
-  rescue ArgumentError => e
-    report_error(e, message: "Error converting timestamp")
-    nil
   end
 end

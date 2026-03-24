@@ -18,8 +18,6 @@ class OneTime::BackfillHeartbeatEditorJob < ApplicationJob
       # Store the parsed values for bulk update
       heartbeat.editor = parsed_ua[:editor]
       heartbeat.operating_system = parsed_ua[:os]
-      # Regenerate fields_hash before adding to processed records
-      heartbeat.fields_hash = Heartbeat.generate_fields_hash(heartbeat.attributes)
       processed_heartbeats << heartbeat
 
       # When we have 1000 records, update them and clear the array
@@ -45,7 +43,7 @@ class OneTime::BackfillHeartbeatEditorJob < ApplicationJob
     Heartbeat.import heartbeats,
       on_duplicate_key_update: {
         conflict_target: [ :id ],
-        columns: [ :editor, :operating_system, :updated_at, :fields_hash ]
+        columns: [ :editor, :operating_system, :updated_at ]
       }
   end
 end

@@ -102,8 +102,15 @@ module Heartbeatable
         return user_ids.index_with { |id| streak_cache["user_streak_#{id}"] || 0 }
       end
 
-      # Fetch user timezones from Postgres
-      user_timezones = User.where(id: uncached_users).pluck(:id, :timezone).to_h
+      # Fetch user timezones from Postgres, validate once upfront
+      raw_timezones = User.where(id: uncached_users).pluck(:id, :timezone).to_h
+      user_timezones = raw_timezones.transform_values do |tz|
+        begin
+          TZInfo::Timezone.get(tz) && tz
+        rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
+          "UTC"
+        end
+      end
 
       timeout = heartbeat_timeout_duration.to_i
 
@@ -127,12 +134,6 @@ module Heartbeatable
       daily_durations = rows.group_by { |row| row["user_id"].to_i }.transform_values do |user_rows|
         user_id = user_rows.first["user_id"].to_i
         timezone = user_timezones[user_id] || "UTC"
-
-        begin
-          TZInfo::Timezone.get(timezone)
-        rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
-          timezone = "UTC"
-        end
 
         durations_by_day = Hash.new(0)
         previous_time = nil
@@ -158,13 +159,6 @@ module Heartbeatable
 
       daily_durations.each do |user_id, days|
         timezone = user_timezones[user_id] || "UTC"
-
-        begin
-          TZInfo::Timezone.get(timezone)
-        rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
-          timezone = "UTC"
-        end
-
         current_date = Time.current.in_time_zone(timezone).to_date
 
         streak = 0

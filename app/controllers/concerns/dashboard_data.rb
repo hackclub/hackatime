@@ -100,7 +100,7 @@ module DashboardData
         timeout = Heartbeat.heartbeat_timeout_duration.to_i
         tz = current_user.timezone
         weekly_sql = weekly_hb
-          .select("toStartOfWeek(toDateTime(toUInt32(time), '#{tz}'), 1) as week_start, `project` as grouped_time, least(time - lagInFrame(time, 1, time) OVER (PARTITION BY `project`, toStartOfWeek(toDateTime(toUInt32(time), '#{tz}'), 1) ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), #{timeout}) as diff")
+          .select("toStartOfWeek(toDateTime(toUInt32(time), '#{tz}'), 1) as week_start, `project` as grouped_time, least(greatest(time - lagInFrame(time, 1, time) OVER (PARTITION BY `project`, toStartOfWeek(toDateTime(toUInt32(time), '#{tz}'), 1) ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), #{timeout}) as diff")
           .where.not(time: nil)
           .with_valid_timestamps
           .to_sql
@@ -188,9 +188,12 @@ module DashboardData
 
   def cached_dashboard_filter_options
     Rails.cache.fetch([ "dashboard-filter-options", current_user.id, heartbeat_cache_version ], expires_in: 15.minutes) do
-      %i[project language operating_system editor category].index_with do |filter|
-        current_user.heartbeats.distinct.pluck(filter).compact_blank
-      end
+      conn = Heartbeat.connection
+      user_id = conn.quote(current_user.id)
+      filters = %i[project language operating_system editor category]
+      sql = filters.map { |f| "groupUniqArray(#{f}) AS #{f}_values" }.join(", ")
+      row = conn.select_one("SELECT #{sql} FROM heartbeats WHERE user_id = #{user_id}")
+      filters.index_with { |f| Array(row["#{f}_values"]).reject(&:blank?) }
     end
   end
 

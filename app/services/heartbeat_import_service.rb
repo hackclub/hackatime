@@ -7,7 +7,7 @@ class HeartbeatImportService
     imported_count = 0
     total_count = 0
     errors = []
-    seen_hashes = {}
+    batch = []
 
     handler = HeartbeatSaxHandler.new do |hb|
       total_count += 1
@@ -40,14 +40,11 @@ class HeartbeatImportService
           source_type: Heartbeat.source_types.fetch("wakapi_import")
         }
 
-        attrs[:fields_hash] = Heartbeat.generate_fields_hash(attrs)
+        batch << attrs
 
-        existing = seen_hashes[attrs[:fields_hash]]
-        seen_hashes[attrs[:fields_hash]] = attrs if existing.nil? || attrs[:time] > existing[:time]
-
-        if seen_hashes.size >= BATCH_SIZE
-          imported_count += flush_batch(seen_hashes)
-          seen_hashes.clear
+        if batch.size >= BATCH_SIZE
+          imported_count += flush_batch(user_id, batch)
+          batch.clear
         end
       rescue => e
         errors << { heartbeat: hb, error: e.message }
@@ -60,7 +57,7 @@ class HeartbeatImportService
     if total_count.zero?
       raise StandardError, "Expected a heartbeat export JSON file."
     end
-    imported_count += flush_batch(seen_hashes) if seen_hashes.any?
+    imported_count += flush_batch(user_id, batch) if batch.any?
 
     elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
@@ -97,56 +94,26 @@ class HeartbeatImportService
     total_count
   end
 
-  def self.flush_batch(seen_hashes)
-    return 0 if seen_hashes.empty?
+  def self.flush_batch(user_id, records)
+    return 0 if records.empty?
 
-    records = seen_hashes.values
-    user_id = records.first[:user_id]
-    records.each do |r|
-      timestamp = Time.current
-      r[:created_at] = timestamp
-      r[:updated_at] = timestamp
+    now = Time.current
+    base_us = (now.to_r * 1_000_000).to_i
+    records.each_with_index do |r, i|
+      r[:id] = ((base_us + i) << Heartbeat::CLICKHOUSE_ID_RANDOM_BITS) | SecureRandom.random_number(Heartbeat::CLICKHOUSE_ID_RANDOM_MAX)
+      r[:created_at] = now
+      r[:updated_at] = now
     end
 
     ActiveRecord::Base.logger.silence do
-      new_records = []
-
-      User.transaction do
-        User.lock.find(user_id)
-
-        existing_hashes = Heartbeat.where(user_id: user_id, fields_hash: records.map { |r| r[:fields_hash] }).pluck(:fields_hash).to_set
-        new_records = records.reject { |r| existing_hashes.include?(r[:fields_hash]) }
-
-        if new_records.any?
-          Heartbeat.connection.with_settings(async_insert: 0, wait_for_async_insert: 1) do
-            Heartbeat.insert_all(new_records)
-          end
-          Heartbeat.connection.clear_query_cache
-          wait_until_visible!(
-            user_id,
-            new_records.map { |record| record[:fields_hash] },
-            expected_min_time: new_records.map { |record| record[:time].to_f }.min
-          )
-        end
+      Heartbeat.connection.with_settings(async_insert: 0, wait_for_async_insert: 1) do
+        Heartbeat.insert_all(records)
       end
-
-      HeartbeatCacheInvalidator.bump_for(user_id) if new_records.any?
-      new_records.length
+      Heartbeat.connection.clear_query_cache
     end
-  end
 
-  def self.wait_until_visible!(user_id, fields_hashes, expected_min_time:)
-    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 2
-
-    loop do
-      visible_count = Heartbeat.where(user_id: user_id, fields_hash: fields_hashes).count
-      visible_min_time = Heartbeat.where(user_id: user_id).minimum(:time).to_f
-      return if visible_count >= fields_hashes.length && visible_min_time <= expected_min_time
-
-      break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
-
-      sleep 0.01
-    end
+    HeartbeatCacheInvalidator.bump_for(user_id)
+    records.length
   end
 
   class HeartbeatSaxHandler < Oj::Saj

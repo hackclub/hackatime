@@ -2,6 +2,8 @@ include ApplicationHelper
 include ErrorReporting
 
 class TestWakatimeService
+  include WakatimeShared
+
   def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil, boundary_aware: false)
     @scope = scope || Heartbeat.all
     # trusting time from hackatime extensions.....
@@ -56,11 +58,9 @@ class TestWakatimeService
     summary[:human_readable_range] = "All Time"
 
     @total_seconds = if @boundary_aware
-      result = Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date) || 0
-      result
+      Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date) || 0
     else
-      result = @scope.duration_seconds || 0
-      result
+      @scope.duration_seconds || 0
     end
 
     summary[:total_seconds] = @total_seconds
@@ -97,60 +97,6 @@ class TestWakatimeService
     result
   end
 
-  def self.parse_user_agent(user_agent)
-    # Based on https://github.com/muety/wakapi/blob/b3668085c01dc0724d8330f4d51efd5b5aecaeb2/utils/http.go#L89
-
-    # Regex pattern to match wakatime client user agents
-    user_agent_pattern = /wakatime\/[^ ]+ \(([^)]+)\)(?: [^ ]+ ([^\/]+)(?:\/([^\/]+))?)?/
-
-    if matches = user_agent.match(user_agent_pattern)
-      os = matches[1].split("-").first
-
-      editor = matches[2]
-      editor ||= ""
-
-      { os: os, editor: editor, err: nil }
-    else
-      # Try parsing as browser user agent as fallback
-      if browser_ua = user_agent.match(/^([^\/]+)\/([^\/\s]+)/)
-        # If "wakatime" is present, assume it's the browser extension
-        if user_agent.include?("wakatime") then
-            full_os = user_agent.split(" ")[1]
-            if full_os.present?
-              os = full_os.include?("_") ? full_os.split("_")[0] : full_os
-              { os: os, editor: browser_ua[1].downcase, err: nil }
-            else
-              { os: "", editor: "", err: "failed to parse user agent string" }
-            end
-        else
-          { os: browser_ua[1], editor: browser_ua[2], err: nil }
-        end
-      else
-        { os: "", editor: "", err: "failed to parse user agent string" }
-      end
-    end
-  rescue => e
-    report_error(e, message: "Error parsing user agent string")
-    { os: "", editor: "", err: "failed to parse user agent string" }
-  end
-
-  def categorize_os(os)
-    case os.downcase
-    when "win" then "Windows"
-    when "darwin" then "MacOS"
-    when os.include?("windows") then "Windows"
-    else os.capitalize
-    end
-  end
-
-  def categorize_editor(editor)
-    case editor.downcase
-    when "vscode" then "VSCode"
-    when "KTextEditor" then "Kate"
-    else editor.capitalize
-    end
-  end
-
   private
 
   def summary_cache_key
@@ -171,24 +117,5 @@ class TestWakatimeService
     return HeartbeatCacheInvalidator.version_for(@user) if @user.present?
 
     @scope.maximum(:time).to_i
-  end
-
-  def convert_to_unix_timestamp(timestamp)
-    # our lord and savior stack overflow for this bit of code
-    return nil if timestamp.nil?
-
-    case timestamp
-    when String
-      Time.parse(timestamp).to_i
-    when Time, DateTime, Date
-      timestamp.to_i
-    when Numeric
-      timestamp.to_i
-    else
-      nil
-    end
-  rescue ArgumentError => e
-    report_error(e, message: "Error converting timestamp")
-    nil
   end
 end

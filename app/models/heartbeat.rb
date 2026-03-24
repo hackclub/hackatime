@@ -8,23 +8,18 @@ class Heartbeat < ClickhouseRecord
   time_range_filterable_field :time
 
   before_create :set_clickhouse_id!, if: -> { self[:id].blank? }
-  before_create :set_fields_hash!, if: -> { fields_hash.blank? }
   after_create :invalidate_user_heartbeat_caches
   after_update :invalidate_user_heartbeat_caches
 
   CLICKHOUSE_ID_RANDOM_BITS = 10
   CLICKHOUSE_ID_RANDOM_MAX = 1 << CLICKHOUSE_ID_RANDOM_BITS
 
-  def set_fields_hash!
-    self.fields_hash = self.class.generate_fields_hash(attributes)
-  end
-
   def set_clickhouse_id!
     timestamp_us = (Time.current.to_r * 1_000_000).to_i
     self[:id] = (timestamp_us << CLICKHOUSE_ID_RANDOM_BITS) | SecureRandom.random_number(CLICKHOUSE_ID_RANDOM_MAX)
   end
 
-  scope :today, -> { where(time: Time.current.beginning_of_day.to_i..Time.current.end_of_day.to_i) }
+  scope :today, -> { where(time: Time.current.beginning_of_day.to_f..Time.current.end_of_day.to_f) }
   scope :recent, -> { where("time > ?", 24.hours.ago.to_i) }
 
   enum :source_type, {
@@ -110,16 +105,6 @@ class Heartbeat < ClickhouseRecord
 
   def self.recent_imported_count
     Cache::HeartbeatCountsJob.perform_now[:recent_imported_count]
-  end
-
-  def self.generate_fields_hash(attributes)
-    string_attributes = attributes.transform_keys(&:to_s)
-    indexed_attributes = string_attributes.slice(*self.indexed_attributes)
-    Digest::MD5.hexdigest(indexed_attributes.to_json)
-  end
-
-  def self.indexed_attributes
-    %w[user_id branch category dependencies editor entity language machine operating_system project type user_agent line_additions line_deletions lineno lines cursorpos project_root_count time is_write]
   end
 
   private

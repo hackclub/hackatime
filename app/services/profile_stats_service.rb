@@ -61,7 +61,10 @@ class ProfileStatsService
           language,
           editor,
           least(
-            time - lagInFrame(time, 1, time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW),
+            greatest(
+              time - lagInFrame(time, 1, time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW),
+              0
+            ),
             #{timeout_quoted}
           ) AS diff
         FROM heartbeats
