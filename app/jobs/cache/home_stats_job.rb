@@ -4,10 +4,16 @@ class Cache::HomeStatsJob < Cache::ActivityJob
   private
 
   def calculate
-    seconds_by_user = Heartbeat.group(:user_id).duration_seconds
+    result = HeartbeatUserDailySummary.connection.select_one(<<~SQL)
+      SELECT
+        uniq(user_id) AS users_tracked,
+        toInt64(coalesce(sum(duration_s), 0)) AS seconds_tracked
+      FROM heartbeat_user_daily_summary FINAL
+    SQL
+
     {
-      users_tracked: seconds_by_user.size,
-      seconds_tracked: seconds_by_user.values.sum
+      users_tracked: result["users_tracked"].to_i,
+      seconds_tracked: result["seconds_tracked"].to_i
     }
   end
 end

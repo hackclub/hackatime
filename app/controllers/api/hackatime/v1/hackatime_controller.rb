@@ -282,7 +282,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       }).slice(*Heartbeat.column_names.map(&:to_sym))
       # ^^ They say safety laws are written in blood. Well, so is this line!
       # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
-      new_heartbeat = Heartbeat.find_or_create_by(attrs)
+      new_heartbeat = Heartbeat.create(attrs)
 
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]

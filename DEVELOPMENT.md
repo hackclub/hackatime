@@ -40,6 +40,8 @@ HCA_CLIENT_ID=<hca_client_id>
 HCA_CLIENT_SECRET=<hca_client_secret>
 ```
 
+ClickHouse is automatically started by Docker Compose alongside Postgres — no extra setup needed.
+
 Start the containers:
 
 ```sh
@@ -51,6 +53,7 @@ We'll now setup the database. In your container shell, run the following:
 
 ```bash
 app# bin/rails db:create db:schema:load db:seed
+app# bin/rails db:migrate:clickhouse
 ```
 
 Run the Vite build with SSR (server-side-rendering):

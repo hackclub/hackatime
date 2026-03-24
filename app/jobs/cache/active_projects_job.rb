@@ -8,14 +8,30 @@ class Cache::ActiveProjectsJob < Cache::ActivityJob
   end
 
   def calculate
-    # Get recent heartbeats with matching project_repo_mappings in a single SQL query
-    ProjectRepoMapping.active
-                      .joins("INNER JOIN heartbeats ON heartbeats.project = project_repo_mappings.project_name AND heartbeats.user_id = project_repo_mappings.user_id")
-                      .joins("INNER JOIN users ON users.id = heartbeats.user_id")
-                      .where("heartbeats.source_type = ?", Heartbeat.source_types[:direct_entry])
-                      .where("heartbeats.time > ?", 5.minutes.ago.to_f)
-                      .select("DISTINCT ON (heartbeats.user_id) project_repo_mappings.*, heartbeats.user_id")
-                      .order("heartbeats.user_id, heartbeats.time DESC")
-                      .index_by(&:user_id)
+    # Query recent heartbeats from ClickHouse
+    recent_hbs = Heartbeat.where(source_type: Heartbeat.source_types[:direct_entry])
+                          .where("time > ?", 5.minutes.ago.to_f)
+                          .order(time: :desc)
+                          .to_a
+
+    # Deduplicate by user_id (most recent heartbeat per user)
+    latest_by_user = recent_hbs.group_by(&:user_id).transform_values(&:first)
+
+    return {} if latest_by_user.empty?
+
+    # Find matching project_repo_mappings from Postgres
+    user_ids = latest_by_user.keys
+
+    mappings = ProjectRepoMapping.active
+                                 .where(user_id: user_ids)
+                                 .to_a
+
+    result = {}
+    latest_by_user.each do |user_id, hb|
+      mapping = mappings.find { |m| m.user_id == user_id && m.project_name == hb.project }
+      result[user_id] = mapping if mapping
+    end
+
+    result
   end
 end

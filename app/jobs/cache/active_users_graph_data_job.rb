@@ -5,21 +5,24 @@ class Cache::ActiveUsersGraphDataJob < Cache::ActivityJob
 
   def calculate
     # over the last 24 hours, count the number of people who were active each hour
-    hours = Heartbeat.coding_only
-                     .with_valid_timestamps
-                     .where("time > ?", 24.hours.ago.to_f)
-                     .where("time < ?", Time.current.to_f)
-                     .select("(EXTRACT(EPOCH FROM to_timestamp(time))::bigint / 3600 * 3600) as hour, COUNT(DISTINCT user_id) as count")
-                     .group("hour")
-                     .order("hour DESC")
+    connection = Heartbeat.connection
+    hours = connection.select_all(<<~SQL
+      SELECT
+        toInt64(toUInt32(time) / 3600) * 3600 AS hour,
+        uniq(user_id) AS count
+      FROM (#{Heartbeat.coding_only.with_valid_timestamps.where("time > ?", 24.hours.ago.to_f).where("time < ?", Time.current.to_f).to_sql}) AS hb
+      GROUP BY hour
+      ORDER BY hour DESC
+    SQL
+    )
 
-    top_hour_count = hours.max_by(&:count)&.count || 1
+    top_hour_count = hours.map { |h| h["count"].to_i }.max || 1
 
     hours = hours.map do |h|
       {
-        hour: Time.at(h.hour),
-        users: h.count,
-        height: (h.count.to_f / top_hour_count * 100).round
+        hour: Time.at(h["hour"].to_i),
+        users: h["count"].to_i,
+        height: (h["count"].to_f / top_hour_count * 100).round
       }
     end
   end

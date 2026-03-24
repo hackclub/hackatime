@@ -1,18 +1,13 @@
-class Heartbeat < ApplicationRecord
-  before_save :set_fields_hash!
+class Heartbeat < ClickhouseRecord
+  self.table_name = "heartbeats"
 
   include Heartbeatable
   include TimeRangeFilterable
 
   time_range_filterable_field :time
 
-  # Default scope to exclude deleted records
-  default_scope { where(deleted_at: nil) }
-
   scope :today, -> { where(time: Time.current.beginning_of_day.to_i..Time.current.end_of_day.to_i) }
   scope :recent, -> { where("time > ?", 24.hours.ago.to_i) }
-  scope :with_deleted, -> { unscope(where: :deleted_at) }
-  scope :only_deleted, -> { with_deleted.where.not(deleted_at: nil) }
 
   enum :source_type, {
     direct_entry: 0,
@@ -82,14 +77,14 @@ class Heartbeat < ApplicationRecord
     neighborhood: 58
   }, prefix: :claimed_by
 
-  # This is to prevent Rails from trying to use STI even though we have a "type" column
+  # Prevent Rails STI on the "type" column
   self.inheritance_column = nil
 
+  # Note: cross-database joins (Postgres users <-> ClickHouse heartbeats) will not work.
+  # Use separate queries instead of .joins(:heartbeats) or .includes(:heartbeats).
   belongs_to :user
 
   validates :time, presence: true
-
-  # after_create :mirror_to_wakatime
 
   def self.recent_count
     Cache::HeartbeatCountsJob.perform_now[:recent_count]
@@ -109,24 +104,5 @@ class Heartbeat < ApplicationRecord
     %w[user_id branch category dependencies editor entity language machine operating_system project type user_agent line_additions line_deletions lineno lines cursorpos project_root_count time is_write]
   end
 
-  def soft_delete
-    update_column(:deleted_at, Time.current)
-  end
 
-  def restore
-    update_column(:deleted_at, nil)
-  end
-
-  private
-
-  def set_fields_hash!
-    # only if the field exists in activerecord
-    if self.class.column_names.include?("fields_hash")
-      self.fields_hash = self.class.generate_fields_hash(self.attributes)
-    end
-  end
-
-  # def mirror_to_wakatime
-  #   WakatimeMirror.mirror_heartbeat(self)
-  # end
 end

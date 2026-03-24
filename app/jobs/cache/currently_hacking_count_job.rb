@@ -8,12 +8,11 @@ class Cache::CurrentlyHackingCountJob < Cache::ActivityJob
   end
 
   def calculate
-    count = Heartbeat.joins(:user)
-                    .where(source_type: :direct_entry)
+    count = Heartbeat.where(source_type: :direct_entry)
                     .coding_only
                     .where("time > ?", 5.minutes.ago.to_f)
-                    .select("DISTINCT user_id")
-                    .count
+                    .distinct
+                    .count(:user_id)
 
     { count: count }
   end

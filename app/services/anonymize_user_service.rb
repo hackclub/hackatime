@@ -75,8 +75,8 @@ class AnonymizeUserService < ApplicationService
     user.project_repo_mappings.destroy_all
     user.goals.destroy_all
 
-    # tombstone
-    Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)
+    # Delete heartbeats from ClickHouse
+    Heartbeat.where(user_id: user.id).delete_all
 
     user.access_grants.destroy_all
     user.access_tokens.destroy_all

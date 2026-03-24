@@ -8,17 +8,24 @@ class Cache::CurrentlyHackingJob < Cache::ActivityJob
   end
 
   def calculate
-    # Get most recent heartbeats and users in a single query
-    recent_heartbeats = Heartbeat.joins(:user)
-                                .where(source_type: :direct_entry)
-                                .coding_only
-                                .where("time > ?", 5.minutes.ago.to_f)
-                                .select("DISTINCT ON (user_id) user_id, project, time, users.*")
-                                .order("user_id, time DESC")
-                                .includes(user: [ :project_repo_mappings, :email_addresses ])
-                                .index_by(&:user_id)
+    # Query ClickHouse for recent heartbeats (no cross-DB join)
+    raw_heartbeats = Heartbeat.where(source_type: :direct_entry)
+                              .coding_only
+                              .where("time > ?", 5.minutes.ago.to_f)
+                              .order(time: :desc)
+                              .to_a
 
-    users = recent_heartbeats.values.map(&:user)
+    # Deduplicate by user_id (keep most recent)
+    recent_heartbeats = raw_heartbeats.group_by(&:user_id)
+                                      .transform_values(&:first)
+
+    # Load users from Postgres
+    user_ids = recent_heartbeats.keys
+    users_by_id = User.where(id: user_ids)
+                      .includes(:project_repo_mappings, :email_addresses)
+                      .index_by(&:id)
+
+    users = user_ids.filter_map { |uid| users_by_id[uid] }
 
     active_projects = {}
     users.each do |user|

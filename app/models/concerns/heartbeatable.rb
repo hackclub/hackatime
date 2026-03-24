@@ -2,11 +2,7 @@ module Heartbeatable
   extend ActiveSupport::Concern
 
   included do
-    # Filter heartbeats to only include those with category equal to "coding"
     scope :coding_only, -> { where(category: "coding") }
-
-    # This is to prevent PG timestamp overflow errors if someones gives us a
-    # heartbeat with a time that is enormously far in the future.
     scope :with_valid_timestamps, -> { where("time >= 0 AND time <= ?", 253402300799) }
   end
 
@@ -28,7 +24,7 @@ module Heartbeatable
       sql = <<~SQL
         SELECT
           time,
-          LEAD(time) OVER (ORDER BY time) as next_time
+          leadInFrame(time) OVER (ORDER BY time ASC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) as next_time
         FROM (#{heartbeats.to_sql}) AS heartbeats
       SQL
 
@@ -42,10 +38,10 @@ module Heartbeatable
         current_time = row["time"]
         next_time = row["next_time"]
 
-        if next_time.nil? || (next_time - current_time) > timeout_duration
+        if next_time.nil? || next_time == 0 || (next_time - current_time) > timeout_duration
           base_duration = (current_time - current_span_start).round
 
-          if next_time
+          if next_time && next_time != 0
             gap_duration = [ next_time - current_time, timeout_duration ].min
             total_duration = base_duration + gap_duration
             end_time = current_time + gap_duration
@@ -62,7 +58,7 @@ module Heartbeatable
             }
           end
 
-          current_span_start = next_time if next_time
+          current_span_start = next_time if next_time && next_time != 0
         end
       end
 
@@ -79,9 +75,6 @@ module Heartbeatable
     end
 
     def duration_simple(scope = all)
-      # 3 hours 10 min => "3 hrs"
-      # 1 hour 10 min => "1 hr"
-      # 10 min => "10 min"
       seconds = duration_seconds(scope)
       hours = seconds / 3600
       minutes = (seconds % 3600) / 60
@@ -109,70 +102,67 @@ module Heartbeatable
         return user_ids.index_with { |id| streak_cache["user_streak_#{id}"] || 0 }
       end
 
+      # Fetch user timezones from Postgres
+      user_timezones = User.where(id: uncached_users).pluck(:id, :timezone).to_h
+
       timeout = heartbeat_timeout_duration.to_i
-      raw_durations = joins(:user)
-        .where(user_id: uncached_users)
-        .coding_only
-        .with_valid_timestamps
-        .where(time: start_date..Time.current)
-        .select(
-          :user_id,
-          "users.timezone as user_timezone",
-          Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone) as day_group"),
-          Arel.sql("LEAST(time - LAG(time) OVER (PARTITION BY user_id, DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone) ORDER BY time), #{timeout}) as diff")
+
+      # Query heartbeats from ClickHouse (no cross-DB join)
+      raw_sql = <<~SQL
+        SELECT
+          user_id,
+          toDate(toDateTime(toUInt32(time))) AS day_group,
+          toInt64(coalesce(sum(diff), 0)) AS duration
+        FROM (
+          SELECT
+            user_id,
+            time,
+            least(
+              time - lagInFrame(time) OVER (PARTITION BY user_id, toDate(toDateTime(toUInt32(time))) ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW),
+              #{timeout}
+            ) AS diff
+          FROM heartbeats
+          WHERE user_id IN (#{uncached_users.join(',')})
+            AND category = 'coding'
+            AND time >= 0 AND time <= 253402300799
+            AND time >= #{start_date.to_f}
+            AND time <= #{Time.current.to_f}
         )
+        GROUP BY user_id, day_group
+      SQL
 
-      # Then aggregate the results
-      daily_durations = connection.select_all(
-        "SELECT user_id, user_timezone, day_group, COALESCE(SUM(diff), 0)::integer as duration
-         FROM (#{raw_durations.to_sql}) AS diffs
-         GROUP BY user_id, user_timezone, day_group"
-      ).group_by { |row| row["user_id"] }
-       .transform_values do |rows|
-         timezone = rows.first["user_timezone"]
+      rows = connection.select_all(raw_sql)
 
-         if timezone.blank?
-           Rails.logger.warn "nil tz, going to utc."
-           timezone = "UTC"
-         else
-           begin
-             TZInfo::Timezone.get(timezone)
-           rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
-             Rails.logger.warn "Invalid timezone for streak calculation: #{timezone}. Defaulting to UTC."
-             timezone = "UTC"
-           end
-         end
-
-         current_date = Time.current.in_time_zone(timezone).to_date
-         {
-           current_date: current_date,
-           days: rows.map do |row|
-             [ row["day_group"].to_date, row["duration"].to_i ]
-           end.sort_by { |date, _| date }.reverse
-         }
-       end
+      daily_durations = rows.group_by { |row| row["user_id"].to_i }
+        .transform_values do |user_rows|
+          user_rows.map do |row|
+            [ row["day_group"].to_date, row["duration"].to_i ]
+          end.sort_by { |date, _| date }.reverse
+        end
 
       result = user_ids.index_with { |id| streak_cache["user_streak_#{id}"] || 0 }
 
-      # Then calculate streaks for each user
-      daily_durations.each do |user_id, data|
-        current_date = data[:current_date]
-        days = data[:days]
+      daily_durations.each do |user_id, days|
+        timezone = user_timezones[user_id] || "UTC"
 
-        # Calculate streak
+        begin
+          TZInfo::Timezone.get(timezone)
+        rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
+          timezone = "UTC"
+        end
+
+        current_date = Time.current.in_time_zone(timezone).to_date
+
         streak = 0
         days.each do |date, duration|
-          # Skip if this day is in the future
           next if date > current_date
 
-          # If they didn't code enough today, just skip
           if date == current_date
             next unless duration >= 15 * 60
             streak += 1
             next
           end
 
-          # For previous days, check if it's the next day in the streak
           if date == current_date - streak.days && duration >= 15 * 60
             streak += 1
           else
@@ -181,8 +171,6 @@ module Heartbeatable
         end
 
         result[user_id] = streak
-
-        # Cache the streak for 1 hour
         Rails.cache.write("user_streak_#{user_id}", streak, expires_in: 1.hour)
       end
 
@@ -197,14 +185,24 @@ module Heartbeatable
         timezone = "UTC"
       end
 
-      # Create the timezone-aware date truncation expression
-      day_trunc = Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{timezone}')")
+      sql = <<~SQL
+        SELECT
+          toDate(toDateTime(toUInt32(time), '#{timezone}')) AS day_group,
+          toInt64(coalesce(sum(diff), 0)) AS duration
+        FROM (
+          SELECT
+            time,
+            least(
+              time - lagInFrame(time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW),
+              #{heartbeat_timeout_duration.to_i}
+            ) AS diff
+          FROM (#{with_valid_timestamps.where(time: start_date.to_f..end_date.to_f).to_sql}) AS hb
+        )
+        GROUP BY day_group
+        ORDER BY day_group
+      SQL
 
-      select(day_trunc.as("day_group"))
-        .where(time: start_date..end_date)
-        .group(day_trunc)
-        .duration_seconds
-        .map { |date, duration| [ date.to_date, duration ] }
+      connection.select_all(sql).map { |row| [ row["day_group"].to_date, row["duration"].to_i ] }
     end
 
     def duration_seconds(scope = all)
@@ -217,35 +215,26 @@ module Heartbeatable
         end
 
         group_column = scope.group_values.first
+        group_expr = group_column.to_s.include?("(") ? group_column : "`#{group_column}`"
 
-        # Don't quote if it's a SQL function (contains parentheses)
-        group_expr = group_column.to_s.include?("(") ? group_column : connection.quote_column_name(group_column)
-
-        capped_diffs = scope
-          .select("#{group_expr} as grouped_time, CASE
-            WHEN LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time), #{timeout})
-          END as diff")
+        capped_diffs_sql = scope
+          .select("#{group_expr} as grouped_time, least(time - lagInFrame(time) OVER (PARTITION BY #{group_expr} ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), #{timeout}) as diff")
           .where.not(time: nil)
           .unscope(:group)
+          .to_sql
 
         connection.select_all(
-          "SELECT grouped_time, COALESCE(SUM(diff), 0)::integer as duration
-          FROM (#{capped_diffs.to_sql}) AS diffs
-          GROUP BY grouped_time"
+          "SELECT grouped_time, toInt64(coalesce(sum(diff), 0)) as duration FROM (#{capped_diffs_sql}) GROUP BY grouped_time"
         ).each_with_object({}) do |row, hash|
           hash[row["grouped_time"]] = row["duration"].to_i
         end
       else
-        # when not grouped, return a single value
-        capped_diffs = scope
-          .select("CASE
-            WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout})
-          END as diff")
+        capped_diffs_sql = scope
+          .select("least(time - lagInFrame(time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), #{timeout}) as diff")
           .where.not(time: nil)
+          .to_sql
 
-        connection.select_value("SELECT COALESCE(SUM(diff), 0)::integer FROM (#{capped_diffs.to_sql}) AS diffs").to_i
+        connection.select_value("SELECT toInt64(coalesce(sum(diff), 0)) FROM (#{capped_diffs_sql})").to_i
       end
     end
 
@@ -256,7 +245,7 @@ module Heartbeatable
       base_scope = model_class.all.with_valid_timestamps
 
       excluded_categories = [ "browsing", "ai coding", "meeting", "communicating" ]
-      base_scope = base_scope.where.not("LOWER(category) IN (?)", excluded_categories)
+      base_scope = base_scope.where.not("lower(category) IN (?)", excluded_categories)
 
       if scope.where_values_hash["user_id"]
         base_scope = base_scope.where(user_id: scope.where_values_hash["user_id"])
@@ -270,18 +259,12 @@ module Heartbeatable
         base_scope = base_scope.where(project: scope.where_values_hash["project"])
       end
 
-      if scope.where_values_hash["deleted_at"]
-        base_scope = base_scope.where(deleted_at: scope.where_values_hash["deleted_at"])
-      end
-
-      # get the heartbeat before the start_time
       boundary_heartbeat = base_scope
         .where("time < ?", start_time)
         .order(time: :desc)
         .limit(1)
         .first
 
-      # if it's not NULL, we'll use it
       if boundary_heartbeat
         combined_scope = base_scope
           .where("time >= ? OR time = ?", start_time, boundary_heartbeat.time)
@@ -291,19 +274,14 @@ module Heartbeatable
           .where(time: start_time..end_time)
       end
 
-      # we calc w/ the boundary heartbeat, but we only sum within the orignal constraint
       timeout = heartbeat_timeout_duration.to_i
-      capped_diffs = combined_scope
-        .select("time, CASE
-          WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-          ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout})
-        END as diff")
+      capped_diffs_sql = combined_scope
+        .select("time, least(time - lagInFrame(time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), #{timeout}) as diff")
         .where.not(time: nil)
         .order(time: :asc)
+        .to_sql
 
-      sql = "SELECT COALESCE(SUM(diff), 0)::integer
-             FROM (#{capped_diffs.to_sql}) AS diffs
-             WHERE time >= #{connection.quote(start_time)}"
+      sql = "SELECT toInt64(coalesce(sum(diff), 0)) FROM (#{capped_diffs_sql}) WHERE time >= #{connection.quote(start_time)}"
       connection.select_value(sql).to_i
     end
   end

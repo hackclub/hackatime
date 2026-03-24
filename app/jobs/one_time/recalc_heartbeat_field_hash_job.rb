@@ -8,7 +8,7 @@ class OneTime::RecalcHeartbeatFieldHashJob < ApplicationJob
         heartbeat.save!
       rescue ActiveRecord::RecordNotUnique
         # If we have a duplicate fields_hash, soft delete this record
-        heartbeat.soft_delete
+        heartbeat.delete
       end
     end
   end

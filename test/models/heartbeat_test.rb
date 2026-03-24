@@ -1,7 +1,7 @@
 require "test_helper"
 
 class HeartbeatTest < ActiveSupport::TestCase
-  test "soft delete hides record from default scope and restore brings it back" do
+  test "lightweight delete removes record from queries" do
     user = User.create!
     heartbeat = user.heartbeats.create!(
       entity: "src/main.rb",
@@ -14,13 +14,9 @@ class HeartbeatTest < ActiveSupport::TestCase
 
     assert_includes Heartbeat.all, heartbeat
 
-    heartbeat.soft_delete
+    heartbeat.delete
 
-    assert_not_includes Heartbeat.all, heartbeat
-    assert_includes Heartbeat.with_deleted, heartbeat
-
-    heartbeat.restore
-
-    assert_includes Heartbeat.all, heartbeat
+    # After lightweight delete, the row is invisible to subsequent queries
+    assert_not_includes Heartbeat.where(user_id: user.id).to_a, heartbeat
   end
 end

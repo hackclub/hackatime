@@ -51,71 +51,77 @@ module Api
           quantized_query = <<-SQL
             WITH base_heartbeats AS (
                 SELECT
-                    "time",
+                    time,
                     lineno,
                     cursorpos,
-                    date_trunc('day', to_timestamp("time")) as day_start
+                    toDate(toDateTime(toUInt32(time))) as day_start
                 FROM heartbeats
                 WHERE user_id = ?
-                AND "time" >= ? AND "time" <= ?
+                AND time >= ? AND time <= ?
                 AND (lineno IS NOT NULL OR cursorpos IS NOT NULL)
                 LIMIT 1000000
             ),
             daily_stats AS (
                 SELECT
                     *,
-                    GREATEST(1, MAX(lineno) OVER (PARTITION BY day_start)) as max_lineno,
-                    GREATEST(1, MAX(cursorpos) OVER (PARTITION BY day_start)) as max_cursorpos
+                    greatest(1, max(lineno) OVER (PARTITION BY day_start)) as max_lineno,
+                    greatest(1, max(cursorpos) OVER (PARTITION BY day_start)) as max_cursorpos
                 FROM base_heartbeats
             ),
             quantized_heartbeats AS (
                 SELECT
                     *,
-                    ROUND(2 + (("time" - extract(epoch from day_start)) / 86400) * (396)) as qx,
-                    ROUND(2 + (1 - CAST(lineno AS decimal) / max_lineno) * (96)) as qy_lineno,
-                    ROUND(2 + (1 - CAST(cursorpos AS decimal) / max_cursorpos) * (96)) as qy_cursorpos
+                    round(2 + ((time - toUInt32(toDateTime(day_start))) / 86400) * (396)) as qx,
+                    round(2 + (1 - CAST(lineno AS Float64) / max_lineno) * (96)) as qy_lineno,
+                    round(2 + (1 - CAST(cursorpos AS Float64) / max_cursorpos) * (96)) as qy_cursorpos
                 FROM daily_stats
             )
-            SELECT "time", lineno, cursorpos
+            SELECT time, lineno, cursorpos
             FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_lineno) "time", lineno, cursorpos
+                SELECT
+                    any(time) AS time,
+                    any(lineno) AS lineno,
+                    any(cursorpos) AS cursorpos
                 FROM quantized_heartbeats
                 WHERE lineno IS NOT NULL
-                ORDER BY day_start, qx, qy_lineno, "time" ASC
+                GROUP BY day_start, qx, qy_lineno
             ) AS lineno_pixels
-            UNION
-            SELECT "time", lineno, cursorpos
+            UNION ALL
+            SELECT time, lineno, cursorpos
             FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_cursorpos) "time", lineno, cursorpos
+                SELECT
+                    any(time) AS time,
+                    any(lineno) AS lineno,
+                    any(cursorpos) AS cursorpos
                 FROM quantized_heartbeats
                 WHERE cursorpos IS NOT NULL
-                ORDER BY day_start, qx, qy_cursorpos, "time" ASC
+                GROUP BY day_start, qx, qy_cursorpos
             ) AS cursorpos_pixels
-            ORDER BY "time" ASC
+            ORDER BY time ASC
           SQL
 
           daily_totals_query = <<-SQL
             WITH heartbeats_with_gaps AS (
               SELECT
-                date_trunc('day', to_timestamp("time"))::date as day,
-                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time") as gap
+                toDate(toDateTime(toUInt32(time))) as day,
+                time - lagInFrame(time, 1, time) OVER (PARTITION BY toDate(toDateTime(toUInt32(time))) ORDER BY time) as gap
               FROM heartbeats
               WHERE user_id = ? AND time >= ? AND time <= ?
             )
             SELECT
               day,
-              SUM(LEAST(gap, 120)) as total_seconds
+              SUM(least(gap, 120)) as total_seconds
             FROM heartbeats_with_gaps
             WHERE gap IS NOT NULL
             GROUP BY day
           SQL
 
-          quantized_result = ActiveRecord::Base.connection.execute(
-            ActiveRecord::Base.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ])
+          quantized_result = Heartbeat.connection.select_all(
+            Heartbeat.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ])
           )
 
-          daily_totals_result = ActiveRecord::Base.connection.execute(
-            ActiveRecord::Base.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ])
+          daily_totals_result = Heartbeat.connection.select_all(
+            Heartbeat.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ])
           )
 
           daily_totals = daily_totals_result.each_with_object({}) do |row, hash|
@@ -197,8 +203,8 @@ module Api
             LIMIT 5000
           SQL
 
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff ])
+          result = Heartbeat.connection.select_all(
+            Heartbeat.sanitize_sql([ query, cutoff, cutoff ])
           )
 
           render json: { candidates: result.to_a }
@@ -210,44 +216,20 @@ module Api
 
           query = <<-SQL
             SELECT
-              sms.machine,
-              sms.machine_frequency,
-              ARRAY_AGG(DISTINCT u.id) AS user_ids
-            FROM
-              (
-                SELECT
-                  machine,
-                  COUNT(user_id) AS machine_frequency,
-                  ARRAY_AGG(user_id) AS user_ids
-                FROM
-                  (
-                    SELECT DISTINCT
-                      machine,
-                      user_id
-                    FROM
-                      heartbeats
-                    WHERE
-                      machine IS NOT NULL
-                      AND time > ?
-                  ) AS UserMachines
-                GROUP BY
-                  machine
-                HAVING
-                  COUNT(user_id) > 1
-              ) AS sms,
-              LATERAL UNNEST(sms.user_ids) AS user_id_from_array
-            JOIN
-              users AS u ON u.id = user_id_from_array
-            GROUP BY
-              sms.machine,
-              sms.machine_frequency
-            ORDER BY
-              sms.machine_frequency DESC
+              machine,
+              uniq(user_id) AS machine_frequency,
+              groupArray(DISTINCT user_id) AS user_ids
+            FROM heartbeats
+            WHERE machine != '' AND machine IS NOT NULL
+              AND time > ?
+            GROUP BY machine
+            HAVING uniq(user_id) > 1
+            ORDER BY machine_frequency DESC
             LIMIT 5000
           SQL
 
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff ])
+          result = Heartbeat.connection.select_all(
+            Heartbeat.sanitize_sql([ query, cutoff ])
           )
 
           render json: { machines: result.to_a }

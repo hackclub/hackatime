@@ -61,13 +61,12 @@ class ProfileStatsService
           project,
           language,
           editor,
-          CASE
-            WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout_quoted})
-          END AS diff
+          least(
+            time - lagInFrame(time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW),
+            #{timeout_quoted}
+          ) AS diff
         FROM heartbeats
         WHERE user_id = #{user_id}
-          AND deleted_at IS NULL
           AND time IS NOT NULL
           AND time >= 0 AND time <= 253402300799
       )
@@ -76,9 +75,9 @@ class ProfileStatsService
     totals_sql = <<~SQL
       #{base_sql}
       SELECT
-        COALESCE(SUM(diff) FILTER (WHERE time >= #{today_start_quoted} AND time <= #{today_end_quoted}), 0)::integer AS today_seconds,
-        COALESCE(SUM(diff) FILTER (WHERE time >= #{week_start_quoted} AND time <= #{week_end_quoted}), 0)::integer AS week_seconds,
-        COALESCE(SUM(diff), 0)::integer AS all_seconds
+        toInt64(coalesce(sumIf(diff, time >= #{today_start_quoted} AND time <= #{today_end_quoted}), 0)) AS today_seconds,
+        toInt64(coalesce(sumIf(diff, time >= #{week_start_quoted} AND time <= #{week_end_quoted}), 0)) AS week_seconds,
+        toInt64(coalesce(sum(diff), 0)) AS all_seconds
       FROM heartbeat_diffs
     SQL
 
@@ -104,7 +103,7 @@ class ProfileStatsService
     time_clause = time_filter ? "AND time >= #{time_filter}" : ""
     sql = <<~SQL
       #{base_sql}
-      SELECT #{column}, COALESCE(SUM(diff), 0)::integer AS duration
+      SELECT #{column}, toInt64(coalesce(sum(diff), 0)) AS duration
       FROM heartbeat_diffs
       WHERE #{column} IS NOT NULL AND #{column} != ''
       #{time_clause}
@@ -121,7 +120,7 @@ class ProfileStatsService
   def fetch_top_grouped_with_repo(conn, base_sql, month_ago, limit)
     sql = <<~SQL
       #{base_sql}
-      SELECT project, COALESCE(SUM(diff), 0)::integer AS duration
+      SELECT project, toInt64(coalesce(sum(diff), 0)) AS duration
       FROM heartbeat_diffs
       WHERE time >= #{month_ago}
         AND project IS NOT NULL AND project != ''
@@ -142,7 +141,7 @@ class ProfileStatsService
   def fetch_top_editors_normalized(conn, base_sql, limit)
     sql = <<~SQL
       #{base_sql}
-      SELECT editor, COALESCE(SUM(diff), 0)::integer AS duration
+      SELECT editor, toInt64(coalesce(sum(diff), 0)) AS duration
       FROM heartbeat_diffs
       WHERE editor IS NOT NULL AND editor != ''
       GROUP BY editor

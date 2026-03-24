@@ -108,8 +108,8 @@ class HeartbeatImportService
     end
 
     ActiveRecord::Base.logger.silence do
-      result = Heartbeat.upsert_all(records, unique_by: [ :fields_hash ])
-      result.length
+      Heartbeat.insert_all(records)
+      records.length
     end
   end
 
