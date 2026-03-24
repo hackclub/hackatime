@@ -47,7 +47,7 @@ test:
     adapter: clickhouse
     host: <%= ENV.fetch('CLICKHOUSE_HOST', 'clickhouse') %>
     port: <%= ENV.fetch('CLICKHOUSE_PORT', 8123) %>
-    database: <%= ENV.fetch('CLICKHOUSE_DATABASE', 'hackatime_test') %>
+    database: hackatime_test
     username: <%= ENV.fetch('CLICKHOUSE_USERNAME', 'default') %>
     password: <%= ENV.fetch('CLICKHOUSE_PASSWORD', '') %>
     migrations_paths: db/migrate_clickhouse

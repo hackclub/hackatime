@@ -1,15 +1,25 @@
 class Heartbeat < ClickhouseRecord
   self.table_name = "heartbeats"
+  self.primary_key = :id
 
   include Heartbeatable
   include TimeRangeFilterable
 
   time_range_filterable_field :time
 
+  before_create :set_clickhouse_id!, if: -> { self[:id].blank? }
   before_create :set_fields_hash!, if: -> { fields_hash.blank? }
+
+  CLICKHOUSE_ID_RANDOM_BITS = 10
+  CLICKHOUSE_ID_RANDOM_MAX = 1 << CLICKHOUSE_ID_RANDOM_BITS
 
   def set_fields_hash!
     self.fields_hash = self.class.generate_fields_hash(attributes)
+  end
+
+  def set_clickhouse_id!
+    timestamp_us = (Time.current.to_r * 1_000_000).to_i
+    self[:id] = (timestamp_us << CLICKHOUSE_ID_RANDOM_BITS) | SecureRandom.random_number(CLICKHOUSE_ID_RANDOM_MAX)
   end
 
   scope :today, -> { where(time: Time.current.beginning_of_day.to_i..Time.current.end_of_day.to_i) }

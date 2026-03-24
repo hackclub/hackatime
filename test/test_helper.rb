@@ -3,6 +3,10 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "nokogiri"
 require "json"
+require "webmock/minitest"
+
+# ClickHouse uses HTTP in test, so allow that host while keeping other external requests blocked.
+WebMock.disable_net_connect!(allow_localhost: true, allow: "clickhouse")
 
 module ActiveSupport
   class TestCase
@@ -28,6 +32,24 @@ module ActiveSupport
     ]
 
     # Add more helper methods to be used by all tests here...
+    private
+
+    def before_setup
+      truncate_clickhouse_tables
+      super
+    end
+
+    def after_teardown
+      truncate_clickhouse_tables
+      super
+    end
+
+    def truncate_clickhouse_tables
+      Heartbeat.connection.execute("TRUNCATE TABLE #{Heartbeat.connection.quote_table_name(Heartbeat.table_name)}")
+      HeartbeatUserDailySummary.connection.execute(
+        "TRUNCATE TABLE #{HeartbeatUserDailySummary.connection.quote_table_name(HeartbeatUserDailySummary.table_name)}"
+      )
+    end
   end
 end
 
