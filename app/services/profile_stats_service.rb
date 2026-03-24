@@ -16,8 +16,7 @@ class ProfileStatsService
   private
 
   def cache_key
-    latest_heartbeat_time = user.heartbeats.maximum(:time) || 0
-    "profile_stats:v2:user:#{user.id}:latest:#{latest_heartbeat_time}"
+    "profile_stats:v3:user:#{user.id}:version:#{HeartbeatCacheInvalidator.version_for(user)}"
   end
 
   def compute_stats

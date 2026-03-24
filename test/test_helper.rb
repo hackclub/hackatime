@@ -39,11 +39,6 @@ module ActiveSupport
       super
     end
 
-    def after_teardown
-      truncate_clickhouse_tables
-      super
-    end
-
     def truncate_clickhouse_tables
       Heartbeat.connection.execute("TRUNCATE TABLE #{Heartbeat.connection.quote_table_name(Heartbeat.table_name)}")
       HeartbeatUserDailySummary.connection.execute(

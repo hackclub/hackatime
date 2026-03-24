@@ -9,6 +9,8 @@ class Heartbeat < ClickhouseRecord
 
   before_create :set_clickhouse_id!, if: -> { self[:id].blank? }
   before_create :set_fields_hash!, if: -> { fields_hash.blank? }
+  after_create :invalidate_user_heartbeat_caches
+  after_update :invalidate_user_heartbeat_caches
 
   CLICKHOUSE_ID_RANDOM_BITS = 10
   CLICKHOUSE_ID_RANDOM_MAX = 1 << CLICKHOUSE_ID_RANDOM_BITS
@@ -118,5 +120,19 @@ class Heartbeat < ClickhouseRecord
 
   def self.indexed_attributes
     %w[user_id branch category dependencies editor entity language machine operating_system project type user_agent line_additions line_deletions lineno lines cursorpos project_root_count time is_write]
+  end
+
+  private
+
+  def invalidate_user_heartbeat_caches
+    impacted_user_ids.each do |impacted_user_id|
+      HeartbeatCacheInvalidator.bump_for(impacted_user_id)
+    end
+  end
+
+  def impacted_user_ids
+    user_ids = [ user_id ]
+    user_ids.concat(previous_changes.fetch("user_id", []))
+    user_ids.compact.uniq
   end
 end

@@ -6,17 +6,26 @@ module DashboardData
   def filterable_dashboard_data
     filters = %i[project language operating_system editor category]
     interval = params[:interval]
-    key = [ current_user ] + filters.map { |f| params[f] } + [ interval.to_s, params[:from], params[:to] ]
+    key = [
+      "dashboard-filterable-data",
+      current_user.id,
+      dashboard_cache_version,
+      filters.index_with { |f| params[f].to_s },
+      interval.to_s,
+      params[:from].to_s,
+      params[:to].to_s
+    ]
     hb = current_user.heartbeats
     h = ApplicationController.helpers
 
     Rails.cache.fetch(key, expires_in: 5.minutes) do
       archived = current_user.project_repo_mappings.archived.pluck(:project_name)
+      raw_filter_options = cached_dashboard_filter_options
       result = {}
 
       Time.use_zone(current_user.timezone) do
         filters.each do |f|
-          options = current_user.heartbeats.distinct.pluck(f).compact_blank
+          options = raw_filter_options.fetch(f, [])
           options = options.reject { |n| archived.include?(n) } if f == :project
           result[f] = options.map { |k|
             if f == :language then k.categorize_language
@@ -31,7 +40,7 @@ module DashboardData
           hb = if %i[operating_system editor].include?(f)
             hb.where(f => arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq)
           elsif f == :language
-            raw = current_user.heartbeats.distinct.pluck(f).compact_blank.select { |l| arr.include?(l.categorize_language) }
+            raw = raw_filter_options.fetch(:language, []).select { |l| arr.include?(l.categorize_language) }
             raw.any? ? hb.where(f => raw) : hb
           else
             hb.where(f => arr)
@@ -126,7 +135,7 @@ module DashboardData
 
   def activity_graph_data
     tz = current_user.timezone
-    key = "user_#{current_user.id}_daily_durations_#{tz}"
+    key = [ "user-daily-durations", current_user.id, heartbeat_cache_version, tz ]
     durations = Rails.cache.fetch(key, expires_in: 1.minute) do
       Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
     end
@@ -142,36 +151,57 @@ module DashboardData
   end
 
   def today_stats_data
-    h = ApplicationController.helpers
-    Time.use_zone(current_user.timezone) do
-      rows = current_user.heartbeats.today
-        .select(:language, :editor,
-                "COUNT(*) OVER (PARTITION BY language) as language_count",
-                "COUNT(*) OVER (PARTITION BY editor) as editor_count")
-        .distinct.to_a
+    Rails.cache.fetch([ "dashboard-today-stats", current_user.id, dashboard_cache_version, current_user.timezone ], expires_in: 5.minutes) do
+      h = ApplicationController.helpers
+      Time.use_zone(current_user.timezone) do
+        rows = current_user.heartbeats.today
+          .select(:language, :editor,
+                  "COUNT(*) OVER (PARTITION BY language) as language_count",
+                  "COUNT(*) OVER (PARTITION BY editor) as editor_count")
+          .distinct.to_a
 
-      lang_counts = rows
-        .map { |r| [ r.language&.categorize_language, r.language_count ] }
-        .reject { |l, _| l.blank? }
-        .group_by(&:first).transform_values { |p| p.sum(&:last) }
-        .sort_by { |_, c| -c }
+        lang_counts = rows
+          .map { |r| [ r.language&.categorize_language, r.language_count ] }
+          .reject { |l, _| l.blank? }
+          .group_by(&:first).transform_values { |p| p.sum(&:last) }
+          .sort_by { |_, c| -c }
 
-      ed_counts = rows
-        .map { |r| [ r.editor, r.editor_count ] }
-        .reject { |e, _| e.blank? }.uniq
-        .sort_by { |_, c| -c }
+        ed_counts = rows
+          .map { |r| [ r.editor, r.editor_count ] }
+          .reject { |e, _| e.blank? }.uniq
+          .sort_by { |_, c| -c }
 
-      todays_languages = lang_counts.map { |l, _| h.display_language_name(l) }
-      todays_editors = ed_counts.map { |e, _| h.display_editor_name(e) }
-      todays_duration = current_user.heartbeats.today.duration_seconds
-      show_logged_time_sentence = todays_duration > 1.minute && (todays_languages.any? || todays_editors.any?)
+        todays_languages = lang_counts.map { |l, _| h.display_language_name(l) }
+        todays_editors = ed_counts.map { |e, _| h.display_editor_name(e) }
+        todays_duration = current_user.heartbeats.today.duration_seconds
+        show_logged_time_sentence = todays_duration > 1.minute && (todays_languages.any? || todays_editors.any?)
 
-      {
-        show_logged_time_sentence: show_logged_time_sentence,
-        todays_duration_display: h.short_time_detailed(todays_duration.to_i),
-        todays_languages: todays_languages,
-        todays_editors: todays_editors
-      }
+        {
+          show_logged_time_sentence: show_logged_time_sentence,
+          todays_duration_display: h.short_time_detailed(todays_duration.to_i),
+          todays_languages: todays_languages,
+          todays_editors: todays_editors
+        }
+      end
     end
+  end
+
+  def cached_dashboard_filter_options
+    Rails.cache.fetch([ "dashboard-filter-options", current_user.id, heartbeat_cache_version ], expires_in: 15.minutes) do
+      %i[project language operating_system editor category].index_with do |filter|
+        current_user.heartbeats.distinct.pluck(filter).compact_blank
+      end
+    end
+  end
+
+  def dashboard_cache_version
+    @dashboard_cache_version ||= begin
+      latest_mapping = current_user.project_repo_mappings.maximum(:updated_at)&.to_i || 0
+      [ heartbeat_cache_version, latest_mapping ]
+    end
+  end
+
+  def heartbeat_cache_version
+    @heartbeat_cache_version ||= HeartbeatCacheInvalidator.version_for(current_user)
   end
 end

@@ -107,38 +107,52 @@ module Heartbeatable
 
       timeout = heartbeat_timeout_duration.to_i
 
-      # Query raw heartbeat diffs from ClickHouse, then group by day per user's timezone in Ruby
+      # Fetch ordered heartbeats once, then bucket by each user's local day in Ruby so
+      # diffs do not bleed across midnight in that user's timezone.
       raw_sql = <<~SQL
         SELECT
           user_id,
-          time,
-          least(
-            time - lagInFrame(time, 1, time) OVER (PARTITION BY user_id ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW),
-            #{timeout}
-          ) AS diff
+          time
         FROM heartbeats
         WHERE user_id IN (#{uncached_users.join(',')})
           AND category = 'coding'
           AND time >= 0 AND time <= 253402300799
           AND time >= #{start_date.to_f}
           AND time <= #{Time.current.to_f}
+        ORDER BY user_id ASC, time ASC
       SQL
 
       rows = connection.select_all(raw_sql)
 
-      daily_durations = rows.group_by { |row| row["user_id"].to_i }
-        .transform_values do |user_rows|
-          user_id = user_rows.first["user_id"].to_i
-          tz = user_timezones[user_id] || "UTC"
-          begin
-            TZInfo::Timezone.get(tz)
-          rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
-            tz = "UTC"
-          end
-          user_rows.group_by { |row| Time.at(row["time"].to_f).in_time_zone(tz).to_date }
-            .map { |date, day_rows| [ date, day_rows.sum { |r| r["diff"].to_i } ] }
-            .sort_by { |date, _| date }.reverse
+      daily_durations = rows.group_by { |row| row["user_id"].to_i }.transform_values do |user_rows|
+        user_id = user_rows.first["user_id"].to_i
+        timezone = user_timezones[user_id] || "UTC"
+
+        begin
+          TZInfo::Timezone.get(timezone)
+        rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
+          timezone = "UTC"
         end
+
+        durations_by_day = Hash.new(0)
+        previous_time = nil
+        previous_day = nil
+
+        user_rows.each do |row|
+          current_time = row["time"].to_f
+          current_day = Time.at(current_time).in_time_zone(timezone).to_date
+
+          if previous_time && previous_day == current_day
+            gap = current_time - previous_time
+            durations_by_day[current_day] += [ [ gap, timeout ].min, 0 ].max.to_i
+          end
+
+          previous_time = current_time
+          previous_day = current_day
+        end
+
+        durations_by_day.sort_by { |date, _| date }.reverse
+      end
 
       result = user_ids.index_with { |id| streak_cache["user_streak_#{id}"] || 0 }
 
@@ -187,13 +201,20 @@ module Heartbeatable
 
       sql = <<~SQL
         SELECT
-          toDate(toDateTime(toUInt32(time), '#{timezone}')) AS day_group,
+          day_group,
           toInt64(coalesce(sum(diff), 0)) AS duration
         FROM (
           SELECT
-            time,
+            toDate(toDateTime(toUInt32(time), '#{timezone}')) AS day_group,
             least(
-              time - lagInFrame(time, 1, time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW),
+              greatest(
+                time - lagInFrame(time, 1, time) OVER (
+                  PARTITION BY toDate(toDateTime(toUInt32(time), '#{timezone}'))
+                  ORDER BY time ASC
+                  ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+                ),
+                0
+              ),
               #{heartbeat_timeout_duration.to_i}
             ) AS diff
           FROM (#{with_valid_timestamps.where(time: start_date.to_f..end_date.to_f).to_sql}) AS hb
@@ -218,7 +239,7 @@ module Heartbeatable
         group_expr = group_column.to_s.include?("(") ? group_column : "`#{group_column}`"
 
         capped_diffs_sql = scope
-          .select("#{group_expr} as grouped_time, least(time - lagInFrame(time, 1, time) OVER (PARTITION BY #{group_expr} ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), #{timeout}) as diff")
+          .select("#{group_expr} as grouped_time, least(greatest(time - lagInFrame(time, 1, time) OVER (PARTITION BY #{group_expr} ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), #{timeout}) as diff")
           .where.not(time: nil)
           .unscope(:group)
           .to_sql
@@ -230,7 +251,7 @@ module Heartbeatable
         end
       else
         capped_diffs_sql = scope
-          .select("least(time - lagInFrame(time, 1, time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), #{timeout}) as diff")
+          .select("least(greatest(time - lagInFrame(time, 1, time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), #{timeout}) as diff")
           .where.not(time: nil)
           .to_sql
 
@@ -276,7 +297,7 @@ module Heartbeatable
 
       timeout = heartbeat_timeout_duration.to_i
       capped_diffs_sql = combined_scope
-        .select("time, least(time - lagInFrame(time, 1, time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), #{timeout}) as diff")
+        .select("time, least(greatest(time - lagInFrame(time, 1, time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), #{timeout}) as diff")
         .where.not(time: nil)
         .order(time: :asc)
         .to_sql

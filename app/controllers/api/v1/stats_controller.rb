@@ -11,10 +11,12 @@ class Api::V1::StatsController < ApplicationController
     return if performed?
 
     query = Heartbeat.where(time: start_date..end_date)
+    cache_user_id = nil
     if params[:username].present?
       user = lookup_user(params[:username])
       return render json: { error: "User not found" }, status: :not_found unless user
 
+      cache_user_id = user.id
       query = query.where(user_id: user.id)
     end
 
@@ -23,10 +25,11 @@ class Api::V1::StatsController < ApplicationController
 
       return render json: { error: "User not found" }, status: :not_found unless user_id.present?
 
+      cache_user_id = user_id
       query = query.where(user_id: user_id)
     end
 
-    render plain: query.duration_seconds.to_s
+    render plain: Rails.cache.fetch(stats_total_cache_key(query, user_id: cache_user_id), expires_in: 5.minutes) { query.duration_seconds.to_s }
   end
 
   def user_stats
@@ -59,7 +62,7 @@ class Api::V1::StatsController < ApplicationController
     service_params = {}
     service_params[:user] = @user
     service_params[:specific_filters] = enabled_features
-    service_params[:allow_cache] = false
+    service_params[:allow_cache] = true
     service_params[:limit] = limit
     service_params[:start_date] = start_date
     service_params[:end_date] = end_date
@@ -92,13 +95,15 @@ class Api::V1::StatsController < ApplicationController
 
         # do the boundary thingie if requested
         use_boundary_aware = params[:boundary_aware] == "true"
-        total_seconds = if use_boundary_aware
-          Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
-        else
-          query.duration_seconds || 0
-        end
-
-        return render json: { total_seconds: total_seconds }
+        return render json: {
+          total_seconds: Rails.cache.fetch(stats_total_cache_key(query, start_date:, end_date:, user_id: @user.id, boundary_aware: use_boundary_aware), expires_in: 5.minutes) do
+            if use_boundary_aware
+              Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
+            else
+              query.duration_seconds || 0
+            end
+          end
+        }
       end
 
       summary = WakatimeService.new(**service_params).generate_summary
@@ -312,6 +317,19 @@ class Api::V1::StatsController < ApplicationController
     end
 
     total_seconds.to_i
+  end
+
+  def stats_total_cache_key(query, start_date: nil, end_date: nil, user_id: nil, boundary_aware: false)
+    cache_version = user_id.present? ? HeartbeatCacheInvalidator.version_for(user_id) : query.maximum(:time).to_i
+
+    [
+      "stats-total",
+      ActiveSupport::Digest.hexdigest(query.to_sql),
+      start_date&.to_i || "default-start",
+      end_date&.to_i || "default-end",
+      boundary_aware,
+      cache_version
+    ].join(":")
   end
 
   def parse_date_param(param_name, default:, boundary:)

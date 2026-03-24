@@ -8,18 +8,8 @@ class Cache::CurrentlyHackingJob < Cache::ActivityJob
   end
 
   def calculate
-    # Query ClickHouse for recent heartbeats (no cross-DB join)
-    raw_heartbeats = Heartbeat.where(source_type: :direct_entry)
-                              .coding_only
-                              .where("time > ?", 5.minutes.ago.to_f)
-                              .order(time: :desc)
-                              .to_a
+    recent_heartbeats = latest_projects_by_user_id
 
-    # Deduplicate by user_id (keep most recent)
-    recent_heartbeats = raw_heartbeats.group_by(&:user_id)
-                                      .transform_values(&:first)
-
-    # Load users from Postgres
     user_ids = recent_heartbeats.keys
     users_by_id = User.where(id: user_ids)
                       .includes(:project_repo_mappings, :email_addresses)
@@ -29,8 +19,8 @@ class Cache::CurrentlyHackingJob < Cache::ActivityJob
 
     active_projects = {}
     users.each do |user|
-      recent_heartbeat = recent_heartbeats[user.id]
-      mapping = user.project_repo_mappings.find { |p| p.project_name == recent_heartbeat&.project }
+      project_name = recent_heartbeats[user.id]
+      mapping = user.project_repo_mappings.find { |p| p.project_name == project_name }
       active_projects[user.id] = mapping&.archived? ? nil : mapping
     end
 
@@ -42,5 +32,20 @@ class Cache::CurrentlyHackingJob < Cache::ActivityJob
     end
 
     { users: users, active_projects: active_projects }
+  end
+
+  def latest_projects_by_user_id
+    rows = Heartbeat.connection.select_all(Heartbeat.sanitize_sql([ <<~SQL, Heartbeat.source_types[:direct_entry], 5.minutes.ago.to_f ]))
+      SELECT user_id, argMax(project, time) AS project
+      FROM heartbeats
+      WHERE source_type = ?
+        AND category = 'coding'
+        AND time > ?
+      GROUP BY user_id
+    SQL
+
+    rows.each_with_object({}) do |row, hash|
+      hash[row["user_id"].to_i] = row["project"]
+    end
   end
 end

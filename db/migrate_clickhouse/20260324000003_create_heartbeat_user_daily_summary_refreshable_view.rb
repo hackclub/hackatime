@@ -28,7 +28,7 @@ class CreateHeartbeatUserDailySummaryRefreshableView < ActiveRecord::Migration[8
                   ),
                   120
               ) AS diff
-          FROM heartbeats FINAL
+          FROM heartbeats
           WHERE time IS NOT NULL
             AND time >= 0
             AND time <= 253402300799

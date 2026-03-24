@@ -1,6 +1,10 @@
 require "test_helper"
 
 class HeartbeatImportServiceTest < ActiveSupport::TestCase
+  def setup
+    Rails.cache.clear
+  end
+
   test "deduplicates imported heartbeats by fields hash" do
     user = User.create!(timezone: "UTC")
     file_content = {
@@ -68,5 +72,25 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     heartbeat = user.heartbeats.order(:created_at).last
     assert_equal "skyfall-pc", heartbeat.machine
     assert_equal "wakatime/v1.102.1", heartbeat.user_agent
+  end
+
+  test "bumps the user's heartbeat cache version when new rows are imported" do
+    user = User.create!(timezone: "UTC")
+    initial_version = HeartbeatCacheInvalidator.version_for(user)
+
+    result = HeartbeatImportService.import_from_file({
+      heartbeats: [
+        {
+          entity: "/tmp/imported.rb",
+          type: "file",
+          time: Time.utc(2026, 1, 1, 10, 0, 0).to_f,
+          project: "cache-test",
+          category: "coding"
+        }
+      ]
+    }.to_json, user)
+
+    assert result[:success]
+    assert_equal initial_version + 1, HeartbeatCacheInvalidator.version_for(user)
   end
 end

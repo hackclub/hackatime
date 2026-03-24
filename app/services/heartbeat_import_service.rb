@@ -101,6 +101,7 @@ class HeartbeatImportService
     return 0 if seen_hashes.empty?
 
     records = seen_hashes.values
+    user_id = records.first[:user_id]
     records.each do |r|
       timestamp = Time.current
       r[:created_at] = timestamp
@@ -108,10 +109,43 @@ class HeartbeatImportService
     end
 
     ActiveRecord::Base.logger.silence do
-      existing_hashes = Heartbeat.where(fields_hash: records.map { |r| r[:fields_hash] }).pluck(:fields_hash).to_set
-      new_records = records.reject { |r| existing_hashes.include?(r[:fields_hash]) }
-      Heartbeat.insert_all(new_records) if new_records.any?
+      new_records = []
+
+      User.transaction do
+        User.lock.find(user_id)
+
+        existing_hashes = Heartbeat.where(user_id: user_id, fields_hash: records.map { |r| r[:fields_hash] }).pluck(:fields_hash).to_set
+        new_records = records.reject { |r| existing_hashes.include?(r[:fields_hash]) }
+
+        if new_records.any?
+          Heartbeat.connection.with_settings(async_insert: 0, wait_for_async_insert: 1) do
+            Heartbeat.insert_all(new_records)
+          end
+          Heartbeat.connection.clear_query_cache
+          wait_until_visible!(
+            user_id,
+            new_records.map { |record| record[:fields_hash] },
+            expected_min_time: new_records.map { |record| record[:time].to_f }.min
+          )
+        end
+      end
+
+      HeartbeatCacheInvalidator.bump_for(user_id) if new_records.any?
       new_records.length
+    end
+  end
+
+  def self.wait_until_visible!(user_id, fields_hashes, expected_min_time:)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 2
+
+    loop do
+      visible_count = Heartbeat.where(user_id: user_id, fields_hash: fields_hashes).count
+      visible_min_time = Heartbeat.where(user_id: user_id).minimum(:time).to_f
+      return if visible_count >= fields_hashes.length && visible_min_time <= expected_min_time
+
+      break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+      sleep 0.01
     end
   end
 

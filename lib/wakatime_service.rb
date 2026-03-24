@@ -5,6 +5,8 @@ class WakatimeService
   def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil)
     @scope = scope || Heartbeat.all
     @user = user
+    @scope = @scope.with_valid_timestamps
+    @scope = @scope.where(user_id: @user.id) if @user.present?
 
     @start_date = convert_to_unix_timestamp(start_date)
     @end_date = convert_to_unix_timestamp(end_date)
@@ -18,13 +20,18 @@ class WakatimeService
     @limit = limit
     @limit = nil if @limit&.zero?
 
-    @scope = @scope.where(user_id: @user.id) if @user.present?
-
     @specific_filters = specific_filters
     @allow_cache = allow_cache
   end
 
   def generate_summary
+    return build_summary if Rails.env.test?
+    return Rails.cache.fetch(summary_cache_key, expires_in: 5.minutes) { build_summary } if @allow_cache
+
+    build_summary
+  end
+
+  def build_summary
     summary = {}
 
     summary[:username] = @user.display_name if @user.present?
@@ -136,6 +143,25 @@ class WakatimeService
   end
 
   private
+
+  def summary_cache_key
+    [
+      self.class.name.underscore,
+      @user&.id || "anonymous",
+      @start_date,
+      @end_date,
+      @limit || "all",
+      @specific_filters.sort.join(","),
+      scope_cache_version,
+      ActiveSupport::Digest.hexdigest(@scope.to_sql)
+    ].join(":")
+  end
+
+  def scope_cache_version
+    return HeartbeatCacheInvalidator.version_for(@user) if @user.present?
+
+    @scope.maximum(:time).to_i
+  end
 
   def convert_to_unix_timestamp(timestamp)
     # our lord and savior stack overflow for this bit of code

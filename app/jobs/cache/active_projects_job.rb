@@ -8,30 +8,35 @@ class Cache::ActiveProjectsJob < Cache::ActivityJob
   end
 
   def calculate
-    # Query recent heartbeats from ClickHouse
-    recent_hbs = Heartbeat.where(source_type: Heartbeat.source_types[:direct_entry])
-                          .where("time > ?", 5.minutes.ago.to_f)
-                          .order(time: :desc)
-                          .to_a
-
-    # Deduplicate by user_id (most recent heartbeat per user)
-    latest_by_user = recent_hbs.group_by(&:user_id).transform_values(&:first)
+    latest_by_user = latest_projects_by_user_id
 
     return {} if latest_by_user.empty?
 
-    # Find matching project_repo_mappings from Postgres
-    user_ids = latest_by_user.keys
-
     mappings = ProjectRepoMapping.active
-                                 .where(user_id: user_ids)
+                                 .where(user_id: latest_by_user.keys)
                                  .to_a
+                                 .group_by(&:user_id)
 
     result = {}
-    latest_by_user.each do |user_id, hb|
-      mapping = mappings.find { |m| m.user_id == user_id && m.project_name == hb.project }
+    latest_by_user.each do |user_id, project_name|
+      mapping = (mappings[user_id] || []).find { |candidate| candidate.project_name == project_name }
       result[user_id] = mapping if mapping
     end
 
     result
+  end
+
+  def latest_projects_by_user_id
+    rows = Heartbeat.connection.select_all(Heartbeat.sanitize_sql([ <<~SQL, Heartbeat.source_types[:direct_entry], 5.minutes.ago.to_f ]))
+      SELECT user_id, argMax(project, time) AS project
+      FROM heartbeats
+      WHERE source_type = ?
+        AND time > ?
+      GROUP BY user_id
+    SQL
+
+    rows.each_with_object({}) do |row, hash|
+      hash[row["user_id"].to_i] = row["project"]
+    end
   end
 end
