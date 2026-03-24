@@ -85,8 +85,11 @@
         ← Back to home
       </Link>
     </div>
-      <p class="text-secondary text-sm">
-        By signing in, you agree to the Hack Club <a class="text-primary" href="https://hackclub.com/privacy">privacy policy and terms</a>.
-      </p>
+    <p class="text-secondary text-sm">
+      By signing in, you agree to the Hack Club <a
+        class="text-primary"
+        href="https://hackclub.com/privacy">privacy policy and terms</a
+      >.
+    </p>
   </div>
 </div>
