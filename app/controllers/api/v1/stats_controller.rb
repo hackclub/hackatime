@@ -48,7 +48,7 @@ class Api::V1::StatsController < ApplicationController
     scope = nil
     if params[:filter_by_project].present?
       filter_by_project = params[:filter_by_project].split(",")
-      scope = Heartbeat.where(project: filter_by_project)
+      scope = @user.heartbeats.where(project: filter_by_project)
     end
 
     limit = params[:limit].to_i
