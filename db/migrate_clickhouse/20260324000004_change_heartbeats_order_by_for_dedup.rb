@@ -4,6 +4,7 @@ class ChangeHeartbeatsOrderByForDedup < ActiveRecord::Migration[8.1]
   BACKUP_TABLE = "heartbeats_rebuild_old".freeze
   SUMMARY_VIEW = "heartbeat_user_daily_summary_mv".freeze
   PARTITION_BY = "toYYYYMM(toDateTime(toUInt32(time)))".freeze
+  DAY_EXPRESSION = "toDate(toDateTime(toUInt32(time)))".freeze
 
   def up
     rebuild_heartbeats_table(
@@ -32,11 +33,7 @@ class ChangeHeartbeatsOrderByForDedup < ActiveRecord::Migration[8.1]
       SETTINGS index_granularity = 8192
     SQL
 
-    execute <<~SQL
-      INSERT INTO #{TEMP_TABLE}
-      SELECT *
-      FROM #{SOURCE_TABLE}
-    SQL
+    copy_source_rows_by_day
 
     execute <<~SQL
       RENAME TABLE
@@ -94,6 +91,22 @@ class ChangeHeartbeatsOrderByForDedup < ActiveRecord::Migration[8.1]
       )
       GROUP BY user_id, day
     SQL
+  end
+
+  def copy_source_rows_by_day
+    select_values(<<~SQL).each do |day|
+      SELECT DISTINCT #{DAY_EXPRESSION} AS day
+      FROM #{SOURCE_TABLE}
+      ORDER BY day
+    SQL
+
+      execute <<~SQL
+        INSERT INTO #{TEMP_TABLE}
+        SELECT *
+        FROM #{SOURCE_TABLE}
+        WHERE #{DAY_EXPRESSION} = #{connection.quote(day)}
+      SQL
+    end
   end
 
   def show_create_statement(name)

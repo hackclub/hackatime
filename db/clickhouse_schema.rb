@@ -10,20 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_24_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_24_000004) do
   # TABLE: heartbeat_user_daily_summary
   # SQL: CREATE TABLE heartbeat_user_daily_summary ( `user_id` Int64, `day` Date, `duration_s` Float64, `heartbeats` UInt32, `_version` DateTime DEFAULT now() ) ENGINE = ReplacingMergeTree(_version) ORDER BY (user_id, day) SETTINGS index_granularity = 8192
   create_table "heartbeat_user_daily_summary", id: false, options: "ReplacingMergeTree(_version) ORDER BY (user_id, day) SETTINGS index_granularity = 8192", force: :cascade do |t|
     t.integer "user_id", unsigned: false, limit: 8, null: false
     t.date "day", null: false
-    t.float "duration_s", null: false
+    t.float64 "duration_s", null: false
     t.integer "heartbeats", null: false
     t.datetime "_version", precision: nil, default: -> { "now()" }, null: false
   end
 
   # TABLE: heartbeats
-  # SQL: CREATE TABLE heartbeats ( `id` Int64, `user_id` Int64, `branch` String DEFAULT '', `category` String DEFAULT '', `dependencies` Array(String), `editor` String DEFAULT '', `entity` String DEFAULT '', `language` String DEFAULT '', `machine` String DEFAULT '', `operating_system` String DEFAULT '', `project` String DEFAULT '', `type` String DEFAULT '', `user_agent` String DEFAULT '', `line_additions` Int32 DEFAULT 0, `line_deletions` Int32 DEFAULT 0, `lineno` Int32 DEFAULT 0, `lines` Int32 DEFAULT 0, `cursorpos` Int32 DEFAULT 0, `project_root_count` Int32 DEFAULT 0, `time` Float64, `is_write` UInt8 DEFAULT 0, `created_at` DateTime64(6) DEFAULT now64(), `updated_at` DateTime64(6) DEFAULT now64(), `source_type` UInt8 DEFAULT 0, `ip_address` String DEFAULT '', `ysws_program` UInt8 DEFAULT 0, `fields_hash` String DEFAULT '' ) ENGINE = ReplacingMergeTree PARTITION BY toYYYYMM(toDateTime(toUInt32(time))) ORDER BY (user_id, toDate(toDateTime(toUInt32(time))), project, id) SETTINGS index_granularity = 8192
-  create_table "heartbeats", id: :int64, options: "ReplacingMergeTree PARTITION BY toYYYYMM(toDateTime(toUInt32(time))) ORDER BY (user_id, toDate(toDateTime(toUInt32(time))), project, id) SETTINGS index_granularity = 8192", force: :cascade do |t|
+  # SQL: CREATE TABLE heartbeats ( `id` Int64, `user_id` Int64, `branch` String DEFAULT '', `category` String DEFAULT '', `dependencies` Array(String), `editor` String DEFAULT '', `entity` String DEFAULT '', `language` String DEFAULT '', `machine` String DEFAULT '', `operating_system` String DEFAULT '', `project` String DEFAULT '', `type` String DEFAULT '', `user_agent` String DEFAULT '', `line_additions` Int32 DEFAULT 0, `line_deletions` Int32 DEFAULT 0, `lineno` Int32 DEFAULT 0, `lines` Int32 DEFAULT 0, `cursorpos` Int32 DEFAULT 0, `project_root_count` Int32 DEFAULT 0, `time` Float64, `is_write` UInt8 DEFAULT 0, `created_at` DateTime64(6) DEFAULT now64(), `updated_at` DateTime64(6) DEFAULT now64(), `source_type` UInt8 DEFAULT 0, `ip_address` String DEFAULT '', `ysws_program` UInt8 DEFAULT 0, `fields_hash` String DEFAULT '' ) ENGINE = ReplacingMergeTree PARTITION BY toYYYYMM(toDateTime(toUInt32(time))) ORDER BY (user_id, toDate(toDateTime(toUInt32(time))), project, entity, time) SETTINGS index_granularity = 8192
+  create_table "heartbeats", id: :int64, options: "ReplacingMergeTree PARTITION BY toYYYYMM(toDateTime(toUInt32(time))) ORDER BY (user_id, toDate(toDateTime(toUInt32(time))), project, entity, time) SETTINGS index_granularity = 8192", force: :cascade do |t|
     t.integer "id", unsigned: false, limit: 8, null: false
     t.integer "user_id", unsigned: false, limit: 8, null: false
     t.string "branch", default: "", null: false
@@ -43,7 +43,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000003) do
     t.integer "lines", unsigned: false, default: 0, null: false
     t.integer "cursorpos", unsigned: false, default: 0, null: false
     t.integer "project_root_count", unsigned: false, default: 0, null: false
-    t.float "time", null: false
+    t.float64 "time", null: false
     t.integer "is_write", limit: 1, default: 0, null: false
     t.datetime "created_at", default: -> { "now64()" }, null: false
     t.datetime "updated_at", default: -> { "now64()" }, null: false
