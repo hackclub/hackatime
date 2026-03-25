@@ -1,6 +1,8 @@
 class WeeklySummaryMailerPreview < ActionMailer::Preview
   def weekly_summary
-    user = User.joins(:heartbeats).distinct.first || User.first
+    # Can't cross-DB join — find users with heartbeats separately
+    user_ids = Heartbeat.distinct.limit(1).pluck(:user_id)
+    user = (user_ids.any? ? User.find_by(id: user_ids.first) : nil) || User.first
     ends_at = Time.current.beginning_of_week
     starts_at = ends_at - 7.days
 

@@ -31,13 +31,15 @@ class LeaderboardUpdateJob < ApplicationJob
     range = LeaderboardDateRange.calculate(date, period)
 
     ActiveRecord::Base.transaction do
-      # Build the base heartbeat query
+      # Get eligible user IDs from Postgres (can't cross-DB join)
+      eligible_user_ids = User.where.not(github_uid: nil)
+                              .where.not(trust_level: User.trust_levels[:red])
+                              .pluck(:id)
+
       heartbeat_query = Heartbeat.where(time: range)
                                  .with_valid_timestamps
-                                 .joins(:user)
                                  .coding_only
-                                 .where.not(users: { github_uid: nil })
-                                 .where.not(users: { trust_level: User.trust_levels[:red] })
+                                 .where(user_id: eligible_user_ids)
 
       data = heartbeat_query.group(:user_id).duration_seconds
                             .filter { |_, seconds| seconds > 60 }

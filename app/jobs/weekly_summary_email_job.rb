@@ -15,18 +15,13 @@ class WeeklySummaryEmailJob < ApplicationJob
   private
 
   def eligible_users(cutoff)
-    users = User.arel_table
-    heartbeats = Heartbeat.arel_table
-
-    recent_activity_exists = Heartbeat.unscoped
-      .where(heartbeats[:user_id].eq(users[:id]))
-      .where(heartbeats[:deleted_at].eq(nil))
-      .where(heartbeats[:time].gteq(cutoff.to_f))
-      .arel
-      .exists
+    # Query ClickHouse for user_ids with recent activity (can't do cross-DB subquery)
+    active_user_ids = Heartbeat.where("time >= ?", cutoff.to_f)
+                               .distinct
+                               .pluck(:user_id)
 
     User.subscribed("weekly_summary").where(
-      users[:created_at].gteq(cutoff).or(recent_activity_exists)
+      User.arel_table[:created_at].gteq(cutoff).or(User.arel_table[:id].in(active_user_ids))
     ).where.not(id: DeletionRequest.active.select(:user_id))
   end
 end

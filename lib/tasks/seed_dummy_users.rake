@@ -33,7 +33,7 @@ namespace :seed do
     ids = User.where("github_uid LIKE ?", "dummy_%").ids
     return puts "no dummies found (except for you)" if ids.empty?
 
-    Heartbeat.unscoped.where(user_id: ids).delete_all
+    Heartbeat.where(user_id: ids).delete_all
     LeaderboardEntry.where(user_id: ids).delete_all
     User.where(id: ids).delete_all
     puts "exploded #{ids.count} dummies"

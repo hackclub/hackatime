@@ -179,7 +179,7 @@ module Api
                 total_coding_time: valid.duration_seconds || 0,
                 languages_used: valid.distinct.pluck(:language).compact.count,
                 projects_worked_on: valid.distinct.pluck(:project).compact.count,
-                days_active: valid.distinct.count("DATE(to_timestamp(CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END))")
+                days_active: Heartbeat.connection.select_value("SELECT uniq(toDate(toDateTime(toUInt32(time)))) FROM (#{valid.to_sql}) AS hb").to_i
               }
             }
           }

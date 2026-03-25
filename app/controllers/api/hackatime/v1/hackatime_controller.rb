@@ -98,13 +98,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         # Calculate total seconds
         total_seconds = heartbeats.duration_seconds.to_i
 
-        # Get unique days
-        days = []
-        heartbeats.pluck(:time).each do |timestamp|
-          day = Time.at(timestamp).in_time_zone(@user.timezone).to_date
-          days << day unless days.include?(day)
-        end
-        days_covered = days.length
+        # Get unique days using ClickHouse aggregation instead of loading all timestamps
+        tz_quoted = Heartbeat.connection.quote(@user.timezone)
+        days_covered = Heartbeat.connection.select_value(
+          "SELECT uniq(toDate(toDateTime(toUInt32(time), #{tz_quoted}))) FROM (#{heartbeats.with_valid_timestamps.to_sql})"
+        ).to_i
 
         # Calculate daily average
         daily_average = days_covered > 0 ? (total_seconds.to_f / days_covered).round(1) : 0
@@ -232,9 +230,34 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   LAST_LANGUAGE_SENTINEL = "<<LAST_LANGUAGE>>"
 
   def handle_heartbeat(heartbeat_array)
-    results = []
+    prepared = prepare_heartbeat_attrs(heartbeat_array)
+
+    now = Time.current
+    base_us = (now.to_r * 1_000_000).to_i
+    records = prepared.each_with_index.map do |item, i|
+      attrs = item[:attrs]
+      attrs[:id] = ((base_us + i) << Heartbeat::CLICKHOUSE_ID_RANDOM_BITS) | SecureRandom.random_number(Heartbeat::CLICKHOUSE_ID_RANDOM_MAX)
+      attrs[:created_at] = now
+      attrs[:updated_at] = now
+      attrs
+    end
+
+    begin
+      Heartbeat.insert_all(records) if records.any?
+    rescue => e
+      report_error(e, message: "Error bulk inserting heartbeats")
+      return records.map { |r| [ { error: e.message, type: e.class.name }, 422 ] }
+    end
+
+    records.each { |r| queue_project_mapping(r[:project]) }
+    HeartbeatCacheInvalidator.bump_for(@user.id) if records.any?
+    PosthogService.capture_once_per_day(@user, "heartbeat_sent", { heartbeat_count: heartbeat_array.size })
+    records.map { |r| [ r, 201 ] }
+  end
+
+  def prepare_heartbeat_attrs(heartbeat_array)
     last_language = nil
-    heartbeat_array.each do |heartbeat|
+    heartbeat_array.filter_map do |heartbeat|
       heartbeat = heartbeat.to_h.with_indifferent_access
       source_type = :direct_entry
 
@@ -282,17 +305,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       }).slice(*Heartbeat.column_names.map(&:to_sym))
       # ^^ They say safety laws are written in blood. Well, so is this line!
       # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
-      new_heartbeat = Heartbeat.find_or_create_by(attrs)
-
-      queue_project_mapping(heartbeat[:project])
-      results << [ new_heartbeat.attributes, 201 ]
-    rescue => e
-      report_error(e, message: "Error creating heartbeat")
-      results << [ { error: e.message, type: e.class.name }, 422 ]
+      { attrs: attrs, source_type: source_type }
     end
-
-    PosthogService.capture_once_per_day(@user, "heartbeat_sent", { heartbeat_count: heartbeat_array.size })
-    results
   end
 
   def queue_project_mapping(project_name)

@@ -7,7 +7,7 @@ module Api
           end_date = params[:end_date]&.to_date || Date.current
 
           total_seconds = current_user.heartbeats
-                                      .where(created_at: start_date.beginning_of_day..end_date.end_of_day)
+                                      .where(time: start_date.beginning_of_day.to_f..end_date.end_of_day.to_f)
                                       .duration_seconds
 
           render json: {

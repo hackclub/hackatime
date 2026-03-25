@@ -10,11 +10,14 @@ class SyncAllUserRepoEventsJob < ApplicationJob
     # Identify users:
     # 1. Authenticated with GitHub (have an access token and username)
     # 2. Have had heartbeats in the last 6 hours
+    # Get user IDs with recent heartbeats from ClickHouse (can't cross-DB join)
+    recent_user_ids = Heartbeat.where("time >= ?", 6.hours.ago.to_f)
+                               .distinct
+                               .pluck(:user_id)
+
     users_to_sync = User.where.not(github_access_token: nil)
                         .where.not(github_username: nil)
-                        .joins(:heartbeats) # Assumes User has_many :heartbeats
-                        .where("heartbeats.created_at >= ?", 6.hours.ago)
-                        .distinct
+                        .where(id: recent_user_ids)
 
     if users_to_sync.empty?
       Rails.logger.info "No users eligible for GitHub event sync at this time."

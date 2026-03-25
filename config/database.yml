@@ -1,3 +1,12 @@
+<%
+clickhouse_port = ENV.fetch("CLICKHOUSE_PORT", 8123).to_i
+clickhouse_ssl = if ENV.key?("CLICKHOUSE_SSL")
+  %w[1 true yes on].include?(ENV["CLICKHOUSE_SSL"].to_s.downcase)
+else
+  clickhouse_port == 8443
+end
+%>
+
 # SQLite. Versions 3.8.0 and up are supported.
 #   gem install sqlite3
 #
@@ -20,6 +29,15 @@ development:
     encoding: unicode
     url: <%= ENV['SAILORS_LOG_DATABASE_URL'] %>
     replica: true
+  clickhouse:
+    adapter: clickhouse
+    host: <%= ENV.fetch('CLICKHOUSE_HOST', 'clickhouse') %>
+    port: <%= clickhouse_port %>
+    ssl: <%= clickhouse_ssl %>
+    database: <%= ENV.fetch('CLICKHOUSE_DATABASE', 'hackatime_development') %>
+    username: <%= ENV.fetch('CLICKHOUSE_USERNAME', 'default') %>
+    password: <%= ENV.fetch('CLICKHOUSE_PASSWORD', '') %>
+    migrations_paths: db/migrate_clickhouse
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -35,6 +53,15 @@ test:
     database: app_test
     url: <%= ENV['TEST_DATABASE_URL'] %>
     replica: true
+  clickhouse:
+    adapter: clickhouse
+    host: <%= ENV.fetch('CLICKHOUSE_HOST', 'clickhouse') %>
+    port: <%= clickhouse_port %>
+    ssl: <%= clickhouse_ssl %>
+    database: hackatime_test
+    username: <%= ENV.fetch('CLICKHOUSE_USERNAME', 'default') %>
+    password: <%= ENV.fetch('CLICKHOUSE_PASSWORD', '') %>
+    migrations_paths: db/migrate_clickhouse
 
 # Store production database in the storage/ directory, which by default
 # is mounted as a persistent Docker volume in config/deploy.yml.
@@ -60,3 +87,12 @@ production:
     adapter: sqlite3
     database: storage/production_cable.sqlite3
     migrations_paths: db/cable_migrate
+  clickhouse:
+    adapter: clickhouse
+    host: <%= ENV.fetch('CLICKHOUSE_HOST', 'clickhouse') %>
+    port: <%= clickhouse_port %>
+    ssl: <%= clickhouse_ssl %>
+    database: <%= ENV.fetch('CLICKHOUSE_DATABASE', 'hackatime_production') %>
+    username: <%= ENV.fetch('CLICKHOUSE_USERNAME', 'default') %>
+    password: <%= ENV.fetch('CLICKHOUSE_PASSWORD', '') %>
+    migrations_paths: db/migrate_clickhouse

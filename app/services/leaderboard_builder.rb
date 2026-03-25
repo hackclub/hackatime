@@ -17,11 +17,12 @@ module LeaderboardBuilder
 
     range = LeaderboardDateRange.calculate(date, period)
 
-    beats = Heartbeat.where(user_id: ids, time: range)
+    # Filter to users with github_uid from Postgres (can't cross-DB join)
+    eligible_ids = users.where.not(github_uid: nil).pluck(:id)
+
+    beats = Heartbeat.where(user_id: eligible_ids, time: range)
                     .coding_only
                     .with_valid_timestamps
-                    .joins(:user)
-                    .where.not(users: { github_uid: nil })
 
     totals = beats.group(:user_id).duration_seconds
     totals = totals.filter { |_, seconds| seconds > 60 }

@@ -48,10 +48,13 @@ class WeeklySummaryMailer < ApplicationMailer
 
   def active_days_count(scope)
     timezone = @timezone_label
-    timezone_sql = ActiveRecord::Base.connection.quote(timezone)
-    scope.where.not(time: nil)
-      .distinct
-      .count(Arel.sql("DATE(to_timestamp(time) AT TIME ZONE #{timezone_sql})"))
+    tz_quoted = Heartbeat.connection.quote(timezone)
+    # ClickHouse-compatible: count distinct days using toDate with timezone
+    result = Heartbeat.connection.select_value(<<~SQL)
+      SELECT uniq(toDate(toDateTime(toUInt32(time), #{tz_quoted})))
+      FROM (#{scope.where.not(time: nil).to_sql}) AS hb
+    SQL
+    result.to_i
   rescue StandardError
     scope.where.not(time: nil).pluck(:time).map { |time| Time.at(time).in_time_zone(timezone).to_date }.uniq.count
   end

@@ -1,3 +1,11 @@
+GIT
+  remote: https://github.com/daisychainapp/clickhouse-activerecord.git
+  revision: 2eb937bc36d327ff4f2f27f1da50cc151a7f6af5
+  specs:
+    clickhouse-activerecord (1.6.6)
+      activerecord (>= 7.1, < 9.0)
+      bundler (>= 1.13.4)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -652,6 +660,7 @@ DEPENDENCIES
   brakeman
   bullet
   capybara
+  clickhouse-activerecord!
   cloudflare-rails
   countries
   debug

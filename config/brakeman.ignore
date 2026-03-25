@@ -3,25 +3,48 @@
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "06ca3650eaeb8d28e062c1c6dcbeab95fb2ccd0c5bb49165ad469bcb6b791d3e",
+      "fingerprint": "4cffceb1f5c7d23d28b9846734a5a7333e1005874e310d65b39a32a5221990f9",
       "check_name": "SQL",
       "message": "Possible SQL injection",
       "file": "app/models/concerns/heartbeatable.rb",
-      "line": 175,
+      "line": 127,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Arel.sql(\"DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{(user_timezone or \"UTC\")}')\")",
+      "code": null,
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "daily_streaks_for_users"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "user_ids are integer IDs from internal queries, timeout and dates use .to_i/.to_f"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "076acac8c26cca89c2cbbcf0bad1bf4a45067b33c331aac087fdb8f4326590ff",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 205,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": null,
       "render_path": null,
       "location": {
         "type": "method",
         "class": "Heartbeatable",
         "method": "daily_durations"
       },
-      "user_input": "user_timezone",
+      "user_input": null,
       "confidence": "Medium",
       "cwe_id": [
         89
       ],
-      "note": ""
+      "note": "Timezone is validated against TZInfo::Timezone.all_identifiers, timeout uses .to_i"
     },
     {
       "warning_type": "SQL Injection",
@@ -32,20 +55,20 @@
       "file": "app/jobs/one_time/generate_unique_heartbeat_hashes_job.rb",
       "line": 32,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Heartbeat.where(:id => chunk.map do\n index = 1\nputs(\"Processing heartbeat #{heartbeat.id} (#{1} of #{batch.size})\")\nfield_hash = Heartbeat.generate_fields_hash(heartbeat.attributes)\nputs(\"Field hash: #{Heartbeat.generate_fields_hash(heartbeat.attributes)}\")\n[heartbeat.id, Heartbeat.generate_fields_hash(heartbeat.attributes)]\n end.map(&:first)).update_all(\"fields_hash = CASE #{chunk.map do\n index = 1\nputs(\"Processing heartbeat #{heartbeat.id} (#{1} of #{batch.size})\")\nfield_hash = Heartbeat.generate_fields_hash(heartbeat.attributes)\nputs(\"Field hash: #{Heartbeat.generate_fields_hash(heartbeat.attributes)}\")\n[heartbeat.id, Heartbeat.generate_fields_hash(heartbeat.attributes)]\n end.map do\n \"WHEN id = #{id} THEN '#{hash}'\"\n end.join(\" \")} END\")",
+      "code": null,
       "render_path": null,
       "location": {
         "type": "method",
         "class": "OneTime::GenerateUniqueHeartbeatHashesJob",
         "method": "perform"
       },
-      "user_input": "Heartbeat.generate_fields_hash(heartbeat.attributes)",
+      "user_input": null,
       "confidence": "High",
       "cwe_id": [
         89
       ],
-      "note": ""
+      "note": "One-time migration job using internally generated hashes"
     }
   ],
-  "brakeman_version": "7.0.2"
+  "brakeman_version": "8.0.4"
 }

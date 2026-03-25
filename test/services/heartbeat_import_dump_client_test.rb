@@ -1,5 +1,4 @@
 require "test_helper"
-require "webmock/minitest"
 
 class HeartbeatImportDumpClientTest < ActiveSupport::TestCase
   test "valid_wakatime_download_url? only accepts wakatime s3 links over https" do

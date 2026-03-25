@@ -1,18 +1,26 @@
-class Heartbeat < ApplicationRecord
-  before_save :set_fields_hash!
+class Heartbeat < ClickhouseRecord
+  self.table_name = "heartbeats"
+  self.primary_key = :id
 
   include Heartbeatable
   include TimeRangeFilterable
 
   time_range_filterable_field :time
 
-  # Default scope to exclude deleted records
-  default_scope { where(deleted_at: nil) }
+  before_create :set_clickhouse_id!, if: -> { self[:id].blank? }
+  after_create :invalidate_user_heartbeat_caches
+  after_update :invalidate_user_heartbeat_caches
 
-  scope :today, -> { where(time: Time.current.beginning_of_day.to_i..Time.current.end_of_day.to_i) }
+  CLICKHOUSE_ID_RANDOM_BITS = 10
+  CLICKHOUSE_ID_RANDOM_MAX = 1 << CLICKHOUSE_ID_RANDOM_BITS
+
+  def set_clickhouse_id!
+    timestamp_us = (Time.current.to_r * 1_000_000).to_i
+    self[:id] = (timestamp_us << CLICKHOUSE_ID_RANDOM_BITS) | SecureRandom.random_number(CLICKHOUSE_ID_RANDOM_MAX)
+  end
+
+  scope :today, -> { where(time: Time.current.beginning_of_day.to_f..Time.current.end_of_day.to_f) }
   scope :recent, -> { where("time > ?", 24.hours.ago.to_i) }
-  scope :with_deleted, -> { unscope(where: :deleted_at) }
-  scope :only_deleted, -> { with_deleted.where.not(deleted_at: nil) }
 
   enum :source_type, {
     direct_entry: 0,
@@ -82,14 +90,14 @@ class Heartbeat < ApplicationRecord
     neighborhood: 58
   }, prefix: :claimed_by
 
-  # This is to prevent Rails from trying to use STI even though we have a "type" column
+  # Prevent Rails STI on the "type" column
   self.inheritance_column = nil
 
+  # Note: cross-database joins (Postgres users <-> ClickHouse heartbeats) will not work.
+  # Use separate queries instead of .joins(:heartbeats) or .includes(:heartbeats).
   belongs_to :user
 
   validates :time, presence: true
-
-  # after_create :mirror_to_wakatime
 
   def self.recent_count
     Cache::HeartbeatCountsJob.perform_now[:recent_count]
@@ -99,34 +107,17 @@ class Heartbeat < ApplicationRecord
     Cache::HeartbeatCountsJob.perform_now[:recent_imported_count]
   end
 
-  def self.generate_fields_hash(attributes)
-    string_attributes = attributes.transform_keys(&:to_s)
-    indexed_attributes = string_attributes.slice(*self.indexed_attributes)
-    Digest::MD5.hexdigest(indexed_attributes.to_json)
-  end
-
-  def self.indexed_attributes
-    %w[user_id branch category dependencies editor entity language machine operating_system project type user_agent line_additions line_deletions lineno lines cursorpos project_root_count time is_write]
-  end
-
-  def soft_delete
-    update_column(:deleted_at, Time.current)
-  end
-
-  def restore
-    update_column(:deleted_at, nil)
-  end
-
   private
 
-  def set_fields_hash!
-    # only if the field exists in activerecord
-    if self.class.column_names.include?("fields_hash")
-      self.fields_hash = self.class.generate_fields_hash(self.attributes)
+  def invalidate_user_heartbeat_caches
+    impacted_user_ids.each do |impacted_user_id|
+      HeartbeatCacheInvalidator.bump_for(impacted_user_id)
     end
   end
 
-  # def mirror_to_wakatime
-  #   WakatimeMirror.mirror_heartbeat(self)
-  # end
+  def impacted_user_ids
+    user_ids = [ user_id ]
+    user_ids.concat(previous_changes.fetch("user_id", []))
+    user_ids.compact.uniq
+  end
 end

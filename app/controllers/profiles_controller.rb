@@ -113,7 +113,7 @@ class ProfilesController < InertiaController
     timezone = @user.timezone
     stats = ProfileStatsService.new(@user).stats
 
-    durations = Rails.cache.fetch("user_#{@user.id}_daily_durations_#{timezone}", expires_in: 1.minute) do
+    durations = Rails.cache.fetch([ "user-daily-durations", @user.id, HeartbeatCacheInvalidator.version_for(@user), timezone ], expires_in: 1.minute) do
       Time.use_zone(timezone) { @user.heartbeats.daily_durations(user_timezone: timezone).to_h }
     end
 

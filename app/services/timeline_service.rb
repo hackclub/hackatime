@@ -24,7 +24,7 @@ class TimelineService
       user_start_of_day = date.in_time_zone(user_tz).beginning_of_day.to_f
       user_end_of_day = date.in_time_zone(user_tz).end_of_day.to_f
 
-      total_coded_time_seconds = Heartbeat.where(user_id: user.id, deleted_at: nil)
+      total_coded_time_seconds = Heartbeat.where(user_id: user.id)
                                           .where("time >= ? AND time <= ?", user_start_of_day, user_end_of_day)
                                           .duration_seconds
 
@@ -80,7 +80,7 @@ class TimelineService
       expanded_end = server_end_of_day + 24.hours.to_i
 
       Heartbeat
-        .where(user_id: valid_user_ids, deleted_at: nil)
+        .where(user_id: valid_user_ids)
         .where("time >= ? AND time <= ?", expanded_start, expanded_end)
         .select(:id, :user_id, :time, :entity, :project, :editor, :language)
         .order(:user_id, :time)

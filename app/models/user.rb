@@ -108,6 +108,7 @@ class User < ApplicationRecord
   end
   # ex: .set_trust(:green) or set_trust(1) setting it to red
 
+  # Heartbeats live in ClickHouse — simple scoped queries work but SQL JOINs will not.
   has_many :heartbeats
   has_many :goals, dependent: :destroy
   has_many :email_addresses, dependent: :destroy

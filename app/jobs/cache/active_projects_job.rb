@@ -8,14 +8,35 @@ class Cache::ActiveProjectsJob < Cache::ActivityJob
   end
 
   def calculate
-    # Get recent heartbeats with matching project_repo_mappings in a single SQL query
-    ProjectRepoMapping.active
-                      .joins("INNER JOIN heartbeats ON heartbeats.project = project_repo_mappings.project_name AND heartbeats.user_id = project_repo_mappings.user_id")
-                      .joins("INNER JOIN users ON users.id = heartbeats.user_id")
-                      .where("heartbeats.source_type = ?", Heartbeat.source_types[:direct_entry])
-                      .where("heartbeats.time > ?", 5.minutes.ago.to_f)
-                      .select("DISTINCT ON (heartbeats.user_id) project_repo_mappings.*, heartbeats.user_id")
-                      .order("heartbeats.user_id, heartbeats.time DESC")
-                      .index_by(&:user_id)
+    latest_by_user = latest_projects_by_user_id
+
+    return {} if latest_by_user.empty?
+
+    mappings = ProjectRepoMapping.active
+                                 .where(user_id: latest_by_user.keys)
+                                 .to_a
+                                 .group_by(&:user_id)
+
+    result = {}
+    latest_by_user.each do |user_id, project_name|
+      mapping = (mappings[user_id] || []).find { |candidate| candidate.project_name == project_name }
+      result[user_id] = mapping if mapping
+    end
+
+    result
+  end
+
+  def latest_projects_by_user_id
+    rows = Heartbeat.connection.select_all(Heartbeat.sanitize_sql([ <<~SQL, Heartbeat.source_types[:direct_entry], 5.minutes.ago.to_f ]))
+      SELECT user_id, argMax(project, time) AS project
+      FROM heartbeats
+      WHERE source_type = ?
+        AND time > ?
+      GROUP BY user_id
+    SQL
+
+    rows.each_with_object({}) do |row, hash|
+      hash[row["user_id"].to_i] = row["project"]
+    end
   end
 end

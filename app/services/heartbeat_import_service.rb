@@ -7,7 +7,7 @@ class HeartbeatImportService
     imported_count = 0
     total_count = 0
     errors = []
-    seen_hashes = {}
+    batch = []
 
     handler = HeartbeatSaxHandler.new do |hb|
       total_count += 1
@@ -40,14 +40,11 @@ class HeartbeatImportService
           source_type: Heartbeat.source_types.fetch("wakapi_import")
         }
 
-        attrs[:fields_hash] = Heartbeat.generate_fields_hash(attrs)
+        batch << attrs
 
-        existing = seen_hashes[attrs[:fields_hash]]
-        seen_hashes[attrs[:fields_hash]] = attrs if existing.nil? || attrs[:time] > existing[:time]
-
-        if seen_hashes.size >= BATCH_SIZE
-          imported_count += flush_batch(seen_hashes)
-          seen_hashes.clear
+        if batch.size >= BATCH_SIZE
+          imported_count += flush_batch(user_id, batch)
+          batch.clear
         end
       rescue => e
         errors << { heartbeat: hb, error: e.message }
@@ -60,7 +57,7 @@ class HeartbeatImportService
     if total_count.zero?
       raise StandardError, "Expected a heartbeat export JSON file."
     end
-    imported_count += flush_batch(seen_hashes) if seen_hashes.any?
+    imported_count += flush_batch(user_id, batch) if batch.any?
 
     elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
@@ -97,20 +94,26 @@ class HeartbeatImportService
     total_count
   end
 
-  def self.flush_batch(seen_hashes)
-    return 0 if seen_hashes.empty?
+  def self.flush_batch(user_id, records)
+    return 0 if records.empty?
 
-    records = seen_hashes.values
-    records.each do |r|
-      timestamp = Time.current
-      r[:created_at] = timestamp
-      r[:updated_at] = timestamp
+    now = Time.current
+    base_us = (now.to_r * 1_000_000).to_i
+    records.each_with_index do |r, i|
+      r[:id] = ((base_us + i) << Heartbeat::CLICKHOUSE_ID_RANDOM_BITS) | SecureRandom.random_number(Heartbeat::CLICKHOUSE_ID_RANDOM_MAX)
+      r[:created_at] = now
+      r[:updated_at] = now
     end
 
     ActiveRecord::Base.logger.silence do
-      result = Heartbeat.upsert_all(records, unique_by: [ :fields_hash ])
-      result.length
+      Heartbeat.connection.with_settings(async_insert: 0, wait_for_async_insert: 1) do
+        Heartbeat.insert_all(records)
+      end
+      Heartbeat.connection.clear_query_cache
     end
+
+    HeartbeatCacheInvalidator.bump_for(user_id)
+    records.length
   end
 
   class HeartbeatSaxHandler < Oj::Saj

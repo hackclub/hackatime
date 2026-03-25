@@ -37,55 +37,40 @@ module TimeRangeFilterable
     flavortown: {
       human_name: "Flavortown",
       calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2025-12-15").beginning_of_day
-          to = Time.parse("2026-03-31").end_of_day
-          from.beginning_of_day..to.end_of_day
+        Time.use_zone("America/New_York") do
+          Time.parse("2025-12-15").beginning_of_day..Time.parse("2026-03-31").end_of_day
         end
       }
     },
     summer_of_making: {
       human_name: "Summer of Making",
       calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2025-06-16").beginning_of_day
-          to = Time.parse("2025-09-30").end_of_day
-          from.beginning_of_day..to.end_of_day
+        Time.use_zone("America/New_York") do
+          Time.parse("2025-06-16").beginning_of_day..Time.parse("2025-09-30").end_of_day
         end
       }
     },
     high_seas: {
       human_name: "High Seas",
       calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2024-10-30").beginning_of_day
-          to = Time.parse("2025-01-31").end_of_day
-          from.beginning_of_day..to.end_of_day
+        Time.use_zone("America/New_York") do
+          Time.parse("2024-10-30").beginning_of_day..Time.parse("2025-01-31").end_of_day
         end
       }
     },
     low_skies: {
       human_name: "Low Skies",
       calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2024-10-3").beginning_of_day
-          to = Time.parse("2025-01-12").end_of_day
-          from.beginning_of_day..to.end_of_day
+        Time.use_zone("America/New_York") do
+          Time.parse("2024-10-03").beginning_of_day..Time.parse("2025-01-12").end_of_day
         end
       }
     },
     scrapyard: {
       human_name: "Scrapyard Global",
       calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2025-03-14").beginning_of_day
-          to = Time.parse("2025-03-17").end_of_day
-          from.beginning_of_day..to.end_of_day
+        Time.use_zone("America/New_York") do
+          Time.parse("2025-03-14").beginning_of_day..Time.parse("2025-03-17").end_of_day
         end
       }
     }
