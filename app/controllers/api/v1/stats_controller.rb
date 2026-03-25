@@ -81,7 +81,7 @@ class Api::V1::StatsController < ApplicationController
     else
       if params[:total_seconds] == "true"
         query = Heartbeat.where(user_id: @user.id)
-        query = query.where("time >= ? AND time < ?", start_date.to_f, end_date.to_f)
+        query = query.where(time: start_date.to_f...end_date.to_f)
 
         if params[:filter_by_project].present?
           filter_by_project = params[:filter_by_project].split(",")

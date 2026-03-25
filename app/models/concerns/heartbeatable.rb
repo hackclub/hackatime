@@ -1,6 +1,9 @@
 module Heartbeatable
   extend ActiveSupport::Concern
 
+  MAX_VALID_TIMESTAMP = 253402300799
+  VALID_TIMESTAMPS_SQL = "(time >= 0 AND time <= ?)".freeze
+
   included do
     scope :coding_only, -> { where(category: "coding") }
     scope :with_valid_timestamps, -> { where("time >= 0 AND time <= ?", 253402300799) }
@@ -244,12 +247,10 @@ module Heartbeatable
           hash[row["grouped_time"]] = row["duration"].to_i
         end
       else
-        capped_diffs_sql = scope
-          .select("least(greatest(time - lagInFrame(time, 1, time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), #{timeout}) as diff")
-          .where.not(time: nil)
-          .to_sql
+        summarized_duration = duration_seconds_from_daily_summary(scope, timeout:)
+        return summarized_duration unless summarized_duration.nil?
 
-        connection.select_value("SELECT toInt64(coalesce(sum(diff), 0)) FROM (#{capped_diffs_sql})").to_i
+        raw_duration_seconds(scope, timeout:)
       end
     end
 
@@ -298,6 +299,228 @@ module Heartbeatable
 
       sql = "SELECT toInt64(coalesce(sum(diff), 0)) FROM (#{capped_diffs_sql}) WHERE time >= #{connection.quote(start_time)}"
       connection.select_value(sql).to_i
+    end
+
+    private
+
+    def duration_seconds_from_daily_summary(scope, timeout:)
+      compatibility = summary_compatible_scope(scope)
+      return if compatibility.nil?
+
+      day_bounds = summarized_day_bounds(scope)
+      return 0 if day_bounds.empty?
+
+      stale_days = [ Time.current.utc.to_date ]
+      last_refresh_time = HeartbeatUserDailySummary.last_refresh_time
+      stale_days.concat(stale_summary_days(scope, last_refresh_time)) if last_refresh_time.present?
+
+      summary_days = day_bounds
+        .map { |row| row["day"].to_date }
+        .uniq
+        .select { |day| full_day_included?(day, compatibility) && !stale_days.include?(day) }
+
+      raw_days = day_bounds
+        .map { |row| row["day"].to_date }
+        .uniq - summary_days
+
+      summary_total = HeartbeatUserDailySummary.duration_for_days(
+        user_id: compatibility[:user_id],
+        days: summary_days
+      )
+
+      raw_total = raw_days.sum do |day|
+        raw_duration_seconds(scope.where(time: utc_day_range(day)), timeout:)
+      end
+
+      summary_total + raw_total + cross_day_bonus(day_bounds, timeout:)
+    end
+
+    def summary_compatible_scope(scope)
+      return unless scope.model == Heartbeat
+      return unless scope.group_values.empty?
+      return unless scope.having_clause.empty?
+      return unless scope.limit_value.nil? && scope.offset_value.nil?
+
+      compatibility = {
+        user_id: nil,
+        start_time: nil,
+        start_inclusive: true,
+        end_time: nil,
+        end_inclusive: true
+      }
+
+      predicates = scope.where_clause.send(:predicates)
+
+      predicates.each do |predicate|
+        return unless apply_summary_predicate(predicate, compatibility)
+      end
+
+      return if compatibility[:user_id].blank?
+
+      compatibility
+    end
+
+    def apply_summary_predicate(predicate, compatibility)
+      case predicate
+      when Arel::Nodes::Equality
+        apply_summary_equality_predicate(predicate, compatibility)
+      when Arel::Nodes::Between
+        apply_summary_between_predicate(predicate, compatibility)
+      when Arel::Nodes::And
+        predicate.children.all? { |child| apply_summary_predicate(child, compatibility) }
+      when Arel::Nodes::GreaterThanOrEqual
+        apply_summary_lower_bound(predicate, compatibility, inclusive: true)
+      when Arel::Nodes::GreaterThan
+        apply_summary_lower_bound(predicate, compatibility, inclusive: false)
+      when Arel::Nodes::LessThanOrEqual
+        apply_summary_upper_bound(predicate, compatibility, inclusive: true)
+      when Arel::Nodes::LessThan
+        apply_summary_upper_bound(predicate, compatibility, inclusive: false)
+      when Arel::Nodes::BoundSqlLiteral
+        predicate.sql_with_placeholders == VALID_TIMESTAMPS_SQL &&
+          predicate.positional_binds.map { |bind| node_value(bind) } == [ MAX_VALID_TIMESTAMP ]
+      else
+        false
+      end
+    end
+
+    def apply_summary_equality_predicate(predicate, compatibility)
+      return false unless predicate.left.name.to_s == "user_id"
+
+      user_id = node_value(predicate.right).to_i
+      return false if compatibility[:user_id].present? && compatibility[:user_id] != user_id
+
+      compatibility[:user_id] = user_id
+      true
+    end
+
+    def apply_summary_between_predicate(predicate, compatibility)
+      return false unless predicate.left.name.to_s == "time"
+
+      lower_bound, upper_bound = predicate.right.children
+      apply_time_lower_bound(compatibility, node_value(lower_bound).to_f, inclusive: true)
+      apply_time_upper_bound(compatibility, node_value(upper_bound).to_f, inclusive: true)
+      true
+    end
+
+    def apply_summary_lower_bound(predicate, compatibility, inclusive:)
+      return false unless predicate.left.name.to_s == "time"
+
+      apply_time_lower_bound(compatibility, node_value(predicate.right).to_f, inclusive:)
+      true
+    end
+
+    def apply_summary_upper_bound(predicate, compatibility, inclusive:)
+      return false unless predicate.left.name.to_s == "time"
+
+      apply_time_upper_bound(compatibility, node_value(predicate.right).to_f, inclusive:)
+      true
+    end
+
+    def apply_time_lower_bound(compatibility, candidate_time, inclusive:)
+      current_time = compatibility[:start_time]
+      current_inclusive = compatibility[:start_inclusive]
+
+      if current_time.nil? || candidate_time > current_time || (candidate_time == current_time && !inclusive && current_inclusive)
+        compatibility[:start_time] = candidate_time
+        compatibility[:start_inclusive] = inclusive
+      end
+    end
+
+    def apply_time_upper_bound(compatibility, candidate_time, inclusive:)
+      current_time = compatibility[:end_time]
+      current_inclusive = compatibility[:end_inclusive]
+
+      if current_time.nil? || candidate_time < current_time || (candidate_time == current_time && !inclusive && current_inclusive)
+        compatibility[:end_time] = candidate_time
+        compatibility[:end_inclusive] = inclusive
+      end
+    end
+
+    def summarized_day_bounds(scope)
+      scoped_sql = scope
+        .where.not(time: nil)
+        .unscope(:order)
+        .reselect(:time)
+        .to_sql
+
+      connection.select_all(<<~SQL)
+        SELECT
+          toDate(toDateTime(toUInt32(time))) AS day,
+          min(time) AS first_time,
+          max(time) AS last_time
+        FROM (#{scoped_sql}) AS hb
+        GROUP BY day
+        ORDER BY day
+      SQL
+    end
+
+    def stale_summary_days(scope, last_refresh_time)
+      scoped_sql = scope
+        .where.not(time: nil)
+        .unscope(:order)
+        .reselect(:time, :updated_at)
+        .to_sql
+
+      connection.select_values(<<~SQL).map(&:to_date)
+        SELECT DISTINCT toDate(toDateTime(toUInt32(time))) AS day
+        FROM (#{scoped_sql}) AS hb
+        WHERE updated_at > #{connection.quote(last_refresh_time)}
+      SQL
+    end
+
+    def full_day_included?(day, compatibility)
+      day_start = utc_day_start(day)
+      day_end = utc_day_end(day)
+
+      lower_bound_matches = compatibility[:start_time].nil? ||
+        compatibility[:start_time] < day_start ||
+        (compatibility[:start_time] == day_start && compatibility[:start_inclusive])
+
+      upper_bound_matches = compatibility[:end_time].nil? ||
+        compatibility[:end_time] > day_end ||
+        (compatibility[:end_time] == day_end && compatibility[:end_inclusive])
+
+      lower_bound_matches && upper_bound_matches
+    end
+
+    def cross_day_bonus(day_bounds, timeout:)
+      day_bounds.each_cons(2).sum do |previous_day, current_day|
+        previous_date = previous_day["day"].to_date
+        current_date = current_day["day"].to_date
+        next 0 unless current_date == previous_date + 1.day
+
+        gap = current_day["first_time"].to_f - previous_day["last_time"].to_f
+        [ [ gap, timeout ].min, 0 ].max.to_i
+      end
+    end
+
+    def raw_duration_seconds(scope, timeout:)
+      capped_diffs_sql = scope
+        .select("least(greatest(time - lagInFrame(time, 1, time) OVER (ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), #{timeout}) as diff")
+        .where.not(time: nil)
+        .to_sql
+
+      connection.select_value("SELECT toInt64(coalesce(sum(diff), 0)) FROM (#{capped_diffs_sql})").to_i
+    end
+
+    def utc_day_range(day)
+      utc_day_start(day)..utc_day_end(day)
+    end
+
+    def utc_day_start(day)
+      day.to_time(:utc).beginning_of_day.to_f
+    end
+
+    def utc_day_end(day)
+      day.to_time(:utc).end_of_day.to_f
+    end
+
+    def node_value(node)
+      return node.value_for_database if node.respond_to?(:value_for_database)
+      return node.value if node.respond_to?(:value)
+
+      node
     end
   end
 end

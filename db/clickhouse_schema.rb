@@ -16,7 +16,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000003) do
   create_table "heartbeat_user_daily_summary", id: false, options: "ReplacingMergeTree(_version) ORDER BY (user_id, day) SETTINGS index_granularity = 8192", force: :cascade do |t|
     t.integer "user_id", unsigned: false, limit: 8, null: false
     t.date "day", null: false
-    t.column "duration_s", "Float64", null: false
+    t.float "duration_s", null: false
     t.integer "heartbeats", null: false
     t.datetime "_version", precision: nil, default: -> { "now()" }, null: false
   end
@@ -43,7 +43,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000003) do
     t.integer "lines", unsigned: false, default: 0, null: false
     t.integer "cursorpos", unsigned: false, default: 0, null: false
     t.integer "project_root_count", unsigned: false, default: 0, null: false
-    t.column "time", "Float64", null: false
+    t.float "time", null: false
     t.integer "is_write", limit: 1, default: 0, null: false
     t.datetime "created_at", default: -> { "now64()" }, null: false
     t.datetime "updated_at", default: -> { "now64()" }, null: false
@@ -54,7 +54,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000003) do
   end
 
   # TABLE: heartbeat_user_daily_summary_mv
-  # SQL: CREATE MATERIALIZED VIEW heartbeat_user_daily_summary_mv REFRESH EVERY 10 MINUTE TO heartbeat_user_daily_summary ( `user_id` Int64, `day` Date, `duration_s` Float64, `heartbeats` UInt32 ) AS SELECT user_id, toDate(toDateTime(toUInt32(time))) AS day, sum(diff) AS duration_s, toUInt32(count()) AS heartbeats FROM ( SELECT user_id, time, least(greatest(time - lagInFrame(time, 1, time) OVER (PARTITION BY user_id ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), 120) AS diff FROM heartbeats WHERE (time IS NOT NULL) AND (time >= 0) AND (time <= 253402300799) ) GROUP BY user_id, day
-  create_table "heartbeat_user_daily_summary_mv", view: true, materialized: true, id: false, as: "SELECT user_id, toDate(toDateTime(toUInt32(time))) AS day, sum(diff) AS duration_s, toUInt32(count()) AS heartbeats FROM ( SELECT user_id, time, least(greatest(time - lagInFrame(time, 1, time) OVER (PARTITION BY user_id ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), 120) AS diff FROM heartbeats WHERE (time IS NOT NULL) AND (time >= 0) AND (time <= 253402300799) ) GROUP BY user_id, day", force: :cascade do |t|
+  # SQL: CREATE MATERIALIZED VIEW heartbeat_user_daily_summary_mv REFRESH EVERY 10 MINUTE TO heartbeat_user_daily_summary ( `user_id` Int64, `day` Date, `duration_s` Float64, `heartbeats` UInt32 ) AS SELECT user_id, toDate(toDateTime(toUInt32(time))) AS day, sum(diff) AS duration_s, toUInt32(count()) AS heartbeats FROM ( SELECT user_id, time, least(greatest(time - lagInFrame(time, 1, time) OVER (PARTITION BY user_id, toDate(toDateTime(toUInt32(time))) ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), 120) AS diff FROM heartbeats WHERE (time IS NOT NULL) AND (time >= 0) AND (time <= 253402300799) ) GROUP BY user_id, day
+  create_table "heartbeat_user_daily_summary_mv", view: true, materialized: true, id: false, as: "SELECT user_id, toDate(toDateTime(toUInt32(time))) AS day, sum(diff) AS duration_s, toUInt32(count()) AS heartbeats FROM ( SELECT user_id, time, least(greatest(time - lagInFrame(time, 1, time) OVER (PARTITION BY user_id, toDate(toDateTime(toUInt32(time))) ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), 120) AS diff FROM heartbeats WHERE (time IS NOT NULL) AND (time >= 0) AND (time <= 253402300799) ) GROUP BY user_id, day", force: :cascade do |t|
   end
+
 end
