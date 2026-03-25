@@ -35,11 +35,8 @@ class ChangeHeartbeatsOrderByForDedup < ActiveRecord::Migration[8.1]
 
     copy_source_rows_by_day
 
-    execute <<~SQL
-      RENAME TABLE
-        #{SOURCE_TABLE} TO #{BACKUP_TABLE},
-        #{TEMP_TABLE} TO #{SOURCE_TABLE}
-    SQL
+    execute "RENAME TABLE #{SOURCE_TABLE} TO #{BACKUP_TABLE}"
+    execute "RENAME TABLE #{TEMP_TABLE} TO #{SOURCE_TABLE}"
 
     execute "DROP TABLE IF EXISTS #{BACKUP_TABLE}"
     recreate_summary_view
