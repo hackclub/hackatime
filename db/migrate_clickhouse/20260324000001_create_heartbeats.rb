@@ -63,7 +63,7 @@ class CreateHeartbeats < ActiveRecord::Migration[8.1]
       )
       ENGINE = ReplacingMergeTree()
       PARTITION BY toYYYYMM(toDateTime(toUInt32(time)))
-      ORDER BY (user_id, toDate(toDateTime(toUInt32(time))), project, id)
+      ORDER BY (user_id, toDate(toDateTime(toUInt32(time))), project, entity, time)
       SETTINGS index_granularity = 8192
     SQL
 

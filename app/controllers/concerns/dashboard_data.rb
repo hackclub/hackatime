@@ -98,9 +98,9 @@ module DashboardData
         weekly_hb = hb.where(time: week_start.to_f..week_end.to_f)
 
         timeout = Heartbeat.heartbeat_timeout_duration.to_i
-        tz = current_user.timezone
+        tz_quoted = Heartbeat.connection.quote(current_user.timezone)
         weekly_sql = weekly_hb
-          .select("toStartOfWeek(toDateTime(toUInt32(time), '#{tz}'), 1) as week_start, `project` as grouped_time, least(greatest(time - lagInFrame(time, 1, time) OVER (PARTITION BY `project`, toStartOfWeek(toDateTime(toUInt32(time), '#{tz}'), 1) ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), #{timeout}) as diff")
+          .select("toStartOfWeek(toDateTime(toUInt32(time), #{tz_quoted}), 1) as week_start, `project` as grouped_time, least(greatest(time - lagInFrame(time, 1, time) OVER (PARTITION BY `project`, toStartOfWeek(toDateTime(toUInt32(time), #{tz_quoted}), 1) ORDER BY time ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0), #{timeout}) as diff")
           .where.not(time: nil)
           .with_valid_timestamps
           .to_sql

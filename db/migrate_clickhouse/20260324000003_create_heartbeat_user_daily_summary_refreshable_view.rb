@@ -20,7 +20,7 @@ class CreateHeartbeatUserDailySummaryRefreshableView < ActiveRecord::Migration[8
               least(
                   greatest(
                       time - lagInFrame(time, 1, time) OVER (
-                          PARTITION BY user_id
+                          PARTITION BY user_id, toDate(toDateTime(toUInt32(time)))
                           ORDER BY time ASC
                           ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
                       ),
