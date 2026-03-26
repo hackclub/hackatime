@@ -1905,8 +1905,8 @@ paths:
       - InternalToken: []
       parameters: []
       responses:
-        '200':
-          description: successful
+        '201':
+          description: created
           content:
             application/json:
               schema:
@@ -1914,14 +1914,30 @@ paths:
                 properties:
                   success:
                     type: boolean
+                  status:
+                    type: string
+                  token_type:
+                    type: string
                   owner_email:
                     type: string
                     nullable: true
                   key_name:
                     type: string
                     nullable: true
-        '400':
-          description: bad request
+        '422':
+          description: unprocessable entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+                required:
+                - success
+                - error
       requestBody:
         content:
           application/json:
@@ -1929,6 +1945,10 @@ paths:
               type: object
               properties:
                 token:
+                  type: string
+                submitter:
+                  type: string
+                comment:
                   type: string
               required:
               - token
