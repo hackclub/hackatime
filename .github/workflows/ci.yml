@@ -10,7 +10,7 @@ on:
 
 jobs:
   scan_ruby:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       security-events: write
@@ -35,7 +35,7 @@ jobs:
           sarif_file: brakeman.sarif.json
 
   scan_js:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout code
@@ -51,7 +51,7 @@ jobs:
         run: bin/importmap audit
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -66,7 +66,7 @@ jobs:
         run: bin/rubocop -f github
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout code
@@ -85,7 +85,7 @@ jobs:
         run: bun run format:svelte:check
 
   zeitwerk:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout code
@@ -101,7 +101,7 @@ jobs:
         run: bin/rails zeitwerk:check
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     services:
       postgres:
@@ -148,7 +148,7 @@ jobs:
           git diff --exit-code swagger/v1/swagger.yaml
 
   test_system:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-8vcpu-ubuntu-2404
 
     services:
       postgres:
