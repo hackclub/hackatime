@@ -61,7 +61,7 @@
         Sign in to Hackatime
       </h1>
       <p class="text-secondary text-sm">
-        Track your coding time. Own your metrics.
+        Track your hacking time. Own your metrics.
       </p>
     </div>
 
@@ -85,5 +85,11 @@
         ← Back to home
       </Link>
     </div>
+    <p class="text-secondary text-sm">
+      By signing in, you agree to the Hack Club <a
+        class="text-primary"
+        href="https://hackclub.com/privacy">privacy policy and terms</a
+      >.
+    </p>
   </div>
 </div>
