@@ -234,7 +234,7 @@
     <section class="mt-6">
       <p class="text-lg text-surface-content">
         {#if projects_data.has_activity}
-          You've spent
+          <span class="capitalize">{interval_label}</span>, you've spent
           <span class="font-semibold text-primary"
             >{projects_data.total_time_label}</span
           >
