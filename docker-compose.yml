@@ -17,9 +17,26 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secureorpheus123
       - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
+      - STATS_SERVER_URL=http://stats_server:4000
+      - STATS_SERVER_AUTH_TOKEN=dev-stats-token
     depends_on:
       - db
+      - stats_server
     command: ["sleep", "infinity"]
+
+  stats_server:
+    build:
+      context: ./rust-stats-server
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
+      - RUST_LOG=info
+      - AUTH_TOKEN=dev-stats-token
+      - LISTEN_ADDR=0.0.0.0:4000
+    depends_on:
+      - db
 
   db:
     image: postgres:16
