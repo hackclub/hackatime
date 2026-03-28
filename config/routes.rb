@@ -137,6 +137,7 @@ Rails.application.routes.draw do
   end
 
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
+  get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }
 
   # Namespace for current user actions
   get "my/settings", to: "settings/profile#show", as: :my_settings
@@ -168,6 +169,7 @@ Rails.application.routes.draw do
       member do
         patch :archive
         patch :unarchive
+        patch :toggle_share
       end
     end
     # resource :mailing_address, only: [ :show, :edit ]
@@ -314,6 +316,7 @@ Rails.application.routes.draw do
   get "/@:username/languages", to: "profiles#languages", as: :profile_languages, constraints: { username: /[A-Za-z0-9_-]+/ }
   get "/@:username/editors", to: "profiles#editors", as: :profile_editors, constraints: { username: /[A-Za-z0-9_-]+/ }
   get "/@:username/activity", to: "profiles#activity", as: :profile_activity, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/project/:project_name", to: "profiles#project", as: :profile_project, constraints: { username: /[A-Za-z0-9_-]+/, project_name: /.+/ }
 
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
