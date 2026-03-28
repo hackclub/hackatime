@@ -12,6 +12,10 @@ pub struct DurationRequest {
     pub coding_only: Option<bool>,
     pub categories_exclude: Option<Vec<String>>,
     pub timeout_seconds: Option<f64>,
+    pub languages: Option<Vec<String>>,
+    pub editors: Option<Vec<String>>,
+    pub operating_systems: Option<Vec<String>>,
+    pub categories: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -33,6 +37,10 @@ pub struct GroupedDurationRequest {
     pub timeout_seconds: Option<f64>,
     pub limit: Option<i64>,
     pub min_seconds: Option<i64>,
+    pub languages: Option<Vec<String>>,
+    pub editors: Option<Vec<String>>,
+    pub operating_systems: Option<Vec<String>>,
+    pub categories: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]

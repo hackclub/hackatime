@@ -19,7 +19,7 @@ module Api
         project_name = resolve_project_name(user, params[:project])
         return render json: { error: "Project not found" }, status: :not_found unless project_name
 
-        seconds = user.heartbeats.where(project: project_name).duration_seconds
+        seconds = StatsClient.duration(user_id: user.id, project: project_name)["total_seconds"].to_i
         return head :bad_request if seconds <= 0
 
         label = params[:label] || "hackatime"
@@ -35,7 +35,7 @@ module Api
         # Handle aliases (comma-separated project names to sum)
         if params[:aliases].present?
           alias_names = params[:aliases].split(",").map(&:strip) - [ project_name ]
-          alias_seconds = user.heartbeats.where(project: alias_names).duration_seconds
+          alias_seconds = StatsClient.duration(user_id: user.id, projects: alias_names)["total_seconds"].to_i
           seconds += alias_seconds
 
           # Recalculate with alias time included

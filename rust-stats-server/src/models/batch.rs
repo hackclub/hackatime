@@ -22,6 +22,10 @@ pub struct BatchQuery {
     pub coding_only: Option<bool>,
     pub project: Option<String>,
     pub projects: Option<Vec<String>>,
+    pub languages: Option<Vec<String>>,
+    pub editors: Option<Vec<String>>,
+    pub operating_systems: Option<Vec<String>>,
+    pub categories: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]

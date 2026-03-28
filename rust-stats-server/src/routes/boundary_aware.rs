@@ -36,9 +36,9 @@ pub async fn boundary_aware(
     // correctly references the same argument.
     let mut base_conditions = vec![
         "deleted_at IS NULL".to_string(),
-        "time IS NOT NULL".to_string(),
-        "time >= 0".to_string(),
-        "time <= 253402300799".to_string(),
+        "\"time\" IS NOT NULL".to_string(),
+        "\"time\" >= 0".to_string(),
+        "\"time\" <= 253402300799".to_string(),
     ];
 
     let mut args = PgArguments::default();
@@ -70,13 +70,74 @@ pub async fn boundary_aware(
         }
     }
 
-    // coding_only / category
+    // coding_only / category / categories
     if req.coding_only == Some(true) {
         base_conditions.push("category = 'coding'".to_string());
+    } else if let Some(ref cats) = req.categories {
+        if !cats.is_empty() {
+            let placeholders: Vec<String> = cats
+                .iter()
+                .enumerate()
+                .map(|(i, _)| format!("${}", param_idx + i))
+                .collect();
+            base_conditions.push(format!("category IN ({})", placeholders.join(", ")));
+            for c in cats {
+                let _ = args.add(c.clone());
+            }
+            param_idx += cats.len();
+        }
     } else if let Some(ref cat) = req.category {
         base_conditions.push(format!("category = ${}", param_idx));
         let _ = args.add(cat.clone());
         param_idx += 1;
+    }
+
+    // languages filter
+    if let Some(ref langs) = req.languages {
+        if !langs.is_empty() {
+            let placeholders: Vec<String> = langs
+                .iter()
+                .enumerate()
+                .map(|(i, _)| format!("${}", param_idx + i))
+                .collect();
+            base_conditions.push(format!("language IN ({})", placeholders.join(", ")));
+            for l in langs {
+                let _ = args.add(l.clone());
+            }
+            param_idx += langs.len();
+        }
+    }
+
+    // editors filter
+    if let Some(ref eds) = req.editors {
+        if !eds.is_empty() {
+            let placeholders: Vec<String> = eds
+                .iter()
+                .enumerate()
+                .map(|(i, _)| format!("${}", param_idx + i))
+                .collect();
+            base_conditions.push(format!("editor IN ({})", placeholders.join(", ")));
+            for e in eds {
+                let _ = args.add(e.clone());
+            }
+            param_idx += eds.len();
+        }
+    }
+
+    // operating_systems filter
+    if let Some(ref oses) = req.operating_systems {
+        if !oses.is_empty() {
+            let placeholders: Vec<String> = oses
+                .iter()
+                .enumerate()
+                .map(|(i, _)| format!("${}", param_idx + i))
+                .collect();
+            base_conditions.push(format!("operating_system IN ({})", placeholders.join(", ")));
+            for o in oses {
+                let _ = args.add(o.clone());
+            }
+            param_idx += oses.len();
+        }
     }
 
     // categories exclude
@@ -114,17 +175,17 @@ pub async fn boundary_aware(
     let sql = format!(
         "SELECT COALESCE(SUM(diff), 0)::bigint as total \
          FROM ( \
-           SELECT time, CASE \
-             WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0 \
-             ELSE LEAST(time - LAG(time) OVER (ORDER BY time), {timeout}) \
+           SELECT \"time\", CASE \
+             WHEN LAG(\"time\") OVER (ORDER BY \"time\") IS NULL THEN 0 \
+             ELSE LEAST(\"time\" - LAG(\"time\") OVER (ORDER BY \"time\"), {timeout}) \
            END as diff \
            FROM ( \
-             (SELECT time FROM heartbeats WHERE {base_where} AND time < {start_param} ORDER BY time DESC LIMIT 1) \
+             (SELECT \"time\" FROM heartbeats WHERE {base_where} AND \"time\" < {start_param} ORDER BY \"time\" DESC LIMIT 1) \
              UNION ALL \
-             (SELECT time FROM heartbeats WHERE {base_where} AND time >= {start_param} AND time <= {end_param}) \
+             (SELECT \"time\" FROM heartbeats WHERE {base_where} AND \"time\" >= {start_param} AND \"time\" <= {end_param}) \
            ) AS boundary_heartbeats \
          ) AS diffs \
-         WHERE time >= {start_param2}",
+         WHERE \"time\" >= {start_param2}",
         timeout = timeout,
         base_where = base_where,
         start_param = start_param,

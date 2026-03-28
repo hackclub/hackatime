@@ -17,7 +17,7 @@ pub async fn batch(
     let mut results = HashMap::new();
 
     for query in &req.queries {
-        let filters = QueryFilters::build(
+        let filters = QueryFilters::build_extended(
             Some(req.user_id),
             None,
             Some(req.start_time),
@@ -27,6 +27,10 @@ pub async fn batch(
             None,
             query.coding_only,
             None,
+            query.languages.as_deref(),
+            query.editors.as_deref(),
+            query.operating_systems.as_deref(),
+            query.categories.as_deref(),
         );
 
         let value: Value = match query.query_type.as_str() {

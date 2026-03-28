@@ -5,6 +5,21 @@ class Settings::DataController < Settings::BaseController
 
   private
 
+  def format_duration_simple(seconds)
+    hours = seconds / 3600
+    minutes = (seconds % 3600) / 60
+
+    if hours > 1
+      "#{hours} hrs"
+    elsif hours == 1
+      "1 hr"
+    elsif minutes > 0
+      "#{minutes} min"
+    else
+      "0 min"
+    end
+  end
+
   def render_data(status: :ok)
     render_settings_page(
       active_section: "data",
@@ -26,7 +41,7 @@ class Settings::DataController < Settings::BaseController
       data_export: InertiaRails.defer {
         {
           total_heartbeats: number_with_delimiter(@user.heartbeats.count),
-          total_coding_time: @user.heartbeats.duration_simple,
+          total_coding_time: format_duration_simple(StatsClient.duration(user_id: @user.id)["total_seconds"].to_i),
           heartbeats_last_7_days: number_with_delimiter(@user.heartbeats.where("time >= ?", 7.days.ago.to_f).count),
           is_restricted: (@user.trust_level == "red")
         }

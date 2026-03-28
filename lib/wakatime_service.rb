@@ -2,6 +2,11 @@ include ApplicationHelper
 include ErrorReporting
 
 class WakatimeService
+  SUPPORTED_FILTERS = {
+    languages: "language",
+    projects: "project"
+  }.freeze
+
   def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil)
     @scope = scope || Heartbeat.all
     @user = user
@@ -22,59 +27,20 @@ class WakatimeService
 
     @specific_filters = specific_filters
     @allow_cache = allow_cache
+    @project_filter = extract_project_filter(scope)
   end
 
   def generate_summary
-    summary = {}
+    result = StatsClient.summary(
+      user_id: @user&.id,
+      start_time: @start_date,
+      end_time: @end_date,
+      group_by: requested_group_bys.presence,
+      limit: @limit,
+      projects: @project_filter
+    )
 
-    summary[:username] = @user.display_name if @user.present?
-    summary[:user_id] = @user.id.to_s if @user.present?
-    summary[:is_coding_activity_visible] = true if @user.present?
-    summary[:is_other_usage_visible] = true if @user.present?
-    summary[:status] = "ok"
-
-    @start_time = @start_date
-    @end_time = @end_date
-
-    summary[:start] = Time.at(@start_time).strftime("%Y-%m-%dT%H:%M:%SZ")
-    summary[:end] = Time.at(@end_time).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    summary[:range] = "all_time"
-    summary[:human_readable_range] = "All Time"
-
-    @total_seconds = @scope.duration_seconds || 0
-    summary[:total_seconds] = @total_seconds
-
-    @total_days = (@end_time - @start_time) / 86400
-    summary[:daily_average] = @total_days.zero? ? 0 : @total_seconds / @total_days
-
-    summary[:human_readable_total] = ApplicationController.helpers.short_time_detailed(@total_seconds)
-    summary[:human_readable_daily_average] = ApplicationController.helpers.short_time_detailed(summary[:daily_average])
-
-    summary[:languages] = generate_summary_chunk(:language) if @specific_filters.include?(:languages)
-    summary[:projects] = generate_summary_chunk(:project) if @specific_filters.include?(:projects)
-
-    summary
-  end
-
-  def generate_summary_chunk(group_by)
-    result = []
-    @scope.group(group_by).duration_seconds.each do |key, value|
-      entry = {
-        name: transform_display_name(group_by, key),
-        total_seconds: value,
-        text: ApplicationController.helpers.short_time_simple(value),
-        hours: value / 3600,
-        minutes: (value % 3600) / 60,
-        percent: (100.0 * value / @total_seconds).round(2),
-        digital: ApplicationController.helpers.digital_time(value)
-      }
-      entry[:color] = LanguageUtils.color(key) if group_by == :language
-      result << entry
-    end
-    result = result.sort_by { |item| -item[:total_seconds] }
-    result = result.first(@limit) if @limit.present?
-    result
+    format_summary(result)
   end
 
   def self.parse_user_agent(user_agent)
@@ -114,10 +80,9 @@ class WakatimeService
     { os: "", editor: "", err: "failed to parse user agent string" }
   end
 
-
   def transform_display_name(group_by, key)
     value = key.presence || "Other"
-    case group_by
+    case group_by.to_sym
     when :editor
       ApplicationController.helpers.display_editor_name(value)
     when :operating_system
@@ -136,6 +101,73 @@ class WakatimeService
   end
 
   private
+
+  def format_summary(result)
+    summary = {}
+
+    summary[:username] = @user.display_name if @user.present?
+    summary[:user_id] = @user.id.to_s if @user.present?
+    summary[:is_coding_activity_visible] = true if @user.present?
+    summary[:is_other_usage_visible] = true if @user.present?
+    summary[:status] = "ok"
+
+    @start_time = result["start_time"].to_i
+    @end_time = result["end_time"].to_i
+
+    summary[:start] = Time.at(@start_time).strftime("%Y-%m-%dT%H:%M:%SZ")
+    summary[:end] = Time.at(@end_time).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    summary[:range] = "all_time"
+    summary[:human_readable_range] = "All Time"
+
+    @total_seconds = result["total_seconds"].to_i
+    summary[:total_seconds] = @total_seconds
+
+    @total_days = (@end_time - @start_time) / 86400
+    summary[:daily_average] = @total_days.zero? ? 0 : @total_seconds / @total_days
+
+    summary[:human_readable_total] = ApplicationController.helpers.short_time_detailed(@total_seconds)
+    summary[:human_readable_daily_average] = ApplicationController.helpers.short_time_detailed(summary[:daily_average])
+
+    SUPPORTED_FILTERS.each do |summary_key, group_by|
+      next unless @specific_filters.include?(summary_key)
+
+      summary[summary_key] = generate_summary_chunk(group_by, result.dig("groups", group_by) || [])
+    end
+
+    summary
+  end
+
+  def generate_summary_chunk(group_by, groups)
+    result = groups.map do |group|
+      key = group["name"]
+      value = group["total_seconds"].to_i
+      entry = {
+        name: transform_display_name(group_by, key),
+        total_seconds: value,
+        text: ApplicationController.helpers.short_time_simple(value),
+        hours: value / 3600,
+        minutes: (value % 3600) / 60,
+        percent: group["percent"].to_f.round(2),
+        digital: ApplicationController.helpers.digital_time(value)
+      }
+      entry[:color] = LanguageUtils.color(key) if group_by == "language"
+      entry
+    end
+
+    result = result.sort_by { |item| -item[:total_seconds] }
+    result = result.first(@limit) if @limit.present?
+    result
+  end
+
+  def requested_group_bys
+    @specific_filters.filter_map { |filter| SUPPORTED_FILTERS[filter.to_sym] }
+  end
+
+  def extract_project_filter(scope)
+    value = scope&.where_values_hash&.with_indifferent_access&.dig(:project)
+    Array.wrap(value).presence
+  end
 
   def convert_to_unix_timestamp(timestamp)
     # our lord and savior stack overflow for this bit of code

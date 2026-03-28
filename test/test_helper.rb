@@ -3,6 +3,9 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "nokogiri"
 require "json"
+require "webmock"
+
+WebMock.disable_net_connect!(allow_localhost: true, allow: [ "stats_server_test", "stats_server" ])
 
 module ActiveSupport
   class TestCase

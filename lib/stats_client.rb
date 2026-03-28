@@ -1,5 +1,9 @@
 class StatsClient
-  RUST_URL = ENV.fetch("STATS_SERVER_URL", "http://stats_server:4000")
+  RUST_URL = if Rails.env.test?
+    ENV.fetch("TEST_STATS_SERVER_URL", "http://stats_server_test:4001")
+  else
+    ENV.fetch("STATS_SERVER_URL", "http://stats_server:4000")
+  end
   AUTH_TOKEN = ENV.fetch("STATS_SERVER_AUTH_TOKEN", "dev-token")
   TIMEOUT = 30 # seconds
 

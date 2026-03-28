@@ -73,18 +73,18 @@ pub async fn query_streaks(
             .unwrap_or(0.0);
 
         let date_expr = format!(
-            "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '{}')",
+            "DATE_TRUNC('day', to_timestamp(\"time\") AT TIME ZONE '{}')",
             tz_str
         );
 
         let sql = format!(
-            "SELECT {date_expr}::date as day, COALESCE(SUM(diff), 0)::bigint as duration \
+            "SELECT day_group::date as day, COALESCE(SUM(diff), 0)::bigint as duration \
              FROM (SELECT {date_expr} as day_group, CASE \
-               WHEN LAG(time) OVER (PARTITION BY {date_expr} ORDER BY time) IS NULL THEN 0 \
-               ELSE LEAST(time - LAG(time) OVER (PARTITION BY {date_expr} ORDER BY time), {timeout}) \
-             END as diff FROM heartbeats WHERE deleted_at IS NULL AND time IS NOT NULL \
-             AND time >= 0 AND time <= 253402300799 AND user_id = $1 AND category = 'coding' \
-             AND time >= $2) AS diffs \
+               WHEN LAG(\"time\") OVER (PARTITION BY {date_expr} ORDER BY \"time\") IS NULL THEN 0 \
+               ELSE LEAST(\"time\" - LAG(\"time\") OVER (PARTITION BY {date_expr} ORDER BY \"time\"), {timeout}) \
+             END as diff FROM heartbeats WHERE deleted_at IS NULL AND \"time\" IS NOT NULL \
+             AND \"time\" >= 0 AND \"time\" <= 253402300799 AND user_id = $1 AND category = 'coding' \
+             AND \"time\" >= $2) AS diffs \
              GROUP BY day ORDER BY day DESC",
             date_expr = date_expr,
             timeout = timeout

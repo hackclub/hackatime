@@ -20,7 +20,7 @@ namespace :seed do
       { name: "docs-site", langs: %w[Markdown MDX CSS], entities_prefix: "content" },
       { name: "ml-service", langs: %w[Python], entities_prefix: "models" },
       { name: "design-system", langs: %w[TypeScript CSS], entities_prefix: "packages/ui/src" },
-      { name: "game-engine", langs: %w[Rust C++], entities_prefix: "src/engine" },
+      { name: "game-engine", langs: %w[Rust C++], entities_prefix: "src/engine" }
     ]
 
     editors = %w[VS\ Code Neovim Zed Emacs IntelliJ\ IDEA WebStorm GoLand PyCharm RubyMine Cursor]
@@ -31,7 +31,7 @@ namespace :seed do
     ext_map = {
       "TypeScript" => "ts", "JavaScript" => "js", "HTML" => "html", "CSS" => "css",
       "Ruby" => "rb", "Go" => "go", "Python" => "py", "Rust" => "rs", "C++" => "cpp",
-      "YAML" => "yml", "HCL" => "tf", "Bash" => "sh", "Markdown" => "md", "MDX" => "mdx",
+      "YAML" => "yml", "HCL" => "tf", "Bash" => "sh", "Markdown" => "md", "MDX" => "mdx"
     }
 
     file_names = %w[
@@ -46,7 +46,7 @@ namespace :seed do
       "wakatime/v1.73.1 (darwin-23.2.0-arm64) go1.21.5 Zed/0.118.1 zed-wakatime/0.1.0",
       "wakatime/v1.73.1 (linux-6.5.0-x86_64) go1.21.5 neovim/0.9.4 vim-wakatime/11.0.0",
       "wakatime/v1.73.1 (darwin-23.2.0-arm64) go1.21.5 emacs/29.1 emacs-wakatime/1.0.2",
-      "wakatime/v1.73.1 (windows-10.0.22631-amd64) go1.21.5 IntelliJ IDEA/2023.3 jetbrains-wakatime/14.0.0",
+      "wakatime/v1.73.1 (windows-10.0.22631-amd64) go1.21.5 IntelliJ IDEA/2023.3 jetbrains-wakatime/14.0.0"
     ]
 
     puts "Creating #{NUM_USERS} users with #{HBS_PER_USER} heartbeats each (#{TOTAL_HEARTBEATS} total)..."
@@ -91,7 +91,7 @@ namespace :seed do
 
         # Cap to not exceed per-user total
         remaining = HBS_PER_USER - total_inserted
-        daily_count = [daily_count, remaining].min
+        daily_count = [ daily_count, remaining ].min
         break if daily_count <= 0
 
         # Generate coding sessions (2-6 per day)
@@ -104,12 +104,12 @@ namespace :seed do
           end
         end.sort.uniq
 
-        hbs_per_session = daily_count / [session_starts.size, 1].max
+        hbs_per_session = daily_count / [ session_starts.size, 1 ].max
         session_project = user_projects.sample
 
         session_starts.each do |session_hour|
           count_this_session = hbs_per_session + rand(-5..5)
-          count_this_session = [count_this_session, 1].max
+          count_this_session = [ count_this_session, 1 ].max
           remaining_for_day = daily_count - (total_inserted - (HBS_PER_USER - remaining - daily_count + (total_inserted - (HBS_PER_USER - remaining))))
 
           # Pick project for this session (80% chance same project per session)
@@ -155,7 +155,7 @@ namespace :seed do
               user_agent: ua,
               source_type: 0,
               created_at: timestamp,
-              updated_at: timestamp,
+              updated_at: timestamp
             }
 
             total_inserted += 1
@@ -199,7 +199,7 @@ namespace :seed do
           user_agent: user_agents.sample,
           source_type: 0,
           created_at: timestamp,
-          updated_at: timestamp,
+          updated_at: timestamp
         }
 
         total_inserted += 1

@@ -41,7 +41,7 @@ pub async fn unique_seconds(
 
     // Get all timestamps ordered
     let sql = format!(
-        "SELECT time FROM heartbeats WHERE {} ORDER BY time",
+        "SELECT \"time\" FROM heartbeats WHERE {} ORDER BY \"time\"",
         filters.where_clause
     );
 

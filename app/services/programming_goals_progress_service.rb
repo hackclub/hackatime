@@ -37,19 +37,25 @@ class ProgrammingGoalsProgressService
 
   def tracked_seconds_for_goal(goal, now:)
     time_window = time_window_for(goal.period, now: now)
-    scope = user.heartbeats.where(time: time_window.begin.to_i..time_window.end.to_i)
-    scope = scope.where(project: goal.projects) if goal.projects.any?
+    opts = {
+      user_id: user.id,
+      start_time: time_window.begin.to_i,
+      end_time: time_window.end.to_i,
+      timeout_seconds: Heartbeat.heartbeat_timeout_duration.to_i
+    }
+    opts[:projects] = goal.projects if goal.projects.any?
 
     if goal.languages.any?
+      scope = user.heartbeats.where(time: time_window.begin.to_i..time_window.end.to_i)
       grouped_languages = languages_grouped_by_category(scope.distinct.pluck(:language))
       matching_languages = goal.languages.flat_map { |language| grouped_languages[language] }.compact_blank.uniq
 
       return 0 if matching_languages.empty?
 
-      scope = scope.where(language: matching_languages)
+      opts[:languages] = matching_languages
     end
 
-    scope.duration_seconds.to_i
+    StatsClient.duration(**opts)["total_seconds"].to_i
   end
 
   def languages_grouped_by_category(languages)

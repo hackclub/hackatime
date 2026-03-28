@@ -40,50 +40,72 @@ module DashboardData
         end
 
         hb = hb.filter_by_time_range(interval, params[:from], params[:to])
-        result[:total_time] = hb.duration_seconds
         result[:total_heartbeats] = hb.count
 
-        filters.each do |f|
-          stats = hb.group(f).duration_seconds
-          stats = stats.reject { |n, _| archived.include?(n) } if f == :project
-          result["top_#{f}"] = stats.max_by { |_, v| v }&.first
-        end
+        if hb.exists?
+          batch = StatsClient.duration_batch(
+            user_id: current_user.id,
+            start_time: hb.minimum(:time),
+            end_time: hb.maximum(:time),
+            queries: dashboard_batch_queries
+          )
 
-        result["top_editor"] &&= h.display_editor_name(result["top_editor"])
-        result["top_operating_system"] &&= h.display_os_name(result["top_operating_system"])
-        result["top_language"] &&= h.display_language_name(result["top_language"])
+          result[:total_time] = batch.dig("results", "total", "total_seconds").to_i
 
-        unless result["singular_project"]
-          result[:project_durations] = hb.group(:project).duration_seconds
-            .reject { |p, _| archived.include?(p) }.sort_by { |_, d| -d }.first(10).to_h
-        end
-
-        %i[language editor operating_system category].each do |f|
-          next if result["singular_#{f}"]
-          stats = hb.group(f).duration_seconds.each_with_object({}) do |(raw, dur), agg|
-            k = raw.to_s.presence || "Unknown"
-            k = f == :language ? (k == "Unknown" ? k : k.categorize_language) : (%i[editor operating_system].include?(f) ? k.downcase : k)
-            agg[k] = (agg[k] || 0) + dur
+          filters.each do |f|
+            stats = batch.dig("results", "by_#{f}", "groups") || {}
+            stats = stats.reject { |n, _| archived.include?(n) } if f == :project
+            result["top_#{f}"] = stats.max_by { |_, v| v }&.first
           end
-          result["#{f}_stats"] = stats.sort_by { |_, d| -d }.first(10).map { |k, v|
-            label = case f
-            when :editor then h.display_editor_name(k)
-            when :operating_system then h.display_os_name(k)
-            when :language then h.display_language_name(k)
-            else k
+
+          result["top_editor"] &&= h.display_editor_name(result["top_editor"])
+          result["top_operating_system"] &&= h.display_os_name(result["top_operating_system"])
+          result["top_language"] &&= h.display_language_name(result["top_language"])
+
+          unless result["singular_project"]
+            result[:project_durations] = (batch.dig("results", "by_project", "groups") || {})
+              .reject { |p, _| archived.include?(p) }
+              .sort_by { |_, d| -d }
+              .first(10)
+              .to_h
+          end
+
+          %i[language editor operating_system category].each do |f|
+            next if result["singular_#{f}"]
+
+            stats = (batch.dig("results", "by_#{f}", "groups") || {}).each_with_object({}) do |(raw, dur), agg|
+              k = raw.to_s.presence || "Unknown"
+              k = f == :language ? (k == "Unknown" ? k : k.categorize_language) : (%i[editor operating_system].include?(f) ? k.downcase : k)
+              agg[k] = (agg[k] || 0) + dur
             end
-            [ label, v ]
-          }.to_h
+
+            result["#{f}_stats"] = stats.sort_by { |_, d| -d }.first(10).map { |k, v|
+              label = case f
+              when :editor then h.display_editor_name(k)
+              when :operating_system then h.display_os_name(k)
+              when :language then h.display_language_name(k)
+              else k
+              end
+              [ label, v ]
+            }.to_h
+          end
+
+          result[:weekly_project_stats] = (0..11).to_h do |w|
+            ws = w.weeks.ago.beginning_of_week
+            weekly_stats = StatsClient.duration_grouped(
+              group_by: "project",
+              user_id: current_user.id,
+              start_time: ws.to_f,
+              end_time: w.weeks.ago.end_of_week.to_f,
+              **dashboard_resolved_filters
+            )["groups"] || {}
+
+            [ ws.to_date.iso8601, weekly_stats.reject { |p, _| archived.include?(p) } ]
+          end
         end
 
         if result["language_stats"].present?
           result[:language_colors] = LanguageUtils.colors_for(result["language_stats"].keys)
-        end
-
-        result[:weekly_project_stats] = (0..11).to_h do |w|
-          ws = w.weeks.ago.beginning_of_week
-          [ ws.to_date.iso8601, hb.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
-              .group(:project).duration_seconds.reject { |p, _| archived.include?(p) } ]
         end
       end
       result[:selected_interval] = interval.to_s
@@ -99,7 +121,7 @@ module DashboardData
     tz = current_user.timezone
     key = "user_#{current_user.id}_daily_durations_#{tz}"
     durations = Rails.cache.fetch(key, expires_in: 1.minute) do
-      Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
+      Time.use_zone(tz) { StatsClient.daily_durations(user_id: current_user.id, timezone: tz)["durations"] || {} }
     end
 
     {
@@ -134,7 +156,11 @@ module DashboardData
 
       todays_languages = lang_counts.map { |l, _| h.display_language_name(l) }
       todays_editors = ed_counts.map { |e, _| h.display_editor_name(e) }
-      todays_duration = current_user.heartbeats.today.duration_seconds
+      todays_duration = StatsClient.duration(
+        user_id: current_user.id,
+        start_time: Time.current.beginning_of_day.to_f,
+        end_time: Time.current.end_of_day.to_f
+      )["total_seconds"].to_i
       show_logged_time_sentence = todays_duration > 1.minute && (todays_languages.any? || todays_editors.any?)
 
       {
@@ -144,5 +170,42 @@ module DashboardData
         todays_editors: todays_editors
       }
     end
+  end
+
+  def dashboard_resolved_filters
+    resolved = {}
+    resolved[:projects] = params[:project]&.split(",") if params[:project].present?
+    resolved[:categories] = params[:category]&.split(",") if params[:category].present?
+
+    if params[:editor].present?
+      arr = params[:editor].split(",")
+      resolved[:editors] = arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq
+    end
+
+    if params[:operating_system].present?
+      arr = params[:operating_system].split(",")
+      resolved[:operating_systems] = arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq
+    end
+
+    if params[:language].present?
+      arr = params[:language].split(",")
+      raw = current_user.heartbeats.distinct.pluck(:language).compact_blank.select { |l| arr.include?(l.categorize_language) }
+      resolved[:languages] = raw if raw.any?
+    end
+
+    resolved
+  end
+
+  def dashboard_batch_queries
+    resolved = dashboard_resolved_filters
+
+    [
+      { id: "total", type: "ungrouped" },
+      { id: "by_project", type: "grouped", group_by: "project" },
+      { id: "by_language", type: "grouped", group_by: "language" },
+      { id: "by_operating_system", type: "grouped", group_by: "operating_system" },
+      { id: "by_editor", type: "grouped", group_by: "editor" },
+      { id: "by_category", type: "grouped", group_by: "category" }
+    ].map { |q| q.merge(resolved) }
   end
 end

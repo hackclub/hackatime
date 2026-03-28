@@ -22,8 +22,7 @@ class SailorsLog < ApplicationRecord
 
   def initialize_projects_summary
     return if projects_summary.present?
-    self.projects_summary = Heartbeat.where(user_id: user.id)
-                                     .group(:project).duration_seconds
+    self.projects_summary = StatsClient.duration_grouped(group_by: "project", user_id: user.id)["groups"] || {}
     self.projects_summary ||= {}
   end
 

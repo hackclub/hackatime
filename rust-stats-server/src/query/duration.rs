@@ -23,8 +23,8 @@ pub async fn query_duration_ungrouped(
     let sql = format!(
         "SELECT COALESCE(SUM(diff), 0)::bigint as total \
          FROM (SELECT CASE \
-           WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0 \
-           ELSE LEAST(time - LAG(time) OVER (ORDER BY time), {timeout}) \
+           WHEN LAG(\"time\") OVER (ORDER BY \"time\") IS NULL THEN 0 \
+           ELSE LEAST(\"time\" - LAG(\"time\") OVER (ORDER BY \"time\"), {timeout}) \
          END as diff \
          FROM heartbeats WHERE {where_clause}) AS diffs",
         timeout = timeout,
@@ -62,8 +62,8 @@ pub async fn query_duration_grouped(
     let mut sql = format!(
         "SELECT grouped_col, COALESCE(SUM(diff), 0)::bigint as duration \
          FROM (SELECT {col_expr} as grouped_col, CASE \
-           WHEN LAG(time) OVER (PARTITION BY {col_expr} ORDER BY time) IS NULL THEN 0 \
-           ELSE LEAST(time - LAG(time) OVER (PARTITION BY {col_expr} ORDER BY time), {timeout}) \
+           WHEN LAG(\"time\") OVER (PARTITION BY {col_expr} ORDER BY \"time\") IS NULL THEN 0 \
+           ELSE LEAST(\"time\" - LAG(\"time\") OVER (PARTITION BY {col_expr} ORDER BY \"time\"), {timeout}) \
          END as diff \
          FROM heartbeats WHERE {where_clause}) AS diffs \
          GROUP BY grouped_col",

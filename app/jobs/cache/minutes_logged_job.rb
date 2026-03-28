@@ -4,9 +4,10 @@ class Cache::MinutesLoggedJob < Cache::ActivityJob
   private
 
   def calculate
-    Heartbeat.coding_only
-             .with_valid_timestamps
-             .where(time: 1.hour.ago..Time.current)
-             .duration_seconds / 60
+    StatsClient.duration(
+      start_time: 1.hour.ago.to_f,
+      end_time: Time.current.to_f,
+      coding_only: true
+    )["total_seconds"].to_i / 60
   end
 end

@@ -15,7 +15,7 @@ pub async fn duration(
 ) -> Result<Json<DurationResponse>, AppError> {
     let timeout = req.timeout_seconds.unwrap_or(120.0);
 
-    let filters = QueryFilters::build(
+    let filters = QueryFilters::build_extended(
         req.user_id,
         req.user_ids.as_deref(),
         req.start_time,
@@ -25,6 +25,10 @@ pub async fn duration(
         req.category.as_deref(),
         req.coding_only,
         req.categories_exclude.as_deref(),
+        req.languages.as_deref(),
+        req.editors.as_deref(),
+        req.operating_systems.as_deref(),
+        req.categories.as_deref(),
     );
 
     let total = query_duration_ungrouped(&pool, filters, timeout).await?;
@@ -40,7 +44,7 @@ pub async fn duration_grouped(
 ) -> Result<Json<GroupedDurationResponse>, AppError> {
     let timeout = req.timeout_seconds.unwrap_or(120.0);
 
-    let filters = QueryFilters::build(
+    let filters = QueryFilters::build_extended(
         req.user_id,
         req.user_ids.as_deref(),
         req.start_time,
@@ -50,6 +54,10 @@ pub async fn duration_grouped(
         None,
         req.coding_only,
         req.categories_exclude.as_deref(),
+        req.languages.as_deref(),
+        req.editors.as_deref(),
+        req.operating_systems.as_deref(),
+        req.categories.as_deref(),
     );
 
     let groups =

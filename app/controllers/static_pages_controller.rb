@@ -63,14 +63,37 @@ class StaticPagesController < InertiaController
 
     cached = Rails.cache.fetch(key, expires_in: 1.minute) do
       hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
-      projects = hb.group(:project).duration_seconds.filter_map do |proj, dur|
+      first_time, last_time = hb.pick(Arel.sql("MIN(time), MAX(time)"))
+      grouped_durations = if first_time && last_time
+        StatsClient.duration_grouped(
+          group_by: "project",
+          user_id: current_user.id,
+          start_time: first_time,
+          end_time: last_time
+        )["groups"] || {}
+      else
+        {}
+      end
+
+      projects = grouped_durations.filter_map do |proj, dur|
         next if dur <= 0
         m = @project_repo_mappings.find { |p| p.project_name == proj }
         { project: proj || "Unknown",
           project_key: proj, repo_url: m&.repo_url, repository: m&.repository,
           has_mapping: m.present?, duration: dur }
       end.sort_by { |p| -p[:duration] }
-      { projects: projects, total_time: hb.duration_seconds }
+
+      total_time = if first_time && last_time
+        StatsClient.duration(
+          user_id: current_user.id,
+          start_time: first_time,
+          end_time: last_time
+        )["total_seconds"].to_i
+      else
+        0
+      end
+
+      { projects: projects, total_time: total_time }
     end
 
     durations = cached[:projects]

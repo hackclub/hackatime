@@ -6,9 +6,11 @@ module Api
           start_date = params[:start_date]&.to_date || 7.days.ago.to_date
           end_date = params[:end_date]&.to_date || Date.current
 
-          total_seconds = current_user.heartbeats
-                                      .where(created_at: start_date.beginning_of_day..end_date.end_of_day)
-                                      .duration_seconds
+          total_seconds = StatsClient.duration(
+            user_id: current_user.id,
+            start_time: start_date.beginning_of_day.to_f,
+            end_time: end_date.end_of_day.to_f
+          )["total_seconds"]
 
           render json: {
             start_date: start_date,

@@ -27,8 +27,8 @@ pub async fn query_spans(
     };
 
     let sql = format!(
-        "SELECT time, LEAD(time) OVER (ORDER BY time) as next_time{extra_cols} \
-         FROM heartbeats WHERE {where_clause} ORDER BY time",
+        "SELECT \"time\", LEAD(\"time\") OVER (ORDER BY \"time\") as next_time{extra_cols} \
+         FROM heartbeats WHERE {where_clause} ORDER BY \"time\"",
         extra_cols = extra_cols,
         where_clause = filters.where_clause
     );

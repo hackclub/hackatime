@@ -1,9 +1,21 @@
 require "application_system_test_case"
 
 class ProjectsTest < ApplicationSystemTestCase
+  self.use_transactional_tests = false
+
   setup do
     @user = User.create!(timezone: "UTC")
     sign_in_as(@user)
+  end
+
+  teardown do
+    Capybara.reset_sessions!
+    Heartbeat.where(user: @user).delete_all
+    ProjectRepoMapping.where(user: @user).delete_all
+    Rails.cache.clear
+    @user&.sign_in_tokens&.delete_all
+    @user&.email_addresses&.delete_all
+    @user&.destroy
   end
 
   test "shows active projects by default and archived projects when toggled" do

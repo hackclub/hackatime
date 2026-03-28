@@ -24,9 +24,11 @@ class TimelineService
       user_start_of_day = date.in_time_zone(user_tz).beginning_of_day.to_f
       user_end_of_day = date.in_time_zone(user_tz).end_of_day.to_f
 
-      total_coded_time_seconds = Heartbeat.where(user_id: user.id, deleted_at: nil)
-                                          .where("time >= ? AND time <= ?", user_start_of_day, user_end_of_day)
-                                          .duration_seconds
+      total_coded_time_seconds = StatsClient.duration(
+        user_id: user.id,
+        start_time: user_start_of_day,
+        end_time: user_end_of_day
+      )["total_seconds"].to_i
 
       user_heartbeats_for_spans = (heartbeats_by_user_id[user.id] || [])
         .select { |hb| hb.time >= user_start_of_day && hb.time <= user_end_of_day }

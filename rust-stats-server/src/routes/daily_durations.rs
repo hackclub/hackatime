@@ -53,15 +53,15 @@ pub async fn daily_durations(
     );
 
     let date_expr = format!(
-        "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '{}')",
+        "DATE_TRUNC('day', to_timestamp(\"time\") AT TIME ZONE '{}')",
         tz_str
     );
 
     let sql = format!(
-        "SELECT {date_expr}::date::text as day, COALESCE(SUM(diff), 0)::bigint as duration \
+        "SELECT day_group::date::text as day, COALESCE(SUM(diff), 0)::bigint as duration \
          FROM (SELECT {date_expr} as day_group, CASE \
-           WHEN LAG(time) OVER (PARTITION BY {date_expr} ORDER BY time) IS NULL THEN 0 \
-           ELSE LEAST(time - LAG(time) OVER (PARTITION BY {date_expr} ORDER BY time), {timeout}) \
+           WHEN LAG(\"time\") OVER (PARTITION BY {date_expr} ORDER BY \"time\") IS NULL THEN 0 \
+           ELSE LEAST(\"time\" - LAG(\"time\") OVER (PARTITION BY {date_expr} ORDER BY \"time\"), {timeout}) \
          END as diff FROM heartbeats WHERE {where_clause}) AS diffs \
          GROUP BY day \
          ORDER BY day",

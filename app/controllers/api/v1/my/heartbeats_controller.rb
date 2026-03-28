@@ -36,7 +36,11 @@ class Api::V1::My::HeartbeatsController < ApplicationController
     render json: {
       start_time: start_time,
       end_time: end_time,
-      total_seconds: heartbeats.duration_seconds,
+      total_seconds: StatsClient.duration(
+        user_id: current_user.id,
+        start_time: start_time.to_f,
+        end_time: end_time.to_f
+      )["total_seconds"].to_i,
       heartbeats: heartbeats
     }
   end
