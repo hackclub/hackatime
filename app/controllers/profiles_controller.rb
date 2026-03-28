@@ -54,7 +54,7 @@ class ProfilesController < InertiaController
 
   def activity
     Time.use_zone(@user.timezone) do
-      daily_durations = @user.heartbeats.daily_durations(user_timezone: @user.timezone).to_h
+      daily_durations = profile_daily_durations(@user)
       render partial: "profiles/activity", locals: { daily_durations: daily_durations, user_tz: @user.timezone }
     end
   end
@@ -114,7 +114,7 @@ class ProfilesController < InertiaController
     stats = ProfileStatsService.new(@user).stats
 
     durations = Rails.cache.fetch("user_#{@user.id}_daily_durations_#{timezone}", expires_in: 1.minute) do
-      Time.use_zone(timezone) { @user.heartbeats.daily_durations(user_timezone: timezone).to_h }
+      Time.use_zone(timezone) { profile_daily_durations(@user) }
     end
 
     {
@@ -158,5 +158,11 @@ class ProfilesController < InertiaController
     profile_visible = @user.allow_public_stats_lookup || is_own_profile
 
     head :not_found unless profile_visible
+  end
+
+  def profile_daily_durations(user)
+    (StatsClient.daily_durations(user_id: user.id, timezone: user.timezone)["durations"] || {}).each_with_object({}) do |(date, duration), acc|
+      acc[Date.iso8601(date)] = duration.to_i
+    end
   end
 end

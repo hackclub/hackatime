@@ -34,7 +34,13 @@ class ProjectStatsQuery
                  .select("project, COUNT(*) AS heartbeat_count, MIN(time) AS first_heartbeat, MAX(time) AS last_heartbeat")
                  .index_by(&:project)
 
-    durations = query.group(:project).duration_seconds
+    durations = StatsClient.duration_grouped(
+      group_by: "project",
+      user_id: @user.id,
+      start_time: timestamp_value(stats_start_time),
+      end_time: timestamp_value(stats_end_time),
+      projects: names
+    )["groups"] || {}
 
     languages_by_project = query.where.not(language: [ nil, "" ])
                                 .group(:project, :language)

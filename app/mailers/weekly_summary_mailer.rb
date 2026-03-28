@@ -16,13 +16,17 @@ class WeeklySummaryMailer < ApplicationMailer
 
     coding_heartbeats = @user.heartbeats.where(time: @starts_at.to_f...@ends_at.to_f)
 
-    @total_seconds = coding_heartbeats.duration_seconds
+    @total_seconds = StatsClient.duration(
+      user_id: @user.id,
+      start_time: @starts_at.to_f,
+      end_time: @ends_at.to_f
+    )["total_seconds"].to_i
     num_days = [ (@ends_at - @starts_at) / 1.day, 1 ].max
     @daily_average_seconds = (@total_seconds / num_days).round
     @total_heartbeats = coding_heartbeats.count
     @active_days = active_days_count(coding_heartbeats)
-    @top_projects = breakdown(coding_heartbeats, :project)
-    @top_languages = breakdown(coding_heartbeats, :language)
+    @top_projects = breakdown(:project)
+    @top_languages = breakdown(:language)
 
     mail(
       to: recipient_email,
@@ -32,9 +36,14 @@ class WeeklySummaryMailer < ApplicationMailer
 
   private
 
-  def breakdown(scope, column, limit: 5)
-    scope.group(column)
-      .duration_seconds
+  def breakdown(column, limit: 5)
+    (StatsClient.duration_grouped(
+      group_by: column.to_s,
+      user_id: @user.id,
+      start_time: @starts_at.to_f,
+      end_time: @ends_at.to_f,
+      limit: limit
+    )["groups"] || {})
       .sort_by { |_name, seconds| -seconds.to_i }
       .first(limit)
       .map do |name, seconds|

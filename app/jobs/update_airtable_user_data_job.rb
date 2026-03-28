@@ -9,12 +9,11 @@ class UpdateAirtableUserDataJob < ApplicationJob
 
       # Efficiently calculate total coding seconds for all users in this batch
       user_ids_in_batch = batch.map(&:id)
-      total_coding_seconds_per_user = Heartbeat
-                                        .where(user_id: user_ids_in_batch)
-                                        .coding_only # Only count "coding" category
-                                        .with_valid_timestamps
-                                        .group(:user_id) # Group by user
-                                        .duration_seconds # Returns a hash { user_id => seconds }
+      total_coding_seconds_per_user = (StatsClient.duration_grouped(
+        group_by: "user_id",
+        user_ids: user_ids_in_batch,
+        coding_only: true
+      )["groups"] || {}).transform_keys(&:to_i)
 
       batch.each do |user|
         first_heartbeat_time = user.heartbeats.with_valid_timestamps.order(time: :asc).limit(1).pluck(:time).first

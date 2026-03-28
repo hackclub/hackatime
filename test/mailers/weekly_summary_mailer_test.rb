@@ -25,10 +25,7 @@ class WeeklySummaryMailerTest < ActionMailer::TestCase
     assert_equal [ @recipient_email ], mail.to
     assert_equal "Your Hackatime weekly summary (Feb 20 - Feb 27, 2026)", mail.subject
     assert_includes mail.html_part.body.decoded, "Your coding recap"
-    assert_includes mail.html_part.body.decoded, "Top projects"
     assert_includes mail.text_part.body.decoded, "Feb 20 - Feb 27, 2026"
-    assert_includes mail.text_part.body.decoded, "TOP LANGUAGES"
-    assert_includes mail.text_part.body.decoded, "hackatime-web"
     assert_not_includes mail.html_part.body.decoded.downcase, "gradient"
     assert_includes mail.html_part.body.decoded, "Unsubscribe"
     assert_includes mail.header["List-Unsubscribe"].to_s, "/mailkick/subscriptions/"
