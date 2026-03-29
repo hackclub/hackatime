@@ -7,7 +7,6 @@ pub struct SummaryRequest {
     pub start_time: Option<f64>,
     pub end_time: Option<f64>,
     pub group_by: Option<Vec<String>>,
-    pub boundary_aware: Option<bool>,
     pub coding_only: Option<bool>,
     pub categories_exclude: Option<Vec<String>>,
     pub limit: Option<i64>,

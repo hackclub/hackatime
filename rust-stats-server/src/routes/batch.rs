@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use crate::error::AppError;
 use crate::models::batch::{BatchRequest, BatchResponse};
 use crate::query::duration::{query_duration_grouped, query_duration_ungrouped};
-use crate::query::filters::QueryFilters;
+use crate::query::filters::{QueryFilterParams, QueryFilters};
 
 pub async fn batch(
     State(pool): State<PgPool>,
@@ -17,21 +17,19 @@ pub async fn batch(
     let mut results = HashMap::new();
 
     for query in &req.queries {
-        let filters = QueryFilters::build_extended(
-            Some(req.user_id),
-            None,
-            Some(req.start_time),
-            Some(req.end_time),
-            query.project.as_deref(),
-            query.projects.as_deref(),
-            None,
-            query.coding_only,
-            None,
-            query.languages.as_deref(),
-            query.editors.as_deref(),
-            query.operating_systems.as_deref(),
-            query.categories.as_deref(),
-        );
+        let filters = QueryFilters::build(QueryFilterParams {
+            user_id: Some(req.user_id),
+            start_time: Some(req.start_time),
+            end_time: Some(req.end_time),
+            project: query.project.as_deref(),
+            projects: query.projects.as_deref(),
+            coding_only: query.coding_only,
+            languages: query.languages.as_deref(),
+            editors: query.editors.as_deref(),
+            operating_systems: query.operating_systems.as_deref(),
+            categories: query.categories.as_deref(),
+            ..Default::default()
+        });
 
         let value: Value = match query.query_type.as_str() {
             "ungrouped" => {

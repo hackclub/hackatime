@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use crate::error::AppError;
 use crate::models::profile::{ProfileRequest, ProfileResponse, ProjectDuration};
 use crate::query::duration::{query_duration_grouped, query_duration_ungrouped};
-use crate::query::filters::QueryFilters;
+use crate::query::filters::{QueryFilterParams, QueryFilters};
 
 pub async fn profile(
     State(pool): State<PgPool>,
@@ -56,91 +56,73 @@ pub async fn profile(
     let month_start_ts = month_start_utc.timestamp() as f64;
 
     // Today's seconds
-    let today_filters = QueryFilters::build(
-        Some(req.user_id),
-        None,
-        Some(today_start_ts),
-        Some(today_end_ts),
-        None,
-        None,
-        None,
-        Some(true),
-        None,
-    );
+    let today_filters = QueryFilters::build(QueryFilterParams {
+        user_id: Some(req.user_id),
+        start_time: Some(today_start_ts),
+        end_time: Some(today_end_ts),
+        coding_only: Some(true),
+        ..Default::default()
+    });
     let today_seconds = query_duration_ungrouped(&pool, today_filters, timeout).await?;
 
     // Week's seconds
-    let week_filters = QueryFilters::build(
-        Some(req.user_id),
-        None,
-        Some(week_start_ts),
-        Some(today_end_ts),
-        None,
-        None,
-        None,
-        Some(true),
-        None,
-    );
+    let week_filters = QueryFilters::build(QueryFilterParams {
+        user_id: Some(req.user_id),
+        start_time: Some(week_start_ts),
+        end_time: Some(today_end_ts),
+        coding_only: Some(true),
+        ..Default::default()
+    });
     let week_seconds = query_duration_ungrouped(&pool, week_filters, timeout).await?;
 
     // All-time seconds
-    let all_filters = QueryFilters::build(
-        Some(req.user_id),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(true),
-        None,
-    );
+    let all_filters = QueryFilters::build(QueryFilterParams {
+        user_id: Some(req.user_id),
+        coding_only: Some(true),
+        ..Default::default()
+    });
     let all_seconds = query_duration_ungrouped(&pool, all_filters, timeout).await?;
 
     // Top languages
-    let lang_filters = QueryFilters::build(
-        Some(req.user_id),
+    let lang_filters = QueryFilters::build(QueryFilterParams {
+        user_id: Some(req.user_id),
+        coding_only: Some(true),
+        ..Default::default()
+    });
+    let top_languages = query_duration_grouped(
+        &pool,
+        lang_filters,
+        "language",
+        timeout,
+        Some(lang_limit),
         None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(true),
-        None,
-    );
-    let top_languages =
-        query_duration_grouped(&pool, lang_filters, "language", timeout, Some(lang_limit), None)
-            .await?;
+    )
+    .await?;
 
     // Top projects (all time)
-    let proj_filters = QueryFilters::build(
-        Some(req.user_id),
+    let proj_filters = QueryFilters::build(QueryFilterParams {
+        user_id: Some(req.user_id),
+        coding_only: Some(true),
+        ..Default::default()
+    });
+    let top_projects = query_duration_grouped(
+        &pool,
+        proj_filters,
+        "project",
+        timeout,
+        Some(proj_limit),
         None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(true),
-        None,
-    );
-    let top_projects =
-        query_duration_grouped(&pool, proj_filters, "project", timeout, Some(proj_limit), None)
-            .await?;
+    )
+    .await?;
 
     // Top projects (this month)
-    let proj_month_filters = QueryFilters::build(
-        Some(req.user_id),
-        None,
-        Some(month_start_ts),
-        Some(today_end_ts),
-        None,
-        None,
-        None,
-        Some(true),
-        None,
-    );
+    let proj_month_filters = QueryFilters::build(QueryFilterParams {
+        user_id: Some(req.user_id),
+        start_time: Some(month_start_ts),
+        end_time: Some(today_end_ts),
+        coding_only: Some(true),
+        ..Default::default()
+    });
     let proj_month_raw = query_duration_grouped(
         &pool,
         proj_month_filters,
@@ -156,20 +138,20 @@ pub async fn profile(
         .collect();
 
     // Top editors
-    let editor_filters = QueryFilters::build(
-        Some(req.user_id),
+    let editor_filters = QueryFilters::build(QueryFilterParams {
+        user_id: Some(req.user_id),
+        coding_only: Some(true),
+        ..Default::default()
+    });
+    let top_editors = query_duration_grouped(
+        &pool,
+        editor_filters,
+        "editor",
+        timeout,
+        Some(editor_limit),
         None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(true),
-        None,
-    );
-    let top_editors =
-        query_duration_grouped(&pool, editor_filters, "editor", timeout, Some(editor_limit), None)
-            .await?;
+    )
+    .await?;
 
     Ok(Json(ProfileResponse {
         today_seconds,

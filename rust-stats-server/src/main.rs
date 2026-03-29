@@ -5,8 +5,10 @@ mod middleware;
 mod models;
 mod query;
 mod routes;
+mod state;
 
 use config::Config;
+use state::AppState;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -22,7 +24,10 @@ async fn main() {
     let pool = db::create_pool(&config.database_url).await;
     tracing::info!("Database connected");
 
-    let app = routes::create_router(pool);
+    let app = routes::create_router(AppState {
+        pool,
+        auth_token: config.auth_token.into(),
+    });
 
     let listener = tokio::net::TcpListener::bind(&config.listen_addr)
         .await

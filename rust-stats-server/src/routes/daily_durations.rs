@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 
 use crate::error::AppError;
-use crate::query::filters::QueryFilters;
+use crate::query::filters::{QueryFilterParams, QueryFilters};
 
 #[derive(Debug, Deserialize)]
 pub struct DailyDurationsRequest {
@@ -40,17 +40,12 @@ pub async fn daily_durations(
             .map(|nd| nd.and_hms_opt(23, 59, 59).unwrap().and_utc().timestamp() as f64)
     });
 
-    let filters = QueryFilters::build(
-        Some(req.user_id),
-        None,
+    let filters = QueryFilters::build(QueryFilterParams {
+        user_id: Some(req.user_id),
         start_time,
         end_time,
-        None,
-        None,
-        None,
-        None,
-        None,
-    );
+        ..Default::default()
+    });
 
     let date_expr = format!(
         "DATE_TRUNC('day', to_timestamp(\"time\") AT TIME ZONE '{}')",

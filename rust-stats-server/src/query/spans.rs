@@ -5,6 +5,15 @@ use crate::models::spans::Span;
 
 use super::filters::QueryFilters;
 
+type MetadataHeartbeatRow = (
+    f64,
+    Option<f64>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+);
+
 pub struct HeartbeatRow {
     pub time: f64,
     pub next_time: Option<f64>,
@@ -34,26 +43,26 @@ pub async fn query_spans(
     );
 
     let rows: Vec<HeartbeatRow> = if include_metadata {
-        let result: Vec<(f64, Option<f64>, Option<String>, Option<String>, Option<String>, Option<String>)> =
-            sqlx::query_as_with(&sql, filters.args)
-                .fetch_all(pool)
-                .await?;
+        let result: Vec<MetadataHeartbeatRow> = sqlx::query_as_with(&sql, filters.args)
+            .fetch_all(pool)
+            .await?;
         result
             .into_iter()
-            .map(|(time, next_time, entity, project, editor, language)| HeartbeatRow {
-                time,
-                next_time,
-                entity,
-                project,
-                editor,
-                language,
-            })
+            .map(
+                |(time, next_time, entity, project, editor, language)| HeartbeatRow {
+                    time,
+                    next_time,
+                    entity,
+                    project,
+                    editor,
+                    language,
+                },
+            )
             .collect()
     } else {
-        let result: Vec<(f64, Option<f64>)> =
-            sqlx::query_as_with(&sql, filters.args)
-                .fetch_all(pool)
-                .await?;
+        let result: Vec<(f64, Option<f64>)> = sqlx::query_as_with(&sql, filters.args)
+            .fetch_all(pool)
+            .await?;
         result
             .into_iter()
             .map(|(time, next_time)| HeartbeatRow {
@@ -73,7 +82,7 @@ pub async fn query_spans(
 
     let mut spans = Vec::new();
     let mut span_start = rows[0].time;
-    let mut _span_end = rows[0].time;
+    let mut span_end = rows[0].time;
     let mut files: Vec<String> = Vec::new();
     let mut projects: Vec<String> = Vec::new();
     let mut editors: Vec<String> = Vec::new();
@@ -107,9 +116,8 @@ pub async fn query_spans(
             Some(next) => {
                 let gap = next - row.time;
                 if gap > timeout {
-                    // Close current span - add min(gap, timeout) to get end time
-                    let span_end = row.time + timeout.min(gap);
-                    let duration = span_end - span_start;
+                    // Close current span at the last heartbeat's time
+                    let duration = (span_end - span_start).max(0.0);
                     if duration > 0.0 {
                         let mut span = Span {
                             start_time: span_start,
@@ -133,9 +141,9 @@ pub async fn query_spans(
                         spans.push(span);
                     }
                     span_start = next;
-                    _span_end = next;
+                    span_end = next;
                 } else {
-                    _span_end = next;
+                    span_end = next;
                 }
             }
             None => {

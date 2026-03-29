@@ -5,6 +5,10 @@ use std::collections::HashMap;
 
 use crate::error::AppError;
 
+fn parse_start_date(start_date: Option<&str>) -> Option<NaiveDate> {
+    start_date.and_then(|date| NaiveDate::parse_from_str(date, "%Y-%m-%d").ok())
+}
+
 pub async fn query_streaks(
     pool: &PgPool,
     user_ids: &[i64],
@@ -16,20 +20,7 @@ pub async fn query_streaks(
         return Ok(HashMap::new());
     }
 
-    // Clamp start_date to max of (provided, 30 days ago)
-    let thirty_days_ago = (Utc::now() - Duration::days(30))
-        .format("%Y-%m-%d")
-        .to_string();
-    let effective_start = match start_date {
-        Some(sd) => {
-            if sd > thirty_days_ago.as_str() {
-                sd.to_string()
-            } else {
-                thirty_days_ago.clone()
-            }
-        }
-        None => thirty_days_ago.clone(),
-    };
+    let parsed_start_date = parse_start_date(start_date);
 
     // Get user timezones
     let user_placeholders: Vec<String> = user_ids
@@ -67,9 +58,9 @@ pub async fn query_streaks(
             .cloned()
             .unwrap_or_else(|| "UTC".to_string());
 
-        // Convert effective_start to timestamp
-        let start_ts = NaiveDate::parse_from_str(&effective_start, "%Y-%m-%d")
-            .map(|nd| nd.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as f64)
+        let start_ts = parsed_start_date
+            .as_ref()
+            .map(|date| date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as f64)
             .unwrap_or(0.0);
 
         let date_expr = format!(
@@ -94,9 +85,7 @@ pub async fn query_streaks(
         let _ = args.add(uid);
         let _ = args.add(start_ts);
 
-        let rows: Vec<(NaiveDate, i64)> = sqlx::query_as_with(&sql, args)
-            .fetch_all(pool)
-            .await?;
+        let rows: Vec<(NaiveDate, i64)> = sqlx::query_as_with(&sql, args).fetch_all(pool).await?;
 
         // Get user's "today" in their timezone
         let tz: chrono_tz::Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
@@ -123,8 +112,8 @@ pub async fn query_streaks(
             }
 
             // Don't go past start_date
-            if let Ok(start_nd) = NaiveDate::parse_from_str(&effective_start, "%Y-%m-%d") {
-                if check_date < start_nd {
+            if let Some(start_nd) = parsed_start_date.as_ref() {
+                if check_date < *start_nd {
                     break;
                 }
             }
@@ -134,4 +123,24 @@ pub async fn query_streaks(
     }
 
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::NaiveDate;
+
+    use super::parse_start_date;
+
+    #[test]
+    fn preserves_explicit_start_dates() {
+        assert_eq!(
+            parse_start_date(Some("2025-01-01")),
+            NaiveDate::from_ymd_opt(2025, 1, 1)
+        );
+    }
+
+    #[test]
+    fn keeps_range_unbounded_when_start_date_is_missing() {
+        assert_eq!(parse_start_date(None), None);
+    }
 }

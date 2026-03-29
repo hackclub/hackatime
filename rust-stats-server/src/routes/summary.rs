@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use crate::error::AppError;
 use crate::models::summary::{GroupEntry, SummaryRequest, SummaryResponse};
 use crate::query::duration::{query_duration_grouped, query_duration_ungrouped};
-use crate::query::filters::QueryFilters;
+use crate::query::filters::{QueryFilterParams, QueryFilters};
 
 pub async fn summary(
     State(pool): State<PgPool>,
@@ -16,23 +16,23 @@ pub async fn summary(
     let limit = req.limit;
 
     // Build filters for the total
-    let filters = QueryFilters::build(
-        req.user_id,
-        None,
-        req.start_time,
-        req.end_time,
-        None,
-        req.projects.as_deref(),
-        None,
-        req.coding_only,
-        req.categories_exclude.as_deref(),
-    );
+    let filters = QueryFilters::build(QueryFilterParams {
+        user_id: req.user_id,
+        start_time: req.start_time,
+        end_time: req.end_time,
+        projects: req.projects.as_deref(),
+        coding_only: req.coding_only,
+        categories_exclude: req.categories_exclude.as_deref(),
+        ..Default::default()
+    });
 
     let total = query_duration_ungrouped(&pool, filters, timeout).await?;
 
     // Calculate daily average
     let start = req.start_time.unwrap_or(0.0);
-    let end = req.end_time.unwrap_or_else(|| chrono::Utc::now().timestamp() as f64);
+    let end = req
+        .end_time
+        .unwrap_or_else(|| chrono::Utc::now().timestamp() as f64);
     let days = ((end - start) / 86400.0).max(1.0);
     let daily_avg = total as f64 / days;
 
@@ -40,17 +40,15 @@ pub async fn summary(
     let groups = if let Some(ref group_by_list) = req.group_by {
         let mut group_map = HashMap::new();
         for group_by in group_by_list {
-            let gfilters = QueryFilters::build(
-                req.user_id,
-                None,
-                req.start_time,
-                req.end_time,
-                None,
-                req.projects.as_deref(),
-                None,
-                req.coding_only,
-                req.categories_exclude.as_deref(),
-            );
+            let gfilters = QueryFilters::build(QueryFilterParams {
+                user_id: req.user_id,
+                start_time: req.start_time,
+                end_time: req.end_time,
+                projects: req.projects.as_deref(),
+                coding_only: req.coding_only,
+                categories_exclude: req.categories_exclude.as_deref(),
+                ..Default::default()
+            });
             let raw =
                 query_duration_grouped(&pool, gfilters, group_by, timeout, limit, None).await?;
 

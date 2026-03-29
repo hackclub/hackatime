@@ -4,22 +4,28 @@ use sqlx::Arguments;
 pub struct QueryFilters {
     pub where_clause: String,
     pub args: PgArguments,
-    pub next_param: usize,
+}
+
+#[derive(Default)]
+pub struct QueryFilterParams<'a> {
+    pub user_id: Option<i64>,
+    pub user_ids: Option<&'a [i64]>,
+    pub start_time: Option<f64>,
+    pub end_time: Option<f64>,
+    pub project: Option<&'a str>,
+    pub projects: Option<&'a [String]>,
+    pub category: Option<&'a str>,
+    pub coding_only: Option<bool>,
+    pub categories_exclude: Option<&'a [String]>,
+    pub languages: Option<&'a [String]>,
+    pub editors: Option<&'a [String]>,
+    pub operating_systems: Option<&'a [String]>,
+    pub categories: Option<&'a [String]>,
 }
 
 impl QueryFilters {
-    pub fn build(
-        user_id: Option<i64>,
-        user_ids: Option<&[i64]>,
-        start_time: Option<f64>,
-        end_time: Option<f64>,
-        project: Option<&str>,
-        projects: Option<&[String]>,
-        category: Option<&str>,
-        coding_only: Option<bool>,
-        categories_exclude: Option<&[String]>,
-    ) -> Self {
-        Self::build_extended(
+    pub fn build(params: QueryFilterParams<'_>) -> Self {
+        let QueryFilterParams {
             user_id,
             user_ids,
             start_time,
@@ -29,28 +35,12 @@ impl QueryFilters {
             category,
             coding_only,
             categories_exclude,
-            None,
-            None,
-            None,
-            None,
-        )
-    }
+            languages,
+            editors,
+            operating_systems,
+            categories,
+        } = params;
 
-    pub fn build_extended(
-        user_id: Option<i64>,
-        user_ids: Option<&[i64]>,
-        start_time: Option<f64>,
-        end_time: Option<f64>,
-        project: Option<&str>,
-        projects: Option<&[String]>,
-        category: Option<&str>,
-        coding_only: Option<bool>,
-        categories_exclude: Option<&[String]>,
-        languages: Option<&[String]>,
-        editors: Option<&[String]>,
-        operating_systems: Option<&[String]>,
-        categories: Option<&[String]>,
-    ) -> Self {
         let mut conditions = vec![
             "deleted_at IS NULL".to_string(),
             "\"time\" IS NOT NULL".to_string(),
@@ -196,14 +186,12 @@ impl QueryFilters {
                 for o in oses {
                     let _ = args.add(o.clone());
                 }
-                param_idx += oses.len();
             }
         }
 
         QueryFilters {
             where_clause: conditions.join(" AND "),
             args,
-            next_param: param_idx,
         }
     }
 }

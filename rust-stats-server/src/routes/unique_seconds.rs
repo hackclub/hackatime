@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::error::AppError;
-use crate::query::filters::QueryFilters;
+use crate::query::filters::{QueryFilterParams, QueryFilters};
 
 #[derive(Debug, Deserialize)]
 pub struct UniqueSecondsRequest {
@@ -27,17 +27,14 @@ pub async fn unique_seconds(
 ) -> Result<Json<UniqueSecondsResponse>, AppError> {
     let threshold = req.gap_threshold_seconds.unwrap_or(120.0);
 
-    let filters = QueryFilters::build(
-        Some(req.user_id),
-        None,
-        Some(req.start_time),
-        Some(req.end_time),
-        None,
-        req.projects.as_deref(),
-        None,
-        req.coding_only,
-        None,
-    );
+    let filters = QueryFilters::build(QueryFilterParams {
+        user_id: Some(req.user_id),
+        start_time: Some(req.start_time),
+        end_time: Some(req.end_time),
+        projects: req.projects.as_deref(),
+        coding_only: req.coding_only,
+        ..Default::default()
+    });
 
     // Get all timestamps ordered
     let sql = format!(

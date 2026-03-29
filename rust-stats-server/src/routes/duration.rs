@@ -7,7 +7,7 @@ use crate::models::duration::{
     DurationRequest, DurationResponse, GroupedDurationRequest, GroupedDurationResponse,
 };
 use crate::query::duration::{query_duration_grouped, query_duration_ungrouped};
-use crate::query::filters::QueryFilters;
+use crate::query::filters::{QueryFilterParams, QueryFilters};
 
 pub async fn duration(
     State(pool): State<PgPool>,
@@ -15,21 +15,21 @@ pub async fn duration(
 ) -> Result<Json<DurationResponse>, AppError> {
     let timeout = req.timeout_seconds.unwrap_or(120.0);
 
-    let filters = QueryFilters::build_extended(
-        req.user_id,
-        req.user_ids.as_deref(),
-        req.start_time,
-        req.end_time,
-        req.project.as_deref(),
-        req.projects.as_deref(),
-        req.category.as_deref(),
-        req.coding_only,
-        req.categories_exclude.as_deref(),
-        req.languages.as_deref(),
-        req.editors.as_deref(),
-        req.operating_systems.as_deref(),
-        req.categories.as_deref(),
-    );
+    let filters = QueryFilters::build(QueryFilterParams {
+        user_id: req.user_id,
+        user_ids: req.user_ids.as_deref(),
+        start_time: req.start_time,
+        end_time: req.end_time,
+        project: req.project.as_deref(),
+        projects: req.projects.as_deref(),
+        category: req.category.as_deref(),
+        coding_only: req.coding_only,
+        categories_exclude: req.categories_exclude.as_deref(),
+        languages: req.languages.as_deref(),
+        editors: req.editors.as_deref(),
+        operating_systems: req.operating_systems.as_deref(),
+        categories: req.categories.as_deref(),
+    });
 
     let total = query_duration_ungrouped(&pool, filters, timeout).await?;
 
@@ -44,25 +44,31 @@ pub async fn duration_grouped(
 ) -> Result<Json<GroupedDurationResponse>, AppError> {
     let timeout = req.timeout_seconds.unwrap_or(120.0);
 
-    let filters = QueryFilters::build_extended(
-        req.user_id,
-        req.user_ids.as_deref(),
-        req.start_time,
-        req.end_time,
-        req.project.as_deref(),
-        req.projects.as_deref(),
-        None,
-        req.coding_only,
-        req.categories_exclude.as_deref(),
-        req.languages.as_deref(),
-        req.editors.as_deref(),
-        req.operating_systems.as_deref(),
-        req.categories.as_deref(),
-    );
+    let filters = QueryFilters::build(QueryFilterParams {
+        user_id: req.user_id,
+        user_ids: req.user_ids.as_deref(),
+        start_time: req.start_time,
+        end_time: req.end_time,
+        project: req.project.as_deref(),
+        projects: req.projects.as_deref(),
+        coding_only: req.coding_only,
+        categories_exclude: req.categories_exclude.as_deref(),
+        languages: req.languages.as_deref(),
+        editors: req.editors.as_deref(),
+        operating_systems: req.operating_systems.as_deref(),
+        categories: req.categories.as_deref(),
+        ..Default::default()
+    });
 
-    let groups =
-        query_duration_grouped(&pool, filters, &req.group_by, timeout, req.limit, req.min_seconds)
-            .await?;
+    let groups = query_duration_grouped(
+        &pool,
+        filters,
+        &req.group_by,
+        timeout,
+        req.limit,
+        req.min_seconds,
+    )
+    .await?;
 
     Ok(Json(GroupedDurationResponse { groups }))
 }

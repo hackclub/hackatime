@@ -1,5 +1,9 @@
 FROM ruby:3.4.8
 
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:$PATH
+
 # Install system dependencies including Node.js
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
@@ -10,6 +14,7 @@ RUN apt-get update -qq && \
     postgresql-client \
     libvips \
     pkg-config \
+    libssl-dev \
     curl \
     vim \
     nodejs \
@@ -21,6 +26,9 @@ RUN apt-get update -qq && \
 # Install Bun
 RUN curl -fsSL https://bun.sh/install | bash && \
     mv ~/.bun/bin/bun /usr/local/bin/
+
+# Install Rust toolchain for stats server checks in bin/ci
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable
 
 # Set working directory
 WORKDIR /app

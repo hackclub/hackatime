@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use crate::error::AppError;
 use crate::models::leaderboard::{LeaderboardEntry, LeaderboardRequest, LeaderboardResponse};
 use crate::query::duration::query_duration_grouped;
-use crate::query::filters::QueryFilters;
+use crate::query::filters::{QueryFilterParams, QueryFilters};
 use crate::query::streaks::query_streaks;
 
 pub async fn leaderboard_compute(
@@ -52,21 +52,16 @@ pub async fn leaderboard_compute(
     }
 
     // Compute per-user durations
-    let filters = QueryFilters::build(
-        None,
-        Some(&user_ids),
-        Some(req.start_time),
-        Some(req.end_time),
-        None,
-        None,
-        None,
-        if coding_only { Some(true) } else { None },
-        None,
-    );
+    let filters = QueryFilters::build(QueryFilterParams {
+        user_ids: Some(&user_ids),
+        start_time: Some(req.start_time),
+        end_time: Some(req.end_time),
+        coding_only: if coding_only { Some(true) } else { None },
+        ..Default::default()
+    });
 
     let durations =
-        query_duration_grouped(&pool, filters, "user_id", timeout, None, Some(min_seconds))
-            .await?;
+        query_duration_grouped(&pool, filters, "user_id", timeout, None, Some(min_seconds)).await?;
 
     // Get qualifying user IDs
     let qualifying_ids: Vec<i64> = durations

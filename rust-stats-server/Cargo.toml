@@ -14,3 +14,4 @@ chrono-tz = "0.10"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+subtle = "2.6"
