@@ -88,7 +88,7 @@
               countryCode={country.code}
               class="inline-block w-5 h-5"
             />
-            <span class="max-w-[12rem] truncate">{country.name}</span>
+            <span class="max-w-48 truncate">{country.name}</span>
           </Link>
         {:else}
           <span
@@ -212,19 +212,6 @@
                           {:else}
                             {entry.user.display_name}
                           {/if}
-                          {#if entry.user.verified}
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              class="w-4 h-4"
-                              viewBox="0 0 256 256"
-                              fill="#EC3750"
-                            >
-                              <title>Verified</title>
-                              <path
-                                d="M225.86 102.82c-3.77-3.94-7.67-8-9.14-11.57c-1.36-3.27-1.44-8.69-1.52-13.94c-.15-9.76-.31-20.82-8-28.51s-18.75-7.85-28.51-8c-5.25-.08-10.67-.16-13.94-1.52c-3.56-1.47-7.63-5.37-11.57-9.14C146.28 23.51 138.44 16 128 16s-18.27 7.51-25.18 14.14c-3.94 3.77-8 7.67-11.57 9.14c-3.25 1.36-8.69 1.44-13.94 1.52c-9.76.15-20.82.31-28.51 8s-7.8 18.75-8 28.51c-.08 5.25-.16 10.67-1.52 13.94c-1.47 3.56-5.37 7.63-9.14 11.57C23.51 109.72 16 117.56 16 128s7.51 18.27 14.14 25.18c3.77 3.94 7.67 8 9.14 11.57c1.36 3.27 1.44 8.69 1.52 13.94c.15 9.76.31 20.82 8 28.51s18.75 7.85 28.51 8c5.25.08 10.67.16 13.94 1.52c3.56 1.47 7.63 5.37 11.57 9.14c6.9 6.63 14.74 14.14 25.18 14.14s18.27-7.51 25.18-14.14c3.94-3.77 8-7.67 11.57-9.14c3.27-1.36 8.69-1.44 13.94-1.52c9.76-.15 20.82-.31 28.51-8s7.85-18.75 8-28.51c.08-5.25.16-10.67 1.52-13.94c1.47-3.56 5.37-7.63 9.14-11.57c6.63-6.9 14.14-14.74 14.14-25.18s-7.51-18.27-14.14-25.18m-52.2 6.84l-56 56a8 8 0 0 1-11.32 0l-24-24a8 8 0 0 1 11.32-11.32L112 148.69l50.34-50.35a8 8 0 0 1 11.32 11.32"
-                              />
-                            </svg>
-                          {/if}
                         </span>
                         {#if entry.user.country_code}
                           <CountryFlag countryCode={entry.user.country_code} />
@@ -233,7 +220,7 @@
 
                       {#if entry.active_project}
                         <span
-                          class="text-xs italic text-muted truncate max-w-[150px] sm:max-w-none"
+                          class="text-xs italic text-muted truncate max-w-37.5 sm:max-w-none"
                         >
                           working on
                           <a
@@ -248,7 +235,7 @@
 
                       {#if entry.streak_count > 0}
                         <div
-                          class="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r {theme.bg} border {theme.bc} rounded-lg transition-all duration-200 {theme.hbg} group"
+                          class="inline-flex items-center gap-1 px-2 py-1 bg-linear-to-r {theme.bg} border {theme.bc} rounded-lg transition-all duration-200 {theme.hbg} group"
                           title={entry.streak_count > 30
                             ? "30+ daily streak"
                             : `${entry.streak_count} day streak`}
