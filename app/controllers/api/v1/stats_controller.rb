@@ -341,7 +341,7 @@ class Api::V1::StatsController < ApplicationController
     render json: { error: "Invalid #{param_name}" }, status: :unprocessable_entity
     nil
   end
-do 
+
   # Debug patch: force PostgreSQL to skip all indexes for this request so you can
   # confirm whether bad index choices are causing slowness.
   # Activate with ?disable_indexes=true on the stats endpoint.
