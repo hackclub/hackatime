@@ -75,6 +75,15 @@
     bottom: 20,
   }));
 
+  // the duplication here is intentional.
+  function formatYAxis(value: number): string {
+    return secondsToCompactDisplay(value);
+  }
+
+  function formatDuration(value: number): string {
+    return secondsToDisplay(value);
+  }
+
   type TimelineDatum = Record<string, string | number>;
 
   function getSeriesValue(
