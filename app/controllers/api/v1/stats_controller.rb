@@ -65,8 +65,10 @@ class Api::V1::StatsController < ApplicationController
     service_params[:end_date] = end_date
     service_params[:scope] = scope if scope.present?
 
-    @debug_queries = [] if params[:disable_indexes] == "true"
+    @debug_mode = params[:disable_indexes] == "true" || params[:debug_queries] == "true"
+    @debug_queries = [] if @debug_mode
     disable_indexes_for_request if params[:disable_indexes] == "true"
+    start_sql_tracing if @debug_mode && params[:disable_indexes] != "true"
 
     begin
       # use TestWakatimeService when test_param=true for all requests
@@ -129,10 +131,15 @@ class Api::V1::StatsController < ApplicationController
       summary[:streak] = @user.streak_days
 
       response_payload = { data: summary, trust_factor: trust_info }
-      response_payload[:_debug] = { index_scan_settings: index_scan_settings, queries: @debug_queries } if params[:disable_indexes] == "true"
+      if @debug_mode
+        debug_info = { queries: @debug_queries }
+        debug_info[:index_scan_settings] = index_scan_settings if params[:disable_indexes] == "true"
+        response_payload[:_debug] = debug_info
+      end
       render json: response_payload
     ensure
       reenable_indexes_after_request if params[:disable_indexes] == "true"
+      stop_sql_tracing if @debug_mode && params[:disable_indexes] != "true"
     end
   end
 
@@ -342,20 +349,29 @@ class Api::V1::StatsController < ApplicationController
     nil
   end
 
-  # Debug patch: force PostgreSQL to skip all indexes for this request so you can
-  # confirm whether bad index choices are causing slowness.
-  # Activate with ?disable_indexes=true on the stats endpoint.
-  # The response will include a _debug key with confirmed PG settings and every
-  # SQL query fired during the request (with duration in ms).
+  # ?disable_indexes=true  — forces seq scans AND traces queries (slow, proves index impact)
+  # ?debug_queries=true    — traces queries with normal indexes (fast, shows real timings)
   def disable_indexes_for_request
     conn = ActiveRecord::Base.connection
     conn.execute("SET enable_indexscan     = off")
     conn.execute("SET enable_bitmapscan    = off")
     conn.execute("SET enable_indexonlyscan = off")
+    Rails.logger.warn "[disable_indexes] Settings confirmed from PG: #{index_scan_settings.inspect}"
+    start_sql_tracing
+  end
 
-    confirmed = index_scan_settings
-    Rails.logger.warn "[disable_indexes] Settings confirmed from PG: #{confirmed.inspect}"
+  def reenable_indexes_after_request
+    stop_sql_tracing
+    conn = ActiveRecord::Base.connection
+    conn.execute("SET enable_indexscan     = on")
+    conn.execute("SET enable_bitmapscan    = on")
+    conn.execute("SET enable_indexonlyscan = on")
+    Rails.logger.warn "[disable_indexes] Index scans re-enabled after request"
+  rescue => e
+    Rails.logger.error "[disable_indexes] Failed to re-enable index scans: #{e.message}"
+  end
 
+  def start_sql_tracing
     @sql_subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
       next if payload[:name].in?([ "SCHEMA", "TRANSACTION" ])
       @debug_queries << {
@@ -366,25 +382,18 @@ class Api::V1::StatsController < ApplicationController
     end
   end
 
-  def reenable_indexes_after_request
+  def stop_sql_tracing
     ActiveSupport::Notifications.unsubscribe(@sql_subscriber) if @sql_subscriber
-    conn = ActiveRecord::Base.connection
-    conn.execute("SET enable_indexscan     = on")
-    conn.execute("SET enable_bitmapscan    = on")
-    conn.execute("SET enable_indexonlyscan = on")
-    Rails.logger.warn "[disable_indexes] Index scans re-enabled after request"
-  rescue => e
-    Rails.logger.error "[disable_indexes] Failed to re-enable index scans: #{e.message}"
+    @sql_subscriber = nil
   end
 
   def index_scan_settings
     conn = ActiveRecord::Base.connection
-    row = conn.select_one(<<~SQL)
+    conn.select_one(<<~SQL)
       SELECT
         current_setting('enable_indexscan')     AS enable_indexscan,
         current_setting('enable_bitmapscan')    AS enable_bitmapscan,
         current_setting('enable_indexonlyscan') AS enable_indexonlyscan
     SQL
-    row
   end
 end
