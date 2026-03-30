@@ -6,6 +6,7 @@
   import type { Snippet } from "svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
+  import { streakTheme, streakLabel } from "../utils";
 
   type NavLink = {
     label: string;
@@ -153,42 +154,6 @@
 
   const footerStatsText = () =>
     `${layout.footer.heartbeat_recent_count} ${plur("heartbeat", layout.footer.heartbeat_recent_count)} (${layout.footer.heartbeat_recent_imported_count} imported) in the past 24 hours. (DB: ${layout.footer.query_count} ${plur("query", layout.footer.query_count)}, ${layout.footer.query_cache_count} cached) (CACHE: ${layout.footer.cache_hits} hits, ${layout.footer.cache_misses} misses) (${layout.footer.requests_per_second})`;
-
-  const streakThemeClasses = (streakDays: number) => {
-    if (streakDays >= 30) {
-      return {
-        bg: "from-blue/20 to-purple/20",
-        hbg: "hover:from-blue/30 hover:to-purple/30",
-        bc: "border-blue",
-        ic: "text-blue group-hover:text-blue",
-        tc: "text-blue group-hover:text-blue",
-        tm: "text-blue",
-      };
-    }
-
-    if (streakDays >= 7) {
-      return {
-        bg: "from-red/20 to-orange/20",
-        hbg: "hover:from-red/30 hover:to-orange/30",
-        bc: "border-red",
-        ic: "text-red group-hover:text-red",
-        tc: "text-red group-hover:text-red",
-        tm: "text-red",
-      };
-    }
-
-    return {
-      bg: "from-orange/20 to-yellow/20",
-      hbg: "hover:from-orange/30 hover:to-yellow/30",
-      bc: "border-orange",
-      ic: "text-orange group-hover:text-orange",
-      tc: "text-orange group-hover:text-orange",
-      tm: "text-orange",
-    };
-  };
-
-  const streakLabel = (streakDays: number) =>
-    streakDays > 30 ? "30+" : `${streakDays}`;
 
   const adminLevelLabel = (adminLevel?: AdminLevel | null) => {
     if (adminLevel === "superadmin") return "Superadmin";
@@ -361,11 +326,9 @@
             </div>
 
             {#if layout.nav.current_user.streak_days && layout.nav.current_user.streak_days > 0}
-              {@const streakTheme = streakThemeClasses(
-                layout.nav.current_user.streak_days,
-              )}
+              {@const streak = streakTheme(layout.nav.current_user.streak_days)}
               <div
-                class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streakTheme.bg} border ${streakTheme.bc} rounded-lg transition-all duration-200 ${streakTheme.hbg} group`}
+                class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streak.bg} border ${streak.bc} rounded-lg transition-all duration-200 ${streak.hbg} group`}
                 title={layout.nav.current_user.streak_days > 30
                   ? "30+ daily streak"
                   : `${layout.nav.current_user.streak_days} day streak`}
@@ -375,7 +338,7 @@
                   width="24"
                   height="24"
                   viewBox="0 0 24 24"
-                  class={`${streakTheme.ic} transition-colors duration-200 group-hover:animate-pulse`}
+                  class={`${streak.ic} transition-colors duration-200 group-hover:animate-pulse`}
                 >
                   <path
                     fill="currentColor"
@@ -384,11 +347,10 @@
                 </svg>
 
                 <span
-                  class={`text-md font-semibold ${streakTheme.tc} transition-colors duration-200`}
+                  class={`text-md font-semibold ${streak.tc} transition-colors duration-200`}
                 >
                   {streakLabel(layout.nav.current_user.streak_days)}
-                  <span class={`ml-1 font-normal ${streakTheme.tm}`}
-                    >day streak</span
+                  <span class={`ml-1 font-normal ${streak.tm}`}>day streak</span
                   >
                 </span>
               </div>

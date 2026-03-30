@@ -27,6 +27,7 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
 
     assert_equal [ coded_user.id ], board.entries.order(:user_id).pluck(:user_id)
     assert_equal 120, board.entries.find_by!(user_id: coded_user.id).total_seconds
+    assert_operator board.generation_duration_seconds, :>=, 1
   end
 
   private

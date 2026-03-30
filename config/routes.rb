@@ -117,9 +117,7 @@ Rails.application.routes.draw do
 
   get "/leaderboard", to: redirect("/leaderboards", status: 301)
 
-  resources :leaderboards, only: [ :index ] do
-    get :entries, on: :collection
-  end
+  resources :leaderboards, only: [ :index ]
 
   # Docs routes
   # Note: llms.txt and llms-full.txt are served as static files from public/

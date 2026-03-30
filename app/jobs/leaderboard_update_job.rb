@@ -18,6 +18,7 @@ class LeaderboardUpdateJob < ApplicationJob
   private
 
   def build_leaderboard(date, period, force_update = false)
+    generation_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     board = ::Leaderboard.find_or_create_by!(
       start_date: date,
       period_type: period,
@@ -61,12 +62,21 @@ class LeaderboardUpdateJob < ApplicationJob
         board.entries.delete_all
       end
 
-      board.update!(finished_generating_at: timestamp)
+      finished_at = Time.current
+      generation_duration_seconds = [
+        (Process.clock_gettime(Process::CLOCK_MONOTONIC) - generation_started_at).ceil,
+        1
+      ].max
+
+      board.update!(
+        finished_generating_at: finished_at,
+        generation_duration_seconds: generation_duration_seconds
+      )
     end
 
-    # Cache the board
     cache_key = LeaderboardCache.global_key(period, date)
     LeaderboardCache.write(cache_key, board)
+    LeaderboardPageCache.warm(leaderboard: board)
 
     Rails.logger.debug "Persisted leaderboard for #{period} with #{board.entries.count} entries"
 
