@@ -65,6 +65,7 @@ class Api::V1::StatsController < ApplicationController
     service_params[:end_date] = end_date
     service_params[:scope] = scope if scope.present?
 
+    @debug_queries = [] if params[:disable_indexes] == "true"
     disable_indexes_for_request if params[:disable_indexes] == "true"
 
     begin
@@ -127,10 +128,9 @@ class Api::V1::StatsController < ApplicationController
 
       summary[:streak] = @user.streak_days
 
-      render json: {
-        data: summary,
-        trust_factor: trust_info
-      }
+      response_payload = { data: summary, trust_factor: trust_info }
+      response_payload[:_debug] = { index_scan_settings: index_scan_settings, queries: @debug_queries } if params[:disable_indexes] == "true"
+      render json: response_payload
     ensure
       reenable_indexes_after_request if params[:disable_indexes] == "true"
     end
@@ -345,16 +345,29 @@ class Api::V1::StatsController < ApplicationController
   # Debug patch: force PostgreSQL to skip all indexes for this request so you can
   # confirm whether bad index choices are causing slowness.
   # Activate with ?disable_indexes=true on the stats endpoint.
-  # Always paired with reenable_indexes_after_request in an ensure block.
+  # The response will include a _debug key with confirmed PG settings and every
+  # SQL query fired during the request (with duration in ms).
   def disable_indexes_for_request
     conn = ActiveRecord::Base.connection
     conn.execute("SET enable_indexscan     = off")
     conn.execute("SET enable_bitmapscan    = off")
     conn.execute("SET enable_indexonlyscan = off")
-    Rails.logger.warn "[disable_indexes] Index scans disabled for this request (user: #{@user&.id}, path: #{request.fullpath})"
+
+    confirmed = index_scan_settings
+    Rails.logger.warn "[disable_indexes] Settings confirmed from PG: #{confirmed.inspect}"
+
+    @sql_subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      next if payload[:name].in?([ "SCHEMA", "TRANSACTION" ])
+      @debug_queries << {
+        name: payload[:name],
+        sql: payload[:sql].squish,
+        duration_ms: payload[:duration]&.round(2)
+      }
+    end
   end
 
   def reenable_indexes_after_request
+    ActiveSupport::Notifications.unsubscribe(@sql_subscriber) if @sql_subscriber
     conn = ActiveRecord::Base.connection
     conn.execute("SET enable_indexscan     = on")
     conn.execute("SET enable_bitmapscan    = on")
@@ -362,5 +375,16 @@ class Api::V1::StatsController < ApplicationController
     Rails.logger.warn "[disable_indexes] Index scans re-enabled after request"
   rescue => e
     Rails.logger.error "[disable_indexes] Failed to re-enable index scans: #{e.message}"
+  end
+
+  def index_scan_settings
+    conn = ActiveRecord::Base.connection
+    row = conn.select_one(<<~SQL)
+      SELECT
+        current_setting('enable_indexscan')     AS enable_indexscan,
+        current_setting('enable_bitmapscan')    AS enable_bitmapscan,
+        current_setting('enable_indexonlyscan') AS enable_indexonlyscan
+    SQL
+    row
   end
 end
