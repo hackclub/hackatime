@@ -326,9 +326,7 @@
             </div>
 
             {#if layout.nav.current_user.streak_days && layout.nav.current_user.streak_days > 0}
-              {@const streak = streakTheme(
-                layout.nav.current_user.streak_days,
-              )}
+              {@const streak = streakTheme(layout.nav.current_user.streak_days)}
               <div
                 class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streak.bg} border ${streak.bc} rounded-lg transition-all duration-200 ${streak.hbg} group`}
                 title={layout.nav.current_user.streak_days > 30
@@ -352,8 +350,7 @@
                   class={`text-md font-semibold ${streak.tc} transition-colors duration-200`}
                 >
                   {streakLabel(layout.nav.current_user.streak_days)}
-                  <span class={`ml-1 font-normal ${streak.tm}`}
-                    >day streak</span
+                  <span class={`ml-1 font-normal ${streak.tm}`}>day streak</span
                   >
                 </span>
               </div>
