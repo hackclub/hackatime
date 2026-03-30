@@ -1,5 +1,6 @@
 <script lang="ts">
   import { BarChart, Tooltip } from "layerchart";
+  import { secondsToDisplay, secondsToCompactDisplay } from "../../../utils";
 
   let {
     weeklyStats,
@@ -73,20 +74,6 @@
     left: 20,
     bottom: 20,
   }));
-
-  function formatDuration(value: number): string {
-    if (value === 0) return "0s";
-    const hours = Math.floor(value / 3600);
-    const minutes = Math.floor((value % 3600) / 60);
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  }
-
-  function formatYAxis(value: number): string {
-    if (value === 0) return "0s";
-    const hours = Math.floor(value / 3600);
-    const minutes = Math.floor((value % 3600) / 60);
-    return hours > 0 ? `${hours}h` : `${minutes}m`;
-  }
 
   type TimelineDatum = Record<string, string | number>;
 

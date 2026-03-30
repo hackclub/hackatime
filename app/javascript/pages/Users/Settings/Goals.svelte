@@ -1,5 +1,6 @@
 <script lang="ts">
   import { router } from "@inertiajs/svelte";
+  import { secondsToDisplay } from "../../../utils";
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
   import MultiSelectCombobox from "../../../components/MultiSelectCombobox.svelte";
@@ -86,16 +87,6 @@
         ) ?? null;
     }
   });
-
-  function formatDuration(seconds: number) {
-    const totalMinutes = Math.max(Math.floor(seconds / 60), 0);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-
-    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h`;
-    return `${minutes}m`;
-  }
 
   function formatPeriod(period: ProgrammingGoal["period"]) {
     if (period === "day") return "Daily";
