@@ -29,20 +29,18 @@ class LeaderboardUpdateJob < ApplicationJob
     Rails.logger.info "Building leaderboard for #{period} on #{date}"
 
     range = LeaderboardDateRange.calculate(date, period)
+    timestamp = Time.current
+    eligible_users = User.where.not(github_uid: nil)
+                         .where.not(trust_level: User.trust_levels[:red])
 
     ActiveRecord::Base.transaction do
-      # Build the base heartbeat query
-      heartbeat_query = Heartbeat.where(time: range)
-                                 .with_valid_timestamps
-                                 .joins(:user)
-                                 .coding_only
-                                 .where.not(users: { github_uid: nil })
-                                 .where.not(users: { trust_level: User.trust_levels[:red] })
+      heartbeat_query = Heartbeat.where(user_id: eligible_users.select(:id), time: range)
+                                 .leaderboard_eligible
 
       data = heartbeat_query.group(:user_id).duration_seconds
                             .filter { |_, seconds| seconds > 60 }
 
-      streaks = Heartbeat.daily_streaks_for_users(data.keys)
+      streaks = Heartbeat.daily_streaks_for_users(data.keys, exclude_browser_time: true)
 
       entries = data.map do |user_id, seconds|
         {
@@ -50,8 +48,8 @@ class LeaderboardUpdateJob < ApplicationJob
           user_id: user_id,
           total_seconds: seconds,
           streak_count: streaks[user_id] || 0,
-          created_at: Time.current,
-          updated_at: Time.current
+          created_at: timestamp,
+          updated_at: timestamp
         }
       end
 
@@ -63,7 +61,7 @@ class LeaderboardUpdateJob < ApplicationJob
         board.entries.delete_all
       end
 
-      board.update!(finished_generating_at: Time.current)
+      board.update!(finished_generating_at: timestamp)
     end
 
     # Cache the board

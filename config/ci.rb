@@ -1,6 +1,5 @@
 CI.run do
   step "Setup: Rails", "bin/setup --skip-server"
-  step "Setup: Frontend", "bun install --frozen-lockfile"
   step "Style: Ruby", "bin/rubocop"
 
   step "Zeitwerk", "bin/rails zeitwerk:check"
@@ -19,7 +18,7 @@ CI.run do
   step "Frontend: Lint", "bun run format:svelte:check"
 
   if success?
-    step "Signoff: All systems go. Ready for merge and deploy."
+    heading "Signoff: All systems go. Ready for merge and deploy.", type: :success
   else
     failure "Signoff: CI failed. Do not merge or deploy.", "Fix the issues and try again."
   end
