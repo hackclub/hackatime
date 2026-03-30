@@ -1,29 +1,24 @@
-class LeaderboardsController < ApplicationController
-  PER_PAGE = 100
-  LEADERBOARD_SCOPES = %w[global country].freeze
+class LeaderboardsController < InertiaController
+  layout "inertia"
 
   def index
-    @period_type = validated_period_type
-    load_country_context
-    @leaderboard_scope = validated_leaderboard_scope
-    @leaderboard = LeaderboardService.get(period: @period_type, date: start_date)
-    @leaderboard.nil? ? flash.now[:notice] = "Leaderboard is being updated..." : load_metadata
-  end
+    period_type = validated_period_type
+    country = load_country_context
+    leaderboard_scope = validated_leaderboard_scope(country)
 
-  def entries
-    @period_type = validated_period_type
-    load_country_context
-    @leaderboard_scope = validated_leaderboard_scope
-    @leaderboard = LeaderboardService.get(period: @period_type, date: start_date)
-    return head :no_content unless @leaderboard&.persisted?
+    leaderboard = LeaderboardService.get(period: period_type, date: Date.current)
 
-    page = [ (params[:page] || 1).to_i, 1 ].max
-    @entries = leaderboard_entries_scope.includes(:user).order(total_seconds: :desc)
-                                 .offset((page - 1) * PER_PAGE).limit(PER_PAGE)
-    @active_projects = Cache::ActiveProjectsJob.perform_now
-    @offset = (page - 1) * PER_PAGE
-
-    render partial: "entries", locals: { entries: @entries, active_projects: @active_projects, offset: @offset }
+    render inertia: "Leaderboards/Index", props: {
+      period_type: period_type.to_s,
+      scope: leaderboard_scope.to_s,
+      country: country,
+      leaderboard: leaderboard_metadata(leaderboard),
+      is_logged_in: current_user.present?,
+      github_uid_blank: current_user&.github_uid.blank? || false,
+      github_auth_path: "/auth/github",
+      settings_path: my_settings_path,
+      entries: InertiaRails.defer { entries_payload(leaderboard, leaderboard_scope, country) }
+    }
   end
 
   private
@@ -33,42 +28,68 @@ class LeaderboardsController < ApplicationController
     %w[daily last_7_days].include?(p) ? p.to_sym : :daily
   end
 
-  def validated_leaderboard_scope
-    requested_scope = params[:scope].to_s
-    requested_scope = "global" unless LEADERBOARD_SCOPES.include?(requested_scope)
-    requested_scope = "global" if requested_scope == "country" && !@country_scope_available
-    requested_scope.to_sym
+  def validated_leaderboard_scope(country)
+    requested = params[:scope].to_s
+    requested = "global" unless %w[global country].include?(requested)
+    requested = "global" if requested == "country" && !country[:available]
+    requested.to_sym
   end
 
   def load_country_context
-    country = ISO3166::Country.new(current_user&.country_code)
-    @country_code = country&.alpha2
-    @country_name = country&.common_name
-    @country_scope_available = @country_code.present? && @country_name.present?
+    c = ISO3166::Country.new(current_user&.country_code)
+    {
+      code: c&.alpha2,
+      name: c&.common_name,
+      available: c&.alpha2.present? && c&.common_name.present?
+    }
   end
 
-  def country_scope?
-    @leaderboard_scope == :country && @country_scope_available
+  def leaderboard_metadata(leaderboard)
+    return nil unless leaderboard&.persisted?
+
+    {
+      date_range_text: leaderboard.date_range_text,
+      updated_at: leaderboard.updated_at&.iso8601,
+      finished_generating: leaderboard.finished_generating?,
+      generation_duration_seconds: leaderboard.generation_duration_seconds
+    }
   end
 
-  def leaderboard_entries_scope
-    entries_scope = @leaderboard.entries
-    return entries_scope unless country_scope?
+  def entries_payload(leaderboard, scope, country)
+    return { entries: [], total: 0 } unless leaderboard&.persisted?
 
-    entries_scope.joins(:user).where(users: { country_code: @country_code })
-  end
+    country_code = (scope == :country && country[:available]) ? country[:code] : nil
+    payload = LeaderboardPageCache.fetch(
+      leaderboard: leaderboard,
+      scope: scope,
+      country_code: country_code
+    )
 
-  def start_date
-    @start_date ||= Date.current
-  end
+    active_projects = Cache::ActiveProjectsJob.perform_now
 
-  def load_metadata
-    return unless @leaderboard.persisted?
+    entries = payload[:entries].map do |e|
+      user = e[:user]
+      proj = active_projects&.dig(e[:user_id])
+      {
+        user_id: e[:user_id],
+        total_seconds: e[:total_seconds],
+        streak_count: e[:streak_count],
+        is_current_user: e[:user_id] == current_user&.id,
+        user: {
+          display_name: user[:display_name],
+          avatar_url: user[:avatar_url],
+          profile_path: user[:profile_path],
+          verified: user[:verified],
+          country_code: user[:country_code],
+          red: user[:red]
+        },
+        active_project: proj ? { name: proj.project_name, repo_url: proj.repo_url } : nil
+      }
+    end
 
-    entries_scope = leaderboard_entries_scope
-    ids = entries_scope.distinct.pluck(:user_id)
-    @user_on_leaderboard = current_user && ids.include?(current_user.id)
-    @untracked_entries = 0
-    @total_entries = entries_scope.count
+    {
+      entries: entries,
+      total: payload[:total_entries]
+    }
   end
 end

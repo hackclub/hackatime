@@ -83,8 +83,8 @@
         </div>
       <% end %>
 
-      <% if @leaderboard.finished_generating? %>
-        <div class="px-4 py-2 text-xs italic text-muted border-t border-primary">Generated in <%= @leaderboard.finished_generating_at - @leaderboard.created_at %> seconds</div>
+      <% if @leaderboard.finished_generating? && @leaderboard.generation_duration_seconds.present? %>
+        <div class="px-4 py-2 text-xs italic text-muted border-t border-primary">Generated in <%= @leaderboard.generation_duration_seconds %> seconds</div>
       <% end %>
     <% else %>
       <div class="py-16 text-center px-3">
