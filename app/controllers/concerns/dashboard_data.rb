@@ -41,6 +41,7 @@ module DashboardData
 
         hb = hb.filter_by_time_range(interval, params[:from], params[:to])
         result[:total_heartbeats] = hb.count
+        selected_range = dashboard_time_range
 
         if hb.exists?
           batch = StatsClient.duration_batch(
@@ -92,11 +93,19 @@ module DashboardData
 
           result[:weekly_project_stats] = (0..11).to_h do |w|
             ws = w.weeks.ago.beginning_of_week
+            week_end = w.weeks.ago.end_of_week
+            effective_start = selected_range ? [ ws, selected_range.begin ].max : ws
+            effective_end = selected_range ? [ week_end, selected_range.end ].min : week_end
+
+            if effective_start > effective_end
+              next [ ws.to_date.iso8601, {} ]
+            end
+
             weekly_stats = StatsClient.duration_grouped(
               group_by: "project",
               user_id: current_user.id,
-              start_time: ws.to_f,
-              end_time: w.weeks.ago.end_of_week.to_f,
+              start_time: effective_start,
+              end_time: effective_end,
               **dashboard_resolved_filters
             )["groups"] || {}
 
@@ -158,8 +167,8 @@ module DashboardData
       todays_editors = ed_counts.map { |e, _| h.display_editor_name(e) }
       todays_duration = StatsClient.duration(
         user_id: current_user.id,
-        start_time: Time.current.beginning_of_day.to_f,
-        end_time: Time.current.end_of_day.to_f
+        start_time: Time.current.beginning_of_day,
+        end_time: Time.current.end_of_day
       )["total_seconds"].to_i
       show_logged_time_sentence = todays_duration > 1.minute && (todays_languages.any? || todays_editors.any?)
 
@@ -207,5 +216,18 @@ module DashboardData
       { id: "by_editor", type: "grouped", group_by: "editor" },
       { id: "by_category", type: "grouped", group_by: "category" }
     ].map { |q| q.merge(resolved) }
+  end
+
+  def dashboard_time_range
+    interval = params[:interval]&.to_sym
+
+    if interval == :custom
+      from_time = params[:from].present? ? Time.zone.parse(params[:from]).beginning_of_day : Time.zone.at(0)
+      to_time = params[:to].present? ? Time.zone.parse(params[:to]).end_of_day : Time.zone.at(253402300799)
+      return from_time..to_time
+    end
+
+    config = TimeRangeFilterable::RANGES[interval]
+    config&.fetch(:calculate)&.call
   end
 end

@@ -37,13 +37,16 @@ class SailorsLogLeaderboard < ApplicationRecord
                                                            .pluck(:slack_uid)
 
     users_in_channel = User.where(slack_uid: slack_ids_in_channel)
+    user_ids = users_in_channel.pluck(:id)
+    return [] if user_ids.empty?
+
     today_start = Time.current.beginning_of_day.to_f
     today_end = Time.current.end_of_day.to_f
 
     # Get all durations for users in channel
     user_durations = (StatsClient.duration_grouped(
       group_by: "user_id",
-      user_ids: users_in_channel.pluck(:id),
+      user_ids: user_ids,
       start_time: today_start,
       end_time: today_end
     )["groups"] || {}).transform_keys(&:to_i)

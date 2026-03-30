@@ -6,6 +6,7 @@ mod models;
 mod query;
 mod routes;
 mod state;
+mod time;
 
 use config::Config;
 use state::AppState;

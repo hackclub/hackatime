@@ -1,7 +1,5 @@
-use axum::http::StatusCode;
 use axum::routing::{get, post};
-use axum::{middleware, Json, Router};
-use serde_json::json;
+use axum::{middleware, Router};
 
 pub mod batch;
 pub mod boundary_aware;
@@ -17,13 +15,6 @@ pub mod unique_seconds;
 
 use crate::middleware::auth::auth_middleware;
 use crate::state::AppState;
-
-async fn _not_implemented() -> (StatusCode, Json<serde_json::Value>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(json!({"error": "Not yet implemented", "code": "NOT_IMPLEMENTED"})),
-    )
-}
 
 pub fn create_router(state: AppState) -> Router {
     let api_routes = Router::new()

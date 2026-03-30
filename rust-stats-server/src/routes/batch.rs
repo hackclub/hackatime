@@ -1,11 +1,10 @@
 use axum::extract::State;
 use axum::Json;
-use serde_json::{json, Value};
 use sqlx::PgPool;
 use std::collections::HashMap;
 
 use crate::error::AppError;
-use crate::models::batch::{BatchRequest, BatchResponse};
+use crate::models::batch::{BatchQuery, BatchRequest, BatchResponse, BatchResult};
 use crate::query::duration::{query_duration_grouped, query_duration_ungrouped};
 use crate::query::filters::{QueryFilterParams, QueryFilters};
 
@@ -17,49 +16,47 @@ pub async fn batch(
     let mut results = HashMap::new();
 
     for query in &req.queries {
-        let filters = QueryFilters::build(QueryFilterParams {
+        let filters = QueryFilters::build(&QueryFilterParams {
             user_id: Some(req.user_id),
             start_time: Some(req.start_time),
             end_time: Some(req.end_time),
-            project: query.project.as_deref(),
-            projects: query.projects.as_deref(),
-            coding_only: query.coding_only,
-            languages: query.languages.as_deref(),
-            editors: query.editors.as_deref(),
-            operating_systems: query.operating_systems.as_deref(),
-            categories: query.categories.as_deref(),
+            project: query.filters().project.as_deref(),
+            projects: query.filters().projects.as_deref(),
+            coding_only: query.filters().coding_only,
+            languages: query.filters().languages.as_deref(),
+            editors: query.filters().editors.as_deref(),
+            operating_systems: query.filters().operating_systems.as_deref(),
+            categories: query.filters().categories.as_deref(),
             ..Default::default()
         });
 
-        let value: Value = match query.query_type.as_str() {
-            "ungrouped" => {
+        let value = match query {
+            BatchQuery::Ungrouped { .. } => {
                 let total = query_duration_ungrouped(&pool, filters, timeout).await?;
-                json!({"total_seconds": total})
+                BatchResult::Ungrouped {
+                    total_seconds: total,
+                }
             }
-            "grouped" => {
-                let group_by = query.group_by.as_deref().ok_or_else(|| {
-                    AppError::BadRequest("group_by required for grouped queries".into())
-                })?;
+            BatchQuery::Grouped {
+                group_by,
+                limit,
+                min_seconds,
+                ..
+            } => {
                 let groups = query_duration_grouped(
                     &pool,
                     filters,
-                    group_by,
+                    *group_by,
                     timeout,
-                    query.limit,
-                    query.min_seconds,
+                    *limit,
+                    *min_seconds,
                 )
                 .await?;
-                json!({"groups": groups})
-            }
-            other => {
-                return Err(AppError::BadRequest(format!(
-                    "Unknown query type: {}",
-                    other
-                )));
+                BatchResult::Grouped { groups }
             }
         };
 
-        results.insert(query.id.clone(), value);
+        results.insert(query.id().to_owned(), value);
     }
 
     Ok(Json(BatchResponse { results }))

@@ -1,157 +1,128 @@
 use axum::extract::State;
 use axum::Json;
-use chrono::{Datelike, Utc};
+use chrono::Utc;
 use sqlx::PgPool;
 
 use crate::error::AppError;
-use crate::models::profile::{ProfileRequest, ProfileResponse, ProjectDuration};
+use crate::models::common::{GroupedDurationEntry, NamedDuration};
+use crate::models::profile::{ProfileRequest, ProfileResponse};
 use crate::query::duration::{query_duration_grouped, query_duration_ungrouped};
 use crate::query::filters::{QueryFilterParams, QueryFilters};
+use crate::time::{current_day_window, current_week_start_utc, rolling_month_start_utc};
+
+fn coding_filters(user_id: i64, start_time: Option<f64>, end_time: Option<f64>) -> QueryFilters {
+    QueryFilters::build(&QueryFilterParams {
+        user_id: Some(user_id),
+        start_time,
+        end_time,
+        coding_only: Some(true),
+        ..Default::default()
+    })
+}
+
+fn into_named_durations(entries: Vec<GroupedDurationEntry>) -> Vec<NamedDuration> {
+    entries
+        .into_iter()
+        .map(|entry| NamedDuration {
+            name: entry.name,
+            total_seconds: entry.total_seconds,
+        })
+        .collect()
+}
+
+fn into_present_named_durations(
+    entries: Vec<GroupedDurationEntry>,
+    limit: Option<i64>,
+) -> Vec<NamedDuration> {
+    let mut named = into_named_durations(entries)
+        .into_iter()
+        .filter(|entry| !entry.name.trim().is_empty())
+        .collect::<Vec<_>>();
+
+    if let Some(limit) = limit.and_then(|value| usize::try_from(value).ok()) {
+        named.truncate(limit);
+    }
+
+    named
+}
 
 pub async fn profile(
     State(pool): State<PgPool>,
     Json(req): Json<ProfileRequest>,
 ) -> Result<Json<ProfileResponse>, AppError> {
     let timeout = req.timeout_seconds.unwrap_or(120.0);
-    let lang_limit = req.top_languages_limit.unwrap_or(5);
-    let proj_limit = req.top_projects_limit.unwrap_or(5);
-    let proj_month_limit = req.top_projects_month_limit.unwrap_or(6);
-    let editor_limit = req.top_editors_limit.unwrap_or(3);
+    let language_limit = req.top_languages_limit.unwrap_or(5);
+    let project_limit = req.top_projects_limit.unwrap_or(5);
+    let monthly_project_limit = req.top_projects_month_limit.unwrap_or(6);
+    let _editor_limit = req.top_editors_limit;
+    let now_in_timezone = Utc::now().with_timezone(&req.timezone);
+    let (today_start, today_end) = current_day_window(now_in_timezone);
+    let week_start = current_week_start_utc(now_in_timezone).timestamp() as f64;
+    let month_start = rolling_month_start_utc(now_in_timezone).timestamp() as f64;
 
-    // Validate timezone
-    let tz: chrono_tz::Tz = req.timezone.parse().unwrap_or(chrono_tz::UTC);
-    let now_in_tz = Utc::now().with_timezone(&tz);
-
-    // Today boundaries (in user's timezone, converted to UTC timestamps)
-    let today_start = now_in_tz.date_naive().and_hms_opt(0, 0, 0).unwrap();
-    let today_start_utc = today_start
-        .and_local_timezone(tz)
-        .unwrap()
-        .with_timezone(&Utc);
-    let today_start_ts = today_start_utc.timestamp() as f64;
-    let today_end_ts = Utc::now().timestamp() as f64;
-
-    // Week boundaries (Monday start)
-    let days_since_monday = now_in_tz.weekday().num_days_from_monday();
-    let week_start = now_in_tz.date_naive() - chrono::Duration::days(days_since_monday as i64);
-    let week_start_utc = week_start
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_local_timezone(tz)
-        .unwrap()
-        .with_timezone(&Utc);
-    let week_start_ts = week_start_utc.timestamp() as f64;
-
-    // Month boundaries (for top_projects_month)
-    let month_start = now_in_tz
-        .date_naive()
-        .with_day(1)
-        .unwrap_or(now_in_tz.date_naive());
-    let month_start_utc = month_start
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_local_timezone(tz)
-        .unwrap()
-        .with_timezone(&Utc);
-    let month_start_ts = month_start_utc.timestamp() as f64;
-
-    // Today's seconds
-    let today_filters = QueryFilters::build(QueryFilterParams {
-        user_id: Some(req.user_id),
-        start_time: Some(today_start_ts),
-        end_time: Some(today_end_ts),
-        coding_only: Some(true),
-        ..Default::default()
-    });
-    let today_seconds = query_duration_ungrouped(&pool, today_filters, timeout).await?;
-
-    // Week's seconds
-    let week_filters = QueryFilters::build(QueryFilterParams {
-        user_id: Some(req.user_id),
-        start_time: Some(week_start_ts),
-        end_time: Some(today_end_ts),
-        coding_only: Some(true),
-        ..Default::default()
-    });
-    let week_seconds = query_duration_ungrouped(&pool, week_filters, timeout).await?;
-
-    // All-time seconds
-    let all_filters = QueryFilters::build(QueryFilterParams {
-        user_id: Some(req.user_id),
-        coding_only: Some(true),
-        ..Default::default()
-    });
-    let all_seconds = query_duration_ungrouped(&pool, all_filters, timeout).await?;
-
-    // Top languages
-    let lang_filters = QueryFilters::build(QueryFilterParams {
-        user_id: Some(req.user_id),
-        coding_only: Some(true),
-        ..Default::default()
-    });
-    let top_languages = query_duration_grouped(
+    let today_seconds = query_duration_ungrouped(
         &pool,
-        lang_filters,
-        "language",
+        coding_filters(req.user_id, Some(today_start as f64), Some(today_end as f64)),
         timeout,
-        Some(lang_limit),
-        None,
     )
     .await?;
-
-    // Top projects (all time)
-    let proj_filters = QueryFilters::build(QueryFilterParams {
-        user_id: Some(req.user_id),
-        coding_only: Some(true),
-        ..Default::default()
-    });
-    let top_projects = query_duration_grouped(
+    let week_seconds = query_duration_ungrouped(
         &pool,
-        proj_filters,
-        "project",
+        coding_filters(req.user_id, Some(week_start), Some(today_end as f64)),
         timeout,
-        Some(proj_limit),
-        None,
     )
     .await?;
+    let all_seconds =
+        query_duration_ungrouped(&pool, coding_filters(req.user_id, None, None), timeout).await?;
 
-    // Top projects (this month)
-    let proj_month_filters = QueryFilters::build(QueryFilterParams {
-        user_id: Some(req.user_id),
-        start_time: Some(month_start_ts),
-        end_time: Some(today_end_ts),
-        coding_only: Some(true),
-        ..Default::default()
-    });
-    let proj_month_raw = query_duration_grouped(
-        &pool,
-        proj_month_filters,
-        "project",
-        timeout,
-        Some(proj_month_limit),
+    let top_languages = into_present_named_durations(
+        query_duration_grouped(
+            &pool,
+            coding_filters(req.user_id, None, None),
+            crate::models::common::GroupBy::Language,
+            timeout,
+            None,
+            None,
+        )
+        .await?,
+        Some(language_limit),
+    );
+    let top_projects = into_present_named_durations(
+        query_duration_grouped(
+            &pool,
+            coding_filters(req.user_id, None, None),
+            crate::models::common::GroupBy::Project,
+            timeout,
+            None,
+            None,
+        )
+        .await?,
+        Some(project_limit),
+    );
+    let top_projects_month = into_present_named_durations(
+        query_duration_grouped(
+            &pool,
+            coding_filters(req.user_id, Some(month_start), Some(today_end as f64)),
+            crate::models::common::GroupBy::Project,
+            timeout,
+            None,
+            None,
+        )
+        .await?,
+        Some(monthly_project_limit),
+    );
+    let top_editors = into_present_named_durations(
+        query_duration_grouped(
+            &pool,
+            coding_filters(req.user_id, None, None),
+            crate::models::common::GroupBy::Editor,
+            timeout,
+            None,
+            None,
+        )
+        .await?,
         None,
-    )
-    .await?;
-    let top_projects_month: Vec<ProjectDuration> = proj_month_raw
-        .into_iter()
-        .map(|(project, duration)| ProjectDuration { project, duration })
-        .collect();
-
-    // Top editors
-    let editor_filters = QueryFilters::build(QueryFilterParams {
-        user_id: Some(req.user_id),
-        coding_only: Some(true),
-        ..Default::default()
-    });
-    let top_editors = query_duration_grouped(
-        &pool,
-        editor_filters,
-        "editor",
-        timeout,
-        Some(editor_limit),
-        None,
-    )
-    .await?;
+    );
 
     Ok(Json(ProfileResponse {
         today_seconds,
@@ -162,4 +133,52 @@ pub async fn profile(
         top_projects_month,
         top_editors,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::{Datelike, TimeZone, Timelike, Utc};
+
+    use crate::models::common::GroupedDurationEntry;
+    use crate::time::rolling_month_start_utc;
+
+    use super::into_present_named_durations;
+
+    #[test]
+    fn preserves_a_rolling_month_window() {
+        let london = chrono_tz::Europe::London;
+        let now_in_timezone = london.with_ymd_and_hms(2026, 3, 2, 15, 45, 30).unwrap();
+
+        let month_ago = rolling_month_start_utc(now_in_timezone);
+
+        assert_eq!(month_ago.with_timezone(&london).month(), 2);
+        assert_eq!(month_ago.with_timezone(&london).day(), 2);
+        assert_eq!(month_ago.with_timezone(&london).hour(), 15);
+        assert_eq!(month_ago.with_timezone(&london).minute(), 45);
+        assert_eq!(month_ago.with_timezone(&london).second(), 30);
+        assert!(month_ago < Utc.with_ymd_and_hms(2026, 3, 1, 0, 0, 0).unwrap());
+    }
+
+    #[test]
+    fn drops_blank_groups_before_applying_limits() {
+        let entries = vec![
+            GroupedDurationEntry {
+                name: String::new(),
+                total_seconds: 500,
+            },
+            GroupedDurationEntry {
+                name: "Rust".to_string(),
+                total_seconds: 400,
+            },
+            GroupedDurationEntry {
+                name: "Ruby".to_string(),
+                total_seconds: 300,
+            },
+        ];
+
+        let filtered = into_present_named_durations(entries, Some(1));
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "Rust");
+    }
 }

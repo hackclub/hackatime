@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::models::common::GroupBy;
+
 #[derive(Debug, Deserialize)]
 pub struct SummaryRequest {
     pub user_id: Option<i64>,
     pub start_time: Option<f64>,
     pub end_time: Option<f64>,
-    pub group_by: Option<Vec<String>>,
+    pub group_by: Option<Vec<GroupBy>>,
     pub coding_only: Option<bool>,
     pub categories_exclude: Option<Vec<String>>,
     pub limit: Option<i64>,

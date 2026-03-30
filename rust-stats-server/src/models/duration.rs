@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::models::common::{GroupBy, GroupedDurationEntry};
+
 #[derive(Debug, Deserialize)]
 pub struct DurationRequest {
     pub user_id: Option<i64>,
@@ -29,7 +31,7 @@ pub struct GroupedDurationRequest {
     pub user_ids: Option<Vec<i64>>,
     pub start_time: Option<f64>,
     pub end_time: Option<f64>,
-    pub group_by: String,
+    pub group_by: GroupBy,
     pub project: Option<String>,
     pub projects: Option<Vec<String>>,
     pub coding_only: Option<bool>,
@@ -45,5 +47,5 @@ pub struct GroupedDurationRequest {
 
 #[derive(Debug, Serialize)]
 pub struct GroupedDurationResponse {
-    pub groups: std::collections::HashMap<String, i64>,
+    pub groups: Vec<GroupedDurationEntry>,
 }

@@ -14,7 +14,7 @@ pub async fn spans(
     let timeout = req.timeout_seconds.unwrap_or(120.0);
     let include_metadata = req.include_metadata.unwrap_or(false);
 
-    let filters = QueryFilters::build(QueryFilterParams {
+    let filters = QueryFilters::build(&QueryFilterParams {
         user_id: Some(req.user_id),
         start_time: req.start_time,
         end_time: req.end_time,

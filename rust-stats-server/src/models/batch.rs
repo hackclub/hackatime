@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::HashMap;
+
+use crate::models::common::{GroupBy, GroupedDurationEntry};
 
 #[derive(Debug, Deserialize)]
 pub struct BatchRequest {
@@ -12,13 +13,7 @@ pub struct BatchRequest {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct BatchQuery {
-    pub id: String,
-    #[serde(rename = "type")]
-    pub query_type: String,
-    pub group_by: Option<String>,
-    pub limit: Option<i64>,
-    pub min_seconds: Option<i64>,
+pub struct BatchQueryFilters {
     pub coding_only: Option<bool>,
     pub project: Option<String>,
     pub projects: Option<Vec<String>>,
@@ -28,7 +23,46 @@ pub struct BatchQuery {
     pub categories: Option<Vec<String>>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum BatchQuery {
+    Ungrouped {
+        id: String,
+        #[serde(flatten)]
+        filters: BatchQueryFilters,
+    },
+    Grouped {
+        id: String,
+        group_by: GroupBy,
+        limit: Option<i64>,
+        min_seconds: Option<i64>,
+        #[serde(flatten)]
+        filters: BatchQueryFilters,
+    },
+}
+
+impl BatchQuery {
+    pub fn id(&self) -> &str {
+        match self {
+            Self::Ungrouped { id, .. } | Self::Grouped { id, .. } => id,
+        }
+    }
+
+    pub fn filters(&self) -> &BatchQueryFilters {
+        match self {
+            Self::Ungrouped { filters, .. } | Self::Grouped { filters, .. } => filters,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub enum BatchResult {
+    Ungrouped { total_seconds: i64 },
+    Grouped { groups: Vec<GroupedDurationEntry> },
+}
+
 #[derive(Debug, Serialize)]
 pub struct BatchResponse {
-    pub results: HashMap<String, Value>,
+    pub results: HashMap<String, BatchResult>,
 }

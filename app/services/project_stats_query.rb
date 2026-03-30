@@ -152,11 +152,11 @@ class ProjectStatsQuery
   def timestamp_value(value)
     case value
     when Numeric
-      value.to_f
+      value.to_i
     when Time, ActiveSupport::TimeWithZone
-      value.to_f
+      value.to_i
     when DateTime
-      value.to_time.to_f
+      value.to_time.to_i
     end
   end
 end

@@ -1,6 +1,15 @@
 use sqlx::postgres::PgArguments;
 use sqlx::Arguments;
 
+use crate::time::heartbeat_time;
+
+const BASE_CONDITIONS: &[&str] = &[
+    "deleted_at IS NULL",
+    "\"time\" IS NOT NULL",
+    "\"time\" >= 0",
+    "\"time\" <= 253402300799",
+];
+
 pub struct QueryFilters {
     pub where_clause: String,
     pub args: PgArguments,
@@ -23,175 +32,229 @@ pub struct QueryFilterParams<'a> {
     pub categories: Option<&'a [String]>,
 }
 
-impl QueryFilters {
-    pub fn build(params: QueryFilterParams<'_>) -> Self {
-        let QueryFilterParams {
-            user_id,
-            user_ids,
-            start_time,
-            end_time,
-            project,
-            projects,
-            category,
-            coding_only,
-            categories_exclude,
-            languages,
-            editors,
-            operating_systems,
-            categories,
-        } = params;
+#[derive(Default)]
+pub struct QueryFilterBuilder {
+    conditions: Vec<String>,
+    args: PgArguments,
+    next_param: usize,
+}
 
-        let mut conditions = vec![
-            "deleted_at IS NULL".to_string(),
-            "\"time\" IS NOT NULL".to_string(),
-            "\"time\" >= 0".to_string(),
-            "\"time\" <= 253402300799".to_string(),
-        ];
-        let mut args = PgArguments::default();
-        let mut param_idx = 1usize;
+impl QueryFilterBuilder {
+    pub fn new() -> Self {
+        Self {
+            conditions: BASE_CONDITIONS
+                .iter()
+                .map(|condition| (*condition).to_string())
+                .collect(),
+            args: PgArguments::default(),
+            next_param: 1,
+        }
+    }
 
-        if let Some(uid) = user_id {
-            conditions.push(format!("user_id = ${}", param_idx));
-            let _ = args.add(uid);
-            param_idx += 1;
+    pub fn push_raw(&mut self, condition: impl Into<String>) {
+        self.conditions.push(condition.into());
+    }
+
+    pub fn push_user_id(&mut self, user_id: i64) {
+        self.push_numeric("user_id", user_id);
+    }
+
+    pub fn push_user_ids(&mut self, user_ids: &[i64]) {
+        self.push_in_clause("user_id", user_ids, |value| *value);
+    }
+
+    pub fn push_start_time(&mut self, start_time: f64) {
+        self.push_condition_with_value(
+            format!("\"time\" >= ${}", self.next_param),
+            heartbeat_time(start_time),
+        );
+    }
+
+    pub fn push_end_time(&mut self, end_time: f64) {
+        self.push_condition_with_value(
+            format!("\"time\" <= ${}", self.next_param),
+            heartbeat_time(end_time),
+        );
+    }
+
+    pub fn push_project(&mut self, project: &str) {
+        self.push_text("project", project);
+    }
+
+    pub fn push_projects(&mut self, projects: &[String]) {
+        self.push_in_clause("project", projects, Clone::clone);
+    }
+
+    pub fn push_category(&mut self, category: &str) {
+        self.push_text("category", category);
+    }
+
+    pub fn push_categories(&mut self, categories: &[String]) {
+        self.push_in_clause("category", categories, Clone::clone);
+    }
+
+    pub fn push_languages(&mut self, languages: &[String]) {
+        self.push_in_clause("language", languages, Clone::clone);
+    }
+
+    pub fn push_editors(&mut self, editors: &[String]) {
+        self.push_in_clause("editor", editors, Clone::clone);
+    }
+
+    pub fn push_operating_systems(&mut self, operating_systems: &[String]) {
+        self.push_in_clause("operating_system", operating_systems, Clone::clone);
+    }
+
+    pub fn push_categories_exclude(&mut self, categories: &[String]) {
+        if categories.is_empty() {
+            return;
         }
 
-        if let Some(uids) = user_ids {
-            if !uids.is_empty() {
-                let placeholders: Vec<String> = uids
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| format!("${}", param_idx + i))
-                    .collect();
-                conditions.push(format!("user_id IN ({})", placeholders.join(", ")));
-                for uid in uids {
-                    let _ = args.add(*uid);
-                }
-                param_idx += uids.len();
-            }
-        }
+        let placeholders = self.placeholders(categories.len());
+        self.push_raw(format!(
+            "LOWER(category) NOT IN ({})",
+            placeholders.join(", ")
+        ));
 
-        if let Some(st) = start_time {
-            conditions.push(format!("\"time\" >= ${}", param_idx));
-            let _ = args.add(st);
-            param_idx += 1;
+        for category in categories {
+            let _ = self.args.add(category.to_lowercase());
         }
+    }
 
-        if let Some(et) = end_time {
-            conditions.push(format!("\"time\" <= ${}", param_idx));
-            let _ = args.add(et);
-            param_idx += 1;
-        }
-
-        if let Some(p) = project {
-            conditions.push(format!("project = ${}", param_idx));
-            let _ = args.add(p.to_string());
-            param_idx += 1;
-        }
-
-        if let Some(ps) = projects {
-            if !ps.is_empty() {
-                let placeholders: Vec<String> = ps
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| format!("${}", param_idx + i))
-                    .collect();
-                conditions.push(format!("project IN ({})", placeholders.join(", ")));
-                for p in ps {
-                    let _ = args.add(p.clone());
-                }
-                param_idx += ps.len();
-            }
-        }
-
-        if coding_only == Some(true) {
-            conditions.push("category = 'coding'".to_string());
-        } else if let Some(cat) = category {
-            conditions.push(format!("category = ${}", param_idx));
-            let _ = args.add(cat.to_string());
-            param_idx += 1;
-        }
-
-        if let Some(excl) = categories_exclude {
-            if !excl.is_empty() {
-                let placeholders: Vec<String> = excl
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| format!("${}", param_idx + i))
-                    .collect();
-                conditions.push(format!(
-                    "LOWER(category) NOT IN ({})",
-                    placeholders.join(", ")
-                ));
-                for c in excl {
-                    let _ = args.add(c.to_lowercase());
-                }
-                param_idx += excl.len();
-            }
-        }
-
-        if let Some(cats) = categories {
-            if !cats.is_empty() {
-                let placeholders: Vec<String> = cats
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| format!("${}", param_idx + i))
-                    .collect();
-                conditions.push(format!("category IN ({})", placeholders.join(", ")));
-                for c in cats {
-                    let _ = args.add(c.clone());
-                }
-                param_idx += cats.len();
-            }
-        }
-
-        if let Some(langs) = languages {
-            if !langs.is_empty() {
-                let placeholders: Vec<String> = langs
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| format!("${}", param_idx + i))
-                    .collect();
-                conditions.push(format!("language IN ({})", placeholders.join(", ")));
-                for l in langs {
-                    let _ = args.add(l.clone());
-                }
-                param_idx += langs.len();
-            }
-        }
-
-        if let Some(eds) = editors {
-            if !eds.is_empty() {
-                let placeholders: Vec<String> = eds
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| format!("${}", param_idx + i))
-                    .collect();
-                conditions.push(format!("editor IN ({})", placeholders.join(", ")));
-                for e in eds {
-                    let _ = args.add(e.clone());
-                }
-                param_idx += eds.len();
-            }
-        }
-
-        if let Some(oses) = operating_systems {
-            if !oses.is_empty() {
-                let placeholders: Vec<String> = oses
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| format!("${}", param_idx + i))
-                    .collect();
-                conditions.push(format!("operating_system IN ({})", placeholders.join(", ")));
-                for o in oses {
-                    let _ = args.add(o.clone());
-                }
-            }
-        }
-
+    pub fn build(self) -> QueryFilters {
         QueryFilters {
-            where_clause: conditions.join(" AND "),
-            args,
+            where_clause: self.conditions.join(" AND "),
+            args: self.args,
         }
+    }
+
+    fn push_numeric(&mut self, column: &str, value: i64) {
+        self.push_condition_with_value(format!("{column} = ${}", self.next_param), value);
+    }
+
+    fn push_text(&mut self, column: &str, value: &str) {
+        self.push_condition_with_value(
+            format!("{column} = ${}", self.next_param),
+            value.to_owned(),
+        );
+    }
+
+    fn push_condition_with_value<T>(&mut self, condition: String, value: T)
+    where
+        T: Send + 'static,
+        PgArguments: Arguments<'static, Database = sqlx::Postgres>,
+        T: sqlx::Encode<'static, sqlx::Postgres> + sqlx::Type<sqlx::Postgres>,
+    {
+        self.push_raw(condition);
+        let _ = self.args.add(value);
+        self.next_param += 1;
+    }
+
+    fn push_in_clause<T, F>(&mut self, column: &str, values: &[T], map_value: F)
+    where
+        T: Clone,
+        F: Fn(&T) -> T,
+        PgArguments: Arguments<'static, Database = sqlx::Postgres>,
+        T: Send + 'static + sqlx::Encode<'static, sqlx::Postgres> + sqlx::Type<sqlx::Postgres>,
+    {
+        if values.is_empty() {
+            return;
+        }
+
+        let placeholders = self.placeholders(values.len());
+        self.push_raw(format!("{column} IN ({})", placeholders.join(", ")));
+
+        for value in values {
+            let _ = self.args.add(map_value(value));
+        }
+    }
+
+    fn placeholders(&mut self, count: usize) -> Vec<String> {
+        let placeholders = (0..count)
+            .map(|offset| format!("${}", self.next_param + offset))
+            .collect();
+        self.next_param += count;
+        placeholders
+    }
+}
+
+impl QueryFilters {
+    pub fn build(params: &QueryFilterParams<'_>) -> Self {
+        let mut builder = QueryFilterBuilder::new();
+
+        if let Some(user_id) = params.user_id {
+            builder.push_user_id(user_id);
+        }
+
+        if let Some(user_ids) = params.user_ids {
+            builder.push_user_ids(user_ids);
+        }
+
+        if let Some(start_time) = params.start_time {
+            builder.push_start_time(start_time);
+        }
+
+        if let Some(end_time) = params.end_time {
+            builder.push_end_time(end_time);
+        }
+
+        if let Some(project) = params.project {
+            builder.push_project(project);
+        }
+
+        if let Some(projects) = params.projects {
+            builder.push_projects(projects);
+        }
+
+        if params.coding_only == Some(true) {
+            builder.push_raw("category = 'coding'");
+        } else if let Some(category) = params.category {
+            builder.push_category(category);
+        }
+
+        if let Some(categories_exclude) = params.categories_exclude {
+            builder.push_categories_exclude(categories_exclude);
+        }
+
+        if let Some(categories) = params.categories {
+            builder.push_categories(categories);
+        }
+
+        if let Some(languages) = params.languages {
+            builder.push_languages(languages);
+        }
+
+        if let Some(editors) = params.editors {
+            builder.push_editors(editors);
+        }
+
+        if let Some(operating_systems) = params.operating_systems {
+            builder.push_operating_systems(operating_systems);
+        }
+
+        builder.build()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{QueryFilterParams, QueryFilters};
+
+    #[test]
+    fn preserves_parameter_order_across_scalar_and_list_filters() {
+        let filters = QueryFilters::build(&QueryFilterParams {
+            user_id: Some(42),
+            start_time: Some(100.0),
+            end_time: Some(200.0),
+            projects: Some(&["hackatime".to_string(), "waka".to_string()]),
+            languages: Some(&["Rust".to_string(), "Ruby".to_string()]),
+            ..Default::default()
+        });
+
+        assert_eq!(
+            filters.where_clause,
+            "deleted_at IS NULL AND \"time\" IS NOT NULL AND \"time\" >= 0 AND \"time\" <= 253402300799 \
+AND user_id = $1 AND \"time\" >= $2 AND \"time\" <= $3 AND project IN ($4, $5) AND language IN ($6, $7)"
+        );
     }
 }

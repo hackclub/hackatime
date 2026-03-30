@@ -30,8 +30,8 @@ class LeaderboardUpdateJob < ApplicationJob
 
     range = LeaderboardDateRange.calculate(date, period)
     result = StatsClient.leaderboard_compute(
-      start_time: range.first.to_f,
-      end_time: range.last.to_f,
+      start_time: range.first,
+      end_time: range.last,
       min_seconds: 60,
       include_streaks: true,
       coding_only: true,

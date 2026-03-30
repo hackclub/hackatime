@@ -27,7 +27,7 @@ pub async fn unique_seconds(
 ) -> Result<Json<UniqueSecondsResponse>, AppError> {
     let threshold = req.gap_threshold_seconds.unwrap_or(120.0);
 
-    let filters = QueryFilters::build(QueryFilterParams {
+    let filters = QueryFilters::build(&QueryFilterParams {
         user_id: Some(req.user_id),
         start_time: Some(req.start_time),
         end_time: Some(req.end_time),
@@ -46,7 +46,6 @@ pub async fn unique_seconds(
         .fetch_all(&pool)
         .await?;
 
-    // Walk consecutive pairs and sum gaps within threshold
     let mut total: f64 = 0.0;
     for window in rows.windows(2) {
         let gap = window[1].0 - window[0].0;
@@ -56,6 +55,7 @@ pub async fn unique_seconds(
     }
 
     Ok(Json(UniqueSecondsResponse {
+        #[allow(clippy::cast_possible_truncation)]
         unique_seconds: total as i64,
     }))
 }

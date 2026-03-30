@@ -1,19 +1,20 @@
+use std::fmt::Write;
+
 use sqlx::PgPool;
-use std::collections::HashMap;
 
 use crate::error::AppError;
+use crate::models::common::{GroupBy, GroupedDurationEntry, UserDurationEntry};
 
 use super::filters::QueryFilters;
 
-const ALLOWED_GROUP_COLUMNS: &[&str] = &[
-    "project",
-    "language",
-    "editor",
-    "operating_system",
-    "user_id",
-    "category",
-    "machine",
-];
+fn into_grouped_duration_entries(rows: Vec<(Option<String>, i64)>) -> Vec<GroupedDurationEntry> {
+    rows.into_iter()
+        .map(|(name, total_seconds)| GroupedDurationEntry {
+            name: name.unwrap_or_default(),
+            total_seconds,
+        })
+        .collect()
+}
 
 pub async fn query_duration_ungrouped(
     pool: &PgPool,
@@ -27,7 +28,6 @@ pub async fn query_duration_ungrouped(
            ELSE LEAST(\"time\" - LAG(\"time\") OVER (ORDER BY \"time\"), {timeout}) \
          END as diff \
          FROM heartbeats WHERE {where_clause}) AS diffs",
-        timeout = timeout,
         where_clause = filters.where_clause
     );
 
@@ -41,56 +41,94 @@ pub async fn query_duration_ungrouped(
 pub async fn query_duration_grouped(
     pool: &PgPool,
     filters: QueryFilters,
-    group_by: &str,
+    group_by: GroupBy,
     timeout: f64,
     limit: Option<i64>,
     min_seconds: Option<i64>,
-) -> Result<HashMap<String, i64>, AppError> {
-    if !ALLOWED_GROUP_COLUMNS.contains(&group_by) {
-        return Err(AppError::BadRequest(format!(
-            "Invalid group_by column: {}",
-            group_by
-        )));
-    }
-
-    let col_expr = if group_by == "user_id" {
+) -> Result<Vec<GroupedDurationEntry>, AppError> {
+    let column = group_by.column();
+    let grouped_column = if matches!(group_by, GroupBy::UserId) {
         "CAST(user_id AS TEXT)".to_string()
     } else {
-        format!("\"{}\"", group_by)
+        format!("\"{column}\"")
     };
 
     let mut sql = format!(
         "SELECT grouped_col, COALESCE(SUM(diff), 0)::bigint as duration \
-         FROM (SELECT {col_expr} as grouped_col, CASE \
-           WHEN LAG(\"time\") OVER (PARTITION BY {col_expr} ORDER BY \"time\") IS NULL THEN 0 \
-           ELSE LEAST(\"time\" - LAG(\"time\") OVER (PARTITION BY {col_expr} ORDER BY \"time\"), {timeout}) \
+         FROM (SELECT {grouped_column} as grouped_col, CASE \
+           WHEN LAG(\"time\") OVER (PARTITION BY {grouped_column} ORDER BY \"time\") IS NULL THEN 0 \
+           ELSE LEAST(\"time\" - LAG(\"time\") OVER (PARTITION BY {grouped_column} ORDER BY \"time\"), {timeout}) \
          END as diff \
          FROM heartbeats WHERE {where_clause}) AS diffs \
          GROUP BY grouped_col",
-        col_expr = col_expr,
-        timeout = timeout,
         where_clause = filters.where_clause
     );
 
-    if let Some(min) = min_seconds {
-        sql.push_str(&format!(" HAVING COALESCE(SUM(diff), 0) >= {}", min));
+    if let Some(min_seconds) = min_seconds {
+        let _ = write!(sql, " HAVING COALESCE(SUM(diff), 0) >= {min_seconds}");
     }
 
     sql.push_str(" ORDER BY duration DESC");
 
-    if let Some(lim) = limit {
-        sql.push_str(&format!(" LIMIT {}", lim));
+    if let Some(limit) = limit {
+        let _ = write!(sql, " LIMIT {limit}");
     }
 
     let rows: Vec<(Option<String>, i64)> = sqlx::query_as_with(&sql, filters.args)
         .fetch_all(pool)
         .await?;
 
-    let mut map = HashMap::new();
-    for (key, val) in rows {
-        if let Some(k) = key {
-            map.insert(k, val);
-        }
+    Ok(into_grouped_duration_entries(rows))
+}
+
+pub async fn query_user_durations(
+    pool: &PgPool,
+    filters: QueryFilters,
+    timeout: f64,
+    limit: Option<i64>,
+    min_seconds: Option<i64>,
+) -> Result<Vec<UserDurationEntry>, AppError> {
+    let durations =
+        query_duration_grouped(pool, filters, GroupBy::UserId, timeout, limit, min_seconds)
+            .await?
+            .into_iter()
+            .filter_map(|entry| {
+                entry
+                    .name
+                    .parse::<i64>()
+                    .ok()
+                    .map(|user_id| UserDurationEntry {
+                        user_id,
+                        total_seconds: entry.total_seconds,
+                    })
+            })
+            .collect();
+
+    Ok(durations)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::models::common::GroupedDurationEntry;
+
+    use super::into_grouped_duration_entries;
+
+    #[test]
+    fn keeps_an_empty_bucket_for_null_group_names() {
+        let rows = vec![(None, 90), (Some("Rust".to_string()), 30)];
+
+        assert_eq!(
+            into_grouped_duration_entries(rows),
+            vec![
+                GroupedDurationEntry {
+                    name: String::new(),
+                    total_seconds: 90,
+                },
+                GroupedDurationEntry {
+                    name: "Rust".to_string(),
+                    total_seconds: 30,
+                },
+            ]
+        );
     }
-    Ok(map)
 }

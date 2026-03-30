@@ -60,7 +60,7 @@ class TestWakatimeService
       StatsClient.duration_boundary_aware(
         user_id: @user&.id,
         start_time: @start_date,
-        end_time: @end_date,
+        end_time: StatsClient.exclusive_end_time(@end_date),
         projects: @project_filter,
         categories_exclude: EXCLUDED_CATEGORIES
       )["total_seconds"].to_i
@@ -68,7 +68,7 @@ class TestWakatimeService
       StatsClient.duration(
         user_id: @user&.id,
         start_time: @start_date,
-        end_time: @end_date,
+        end_time: StatsClient.exclusive_end_time(@end_date),
         projects: @project_filter,
         categories_exclude: EXCLUDED_CATEGORIES
       )["total_seconds"].to_i
@@ -96,7 +96,7 @@ class TestWakatimeService
       group_by: group_by,
       user_id: @user&.id,
       start_time: @start_date,
-      end_time: @end_date,
+      end_time: StatsClient.exclusive_end_time(@end_date),
       projects: @project_filter,
       categories_exclude: EXCLUDED_CATEGORIES,
       limit: @limit

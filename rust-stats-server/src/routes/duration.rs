@@ -9,13 +9,8 @@ use crate::models::duration::{
 use crate::query::duration::{query_duration_grouped, query_duration_ungrouped};
 use crate::query::filters::{QueryFilterParams, QueryFilters};
 
-pub async fn duration(
-    State(pool): State<PgPool>,
-    Json(req): Json<DurationRequest>,
-) -> Result<Json<DurationResponse>, AppError> {
-    let timeout = req.timeout_seconds.unwrap_or(120.0);
-
-    let filters = QueryFilters::build(QueryFilterParams {
+fn duration_filters(req: &DurationRequest) -> QueryFilterParams<'_> {
+    QueryFilterParams {
         user_id: req.user_id,
         user_ids: req.user_ids.as_deref(),
         start_time: req.start_time,
@@ -29,7 +24,15 @@ pub async fn duration(
         editors: req.editors.as_deref(),
         operating_systems: req.operating_systems.as_deref(),
         categories: req.categories.as_deref(),
-    });
+    }
+}
+
+pub async fn duration(
+    State(pool): State<PgPool>,
+    Json(req): Json<DurationRequest>,
+) -> Result<Json<DurationResponse>, AppError> {
+    let timeout = req.timeout_seconds.unwrap_or(120.0);
+    let filters = QueryFilters::build(&duration_filters(&req));
 
     let total = query_duration_ungrouped(&pool, filters, timeout).await?;
 
@@ -44,7 +47,7 @@ pub async fn duration_grouped(
 ) -> Result<Json<GroupedDurationResponse>, AppError> {
     let timeout = req.timeout_seconds.unwrap_or(120.0);
 
-    let filters = QueryFilters::build(QueryFilterParams {
+    let filters = QueryFilters::build(&QueryFilterParams {
         user_id: req.user_id,
         user_ids: req.user_ids.as_deref(),
         start_time: req.start_time,
@@ -63,7 +66,7 @@ pub async fn duration_grouped(
     let groups = query_duration_grouped(
         &pool,
         filters,
-        &req.group_by,
+        req.group_by,
         timeout,
         req.limit,
         req.min_seconds,

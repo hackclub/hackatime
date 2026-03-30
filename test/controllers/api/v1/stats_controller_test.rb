@@ -29,6 +29,30 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_equal summary_total, total_only, "total_seconds endpoint should match summary total_seconds"
   end
 
+  test "user_stats excludes heartbeats exactly at the end_date boundary" do
+    user = User.create!(username: "boundary_user_#{SecureRandom.hex(3)}", timezone: "UTC")
+
+    create_heartbeat(user:, time: Time.utc(2025, 12, 15, 23, 59, 0).to_f, project: "Boundary", category: "coding")
+    create_heartbeat(user:, time: Time.utc(2025, 12, 16, 0, 0, 0).to_f, project: "Boundary", category: "coding")
+
+    params = {
+      features: "projects",
+      filter_by_project: "Boundary",
+      start_date: "2025-12-15T00:00:00Z",
+      end_date: "2025-12-16T00:00:00Z"
+    }
+
+    get "/api/v1/users/#{user.username}/stats", params: params
+
+    assert_response :success
+    assert_equal 0, JSON.parse(response.body).dig("data", "total_seconds")
+
+    get "/api/v1/users/#{user.username}/stats", params: params.merge(total_seconds: "true")
+
+    assert_response :success
+    assert_equal 0, JSON.parse(response.body).fetch("total_seconds")
+  end
+
   private
 
   def create_heartbeat(user:, time:, project:, category:)

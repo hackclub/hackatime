@@ -58,6 +58,8 @@ module SlackIntegration
     return if status_present && status_custom
 
     current_project = heartbeats.order(time: :desc).first&.project
+    return if current_project.blank?
+
     current_project_duration = Time.use_zone(timezone) do
       StatsClient.duration(
         user_id: id,

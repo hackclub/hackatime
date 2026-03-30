@@ -34,7 +34,7 @@ class WakatimeService
     result = StatsClient.summary(
       user_id: @user&.id,
       start_time: @start_date,
-      end_time: @end_date,
+      end_time: StatsClient.exclusive_end_time(@end_date),
       group_by: requested_group_bys.presence,
       limit: @limit,
       projects: @project_filter
@@ -111,8 +111,8 @@ class WakatimeService
     summary[:is_other_usage_visible] = true if @user.present?
     summary[:status] = "ok"
 
-    @start_time = result["start_time"].to_i
-    @end_time = result["end_time"].to_i
+    @start_time = @start_date
+    @end_time = @end_date
 
     summary[:start] = Time.at(@start_time).strftime("%Y-%m-%dT%H:%M:%SZ")
     summary[:end] = Time.at(@end_time).strftime("%Y-%m-%dT%H:%M:%SZ")

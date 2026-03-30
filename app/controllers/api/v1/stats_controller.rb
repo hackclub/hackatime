@@ -11,8 +11,8 @@ class Api::V1::StatsController < ApplicationController
     return if performed?
 
     stats_opts = {
-      start_time: start_date.to_f,
-      end_time: end_date.to_f
+      start_time: start_date,
+      end_time: end_date
     }
 
     if params[:username].present?
@@ -99,8 +99,8 @@ class Api::V1::StatsController < ApplicationController
 
         stats_opts = {
           user_id: @user.id,
-          start_time: start_date.to_f,
-          end_time: end_date.to_f,
+          start_time: start_date,
+          end_time: StatsClient.exclusive_end_time(end_date),
           projects: project_filters
         }
 
@@ -128,8 +128,8 @@ class Api::V1::StatsController < ApplicationController
       filter_by_project = params[:filter_by_project].split(",")
       unique_seconds = StatsClient.unique_seconds(
         user_id: @user.id,
-        start_time: start_date.to_f,
-        end_time: end_date.to_f,
+        start_time: start_date,
+        end_time: end_date,
         projects: filter_by_project,
         coding_only: true
       )["unique_seconds"].to_i
@@ -165,8 +165,8 @@ class Api::V1::StatsController < ApplicationController
 
     render json: StatsClient.spans(
       user_id: @user.id,
-      start_time: start_date.to_f,
-      end_time: end_date.to_f,
+      start_time: start_date,
+      end_time: end_date,
       project: params[:project],
       projects: params[:filter_by_project]&.split(",")
     )

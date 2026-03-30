@@ -34,7 +34,9 @@ module Api
 
         # Handle aliases (comma-separated project names to sum)
         if params[:aliases].present?
-          alias_names = params[:aliases].split(",").map(&:strip) - [ project_name ]
+          alias_names = params[:aliases].split(",").map(&:strip).reject(&:blank?) - [ project_name ]
+          return redirect_to shields_url, allow_other_host: true, status: :temporary_redirect if alias_names.empty?
+
           alias_seconds = StatsClient.duration(user_id: user.id, projects: alias_names)["total_seconds"].to_i
           seconds += alias_seconds
 

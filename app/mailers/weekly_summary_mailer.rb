@@ -19,7 +19,7 @@ class WeeklySummaryMailer < ApplicationMailer
     @total_seconds = StatsClient.duration(
       user_id: @user.id,
       start_time: @starts_at.to_f,
-      end_time: @ends_at.to_f
+      end_time: stats_end_time
     )["total_seconds"].to_i
     num_days = [ (@ends_at - @starts_at) / 1.day, 1 ].max
     @daily_average_seconds = (@total_seconds / num_days).round
@@ -41,7 +41,7 @@ class WeeklySummaryMailer < ApplicationMailer
       group_by: column.to_s,
       user_id: @user.id,
       start_time: @starts_at.to_f,
-      end_time: @ends_at.to_f,
+      end_time: stats_end_time,
       limit: limit
     )["groups"] || {})
       .sort_by { |_name, seconds| -seconds.to_i }
@@ -63,5 +63,9 @@ class WeeklySummaryMailer < ApplicationMailer
       .count(Arel.sql("DATE(to_timestamp(time) AT TIME ZONE #{timezone_sql})"))
   rescue StandardError
     scope.where.not(time: nil).pluck(:time).map { |time| Time.at(time).in_time_zone(timezone).to_date }.uniq.count
+  end
+
+  def stats_end_time
+    @stats_end_time ||= @ends_at.to_f - 1e-6
   end
 end

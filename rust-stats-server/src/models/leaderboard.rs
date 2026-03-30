@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize)]
 pub struct LeaderboardRequest {
     pub user_ids: Option<Vec<i64>>,
-    pub start_time: f64,
-    pub end_time: f64,
+    pub start_time: i64,
+    pub end_time: i64,
     pub coding_only: Option<bool>,
     pub min_seconds: Option<i64>,
     pub include_streaks: Option<bool>,

@@ -243,6 +243,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     last_language = nil
     heartbeat_array.each do |heartbeat|
       heartbeat = heartbeat.to_h.with_indifferent_access
+      raw_heartbeat = heartbeat.deep_dup
       source_type = :direct_entry
 
       # Resolve <<LAST_LANGUAGE>> sentinel to the most recently used language.
@@ -286,10 +287,14 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         editor: parsed_ua[:editor],
         operating_system: parsed_ua[:os],
         machine: request.headers["X-Machine-Name"]
-      }).slice(*Heartbeat.column_names.map(&:to_sym))
-      # ^^ They say safety laws are written in blood. Well, so is this line!
-      # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
-      new_heartbeat = Heartbeat.find_or_create_by(attrs)
+      }).slice(*heartbeat_lookup_columns)
+      new_heartbeat = Heartbeat.find_or_initialize_by(attrs)
+
+      if raw_data_supported? && raw_heartbeat.present? && new_heartbeat.raw_data.blank?
+        new_heartbeat.raw_data = raw_heartbeat
+      end
+
+      new_heartbeat.save! if new_heartbeat.new_record? || new_heartbeat.changed?
 
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
@@ -343,6 +348,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def heartbeat_keys
     [
+      :ai_line_changes,
       :branch,
       :category,
       :created_at,
@@ -352,6 +358,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       :entity,
       :is_write,
       :language,
+      :human_line_changes,
       :line_additions,
       :line_deletions,
       :lineno,
@@ -365,6 +372,14 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       :user_agent,
       :plugin
     ]
+  end
+
+  def heartbeat_lookup_columns
+    @heartbeat_lookup_columns ||= Heartbeat.column_names.map(&:to_sym) - [ :raw_data ]
+  end
+
+  def raw_data_supported?
+    @raw_data_supported ||= Heartbeat.column_names.include?("raw_data")
   end
 
   # allow either heartbeat or heartbeats
