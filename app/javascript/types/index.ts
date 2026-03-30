@@ -20,7 +20,7 @@ export type LeaderboardEntry = {
   streak_count: number;
   is_current_user: boolean;
   user: LeaderboardEntryUser;
-  active_project: { name: string; repo_url: string } | null;
+  active_project: { name: string; repo_url: string | null } | null;
 };
 
 export type LeaderboardMeta = {

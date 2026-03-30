@@ -74,7 +74,6 @@ class LeaderboardUpdateJob < ApplicationJob
       )
     end
 
-    # Cache the board
     cache_key = LeaderboardCache.global_key(period, date)
     LeaderboardCache.write(cache_key, board)
     LeaderboardPageCache.warm(leaderboard: board)

@@ -227,7 +227,7 @@
           >
             <div class="min-w-0">
               <p class="text-sm font-semibold text-surface-content">
-                {formatPeriod(goal.period)}: {formatDuration(
+                {formatPeriod(goal.period)}: {secondsToDisplay(
                   goal.target_seconds,
                 )}
               </p>
