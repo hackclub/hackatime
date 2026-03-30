@@ -65,71 +65,75 @@ class Api::V1::StatsController < ApplicationController
     service_params[:end_date] = end_date
     service_params[:scope] = scope if scope.present?
 
-    # use TestWakatimeService when test_param=true for all requests
-    if params[:test_param] == "true"
-      service_params[:boundary_aware] = true  # always and i mean always use boundary aware in testwakatime service
+    disable_indexes_for_request if params[:disable_indexes] == "true"
 
-      if params[:total_seconds] == "true"
+    begin
+      # use TestWakatimeService when test_param=true for all requests
+      if params[:test_param] == "true"
+        service_params[:boundary_aware] = true  # always and i mean always use boundary aware in testwakatime service
+
+        if params[:total_seconds] == "true"
+          summary = TestWakatimeService.new(**service_params).generate_summary
+          return render json: { total_seconds: summary[:total_seconds] }
+        end
+
         summary = TestWakatimeService.new(**service_params).generate_summary
-        return render json: { total_seconds: summary[:total_seconds] }
+      else
+        if params[:total_seconds] == "true"
+          query = Heartbeat.where(user_id: @user.id)
+          query = query.where("time >= ? AND time < ?", start_date.to_f, end_date.to_f)
+
+          if params[:filter_by_project].present?
+            filter_by_project = params[:filter_by_project].split(",")
+            query = query.where(project: filter_by_project)
+          end
+
+          if params[:filter_by_category].present?
+            filter_by_category = params[:filter_by_category].split(",")
+            query = query.where(category: filter_by_category)
+          end
+
+          # do the boundary thingie if requested
+          use_boundary_aware = params[:boundary_aware] == "true"
+          total_seconds = if use_boundary_aware
+            Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
+          else
+            query.duration_seconds || 0
+          end
+
+          return render json: { total_seconds: total_seconds }
+        end
+
+        summary = WakatimeService.new(**service_params).generate_summary
       end
 
-      summary = TestWakatimeService.new(**service_params).generate_summary
-    else
-      if params[:total_seconds] == "true"
-        query = Heartbeat.where(user_id: @user.id)
-        query = query.where("time >= ? AND time < ?", start_date.to_f, end_date.to_f)
-
-        if params[:filter_by_project].present?
-          filter_by_project = params[:filter_by_project].split(",")
-          query = query.where(project: filter_by_project)
-        end
-
-        if params[:filter_by_category].present?
-          filter_by_category = params[:filter_by_category].split(",")
-          query = query.where(category: filter_by_category)
-        end
-
-        # do the boundary thingie if requested
-        use_boundary_aware = params[:boundary_aware] == "true"
-        total_seconds = if use_boundary_aware
-          Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
-        else
-          query.duration_seconds || 0
-        end
-
-        return render json: { total_seconds: total_seconds }
+      if params[:features]&.include?("projects") && params[:filter_by_project].present?
+        filter_by_project = params[:filter_by_project].split(",")
+        heartbeats = @user.heartbeats
+          .coding_only
+          .with_valid_timestamps
+          .where(time: start_date..end_date, project: filter_by_project)
+        unique_seconds = unique_heartbeat_seconds(heartbeats)
+        summary[:unique_total_seconds] = unique_seconds
       end
 
-      summary = WakatimeService.new(**service_params).generate_summary
+      trust_level = @user.trust_level
+      trust_level = "blue" if trust_level == "yellow"
+      trust_value = User.trust_levels[trust_level]
+      trust_info = {
+        trust_level: trust_level,
+        trust_value: trust_value
+      }
+
+      summary[:streak] = @user.streak_days
+
+      render json: {
+        data: summary,
+        trust_factor: trust_info
+      }
+    ensure
+      reenable_indexes_after_request if params[:disable_indexes] == "true"
     end
-
-    if params[:features]&.include?("projects") && params[:filter_by_project].present?
-      filter_by_project = params[:filter_by_project].split(",")
-      heartbeats = @user.heartbeats
-        .coding_only
-        .with_valid_timestamps
-        .where(time: start_date..end_date, project: filter_by_project)
-      unique_seconds = unique_heartbeat_seconds(heartbeats)
-      summary[:unique_total_seconds] = unique_seconds
-    end
-
-
-
-    trust_level = @user.trust_level
-    trust_level = "blue" if trust_level == "yellow"
-    trust_value = User.trust_levels[trust_level]
-    trust_info = {
-      trust_level: trust_level,
-      trust_value: trust_value
-    }
-
-    summary[:streak] = @user.streak_days
-
-    render json: {
-      data: summary,
-      trust_factor: trust_info
-    }
   end
 
   def user_spans
@@ -336,5 +340,27 @@ class Api::V1::StatsController < ApplicationController
   rescue ArgumentError, TypeError
     render json: { error: "Invalid #{param_name}" }, status: :unprocessable_entity
     nil
+  end
+do 
+  # Debug patch: force PostgreSQL to skip all indexes for this request so you can
+  # confirm whether bad index choices are causing slowness.
+  # Activate with ?disable_indexes=true on the stats endpoint.
+  # Always paired with reenable_indexes_after_request in an ensure block.
+  def disable_indexes_for_request
+    conn = ActiveRecord::Base.connection
+    conn.execute("SET enable_indexscan     = off")
+    conn.execute("SET enable_bitmapscan    = off")
+    conn.execute("SET enable_indexonlyscan = off")
+    Rails.logger.warn "[disable_indexes] Index scans disabled for this request (user: #{@user&.id}, path: #{request.fullpath})"
+  end
+
+  def reenable_indexes_after_request
+    conn = ActiveRecord::Base.connection
+    conn.execute("SET enable_indexscan     = on")
+    conn.execute("SET enable_bitmapscan    = on")
+    conn.execute("SET enable_indexonlyscan = on")
+    Rails.logger.warn "[disable_indexes] Index scans re-enabled after request"
+  rescue => e
+    Rails.logger.error "[disable_indexes] Failed to re-enable index scans: #{e.message}"
   end
 end
