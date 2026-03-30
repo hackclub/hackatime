@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Deferred, Link } from "@inertiajs/svelte";
   import CountryFlag from "../../components/CountryFlag.svelte";
+  import Twemoji from "../../components/Twemoji.svelte";
   import Button from "../../components/Button.svelte";
   import type {
     LeaderboardMeta,
@@ -64,58 +65,62 @@
     <h1 class="text-3xl font-bold text-surface-content">Leaderboards</h1>
 
     <div
-      class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      class="flex flex-row items-center justify-between gap-3"
     >
       <!-- Scope tabs -->
       <div
-        class="inline-flex max-w-full overflow-x-auto rounded-full bg-darkless p-1 gap-1"
+        class="inline-flex rounded-full bg-darkless p-1 gap-1"
       >
         <Link
           href={`/leaderboards?period_type=${period_type}&scope=global`}
-          class={tabClass(scope === "global")}
-          preserveState
+          class={`${tabClass(scope === "global")} inline-flex items-center justify-center gap-2`}
+          preserveScroll
         >
-          Global
+          <Twemoji emoji="🌐" alt="Globe" class="inline-block w-5 h-5" />
+          <span class="hidden sm:inline">Global</span>
         </Link>
 
         {#if country.available}
           <Link
             href={`/leaderboards?period_type=${period_type}&scope=country`}
             class={`${tabClass(scope === "country")} inline-flex items-center justify-center gap-2`}
-            preserveState
+            preserveScroll
           >
             <CountryFlag
               countryCode={country.code}
               class="inline-block w-5 h-5"
             />
-            <span class="max-w-48 truncate">{country.name}</span>
+            <span class="hidden sm:inline max-w-48 truncate">{country.name}</span>
           </Link>
         {:else}
           <span
-            class="text-center px-4 py-2 rounded-full text-sm font-medium text-muted/60 bg-darker cursor-not-allowed whitespace-nowrap"
+            class="text-center px-4 py-2 rounded-full text-sm font-medium text-muted/60 bg-darker cursor-not-allowed whitespace-nowrap inline-flex items-center justify-center gap-2"
           >
-            Country
+            <Twemoji emoji="🏳️" alt="No country" class="inline-block w-5 h-5 opacity-60" />
+            <span class="hidden sm:inline">Country</span>
           </span>
         {/if}
       </div>
 
       <!-- Period tabs -->
       <div
-        class="inline-flex max-w-full overflow-x-auto rounded-full bg-darkless p-1 gap-1"
+        class="inline-flex rounded-full bg-darkless p-1 gap-1"
       >
         <Link
           href={`/leaderboards?period_type=daily&scope=${scope}`}
           class={tabClass(period_type === "daily")}
-          preserveState
+          preserveScroll
         >
-          Last 24 Hours
+          <span class="sm:hidden">24h</span>
+          <span class="hidden sm:inline">Last 24 Hours</span>
         </Link>
         <Link
           href={`/leaderboards?period_type=last_7_days&scope=${scope}`}
           class={tabClass(period_type === "last_7_days")}
-          preserveState
+          preserveScroll
         >
-          Last 7 Days
+          <span class="sm:hidden">7d</span>
+          <span class="hidden sm:inline">Last 7 Days</span>
         </Link>
       </div>
     </div>
@@ -191,51 +196,36 @@
 
                   <!-- User info -->
                   <div class="flex-1 mx-1 sm:mx-4 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <div class="user-info flex items-center gap-2">
+                    <div class="flex items-center gap-2">
+                      <div class="user-info flex items-center gap-2 min-w-0">
                         {#if entry.user.avatar_url}
                           <img
                             src={entry.user.avatar_url}
                             alt="{entry.user.display_name}'s avatar"
-                            class="w-8 h-8 rounded-full aspect-square border border-surface-200"
+                            class="w-8 h-8 rounded-full aspect-square border border-surface-200 shrink-0"
                             loading="lazy"
                           />
                         {/if}
-                        <span class="inline-flex items-center gap-1">
+                        <span class="inline-flex items-center gap-1 min-w-0">
                           {#if entry.user.profile_path}
                             <Link
                               href={entry.user.profile_path}
-                              class="text-blue hover:underline"
+                              class="text-blue hover:underline truncate"
                             >
                               {entry.user.display_name}
                             </Link>
                           {:else}
-                            {entry.user.display_name}
+                            <span class="truncate">{entry.user.display_name}</span>
                           {/if}
                         </span>
                         {#if entry.user.country_code}
-                          <CountryFlag countryCode={entry.user.country_code} />
+                          <CountryFlag countryCode={entry.user.country_code} class="inline-block w-5 h-5 align-middle shrink-0" />
                         {/if}
                       </div>
 
-                      {#if entry.active_project}
-                        <span
-                          class="text-xs italic text-muted truncate max-w-37.5 sm:max-w-none"
-                        >
-                          working on
-                          <a
-                            href={entry.active_project.repo_url}
-                            target="_blank"
-                            class="text-accent hover:text-cyan transition-colors"
-                          >
-                            {entry.active_project.name}
-                          </a>
-                        </span>
-                      {/if}
-
                       {#if entry.streak_count > 0}
                         <div
-                          class="inline-flex items-center gap-1 px-2 py-1 bg-linear-to-r {theme.bg} border {theme.bc} rounded-lg transition-all duration-200 {theme.hbg} group"
+                          class="inline-flex items-center gap-1 px-2 py-1 bg-linear-to-r {theme.bg} border {theme.bc} rounded-lg transition-all duration-200 {theme.hbg} group shrink-0"
                           title={entry.streak_count > 30
                             ? "30+ daily streak"
                             : `${entry.streak_count} day streak`}
@@ -260,6 +250,20 @@
                         </div>
                       {/if}
                     </div>
+                    {#if entry.active_project}
+                      <div
+                        class="text-xs italic text-muted truncate mt-0.5 ml-10"
+                      >
+                        working on
+                        <a
+                          href={entry.active_project.repo_url}
+                          target="_blank"
+                          class="text-accent hover:text-cyan transition-colors"
+                        >
+                          {entry.active_project.name}
+                        </a>
+                      </div>
+                    {/if}
                   </div>
 
                   <!-- Duration -->
