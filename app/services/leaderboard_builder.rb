@@ -10,24 +10,25 @@ module LeaderboardBuilder
       finished_generating_at: Time.current
     )
 
-    ids = users.pluck(:id)
+    eligible_users = users.where.not(github_uid: nil)
+    ids = eligible_users.pluck(:id)
     return board if ids.empty?
-
-    users_map = users.index_by(&:id)
 
     range = LeaderboardDateRange.calculate(date, period)
 
     beats = Heartbeat.where(user_id: ids, time: range)
-                    .coding_only
-                    .with_valid_timestamps
-                    .joins(:user)
-                    .where.not(users: { github_uid: nil })
+                    .leaderboard_eligible
 
     totals = beats.group(:user_id).duration_seconds
     totals = totals.filter { |_, seconds| seconds > 60 }
+    users_map = eligible_users.where(id: totals.keys).index_by(&:id)
 
     streak_ids = totals.keys
-    streaks = streak_ids.any? ? Heartbeat.daily_streaks_for_users(streak_ids, start_date: 30.days.ago) : {}
+    streaks = if streak_ids.any?
+      Heartbeat.daily_streaks_for_users(streak_ids, start_date: 30.days.ago, exclude_browser_time: true)
+    else
+      {}
+    end
 
     entries = totals.map do |user_id, seconds|
       entry = LeaderboardEntry.new(
