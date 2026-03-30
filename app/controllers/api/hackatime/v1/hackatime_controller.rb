@@ -44,8 +44,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def status_bar_today
     Time.use_zone(@user.timezone) do
-      hbt = @user.heartbeats.today
-      total_seconds = hbt.duration_seconds
+      total_seconds = StatsClient.duration(
+        user_id: @user.id,
+        start_time: Time.current.beginning_of_day.to_f,
+        end_time: Time.current.end_of_day.to_f
+      )["total_seconds"].to_i
 
       # Check if user has a daily goal
       daily_goal = @user.goals.find_by(period: "day")
@@ -92,11 +95,15 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         start_timestamp = start_time.to_i
         end_timestamp = end_time.to_i
 
-        # Get heartbeats in the time range
-        heartbeats = @user.heartbeats.where(time: start_timestamp..end_timestamp)
+        summary = StatsClient.summary(
+          user_id: @user.id,
+          start_time: start_timestamp,
+          end_time: end_timestamp,
+          group_by: %w[editor language project machine operating_system]
+        )
 
-        # Calculate total seconds
-        total_seconds = heartbeats.duration_seconds.to_i
+        heartbeats = @user.heartbeats.where(time: start_timestamp..end_timestamp)
+        total_seconds = summary["total_seconds"].to_i
 
         # Get unique days
         days = []
@@ -119,11 +126,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         human_readable_daily_average = "#{avg_hours} hrs #{avg_minutes} mins"
 
         # Calculate statistics for different categories
-        editors_data = calculate_category_stats(heartbeats, "editor")
-        languages_data = calculate_category_stats(heartbeats, "language")
-        projects_data = calculate_category_stats(heartbeats, "project")
-        machines_data = calculate_category_stats(heartbeats, "machine")
-        os_data = calculate_category_stats(heartbeats, "operating_system")
+        editors_data = calculate_category_stats(summary.dig("groups", "editor"), "editor")
+        languages_data = calculate_category_stats(summary.dig("groups", "language"), "language")
+        projects_data = calculate_category_stats(summary.dig("groups", "project"), "project")
+        machines_data = calculate_category_stats(summary.dig("groups", "machine"), "machine")
+        os_data = calculate_category_stats(summary.dig("groups", "operating_system"), "operating_system")
 
       # Categories data
       hours = total_seconds / 3600
@@ -174,14 +181,14 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   private
 
-  def calculate_category_stats(heartbeats, category)
-    durations = heartbeats.group(category).duration_seconds
-
-    total_duration = durations.values.sum.to_f
+  def calculate_category_stats(groups, category)
+    total_duration = Array(groups).sum { |group| group["total_seconds"].to_i }.to_f
     return [] if total_duration == 0
 
     h = ApplicationController.helpers
-    durations.filter_map do |name, duration|
+    Array(groups).filter_map do |group|
+      name = group["name"]
+      duration = group["total_seconds"].to_i
       next if duration <= 0
 
       display_name = (name.presence || "unknown")
@@ -192,7 +199,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       else display_name
       end
 
-      percent = ((duration / total_duration) * 100).round(2)
+      percent = group["percent"].to_f.round(2)
       hours = duration / 3600
       minutes = (duration % 3600) / 60
       seconds = duration % 60
@@ -236,6 +243,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     last_language = nil
     heartbeat_array.each do |heartbeat|
       heartbeat = heartbeat.to_h.with_indifferent_access
+      raw_heartbeat = heartbeat.deep_dup
       source_type = :direct_entry
 
       # Resolve <<LAST_LANGUAGE>> sentinel to the most recently used language.
@@ -279,10 +287,14 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         editor: parsed_ua[:editor],
         operating_system: parsed_ua[:os],
         machine: request.headers["X-Machine-Name"]
-      }).slice(*Heartbeat.column_names.map(&:to_sym))
-      # ^^ They say safety laws are written in blood. Well, so is this line!
-      # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
-      new_heartbeat = Heartbeat.find_or_create_by(attrs)
+      }).slice(*heartbeat_lookup_columns)
+      new_heartbeat = Heartbeat.find_or_initialize_by(attrs)
+
+      if raw_data_supported? && raw_heartbeat.present? && new_heartbeat.raw_data.blank?
+        new_heartbeat.raw_data = raw_heartbeat
+      end
+
+      new_heartbeat.save! if new_heartbeat.new_record? || new_heartbeat.changed?
 
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
@@ -336,6 +348,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def heartbeat_keys
     [
+      :ai_line_changes,
       :branch,
       :category,
       :created_at,
@@ -345,6 +358,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       :entity,
       :is_write,
       :language,
+      :human_line_changes,
       :line_additions,
       :line_deletions,
       :lineno,
@@ -358,6 +372,14 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       :user_agent,
       :plugin
     ]
+  end
+
+  def heartbeat_lookup_columns
+    @heartbeat_lookup_columns ||= Heartbeat.column_names.map(&:to_sym) - [ :raw_data ]
+  end
+
+  def raw_data_supported?
+    @raw_data_supported ||= Heartbeat.column_names.include?("raw_data")
   end
 
   # allow either heartbeat or heartbeats

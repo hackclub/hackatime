@@ -2,6 +2,12 @@ include ApplicationHelper
 include ErrorReporting
 
 class TestWakatimeService
+  SUPPORTED_FILTERS = {
+    languages: "language",
+    projects: "project"
+  }.freeze
+  EXCLUDED_CATEGORIES = [ "browsing", "ai coding", "meeting", "communicating" ].freeze
+
   def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil, boundary_aware: false)
     @scope = scope || Heartbeat.all
     # trusting time from hackatime extensions.....
@@ -9,7 +15,7 @@ class TestWakatimeService
     @scope = @scope.with_valid_timestamps
 
     # yeah macha we're removing unwated categories
-    @scope = @scope.where.not("LOWER(category) IN (?)", [ "browsing", "ai coding", "meeting", "communicating" ])
+    @scope = @scope.where.not("LOWER(category) IN (?)", EXCLUDED_CATEGORIES)
     @user = user
     @boundary_aware = boundary_aware
 
@@ -29,6 +35,7 @@ class TestWakatimeService
 
     @specific_filters = specific_filters
     @allow_cache = allow_cache
+    @project_filter = extract_project_filter(scope)
   end
 
   def generate_summary
@@ -50,11 +57,21 @@ class TestWakatimeService
     summary[:human_readable_range] = "All Time"
 
     @total_seconds = if @boundary_aware
-      result = Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date) || 0
-      result
+      StatsClient.duration_boundary_aware(
+        user_id: @user&.id,
+        start_time: @start_date,
+        end_time: StatsClient.exclusive_end_time(@end_date),
+        projects: @project_filter,
+        categories_exclude: EXCLUDED_CATEGORIES
+      )["total_seconds"].to_i
     else
-      result = @scope.duration_seconds || 0
-      result
+      StatsClient.duration(
+        user_id: @user&.id,
+        start_time: @start_date,
+        end_time: StatsClient.exclusive_end_time(@end_date),
+        projects: @project_filter,
+        categories_exclude: EXCLUDED_CATEGORIES
+      )["total_seconds"].to_i
     end
 
     summary[:total_seconds] = @total_seconds
@@ -65,27 +82,40 @@ class TestWakatimeService
     summary[:human_readable_total] = ApplicationController.helpers.short_time_detailed(@total_seconds)
     summary[:human_readable_daily_average] = ApplicationController.helpers.short_time_detailed(summary[:daily_average])
 
-    summary[:languages] = generate_summary_chunk(:language) if @specific_filters.include?(:languages)
-    summary[:projects] = generate_summary_chunk(:project) if @specific_filters.include?(:projects)
+    SUPPORTED_FILTERS.each do |summary_key, group_by|
+      next unless @specific_filters.include?(summary_key)
+
+      summary[summary_key] = generate_summary_chunk(group_by)
+    end
 
     summary
   end
 
   def generate_summary_chunk(group_by)
-    result = []
-    @scope.group(group_by).duration_seconds.each do |key, value|
+    groups = StatsClient.duration_grouped(
+      group_by: group_by,
+      user_id: @user&.id,
+      start_time: @start_date,
+      end_time: StatsClient.exclusive_end_time(@end_date),
+      projects: @project_filter,
+      categories_exclude: EXCLUDED_CATEGORIES,
+      limit: @limit
+    )["groups"] || {}
+
+    result = groups.map do |key, value|
       entry = {
         name: key.presence || "Other",
-        total_seconds: value,
+        total_seconds: value.to_i,
         text: ApplicationController.helpers.short_time_simple(value),
         hours: value / 3600,
         minutes: (value % 3600) / 60,
         percent: (100.0 * value / @total_seconds).round(2),
         digital: ApplicationController.helpers.digital_time(value)
       }
-      entry[:color] = LanguageUtils.color(key) if group_by == :language
-      result << entry
+      entry[:color] = LanguageUtils.color(key) if group_by == "language"
+      entry
     end
+
     result = result.sort_by { |item| -item[:total_seconds] }
     result = result.first(@limit) if @limit.present?
     result
@@ -146,6 +176,11 @@ class TestWakatimeService
   end
 
   private
+
+  def extract_project_filter(scope)
+    value = scope&.where_values_hash&.with_indifferent_access&.dig(:project)
+    Array.wrap(value).presence
+  end
 
   def convert_to_unix_timestamp(timestamp)
     # our lord and savior stack overflow for this bit of code

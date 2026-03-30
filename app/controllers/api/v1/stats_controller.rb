@@ -10,12 +10,16 @@ class Api::V1::StatsController < ApplicationController
     end_date = parse_date_param(:end_date, default: Date.today.end_of_day, boundary: :end)
     return if performed?
 
-    query = Heartbeat.where(time: start_date..end_date)
+    stats_opts = {
+      start_time: start_date,
+      end_time: end_date
+    }
+
     if params[:username].present?
       user = lookup_user(params[:username])
       return render json: { error: "User not found" }, status: :not_found unless user
 
-      query = query.where(user_id: user.id)
+      stats_opts[:user_id] = user.id
     end
 
     if params[:user_email].present?
@@ -23,10 +27,10 @@ class Api::V1::StatsController < ApplicationController
 
       return render json: { error: "User not found" }, status: :not_found unless user_id.present?
 
-      query = query.where(user_id: user_id)
+      stats_opts[:user_id] = user_id
     end
 
-    render plain: query.duration_seconds.to_s
+    render plain: StatsClient.duration(**stats_opts)["total_seconds"].to_s
   end
 
   def user_stats
@@ -77,25 +81,41 @@ class Api::V1::StatsController < ApplicationController
       summary = TestWakatimeService.new(**service_params).generate_summary
     else
       if params[:total_seconds] == "true"
+        project_filters = params[:filter_by_project]&.split(",")
+        category_filters = params[:filter_by_category]&.split(",")
         query = Heartbeat.where(user_id: @user.id)
         query = query.where("time >= ? AND time < ?", start_date.to_f, end_date.to_f)
 
-        if params[:filter_by_project].present?
-          filter_by_project = params[:filter_by_project].split(",")
-          query = query.where(project: filter_by_project)
+        if project_filters.present?
+          query = query.where(project: project_filters)
         end
 
-        if params[:filter_by_category].present?
-          filter_by_category = params[:filter_by_category].split(",")
-          query = query.where(category: filter_by_category)
+        if category_filters.present?
+          query = query.where(category: category_filters)
         end
 
         # do the boundary thingie if requested
         use_boundary_aware = params[:boundary_aware] == "true"
+
+        stats_opts = {
+          user_id: @user.id,
+          start_time: start_date,
+          end_time: StatsClient.exclusive_end_time(end_date),
+          projects: project_filters
+        }
+
+        if category_filters.present? && category_filters.many?
+          stats_opts[:categories] = category_filters
+        elsif category_filters.present?
+          stats_opts[:category] = category_filters.first
+        end
+
+        stats_opts.compact!
+
         total_seconds = if use_boundary_aware
-          Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
+          StatsClient.duration_boundary_aware(**stats_opts)["total_seconds"].to_i
         else
-          query.duration_seconds || 0
+          StatsClient.duration(**stats_opts)["total_seconds"].to_i
         end
 
         return render json: { total_seconds: total_seconds }
@@ -106,11 +126,13 @@ class Api::V1::StatsController < ApplicationController
 
     if params[:features]&.include?("projects") && params[:filter_by_project].present?
       filter_by_project = params[:filter_by_project].split(",")
-      heartbeats = @user.heartbeats
-        .coding_only
-        .with_valid_timestamps
-        .where(time: start_date..end_date, project: filter_by_project)
-      unique_seconds = unique_heartbeat_seconds(heartbeats)
+      unique_seconds = StatsClient.unique_seconds(
+        user_id: @user.id,
+        start_time: start_date,
+        end_time: end_date,
+        projects: filter_by_project,
+        coding_only: true
+      )["unique_seconds"].to_i
       summary[:unique_total_seconds] = unique_seconds
     end
 
@@ -141,17 +163,13 @@ class Api::V1::StatsController < ApplicationController
     end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
     return if performed?
 
-    timespan = (start_date.to_f..end_date.to_f)
-
-    heartbeats = @user.heartbeats.where(time: timespan)
-
-    if params[:project].present?
-      heartbeats = heartbeats.where(project: params[:project])
-    elsif params[:filter_by_project].present?
-      heartbeats = heartbeats.where(project: params[:filter_by_project].split(","))
-    end
-
-    render json: { spans: heartbeats.to_span }
+    render json: StatsClient.spans(
+      user_id: @user.id,
+      start_time: start_date,
+      end_time: end_date,
+      project: params[:project],
+      projects: params[:filter_by_project]&.split(",")
+    )
   end
 
   def trust_factor
@@ -297,21 +315,6 @@ class Api::V1::StatsController < ApplicationController
       params: params,
       include_archived: include_archived
     )
-  end
-
-  def unique_heartbeat_seconds(heartbeats)
-    timestamps = heartbeats.order(:time).pluck(:time)
-    return 0 if timestamps.empty?
-
-    total_seconds = 0
-    timestamps.each_cons(2) do |prev_time, curr_time|
-      gap = curr_time - prev_time
-      if gap > 0 && gap <= 2.minutes
-        total_seconds += gap
-      end
-    end
-
-    total_seconds.to_i
   end
 
   def parse_date_param(param_name, default:, boundary:)

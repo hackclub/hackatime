@@ -1,4 +1,5 @@
 require "test_helper"
+require "webmock/minitest"
 
 class UserTest < ActiveSupport::TestCase
   test "theme defaults to gruvbox dark" do
@@ -58,5 +59,47 @@ class UserTest < ActiveSupport::TestCase
     )
 
     assert user.active_remote_heartbeat_import_run?
+  end
+
+  test "update_slack_status skips blank current projects" do
+    user = User.create!(
+      timezone: "UTC",
+      slack_uid: "U123",
+      slack_access_token: "token",
+      uses_slack_status: true
+    )
+
+    Heartbeat.create!(
+      user: user,
+      time: 10.minutes.ago.to_f,
+      category: "coding",
+      project: "hackatime",
+      source_type: :test_entry
+    )
+    Heartbeat.create!(
+      user: user,
+      time: 1.minute.ago.to_f,
+      category: "coding",
+      project: nil,
+      source_type: :test_entry
+    )
+
+    stub_request(:get, "https://slack.com/api/users.profile.get")
+      .to_return(
+        status: 200,
+        body: { profile: { status_text: "" } }.to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+    stub_request(:post, "https://slack.com/api/users.profile.set")
+      .to_return(
+        status: 200,
+        body: { ok: true }.to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    user.update_slack_status
+
+    assert_requested :get, "https://slack.com/api/users.profile.get", times: 1
+    assert_not_requested :post, "https://slack.com/api/users.profile.set"
   end
 end

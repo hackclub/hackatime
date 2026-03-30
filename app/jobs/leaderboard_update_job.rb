@@ -29,27 +29,24 @@ class LeaderboardUpdateJob < ApplicationJob
     Rails.logger.info "Building leaderboard for #{period} on #{date}"
 
     range = LeaderboardDateRange.calculate(date, period)
+    result = StatsClient.leaderboard_compute(
+      start_time: range.first,
+      end_time: range.last,
+      min_seconds: 60,
+      include_streaks: true,
+      coding_only: true,
+      exclude_trust_level_red: true,
+      require_github_uid: true
+    )
+    entry_rows = result["entries"] || []
 
     ActiveRecord::Base.transaction do
-      # Build the base heartbeat query
-      heartbeat_query = Heartbeat.where(time: range)
-                                 .with_valid_timestamps
-                                 .joins(:user)
-                                 .coding_only
-                                 .where.not(users: { github_uid: nil })
-                                 .where.not(users: { trust_level: User.trust_levels[:red] })
-
-      data = heartbeat_query.group(:user_id).duration_seconds
-                            .filter { |_, seconds| seconds > 60 }
-
-      streaks = Heartbeat.daily_streaks_for_users(data.keys)
-
-      entries = data.map do |user_id, seconds|
+      entries = entry_rows.map do |entry|
         {
           leaderboard_id: board.id,
-          user_id: user_id,
-          total_seconds: seconds,
-          streak_count: streaks[user_id] || 0,
+          user_id: entry["user_id"],
+          total_seconds: entry["total_seconds"],
+          streak_count: entry["streak_count"] || 0,
           created_at: Time.current,
           updated_at: Time.current
         }
@@ -57,8 +54,9 @@ class LeaderboardUpdateJob < ApplicationJob
 
       LeaderboardEntry.upsert_all(entries, unique_by: %i[leaderboard_id user_id]) if entries.any?
 
-      if data.keys.any?
-        board.entries.where.not(user_id: data.keys).delete_all
+      entry_user_ids = entry_rows.map { |entry| entry["user_id"] }
+      if entry_user_ids.any?
+        board.entries.where.not(user_id: entry_user_ids).delete_all
       else
         board.entries.delete_all
       end

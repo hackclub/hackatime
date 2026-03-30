@@ -16,25 +16,24 @@ module LeaderboardBuilder
     users_map = users.index_by(&:id)
 
     range = LeaderboardDateRange.calculate(date, period)
+    result = StatsClient.leaderboard_compute(
+      user_ids: ids,
+      start_time: range.first,
+      end_time: range.last,
+      min_seconds: 60,
+      include_streaks: true,
+      coding_only: true,
+      exclude_trust_level_red: false,
+      require_github_uid: true
+    )
 
-    beats = Heartbeat.where(user_id: ids, time: range)
-                    .coding_only
-                    .with_valid_timestamps
-                    .joins(:user)
-                    .where.not(users: { github_uid: nil })
-
-    totals = beats.group(:user_id).duration_seconds
-    totals = totals.filter { |_, seconds| seconds > 60 }
-
-    streak_ids = totals.keys
-    streaks = streak_ids.any? ? Heartbeat.daily_streaks_for_users(streak_ids, start_date: 30.days.ago) : {}
-
-    entries = totals.map do |user_id, seconds|
+    entries = Array(result["entries"]).map do |row|
+      user_id = row["user_id"]
       entry = LeaderboardEntry.new(
         leaderboard: board,
         user_id: user_id,
-        total_seconds: seconds,
-        streak_count: streaks[user_id] || 0
+        total_seconds: row["total_seconds"],
+        streak_count: row["streak_count"] || 0
       )
 
       entry.user = users_map[user_id]

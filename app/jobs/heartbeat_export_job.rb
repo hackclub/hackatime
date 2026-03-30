@@ -78,6 +78,19 @@ class HeartbeatExportJob < ApplicationJob
   private
 
   def build_export_data(heartbeats, start_date, end_date)
+    unordered_heartbeats = heartbeats.unscope(:order)
+    first_time, last_time = unordered_heartbeats.pick(Arel.sql("MIN(time), MAX(time)"))
+    user_id = unordered_heartbeats.limit(1).pick(:user_id)
+    total_duration_seconds = if first_time && last_time && user_id
+      StatsClient.duration(
+        user_id: user_id,
+        start_time: first_time,
+        end_time: last_time
+      )["total_seconds"].to_i
+    else
+      0
+    end
+
     {
       export_info: {
         exported_at: Time.current.iso8601,
@@ -86,7 +99,7 @@ class HeartbeatExportJob < ApplicationJob
           end_date: end_date.iso8601
         },
         total_heartbeats: heartbeats.count,
-        total_duration_seconds: heartbeats.duration_seconds
+        total_duration_seconds: total_duration_seconds
       },
       heartbeats: heartbeats.map do |heartbeat|
         {

@@ -158,4 +158,35 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal "zed/1.0.0", heartbeat.user_agent
     assert_equal "coding", heartbeat.category
   end
+
+  test "bulk heartbeat from latest wakatime cli stores extra fields in raw_data" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    payload = [ {
+      ai_line_changes: 123,
+      entity: "src/main.rb",
+      human_line_changes: 456,
+      project: "hackatime",
+      time: Time.current.to_f,
+      type: "file",
+      user_agent: "wakatime/1.131.0 (windows-amd64) vscode-wakatime/29.0.3"
+    } ]
+
+    assert_difference("Heartbeat.count", 1) do
+      post "/api/hackatime/v1/users/current/heartbeats.bulk",
+        params: payload.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "application/json"
+        }
+    end
+
+    assert_response :created
+    heartbeat = Heartbeat.order(:id).last
+    assert_equal 123, heartbeat.raw_data["ai_line_changes"]
+    assert_equal 456, heartbeat.raw_data["human_line_changes"]
+    assert_equal payload.first[:user_agent], heartbeat.raw_data["user_agent"]
+    assert_equal payload.first[:user_agent], heartbeat.user_agent
+  end
 end

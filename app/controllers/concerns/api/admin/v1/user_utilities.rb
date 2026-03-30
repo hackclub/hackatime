@@ -176,7 +176,7 @@ module Api
               api_keys_count: user.api_keys.count,
               stats: {
                 total_heartbeats: valid.count,
-                total_coding_time: valid.duration_seconds || 0,
+                total_coding_time: StatsClient.duration(user_id: user.id)["total_seconds"] || 0,
                 languages_used: valid.distinct.pluck(:language).compact.count,
                 projects_worked_on: valid.distinct.pluck(:project).compact.count,
                 days_active: valid.distinct.count("DATE(to_timestamp(CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END))")
@@ -245,7 +245,11 @@ module Api
               }
             end,
             total_heartbeats: heartbeats.count,
-            total_duration: heartbeats.duration_seconds || 0
+            total_duration: StatsClient.duration(
+              user_id: user.id,
+              start_time: start_time.to_i,
+              end_time: end_time.to_i
+            )["total_seconds"].to_i
           }
         end
 
@@ -276,7 +280,12 @@ module Api
             .group(:project)
             .order(Arel.sql("COUNT(*) DESC"))
 
-          durations = base_heartbeats.group(:project).duration_seconds
+          durations = StatsClient.duration_grouped(
+            group_by: "project",
+            user_id: user.id,
+            start_time: params[:start_date].present? || params[:end_date].present? ? start_time : nil,
+            end_time: params[:start_date].present? || params[:end_date].present? ? end_time : nil
+          )["groups"] || {}
 
           repo_mappings = user.project_repo_mappings
             .where(project_name: project_stats.map(&:project))

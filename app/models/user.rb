@@ -160,7 +160,7 @@ class User < ApplicationRecord
            dependent: :delete_all
 
   def streak_days
-    @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
+    @streak_days ||= StatsClient.streaks(user_ids: [ id ]).dig("streaks", id.to_s).to_i
   end
 
   def active_deletion_request

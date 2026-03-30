@@ -16,13 +16,17 @@ class WeeklySummaryMailer < ApplicationMailer
 
     coding_heartbeats = @user.heartbeats.where(time: @starts_at.to_f...@ends_at.to_f)
 
-    @total_seconds = coding_heartbeats.duration_seconds
+    @total_seconds = StatsClient.duration(
+      user_id: @user.id,
+      start_time: @starts_at.to_f,
+      end_time: stats_end_time
+    )["total_seconds"].to_i
     num_days = [ (@ends_at - @starts_at) / 1.day, 1 ].max
     @daily_average_seconds = (@total_seconds / num_days).round
     @total_heartbeats = coding_heartbeats.count
     @active_days = active_days_count(coding_heartbeats)
-    @top_projects = breakdown(coding_heartbeats, :project)
-    @top_languages = breakdown(coding_heartbeats, :language)
+    @top_projects = breakdown(:project)
+    @top_languages = breakdown(:language)
 
     mail(
       to: recipient_email,
@@ -32,9 +36,14 @@ class WeeklySummaryMailer < ApplicationMailer
 
   private
 
-  def breakdown(scope, column, limit: 5)
-    scope.group(column)
-      .duration_seconds
+  def breakdown(column, limit: 5)
+    (StatsClient.duration_grouped(
+      group_by: column.to_s,
+      user_id: @user.id,
+      start_time: @starts_at.to_f,
+      end_time: stats_end_time,
+      limit: limit
+    )["groups"] || {})
       .sort_by { |_name, seconds| -seconds.to_i }
       .first(limit)
       .map do |name, seconds|
@@ -54,5 +63,9 @@ class WeeklySummaryMailer < ApplicationMailer
       .count(Arel.sql("DATE(to_timestamp(time) AT TIME ZONE #{timezone_sql})"))
   rescue StandardError
     scope.where.not(time: nil).pluck(:time).map { |time| Time.at(time).in_time_zone(timezone).to_date }.uniq.count
+  end
+
+  def stats_end_time
+    @stats_end_time ||= @ends_at.to_f - 1e-6
   end
 end

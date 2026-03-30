@@ -2,6 +2,8 @@ CI.run do
   step "Setup: Rails", "bin/setup --skip-server"
   step "Setup: Frontend", "bun install --frozen-lockfile"
   step "Style: Ruby", "bin/rubocop"
+  step "Style: Rust", "cargo clippy --manifest-path rust-stats-server/Cargo.toml --all-targets --all-features -- -D warnings"
+  step "Tests: Rust", "cargo test --manifest-path rust-stats-server/Cargo.toml"
 
   step "Zeitwerk", "bin/rails zeitwerk:check"
   step "Security: Importmap vulnerability audit", "bin/importmap audit"

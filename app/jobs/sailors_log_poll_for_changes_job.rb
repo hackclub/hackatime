@@ -33,8 +33,7 @@ class SailorsLogPollForChangesJob < ApplicationJob
     return [] if sailors_log.user.active_remote_heartbeat_import_run?
 
     project_updates = []
-    project_durations = Heartbeat.where(user_id: sailors_log.user.id)
-                                 .group(:project).duration_seconds
+    project_durations = StatsClient.duration_grouped(group_by: "project", user_id: sailors_log.user.id)["groups"] || {}
     project_durations.each do |k, v|
       old_duration = sailors_log.projects_summary[k] || 0
       new_duration = v

@@ -37,12 +37,19 @@ class SailorsLogLeaderboard < ApplicationRecord
                                                            .pluck(:slack_uid)
 
     users_in_channel = User.where(slack_uid: slack_ids_in_channel)
+    user_ids = users_in_channel.pluck(:id)
+    return [] if user_ids.empty?
+
+    today_start = Time.current.beginning_of_day.to_f
+    today_end = Time.current.end_of_day.to_f
 
     # Get all durations for users in channel
-    user_durations = Heartbeat.where(user: users_in_channel)
-                              .today
-                              .group(:user_id)
-                              .duration_seconds
+    user_durations = (StatsClient.duration_grouped(
+      group_by: "user_id",
+      user_ids: user_ids,
+      start_time: today_start,
+      end_time: today_end
+    )["groups"] || {}).transform_keys(&:to_i)
 
     # Sort and take top 10 users
     top_user_ids = user_durations.sort_by { |_, duration| -duration }.first(10).map(&:first)
@@ -60,9 +67,12 @@ class SailorsLogLeaderboard < ApplicationRecord
         .transform_values { |langs| langs.max_by { |_, count| count }&.first&.last } # Get most common language
 
       # Get all project durations in one query
-      project_durations = user_heartbeats
-        .group(:project)
-        .duration_seconds
+      project_durations = StatsClient.duration_grouped(
+        group_by: "project",
+        user_id: user_id,
+        start_time: today_start,
+        end_time: today_end
+      )["groups"] || {}
 
       projects = project_durations.map do |project, duration|
         print "project: #{project}, duration: #{duration}, language: #{most_common_languages[project]}"
