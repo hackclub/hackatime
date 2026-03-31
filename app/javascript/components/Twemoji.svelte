@@ -13,6 +13,7 @@
 
   const twemojiPath = (emoji: string) => {
     const codePoints = [...emoji]
+      .filter((char) => char !== "\uFE0F")
       .map((char) => char.codePointAt(0)!.toString(16))
       .join("-");
     return `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/${codePoints}.svg`;
@@ -21,4 +22,4 @@
   const src = $derived(twemojiPath(emoji));
 </script>
 
-<img {src} {title} {alt} class={className} loading="lazy" />
+<img {src} {title} {alt} class={className} loading="lazy" onerror="this.style.display='none'" />
