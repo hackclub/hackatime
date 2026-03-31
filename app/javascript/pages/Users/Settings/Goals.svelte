@@ -26,12 +26,13 @@
     subheading,
     create_goal_path,
     user,
+    programming_goals,
     options,
     errors,
     goal_form,
   }: GoalsPageProps = $props();
 
-  const goals = $derived(user.programming_goals || []);
+  const goals = $derived(programming_goals || []);
   const hasReachedGoalLimit = $derived(goals.length >= MAX_GOALS);
   const activeGoalSummary = $derived(
     `${goals.length} Active Goal${goals.length === 1 ? "" : "s"}`,
@@ -82,9 +83,8 @@
 
     if (goal_form.mode === "edit" && goal_form.goal_id) {
       editingGoal =
-        (user.programming_goals || []).find(
-          (g) => g.id === goal_form.goal_id,
-        ) ?? null;
+        (programming_goals || []).find((g) => g.id === goal_form.goal_id) ??
+        null;
     }
   });
 

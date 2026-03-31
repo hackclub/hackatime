@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Twemoji from "./Twemoji.svelte";
+
   let {
     countryCode,
     countryName = null,
@@ -9,27 +11,25 @@
     class?: string;
   } = $props();
 
-  const twemojiFlagPath = (code?: string | null) => {
+  const countryToFlagEmoji = (code?: string | null) => {
     if (!code) return null;
 
     const normalizedCode = code.trim().toUpperCase();
     if (!/^[A-Z]{2}$/.test(normalizedCode)) return null;
 
-    const unicodeHex = normalizedCode
+    return normalizedCode
       .split("")
       .map((char) =>
-        (0x1f1e6 + char.charCodeAt(0) - "A".charCodeAt(0)).toString(16),
+        String.fromCodePoint(0x1f1e6 + char.charCodeAt(0) - "A".charCodeAt(0)),
       )
-      .join("-");
-
-    return `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/${unicodeHex}.svg`;
+      .join("");
   };
 
-  const src = $derived(twemojiFlagPath(countryCode));
+  const flagEmoji = $derived(countryToFlagEmoji(countryCode));
   const title = $derived(countryName || countryCode || "Country flag");
   const alt = $derived(`${countryCode || ""} flag`.trim());
 </script>
 
-{#if src}
-  <img {src} {title} {alt} class={className} loading="lazy" />
+{#if flagEmoji}
+  <Twemoji emoji={flagEmoji} {title} {alt} class={className} />
 {/if}
