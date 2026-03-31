@@ -1,6 +1,26 @@
 require "test_helper"
 
 class SettingsDataControllerTest < ActionDispatch::IntegrationTest
+  test "deferred data export reload does not clobber user props" do
+    user = User.create!(timezone: "UTC")
+    sign_in_as(user)
+
+    get my_settings_data_path
+
+    get my_settings_data_path, headers: {
+      "X-Inertia" => "true",
+      "X-Requested-With" => "XMLHttpRequest",
+      "X-Inertia-Version" => inertia_page["version"],
+      "X-Inertia-Partial-Component" => "Users/Settings/Data",
+      "X-Inertia-Partial-Data" => "data_export"
+    }
+
+    assert_response :success
+    page = JSON.parse(response.body)
+    assert_nil page.dig("props", "user")
+    assert_equal false, page.dig("props", "data_export", "is_restricted")
+  end
+
   test "data page omits remote cooldown for superadmins" do
     user = User.create!(timezone: "UTC", admin_level: :superadmin)
     sign_in_as(user)

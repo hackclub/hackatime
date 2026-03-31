@@ -14,7 +14,8 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
 
     page = inertia_page
     assert_equal my_settings_goals_path, page.dig("props", "section_paths", "goals")
-    assert_equal [], page.dig("props", "user", "programming_goals")
+    assert_equal [], page.dig("props", "programming_goals")
+    assert_nil page.dig("props", "user", "programming_goals")
   end
 
   test "create saves valid goal" do
