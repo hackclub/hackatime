@@ -20,6 +20,19 @@
   };
 
   const src = $derived(twemojiPath(emoji));
+
+  const hideBrokenImage = (event: Event) => {
+    if (event.currentTarget instanceof HTMLImageElement) {
+      event.currentTarget.style.display = "none";
+    }
+  };
 </script>
 
-<img {src} {title} {alt} class={className} loading="lazy" onerror="this.style.display='none'" />
+<img
+  {src}
+  {title}
+  {alt}
+  class={className}
+  loading="lazy"
+  onerror={hideBrokenImage}
+/>
