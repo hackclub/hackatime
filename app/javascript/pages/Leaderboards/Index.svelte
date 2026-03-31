@@ -64,13 +64,9 @@
   <div class="mb-8 space-y-4">
     <h1 class="text-3xl font-bold text-surface-content">Leaderboards</h1>
 
-    <div
-      class="flex flex-row items-center justify-between gap-3"
-    >
+    <div class="flex flex-row items-center justify-between gap-3">
       <!-- Scope tabs -->
-      <div
-        class="inline-flex rounded-full bg-darkless p-1 gap-1"
-      >
+      <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
         <Link
           href={`/leaderboards?period_type=${period_type}&scope=global`}
           class={`${tabClass(scope === "global")} inline-flex items-center justify-center gap-2`}
@@ -90,22 +86,26 @@
               countryCode={country.code}
               class="inline-block w-5 h-5"
             />
-            <span class="hidden sm:inline max-w-48 truncate">{country.name}</span>
+            <span class="hidden sm:inline max-w-48 truncate"
+              >{country.name}</span
+            >
           </Link>
         {:else}
           <span
             class="text-center px-4 py-2 rounded-full text-sm font-medium text-muted/60 bg-darker cursor-not-allowed whitespace-nowrap inline-flex items-center justify-center gap-2"
           >
-            <Twemoji emoji="🏳️" alt="No country" class="inline-block w-5 h-5 opacity-60" />
+            <Twemoji
+              emoji="🏳️"
+              alt="No country"
+              class="inline-block w-5 h-5 opacity-60"
+            />
             <span class="hidden sm:inline">Country</span>
           </span>
         {/if}
       </div>
 
       <!-- Period tabs -->
-      <div
-        class="inline-flex rounded-full bg-darkless p-1 gap-1"
-      >
+      <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
         <Link
           href={`/leaderboards?period_type=daily&scope=${scope}`}
           class={tabClass(period_type === "daily")}
@@ -215,11 +215,16 @@
                               {entry.user.display_name}
                             </Link>
                           {:else}
-                            <span class="truncate">{entry.user.display_name}</span>
+                            <span class="truncate"
+                              >{entry.user.display_name}</span
+                            >
                           {/if}
                         </span>
                         {#if entry.user.country_code}
-                          <CountryFlag countryCode={entry.user.country_code} class="inline-block w-5 h-5 align-middle shrink-0" />
+                          <CountryFlag
+                            countryCode={entry.user.country_code}
+                            class="inline-block w-5 h-5 align-middle shrink-0"
+                          />
                         {/if}
                       </div>
 
