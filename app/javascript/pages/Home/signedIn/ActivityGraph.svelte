@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
   import type { ActivityGraphData } from "../../../types/index";
+  import { durationInWords } from "../../../utils";
 
   let { data }: { data: ActivityGraphData } = $props();
 
@@ -22,14 +23,6 @@
     if (ratio >= 0.5) return "activity-cell--3";
     if (ratio >= 0.2) return "activity-cell--2";
     return "activity-cell--1";
-  }
-
-  function durationInWords(seconds: number): string {
-    if (seconds < 60) return "less than a minute";
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) return `about ${hours} ${hours === 1 ? "hour" : "hours"}`;
-    return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
   }
 
   const dates = $derived(buildDateRange(data.start_date, data.end_date));

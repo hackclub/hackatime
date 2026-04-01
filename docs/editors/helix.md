@@ -51,6 +51,7 @@ Start by creating a `languages.toml` file in the Helix configuration directory. 
 ### Register the LSP
 
 Inside Helix's `languages.toml` file, add the following content:
+
 ```toml
 [language-server.wakatime]
 command = "wakatime-ls"
@@ -60,6 +61,7 @@ This registers the Wakatime LSP in Helix, allowing it to be used for other langu
 ### Add the LSP to your languages
 
 1. Find the language you want to track in the [master `languages.toml`](https://github.com/helix-editor/helix/blob/master/languages.toml). For example, the master Rust configuration looks like this:
+
 ```toml
 [[language]]
 name = "rust"
@@ -79,12 +81,15 @@ language-servers = [ "rust-analyzer" ]
 indent = { tab-width = 4, unit = "    " }
 persistent-diagnostic-sources = ["rustc", "clippy"]
 ```
+
 2. Copy the `[[language]]` header, the name property, and the language servers property to your own `languages.toml`:
+
 ```toml
 [[language]]
 name = "rust"
 language-servers = [ "rust-analyzer" ]
 ```
+
 3. Add `"wakatime"` to the list of language-servers:
 
 ```toml
@@ -92,7 +97,9 @@ language-servers = [ "rust-analyzer" ]
 name = "rust"
 language-servers = [ "rust-analyzer", "wakatime" ]
 ```
+
 4. Your final `languages.toml` may look something like this:
+
 ```toml
 [language-server.wakatime]
 command = "wakatime-ls"
@@ -101,7 +108,9 @@ command = "wakatime-ls"
 name = "rust"
 language-servers = [ "rust-analyzer", "wakatime" ]
 ```
+
 5. If you want to add more languages, simply repeat these steps! Here's an example with Ruby and Javascript:
+
 ```toml
 [language-server.wakatime]
 command = "wakatime-ls"

@@ -3,7 +3,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   skip_before_action :verify_authenticity_token
   skip_before_action :enforce_lockout
   before_action :check_lockout, only: [ :push_heartbeats ]
-  before_action :set_raw_heartbeat_upload, only: [ :push_heartbeats ], if: :is_blank?
 
   def push_heartbeats
     # Handle both single and bulk heartbeats based on format
@@ -175,11 +174,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   private
 
-  def is_blank?
-    body = body_to_json
-    body.present? && (body.is_a?(Array) ? body.any? : true)
-  end
-
   def calculate_category_stats(heartbeats, category)
     durations = heartbeats.group(category).duration_seconds
 
@@ -214,13 +208,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         seconds: seconds
       }
     end.sort_by { |item| -item[:total_seconds] }
-  end
-
-  def set_raw_heartbeat_upload
-    @raw_heartbeat_upload = RawHeartbeatUpload.create!(
-      request_headers: headers_to_json,
-      request_body: body_to_json
-    )
   end
 
   def headers_to_json
@@ -260,6 +247,12 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
           .pick(:language)
       end
 
+      # Infer language from file extension when client sends blank or Unknown
+      if heartbeat[:language].blank? || heartbeat[:language] == "Unknown"
+        inferred = LanguageUtils.detect_from_extension(heartbeat[:entity])
+        heartbeat[:language] = inferred if inferred
+      end
+
       # Track the last known language for subsequent heartbeats in this batch.
       last_language = heartbeat[:language] if heartbeat[:language].present?
 
@@ -286,12 +279,20 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         editor: parsed_ua[:editor],
         operating_system: parsed_ua[:os],
         machine: request.headers["X-Machine-Name"]
-      })
-      new_heartbeat = Heartbeat.find_or_create_by(attrs)
-      if @raw_heartbeat_upload.present? && new_heartbeat.persisted?
-        new_heartbeat.raw_heartbeat_upload ||= @raw_heartbeat_upload
-        new_heartbeat.save! if new_heartbeat.changed?
+      }).slice(*Heartbeat.column_names.map(&:to_sym))
+      # ^^ They say safety laws are written in blood. Well, so is this line!
+      # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
+      begin
+        new_heartbeat = Heartbeat.find_or_create_by(attrs)
+      rescue ActiveRecord::RecordNotUnique
+        # Duplicate heartbeat (same fields_hash) exists but wasn't found because
+        # a non-indexed attribute differs (e.g., ip_address changed between requests).
+        temp = Heartbeat.new(attrs)
+        hash = Heartbeat.generate_fields_hash(temp.attributes)
+        new_heartbeat = @user.heartbeats.find_by(fields_hash: hash)
+        raise unless new_heartbeat
       end
+
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
     rescue => e

@@ -48,7 +48,7 @@ class Api::V1::StatsController < ApplicationController
     scope = nil
     if params[:filter_by_project].present?
       filter_by_project = params[:filter_by_project].split(",")
-      scope = Heartbeat.where(project: filter_by_project)
+      scope = @user.heartbeats.where(project: filter_by_project)
     end
 
     limit = params[:limit].to_i
@@ -246,6 +246,9 @@ class Api::V1::StatsController < ApplicationController
     end
 
     user = User.find_by(slack_uid: id)
+    return user if user
+
+    user = User.find_by(hca_id: id)
     return user if user
 
     # email lookup, but you really should not be using this cuz like wtf

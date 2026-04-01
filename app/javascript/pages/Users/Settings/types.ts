@@ -238,6 +238,7 @@ export type GoalsPageProps = SettingsCommonProps & {
   settings_update_path: string;
   create_goal_path: string;
   user: UserProps;
+  programming_goals: ProgrammingGoal[];
   options: OptionsProps;
   goal_form?: GoalForm | null;
 };

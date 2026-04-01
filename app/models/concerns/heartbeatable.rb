@@ -1,9 +1,31 @@
 module Heartbeatable
   extend ActiveSupport::Concern
 
+  BROWSER_EDITORS = %w[
+    arc
+    brave
+    chrome
+    chromium
+    edge
+    firefox
+    floorp
+    librewolf
+    microsoft-edge
+    opera
+    opera-gx
+    safari
+    vivaldi
+    waterfox
+    zen
+  ].freeze
+
   included do
     # Filter heartbeats to only include those with category equal to "coding"
     scope :coding_only, -> { where(category: "coding") }
+    scope :excluding_browser_time, -> {
+      where("editor IS NULL OR LOWER(editor) NOT IN (?)", BROWSER_EDITORS)
+    }
+    scope :leaderboard_eligible, -> { coding_only.excluding_browser_time.with_valid_timestamps }
 
     # This is to prevent PG timestamp overflow errors if someones gives us a
     # heartbeat with a time that is enormously far in the future.
@@ -97,19 +119,27 @@ module Heartbeatable
       end
     end
 
-    def daily_streaks_for_users(user_ids, start_date: 31.days.ago)
+    def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
       return {} if user_ids.empty?
       start_date = [ start_date, 30.days.ago ].max
-      keys = user_ids.map { |id| "user_streak_#{id}" }
+      cache_prefix = exclude_browser_time ? "user_streak_without_browser" : "user_streak"
+      keys = user_ids.map { |id| "#{cache_prefix}_#{id}" }
       streak_cache = Rails.cache.read_multi(*keys)
 
-      uncached_users = user_ids.select { |id| streak_cache["user_streak_#{id}"].nil? }
+      uncached_users = user_ids.select { |id| streak_cache["#{cache_prefix}_#{id}"].nil? }
 
       if uncached_users.empty?
-        return user_ids.index_with { |id| streak_cache["user_streak_#{id}"] || 0 }
+        return user_ids.index_with { |id| streak_cache["#{cache_prefix}_#{id}"] || 0 }
       end
 
       timeout = heartbeat_timeout_duration.to_i
+      day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone)"
+      streak_diff_sql = <<~SQL.squish
+        LEAST(
+          time - LAG(time) OVER (PARTITION BY user_id, #{day_group_sql} ORDER BY time),
+          #{timeout}
+        ) as diff
+      SQL
       raw_durations = joins(:user)
         .where(user_id: uncached_users)
         .coding_only
@@ -118,9 +148,10 @@ module Heartbeatable
         .select(
           :user_id,
           "users.timezone as user_timezone",
-          Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone) as day_group"),
-          Arel.sql("LEAST(time - LAG(time) OVER (PARTITION BY user_id, DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone) ORDER BY time), #{timeout}) as diff")
+          Arel.sql("#{day_group_sql} as day_group"),
+          Arel.sql(streak_diff_sql)
         )
+      raw_durations = raw_durations.excluding_browser_time if exclude_browser_time
 
       # Then aggregate the results
       daily_durations = connection.select_all(
@@ -152,7 +183,7 @@ module Heartbeatable
          }
        end
 
-      result = user_ids.index_with { |id| streak_cache["user_streak_#{id}"] || 0 }
+      result = user_ids.index_with { |id| streak_cache["#{cache_prefix}_#{id}"] || 0 }
 
       # Then calculate streaks for each user
       daily_durations.each do |user_id, data|
@@ -183,7 +214,7 @@ module Heartbeatable
         result[user_id] = streak
 
         # Cache the streak for 1 hour
-        Rails.cache.write("user_streak_#{user_id}", streak, expires_in: 1.hour)
+        Rails.cache.write("#{cache_prefix}_#{user_id}", streak, expires_in: 1.hour)
       end
 
       result

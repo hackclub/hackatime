@@ -117,9 +117,7 @@ Rails.application.routes.draw do
 
   get "/leaderboard", to: redirect("/leaderboards", status: 301)
 
-  resources :leaderboards, only: [ :index ] do
-    get :entries, on: :collection
-  end
+  resources :leaderboards, only: [ :index ]
 
   # Docs routes
   # Note: llms.txt and llms-full.txt are served as static files from public/
@@ -201,6 +199,8 @@ Rails.application.routes.draw do
       get "leaderboard/weekly", to: "leaderboard#weekly"
 
       get "stats", to: "stats#show"
+      get "badge/:user_id/*project", to: "badges#show"
+
       get "users/:username/stats", to: "stats#user_stats"
       get "users/:username/heartbeats/spans", to: "stats#user_spans"
       get "users/:username/trust_factor", to: "stats#trust_factor"
