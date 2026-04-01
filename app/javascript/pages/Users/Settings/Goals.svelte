@@ -1,5 +1,6 @@
 <script lang="ts">
   import { router } from "@inertiajs/svelte";
+  import { secondsToDisplay } from "../../../utils";
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
   import MultiSelectCombobox from "../../../components/MultiSelectCombobox.svelte";
@@ -25,12 +26,13 @@
     subheading,
     create_goal_path,
     user,
+    programming_goals,
     options,
     errors,
     goal_form,
   }: GoalsPageProps = $props();
 
-  const goals = $derived(user.programming_goals || []);
+  const goals = $derived(programming_goals || []);
   const hasReachedGoalLimit = $derived(goals.length >= MAX_GOALS);
   const activeGoalSummary = $derived(
     `${goals.length} Active Goal${goals.length === 1 ? "" : "s"}`,
@@ -81,21 +83,10 @@
 
     if (goal_form.mode === "edit" && goal_form.goal_id) {
       editingGoal =
-        (user.programming_goals || []).find(
-          (g) => g.id === goal_form.goal_id,
-        ) ?? null;
+        (programming_goals || []).find((g) => g.id === goal_form.goal_id) ??
+        null;
     }
   });
-
-  function formatDuration(seconds: number) {
-    const totalMinutes = Math.max(Math.floor(seconds / 60), 0);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-
-    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h`;
-    return `${minutes}m`;
-  }
 
   function formatPeriod(period: ProgrammingGoal["period"]) {
     if (period === "day") return "Daily";
@@ -236,7 +227,7 @@
           >
             <div class="min-w-0">
               <p class="text-sm font-semibold text-surface-content">
-                {formatPeriod(goal.period)}: {formatDuration(
+                {formatPeriod(goal.period)}: {secondsToDisplay(
                   goal.target_seconds,
                 )}
               </p>

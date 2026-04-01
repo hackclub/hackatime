@@ -53,6 +53,7 @@ class Settings::GoalsController < Settings::BaseController
       settings_update_path: my_settings_goals_path,
       create_goal_path: my_settings_goals_create_path,
       user: user_props,
+      programming_goals: programming_goals_props,
       options: options_props
     }
   end

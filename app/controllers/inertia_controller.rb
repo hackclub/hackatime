@@ -65,7 +65,7 @@ class InertiaController < ApplicationController
   def inertia_primary_links
     links = []
     links << inertia_link("Home", root_path, active: helpers.current_page?(root_path), inertia: true)
-    links << inertia_link("Leaderboards", leaderboards_path, active: helpers.current_page?(leaderboards_path))
+    links << inertia_link("Leaderboards", leaderboards_path, active: helpers.current_page?(leaderboards_path), inertia: true)
 
     if current_user
       links << inertia_link("Projects", my_projects_path, active: request.path.start_with?("/my/projects"), inertia: true)

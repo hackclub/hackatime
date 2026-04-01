@@ -76,13 +76,16 @@ class Settings::BaseController < InertiaController
       can_request_deletion: @user.can_request_deletion?,
       github_uid: @user.github_uid,
       github_username: @user.github_username,
-      slack_uid: @user.slack_uid,
-      programming_goals: @user.goals.order(:created_at).map { |goal|
-        goal.as_programming_goal_payload.merge(
-          update_path: my_settings_goal_update_path(goal),
-          destroy_path: my_settings_goal_destroy_path(goal)
-        )
-      }
+      slack_uid: @user.slack_uid
+    }
+  end
+
+  def programming_goals_props
+    @user.goals.order(:created_at).map { |goal|
+      goal.as_programming_goal_payload.merge(
+        update_path: my_settings_goal_update_path(goal),
+        destroy_path: my_settings_goal_destroy_path(goal)
+      )
     }
   end
 
