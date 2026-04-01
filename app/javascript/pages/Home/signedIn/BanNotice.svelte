@@ -1,7 +1,7 @@
 <div
-  class="text-primary bg-red-500/10 border-2 border-red-500/20 p-4 text-center rounded-lg mb-4"
+  class="text-red bg-red-500/10 border-2 border-red-500/20 p-4 text-center rounded-lg mb-4"
 >
-  <div class="flex items-center justify-center">
+  <div class="flex items-center justify-center mb-3">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="24"
@@ -19,7 +19,7 @@
     >
   </div>
   <div>
-    <p class="text-primary text-left text-lg mb-2">
+    <p class="text-white text-left text-lg mb-2">
       <b>What does this mean?</b> Your account was found to be engaging in fraud or
       abuse of Hackatime. This includes using methods to gain an unfair advantage
       on the leaderboards or attempting to manipulate your coding time in any way.
@@ -27,7 +27,7 @@
       will still track and display your time. Your ability to participate in current
       and future Hack Club events may also be affected.
     </p>
-    <p class="text-primary text-left text-lg mb-2">
+    <p class="text-white text-left text-lg mb-2">
       <b>What can I do?</b> Account bans are non-negotiable, and will not be
       removed unless determined to have been issued incorrectly. In that case,
       it will automatically be removed. We take fraud very seriously and have a
@@ -39,7 +39,7 @@
         class="underline">Fraud Department</a
       > on Slack. We do not respond in any other channel, DM or thread.
     </p>
-    <p class="text-primary text-left text-lg mb-0">
+    <p class="text-white text-left text-lg mb-0">
       <b>What caused this?</b> We do not disclose the patterns that were detected.
       Releasing this information would only benefit fraudsters. The fraud team regularly
       investigates claims of false bans to increase the effectiveness of our detection
