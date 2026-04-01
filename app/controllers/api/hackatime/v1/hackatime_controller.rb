@@ -282,7 +282,16 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       }).slice(*Heartbeat.column_names.map(&:to_sym))
       # ^^ They say safety laws are written in blood. Well, so is this line!
       # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
-      new_heartbeat = Heartbeat.find_or_create_by(attrs)
+      begin
+        new_heartbeat = Heartbeat.find_or_create_by(attrs)
+      rescue ActiveRecord::RecordNotUnique
+        # Duplicate heartbeat (same fields_hash) exists but wasn't found because
+        # a non-indexed attribute differs (e.g., ip_address changed between requests).
+        temp = Heartbeat.new(attrs)
+        hash = Heartbeat.generate_fields_hash(temp.attributes)
+        new_heartbeat = @user.heartbeats.find_by(fields_hash: hash)
+        raise unless new_heartbeat
+      end
 
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
