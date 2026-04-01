@@ -131,6 +131,104 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal "Ruby", heartbeat.language
   end
 
+  test "single heartbeat ignores unknown fields like raw_data and ai_line_changes" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    payload = {
+      entity: "src/main.rb",
+      plugin: "vscode/1.131.0 vscode-wakatime/29.0.3",
+      project: "hackatime",
+      time: Time.current.to_f,
+      type: "file",
+      raw_data: '{"some": "data"}',
+      ai_line_changes: 5,
+      human_line_changes: 10,
+      completely_bogus_field: "should be ignored"
+    }
+
+    assert_difference("Heartbeat.count", 1) do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: payload.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain"
+        }
+    end
+
+    assert_response :accepted
+    heartbeat = Heartbeat.order(:id).last
+    assert_equal "src/main.rb", heartbeat.entity
+    assert_equal "hackatime", heartbeat.project
+  end
+
+  test "bulk heartbeat ignores unknown fields like raw_data and ai_line_changes" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    payload = [
+      {
+        entity: "src/first.rb",
+        plugin: "vscode/1.131.0 vscode-wakatime/29.0.3",
+        project: "hackatime",
+        time: Time.current.to_f,
+        type: "file",
+        raw_data: '{"some": "data"}',
+        ai_line_changes: 3,
+        human_line_changes: 7
+      }
+    ]
+
+    assert_difference("Heartbeat.count", 1) do
+      post "/api/hackatime/v1/users/current/heartbeats.bulk",
+        params: payload.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "application/json"
+        }
+    end
+
+    assert_response :created
+    heartbeat = Heartbeat.order(:id).last
+    assert_equal "src/first.rb", heartbeat.entity
+    assert_equal "hackatime", heartbeat.project
+  end
+
+  test "duplicate heartbeat with different ip returns existing record" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    payload = {
+      entity: "src/main.rb",
+      plugin: "vscode/1.0.0",
+      project: "hackatime",
+      time: Time.current.to_f,
+      type: "file"
+    }
+
+    # First request creates the heartbeat
+    assert_difference("Heartbeat.count", 1) do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: payload.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain"
+        }
+    end
+    assert_response :accepted
+
+    # Second request with same data should not create a duplicate
+    assert_no_difference("Heartbeat.count") do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: payload.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain"
+        }
+    end
+    assert_response :accepted
+  end
+
   test "bulk heartbeat normalizes permitted params" do
     user = User.create!(timezone: "UTC")
     api_key = user.api_keys.create!(name: "primary")
