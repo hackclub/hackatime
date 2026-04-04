@@ -666,7 +666,7 @@ DEPENDENCIES
   http
   image_processing (~> 1.2)
   importmap-rails
-  inertia_rails (~> 3.17)
+  inertia_rails (~> 3.19)
   jbuilder
   kamal
   letter_opener

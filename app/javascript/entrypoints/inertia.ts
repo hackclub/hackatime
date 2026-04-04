@@ -1,27 +1,15 @@
 import "@fontsource-variable/spline-sans";
-import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
+import { createInertiaApp } from "@inertiajs/svelte";
 import AppLayout from "../layouts/AppLayout.svelte";
 
-const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {
-  eager: true,
-});
-
 createInertiaApp({
-  // see https://inertia-rails.dev/guide/progress-indicators
   progress: {
     color: 'var(--color-primary)',
   },
 
-  resolve: (name) => {
-    const component = pages[`../pages/${name}.svelte`];
-    if (!component) {
-      console.error(`Missing Inertia page component: '${name}.svelte'`);
-    }
+  pages: '../pages',
 
-    const layout =
-      component.layout === false ? undefined : component.layout || AppLayout;
-    return { default: component.default, layout } as ResolvedComponent;
-  },
+  layout: () => AppLayout,
 
   defaults: {
     form: {
