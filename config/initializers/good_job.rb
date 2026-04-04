@@ -127,7 +127,7 @@ Rails.application.configure do
       cron: "0 2 * * *",
       class: "ProcessAccountDeletionsJob",
       description: "nuke accounts after 30 days"
-    },
+    }
     # sync_stale_repo_metadata: {
     #   cron: "0 4 * * *",
     #   class: "SyncStaleRepoMetadataJob",
