@@ -309,6 +309,34 @@ html[data-theme="rose_pine_dawn"] {
   --color-danger: #aa586f;
 }
 
+html[data-theme="amoled"] {
+  --app-color-scheme: dark;
+  --color-on-primary: #000000;
+  --color-darker: #000000;
+  --color-dark: #000000;
+  --color-darkless: #121212;
+  --color-red: #ff1744;
+  --color-orange: #ff9100;
+  --color-yellow: #ffea00;
+  --color-green: #00e676;
+  --color-cyan: #00e5ff;
+  --color-blue: #448aff;
+  --color-purple: #d500f9;
+  --color-primary: #00e5ff;
+  --color-secondary: #757575;
+  --color-muted: #616161;
+  --color-text-muted: #616161;
+  --color-surface: #000000;
+  --color-surface-100: #0a0a0a;
+  --color-surface-200: #121212;
+  --color-surface-300: #1e1e1e;
+  --color-surface-content: #ffffff;
+  --color-info: #448aff;
+  --color-success: #00e676;
+  --color-warning: #ffea00;
+  --color-danger: #ff1744;
+}
+
 html[data-theme="rose_pine_dawn"] body {
   background-color: #FCF2E9;
 }
