@@ -36,6 +36,13 @@
         .querySelector("meta[name='csrf-token']")
         ?.getAttribute("content") || "";
   });
+
+  function formatCooldown(seconds: number): string {
+    if (seconds <= 0) return "";
+
+    const minutes = Math.ceil(seconds / 60);
+    return `Resend in ${minutes}m`;
+  }
 </script>
 
 <SettingsShell
@@ -177,9 +184,39 @@
             class="flex flex-wrap items-center gap-2 rounded-md border border-surface-200 bg-darker px-3 py-2"
           >
             <div class="grow text-sm text-surface-content">
-              <p>{email.email}</p>
+              <p class="flex items-center gap-2">
+                <span>{email.email}</span>
+                {#if email.pending}
+                  <span
+                    class="rounded-md border border-surface-200 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted"
+                  >
+                    Unverified
+                  </span>
+                {/if}
+              </p>
               <p class="text-xs text-muted">{email.source}</p>
             </div>
+            {#if email.pending}
+              <form method="post" action={paths.resend_email_verification_path}>
+                <input
+                  type="hidden"
+                  name="authenticity_token"
+                  value={csrfToken}
+                />
+                <input type="hidden" name="email" value={email.email} />
+                <Button
+                  type="submit"
+                  variant="surface"
+                  size="xs"
+                  class="rounded-md"
+                  disabled={!email.can_resend}
+                >
+                  {email.can_resend
+                    ? "Resend"
+                    : formatCooldown(email.resend_cooldown_seconds)}
+                </Button>
+              </form>
+            {/if}
             {#if email.can_unlink}
               <form method="post" action={paths.unlink_email_path}>
                 <input type="hidden" name="_method" value="delete" />
@@ -195,7 +232,7 @@
                   size="xs"
                   class="rounded-md"
                 >
-                  Unlink
+                  Remove
                 </Button>
               </form>
             {/if}

@@ -31,6 +31,28 @@ class Settings::IntegrationsController < Settings::BaseController
       enabled: true,
     ).where.not(slack_channel_id: SailorsLog::DEFAULT_CHANNELS)
     channel_ids = enabled_sailors_logs.pluck(:slack_channel_id)
+    pending_email_requests = @user.email_verification_requests.valid.order(created_at: :desc)
+    verified_emails = @user.email_addresses.map { |email|
+      {
+        email: email.email,
+        source: email.source&.humanize || "Unknown",
+        can_unlink: @user.can_delete_email_address?(email),
+        pending: false,
+        can_resend: false,
+        resend_cooldown_seconds: 0
+      }
+    }
+
+    pending_emails = pending_email_requests.map { |request|
+      {
+        email: request.email,
+        source: "Pending verification",
+        can_unlink: true,
+        pending: true,
+        can_resend: request.resend_available?,
+        resend_cooldown_seconds: request.resend_cooldown_seconds
+      }
+    }
 
     {
       settings_update_path: my_settings_integrations_path,
@@ -50,13 +72,7 @@ class Settings::IntegrationsController < Settings::BaseController
         username: @user.github_username,
         profile_url: (@user.github_username.present? ? "https://github.com/#{@user.github_username}" : nil)
       },
-      emails: @user.email_addresses.map { |email|
-        {
-          email: email.email,
-          source: email.source&.humanize || "Unknown",
-          can_unlink: @user.can_delete_email_address?(email)
-        }
-      },
+      emails: (verified_emails + pending_emails),
       paths: paths_props
     }
   end
