@@ -95,7 +95,7 @@ module ApplicationHelper
   end
 
   def visualize_git_url(url)
-    url.gsub("https://github.com/", "https://tkww0gcc0gkwwo4gc8kgs0sw.a.selfhosted.hackclub.com/")
+    "https://maxwofford.com/dandelion/?url=#{CGI.escape(url)}"
   end
 
   def digital_time(time)
