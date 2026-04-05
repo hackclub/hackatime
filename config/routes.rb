@@ -110,6 +110,7 @@ Rails.application.routes.draw do
   delete "/auth/github/unlink", to: "sessions#github_unlink", as: :github_unlink
   post "/auth/email", to: "sessions#email", as: :email_auth
   post "/auth/email/add", to: "sessions#add_email", as: :add_email_auth
+  post "/auth/email/resend_verification", to: "sessions#resend_email_verification", as: :resend_email_verification_auth
   delete "/auth/email/unlink", to: "sessions#unlink_email", as: :unlink_email_auth
   get "/auth/token/:token", to: "sessions#token", as: :auth_token
   get "/auth/close_window", to: "sessions#close_window", as: :close_window

@@ -1,4 +1,6 @@
 class EmailVerificationRequest < ApplicationRecord
+  RESEND_COOLDOWN = 10.minutes
+
   belongs_to :user
 
   validates :email, presence: true,
@@ -20,6 +22,26 @@ class EmailVerificationRequest < ApplicationRecord
 
   def soft_delete!
     update!(deleted_at: Time.current)
+  end
+
+  def resend_available_at
+    ([ created_at, updated_at ].compact.max || Time.current) + RESEND_COOLDOWN
+  end
+
+  def resend_available?
+    resend_available_at <= Time.current
+  end
+
+  def resend_cooldown_seconds
+    seconds = (resend_available_at - Time.current).ceil
+    [ seconds, 0 ].max
+  end
+
+  def refresh_for_resend!
+    update!(
+      token: SecureRandom.urlsafe_base64(32),
+      expires_at: 30.minutes.from_now
+    )
   end
 
   def verify!
