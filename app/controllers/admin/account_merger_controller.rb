@@ -5,8 +5,8 @@ class Admin::AccountMergerController < InertiaController
 
   def show
     render inertia: "Admin/AccountMerger", props: {
-      search_url: admin_account_merger_search_users_path,
-      merge_url: admin_account_merger_merge_path
+      search_url: search_users_admin_account_merger_path,
+      merge_url: merge_admin_account_merger_path
     }
   end
 
@@ -14,25 +14,12 @@ class Admin::AccountMergerController < InertiaController
     query_term = params[:query].to_s.downcase.strip
     return render json: [] if query_term.blank?
 
-    user_id_match = nil
-    if query_term.match?(/^\d+$/)
-      user_id = query_term.to_i
-      user_id_match = User.where(id: user_id).first
-    end
+    users = User.search_identity(query_term)
+      .includes(:email_addresses)
+      .order(Arel.sql("CASE WHEN LOWER(users.username) = #{ActiveRecord::Base.connection.quote(query_term)} THEN 0 ELSE 1 END, users.username ASC"))
+      .limit(20)
 
-    if user_id_match
-      results = [ format_user(user_id_match) ]
-    else
-      users = User.where(
-        "LOWER(username) LIKE :query OR LOWER(slack_username) LIKE :query OR CAST(id AS TEXT) LIKE :query OR EXISTS (SELECT 1 FROM email_addresses WHERE email_addresses.user_id = users.id AND LOWER(email_addresses.email) LIKE :query)",
-        query: "%#{query_term}%"
-      )
-        .order(Arel.sql("CASE WHEN LOWER(username) = #{ActiveRecord::Base.connection.quote(query_term)} THEN 0 ELSE 1 END, username ASC"))
-        .limit(20)
-        .select(:id, :username, :slack_username, :github_username, :slack_avatar_url, :github_avatar_url, :created_at)
-
-      results = users.map { |user| format_user(user) }
-    end
+    results = users.map { |user| format_user(user) }
 
     render json: results
   end
@@ -62,6 +49,9 @@ class Admin::AccountMergerController < InertiaController
     merge_results = perform_merge(older_user, newer_user)
 
     redirect_to admin_account_merger_path, notice: "Merge complete! #{merge_results}"
+  rescue => e
+    Rails.logger.error("Account merge failed and was rolled back: #{e.message}")
+    redirect_to admin_account_merger_path, alert: "Merge failed and was rolled back: #{e.message}"
   end
 
   private
@@ -86,164 +76,54 @@ class Admin::AccountMergerController < InertiaController
   def perform_merge(older_user, newer_user)
     results = []
 
-    # 1. Move heartbeats from newer to older
-    heartbeat_count = Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)
-    results << "#{heartbeat_count} heartbeats moved"
+    ActiveRecord::Base.transaction do
+      # 1. Move heartbeats from newer to older
+      heartbeat_count = Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)
+      results << "#{heartbeat_count} heartbeats moved"
 
-    # 2. Transfer API keys from newer to older
-    api_key_count = ApiKey.where(user_id: newer_user.id).update_all(user_id: older_user.id)
-    results << "#{api_key_count} API keys transferred"
+      # 2. Transfer API keys from newer to older
+      api_key_count = ApiKey.where(user_id: newer_user.id).update_all(user_id: older_user.id)
+      results << "#{api_key_count} API keys transferred"
 
-    # 3. Transfer goals from newer to older
-    goal_count = newer_user.goals.update_all(user_id: older_user.id)
-    results << "#{goal_count} goals transferred"
+      # 3. Transfer goals from newer to older
+      goal_count = newer_user.goals.update_all(user_id: older_user.id)
+      results << "#{goal_count} goals transferred"
 
-    # 4. Revoke newer user's sessions (sign_in_tokens, access_tokens, access_grants)
-    revoked_tokens = 0
-    begin
+      # 4. Revoke newer user's sessions
+      revoked_tokens = 0
       revoked_tokens += newer_user.sign_in_tokens.destroy_all.count
-    rescue => e
-      Rails.logger.error("Failed to destroy sign_in_tokens: #{e.message}")
-    end
-    begin
       revoked_tokens += Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
-    rescue => e
-      Rails.logger.error("Failed to revoke access_tokens: #{e.message}")
-    end
-    begin
       revoked_tokens += Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
-    rescue => e
-      Rails.logger.error("Failed to revoke access_grants: #{e.message}")
-    end
-    results << "#{revoked_tokens} sessions/tokens revoked"
+      results << "#{revoked_tokens} sessions/tokens revoked"
 
-    # 5. Delete all related data for the newer user
-    deleted_records = 0
-
-    begin
+      # 5. Delete all related data for the newer user
+      deleted_records = 0
       deleted_records += newer_user.email_addresses.destroy_all.count
-    rescue => e
-      Rails.logger.error("Failed to destroy email_addresses: #{e.message}")
-    end
-
-    begin
       deleted_records += newer_user.email_verification_requests.destroy_all.count
-    rescue => e
-      Rails.logger.error("Failed to destroy email_verification_requests: #{e.message}")
-    end
-
-    begin
       deleted_records += newer_user.goals.destroy_all.count
-    rescue => e
-      Rails.logger.error("Failed to destroy goals: #{e.message}")
-    end
-
-    begin
       deleted_records += newer_user.admin_api_keys.destroy_all.count
-    rescue => e
-      Rails.logger.error("Failed to destroy admin_api_keys: #{e.message}")
-    end
-
-    begin
       deleted_records += ProjectRepoMapping.where(user_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy project_repo_mappings: #{e.message}")
-    end
-
-    begin
       deleted_records += newer_user.heartbeat_import_runs.destroy_all.count
-    rescue => e
-      Rails.logger.error("Failed to destroy heartbeat_import_runs: #{e.message}")
-    end
-
-    begin
       deleted_records += HeartbeatImportSource.where(user_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy heartbeat_import_sources: #{e.message}")
-    end
-
-    begin
       deleted_records += InstanceImportSource.where(user_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy instance_import_sources: #{e.message}")
-    end
-
-    begin
       deleted_records += WakatimeMirror.where(user_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy wakatime_mirrors: #{e.message}")
-    end
-
-    begin
       deleted_records += Commit.where(user_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy commits: #{e.message}")
-    end
-
-    begin
       deleted_records += RepoHostEvent.where(user_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy repo_host_events: #{e.message}")
-    end
-
-    begin
       deleted_records += TrustLevelAuditLog.where(user_id: newer_user.id).delete_all
       deleted_records += TrustLevelAuditLog.where(changed_by_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy trust_level_audit_logs: #{e.message}")
-    end
-
-    begin
       deleted_records += DeletionRequest.where(user_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy deletion_requests: #{e.message}")
-    end
-
-    begin
       deleted_records += LeaderboardEntry.where(user_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy leaderboard_entries: #{e.message}")
-    end
-
-    begin
       deleted_records += Doorkeeper::Application.where(owner_id: newer_user.id, owner_type: "User").destroy_all.count
-    rescue => e
-      Rails.logger.error("Failed to destroy oauth_applications: #{e.message}")
-    end
-
-    begin
       deleted_records += Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy access_tokens: #{e.message}")
-    end
-    begin
       deleted_records += Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy access_grants: #{e.message}")
-    end
-
-    begin
       deleted_records += ProjectLabel.where(user_id: newer_user.id.to_s).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy project_labels: #{e.message}")
-    end
-
-    begin
       deleted_records += PaperTrail::Version.where(item_type: "User", item_id: newer_user.id).delete_all
-    rescue => e
-      Rails.logger.error("Failed to destroy versions: #{e.message}")
-    end
+      results << "#{deleted_records} related records cleaned up"
 
-    results << "#{deleted_records} related records cleaned up"
-
-    # 6. Finally, delete the newer user
-    begin
+      # 6. Finally, delete the newer user
       newer_user.reload
       newer_user.destroy!
       results << "user ##{newer_user.id} deleted"
-    rescue => e
-      Rails.logger.error("Failed to destroy newer user: #{e.message}")
-      results << "FAILED to delete user ##{newer_user.id}: #{e.message}"
     end
 
     results.join(", ")

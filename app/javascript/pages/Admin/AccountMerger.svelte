@@ -30,8 +30,8 @@
   let confirmOpen = $state(false);
   let merging = $state(false);
 
-  let olderTimer: ReturnType<typeof setTimeout>;
-  let newerTimer: ReturnType<typeof setTimeout>;
+  let olderTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  let newerTimer: ReturnType<typeof setTimeout> | undefined = undefined;
 
   async function doSearch(query: string, side: "older" | "newer") {
     if (!query.trim()) {
@@ -128,8 +128,12 @@
     if (!olderUser || !newerUser) return null;
     if (olderUser.id === newerUser.id)
       return "Cannot merge a user into themselves.";
-    if (newerUser.id < olderUser.id)
-      return `"${newerUser.display_name}" (ID ${newerUser.id}) has a lower ID than "${olderUser.display_name}" (ID ${olderUser.id}), which means the "newer" account is actually older. Swap them or pick different accounts.`;
+    if (
+      newerUser.created_at &&
+      olderUser.created_at &&
+      newerUser.created_at < olderUser.created_at
+    )
+      return `"${newerUser.display_name}" was created on ${newerUser.created_at}, which is before "${olderUser.display_name}" (created ${olderUser.created_at}). The "newer" account must have been created after the "older" account. Swap them or pick different accounts.`;
     return null;
   });
   let canMerge = $derived(

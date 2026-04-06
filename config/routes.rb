@@ -50,10 +50,15 @@ Rails.application.routes.draw do
           post :rotate_secret
         end
       end
+    end
+  end
 
-      get "account_merger", to: "account_merger#show", as: :account_merger
-      get "account_merger/search_users", to: "account_merger#search_users"
-      post "account_merger/merge", to: "account_merger#merge"
+  constraints AdminLevelConstraint.new(:ultraadmin) do
+    namespace :admin do
+      resource :account_merger, only: [ :show ], controller: "account_merger" do
+        get :search_users
+        post :merge
+      end
     end
   end
 
