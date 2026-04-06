@@ -110,7 +110,6 @@ class Admin::AccountMergerController < InertiaController
       deleted_records += ProjectRepoMapping.where(user_id: newer_user.id).delete_all
       deleted_records += newer_user.heartbeat_import_runs.destroy_all.count
       deleted_records += delete_rows("heartbeat_import_sources", user_id: newer_user.id)
-      deleted_records += delete_rows("instance_import_sources", user_id: newer_user.id)
       deleted_records += delete_rows("wakatime_mirrors", user_id: newer_user.id)
       deleted_records += Commit.where(user_id: newer_user.id).delete_all
       deleted_records += RepoHostEvent.where(user_id: newer_user.id).delete_all
@@ -134,7 +133,7 @@ class Admin::AccountMergerController < InertiaController
     results.join(", ")
   end
 
-  DELETABLE_TABLES = %w[heartbeat_import_sources instance_import_sources wakatime_mirrors project_labels].freeze
+  DELETABLE_TABLES = %w[heartbeat_import_sources wakatime_mirrors project_labels].freeze
 
   def delete_rows(table_name, conditions)
     raise ArgumentError, "Table '#{table_name}' is not in the allowlist" unless table_name.in?(DELETABLE_TABLES)
