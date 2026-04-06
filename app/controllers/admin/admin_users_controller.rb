@@ -1,6 +1,7 @@
 class Admin::AdminUsersController < Admin::BaseController
   def index
     @current_user_id = current_user.id
+    @ultraadmins = User.where(admin_level: :ultraadmin).order(:slack_username).to_a
     @superadmins = User.where(admin_level: :superadmin).order(:slack_username).to_a
     @admins = User.where(admin_level: :admin).order(:slack_username).to_a
     @viewers = User.where(admin_level: :viewer).order(:slack_username).to_a

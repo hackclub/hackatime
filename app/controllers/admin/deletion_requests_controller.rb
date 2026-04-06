@@ -1,6 +1,6 @@
 class Admin::DeletionRequestsController < Admin::BaseController
   before_action :set_deletion_request, only: [ :show, :approve, :reject ]
-  before_action :require_admin, only: [ :index, :show, :approve, :reject ]
+  before_action -> { require_admin_level!(:superadmin) }, only: [ :index, :show, :approve, :reject ]
 
   def index
     @pending = DeletionRequest.pending.includes(:user).order(requested_at: :asc)
@@ -25,11 +25,5 @@ class Admin::DeletionRequestsController < Admin::BaseController
 
   def set_deletion_request
     @deletion_request = DeletionRequest.find(params[:id])
-  end
-
-  def require_admin
-    unless current_user && current_user.admin_level.in?([ "superadmin" ])
-      redirect_to root_path, alert: "no perms lmaooo"
-    end
   end
 end

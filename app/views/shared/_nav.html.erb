@@ -106,7 +106,7 @@
             <% end %>
           <% end %>
 
-          <% if current_user&.admin_level == "admin" || current_user&.admin_level == "superadmin" %>
+          <% if current_user&.admin_level == "admin" || current_user&.admin_level == "superadmin" || current_user&.admin_level == "ultraadmin" %>
             <% admin_tool(nil, "div") do %>
               <%= link_to admin_timeline_path, class: "block px-3 py-2 rounded-md text-sm transition-colors #{current_page?(admin_timeline_path) ? 'bg-primary text-white font-bold' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
                 Review Timeline
@@ -120,7 +120,7 @@
             <% end %>
           <% end %>
 
-          <% if current_user&.admin_level == "admin" || current_user&.admin_level == "superadmin" %>
+          <% if current_user&.admin_level == "admin" || current_user&.admin_level == "superadmin" || current_user&.admin_level == "ultraadmin" %>
             <% admin_tool(nil, "div") do %>
               <%= link_to admin_trust_level_audit_logs_path, class: "block px-3 py-2 rounded-md text-sm transition-colors #{current_page?(admin_trust_level_audit_logs_path) || request.path.start_with?('/admin/trust_level_audit_logs') ? 'bg-primary text-white font-bold' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
                 Trust Level Logs
@@ -134,7 +134,7 @@
             <% end %>
           <% end %>
 
-          <% if current_user&.admin_level == "admin" || current_user&.admin_level == "superadmin" %>
+          <% if current_user&.admin_level == "admin" || current_user&.admin_level == "superadmin" || current_user&.admin_level == "ultraadmin" %>
             <% admin_tool(nil, "div") do %>
               <%= link_to admin_admin_api_keys_path, class: "block px-3 py-2 rounded-md text-sm transition-colors #{current_page?(admin_admin_api_keys_path) || request.path.start_with?('/admin/admin_api_keys') ? 'bg-primary text-white font-bold' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
                 Admin API Keys
@@ -165,20 +165,26 @@
           <% end %>
 
           <% superadmin_tool(nil, "div") do %>
-            <%= link_to good_job_path, class: "block px-3 py-2 rounded-md text-sm transition-colors #{current_page?(good_job_path) ? 'bg-primary text-white font-bold' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
-              GoodBoy
-            <% end %>
-          <% end %>
-
-          <% superadmin_tool(nil, "div") do %>
             <%= link_to admin_oauth_applications_path, class: "block px-3 py-2 rounded-md text-sm transition-colors #{current_page?(admin_oauth_applications_path) || request.path.start_with?('/admin/oauth_applications') ? 'bg-primary text-white font-bold' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
               All OAuth Apps
             <% end %>
           <% end %>
 
-          <% superadmin_tool(nil, "div") do %>
+          <% ultraadmin_tool(nil, "div") do %>
+            <%= link_to good_job_path, class: "block px-3 py-2 rounded-md text-sm transition-colors #{current_page?(good_job_path) ? 'bg-primary text-white font-bold' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
+              GoodBoy
+            <% end %>
+          <% end %>
+
+          <% ultraadmin_tool(nil, "div") do %>
             <%= link_to flipper_path, class: "block px-3 py-2 rounded-md text-sm transition-colors #{current_page?(flipper_path) ? 'bg-primary text-white font-bold' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
               Feature Flags
+            <% end %>
+          <% end %>
+
+          <% ultraadmin_tool(nil, "div") do %>
+            <%= link_to admin_account_merger_path, class: "block px-3 py-2 rounded-md text-sm transition-colors #{current_page?(admin_account_merger_path) || request.path.start_with?('/admin/account_merger') ? 'bg-primary text-white font-bold' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
+              Account Merger
             <% end %>
           <% end %>
         </div>

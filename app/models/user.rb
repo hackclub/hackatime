@@ -49,7 +49,8 @@ class User < ApplicationRecord
     default: 0,   # pleebs
     superadmin: 1,
     admin: 2,
-    viewer: 3
+    viewer: 3,
+    ultraadmin: 4
   }, prefix: :admin_level
 
   enum :theme, {
@@ -66,7 +67,7 @@ class User < ApplicationRecord
   }
 
   def can_convict_users?
-    admin_level_superadmin?
+    admin_level_superadmin? || admin_level_ultraadmin?
   end
 
   def set_admin_level(level)
