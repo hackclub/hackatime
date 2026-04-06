@@ -16,7 +16,12 @@ class Admin::AccountMergerController < InertiaController
 
     users = User.search_identity(query_term)
       .includes(:email_addresses)
-      .order(Arel.sql("CASE WHEN LOWER(users.username) = #{ActiveRecord::Base.connection.quote(query_term)} THEN 0 ELSE 1 END, users.username ASC"))
+      .select(
+        "users.*, " \
+        "CASE WHEN LOWER(users.username) = #{ActiveRecord::Base.connection.quote(query_term)} " \
+        "THEN 0 ELSE 1 END AS exact_match_rank"
+      )
+      .order(Arel.sql("exact_match_rank ASC, users.username ASC"))
       .limit(20)
 
     results = users.map { |user| format_user(user) }
@@ -65,11 +70,11 @@ class Admin::AccountMergerController < InertiaController
   def format_user(user)
     {
       id: user.id,
-      display_name: user.respond_to?(:display_name) ? user.display_name : user.username,
-      avatar_url: user.respond_to?(:avatar_url) ? user.avatar_url : nil,
+      display_name: user.display_name,
+      avatar_url: user.avatar_url,
       created_at: user.created_at&.strftime("%Y-%m-%d"),
       username: user.username,
-      email: user.respond_to?(:email_addresses) ? user.email_addresses.first&.email : nil
+      email: user.email_addresses.first&.email
     }
   end
 
@@ -104,9 +109,9 @@ class Admin::AccountMergerController < InertiaController
       deleted_records += newer_user.admin_api_keys.destroy_all.count
       deleted_records += ProjectRepoMapping.where(user_id: newer_user.id).delete_all
       deleted_records += newer_user.heartbeat_import_runs.destroy_all.count
-      deleted_records += HeartbeatImportSource.where(user_id: newer_user.id).delete_all
-      deleted_records += InstanceImportSource.where(user_id: newer_user.id).delete_all
-      deleted_records += WakatimeMirror.where(user_id: newer_user.id).delete_all
+      deleted_records += delete_rows("heartbeat_import_sources", user_id: newer_user.id)
+      deleted_records += delete_rows("instance_import_sources", user_id: newer_user.id)
+      deleted_records += delete_rows("wakatime_mirrors", user_id: newer_user.id)
       deleted_records += Commit.where(user_id: newer_user.id).delete_all
       deleted_records += RepoHostEvent.where(user_id: newer_user.id).delete_all
       deleted_records += TrustLevelAuditLog.where(user_id: newer_user.id).delete_all
@@ -114,9 +119,9 @@ class Admin::AccountMergerController < InertiaController
       deleted_records += DeletionRequest.where(user_id: newer_user.id).delete_all
       deleted_records += LeaderboardEntry.where(user_id: newer_user.id).delete_all
       deleted_records += Doorkeeper::Application.where(owner_id: newer_user.id, owner_type: "User").destroy_all.count
-      deleted_records += Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).delete_all
-      deleted_records += Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).delete_all
-      deleted_records += ProjectLabel.where(user_id: newer_user.id.to_s).delete_all
+      Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).delete_all
+      Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).delete_all
+      deleted_records += delete_rows("project_labels", user_id: newer_user.id.to_s)
       deleted_records += PaperTrail::Version.where(item_type: "User", item_id: newer_user.id).delete_all
       results << "#{deleted_records} related records cleaned up"
 
@@ -127,5 +132,14 @@ class Admin::AccountMergerController < InertiaController
     end
 
     results.join(", ")
+  end
+
+  def delete_rows(table_name, conditions)
+    connection = ActiveRecord::Base.connection
+    where_clause = conditions.map do |column, value|
+      "#{connection.quote_column_name(column)} = #{connection.quote(value)}"
+    end.join(" AND ")
+
+    connection.delete("DELETE FROM #{connection.quote_table_name(table_name)} WHERE #{where_clause}")
   end
 end

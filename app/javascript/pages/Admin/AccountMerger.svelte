@@ -40,19 +40,33 @@
       return;
     }
 
-    const res = await fetch(
-      `${search_url}?query=${encodeURIComponent(query.trim())}`,
-    );
-    const users: UserResult[] = await res.json();
+    try {
+      const res = await fetch(
+        `${search_url}?query=${encodeURIComponent(query.trim())}`,
+      );
+      if (!res.ok) throw new Error(`Search failed with ${res.status}`);
 
-    if (side === "older") {
-      olderResults = users;
-      olderOpen = true;
-      olderHighlight = -1;
-    } else {
-      newerResults = users;
-      newerOpen = true;
-      newerHighlight = -1;
+      const users: UserResult[] = await res.json();
+
+      if (side === "older") {
+        olderResults = users;
+        olderOpen = true;
+        olderHighlight = -1;
+      } else {
+        newerResults = users;
+        newerOpen = true;
+        newerHighlight = -1;
+      }
+    } catch {
+      if (side === "older") {
+        olderResults = [];
+        olderOpen = false;
+        olderHighlight = -1;
+      } else {
+        newerResults = [];
+        newerOpen = false;
+        newerHighlight = -1;
+      }
     }
   }
 
@@ -184,6 +198,7 @@
             <input
               type="text"
               placeholder="Search by name/email/id..."
+              data-testid="older-search"
               bind:value={olderQuery}
               oninput={onOlderInput}
               onkeydown={(e) => handleKeydown(e, "older")}
@@ -198,6 +213,7 @@
               {#each olderResults as user, i}
                 <button
                   type="button"
+                  data-testid={`older-result-${user.id}`}
                   class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i ===
                   olderHighlight
                     ? 'bg-surface-100/50'
@@ -311,6 +327,7 @@
             <input
               type="text"
               placeholder="Search by name/email/id..."
+              data-testid="newer-search"
               bind:value={newerQuery}
               oninput={onNewerInput}
               onkeydown={(e) => handleKeydown(e, "newer")}
@@ -325,6 +342,7 @@
               {#each newerResults as user, i}
                 <button
                   type="button"
+                  data-testid={`newer-result-${user.id}`}
                   class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i ===
                   newerHighlight
                     ? 'bg-surface-100/50'
@@ -429,6 +447,7 @@
       <Button
         type="button"
         variant="primary"
+        data-testid="open-merge-confirmation"
         size="lg"
         class="!border-red !bg-red !text-on-primary hover:!opacity-90"
         disabled={!canMerge}
@@ -499,6 +518,7 @@
       <Button
         type="button"
         variant="primary"
+        data-testid="confirm-merge"
         class="!border-red !bg-red !text-on-primary hover:!opacity-90"
         disabled={merging}
         onclick={handleMerge}
