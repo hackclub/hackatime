@@ -44,6 +44,7 @@
     admin_links: NavLink[];
     viewer_links: NavLink[];
     superadmin_links: NavLink[];
+    ultraadmin_links?: NavLink[];
   };
 
   type Footer = {
