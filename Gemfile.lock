@@ -245,7 +245,7 @@ GEM
       actionpack (>= 6.0.0)
       activesupport (>= 6.0.0)
       railties (>= 6.0.0)
-    inertia_rails (3.19.0)
+    inertia_rails (3.20.0)
       railties (>= 6)
     io-console (0.8.2)
     irb (1.17.0)
@@ -666,7 +666,7 @@ DEPENDENCIES
   http
   image_processing (~> 1.2)
   importmap-rails
-  inertia_rails (~> 3.19)
+  inertia_rails (~> 3.20)
   jbuilder
   kamal
   letter_opener
