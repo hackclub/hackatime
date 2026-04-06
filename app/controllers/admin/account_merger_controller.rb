@@ -134,12 +134,14 @@ class Admin::AccountMergerController < InertiaController
     results.join(", ")
   end
 
-  def delete_rows(table_name, conditions)
-    connection = ActiveRecord::Base.connection
-    where_clause = conditions.map do |column, value|
-      "#{connection.quote_column_name(column)} = #{connection.quote(value)}"
-    end.join(" AND ")
+  DELETABLE_TABLES = %w[heartbeat_import_sources instance_import_sources wakatime_mirrors project_labels].freeze
 
-    connection.delete("DELETE FROM #{connection.quote_table_name(table_name)} WHERE #{where_clause}")
+  def delete_rows(table_name, conditions)
+    raise ArgumentError, "Table '#{table_name}' is not in the allowlist" unless table_name.in?(DELETABLE_TABLES)
+
+    sanitized = ActiveRecord::Base.sanitize_sql_array(
+      [ conditions.map { |col, _| "#{ActiveRecord::Base.connection.quote_column_name(col)} = ?" }.join(" AND "), *conditions.values ]
+    )
+    ActiveRecord::Base.connection.delete("DELETE FROM #{ActiveRecord::Base.connection.quote_table_name(table_name)} WHERE #{sanitized}")
   end
 end
