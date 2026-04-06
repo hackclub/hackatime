@@ -15,7 +15,7 @@ module Api
           if @admin_api_key
             @current_user = @admin_api_key.user
 
-            if @current_user.admin_level.in?([ "admin", "superadmin", "viewer" ])
+            if @current_user.admin_level.in?([ "admin", "superadmin", "viewer", "ultraadmin" ])
               true
             else
               @admin_api_key.revoke!
