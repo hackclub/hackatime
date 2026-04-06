@@ -47,6 +47,10 @@ RUN apt-get update -qq && \
 
 # Install npm dependencies for Vite
 COPY package.json bun.lock ./
+# `package.json` references local file deps for Inertia packages.
+# Copy them before `bun i` so installation works in Docker build context.
+COPY vendor/inertia/packages/core vendor/inertia/packages/core
+COPY vendor/inertia/packages/svelte vendor/inertia/packages/svelte
 RUN bun i
 
 # Install application gems
