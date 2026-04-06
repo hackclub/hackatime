@@ -3,6 +3,17 @@ require "test_helper"
 class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
   fixtures :users
 
+  test "settings page includes current username in layout nav props" do
+    user = users(:one)
+    user.update!(username: "profile_nav_user")
+    sign_in_as(user)
+
+    get my_settings_profile_path
+
+    assert_response :success
+    assert_equal "profile_nav_user", inertia_page.dig("props", "layout", "nav", "current_user", "username")
+  end
+
   test "profile update persists selected theme" do
     user = users(:one)
     sign_in_as(user)
