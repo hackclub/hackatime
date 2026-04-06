@@ -16,7 +16,7 @@ module Api
             return
           end
 
-          email_record = EmailAddress.where("email || '' = ?", email).first
+          email_record = EmailAddress.find_by(email: email)
           if email_record.nil?
             render json: { error: "email not found" }, status: :not_found
             return
