@@ -62,4 +62,25 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     assert_includes flash[:notice], "3 sessions/tokens revoked"
     assert_includes flash[:notice], "3 related records cleaned up"
   end
+
+  test "merge renames transferred api keys when the older account already has the same key name" do
+    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
+    older = User.create!(timezone: "UTC", username: "older_user")
+    newer = User.create!(timezone: "UTC", username: "newer_user")
+    sign_in_as(admin)
+
+    older.update_column(:created_at, 2.days.ago)
+    newer.update_column(:created_at, 1.day.ago)
+
+    older.api_keys.create!(name: "Wakatime API Key")
+    transferred_key = newer.api_keys.create!(name: "Wakatime API Key")
+
+    post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+
+    assert_redirected_to admin_account_merger_path
+    assert_nil User.find_by(id: newer.id)
+    assert_equal older.id, transferred_key.reload.user_id
+    assert_equal "Wakatime API Key (transferred)", transferred_key.name
+    assert_equal [ "Wakatime API Key", "Wakatime API Key (transferred)" ], older.api_keys.order(:name).pluck(:name)
+  end
 end

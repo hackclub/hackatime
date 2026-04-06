@@ -87,7 +87,7 @@ class Admin::AccountMergerController < InertiaController
       results << "#{heartbeat_count} heartbeats moved"
 
       # 2. Transfer API keys from newer to older
-      api_key_count = ApiKey.where(user_id: newer_user.id).update_all(user_id: older_user.id)
+      api_key_count = transfer_api_keys(older_user:, newer_user:)
       results << "#{api_key_count} API keys transferred"
 
       # 3. Transfer goals from newer to older
@@ -134,6 +134,36 @@ class Admin::AccountMergerController < InertiaController
   end
 
   DELETABLE_TABLES = %w[heartbeat_import_sources wakatime_mirrors project_labels].freeze
+
+  def transfer_api_keys(older_user:, newer_user:)
+    transferred_count = 0
+
+    ApiKey.where(user_id: newer_user.id).find_each do |api_key|
+      api_key.update!(
+        user: older_user,
+        name: unique_api_key_name_for(older_user, api_key.name)
+      )
+
+      transferred_count += 1
+    end
+
+    transferred_count
+  end
+
+  def unique_api_key_name_for(user, original_name)
+    return original_name unless user.api_keys.exists?(name: original_name)
+
+    suffix = " (transferred)"
+    candidate_name = "#{original_name}#{suffix}"
+    counter = 2
+
+    while user.api_keys.exists?(name: candidate_name)
+      candidate_name = "#{original_name}#{suffix} #{counter}"
+      counter += 1
+    end
+
+    candidate_name
+  end
 
   def delete_rows(table_name, conditions)
     raise ArgumentError, "Table '#{table_name}' is not in the allowlist" unless table_name.in?(DELETABLE_TABLES)
