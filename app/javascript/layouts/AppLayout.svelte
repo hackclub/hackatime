@@ -21,6 +21,7 @@
 
   type NavCurrentUser = {
     display_name: string;
+    username?: string | null;
     avatar_url?: string | null;
     title: string;
     country_code?: string | null;
@@ -308,9 +309,21 @@
                   loading="lazy"
                 />
               {/if}
-              <span class="inline-flex items-center gap-1">
-                {layout.nav.current_user.display_name}
-              </span>
+              <div class="min-w-0 flex flex-col">
+                <span class="inline-flex items-center gap-1 truncate">
+                  {layout.nav.current_user.display_name}
+                </span>
+                {#if layout.nav.current_user.username}
+                  <a
+                    href={`https://hackati.me/@${layout.nav.current_user.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-xs text-surface-content/70 hover:text-surface-content hover:underline truncate"
+                  >
+                    @{layout.nav.current_user.username}
+                  </a>
+                {/if}
+              </div>
               {#if layout.nav.current_user.country_code}
                 <span
                   class="flex items-center"
