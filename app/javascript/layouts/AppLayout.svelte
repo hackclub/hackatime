@@ -315,7 +315,7 @@
                 </span>
                 {#if layout.nav.current_user.username}
                   <a
-                    href={`https://hackati.me/${layout.nav.current_user.username}`}
+                    href={`https://hackatime.hackclub.com/@${layout.nav.current_user.username}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="text-xs text-surface-content/70 hover:text-surface-content hover:underline truncate"
