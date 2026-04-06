@@ -1,6 +1,7 @@
 class Admin::AdminUsersController < Admin::BaseController
   def index
     @current_user_id = current_user.id
+    @ultraadmins = User.where(admin_level: :ultraadmin).order(:slack_username).to_a
     @superadmins = User.where(admin_level: :superadmin).order(:slack_username).to_a
     @admins = User.where(admin_level: :admin).order(:slack_username).to_a
     @viewers = User.where(admin_level: :viewer).order(:slack_username).to_a
@@ -11,14 +12,19 @@ class Admin::AdminUsersController < Admin::BaseController
     new_level = params[:admin_level]
 
     if @user == current_user
-      redirect_to admin_admin_users_path, alert: "you cannot change your own admin level"
+      redirect_to admin_admin_users_path, alert: "You cannot change your own admin level."
+      return
+    end
+
+    if new_level == "ultraadmin" && current_user.admin_level != "ultraadmin"
+      redirect_to admin_admin_users_path, alert: "Only ultraadmins can grant the ultraadmin role."
       return
     end
 
     if @user.set_admin_level(new_level)
       redirect_to admin_admin_users_path, notice: "#{@user.display_name}'s admin level updated to #{new_level}."
     else
-      redirect_to admin_admin_users_path, alert: "failed to update admin level."
+      redirect_to admin_admin_users_path, alert: "Failed to update admin level."
     end
   end
 
