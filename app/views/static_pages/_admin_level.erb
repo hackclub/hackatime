@@ -2,6 +2,8 @@
   <span class="text-red font-semibold px-2 superadmin-tool">Superadmin</span>
 <% elsif current_user.admin_level == "admin" %>
   <span class="text-yellow font-semibold px-2 admin-tool">Admin</span>
+<% elsif current_user.admin_level == "ultraadmin" %>
+  <span class="text-purple-400 font-semibold px-2 ultraadmin-tool">Ultraadmin</span>
 <% elsif current_user.admin_level == "viewer" %>
   <span class="text-blue font-semibold px-2 viewer-tool">Viewer</span>
 <% else %>
