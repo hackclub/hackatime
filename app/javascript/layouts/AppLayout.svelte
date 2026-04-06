@@ -17,7 +17,12 @@
     inertia?: boolean;
   };
 
-  type AdminLevel = "default" | "superadmin" | "admin" | "viewer" | "ultraadmin";
+  type AdminLevel =
+    | "default"
+    | "superadmin"
+    | "admin"
+    | "viewer"
+    | "ultraadmin";
 
   type NavCurrentUser = {
     display_name: string;

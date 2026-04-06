@@ -83,10 +83,7 @@
     else newerUser = null;
   }
 
-  function handleKeydown(
-    e: KeyboardEvent,
-    side: "older" | "newer",
-  ) {
+  function handleKeydown(e: KeyboardEvent, side: "older" | "newer") {
     const results = side === "older" ? olderResults : newerResults;
     const highlight = side === "older" ? olderHighlight : newerHighlight;
 
@@ -129,11 +126,15 @@
 
   let orderError = $derived.by<string | null>(() => {
     if (!olderUser || !newerUser) return null;
-    if (olderUser.id === newerUser.id) return "Cannot merge a user into themselves.";
-    if (newerUser.id < olderUser.id) return `"${newerUser.display_name}" (ID ${newerUser.id}) has a lower ID than "${olderUser.display_name}" (ID ${olderUser.id}), which means the "newer" account is actually older. Swap them or pick different accounts.`;
+    if (olderUser.id === newerUser.id)
+      return "Cannot merge a user into themselves.";
+    if (newerUser.id < olderUser.id)
+      return `"${newerUser.display_name}" (ID ${newerUser.id}) has a lower ID than "${olderUser.display_name}" (ID ${olderUser.id}), which means the "newer" account is actually older. Swap them or pick different accounts.`;
     return null;
   });
-  let canMerge = $derived(olderUser !== null && newerUser !== null && !orderError);
+  let canMerge = $derived(
+    olderUser !== null && newerUser !== null && !orderError,
+  );
 </script>
 
 <svelte:head>
@@ -193,7 +194,10 @@
               {#each olderResults as user, i}
                 <button
                   type="button"
-                  class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i === olderHighlight ? 'bg-surface-100/50' : ''}"
+                  class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i ===
+                  olderHighlight
+                    ? 'bg-surface-100/50'
+                    : ''}"
                   onclick={() => selectUser(user, "older")}
                 >
                   {#if user.avatar_url}
@@ -276,9 +280,7 @@
 
       <!-- NEWER (Right) -->
       <div>
-        <h2 class="mb-4 text-xl font-semibold text-red">
-          NEWER (Delete) →
-        </h2>
+        <h2 class="mb-4 text-xl font-semibold text-red">NEWER (Delete) →</h2>
         <p class="mb-3 text-sm text-muted">
           This account's heartbeats will be moved, sessions revoked, then
           deleted.
@@ -319,7 +321,10 @@
               {#each newerResults as user, i}
                 <button
                   type="button"
-                  class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i === newerHighlight ? 'bg-surface-100/50' : ''}"
+                  class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i ===
+                  newerHighlight
+                    ? 'bg-surface-100/50'
+                    : ''}"
                   onclick={() => selectUser(user, "newer")}
                 >
                   {#if user.avatar_url}
@@ -411,7 +416,9 @@
         to <span class="font-semibold text-green">OLDER</span>
       </p>
       {#if orderError}
-        <div class="mb-4 rounded-lg border border-red/30 bg-red/10 px-4 py-3 text-sm text-red">
+        <div
+          class="mb-4 rounded-lg border border-red/30 bg-red/10 px-4 py-3 text-sm text-red"
+        >
           ⚠️ {orderError}
         </div>
       {/if}
@@ -434,15 +441,14 @@
     </h3>
     <ol class="list-inside list-decimal space-y-2 text-sm text-muted">
       <li>
-        All heartbeats from the <span class="font-semibold text-red"
-          >NEWER</span
+        All heartbeats from the <span class="font-semibold text-red">NEWER</span
         >
         account are transferred to the
         <span class="font-semibold text-green">OLDER</span> account
       </li>
       <li>
-        All sessions and API tokens for the <span
-          class="font-semibold text-red">NEWER</span
+        All sessions and API tokens for the <span class="font-semibold text-red"
+          >NEWER</span
         > account are revoked
       </li>
       <li>
@@ -466,7 +472,8 @@
 >
   {#snippet body()}
     <p class="text-sm text-muted">
-      Are you <strong>ABSOLUTELY</strong> sure? This will move all heartbeats from
+      Are you <strong>ABSOLUTELY</strong> sure? This will move all heartbeats
+      from
       <strong class="text-red"
         >{newerUser?.display_name} (#{newerUser?.id})</strong
       >
