@@ -32,10 +32,12 @@ Rails.application.routes.draw do
 
   resources :extensions, only: [ :index ]
 
-  constraints AdminLevelConstraint.new(:superadmin) do
+  constraints AdminLevelConstraint.new(:ultraadmin) do
     mount GoodJob::Engine => "good_job"
     mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
+  end
 
+  constraints AdminLevelConstraint.new(:superadmin, :ultraadmin) do
     namespace :admin do
       resources :admin_users, only: [ :index, :update ] do
         collection do
@@ -51,7 +53,16 @@ Rails.application.routes.draw do
     end
   end
 
-  constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer) do
+  constraints AdminLevelConstraint.new(:ultraadmin) do
+    namespace :admin do
+      resource :account_merger, only: [ :show ], controller: "account_merger" do
+        get :search_users
+        post :merge
+      end
+    end
+  end
+
+  constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer, :ultraadmin) do
     namespace :admin do
       get "timeline", to: "timeline#show", as: :timeline
       get "timeline/search_users", to: "timeline#search_users"
@@ -69,7 +80,7 @@ Rails.application.routes.draw do
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
   end
 
-  constraints AdminLevelConstraint.new(:superadmin) do
+  constraints AdminLevelConstraint.new(:superadmin, :ultraadmin) do
     namespace :admin do
       resources :permissions, only: [ :index, :update ]
     end
