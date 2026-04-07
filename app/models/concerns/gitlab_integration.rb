@@ -5,10 +5,12 @@ module GitlabIntegration
     return nil unless gitlab_uid.present?
     return nil unless gitlab_access_token.present?
 
-    @gitlab_user_info ||= HTTP.auth("Bearer #{gitlab_access_token}")
-      .get("https://gitlab.com/api/v4/user")
-
-    JSON.parse(@gitlab_user_info.body.to_s)
+    @gitlab_user_info ||= JSON.parse(
+      HTTP.auth("Bearer #{gitlab_access_token}")
+        .get("https://gitlab.com/api/v4/user")
+        .body
+        .to_s
+    )
   end
 
   def gitlab_profile_url
