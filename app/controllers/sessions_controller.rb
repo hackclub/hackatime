@@ -158,9 +158,64 @@ class SessionsController < ApplicationController
       return
     end
 
-    current_user.update!(github_access_token: nil, github_uid: nil, github_username: nil)
+    current_user.update!(github_access_token: nil, github_uid: nil, github_username: nil, github_avatar_url: nil)
     Rails.logger.info "GitHub account unlinked for User ##{current_user.id}"
     redirect_to my_settings_path, notice: "GitHub account unlinked successfully"
+  end
+
+  def gitlab_new
+    unless current_user
+      redirect_to root_path, alert: "Please sign in first to link your GitLab account"
+      return
+    end
+
+    redirect_uri = url_for(action: :gitlab_create, only_path: false)
+    oauth_nonce = SecureRandom.hex(24)
+    session[:gitlab_oauth_state_nonce] = oauth_nonce
+    Rails.logger.info "Starting GitLab OAuth flow with redirect URI: #{redirect_uri}"
+    redirect_to User.gitlab_authorize_url(redirect_uri, state: oauth_nonce),
+                allow_other_host: "https://gitlab.com"
+  end
+
+  def gitlab_create
+    unless current_user
+      redirect_to root_path, alert: "Please sign in first to link your GitLab account"
+      return
+    end
+
+    redirect_uri = url_for(action: :gitlab_create, only_path: false)
+
+    if params[:error].present?
+      report_message("GitLab OAuth error: #{params[:error]}")
+      redirect_to my_settings_path, alert: "Failed to authenticate with GitLab. Error ID: #{Sentry.last_event_id}"
+      return
+    end
+
+    unless valid_oauth_state?(provider: "GitLab", session_key: :gitlab_oauth_state_nonce, received_nonce: params[:state])
+      redirect_to my_settings_path, alert: "Failed to link GitLab account"
+      return
+    end
+
+    @user = User.from_gitlab_token(params[:code], redirect_uri, current_user)
+
+    if @user&.persisted?
+      PosthogService.capture(@user, "gitlab_linked")
+      redirect_to my_settings_path, notice: "Successfully linked GitLab account!"
+    else
+      report_message("Failed to link GitLab account")
+      redirect_to my_settings_path, alert: "Failed to link GitLab account"
+    end
+  end
+
+  def gitlab_unlink
+    unless current_user
+      redirect_to root_path, alert: "Please sign in first"
+      return
+    end
+
+    current_user.update!(gitlab_access_token: nil, gitlab_uid: nil, gitlab_username: nil, gitlab_avatar_url: nil)
+    Rails.logger.info "GitLab account unlinked for User ##{current_user.id}"
+    redirect_to my_settings_path, notice: "GitLab account unlinked successfully"
   end
 
   def email

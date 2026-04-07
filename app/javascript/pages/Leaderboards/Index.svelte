@@ -23,8 +23,9 @@
     country,
     leaderboard,
     is_logged_in,
-    github_uid_blank,
+    repo_host_account_blank,
     github_auth_path,
+    gitlab_auth_path,
     settings_path,
     entries,
   }: {
@@ -33,8 +34,9 @@
     country: LeaderboardCountry;
     leaderboard: LeaderboardMeta | null;
     is_logged_in: boolean;
-    github_uid_blank: boolean;
+    repo_host_account_blank: boolean;
     github_auth_path: string;
+    gitlab_auth_path: string;
     settings_path: string;
     entries?: LeaderboardEntriesPayload;
   } = $props();
@@ -136,14 +138,21 @@
       </p>
     {/if}
 
-    {#if github_uid_blank}
+    {#if repo_host_account_blank}
       <div
         class="bg-darker border border-primary rounded-lg p-4 flex flex-col sm:flex-row sm:items-center gap-3"
       >
         <span class="text-surface-content"
-          >Connect your GitHub to qualify for the leaderboard.</span
+          >Connect GitHub or GitLab to qualify for the leaderboard.</span
         >
-        <Button href={github_auth_path} native size="md">Connect GitHub</Button>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <Button href={github_auth_path} native size="md"
+            >Connect GitHub</Button
+          >
+          <Button href={gitlab_auth_path} native size="md" variant="surface"
+            >Connect GitLab</Button
+          >
+        </div>
       </div>
     {/if}
 

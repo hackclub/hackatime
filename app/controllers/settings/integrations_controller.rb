@@ -46,9 +46,14 @@ class Settings::IntegrationsController < Settings::BaseController
         }
       },
       github: {
-        connected: @user.github_uid.present?,
+        connected: @user.github_connected?,
         username: @user.github_username,
         profile_url: (@user.github_username.present? ? "https://github.com/#{@user.github_username}" : nil)
+      },
+      gitlab: {
+        connected: @user.gitlab_connected?,
+        username: @user.gitlab_username,
+        profile_url: (@user.gitlab_username.present? ? "https://gitlab.com/#{@user.gitlab_username}" : nil)
       },
       emails: @user.email_addresses.map { |email|
         {

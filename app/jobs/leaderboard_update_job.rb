@@ -31,7 +31,7 @@ class LeaderboardUpdateJob < ApplicationJob
 
     range = LeaderboardDateRange.calculate(date, period)
     timestamp = Time.current
-    eligible_users = User.where.not(github_uid: nil)
+    eligible_users = User.with_linked_repo_host
                          .where.not(trust_level: User.trust_levels[:red])
 
     ActiveRecord::Base.transaction do

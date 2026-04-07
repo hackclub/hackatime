@@ -80,6 +80,8 @@ export type UserProps = {
   can_request_deletion: boolean;
   github_uid?: string | null;
   github_username?: string | null;
+  gitlab_uid?: string | null;
+  gitlab_username?: string | null;
   slack_uid?: string | null;
   programming_goals: ProgrammingGoal[];
 };
@@ -90,6 +92,8 @@ export type PathsProps = {
   slack_auth_path: string;
   github_auth_path: string;
   github_unlink_path: string;
+  gitlab_auth_path: string;
+  gitlab_unlink_path: string;
   add_email_path: string;
   unlink_email_path: string;
   rotate_api_key_path: string;
@@ -123,6 +127,12 @@ export type SlackProps = {
 };
 
 export type GithubProps = {
+  connected: boolean;
+  username?: string | null;
+  profile_url?: string | null;
+};
+
+export type GitlabProps = {
   connected: boolean;
   username?: string | null;
   profile_url?: string | null;
@@ -217,6 +227,7 @@ export type IntegrationsPageProps = SettingsCommonProps & {
   user: UserProps;
   slack: SlackProps;
   github: GithubProps;
+  gitlab: GitlabProps;
   emails: EmailProps[];
   paths: PathsProps;
 };
@@ -316,6 +327,7 @@ const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
     { id: "user_slack_status", label: "Slack status" },
     { id: "user_slack_notifications", label: "Slack channels" },
     { id: "user_github_account", label: "GitHub" },
+    { id: "user_gitlab_account", label: "GitLab" },
     { id: "user_email_addresses", label: "Email addresses" },
   ],
   notifications: [
@@ -363,6 +375,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_slack_status: "integrations",
   user_slack_notifications: "integrations",
   user_github_account: "integrations",
+  user_gitlab_account: "integrations",
   user_email_addresses: "integrations",
   user_email_notifications: "notifications",
   user_weekly_summary_email: "notifications",

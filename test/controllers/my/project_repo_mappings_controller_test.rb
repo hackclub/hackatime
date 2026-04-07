@@ -42,6 +42,20 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, page.dig("props", "total_projects")
   end
 
+  test "index treats gitlab account as a connected repo host" do
+    user = User.create!(timezone: "UTC", gitlab_uid: "gl-user")
+    user.project_repo_mappings.create!(project_name: "gamma")
+    create_project_heartbeats(user, "gamma")
+
+    sign_in_as(user)
+    get my_projects_path
+
+    assert_response :success
+    page = inertia_page
+    assert_equal true, page.dig("props", "repo_host_connected")
+    assert_equal gitlab_auth_path, page.dig("props", "gitlab_auth_path")
+  end
+
   private
 
   def create_project_heartbeats(user, project_name)

@@ -44,6 +44,18 @@ module OauthAuthentication
       URI.parse("https://github.com/login/oauth/authorize?#{params.to_query}")
     end
 
+    def gitlab_authorize_url(redirect_uri, state: nil)
+      params = {
+        client_id: ENV["GITLAB_CLIENT_ID"],
+        redirect_uri: redirect_uri,
+        state: state || SecureRandom.hex(24),
+        response_type: "code",
+        scope: "read_user read_api"
+      }
+
+      URI.parse("https://gitlab.com/oauth/authorize?#{params.to_query}")
+    end
+
     def from_hca_token(code, redirect_uri)
       response = HTTP.post("#{HCAService.host}/oauth/token", form: {
         client_id: ENV["HCA_CLIENT_ID"],
@@ -178,6 +190,45 @@ module OauthAuthentication
       current_user
     rescue => e
       report_error(e, message: "Error linking GitHub account: #{e.message}")
+      nil
+    end
+
+    def from_gitlab_token(code, redirect_uri, current_user)
+      return nil unless current_user
+
+      response = HTTP.post("https://gitlab.com/oauth/token", form: {
+        client_id: ENV["GITLAB_CLIENT_ID"],
+        client_secret: ENV["GITLAB_CLIENT_SECRET"],
+        code: code,
+        grant_type: "authorization_code",
+        redirect_uri: redirect_uri
+      })
+
+      data = JSON.parse(response.body.to_s)
+      return nil unless data["access_token"]
+
+      user_response = HTTP.auth("Bearer #{data['access_token']}")
+        .get("https://gitlab.com/api/v4/user")
+
+      user_data = JSON.parse(user_response.body.to_s)
+
+      gitlab_uid = user_data["id"]
+      other_users = User.where(gitlab_uid: gitlab_uid).where.not(id: current_user.id).where.not(gitlab_access_token: nil)
+
+      other_users.find_each do |user|
+        Rails.logger.info "Clearing GitLab token for User ##{user.id} (GitLab UID: #{gitlab_uid}) - linking to new account"
+        user.update!(gitlab_access_token: nil, gitlab_uid: nil, gitlab_username: nil, gitlab_avatar_url: nil)
+      end
+
+      current_user.gitlab_uid = gitlab_uid
+      current_user.gitlab_username = user_data["username"].presence || user_data["name"].presence
+      current_user.gitlab_avatar_url = user_data["avatar_url"]
+      current_user.gitlab_access_token = data["access_token"]
+
+      current_user.save!
+      current_user
+    rescue => e
+      report_error(e, message: "Error linking GitLab account: #{e.message}")
       nil
     end
   end

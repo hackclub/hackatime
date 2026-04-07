@@ -13,11 +13,12 @@ class IntegrationsSettingsTest < ApplicationSystemTestCase
     assert_settings_page(
       path: my_settings_integrations_path,
       marker_text: "Slack Status Sync",
-      card_count: 4
+      card_count: 5
     )
 
     assert_text "Slack Channel Notifications"
     assert_text "Connected GitHub Account"
+    assert_text "Connected GitLab Account"
     assert_text "Email Addresses"
   end
 
@@ -54,5 +55,25 @@ class IntegrationsSettingsTest < ApplicationSystemTestCase
 
     assert_current_path my_settings_integrations_path, ignore_query: true
     assert_text "@octocat"
+  end
+
+  test "integrations settings opens and cancels unlink gitlab modal" do
+    @user.update!(
+      gitlab_uid: "54321",
+      gitlab_username: "tanuki",
+      gitlab_access_token: "gitlab-token"
+    )
+
+    visit my_settings_integrations_path
+    assert_text "@tanuki"
+
+    click_on "Unlink GitLab"
+    within_modal do
+      assert_text "Unlink GitLab account?"
+      click_on "Cancel"
+    end
+
+    assert_current_path my_settings_integrations_path, ignore_query: true
+    assert_text "@tanuki"
   end
 end

@@ -26,15 +26,18 @@ class Repository < ApplicationRecord
 
   # Parse owner and repo from URL
   def self.parse_url(url)
-    if url =~ %r{https?://([^/]+)/([^/]+)/([^/]+)/?$}
-      {
-        host: $1,
-        owner: $2,
-        name: $3
-      }
-    else
-      raise ArgumentError, "Invalid repository URL format: #{url}"
-    end
+    uri = URI.parse(url)
+    path_parts = uri.path.to_s.split("/").reject(&:blank?)
+
+    raise ArgumentError, "Invalid repository URL format: #{url}" if uri.host.blank? || path_parts.size < 2
+
+    {
+      host: uri.host,
+      owner: path_parts[0...-1].join("/"),
+      name: path_parts.last
+    }
+  rescue URI::InvalidURIError
+    raise ArgumentError, "Invalid repository URL format: #{url}"
   end
 
   # Find or create repository from URL
