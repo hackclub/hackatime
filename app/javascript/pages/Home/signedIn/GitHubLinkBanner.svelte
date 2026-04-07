@@ -1,5 +1,11 @@
 <script lang="ts">
-  let { github_auth_path }: { github_auth_path: string } = $props();
+  let {
+    github_auth_path,
+    gitlab_auth_path,
+  }: {
+    github_auth_path: string;
+    gitlab_auth_path: string;
+  } = $props();
 </script>
 
 <div class="bg-dark border border-primary/40 rounded-xl p-4 md:p-5 mb-4">
@@ -19,14 +25,21 @@
         /></svg
       >
       <span class="text-surface-content"
-        >Link your GitHub account to unlock project linking, show what you're
-        working on, and qualify for leaderboards!</span
+        >Link GitHub or GitLab to unlock project linking, show what you're
+        working on, and qualify for leaderboards.</span
       >
     </div>
-    <a
-      href={github_auth_path}
-      class="bg-primary hover:opacity-90 text-on-primary font-medium px-4 py-2 rounded-lg transition-colors duration-200 shrink-0 text-center w-full md:w-fit"
-      data-turbo="false">Connect GitHub</a
-    >
+    <div class="flex w-full flex-col gap-2 md:w-fit md:flex-row">
+      <a
+        href={github_auth_path}
+        class="bg-primary hover:opacity-90 text-on-primary font-medium px-4 py-2 rounded-lg transition-colors duration-200 shrink-0 text-center w-full md:w-fit"
+        data-turbo="false">Connect GitHub</a
+      >
+      <a
+        href={gitlab_auth_path}
+        class="bg-surface-100 hover:bg-surface-200 text-surface-content font-medium px-4 py-2 rounded-lg transition-colors duration-200 shrink-0 text-center w-full md:w-fit"
+        data-turbo="false">Connect GitLab</a
+      >
+    </div>
   </div>
 </div>

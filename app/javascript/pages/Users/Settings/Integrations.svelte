@@ -17,6 +17,7 @@
     user,
     slack,
     github,
+    gitlab,
     emails,
     paths,
     errors,
@@ -25,6 +26,7 @@
   let csrfToken = $state("");
   let usesSlackStatus = $state(false);
   let unlinkGithubModalOpen = $state(false);
+  let unlinkGitlabModalOpen = $state(false);
 
   $effect(() => {
     usesSlackStatus = user.uses_slack_status;
@@ -166,6 +168,44 @@
   </SectionCard>
 
   <SectionCard
+    id="user_gitlab_account"
+    title="Connected GitLab Account"
+    description="Connect GitLab to map GitLab repositories and qualify for leaderboards."
+    hasBody={Boolean(gitlab.connected && gitlab.username)}
+  >
+    {#if gitlab.connected && gitlab.username}
+      <div
+        class="rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content"
+      >
+        Connected as
+        <a href={gitlab.profile_url || "#"} target="_blank" class="underline">
+          @{gitlab.username}
+        </a>
+      </div>
+    {/if}
+
+    {#snippet footer()}
+      {#if gitlab.connected && gitlab.username}
+        <Button href={paths.gitlab_auth_path} native class="rounded-md">
+          Reconnect GitLab
+        </Button>
+        <Button
+          type="button"
+          variant="surface"
+          class="rounded-md"
+          onclick={() => (unlinkGitlabModalOpen = true)}
+        >
+          Unlink GitLab
+        </Button>
+      {:else}
+        <Button href={paths.gitlab_auth_path} native class="rounded-md">
+          Connect GitLab
+        </Button>
+      {/if}
+    {/snippet}
+  </SectionCard>
+
+  <SectionCard
     id="user_email_addresses"
     title="Email Addresses"
     description="Add or remove email addresses used for sign-in and verification."
@@ -260,6 +300,38 @@
           class="h-10 w-full text-on-primary"
         >
           Unlink GitHub
+        </Button>
+      </form>
+    </div>
+  {/snippet}
+</Modal>
+
+<Modal
+  bind:open={unlinkGitlabModalOpen}
+  title="Unlink GitLab account?"
+  description="GitLab repository features will stop until you reconnect."
+  maxWidth="max-w-md"
+  hasActions
+>
+  {#snippet actions()}
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Button
+        type="button"
+        variant="dark"
+        class="h-10 w-full border border-surface-300 text-muted"
+        onclick={() => (unlinkGitlabModalOpen = false)}
+      >
+        Cancel
+      </Button>
+      <form method="post" action={paths.gitlab_unlink_path} class="m-0">
+        <input type="hidden" name="_method" value="delete" />
+        <input type="hidden" name="authenticity_token" value={csrfToken} />
+        <Button
+          type="submit"
+          variant="primary"
+          class="h-10 w-full text-on-primary"
+        >
+          Unlink GitLab
         </Button>
       </form>
     </div>

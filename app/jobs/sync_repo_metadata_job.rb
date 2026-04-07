@@ -12,12 +12,22 @@ class SyncRepoMetadataJob < ApplicationJob
     Rails.logger.info "[SyncRepoMetadataJob] Syncing metadata for #{repository.url}"
 
     begin
+      host = RepoHost::ServiceFactory.host_for_url(repository.url)
       user = repository.users
                        .joins(:project_repo_mappings)
-                       .where.not(github_access_token: [ nil, "" ])
+                       .yield_self { |scope|
+                         case host
+                         when "github.com"
+                           scope.where.not(github_access_token: [ nil, "" ])
+                         when "gitlab.com"
+                           scope.where.not(gitlab_access_token: [ nil, "" ])
+                         else
+                           scope.none
+                         end
+                       }
                        .first
       unless user
-        Rails.logger.warn "[SyncRepoMetadataJob] No user with GitHub token available for #{repository.url}"
+        Rails.logger.warn "[SyncRepoMetadataJob] No linked account token available for #{repository.url}"
         return
       end
 

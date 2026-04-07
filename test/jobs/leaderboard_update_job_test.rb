@@ -10,7 +10,7 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
   end
 
   test "perform excludes browser editor heartbeats from persisted leaderboard entries" do
-    coded_user = create_user(username: "lb_job_coded", github_uid: "GH_LEADERBOARD_JOB_CODED")
+    coded_user = create_user(username: "lb_job_coded", gitlab_uid: "GL_LEADERBOARD_JOB_CODED")
     browser_only_user = create_user(username: "lb_job_browser", github_uid: "GH_LEADERBOARD_JOB_BROWSER")
 
     create_heartbeat_pair(user: coded_user, started_at: today_at(9, 0), editor: "vscode")
@@ -32,10 +32,11 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
 
   private
 
-  def create_user(username:, github_uid:)
+  def create_user(username:, github_uid: nil, gitlab_uid: nil)
     User.create!(
       username: username,
       github_uid: github_uid,
+      gitlab_uid: gitlab_uid,
       timezone: "UTC"
     )
   end

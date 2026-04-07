@@ -76,6 +76,8 @@ class Settings::BaseController < InertiaController
       can_request_deletion: @user.can_request_deletion?,
       github_uid: @user.github_uid,
       github_username: @user.github_username,
+      gitlab_uid: @user.gitlab_uid,
+      gitlab_username: @user.gitlab_username,
       slack_uid: @user.slack_uid
     }
   end
@@ -96,6 +98,8 @@ class Settings::BaseController < InertiaController
       slack_auth_path: slack_auth_path,
       github_auth_path: github_auth_path,
       github_unlink_path: github_unlink_path,
+      gitlab_auth_path: gitlab_auth_path,
+      gitlab_unlink_path: gitlab_unlink_path,
       add_email_path: add_email_auth_path,
       unlink_email_path: unlink_email_auth_path,
       rotate_api_key_path: my_settings_rotate_api_key_path,

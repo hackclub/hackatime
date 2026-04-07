@@ -4,6 +4,7 @@ class User < ApplicationRecord
   include ::OauthAuthentication
   include ::SlackIntegration
   include ::GithubIntegration
+  include ::GitlabIntegration
 
   has_subscriptions
 
@@ -14,10 +15,11 @@ class User < ApplicationRecord
   after_create :track_signup
   after_create :subscribe_to_default_lists
   before_validation :normalize_username
-  encrypts :slack_access_token, :github_access_token, :hca_access_token
+  encrypts :slack_access_token, :github_access_token, :gitlab_access_token, :hca_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
   validates :github_uid, uniqueness: { conditions: -> { where.not(github_access_token: nil) } }, allow_nil: true
+  validates :gitlab_uid, uniqueness: { conditions: -> { where.not(gitlab_access_token: nil) } }, allow_nil: true
   validates :timezone, inclusion: { in: TZInfo::Timezone.all_identifiers }, allow_nil: false
   validates :country_code, inclusion: { in: ISO3166::Country.codes }, allow_nil: true
   validates :username,
@@ -29,6 +31,10 @@ class User < ApplicationRecord
 
   attribute :allow_public_stats_lookup, :boolean, default: true
   attribute :default_timezone_leaderboard, :boolean, default: true
+
+  scope :with_linked_repo_host, -> {
+    where.not(github_uid: nil).or(where.not(gitlab_uid: nil))
+  }
 
   def country_name
     ISO3166::Country.new(country_code).common_name
@@ -138,6 +144,7 @@ class User < ApplicationRecord
         "LOWER(users.username) LIKE :p OR " \
         "LOWER(users.slack_username) LIKE :p OR " \
         "LOWER(users.github_username) LIKE :p OR " \
+        "LOWER(users.gitlab_username) LIKE :p OR " \
         "LOWER(email_addresses.email) LIKE :p OR " \
         "CAST(users.id AS TEXT) LIKE :p",
         p: pattern
@@ -257,6 +264,7 @@ class User < ApplicationRecord
   def avatar_url
     return self.slack_avatar_url if self.slack_avatar_url.present?
     return self.github_avatar_url if self.github_avatar_url.present?
+    return self.gitlab_avatar_url if self.gitlab_avatar_url.present?
 
     email = self.email_addresses&.first&.email
     if email.present?
@@ -270,7 +278,7 @@ class User < ApplicationRecord
   end
 
   def display_name
-    name = slack_username || github_username || username
+    name = slack_username || github_username || gitlab_username || username
     return name if name.present?
 
     email = email_addresses&.first&.email
@@ -311,6 +319,18 @@ class User < ApplicationRecord
 
   def self.not_suspect
     where(trust_level: [ User.trust_levels[:blue], User.trust_levels[:green] ])
+  end
+
+  def github_connected?
+    github_uid.present?
+  end
+
+  def gitlab_connected?
+    gitlab_uid.present?
+  end
+
+  def repo_host_connected?
+    github_connected? || gitlab_connected?
   end
 
   private

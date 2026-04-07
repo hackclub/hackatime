@@ -17,14 +17,14 @@ module RepoHost
     attr_reader :user, :repo_url, :owner, :repo
 
     def parse_repo_url(url)
-      # Extract owner and repo from URL
-      # Example: https://github.com/owner/repo -> ["owner", "repo"]
-      # Example: https://gitlab.com/owner/repo -> ["owner", "repo"]
-      if url =~ %r{https?://[^/]+/([^/]+)/([^/]+)/?$}
-        [ $1, $2 ]
-      else
-        raise ArgumentError, "Invalid repository URL format: #{url}"
-      end
+      uri = URI.parse(url)
+      path_parts = uri.path.to_s.split("/").reject(&:blank?)
+
+      raise ArgumentError, "Invalid repository URL format: #{url}" if uri.host.blank? || path_parts.size < 2
+
+      [ path_parts[0...-1].join("/"), path_parts.last ]
+    rescue URI::InvalidURIError
+      raise ArgumentError, "Invalid repository URL format: #{url}"
     end
 
     def api_headers
@@ -43,7 +43,7 @@ module RepoHost
       case response.status.code
       when 200
         response.parse
-      when 403
+      when 403, 429
         handle_rate_limit(response)
       when 404
         Rails.logger.warn "[#{self.class.name}] Repository #{owner}/#{repo} not found (404)"
@@ -55,8 +55,11 @@ module RepoHost
     end
 
     def handle_rate_limit(response)
-      if response.headers["X-RateLimit-Remaining"]&.to_i == 0
-        reset_time = Time.at(response.headers["X-RateLimit-Reset"].to_i)
+      remaining = response.headers["X-RateLimit-Remaining"] || response.headers["RateLimit-Remaining"]
+      reset_at = response.headers["X-RateLimit-Reset"] || response.headers["RateLimit-Reset"]
+
+      if remaining&.to_i == 0 && reset_at.present?
+        reset_time = Time.at(reset_at.to_i)
         delay_seconds = [ (reset_time - Time.current).ceil, 5 ].max
         raise RateLimitError, "Rate limit exceeded for #{owner}/#{repo}. Reset in #{delay_seconds}s"
       end

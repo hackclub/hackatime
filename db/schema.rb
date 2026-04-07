@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_07_003131) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -623,6 +623,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.string "github_avatar_url"
     t.string "github_uid"
     t.string "github_username"
+    t.text "gitlab_access_token"
+    t.string "gitlab_avatar_url"
+    t.string "gitlab_uid"
+    t.string "gitlab_username"
     t.integer "hackatime_extension_text_type", default: 0, null: false
     t.string "hca_access_token"
     t.string "hca_id"
@@ -649,6 +653,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.boolean "weekly_summary_email_enabled", default: true, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
+    t.index ["gitlab_uid", "gitlab_access_token"], name: "index_users_on_gitlab_uid_and_access_token"
+    t.index ["gitlab_uid"], name: "index_users_on_gitlab_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"

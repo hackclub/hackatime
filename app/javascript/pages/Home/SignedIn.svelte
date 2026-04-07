@@ -67,8 +67,9 @@
     ssp_message,
     ssp_users_recent,
     ssp_users_size,
-    github_uid_blank,
+    repo_host_account_blank,
     github_auth_path,
+    gitlab_auth_path,
     wakatime_setup_path,
     dashboard_stats,
   }: {
@@ -78,8 +79,9 @@
     ssp_message?: string | null;
     ssp_users_recent: SocialProofUser[];
     ssp_users_size: number;
-    github_uid_blank: boolean;
+    repo_host_account_blank: boolean;
     github_auth_path: string;
+    gitlab_auth_path: string;
     wakatime_setup_path: string;
     dashboard_stats?: {
       filterable_dashboard_data: FilterableDashboardData;
@@ -125,8 +127,8 @@
       {ssp_users_recent}
       {ssp_users_size}
     />
-  {:else if github_uid_blank}
-    <GitHubLinkBanner {github_auth_path} />
+  {:else if repo_host_account_blank}
+    <GitHubLinkBanner {github_auth_path} {gitlab_auth_path} />
   {/if}
 
   <Deferred data="dashboard_stats">

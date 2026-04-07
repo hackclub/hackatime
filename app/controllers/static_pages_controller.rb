@@ -141,8 +141,9 @@ class StaticPagesController < InertiaController
       ssp_message: @ssp_message,
       ssp_users_recent: @ssp_users_recent || [],
       ssp_users_size: @ssp_users_size || @ssp_users_recent&.size || 0,
-      github_uid_blank: current_user&.github_uid.blank?,
+      repo_host_account_blank: !current_user&.repo_host_connected?,
       github_auth_path: github_auth_path,
+      gitlab_auth_path: gitlab_auth_path,
       wakatime_setup_path: my_wakatime_setup_path,
       dashboard_stats: InertiaRails.defer { dashboard_stats_payload }
     }

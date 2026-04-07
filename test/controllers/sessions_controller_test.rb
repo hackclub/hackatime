@@ -192,6 +192,33 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_nil session[:github_oauth_state_nonce]
   end
 
+  test "gitlab_new stores oauth nonce and passes it in redirect state" do
+    user = User.create!
+    sign_in_as(user)
+
+    get gitlab_auth_path
+
+    assert_response :redirect
+    assert_not_nil session[:gitlab_oauth_state_nonce]
+
+    redirect_query = Rack::Utils.parse_nested_query(URI.parse(response.redirect_url).query)
+    assert_equal session[:gitlab_oauth_state_nonce], redirect_query["state"]
+  end
+
+  test "gitlab_create rejects oauth callback with mismatched state nonce" do
+    user = User.create!
+    sign_in_as(user)
+
+    get gitlab_auth_path
+    expected_nonce = session[:gitlab_oauth_state_nonce]
+
+    get "/auth/gitlab/callback", params: { code: "oauth-code", state: "wrong-#{expected_nonce}" }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert_nil session[:gitlab_oauth_state_nonce]
+  end
+
   test "expired token redirects to root with alert" do
     user = User.create!
     sign_in_token = user.sign_in_tokens.create!(
@@ -223,7 +250,12 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "github_unlink clears github fields for signed-in user" do
-    user = User.create!(github_uid: "12345", github_username: "octocat", github_access_token: "secret-token")
+    user = User.create!(
+      github_uid: "12345",
+      github_username: "octocat",
+      github_avatar_url: "https://github.com/octocat.png",
+      github_access_token: "secret-token"
+    )
     sign_in_as(user)
 
     delete github_unlink_path
@@ -234,7 +266,29 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     user.reload
     assert_nil user.github_uid
     assert_nil user.github_username
+    assert_nil user.github_avatar_url
     assert_nil user.github_access_token
+  end
+
+  test "gitlab_unlink clears gitlab fields for signed-in user" do
+    user = User.create!(
+      gitlab_uid: "98765",
+      gitlab_username: "tanuki",
+      gitlab_avatar_url: "https://gitlab.com/tanuki.png",
+      gitlab_access_token: "secret-token"
+    )
+    sign_in_as(user)
+
+    delete gitlab_unlink_path
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+
+    user.reload
+    assert_nil user.gitlab_uid
+    assert_nil user.gitlab_username
+    assert_nil user.gitlab_avatar_url
+    assert_nil user.gitlab_access_token
   end
 
   test "add_email creates email verification request" do

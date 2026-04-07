@@ -9,11 +9,12 @@ class ProjectRepoMapping < ApplicationRecord
 
   validates :repo_url, presence: true, if: :repo_url_required?
   validates :repo_url, format: {
-    with: %r{\A(https?://[^/]+/[^/]+/[^/]+)\z},
+    with: %r{\Ahttps?://[^/]+/(?:[^/]+/)+[^/]+\z},
     message: "must be a valid repository URL"
   }, if: :repo_url_required?
 
   validate :repo_host_supported, if: :repo_url_required?
+  validate :user_connected_to_repo_host, if: :repo_url_required?
   validate :repo_url_exists, if: :repo_url_required?
 
   def repo_url_required?
@@ -50,7 +51,20 @@ class ProjectRepoMapping < ApplicationRecord
   def repo_host_supported
     host = RepoHost::ServiceFactory.host_for_url(repo_url)
     unless host && RepoHost::ServiceFactory.supported_hosts.include?(host)
-      errors.add(:repo_url, "We only support GitHub repositories")
+      errors.add(:repo_url, "We only support GitHub and GitLab repositories")
+    end
+  end
+
+  def user_connected_to_repo_host
+    case RepoHost::ServiceFactory.host_for_url(repo_url)
+    when "github.com"
+      return if user&.github_connected?
+
+      errors.add(:repo_url, "requires a linked GitHub account")
+    when "gitlab.com"
+      return if user&.gitlab_connected?
+
+      errors.add(:repo_url, "requires a linked GitLab account")
     end
   end
 
@@ -79,6 +93,8 @@ class ProjectRepoMapping < ApplicationRecord
   end
 
   def schedule_commit_pull
+    return unless RepoHost::ServiceFactory.host_for_url(repo_url) == "github.com"
+
     # Extract owner and repo name from the URL
     # Example URL: https://github.com/owner/repo
     if repo_url =~ %r{https?://[^/]+/([^/]+)/([^/]+)\z}

@@ -9,6 +9,14 @@ class RepositoryTest < ActiveSupport::TestCase
     assert_equal "hackatime", parsed[:name]
   end
 
+  test "parse_url supports nested gitlab groups" do
+    parsed = Repository.parse_url("https://gitlab.com/hackclub/tools/hackatime")
+
+    assert_equal "gitlab.com", parsed[:host]
+    assert_equal "hackclub/tools", parsed[:owner]
+    assert_equal "hackatime", parsed[:name]
+  end
+
   test "formatted_languages truncates to top three with ellipsis" do
     repository = Repository.new(languages: "Ruby, JavaScript, TypeScript, Go")
 

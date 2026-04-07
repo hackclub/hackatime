@@ -2,7 +2,7 @@ class My::ProjectRepoMappingsController < InertiaController
   layout "inertia", only: [ :index ]
 
   before_action :ensure_current_user
-  before_action :require_github_oauth, only: [ :edit, :update ]
+  before_action :require_repo_host_oauth, only: [ :edit, :update ]
   before_action :set_project_repo_mapping_for_edit, only: [ :edit, :update ]
   before_action :set_project_repo_mapping, only: [ :archive, :unarchive ]
 
@@ -14,8 +14,9 @@ class My::ProjectRepoMappingsController < InertiaController
       index_path: my_projects_path,
       show_archived: archived,
       archived_count: current_user.project_repo_mappings.archived.count,
-      github_connected: current_user.github_uid.present?,
+      repo_host_connected: current_user.repo_host_connected?,
       github_auth_path: github_auth_path,
+      gitlab_auth_path: gitlab_auth_path,
       settings_path: my_settings_path(anchor: "user_github_account"),
       interval: selected_interval,
       from: params[:from],
@@ -60,9 +61,9 @@ class My::ProjectRepoMappingsController < InertiaController
     redirect_to root_path, alert: "You must be logged in to view this page" unless current_user
   end
 
-  def require_github_oauth
-    unless current_user.github_uid.present?
-      flash[:alert] = "Please connect your GitHub account to map repositories."
+  def require_repo_host_oauth
+    unless current_user.repo_host_connected?
+      flash[:alert] = "Please connect your GitHub or GitLab account to map repositories."
       redirect_to my_projects_path
     end
   end
@@ -142,7 +143,7 @@ class My::ProjectRepoMappingsController < InertiaController
         repo_url: mapping&.repo_url,
         repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
         broken_name: broken,
-        manage_enabled: current_user.github_uid.present? && url_safe,
+        manage_enabled: current_user.repo_host_connected? && url_safe,
         edit_path: url_safe ? edit_my_project_repo_mapping_path(project_key) : nil,
         update_path: url_safe ? my_project_repo_mapping_path(project_key) : nil,
         archive_path: url_safe ? archive_my_project_repo_mapping_path(project_key) : nil,

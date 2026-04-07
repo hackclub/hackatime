@@ -62,6 +62,17 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
       "Arbitrary user input should not be interned as a symbol"
   end
 
+  test "gitlab-linked users are treated as qualified for leaderboard prompts" do
+    user = User.create!(username: "gitlab_lb_user", gitlab_uid: "gl_123", timezone: "UTC")
+    create_boards_for_today(period_type: :daily)
+
+    sign_in_as(user)
+    get leaderboards_path(period_type: "daily")
+
+    assert_response :success
+    assert_equal false, inertia_page.dig("props", "repo_host_account_blank")
+  end
+
   private
 
   def create_user(username:, country_code: nil)

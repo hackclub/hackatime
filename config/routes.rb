@@ -119,6 +119,9 @@ Rails.application.routes.draw do
   get "/auth/github", to: "sessions#github_new", as: :github_auth
   get "/auth/github/callback", to: "sessions#github_create"
   delete "/auth/github/unlink", to: "sessions#github_unlink", as: :github_unlink
+  get "/auth/gitlab", to: "sessions#gitlab_new", as: :gitlab_auth
+  get "/auth/gitlab/callback", to: "sessions#gitlab_create"
+  delete "/auth/gitlab/unlink", to: "sessions#gitlab_unlink", as: :gitlab_unlink
   post "/auth/email", to: "sessions#email", as: :email_auth
   post "/auth/email/add", to: "sessions#add_email", as: :add_email_auth
   delete "/auth/email/unlink", to: "sessions#unlink_email", as: :unlink_email_auth
