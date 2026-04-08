@@ -11,13 +11,14 @@ module DashboardData
     h = ApplicationController.helpers
 
     Rails.cache.fetch(key, expires_in: 5.minutes) do
-      archived = current_user.project_repo_mappings.archived.pluck(:project_name)
+      archived = current_user.project_repo_mappings.archived.pluck(:project_name).index_with(true)
+      raw_options = filters.index_with { |field| current_user.heartbeats.distinct.pluck(field).compact_blank }
       result = {}
 
       Time.use_zone(current_user.timezone) do
         filters.each do |f|
-          options = current_user.heartbeats.distinct.pluck(f).compact_blank
-          options = options.reject { |n| archived.include?(n) } if f == :project
+          options = raw_options.fetch(f)
+          options = options.reject { |name| archived.key?(name) } if f == :project
           result[f] = options.map { |k|
             if f == :language then k.categorize_language
             elsif f == :editor then h.display_editor_name(k)
@@ -31,7 +32,7 @@ module DashboardData
           hb = if %i[operating_system editor].include?(f)
             hb.where(f => arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq)
           elsif f == :language
-            raw = current_user.heartbeats.distinct.pluck(f).compact_blank.select { |l| arr.include?(l.categorize_language) }
+            raw = raw_options.fetch(f).select { |language| arr.include?(language.categorize_language) }
             raw.any? ? hb.where(f => raw) : hb
           else
             hb.where(f => arr)
@@ -42,10 +43,11 @@ module DashboardData
         hb = hb.filter_by_time_range(interval, params[:from], params[:to])
         result[:total_time] = hb.duration_seconds
         result[:total_heartbeats] = hb.count
+        grouped_stats = filters.index_with { |field| hb.group(field).duration_seconds }
 
         filters.each do |f|
-          stats = hb.group(f).duration_seconds
-          stats = stats.reject { |n, _| archived.include?(n) } if f == :project
+          stats = grouped_stats.fetch(f)
+          stats = stats.reject { |name, _| archived.key?(name) } if f == :project
           result["top_#{f}"] = stats.max_by { |_, v| v }&.first
         end
 
@@ -54,13 +56,13 @@ module DashboardData
         result["top_language"] &&= h.display_language_name(result["top_language"])
 
         unless result["singular_project"]
-          result[:project_durations] = hb.group(:project).duration_seconds
-            .reject { |p, _| archived.include?(p) }.sort_by { |_, d| -d }.first(10).to_h
+          result[:project_durations] = grouped_stats.fetch(:project)
+            .reject { |project, _| archived.key?(project) }.sort_by { |_, d| -d }.first(10).to_h
         end
 
         %i[language editor operating_system category].each do |f|
           next if result["singular_#{f}"]
-          stats = hb.group(f).duration_seconds.each_with_object({}) do |(raw, dur), agg|
+          stats = grouped_stats.fetch(f).each_with_object({}) do |(raw, dur), agg|
             k = raw.to_s.presence || "Unknown"
             k = f == :language ? (k == "Unknown" ? k : k.categorize_language) : (%i[editor operating_system].include?(f) ? k.downcase : k)
             agg[k] = (agg[k] || 0) + dur
@@ -80,11 +82,7 @@ module DashboardData
           result[:language_colors] = LanguageUtils.colors_for(result["language_stats"].keys)
         end
 
-        result[:weekly_project_stats] = (0..11).to_h do |w|
-          ws = w.weeks.ago.beginning_of_week
-          [ ws.to_date.iso8601, hb.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
-              .group(:project).duration_seconds.reject { |p, _| archived.include?(p) } ]
-        end
+        result[:weekly_project_stats] = weekly_project_stats_for(hb, archived)
       end
       result[:selected_interval] = interval.to_s
       result[:selected_from] = params[:from].to_s
@@ -93,6 +91,45 @@ module DashboardData
 
       result
     end
+  end
+
+  def weekly_project_stats_for(scope, archived)
+    week_starts = (0..11).map { |weeks_ago| weeks_ago.weeks.ago.beginning_of_week }
+    week_keys = week_starts.map { |week_start| week_start.to_date.iso8601 }
+    stats_by_week = week_keys.index_with { {} }
+    timeout = Heartbeat.heartbeat_timeout_duration.to_i
+    conn = Heartbeat.connection
+    timezone = Time.zone.tzinfo.name
+    week_expr = "DATE_TRUNC('week', to_timestamp(time) AT TIME ZONE #{conn.quote(timezone)})"
+    base_scope = scope.with_valid_timestamps.where.not(time: nil).except(:select, :order, :group)
+
+    diffs = base_scope.select(
+      "#{week_expr} AS week_start",
+      :project,
+      <<~SQL.squish
+        CASE
+          WHEN LAG(time) OVER (PARTITION BY #{week_expr}, project ORDER BY time) IS NULL THEN 0
+          ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{week_expr}, project ORDER BY time), #{timeout})
+        END AS diff
+      SQL
+    )
+
+    conn.select_all(<<~SQL).each do |row|
+      SELECT week_start, project, COALESCE(SUM(diff), 0)::integer AS duration
+      FROM (#{diffs.to_sql}) AS weekly_project_diffs
+      GROUP BY week_start, project
+    SQL
+      project = row["project"]
+      next if archived.key?(project)
+
+      week_key = row["week_start"]&.to_date&.iso8601
+      next unless week_key
+
+      stats_by_week[week_key] ||= {}
+      stats_by_week[week_key][project] = row["duration"].to_i
+    end
+
+    week_keys.to_h { |week_key| [ week_key, stats_by_week.fetch(week_key, {}) ] }
   end
 
   def activity_graph_data

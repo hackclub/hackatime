@@ -78,7 +78,7 @@
       color_scheme: "dark" | "light";
       theme_color: string;
     };
-    currently_hacking: {
+    currently_hacking?: {
       count: number;
       users: CurrentlyHackingUser[];
       interval: number;
@@ -102,17 +102,18 @@
   let flashHiding = $state(false);
   const flashHideDelay = 6000;
   const flashExitDuration = 250;
-  const currentlyHackingPollInterval = () =>
-    layout.currently_hacking?.interval || 30000;
+  const currentlyHackingPoll = usePoll(
+    30000,
+    {
+      only: ["currently_hacking"],
+    },
+    { autoStart: false },
+  );
 
   const toggleNav = () => (navOpen = !navOpen);
   const closeNav = () => (navOpen = false);
   const openLogout = () => (logoutOpen = true);
   const closeLogout = () => (logoutOpen = false);
-
-  usePoll(currentlyHackingPollInterval(), {
-    only: ["currently_hacking"],
-  });
 
   const handleNavLinkClick = () => {
     if (isBrowser && window.innerWidth <= 1024) closeNav();
@@ -130,7 +131,7 @@
   };
 
   const countLabel = () =>
-    `${layout.currently_hacking.count} ${plur("person", layout.currently_hacking.count)} currently hacking`;
+    `${layout.currently_hacking?.count || 0} ${plur("person", layout.currently_hacking?.count || 0)} currently hacking`;
 
   const visualizeGitUrl = (url?: string | null) =>
     url?.startsWith("https://github.com/")
@@ -229,6 +230,9 @@
 
   onMount(() => {
     if (!isBrowser) return;
+
+    if (layout.currently_hacking) currentlyHackingPoll.start();
+
     handleResize();
     window.addEventListener("resize", handleResize);
     document.addEventListener("keydown", handleKeydown);

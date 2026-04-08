@@ -4,20 +4,42 @@ class Cache::UsageSocialProofJob < Cache::ActivityJob
   private
 
   def calculate
-    # Only run queries as needed, starting with the smallest time range
-    if (past_hour_count = users_in_past(1.hour)) > 5
+    counts = distinct_user_counts
+
+    if counts[:past_hour_count] > 5
+      past_hour_count = counts[:past_hour_count]
       "In the past hour, #{past_hour_count} Hack Clubbers have coded with Hackatime."
-    elsif (past_day_count = users_in_past(1.day)) > 5
+    elsif counts[:past_day_count] > 5
+      past_day_count = counts[:past_day_count]
       "In the past day, #{past_day_count} Hack Clubbers have coded with Hackatime."
-    elsif (past_week_count = users_in_past(1.week)) > 5
+    elsif counts[:past_week_count] > 5
+      past_week_count = counts[:past_week_count]
       "In the past week, #{past_week_count} Hack Clubbers have coded with Hackatime."
     end
   end
 
-  def users_in_past(duration)
-    Heartbeat.coding_only
-             .with_valid_timestamps
-             .where("time > ?", duration.ago.to_f)
-             .distinct.count(:user_id)
+  def distinct_user_counts
+    past_hour = 1.hour.ago.to_f
+    past_day = 1.day.ago.to_f
+    past_week = 1.week.ago.to_f
+
+    result = Heartbeat.connection.select_one(<<~SQL)
+      SELECT
+        COUNT(DISTINCT user_id) FILTER (WHERE time > #{past_hour})::integer AS past_hour_count,
+        COUNT(DISTINCT user_id) FILTER (WHERE time > #{past_day})::integer AS past_day_count,
+        COUNT(DISTINCT user_id) FILTER (WHERE time > #{past_week})::integer AS past_week_count
+      FROM heartbeats
+      WHERE deleted_at IS NULL
+        AND category = 'coding'
+        AND time IS NOT NULL
+        AND time >= 0 AND time <= 253402300799
+        AND time > #{past_week}
+    SQL
+
+    {
+      past_hour_count: result["past_hour_count"].to_i,
+      past_day_count: result["past_day_count"].to_i,
+      past_week_count: result["past_week_count"].to_i
+    }
   end
 end

@@ -6,6 +6,8 @@ class InertiaController < ApplicationController
   private
 
   def inertia_layout_props
+    return unless share_inertia_layout?
+
     {
       nav: inertia_nav_props,
       footer: inertia_footer_props,
@@ -16,6 +18,10 @@ class InertiaController < ApplicationController
       show_stop_impersonating: session[:impersonater_user_id].present?,
       stop_impersonating_path: stop_impersonating_path
     }
+  end
+
+  def share_inertia_layout?
+    true
   end
 
   def inertia_theme_props
@@ -117,7 +123,7 @@ class InertiaController < ApplicationController
 
     links = []
     links << inertia_link("Admin Management", admin_admin_users_path, active: helpers.current_page?(admin_admin_users_path))
-    pending_count = DeletionRequest.pending.count
+    pending_count = pending_deletion_requests_count
     links << inertia_link("Account Deletions", admin_deletion_requests_path, active: helpers.current_page?(admin_deletion_requests_path), badge: pending_count.positive? ? pending_count : nil)
     links << inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications"))
     links
@@ -156,6 +162,7 @@ class InertiaController < ApplicationController
   def inertia_footer_props
     helpers = ApplicationController.helpers
     cache = helpers.cache_stats
+    counts = heartbeat_counts
     hours = active_users_graph_data.map do |entry|
       {
         height: entry[:height],
@@ -167,8 +174,8 @@ class InertiaController < ApplicationController
       git_version: Rails.application.config.git_version,
       commit_link: Rails.application.config.commit_link,
       server_start_time_ago: helpers.time_ago_in_words(Rails.application.config.server_start_time),
-      heartbeat_recent_count: Heartbeat.recent_count,
-      heartbeat_recent_imported_count: Heartbeat.recent_imported_count,
+      heartbeat_recent_count: counts[:recent_count],
+      heartbeat_recent_imported_count: counts[:recent_imported_count],
       query_count: QueryCount::Counter.counter,
       query_cache_count: QueryCount::Counter.counter_cache,
       cache_hits: cache[:hits],

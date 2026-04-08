@@ -69,6 +69,24 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_inertia_prop "continue_param", nil
   end
 
+  test "signin does not share app layout props" do
+    get signin_path
+
+    assert_response :success
+    assert_inertia_component "Auth/SignIn"
+    assert_nil inertia_page.dig("props", "layout")
+  end
+
+  test "signin does not load jam scripts in test" do
+    get signin_path
+    assert_no_match "https://js.jam.dev/recorder.js", response.body
+    assert_no_match "https://js.jam.dev/capture.js", response.body
+
+    get signin_path, headers: { "Cookie" => "jam=1" }
+    assert_no_match "https://js.jam.dev/recorder.js", response.body
+    assert_no_match "https://js.jam.dev/capture.js", response.body
+  end
+
   # -- Email auth: persists continue into sign-in token --
 
   test "email auth stores continue param in sign-in token" do

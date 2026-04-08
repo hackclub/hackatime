@@ -26,8 +26,6 @@ class StaticPagesController < InertiaController
       # Set homepage SEO content for logged-out users only
       set_homepage_seo_content
 
-      @usage_social_proof = Cache::UsageSocialProofJob.perform_now
-
       @home_stats = Cache::HomeStatsJob.perform_now
 
       render inertia: "Home/SignedOut", props: signed_out_props
@@ -127,6 +125,13 @@ class StaticPagesController < InertiaController
 
   private
 
+  def share_inertia_layout?
+    return false if action_name == "signin"
+    return false if action_name == "wakatime_alternative"
+
+    !(action_name == "index" && current_user.blank?)
+  end
+
   def set_homepage_seo_content
     @page_title = @og_title = @twitter_title = "Hackatime - Track How Much You Code | Free & Open Source"
     @meta_description = @og_description = @twitter_description = "Free and open-source coding time tracker. Works with VS Code, JetBrains, vim, emacs, and 70+ editors. Built by Hack Club for teenage developers."
@@ -159,7 +164,6 @@ class StaticPagesController < InertiaController
 
   def signed_out_props
     {
-      flavor_text: @flavor_text.to_s,
       hca_auth_path: hca_auth_path,
       slack_auth_path: slack_auth_path,
       email_auth_path: email_auth_path,

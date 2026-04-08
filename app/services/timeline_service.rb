@@ -24,12 +24,9 @@ class TimelineService
       user_start_of_day = date.in_time_zone(user_tz).beginning_of_day.to_f
       user_end_of_day = date.in_time_zone(user_tz).end_of_day.to_f
 
-      total_coded_time_seconds = Heartbeat.where(user_id: user.id, deleted_at: nil)
-                                          .where("time >= ? AND time <= ?", user_start_of_day, user_end_of_day)
-                                          .duration_seconds
-
       user_heartbeats_for_spans = (heartbeats_by_user_id[user.id] || [])
         .select { |hb| hb.time >= user_start_of_day && hb.time <= user_end_of_day }
+      total_coded_time_seconds = total_coded_time_for(user_heartbeats_for_spans)
 
       spans = calculate_spans(user, user_heartbeats_for_spans)
 
@@ -129,5 +126,20 @@ class TimelineService
     end
 
     spans
+  end
+
+  def total_coded_time_for(heartbeats)
+    timeout = Heartbeat.heartbeat_timeout_duration.to_i
+    previous_time = nil
+
+    heartbeats.sum do |heartbeat|
+      diff = if previous_time.nil?
+        0
+      else
+        [ heartbeat.time - previous_time, timeout ].min
+      end
+      previous_time = heartbeat.time
+      diff
+    end.to_i
   end
 end
