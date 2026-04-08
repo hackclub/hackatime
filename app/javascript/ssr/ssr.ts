@@ -1,6 +1,5 @@
 import "@fontsource-variable/spline-sans";
 import { createInertiaApp } from "@inertiajs/svelte";
-import { render } from "svelte/server";
 import { inertiaDefaults, resolvePage } from "../inertia";
 
 createInertiaApp({
