@@ -547,7 +547,7 @@ module Api
 
         def can_write!
           # blocks viewers
-          unless current_user.admin_level.in?([ "admin", "superadmin" ])
+          unless current_user.admin_level.in?([ "admin", "superadmin", "ultraadmin" ])
             render json: { error: "no perms lmaooo" }, status: :forbidden
           end
         end
