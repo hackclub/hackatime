@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Link from "../../components/Link.svelte";
   import Button from "../../components/Button.svelte";
   import ActivityGraph from "../Home/signedIn/ActivityGraph.svelte";
   import HorizontalBarList from "../Home/signedIn/HorizontalBarList.svelte";

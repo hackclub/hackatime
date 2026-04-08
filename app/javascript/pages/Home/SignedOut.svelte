@@ -3,7 +3,7 @@
 </script>
 
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Link from "../../components/Link.svelte";
   import PhilosophySection from "./signedOut/PhilosophySection.svelte";
   import FeaturesGrid from "./signedOut/FeaturesGrid.svelte";
   import EditorGrid from "./signedOut/EditorGrid.svelte";

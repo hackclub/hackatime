@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Link } from "@inertiajs/svelte";
+  import Link from "../../components/Link.svelte";
   import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
 

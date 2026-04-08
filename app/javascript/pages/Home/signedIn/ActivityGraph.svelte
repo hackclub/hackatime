@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Link from "../../../components/Link.svelte";
   import type { ActivityGraphData } from "../../../types/index";
   import { durationInWords } from "../../../utils";
 

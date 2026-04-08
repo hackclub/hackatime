@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageProps as InertiaPageProps } from "@inertiajs/core";
-  import { Deferred, Link } from "@inertiajs/svelte";
+  import { Deferred } from "@inertiajs/svelte";
+  import Link from "../../components/Link.svelte";
   import CountryFlag from "../../components/CountryFlag.svelte";
   import Twemoji from "../../components/Twemoji.svelte";
   import Button from "../../components/Button.svelte";

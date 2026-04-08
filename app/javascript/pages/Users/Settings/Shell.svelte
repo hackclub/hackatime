@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Link from "../../../components/Link.svelte";
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
   import SubsectionNav from "./components/SubsectionNav.svelte";

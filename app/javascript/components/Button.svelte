@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import { Button as BitsButton } from "bits-ui";
   import type { Snippet } from "svelte";
+  import Link from "./Link.svelte";
 
   type ButtonType = "button" | "submit" | "reset";
   type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";

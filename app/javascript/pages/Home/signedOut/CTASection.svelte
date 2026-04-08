@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Link from "../../../components/Link.svelte";
 
   let {
     hoursTracked,

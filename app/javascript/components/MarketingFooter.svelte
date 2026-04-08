@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Link from "./Link.svelte";
 </script>
 
 <footer class="py-16 w-full bg-surface">

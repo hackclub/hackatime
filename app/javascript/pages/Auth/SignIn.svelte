@@ -3,8 +3,8 @@
 </script>
 
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import AuthForm from "../Home/signedOut/AuthForm.svelte";
+  import Link from "../../components/Link.svelte";
 
   let {
     hca_auth_path,

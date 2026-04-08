@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Link from "../../../components/Link.svelte";
 
   const editors = [
     { name: "VS Code", slug: "vs-code" },

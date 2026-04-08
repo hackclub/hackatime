@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageProps as InertiaPageProps } from "@inertiajs/core";
-  import { Link, router } from "@inertiajs/svelte";
+  import { router } from "@inertiajs/svelte";
+  import Link from "../../components/Link.svelte";
   import { onMount } from "svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";

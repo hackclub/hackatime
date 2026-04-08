@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Link, usePoll } from "@inertiajs/svelte";
+  import { usePoll } from "@inertiajs/svelte";
+  import Link from "../components/Link.svelte";
   import Button from "../components/Button.svelte";
   import CountryFlag from "../components/CountryFlag.svelte";
   import Modal from "../components/Modal.svelte";

@@ -3,7 +3,7 @@
 </script>
 
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import Link from "../components/Link.svelte";
   import MarketingFooter from "../components/MarketingFooter.svelte";
 
   let previousTheme = $state<string | null>(null);
