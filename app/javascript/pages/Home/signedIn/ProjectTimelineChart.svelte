@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BarChart, Tooltip } from "layerchart";
+  import { BarChart } from "layerchart";
   import { secondsToDisplay, secondsToCompactDisplay } from "../../../utils";
 
   let {
@@ -83,16 +83,6 @@
   function formatDuration(value: number): string {
     return secondsToDisplay(value);
   }
-
-  type TimelineDatum = Record<string, string | number>;
-
-  function getSeriesValue(
-    datum: TimelineDatum | null | undefined,
-    key: string,
-  ): number {
-    const value = datum?.[key];
-    return typeof value === "number" ? value : 0;
-  }
 </script>
 
 <div
@@ -111,43 +101,9 @@
         padding={chartPadding}
         props={{
           yAxis: { format: formatYAxis },
+          tooltip: { item: { format: formatDuration } },
         }}
-      >
-        <svelte:fragment slot="tooltip">
-          <Tooltip.Root let:data>
-            {#if data}
-              <Tooltip.Header value={data.week} />
-              <Tooltip.List>
-                {@const seriesItems = [...series]
-                  .reverse()
-                  .filter((s) => getSeriesValue(data, s.key) > 0)}
-                {#each seriesItems as s}
-                  {@const value = getSeriesValue(data, s.key)}
-                  <Tooltip.Item
-                    label={s.label ?? s.key}
-                    {value}
-                    color={s.color}
-                    format={formatDuration}
-                    valueAlign="right"
-                  />
-                {/each}
-                {#if seriesItems.length > 1}
-                  <Tooltip.Separator />
-                  <Tooltip.Item
-                    label="total"
-                    value={seriesItems.reduce(
-                      (total, s) => total + getSeriesValue(data, s.key),
-                      0,
-                    )}
-                    format={formatDuration}
-                    valueAlign="right"
-                  />
-                {/if}
-              </Tooltip.List>
-            {/if}
-          </Tooltip.Root>
-        </svelte:fragment>
-      </BarChart>
+      />
     </div>
   {/if}
 </div>

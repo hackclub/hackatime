@@ -18,9 +18,6 @@
     },
   ] as const;
 
-  // Maximum time to show optimistic overlay before falling back to server state (5 minutes)
-  const OVERLAY_TIMEOUT_MS = 5 * 60 * 1000;
-
   let {
     active_section,
     section_paths,
@@ -41,9 +38,6 @@
   let remoteProvider =
     $state<(typeof PROVIDERS)[number]["value"]>("wakatime_dump");
   let remoteApiKey = $state("");
-  // overlay state: set after a successful form submit, cleared when server confirms or timeout
-  let importOverlay = $state<Partial<HeartbeatImportStatusProps> | null>(null);
-  let overlayStartTime = $state<number | null>(null);
 
   const { start: startPolling, stop: stopPolling } = usePoll(
     1000,
@@ -51,27 +45,7 @@
     { autoStart: false },
   );
 
-  const serverHasImport = $derived(latest_heartbeat_import != null);
-  const serverState = $derived(latest_heartbeat_import?.state);
-  const isServerTerminal = $derived(
-    serverState === "completed" || serverState === "failed",
-  );
-  const isOverlayStale = $derived(() => {
-    if (!overlayStartTime) return false;
-    return Date.now() - overlayStartTime > OVERLAY_TIMEOUT_MS;
-  });
-
-  const effectiveImport = $derived(() => {
-    if (isOverlayStale()) {
-      return latest_heartbeat_import;
-    }
-    if (isServerTerminal && importOverlay) {
-      return latest_heartbeat_import;
-    }
-    return importOverlay ?? latest_heartbeat_import;
-  });
-
-  const activeImport = $derived(effectiveImport());
+  const activeImport = $derived(latest_heartbeat_import);
   const importState = $derived(activeImport?.state ?? "idle");
   const importSourceKind = $derived(activeImport?.source_kind ?? "");
 
@@ -107,29 +81,6 @@
       startPolling();
     } else {
       stopPolling();
-    }
-  });
-
-  $effect(() => {
-    if (!importOverlay) return;
-
-    if (isServerTerminal && serverHasImport) {
-      importOverlay = null;
-      overlayStartTime = null;
-      return;
-    }
-
-    if (overlayStartTime) {
-      const elapsed = Date.now() - overlayStartTime;
-      const remaining = Math.max(0, OVERLAY_TIMEOUT_MS - elapsed);
-
-      const timeoutId = setTimeout(() => {
-        importOverlay = null;
-        overlayStartTime = null;
-        stopPolling();
-      }, remaining);
-
-      return () => clearTimeout(timeoutId);
     }
   });
 
@@ -182,10 +133,50 @@
     }
   }
 
-  function onImportSuccess(data: HeartbeatImportStatusProps) {
-    importOverlay = data;
-    overlayStartTime = Date.now();
-    startPolling();
+  function optimisticRemoteCooldownUntil() {
+    return new Date(Date.now() + 8 * 60 * 1000).toISOString();
+  }
+
+  function optimisticImport(
+    sourceKind: HeartbeatImportStatusProps["source_kind"],
+    state: HeartbeatImportStatusProps["state"],
+  ): HeartbeatImportStatusProps {
+    const now = new Date().toISOString();
+
+    return {
+      import_id: `optimistic-${sourceKind}-${Date.now()}`,
+      state,
+      source_kind: sourceKind,
+      progress_percent: null,
+      processed_count: 0,
+      total_count: null,
+      imported_count: null,
+      skipped_count: null,
+      errors_count: 0,
+      message: prettyStatus(state),
+      error_message: null,
+      remote_dump_status:
+        sourceKind === "dev_upload" ? null : prettyStatus(state),
+      remote_percent_complete: null,
+      cooldown_until:
+        sourceKind === "dev_upload" ? null : optimisticRemoteCooldownUntil(),
+      source_filename: sourceKind === "dev_upload" ? selectedFile?.name : null,
+      updated_at: now,
+      started_at: now,
+      finished_at: null,
+    };
+  }
+
+  function optimisticImportProps(
+    sourceKind: HeartbeatImportStatusProps["source_kind"],
+    state: HeartbeatImportStatusProps["state"],
+  ) {
+    const nextImport = optimisticImport(sourceKind, state);
+
+    return {
+      latest_heartbeat_import: nextImport,
+      remote_import_cooldown_until: nextImport.cooldown_until,
+    };
   }
 </script>
 
@@ -203,10 +194,8 @@
       method="post"
       action={paths.create_heartbeat_import_path}
       resetOnSuccess={["heartbeat_import[api_key]"]}
-      onSuccess={(page) =>
-        onImportSuccess(
-          page.props.latest_heartbeat_import as HeartbeatImportStatusProps,
-        )}
+      optimistic={() =>
+        optimisticImportProps(remoteProvider, "requesting_dump")}
     >
       {#snippet children({ processing, errors: formErrors })}
         <SectionCard
@@ -462,6 +451,7 @@
             action={paths.create_heartbeat_import_path}
             class="mt-4 rounded-md border border-surface-200 bg-darker p-4"
             resetOnSuccess={["heartbeat_file"]}
+            optimistic={() => optimisticImportProps("dev_upload", "queued")}
             onSuccess={() => {
               selectedFile = null;
             }}

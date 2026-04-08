@@ -2,3 +2,4 @@
 # Only install package versions published at least 3 days ago
 # (cough cough axios RAT...)
 minimumReleaseAge = 86400 # seconds
+minimumReleaseAgeExcludes = ["@inertiajs/core", "@inertiajs/svelte", "@inertiajs/vite"]

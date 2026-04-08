@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { PageProps as InertiaPageProps } from "@inertiajs/core";
   import { Link, router } from "@inertiajs/svelte";
   import { onMount } from "svelte";
   import Button from "../../components/Button.svelte";
@@ -113,16 +114,55 @@
     return queryString ? `${index_path}?${queryString}` : index_path;
   };
 
+  const instantProjectsPageProps = ({
+    nextShowArchived = show_archived,
+    nextInterval = interval || "",
+    nextFrom = from || "",
+    nextTo = to || "",
+  }: {
+    nextShowArchived?: boolean;
+    nextInterval?: string;
+    nextFrom?: string;
+    nextTo?: string;
+  } = {}) => {
+    return (
+      currentProps: InertiaPageProps,
+      sharedProps: Partial<InertiaPageProps>,
+    ) => {
+      const currentPage = currentProps as PageProps;
+
+      return {
+        ...sharedProps,
+        ...currentPage,
+        show_archived: nextShowArchived,
+        interval: nextInterval,
+        from: nextFrom,
+        to: nextTo,
+        projects_data: undefined,
+      };
+    };
+  };
+
   const changeInterval = (
     nextInterval: string,
     nextFrom: string,
     nextTo: string,
   ) => {
     const isCustom = Boolean(nextFrom || nextTo);
-    window.location.href = buildProjectsPath({
+    const nextPath = buildProjectsPath({
       nextInterval: isCustom ? "custom" : nextInterval,
       nextFrom: isCustom ? nextFrom : "",
       nextTo: isCustom ? nextTo : "",
+    });
+
+    router.visit(nextPath, {
+      component: "Projects/Index",
+      pageProps: instantProjectsPageProps({
+        nextInterval: isCustom ? "custom" : nextInterval,
+        nextFrom: isCustom ? nextFrom : "",
+        nextTo: isCustom ? nextTo : "",
+      }),
+      preserveScroll: true,
     });
   };
 
@@ -190,12 +230,18 @@
           <Link
             href={buildProjectsPath({ nextShowArchived: false })}
             class={`project-toggle-btn ${!show_archived ? "active" : "inactive"}`}
+            component="Projects/Index"
+            pageProps={instantProjectsPageProps({ nextShowArchived: false })}
+            preserveScroll
           >
             Active
           </Link>
           <Link
             href={buildProjectsPath({ nextShowArchived: true })}
             class={`project-toggle-btn ${show_archived ? "active" : "inactive"}`}
+            component="Projects/Index"
+            pageProps={instantProjectsPageProps({ nextShowArchived: true })}
+            preserveScroll
           >
             Archived
           </Link>

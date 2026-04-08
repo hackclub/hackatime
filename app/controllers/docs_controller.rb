@@ -50,8 +50,8 @@ class DocsController < InertiaController
     @meta_description = "Get started with Hackatime in minutes. Step-by-step setup guides for VS Code, JetBrains, vim, Neovim, Sublime Text, and 70+ more editors and IDEs."
 
     render inertia: "Docs/Index", props: {
-      popular_editors: POPULAR_EDITORS,
-      all_editors: ALL_EDITORS
+      popular_editors: InertiaRails.once(expires_in: 1.day) { POPULAR_EDITORS },
+      all_editors: InertiaRails.once(expires_in: 1.day) { ALL_EDITORS }
     }
   end
 

@@ -1,6 +1,7 @@
 {
   "all": {
     "sourceCodeDir": "app/javascript",
+    "viteBinPath": "node_modules/.bin/vite",
     "watchAdditionalPaths": []
   },
   "development": {

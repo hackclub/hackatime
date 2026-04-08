@@ -1,3 +1,4 @@
+import inertia from "@inertiajs/vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
@@ -9,5 +10,14 @@ export default defineConfig({
       host: "localhost",
     },
   },
-  plugins: [svelte(), tailwindcss(), RubyPlugin()],
+  plugins: [
+    inertia({
+      ssr: {
+        entry: "ssr/ssr.ts",
+      },
+    }),
+    svelte(),
+    tailwindcss(),
+    RubyPlugin(),
+  ],
 });

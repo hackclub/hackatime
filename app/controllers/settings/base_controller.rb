@@ -33,18 +33,26 @@ class Settings::BaseController < InertiaController
 
     {
       active_section: active_section,
-      section_paths: {
-        profile: my_settings_profile_path,
-        integrations: my_settings_integrations_path,
-        notifications: my_settings_notifications_path,
-        access: my_settings_access_path,
-        goals: my_settings_goals_path,
-        badges: my_settings_badges_path,
-        data: my_settings_data_path
+      section_paths: InertiaRails.once {
+        {
+          profile: my_settings_profile_path,
+          integrations: my_settings_integrations_path,
+          notifications: my_settings_notifications_path,
+          access: my_settings_access_path,
+          goals: my_settings_goals_path,
+          badges: my_settings_badges_path,
+          data: my_settings_data_path
+        }
       },
-      page_title: (is_own ? "My Settings" : "Settings | #{@user.display_name}"),
-      heading: (is_own ? "Settings" : "Settings for #{@user.display_name}"),
-      subheading: "Manage your profile, integrations, notifications, access, goals, and data tools.",
+      page_title: InertiaRails.once {
+        is_own ? "My Settings" : "Settings | #{@user.display_name}"
+      },
+      heading: InertiaRails.once {
+        is_own ? "Settings" : "Settings for #{@user.display_name}"
+      },
+      subheading: InertiaRails.once {
+        "Manage your profile, integrations, notifications, access, goals, and data tools."
+      },
 
       errors: {
         full_messages: @user.errors.full_messages,
@@ -125,22 +133,32 @@ class Settings::BaseController < InertiaController
     end
 
     {
-      countries: ISO3166::Country.all.map { |country|
-        { label: country.common_name, value: country.alpha2 }
-      }.sort_by { |country| country[:label] },
-      timezones: TZInfo::Timezone.all_identifiers.sort.map { |timezone|
-        { label: timezone, value: timezone }
+      countries: InertiaRails.once(expires_in: 12.hours) {
+        ISO3166::Country.all.map { |country|
+          { label: country.common_name, value: country.alpha2 }
+        }.sort_by { |country| country[:label] }
       },
-      extension_text_types: User.hackatime_extension_text_types.keys.map { |key|
-        { label: key.humanize, value: key }
+      timezones: InertiaRails.once(expires_in: 12.hours) {
+        TZInfo::Timezone.all_identifiers.sort.map { |timezone|
+          { label: timezone, value: timezone }
+        }
       },
-      themes: User.theme_options,
-      badge_themes: GithubReadmeStats.themes,
+      extension_text_types: InertiaRails.once(expires_in: 12.hours) {
+        User.hackatime_extension_text_types.keys.map { |key|
+          { label: key.humanize, value: key }
+        }
+      },
+      themes: InertiaRails.once(expires_in: 12.hours) { User.theme_options },
+      badge_themes: InertiaRails.once(expires_in: 12.hours) { GithubReadmeStats.themes },
       goals: {
-        periods: Goal::PERIODS.map { |period|
-          { label: period.humanize, value: period }
+        periods: InertiaRails.once(expires_in: 12.hours) {
+          Goal::PERIODS.map { |period|
+            { label: period.humanize, value: period }
+          }
         },
-        preset_target_seconds: Goal::PRESET_TARGET_SECONDS,
+        preset_target_seconds: InertiaRails.once(expires_in: 12.hours) {
+          Goal::PRESET_TARGET_SECONDS
+        },
         selectable_languages: goal_languages.uniq.sort
           .map { |language| { label: language, value: language } },
         selectable_projects: goal_projects.uniq.sort

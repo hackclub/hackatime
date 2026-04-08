@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { PageProps as InertiaPageProps } from "@inertiajs/core";
   import { Deferred, Link } from "@inertiajs/svelte";
   import CountryFlag from "../../components/CountryFlag.svelte";
   import Twemoji from "../../components/Twemoji.svelte";
@@ -54,6 +55,36 @@
             year: "numeric",
           })),
   );
+
+  const instantLeaderboardPageProps = ({
+    nextPeriodType = period_type,
+    nextScope = scope,
+  }: {
+    nextPeriodType?: string;
+    nextScope?: string;
+  } = {}) => {
+    return (
+      currentProps: InertiaPageProps,
+      sharedProps: Partial<InertiaPageProps>,
+    ) => {
+      const currentPage = currentProps as {
+        country: LeaderboardCountry;
+        is_logged_in: boolean;
+        github_uid_blank: boolean;
+        github_auth_path: string;
+        settings_path: string;
+      };
+
+      return {
+        ...sharedProps,
+        ...currentPage,
+        period_type: nextPeriodType,
+        scope: nextScope,
+        leaderboard: null,
+        entries: undefined,
+      };
+    };
+  };
 </script>
 
 <svelte:head>
@@ -70,6 +101,8 @@
         <Link
           href={`/leaderboards?period_type=${period_type}&scope=global`}
           class={`${tabClass(scope === "global")} inline-flex items-center justify-center gap-2`}
+          component="Leaderboards/Index"
+          pageProps={instantLeaderboardPageProps({ nextScope: "global" })}
           preserveScroll
         >
           <Twemoji emoji="🌐" alt="Globe" class="inline-block w-5 h-5" />
@@ -80,6 +113,8 @@
           <Link
             href={`/leaderboards?period_type=${period_type}&scope=country`}
             class={`${tabClass(scope === "country")} inline-flex items-center justify-center gap-2`}
+            component="Leaderboards/Index"
+            pageProps={instantLeaderboardPageProps({ nextScope: "country" })}
             preserveScroll
           >
             <CountryFlag
@@ -109,6 +144,8 @@
         <Link
           href={`/leaderboards?period_type=daily&scope=${scope}`}
           class={tabClass(period_type === "daily")}
+          component="Leaderboards/Index"
+          pageProps={instantLeaderboardPageProps({ nextPeriodType: "daily" })}
           preserveScroll
         >
           <span class="sm:hidden">24h</span>
@@ -117,6 +154,10 @@
         <Link
           href={`/leaderboards?period_type=last_7_days&scope=${scope}`}
           class={tabClass(period_type === "last_7_days")}
+          component="Leaderboards/Index"
+          pageProps={instantLeaderboardPageProps({
+            nextPeriodType: "last_7_days",
+          })}
           preserveScroll
         >
           <span class="sm:hidden">7d</span>

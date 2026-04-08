@@ -35,4 +35,23 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_inertia_component "Users/Settings/Profile"
   end
+
+  test "profile page exposes stable settings props as once props" do
+    user = users(:one)
+    sign_in_as(user)
+
+    get my_settings_profile_path
+
+    assert_response :success
+    assert_inertia_component "Users/Settings/Profile"
+
+    page = inertia_page
+    assert_equal "section_paths", page.dig("onceProps", "section_paths", "prop")
+    assert_equal "page_title", page.dig("onceProps", "page_title", "prop")
+    assert_equal "heading", page.dig("onceProps", "heading", "prop")
+    assert_equal "subheading", page.dig("onceProps", "subheading", "prop")
+    assert_equal "options.countries", page.dig("onceProps", "options.countries", "prop")
+    assert_equal "options.timezones", page.dig("onceProps", "options.timezones", "prop")
+    assert_equal "options.themes", page.dig("onceProps", "options.themes", "prop")
+  end
 end

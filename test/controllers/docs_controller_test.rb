@@ -19,4 +19,15 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_inertia_component "Docs/Show"
   end
+
+  test "docs index marks editor catalogs as once props" do
+    get docs_path
+
+    assert_response :success
+    assert_inertia_component "Docs/Index"
+
+    page = inertia_page
+    assert_equal "popular_editors", page.dig("onceProps", "popular_editors", "prop")
+    assert_equal "all_editors", page.dig("onceProps", "all_editors", "prop")
+  end
 end
