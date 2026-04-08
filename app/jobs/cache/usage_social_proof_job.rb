@@ -23,17 +23,18 @@ class Cache::UsageSocialProofJob < Cache::ActivityJob
     past_day = 1.day.ago.to_f
     past_week = 1.week.ago.to_f
 
-    result = Heartbeat.connection.select_one(<<~SQL)
+    conn = Heartbeat.connection
+    result = conn.select_one(<<~SQL)
       SELECT
-        COUNT(DISTINCT user_id) FILTER (WHERE time > #{past_hour})::integer AS past_hour_count,
-        COUNT(DISTINCT user_id) FILTER (WHERE time > #{past_day})::integer AS past_day_count,
-        COUNT(DISTINCT user_id) FILTER (WHERE time > #{past_week})::integer AS past_week_count
+        COUNT(DISTINCT user_id) FILTER (WHERE time > #{conn.quote(past_hour)})::integer AS past_hour_count,
+        COUNT(DISTINCT user_id) FILTER (WHERE time > #{conn.quote(past_day)})::integer AS past_day_count,
+        COUNT(DISTINCT user_id) FILTER (WHERE time > #{conn.quote(past_week)})::integer AS past_week_count
       FROM heartbeats
       WHERE deleted_at IS NULL
         AND category = 'coding'
         AND time IS NOT NULL
         AND time >= 0 AND time <= 253402300799
-        AND time > #{past_week}
+        AND time > #{conn.quote(past_week)}
     SQL
 
     {

@@ -101,7 +101,10 @@ module DashboardData
     conn = Heartbeat.connection
     timezone = Time.zone.tzinfo.name
     week_expr = "DATE_TRUNC('week', to_timestamp(time) AT TIME ZONE #{conn.quote(timezone)})"
-    base_scope = scope.with_valid_timestamps.where.not(time: nil).except(:select, :order, :group)
+    oldest_time = week_starts.last.to_f
+    base_scope = scope.with_valid_timestamps.where.not(time: nil)
+                      .where("time >= ?", oldest_time)
+                      .except(:select, :order, :group)
 
     diffs = base_scope.select(
       "#{week_expr} AS week_start",
