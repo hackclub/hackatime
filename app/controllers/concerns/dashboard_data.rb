@@ -94,45 +94,11 @@ module DashboardData
   end
 
   def weekly_project_stats_for(scope, archived)
-    week_starts = (0..11).map { |weeks_ago| weeks_ago.weeks.ago.beginning_of_week }
-    week_keys = week_starts.map { |week_start| week_start.to_date.iso8601 }
-    stats_by_week = week_keys.index_with { {} }
-    timeout = Heartbeat.heartbeat_timeout_duration.to_i
-    conn = Heartbeat.connection
-    timezone = Time.zone.tzinfo.name
-    week_expr = "DATE_TRUNC('week', to_timestamp(time) AT TIME ZONE #{conn.quote(timezone)})"
-    oldest_time = week_starts.last.to_f
-    base_scope = scope.with_valid_timestamps.where.not(time: nil)
-                      .where("time >= ?", oldest_time)
-                      .except(:select, :order, :group)
-
-    diffs = base_scope.select(
-      "#{week_expr} AS week_start",
-      :project,
-      <<~SQL.squish
-        CASE
-          WHEN LAG(time) OVER (PARTITION BY #{week_expr}, project ORDER BY time) IS NULL THEN 0
-          ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{week_expr}, project ORDER BY time), #{timeout})
-        END AS diff
-      SQL
-    )
-
-    conn.select_all(<<~SQL).each do |row|
-      SELECT week_start, project, COALESCE(SUM(diff), 0)::integer AS duration
-      FROM (#{diffs.to_sql}) AS weekly_project_diffs
-      GROUP BY week_start, project
-    SQL
-      project = row["project"]
-      next if archived.key?(project)
-
-      week_key = row["week_start"]&.to_date&.iso8601
-      next unless week_key
-
-      stats_by_week[week_key] ||= {}
-      stats_by_week[week_key][project] = row["duration"].to_i
+    (0..11).to_h do |w|
+      ws = w.weeks.ago.beginning_of_week
+      [ ws.to_date.iso8601, scope.where(time: ws.to_f..w.weeks.ago.end_of_week.to_f)
+          .group(:project).duration_seconds.reject { |p, _| archived.key?(p) } ]
     end
-
-    week_keys.to_h { |week_key| [ week_key, stats_by_week.fetch(week_key, {}) ] }
   end
 
   def activity_graph_data
