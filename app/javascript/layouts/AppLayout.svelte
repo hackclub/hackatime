@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { usePoll } from "@inertiajs/svelte";
+  import { router, usePoll } from "@inertiajs/svelte";
   import Link from "../components/Link.svelte";
   import Button from "../components/Button.svelte";
+  import NavLinkGroup from "../components/NavLinkGroup.svelte";
   import CountryFlag from "../components/CountryFlag.svelte";
   import Modal from "../components/Modal.svelte";
   import type { Snippet } from "svelte";
@@ -78,7 +79,7 @@
       color_scheme: "dark" | "light";
       theme_color: string;
     };
-    currently_hacking: {
+    currently_hacking?: {
       count: number;
       users: CurrentlyHackingUser[];
       interval: number;
@@ -102,17 +103,18 @@
   let flashHiding = $state(false);
   const flashHideDelay = 6000;
   const flashExitDuration = 250;
-  const currentlyHackingPollInterval = () =>
-    layout.currently_hacking?.interval || 30000;
+  const currentlyHackingPoll = usePoll(
+    30000,
+    {
+      only: ["currently_hacking"],
+    },
+    { autoStart: false },
+  );
 
   const toggleNav = () => (navOpen = !navOpen);
   const closeNav = () => (navOpen = false);
   const openLogout = () => (logoutOpen = true);
   const closeLogout = () => (logoutOpen = false);
-
-  usePoll(currentlyHackingPollInterval(), {
-    only: ["currently_hacking"],
-  });
 
   const handleNavLinkClick = () => {
     if (isBrowser && window.innerWidth <= 1024) closeNav();
@@ -130,7 +132,7 @@
   };
 
   const countLabel = () =>
-    `${layout.currently_hacking.count} ${plur("person", layout.currently_hacking.count)} currently hacking`;
+    `${layout.currently_hacking?.count || 0} ${plur("person", layout.currently_hacking?.count || 0)} currently hacking`;
 
   const visualizeGitUrl = (url?: string | null) =>
     url?.startsWith("https://github.com/")
@@ -229,6 +231,9 @@
 
   onMount(() => {
     if (!isBrowser) return;
+
+    if (layout.currently_hacking) currentlyHackingPoll.start();
+
     handleResize();
     window.addEventListener("resize", handleResize);
     document.addEventListener("keydown", handleKeydown);
@@ -387,11 +392,12 @@
       <nav class="space-y-1">
         {#each layout.nav.links as link}
           {#if link.action === "logout"}
-            <button
+            <Button
               type="button"
+              unstyled
               onclick={openLogout}
               class={`${navLinkClass(false)} cursor-pointer w-full text-left`}
-              >Logout</button
+              >Logout</Button
             >
           {:else if link.inertia}
             <Link
@@ -410,174 +416,13 @@
 
         {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0 || (layout.nav.ultraadmin_links && layout.nav.ultraadmin_links.length > 0)}
           <div class="pt-2 mt-2 border-t border-darkless space-y-1">
-            {#each layout.nav.dev_links as link}
-              {#if link.inertia}
-                <Link
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} dev-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </Link>
-              {:else}
-                <a
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} dev-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </a>
-              {/if}
-            {/each}
-
-            {#each layout.nav.admin_links as link}
-              {#if link.inertia}
-                <Link
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} admin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </Link>
-              {:else}
-                <a
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} admin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </a>
-              {/if}
-            {/each}
-
-            {#each layout.nav.viewer_links as link}
-              {#if link.inertia}
-                <Link
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} viewer-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </Link>
-              {:else}
-                <a
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} viewer-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </a>
-              {/if}
-            {/each}
-
-            {#each layout.nav.superadmin_links as link}
-              {#if link.inertia}
-                <Link
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} superadmin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </Link>
-              {:else}
-                <a
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} superadmin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </a>
-              {/if}
-            {/each}
-
-            {#each layout.nav.ultraadmin_links || [] as link}
-              {#if link.inertia}
-                <Link
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} ultraadmin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </Link>
-              {:else}
-                <a
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} ultraadmin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </a>
-              {/if}
+            {#each [{ links: layout.nav.dev_links, roleClass: "dev-tool" }, { links: layout.nav.admin_links, roleClass: "admin-tool" }, { links: layout.nav.viewer_links, roleClass: "viewer-tool" }, { links: layout.nav.superadmin_links, roleClass: "superadmin-tool" }, { links: layout.nav.ultraadmin_links || [], roleClass: "ultraadmin-tool" }] as group}
+              <NavLinkGroup
+                links={group.links}
+                roleClass={group.roleClass}
+                {navLinkClass}
+                onLinkClick={handleNavLinkClick}
+              />
             {/each}
           </div>
         {/if}
@@ -632,9 +477,10 @@
   <div
     class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
   >
-    <button
+    <Button
       type="button"
-      class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between"
+      unstyled
+      class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between w-full"
       onclick={toggleCurrentlyHacking}
       aria-expanded={currentlyExpanded}
       aria-label="Toggle currently hacking list"
@@ -645,7 +491,7 @@
           <span class="text-base">{countLabel()}</span>
         </div>
       </div>
-    </button>
+    </Button>
 
     {#if currentlyExpanded}
       {#if layout.currently_hacking.users.length === 0}
@@ -750,19 +596,12 @@
         class="h-10 w-full border border-surface-300 text-muted">Go back</Button
       >
 
-      <form method="post" action={layout.signout_path} class="m-0">
-        <input
-          type="hidden"
-          name="authenticity_token"
-          value={layout.csrf_token}
-        />
-        <input type="hidden" name="_method" value="delete" />
-        <Button
-          type="submit"
-          variant="primary"
-          class="h-10 w-full text-on-primary">Log out now</Button
-        >
-      </form>
+      <Button
+        type="button"
+        variant="primary"
+        class="h-10 w-full text-on-primary"
+        onclick={() => router.delete(layout.signout_path)}>Log out now</Button
+      >
     </div>
   {/snippet}
 </Modal>

@@ -39,10 +39,11 @@
     <% end %>
 
     <% include_external_scripts = !Rails.env.test? %>
+    <% include_jam_scripts = include_external_scripts && jam_enabled? %>
 
     <%= yield :head %>
 
-    <% if include_external_scripts %>
+    <% if include_jam_scripts %>
       <!-- Lets users record their screen from your site -->
       <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
       <script type="module" src="https://js.jam.dev/recorder.js"></script>

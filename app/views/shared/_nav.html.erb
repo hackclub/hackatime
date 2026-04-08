@@ -157,7 +157,7 @@
           <% superadmin_tool(nil, "div") do %>
             <%= link_to admin_deletion_requests_path, class: "block px-3 py-2 rounded-md text-sm transition-colors #{current_page?(admin_deletion_requests_path) ? 'bg-primary text-white font-bold' : 'hover:bg-darkless'}", data: { action: "click->nav#clickLink" } do %>
               Account Deletions
-              <% pending_count = DeletionRequest.pending.count %>
+              <% pending_count = pending_deletion_requests_count %>
               <% if pending_count > 0 %>
                 <span class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"><%= pending_count %></span>
               <% end %>

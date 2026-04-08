@@ -1,8 +1,8 @@
 class Cache::HeartbeatCountsJob < Cache::ActivityJob
   queue_as :latency_10s
 
-  def expires_in
-    5.hours
+  def cache_expiration
+    30.minutes
   end
 
   private

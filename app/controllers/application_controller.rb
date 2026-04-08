@@ -18,7 +18,8 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   # allow_browser versions: :modern
 
-  helper_method :current_user, :user_signed_in?, :active_users_graph_data
+  helper_method :active_users_graph_data, :current_user, :heartbeat_counts,
+    :jam_enabled?, :pending_deletion_requests_count, :user_signed_in?
 
   private
 
@@ -87,6 +88,20 @@ class ApplicationController < ActionController::Base
   end
 
   def active_users_graph_data
-    Cache::ActiveUsersGraphDataJob.perform_now
+    @active_users_graph_data ||= Cache::ActiveUsersGraphDataJob.perform_now
+  end
+
+  def heartbeat_counts
+    @heartbeat_counts ||= Cache::HeartbeatCountsJob.perform_now
+  end
+
+  def jam_enabled?
+    cookies[:jam].present?
+  end
+
+  def pending_deletion_requests_count
+    Rails.cache.fetch("deletion_requests_pending_count", expires_in: 1.minute) do
+      DeletionRequest.pending.count
+    end
   end
 end

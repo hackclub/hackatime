@@ -54,7 +54,7 @@ class ProfileStatsService
     week_end_quoted = conn.quote(week_end)
     month_ago_quoted = conn.quote(month_ago)
 
-    base_sql = <<~SQL
+    results = conn.select_one(<<~SQL)
       WITH heartbeat_diffs AS (
         SELECT
           time,
@@ -70,29 +70,65 @@ class ProfileStatsService
           AND deleted_at IS NULL
           AND time IS NOT NULL
           AND time >= 0 AND time <= 253402300799
+      ),
+      top_languages AS (
+        SELECT language, COALESCE(SUM(diff), 0)::integer AS duration
+        FROM heartbeat_diffs
+        WHERE language IS NOT NULL AND language != ''
+        GROUP BY language
+        ORDER BY duration DESC
+        LIMIT 5
+      ),
+      top_projects AS (
+        SELECT project, COALESCE(SUM(diff), 0)::integer AS duration
+        FROM heartbeat_diffs
+        WHERE project IS NOT NULL AND project != ''
+        GROUP BY project
+        ORDER BY duration DESC
+        LIMIT 5
+      ),
+      top_projects_month AS (
+        SELECT project, COALESCE(SUM(diff), 0)::integer AS duration
+        FROM heartbeat_diffs
+        WHERE time >= #{month_ago_quoted}
+          AND project IS NOT NULL AND project != ''
+        GROUP BY project
+        ORDER BY duration DESC
+        LIMIT 6
+      ),
+      top_editors AS (
+        SELECT editor, COALESCE(SUM(diff), 0)::integer AS duration
+        FROM heartbeat_diffs
+        WHERE editor IS NOT NULL AND editor != ''
+        GROUP BY editor
+        ORDER BY duration DESC
       )
-    SQL
-
-    totals_sql = <<~SQL
-      #{base_sql}
       SELECT
         COALESCE(SUM(diff) FILTER (WHERE time >= #{today_start_quoted} AND time <= #{today_end_quoted}), 0)::integer AS today_seconds,
         COALESCE(SUM(diff) FILTER (WHERE time >= #{week_start_quoted} AND time <= #{week_end_quoted}), 0)::integer AS week_seconds,
-        COALESCE(SUM(diff), 0)::integer AS all_seconds
+        COALESCE(SUM(diff), 0)::integer AS all_seconds,
+        COALESCE((SELECT jsonb_agg(jsonb_build_array(language, duration) ORDER BY duration DESC) FROM top_languages), '[]'::jsonb) AS top_languages,
+        COALESCE((SELECT jsonb_agg(jsonb_build_array(project, duration) ORDER BY duration DESC) FROM top_projects), '[]'::jsonb) AS top_projects,
+        COALESCE((SELECT jsonb_agg(jsonb_build_object('project', project, 'duration', duration) ORDER BY duration DESC) FROM top_projects_month), '[]'::jsonb) AS top_projects_month,
+        COALESCE((SELECT jsonb_agg(jsonb_build_array(editor, duration) ORDER BY duration DESC) FROM top_editors), '[]'::jsonb) AS top_editors
       FROM heartbeat_diffs
     SQL
 
-    totals = conn.select_one(totals_sql)
+    top_languages = decode_duration_pairs(results["top_languages"])
+    top_projects_all = decode_duration_pairs(results["top_projects"])
+    top_editors = normalize_top_editors(decode_duration_pairs(results["top_editors"]))
 
-    top_languages = fetch_top_grouped(conn, base_sql, "language", nil, 5)
-    top_projects_all = fetch_top_grouped(conn, base_sql, "project", nil, 5)
-    top_projects_month = fetch_top_grouped_with_repo(conn, base_sql, month_ago_quoted, 6)
-    top_editors = fetch_top_editors_normalized(conn, base_sql, 3)
+    project_repo_mappings = user.project_repo_mappings.active.index_by(&:project_name)
+    top_projects_month = decode_json(results["top_projects_month"]).map do |row|
+      project = row["project"]
+      mapping = project_repo_mappings[project]
+      { project: project, duration: row["duration"].to_i, repo_url: mapping&.repo_url }
+    end
 
     {
-      today_seconds: totals["today_seconds"].to_i,
-      week_seconds: totals["week_seconds"].to_i,
-      all_seconds: totals["all_seconds"].to_i,
+      today_seconds: results["today_seconds"].to_i,
+      week_seconds: results["week_seconds"].to_i,
+      all_seconds: results["all_seconds"].to_i,
       top_languages: top_languages,
       top_projects: top_projects_all,
       top_projects_month: top_projects_month,
@@ -100,58 +136,21 @@ class ProfileStatsService
     }
   end
 
-  def fetch_top_grouped(conn, base_sql, column, time_filter, limit)
-    time_clause = time_filter ? "AND time >= #{time_filter}" : ""
-    sql = <<~SQL
-      #{base_sql}
-      SELECT #{column}, COALESCE(SUM(diff), 0)::integer AS duration
-      FROM heartbeat_diffs
-      WHERE #{column} IS NOT NULL AND #{column} != ''
-      #{time_clause}
-      GROUP BY #{column}
-      ORDER BY duration DESC
-      LIMIT #{limit}
-    SQL
+  def decode_json(value)
+    parsed = value.is_a?(String) ? ActiveSupport::JSON.decode(value) : value
+    parsed || []
+  end
 
-    conn.select_all(sql).each_with_object({}) do |row, hash|
-      hash[row[column]] = row["duration"].to_i
+  def decode_duration_pairs(value)
+    decode_json(value).each_with_object({}) do |(name, duration), result|
+      result[name] = duration.to_i
     end
   end
 
-  def fetch_top_grouped_with_repo(conn, base_sql, month_ago, limit)
-    sql = <<~SQL
-      #{base_sql}
-      SELECT project, COALESCE(SUM(diff), 0)::integer AS duration
-      FROM heartbeat_diffs
-      WHERE time >= #{month_ago}
-        AND project IS NOT NULL AND project != ''
-      GROUP BY project
-      ORDER BY duration DESC
-      LIMIT #{limit}
-    SQL
-
-    project_repo_mappings = user.project_repo_mappings.active.index_by(&:project_name)
-
-    conn.select_all(sql).map do |row|
-      project = row["project"]
-      mapping = project_repo_mappings[project]
-      { project: project, duration: row["duration"].to_i, repo_url: mapping&.repo_url }
-    end
-  end
-
-  def fetch_top_editors_normalized(conn, base_sql, limit)
-    sql = <<~SQL
-      #{base_sql}
-      SELECT editor, COALESCE(SUM(diff), 0)::integer AS duration
-      FROM heartbeat_diffs
-      WHERE editor IS NOT NULL AND editor != ''
-      GROUP BY editor
-      ORDER BY duration DESC
-    SQL
-
-    conn.select_all(sql).each_with_object(Hash.new(0)) do |row, acc|
-      normalized = ApplicationController.helpers.display_editor_name(row["editor"])
-      acc[normalized] += row["duration"].to_i
-    end.sort_by { |_, v| -v }.first(limit).to_h
+  def normalize_top_editors(editor_durations)
+    editor_durations.each_with_object(Hash.new(0)) do |(editor, duration), result|
+      normalized = ApplicationController.helpers.display_editor_name(editor)
+      result[normalized] += duration.to_i
+    end.sort_by { |_, duration| -duration }.first(3).to_h
   end
 end
