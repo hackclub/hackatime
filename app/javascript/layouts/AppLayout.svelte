@@ -416,13 +416,7 @@
 
         {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0 || (layout.nav.ultraadmin_links && layout.nav.ultraadmin_links.length > 0)}
           <div class="pt-2 mt-2 border-t border-darkless space-y-1">
-            {#each [
-              { links: layout.nav.dev_links, roleClass: "dev-tool" },
-              { links: layout.nav.admin_links, roleClass: "admin-tool" },
-              { links: layout.nav.viewer_links, roleClass: "viewer-tool" },
-              { links: layout.nav.superadmin_links, roleClass: "superadmin-tool" },
-              { links: layout.nav.ultraadmin_links || [], roleClass: "ultraadmin-tool" },
-            ] as group}
+            {#each [{ links: layout.nav.dev_links, roleClass: "dev-tool" }, { links: layout.nav.admin_links, roleClass: "admin-tool" }, { links: layout.nav.viewer_links, roleClass: "viewer-tool" }, { links: layout.nav.superadmin_links, roleClass: "superadmin-tool" }, { links: layout.nav.ultraadmin_links || [], roleClass: "ultraadmin-tool" }] as group}
               <NavLinkGroup
                 links={group.links}
                 roleClass={group.roleClass}
@@ -606,8 +600,8 @@
         type="button"
         variant="primary"
         class="h-10 w-full text-on-primary"
-        onclick={() => router.delete(layout.signout_path)}
-      >Log out now</Button>
+        onclick={() => router.delete(layout.signout_path)}>Log out now</Button
+      >
     </div>
   {/snippet}
 </Modal>
