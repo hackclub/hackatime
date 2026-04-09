@@ -94,15 +94,17 @@ class Admin::AccountMergerController < InertiaController
       goal_count = newer_user.goals.update_all(user_id: older_user.id)
       results << "#{goal_count} goals transferred"
 
-      # 4. Revoke newer user's sessions
+      # 4. Reconcile instance import sources before deleting the newer user.
+      deleted_records = reconcile_instance_import_source(older_user:, newer_user:)
+
+      # 5. Revoke newer user's sessions
       revoked_tokens = 0
       revoked_tokens += newer_user.sign_in_tokens.destroy_all.count
       revoked_tokens += Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
       revoked_tokens += Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
       results << "#{revoked_tokens} sessions/tokens revoked"
 
-      # 5. Delete all related data for the newer user
-      deleted_records = 0
+      # 6. Delete all related data for the newer user
       deleted_records += newer_user.email_addresses.destroy_all.count
       deleted_records += newer_user.email_verification_requests.destroy_all.count
       deleted_records += newer_user.goals.destroy_all.count
@@ -124,7 +126,7 @@ class Admin::AccountMergerController < InertiaController
       deleted_records += PaperTrail::Version.where(item_type: "User", item_id: newer_user.id).delete_all
       results << "#{deleted_records} related records cleaned up"
 
-      # 6. Finally, delete the newer user
+      # 7. Finally, delete the newer user
       newer_user.reload
       newer_user.destroy!
       results << "user ##{newer_user.id} deleted"
@@ -137,11 +139,12 @@ class Admin::AccountMergerController < InertiaController
 
   def transfer_api_keys(older_user:, newer_user:)
     transferred_count = 0
+    reserved_names = older_user.api_keys.pluck(:name).index_with(true)
 
     ApiKey.where(user_id: newer_user.id).find_each do |api_key|
       api_key.update!(
         user: older_user,
-        name: unique_api_key_name_for(older_user, api_key.name)
+        name: unique_api_key_name_for(reserved_names, api_key.name)
       )
 
       transferred_count += 1
@@ -150,27 +153,50 @@ class Admin::AccountMergerController < InertiaController
     transferred_count
   end
 
-  def unique_api_key_name_for(user, original_name)
-    return original_name unless user.api_keys.exists?(name: original_name)
+  def unique_api_key_name_for(reserved_names, original_name)
+    unless reserved_names[original_name]
+      reserved_names[original_name] = true
+      return original_name
+    end
 
     suffix = " (transferred)"
     candidate_name = "#{original_name}#{suffix}"
     counter = 2
 
-    while user.api_keys.exists?(name: candidate_name)
+    while reserved_names[candidate_name]
       candidate_name = "#{original_name}#{suffix} #{counter}"
       counter += 1
     end
 
+    reserved_names[candidate_name] = true
     candidate_name
   end
 
-  def delete_rows(table_name, conditions)
-    raise ArgumentError, "Table '#{table_name}' is not in the allowlist" unless table_name.in?(DELETABLE_TABLES)
+  def reconcile_instance_import_source(older_user:, newer_user:)
+    newer_source = InstanceImportSource.find_by(user_id: newer_user.id)
+    return 0 unless newer_source
 
-    sanitized = ActiveRecord::Base.sanitize_sql_array(
-      [ conditions.map { |col, _| "#{ActiveRecord::Base.connection.quote_column_name(col)} = ?" }.join(" AND "), *conditions.values ]
-    )
-    ActiveRecord::Base.connection.delete("DELETE FROM #{ActiveRecord::Base.connection.quote_table_name(table_name)} WHERE #{sanitized}")
+    if InstanceImportSource.exists?(user_id: older_user.id)
+      newer_source.destroy!
+      1
+    else
+      newer_source.update!(user_id: older_user.id)
+      0
+    end
+  end
+
+  def delete_rows(table_name, conditions)
+    sql = case table_name
+    when "heartbeat_import_sources"
+      ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM heartbeat_import_sources WHERE user_id = ?", conditions.fetch(:user_id) ])
+    when "wakatime_mirrors"
+      ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM wakatime_mirrors WHERE user_id = ?", conditions.fetch(:user_id) ])
+    when "project_labels"
+      ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM project_labels WHERE user_id = ?", conditions.fetch(:user_id) ])
+    else
+      raise ArgumentError, "Table '#{table_name}' is not in the allowlist"
+    end
+
+    ActiveRecord::Base.connection.delete(sql)
   end
 end
