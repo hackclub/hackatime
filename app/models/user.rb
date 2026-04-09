@@ -87,7 +87,7 @@ class User < ApplicationRecord
 
     previous_level = trust_level
 
-    if changed_by_user.present? && level.to_s == "red" && !(changed_by_user.admin_level_superadmin?)
+    if changed_by_user.present? && level.to_s == "red" && !changed_by_user.can_convict_users?
       return false
     end
 
