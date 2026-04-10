@@ -7,7 +7,7 @@ import RubyPlugin from 'vite-plugin-ruby'
 export default defineConfig({
   server: {
     hmr: {
-      host: 'localhost',
+      host: "localhost",
     },
   },
   plugins: [
@@ -16,4 +16,4 @@ export default defineConfig({
     tailwindcss(),
     RubyPlugin(),
   ],
-})
+});

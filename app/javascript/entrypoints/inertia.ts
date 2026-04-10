@@ -4,10 +4,13 @@ import AppLayout from "../layouts/AppLayout.svelte";
 
 createInertiaApp({
   progress: {
-    color: 'var(--color-primary)',
+    color: "var(--color-primary)",
   },
 
-  pages: '../pages',
+  pages: {
+    path: "../pages",
+    lazy: false,
+  },
 
   layout: () => AppLayout,
 
