@@ -1986,9 +1986,15 @@ paths:
         description: Project name (optional)
         schema:
           type: string
+      - name: user_id
+        in: query
+        required: true
+        description: User identifier (slack_uid, username, hca_id, or numeric ID)
+        schema:
+          type: string
       - name: user
         in: query
-        description: Slack UID of the user (optional, for admin use)
+        description: 'Deprecated: use user_id instead. Kept for backwards compatibility.'
         schema:
           type: string
       responses:
@@ -2048,7 +2054,9 @@ paths:
                     type: object
                     nullable: true
         '400':
-          description: bad request
+          description: missing user_id
+        '403':
+          description: user has disabled public stats
   "/api/v1/authenticated/me":
     get:
       summary: Get current user info
