@@ -70,14 +70,23 @@ class User < ApplicationRecord
   def self.lookup_by_identifier(id)
     return nil if id.blank?
 
-    if id.match?(/^\d+$/)
-      user = find_by(id: id)
-      return user if user
+    numeric_id = id.to_i if id.match?(/^\d+$/)
+
+    relation = where(slack_uid: id)
+      .or(where(hca_id: id))
+      .or(where(username: id))
+    relation = where(id: numeric_id).or(relation) if numeric_id
+
+    candidates = relation.to_a
+
+    if numeric_id
+      match = candidates.find { |u| u.id == numeric_id }
+      return match if match
     end
 
-    find_by(slack_uid: id) ||
-      find_by(hca_id: id) ||
-      find_by(username: id)
+    candidates.find { |u| u.slack_uid == id } ||
+      candidates.find { |u| u.hca_id == id } ||
+      candidates.find { |u| u.username == id }
   end
 
   def can_convict_users?

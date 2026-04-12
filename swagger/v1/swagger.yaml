@@ -2054,7 +2054,9 @@ paths:
                     type: object
                     nullable: true
         '400':
-          description: missing user_id
+          description: invalid date range
+        '404':
+          description: user not found
         '403':
           description: user has disabled public stats
   "/api/v1/authenticated/me":
