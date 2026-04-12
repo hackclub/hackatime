@@ -304,6 +304,19 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert verification_request.reload.deleted_at.present?
   end
 
+  test "unlink_email removes expired pending verification request" do
+    user = User.create!
+    verification_request = user.email_verification_requests.create!(email: "expired-remove@example.com")
+    verification_request.update_columns(expires_at: 1.minute.ago)
+    sign_in_as(user)
+
+    delete unlink_email_auth_path, params: { email: verification_request.email }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert verification_request.reload.deleted_at.present?
+  end
+
   test "auth token verifies email verification request token" do
     user = User.create!
     verification_request = user.email_verification_requests.create!(email: "verify-me@example.com")

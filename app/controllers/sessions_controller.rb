@@ -258,7 +258,9 @@ class SessionsController < ApplicationController
     )
 
     unless email_record
-      pending_request = current_user.email_verification_requests.valid.find_by(email: email)
+      pending_request = current_user.email_verification_requests
+                   .where(deleted_at: nil)
+                   .find_by(email: email)
 
       unless pending_request
         redirect_to my_settings_path, alert: "Email must exist to be removed"
