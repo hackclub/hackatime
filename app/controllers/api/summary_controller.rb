@@ -57,7 +57,7 @@ module Api
       return render json: { error: "User not found" }, status: :not_found unless @user
 
       unless @user.allow_public_stats_lookup
-        return render json: { error: "User has disabled public stats" }, status: :forbidden
+        render json: { error: "User has disabled public stats" }, status: :forbidden
       end
     end
 
