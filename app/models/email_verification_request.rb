@@ -14,7 +14,7 @@ class EmailVerificationRequest < ApplicationRecord
   before_validation :downcase_email
 
   scope :valid, -> { where("expires_at > ? AND deleted_at IS NULL", Time.current) }
-  scope :expired, -> { where("expires_at <= ?", Time.current) }
+  scope :expired, -> { where("expires_at <= ? AND deleted_at IS NULL", Time.current) }
 
   def expired?
     expires_at <= Time.current

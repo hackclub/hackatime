@@ -192,6 +192,13 @@
                   >
                     Unverified
                   </span>
+                  {#if email.expired}
+                    <span
+                      class="rounded-md border border-surface-200 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted"
+                    >
+                      Expired
+                    </span>
+                  {/if}
                 {/if}
               </p>
               <p class="text-xs text-muted">{email.source}</p>

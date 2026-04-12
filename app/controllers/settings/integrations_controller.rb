@@ -31,7 +31,9 @@ class Settings::IntegrationsController < Settings::BaseController
       enabled: true,
     ).where.not(slack_channel_id: SailorsLog::DEFAULT_CHANNELS)
     channel_ids = enabled_sailors_logs.pluck(:slack_channel_id)
-    pending_email_requests = @user.email_verification_requests.valid.order(created_at: :desc)
+    pending_email_requests = @user.email_verification_requests
+                    .where(deleted_at: nil)
+                    .order(created_at: :desc)
     verified_emails = @user.email_addresses.map { |email|
       {
         email: email.email,
@@ -49,7 +51,8 @@ class Settings::IntegrationsController < Settings::BaseController
         source: "Pending verification",
         can_unlink: true,
         pending: true,
-        can_resend: request.resend_available?,
+        expired: request.expired?,
+        can_resend: !request.expired? && request.resend_available?,
         resend_cooldown_seconds: request.resend_cooldown_seconds
       }
     }

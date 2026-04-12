@@ -134,6 +134,7 @@ export type EmailProps = {
   source: string;
   can_unlink: boolean;
   pending: boolean;
+  expired?: boolean;
   can_resend: boolean;
   resend_cooldown_seconds: number;
 };
