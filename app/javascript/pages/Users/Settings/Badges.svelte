@@ -32,10 +32,7 @@
   let selectedProject = $state<string>("");
 
   $effect(() => {
-    if (
-      badge_themes.length > 0 &&
-      !badge_themes.includes(selectedTheme)
-    ) {
+    if (badge_themes.length > 0 && !badge_themes.includes(selectedTheme)) {
       selectedTheme = defaultTheme(badge_themes);
     }
   });

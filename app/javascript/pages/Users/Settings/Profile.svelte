@@ -133,11 +133,7 @@
     {#if profile_url}
       <p class="text-sm text-muted">
         Public profile:
-        <a
-          href={profile_url}
-          target="_blank"
-          class="text-primary underline"
-        >
+        <a href={profile_url} target="_blank" class="text-primary underline">
           {profile_url}
         </a>
       </p>
