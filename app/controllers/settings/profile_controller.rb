@@ -28,8 +28,8 @@ class Settings::ProfileController < Settings::BaseController
       settings_update_path: my_settings_profile_path,
       username_max_length: User::USERNAME_MAX_LENGTH,
       user: user_props,
-      options: options_props,
-      badges: badges_props
+      options: base_options,
+      profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil)
     }
   end
 

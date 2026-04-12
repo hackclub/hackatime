@@ -12,7 +12,7 @@
     page_title,
     heading,
     subheading,
-    options,
+    badge_themes,
     badges,
     allow_public_stats_lookup,
     settings_update_path,
@@ -33,10 +33,10 @@
 
   $effect(() => {
     if (
-      options.badge_themes.length > 0 &&
-      !options.badge_themes.includes(selectedTheme)
+      badge_themes.length > 0 &&
+      !badge_themes.includes(selectedTheme)
     ) {
-      selectedTheme = defaultTheme(options.badge_themes);
+      selectedTheme = defaultTheme(badge_themes);
     }
   });
 
@@ -77,7 +77,7 @@
 >
   {#if !allow_public_stats_lookup}
     <div
-      class="rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-surface-content"
+      class="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-surface-content"
     >
       <p class="font-medium">Public stats are disabled</p>
       <p class="mt-1 text-muted">
@@ -96,7 +96,9 @@
   {/if}
 
   <div
-    class={allow_public_stats_lookup ? "" : "pointer-events-none opacity-50"}
+    class={allow_public_stats_lookup
+      ? "space-y-5"
+      : "space-y-5 pointer-events-none opacity-50"}
   >
     <SectionCard
       id="user_stats_badges"
@@ -115,7 +117,7 @@
           <Select
             id="badge_theme"
             bind:value={selectedTheme}
-            items={options.badge_themes.map((theme) => ({
+            items={badge_themes.map((theme) => ({
               value: theme,
               label: theme,
             }))}
