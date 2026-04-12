@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { router } from "@inertiajs/svelte";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
@@ -19,14 +19,11 @@
     errors,
   }: BadgesPageProps = $props();
 
-  let csrfToken = $state("");
-
-  onMount(() => {
-    csrfToken =
-      document
-        .querySelector("meta[name='csrf-token']")
-        ?.getAttribute("content") || "";
-  });
+  function enablePublicStats() {
+    router.patch(settings_update_path, {
+      user: { allow_public_stats_lookup: true },
+    });
+  }
 
   const defaultTheme = (themes: string[]) =>
     themes.includes("darcula") ? "darcula" : themes[0] || "default";
@@ -87,14 +84,14 @@
         Badges require public stats to be enabled so they can be viewed by
         others. Enable public stats to use badges.
       </p>
-      <form method="post" action={settings_update_path} class="mt-3">
-        <input type="hidden" name="_method" value="patch" />
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
-        <input type="hidden" name="user[allow_public_stats_lookup]" value="1" />
-        <Button type="submit" variant="primary" size="sm">
-          Enable public stats
-        </Button>
-      </form>
+      <Button
+        onclick={enablePublicStats}
+        variant="primary"
+        size="sm"
+        class="mt-3"
+      >
+        Enable public stats
+      </Button>
     </div>
   {/if}
 
