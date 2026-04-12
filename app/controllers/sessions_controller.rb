@@ -191,7 +191,7 @@ class SessionsController < ApplicationController
       return
     end
 
-    if EmailVerificationRequest.exists?(email: email)
+    if EmailVerificationRequest.where(deleted_at: nil).exists?(email: email)
       redirect_to my_settings_path, alert: "This email is already pending verification"
       return
     end

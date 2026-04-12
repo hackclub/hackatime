@@ -213,7 +213,7 @@
                 >
                   {email.can_resend
                     ? "Resend"
-                    : formatCooldown(email.resend_cooldown_seconds)}
+                      : (formatCooldown(email.resend_cooldown_seconds) || "Resend soon")}
                 </Button>
               </form>
             {/if}
