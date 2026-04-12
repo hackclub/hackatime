@@ -246,6 +246,8 @@ export type GoalsPageProps = SettingsCommonProps & {
 export type BadgesPageProps = SettingsCommonProps & {
   options: OptionsProps;
   badges: BadgesProps;
+  allow_public_stats_lookup: boolean;
+  settings_update_path: string;
 };
 
 export type DataPageProps = SettingsCommonProps & {

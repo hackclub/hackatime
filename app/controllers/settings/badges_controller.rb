@@ -11,7 +11,9 @@ class Settings::BadgesController < Settings::BaseController
   def section_props
     {
       options: options_props,
-      badges: badges_props
+      badges: badges_props,
+      allow_public_stats_lookup: @user.allow_public_stats_lookup,
+      settings_update_path: my_settings_profile_path
     }
   end
 end
