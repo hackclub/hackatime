@@ -17,7 +17,7 @@
     username_max_length,
     user,
     options,
-    badges,
+    profile_url,
     errors,
   }: ProfilePageProps = $props();
 
@@ -130,15 +130,11 @@
       </div>
     </form>
 
-    {#if badges.profile_url}
+    {#if profile_url}
       <p class="text-sm text-muted">
         Public profile:
-        <a
-          href={badges.profile_url}
-          target="_blank"
-          class="text-primary underline"
-        >
-          {badges.profile_url}
+        <a href={profile_url} target="_blank" class="text-primary underline">
+          {profile_url}
         </a>
       </p>
     {/if}

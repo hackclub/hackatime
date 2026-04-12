@@ -66,6 +66,29 @@ class User < ApplicationRecord
     rose_pine_dawn: 9
   }
 
+  # Look up a user by numeric ID, slack_uid, hca_id, or username
+  def self.lookup_by_identifier(id)
+    return nil if id.blank?
+
+    numeric_id = id.to_i if id.match?(/^\d+$/)
+
+    relation = where(slack_uid: id)
+      .or(where(hca_id: id))
+      .or(where(username: id))
+    relation = where(id: numeric_id).or(relation) if numeric_id
+
+    candidates = relation.to_a
+
+    if numeric_id
+      match = candidates.find { |u| u.id == numeric_id }
+      return match if match
+    end
+
+    candidates.find { |u| u.slack_uid == id } ||
+      candidates.find { |u| u.hca_id == id } ||
+      candidates.find { |u| u.username == id }
+  end
+
   def can_convict_users?
     admin_level_superadmin? || admin_level_ultraadmin?
   end

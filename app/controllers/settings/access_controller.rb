@@ -39,7 +39,7 @@ class Settings::AccessController < Settings::BaseController
     {
       settings_update_path: my_settings_access_path,
       user: user_props,
-      options: options_props,
+      options: base_options,
       paths: paths_props,
       config_file: {
         content: generated_wakatime_config(api_key_token),
