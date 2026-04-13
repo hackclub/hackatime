@@ -63,7 +63,8 @@ class User < ApplicationRecord
     github_light: 6,
     nord: 7,
     rose: 8,
-    rose_pine_dawn: 9
+    rose_pine_dawn: 9,
+    amoled: 10
   }
 
   # Look up a user by numeric ID, slack_uid, hca_id, or username
