@@ -17,7 +17,12 @@
     inertia?: boolean;
   };
 
-  type AdminLevel = "default" | "superadmin" | "admin" | "viewer";
+  type AdminLevel =
+    | "default"
+    | "superadmin"
+    | "admin"
+    | "viewer"
+    | "ultraadmin";
 
   type NavCurrentUser = {
     display_name: string;
@@ -39,6 +44,7 @@
     admin_links: NavLink[];
     viewer_links: NavLink[];
     superadmin_links: NavLink[];
+    ultraadmin_links?: NavLink[];
   };
 
   type Footer = {
@@ -126,11 +132,8 @@
     `${layout.currently_hacking.count} ${plur("person", layout.currently_hacking.count)} currently hacking`;
 
   const visualizeGitUrl = (url?: string | null) =>
-    url?.startsWith("https://github.com/")
-      ? url.replace(
-          "https://github.com/",
-          "https://tkww0gcc0gkwwo4gc8kgs0sw.a.selfhosted.hackclub.com/",
-        )
+    url
+      ? `https://maxwofford.com/dandelion/?url=${encodeURIComponent(url)}`
       : "";
 
   const latinPhrases = [
@@ -156,6 +159,7 @@
     `${layout.footer.heartbeat_recent_count} ${plur("heartbeat", layout.footer.heartbeat_recent_count)} (${layout.footer.heartbeat_recent_imported_count} imported) in the past 24 hours. (DB: ${layout.footer.query_count} ${plur("query", layout.footer.query_count)}, ${layout.footer.query_cache_count} cached) (CACHE: ${layout.footer.cache_hits} hits, ${layout.footer.cache_misses} misses) (${layout.footer.requests_per_second})`;
 
   const adminLevelLabel = (adminLevel?: AdminLevel | null) => {
+    if (adminLevel === "ultraadmin") return "Ultraadmin";
     if (adminLevel === "superadmin") return "Superadmin";
     if (adminLevel === "admin") return "Admin";
     if (adminLevel === "viewer") return "Viewer";
@@ -163,6 +167,7 @@
   };
 
   const adminLevelClass = (adminLevel?: AdminLevel | null) => {
+    if (adminLevel === "ultraadmin") return "text-purple-400 ultraadmin-tool";
     if (adminLevel === "superadmin") return "text-red superadmin-tool";
     if (adminLevel === "admin") return "text-yellow admin-tool";
     if (adminLevel === "viewer") return "text-blue viewer-tool";
@@ -399,7 +404,7 @@
           {/if}
         {/each}
 
-        {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0}
+        {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0 || (layout.nav.ultraadmin_links && layout.nav.ultraadmin_links.length > 0)}
           <div class="pt-2 mt-2 border-t border-darkless space-y-1">
             {#each layout.nav.dev_links as link}
               {#if link.inertia}
@@ -524,6 +529,40 @@
                   href={link.href || "#"}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} superadmin-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </a>
+              {/if}
+            {/each}
+
+            {#each layout.nav.ultraadmin_links || [] as link}
+              {#if link.inertia}
+                <Link
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} ultraadmin-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </Link>
+              {:else}
+                <a
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} ultraadmin-tool"
                 >
                   {link.label}
                   {#if link.badge}

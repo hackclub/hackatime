@@ -1,0 +1,47 @@
+{
+  "name": "@inertiajs/svelte",
+  "version": "2.3.14",
+  "license": "MIT",
+  "description": "The Svelte adapter for Inertia.js",
+  "contributors": [
+    "Jonathan Reinink <jonathan@reinink.ca>",
+    "Pedro Borges <oi@pedroborg.es>"
+  ],
+  "homepage": "https://inertiajs.com/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inertiajs/inertia.git",
+    "directory": "packages/svelte"
+  },
+  "bugs": {
+    "url": "https://github.com/inertiajs/inertia/issues"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "svelte": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "svelte": "./dist/server.js"
+    }
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  },
+  "dependencies": {
+    "@inertiajs/core": "file:../core",
+    "@types/lodash-es": "^4.17.12",
+    "laravel-precognition": "2.0.0-beta.0",
+    "lodash-es": "^4.17.23"
+  },
+  "x-inertia-source": "https://github.com/inertiajs/inertia/tree/504fa085db13066c48d447a00b1c9f80d91ef7b6"
+}

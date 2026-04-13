@@ -1,0 +1,61 @@
+import type { ErrorValue, FormDataErrors, FormDataKeys, FormDataType, FormDataValues, Method, Progress, UrlMethodPair, UseFormTransformCallback, UseFormWithPrecognitionArguments, UseHttpSubmitArguments, UseHttpSubmitOptions } from '@inertiajs/core';
+import type { NamedInputEvent, ValidationConfig, Validator } from 'laravel-precognition';
+export interface UseHttpProps<TForm extends object, TResponse = unknown> {
+    isDirty: boolean;
+    errors: FormDataErrors<TForm>;
+    hasErrors: boolean;
+    progress: Progress | null;
+    wasSuccessful: boolean;
+    recentlySuccessful: boolean;
+    processing: boolean;
+    response: TResponse | null;
+    setStore(data: TForm): void;
+    setStore<T extends FormDataKeys<TForm>>(key: T, value: FormDataValues<TForm, T>): void;
+    data(): TForm;
+    transform(callback: UseFormTransformCallback<TForm>): this;
+    defaults(): this;
+    defaults(fields: Partial<TForm>): this;
+    defaults<T extends FormDataKeys<TForm>>(field: T, value: FormDataValues<TForm, T>): this;
+    reset<K extends FormDataKeys<TForm>>(...fields: K[]): this;
+    clearErrors<K extends FormDataKeys<TForm>>(...fields: K[]): this;
+    resetAndClearErrors<K extends FormDataKeys<TForm>>(...fields: K[]): this;
+    setError<K extends FormDataKeys<TForm>>(field: K, value: ErrorValue): this;
+    setError(errors: FormDataErrors<TForm>): this;
+    submit(...args: UseHttpSubmitArguments<TResponse, TForm>): Promise<TResponse>;
+    get(url: string, options?: UseHttpSubmitOptions<TResponse, TForm>): Promise<TResponse>;
+    post(url: string, options?: UseHttpSubmitOptions<TResponse, TForm>): Promise<TResponse>;
+    put(url: string, options?: UseHttpSubmitOptions<TResponse, TForm>): Promise<TResponse>;
+    patch(url: string, options?: UseHttpSubmitOptions<TResponse, TForm>): Promise<TResponse>;
+    delete(url: string, options?: UseHttpSubmitOptions<TResponse, TForm>): Promise<TResponse>;
+    cancel(): void;
+    dontRemember<K extends FormDataKeys<TForm>>(...fields: K[]): this;
+    optimistic(callback: (currentData: TForm) => Partial<TForm>): this;
+    withAllErrors(): this;
+    withPrecognition: (...args: UseFormWithPrecognitionArguments) => UseHttpPrecognitiveProps<TForm, TResponse>;
+}
+type PrecognitionValidationConfig<TKeys> = ValidationConfig & {
+    only?: TKeys[] | Iterable<TKeys> | ArrayLike<TKeys>;
+};
+export interface UseHttpValidationProps<TForm extends object> {
+    invalid<K extends FormDataKeys<TForm>>(field: K): boolean;
+    setValidationTimeout(duration: number): this;
+    touch<K extends FormDataKeys<TForm>>(field: K | NamedInputEvent | Array<K>, ...fields: K[]): this;
+    touched<K extends FormDataKeys<TForm>>(field?: K): boolean;
+    valid<K extends FormDataKeys<TForm>>(field: K): boolean;
+    validate<K extends FormDataKeys<TForm>>(field?: K | NamedInputEvent | PrecognitionValidationConfig<K>, config?: PrecognitionValidationConfig<K>): this;
+    validateFiles(): this;
+    validating: boolean;
+    validator: () => Validator;
+    withAllErrors(): this;
+    withoutFileValidation(): this;
+    setErrors(errors: FormDataErrors<TForm> | Record<string, string | string[]>): this;
+    forgetError<K extends FormDataKeys<TForm> | NamedInputEvent>(field: K): this;
+}
+export type UseHttp<TForm extends object, TResponse = unknown> = UseHttpProps<TForm, TResponse> & TForm;
+export type UseHttpPrecognitiveProps<TForm extends object, TResponse = unknown> = UseHttp<TForm, TResponse> & UseHttpValidationProps<TForm>;
+export default function useHttp<TForm extends FormDataType<TForm>, TResponse = unknown>(method: Method | (() => Method), url: string | (() => string), data: TForm | (() => TForm)): UseHttpPrecognitiveProps<TForm, TResponse>;
+export default function useHttp<TForm extends FormDataType<TForm>, TResponse = unknown>(urlMethodPair: UrlMethodPair | (() => UrlMethodPair), data: TForm | (() => TForm)): UseHttpPrecognitiveProps<TForm, TResponse>;
+export default function useHttp<TForm extends FormDataType<TForm>, TResponse = unknown>(rememberKey: string, data: TForm | (() => TForm)): UseHttp<TForm, TResponse>;
+export default function useHttp<TForm extends FormDataType<TForm>, TResponse = unknown>(data: TForm | (() => TForm)): UseHttp<TForm, TResponse>;
+export default function useHttp<TForm extends FormDataType<TForm>, TResponse = unknown>(): UseHttp<TForm, TResponse>;
+export {};

@@ -54,12 +54,12 @@ class UsersController < InertiaController
     reason = params[:reason]
     notes = params[:notes]
 
-    if @user && (current_user.admin_level == "admin" || current_user.admin_level == "superadmin") && trust_level.present?
+    if @user && current_user.admin_level.in?(%w[admin superadmin ultraadmin]) && trust_level.present?
       unless User.trust_levels.key?(trust_level)
         return render json: { error: "you fucked it up lmaooo" }, status: :unprocessable_entity
       end
 
-      if trust_level == "red" && current_user.admin_level != "superadmin"
+      if trust_level == "red" && !current_user.can_convict_users?
         return render json: { error: "no perms lmaooo" }, status: :forbidden
       end
 
@@ -98,7 +98,7 @@ class UsersController < InertiaController
   end
 
   def require_admin
-    unless current_user && (current_user.admin_level == "admin" || current_user.admin_level == "superadmin")
+    unless current_user && current_user.admin_level.in?(%w[admin superadmin ultraadmin])
       redirect_to root_path, alert: "You are not authorized to access this page"
     end
   end
