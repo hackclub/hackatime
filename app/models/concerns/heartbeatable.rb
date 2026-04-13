@@ -190,23 +190,18 @@ module Heartbeatable
         current_date = data[:current_date]
         days = data[:days]
 
-        # Calculate streak
+        eligible_days = days.filter_map do |date, duration|
+          date if date <= current_date && duration >= 15 * 60
+        end
+
         streak = 0
-        days.each do |date, duration|
-          # Skip if this day is in the future
-          next if date > current_date
+        expected_date = eligible_days.first == current_date ? current_date : current_date - 1.day
 
-          # If they didn't code enough today, just skip
-          if date == current_date
-            next unless duration >= 15 * 60
+        eligible_days.each do |date|
+          if date == expected_date
             streak += 1
-            next
-          end
-
-          # For previous days, check if it's the next day in the streak
-          if date == current_date - streak.days && duration >= 15 * 60
-            streak += 1
-          else
+            expected_date -= 1.day
+          elsif date < expected_date
             break
           end
         end

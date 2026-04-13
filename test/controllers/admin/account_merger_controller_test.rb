@@ -62,4 +62,84 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     assert_includes flash[:notice], "3 sessions/tokens revoked"
     assert_includes flash[:notice], "3 related records cleaned up"
   end
+
+  test "merge renames transferred api keys when the older account already has the same key name" do
+    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
+    older = User.create!(timezone: "UTC", username: "older_user")
+    newer = User.create!(timezone: "UTC", username: "newer_user")
+    sign_in_as(admin)
+
+    older.update_column(:created_at, 2.days.ago)
+    newer.update_column(:created_at, 1.day.ago)
+
+    older.api_keys.create!(name: "Wakatime API Key")
+    transferred_key = newer.api_keys.create!(name: "Wakatime API Key")
+
+    post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+
+    assert_redirected_to admin_account_merger_path
+    assert_nil User.find_by(id: newer.id)
+    assert_equal older.id, transferred_key.reload.user_id
+    assert_equal "Wakatime API Key (transferred)", transferred_key.name
+    assert_equal [ "Wakatime API Key", "Wakatime API Key (transferred)" ], older.api_keys.order(:name).pluck(:name)
+  end
+
+  test "merge transfers instance import sources to the older account when it does not have one" do
+    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
+    older = User.create!(timezone: "UTC", username: "older_user")
+    newer = User.create!(timezone: "UTC", username: "newer_user")
+    sign_in_as(admin)
+
+    older.update_column(:created_at, 2.days.ago)
+    newer.update_column(:created_at, 1.day.ago)
+
+    create_instance_import_source_for(newer, endpoint_url: "https://newer.example.com")
+
+    post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+
+    assert_redirected_to admin_account_merger_path
+    assert_nil User.find_by(id: newer.id)
+    assert_equal 1, instance_import_source_count_for(older)
+    assert_equal 0, instance_import_source_count_for(newer)
+    assert_equal "https://newer.example.com", instance_import_source_endpoint_for(older)
+  end
+
+  test "merge removes the newer instance import source when the older account already has one" do
+    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
+    older = User.create!(timezone: "UTC", username: "older_user")
+    newer = User.create!(timezone: "UTC", username: "newer_user")
+    sign_in_as(admin)
+
+    older.update_column(:created_at, 2.days.ago)
+    newer.update_column(:created_at, 1.day.ago)
+
+    create_instance_import_source_for(older, endpoint_url: "https://older.example.com")
+    create_instance_import_source_for(newer, endpoint_url: "https://newer.example.com")
+
+    post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+
+    assert_redirected_to admin_account_merger_path
+    assert_nil User.find_by(id: newer.id)
+    assert_equal 1, instance_import_source_count_for(older)
+    assert_equal 0, instance_import_source_count_for(newer)
+    assert_equal "https://older.example.com", instance_import_source_endpoint_for(older)
+  end
+
+  private
+
+  def create_instance_import_source_for(user, endpoint_url:)
+    InstanceImportSource.create!(
+      user: user,
+      endpoint_url: endpoint_url,
+      encrypted_api_key: "encrypted-api-key"
+    )
+  end
+
+  def instance_import_source_count_for(user)
+    InstanceImportSource.where(user_id: user.id).count
+  end
+
+  def instance_import_source_endpoint_for(user)
+    InstanceImportSource.find_by(user_id: user.id)&.endpoint_url
+  end
 end
