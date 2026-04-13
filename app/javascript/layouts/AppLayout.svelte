@@ -126,7 +126,9 @@
     `${layout.currently_hacking.count} ${plur("person", layout.currently_hacking.count)} currently hacking`;
 
   const visualizeGitUrl = (url?: string | null) =>
-    `https://maxwofford.com/dandelion/?url=${encodeURIComponent(url || "")}`;
+    url
+      ? `https://maxwofford.com/dandelion/?url=${encodeURIComponent(url)}`
+      : "";
 
   const latinPhrases = [
     "carpe diem",

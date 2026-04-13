@@ -95,6 +95,8 @@ module ApplicationHelper
   end
 
   def visualize_git_url(url)
+    return "" if url.blank?
+
     "https://maxwofford.com/dandelion/?url=#{CGI.escape(url)}"
   end
 
