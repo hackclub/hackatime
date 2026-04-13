@@ -10,6 +10,8 @@
               <span
                 class="ml-2 px-2 py-0.5 text-xs rounded-full
                 <%= case user.admin_level
+                    when 'ultraadmin'
+                      'bg-purple-400/20 text-purple-400'
                     when 'superadmin'
                       'bg-red/20 text-red'
                     when 'admin'
@@ -26,6 +28,9 @@
           </div>
         </div>
         <div class="flex gap-2">
+          <% if current_user.admin_level == "ultraadmin" %>
+            <%= button_to '→ Ultraadmin', admin_admin_user_path(user, admin_level: 'ultraadmin'), method: :patch, class: 'px-3 py-1 bg-purple-400 hover:bg-purple-400 text-on-primary text-sm font-medium rounded transition-colors cursor-pointer' %>
+          <% end %>
           <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red hover:bg-red text-on-primary text-sm font-medium rounded transition-colors cursor-pointer' %>
           <%= button_to '→ Admin', admin_admin_user_path(user, admin_level: 'admin'), method: :patch, class: 'px-3 py-1 bg-yellow hover:bg-yellow text-on-primary text-sm font-medium rounded transition-colors cursor-pointer' %>
           <%= button_to '→ Viewer', admin_admin_user_path(user, admin_level: 'viewer'), method: :patch, class: 'px-3 py-1 bg-blue hover:bg-blue text-on-primary text-sm font-medium rounded transition-colors cursor-pointer' %>

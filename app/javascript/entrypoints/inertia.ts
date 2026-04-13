@@ -9,7 +9,7 @@ const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {
 createInertiaApp({
   // see https://inertia-rails.dev/guide/progress-indicators
   progress: {
-    color: 'var(--color-primary)',
+    color: "var(--color-primary)",
   },
 
   resolve: (name) => {

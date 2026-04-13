@@ -99,12 +99,15 @@ export type PathsProps = {
   create_deletion_path: string;
 };
 
-export type OptionsProps = {
+export type BaseOptionsProps = {
   countries: Option[];
   timezones: Option[];
   extension_text_types: Option[];
   themes: ThemeOption[];
   badge_themes: string[];
+};
+
+export type OptionsProps = BaseOptionsProps & {
   goals: {
     periods: Option[];
     preset_target_seconds: number[];
@@ -208,8 +211,8 @@ export type ProfilePageProps = SettingsCommonProps & {
   settings_update_path: string;
   username_max_length: number;
   user: UserProps;
-  options: OptionsProps;
-  badges: BadgesProps;
+  options: BaseOptionsProps;
+  profile_url: string | null;
 };
 
 export type IntegrationsPageProps = SettingsCommonProps & {
@@ -224,7 +227,7 @@ export type IntegrationsPageProps = SettingsCommonProps & {
 export type AccessPageProps = SettingsCommonProps & {
   settings_update_path: string;
   user: UserProps;
-  options: OptionsProps;
+  options: BaseOptionsProps;
   paths: PathsProps;
   config_file: ConfigFileProps;
 };
@@ -244,8 +247,10 @@ export type GoalsPageProps = SettingsCommonProps & {
 };
 
 export type BadgesPageProps = SettingsCommonProps & {
-  options: OptionsProps;
+  badge_themes: string[];
   badges: BadgesProps;
+  allow_public_stats_lookup: boolean;
+  settings_update_path: string;
 };
 
 export type DataPageProps = SettingsCommonProps & {

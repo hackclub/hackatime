@@ -709,7 +709,7 @@ DEPENDENCIES
   thruster
   turbo-rails
   tzinfo-data
-  vite_rails (~> 3.0)
+  vite_rails (~> 3.10)
   web-console
   webmock
 
