@@ -109,7 +109,7 @@ GEM
       erubi (~> 1.4)
       parser (>= 2.4)
       smart_properties
-    bigdecimal (4.1.0)
+    bigdecimal (4.1.1)
     bindex (0.8.1)
     bootsnap (1.23.0)
       msgpack (~> 1.2)
@@ -347,7 +347,7 @@ GEM
       faraday (>= 1.0, < 3.0)
       faraday-net_http_persistent
       net-http-persistent
-    oj (3.16.16)
+    oj (3.16.17)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
     ostruct (0.6.3)
