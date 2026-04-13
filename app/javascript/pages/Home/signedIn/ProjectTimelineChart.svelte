@@ -113,9 +113,9 @@
           yAxis: { format: formatYAxis },
         }}
       >
-        {#snippet tooltip()}
-          <Tooltip.Root>
-            {#snippet children({ data })}
+        <svelte:fragment slot="tooltip">
+          <Tooltip.Root let:data>
+            {#if data}
               <Tooltip.Header value={data.week} />
               <Tooltip.List>
                 {@const seriesItems = [...series]
@@ -144,9 +144,9 @@
                   />
                 {/if}
               </Tooltip.List>
-            {/snippet}
+            {/if}
           </Tooltip.Root>
-        {/snippet}
+        </svelte:fragment>
       </BarChart>
     </div>
   {/if}

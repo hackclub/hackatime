@@ -45,8 +45,10 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Install npm dependencies for Vite
+# Install npm dependencies for Vite. Vendored Inertia packages must exist
+# before `bun i` because they are referenced via local file dependencies.
 COPY package.json bun.lock ./
+COPY vendor/inertia vendor/inertia
 RUN bun i
 
 # Install application gems
