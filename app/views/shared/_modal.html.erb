@@ -52,8 +52,7 @@
             <button
               type="button"
               data-modal-close="<%= close_on_click %>"
-              class="<%= button_classes %>"
-            >
+              class="<%= button_classes %>">
               <%= button[:text] %>
             </button>
           <% end %>
@@ -70,8 +69,7 @@
   data-bits-modal
   data-modal-title="<%= title %>"
   data-modal-description="<%= description.to_s %>"
-  data-modal-max-width="<%= max_width %>"
->
+  data-modal-max-width="<%= max_width %>">
   <% if icon_svg %>
     <template data-modal-icon>
       <svg class="h-10 w-10 <%= icon_color %>" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

@@ -21,8 +21,8 @@ class Api::Admin::V1::QuantizedHeartbeatsControllerTest < ActionDispatch::Integr
     heartbeats = JSON.parse(response.body).fetch("quantized_heartbeats")
 
     assert_equal 4, heartbeats.length
-    assert_equal [100, nil, 150, 200], heartbeats.map { |hb| hb["cursorpos"] }
-    assert_equal [10, nil, 15, nil], heartbeats.map { |hb| hb["lineno"] }
+    assert_equal [ 100, nil, 150, 200 ], heartbeats.map { |hb| hb["cursorpos"] }
+    assert_equal [ 10, nil, 15, nil ], heartbeats.map { |hb| hb["lineno"] }
   end
 
   private
