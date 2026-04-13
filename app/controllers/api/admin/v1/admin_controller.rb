@@ -58,7 +58,6 @@ module Api
                 FROM heartbeats
                 WHERE user_id = ?
                 AND "time" >= ? AND "time" <= ?
-                AND (lineno IS NOT NULL OR cursorpos IS NOT NULL)
                 LIMIT 1000000
             ),
             daily_stats AS (
@@ -91,6 +90,14 @@ module Api
                 WHERE cursorpos IS NOT NULL
                 ORDER BY day_start, qx, qy_cursorpos, "time" ASC
             ) AS cursorpos_pixels
+            UNION
+            SELECT "time", lineno, cursorpos
+            FROM (
+                SELECT DISTINCT ON (day_start, qx) "time", lineno, cursorpos
+                FROM quantized_heartbeats
+                WHERE lineno IS NULL AND cursorpos IS NULL
+                ORDER BY day_start, qx, "time" ASC
+            ) AS null_pixels
             ORDER BY "time" ASC
           SQL
 
