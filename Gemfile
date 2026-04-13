@@ -161,7 +161,7 @@ gem "doorkeeper", "~> 5.8"
 
 gem "autotuner", "~> 1.0"
 
-gem "tailwindcss-ruby", "~> 4.1"
+gem "tailwindcss-ruby", "~> 4.2"
 
 gem "tailwindcss-rails", "~> 4.2"
 
