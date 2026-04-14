@@ -64,6 +64,64 @@ class DashboardDataTest < ActiveSupport::TestCase
     assert_equal scope.group(:project).duration_seconds, harness.send(:dashboard_project_grouped_durations, scope)
   end
 
+  test "all-time dashboard data can be served from rollups" do
+    with_memory_cache_store do
+      Rails.cache.clear
+
+      user = User.create!(timezone: "UTC")
+      harness = Harness.new
+      harness.current_user = user
+      harness.params = ActionController::Parameters.new
+
+      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+        travel 1.minute
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+        travel 1.minute
+        create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
+      end
+
+      DashboardRollupRefreshService.new(user: user).call
+
+      def harness.dashboard_grouped_durations_snapshot(_scope)
+        raise "expected rollup-backed dashboard path"
+      end
+
+      result = harness.send(:filterable_dashboard_data)
+
+      assert_equal user.heartbeats.duration_seconds, result[:total_time]
+      assert_equal user.heartbeats.count, result[:total_heartbeats]
+      assert_equal "alpha", result["top_project"]
+      assert_equal [ "alpha", "beta" ], result[:project]
+    end
+  end
+
+  test "all-time dashboard data falls back when rollup table is unavailable" do
+    with_memory_cache_store do
+      Rails.cache.clear
+
+      user = User.create!(timezone: "UTC")
+      harness = Harness.new
+      harness.current_user = user
+      harness.params = ActionController::Parameters.new
+
+      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+        travel 1.minute
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      end
+
+      def harness.dashboard_rollups_available?
+        false
+      end
+
+      result = harness.send(:filterable_dashboard_data)
+
+      assert_equal user.heartbeats.duration_seconds, result[:total_time]
+      assert_equal "alpha", result["top_project"]
+    end
+  end
+
   private
 
   def with_memory_cache_store

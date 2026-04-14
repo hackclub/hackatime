@@ -9,86 +9,13 @@ module DashboardData
     filters = dashboard_filters
     interval = params[:interval]
     key = [ current_user ] + filters.map { |f| params[f] } + [ interval.to_s, params[:from], params[:to] ]
-    hb = current_user.heartbeats
-    h = ApplicationController.helpers
 
     Rails.cache.fetch(key, expires_in: 5.minutes) do
       archived = current_user.project_repo_mappings.archived.pluck(:project_name)
       raw_filter_options = dashboard_raw_filter_options
-      result = {}
+      result = dashboard_rollup_result(raw_filter_options, archived)
 
-      Time.use_zone(current_user.timezone) do
-        filters.each do |f|
-          options = raw_filter_options.fetch(f, [])
-          options = options.reject { |n| archived.include?(n) } if f == :project
-          result[f] = options.map { |k|
-            if f == :language then k.categorize_language
-            elsif f == :editor then h.display_editor_name(k)
-            elsif f == :operating_system then h.display_os_name(k)
-            else k
-            end
-          }.uniq
-
-          next unless params[f].present?
-          arr = params[f].split(",")
-          hb = if %i[operating_system editor].include?(f)
-            hb.where(f => arr.flat_map { |v| [ v.downcase, v.capitalize ] }.uniq)
-          elsif f == :language
-            raw = raw_filter_options.fetch(:language, []).select { |l| arr.include?(l.categorize_language) }
-            raw.any? ? hb.where(f => raw) : hb
-          else
-            hb.where(f => arr)
-          end
-          result["singular_#{f}"] = arr.length == 1
-        end
-
-        hb = hb.filter_by_time_range(interval, params[:from], params[:to])
-        grouped_durations = dashboard_grouped_durations_snapshot(hb)
-        weekly_project_stats = dashboard_weekly_project_stats(hb, current_user.timezone)
-
-        result[:total_time] = hb.duration_seconds
-        result[:total_heartbeats] = hb.count
-
-        filters.each do |f|
-          stats = dashboard_grouped_durations(grouped_durations, f, archived)
-          result["top_#{f}"] = stats.max_by { |_, v| v }&.first
-        end
-
-        result["top_editor"] &&= h.display_editor_name(result["top_editor"])
-        result["top_operating_system"] &&= h.display_os_name(result["top_operating_system"])
-        result["top_language"] &&= h.display_language_name(result["top_language"])
-
-        unless result["singular_project"]
-          result[:project_durations] = dashboard_grouped_durations(grouped_durations, :project, archived)
-            .sort_by { |_, d| -d }.first(10).to_h
-        end
-
-        %i[language editor operating_system category].each do |f|
-          next if result["singular_#{f}"]
-          stats = grouped_durations.fetch(f, {}).each_with_object({}) do |(raw, dur), agg|
-            k = raw.to_s.presence || "Unknown"
-            k = f == :language ? (k == "Unknown" ? k : k.categorize_language) : (%i[editor operating_system].include?(f) ? k.downcase : k)
-            agg[k] = (agg[k] || 0) + dur
-          end
-          result["#{f}_stats"] = stats.sort_by { |_, d| -d }.first(10).map { |k, v|
-            label = case f
-            when :editor then h.display_editor_name(k)
-            when :operating_system then h.display_os_name(k)
-            when :language then h.display_language_name(k)
-            else k
-            end
-            [ label, v ]
-          }.to_h
-        end
-
-        if result["language_stats"].present?
-          result[:language_colors] = LanguageUtils.colors_for(result["language_stats"].keys)
-        end
-
-        result[:weekly_project_stats] = weekly_project_stats.transform_values do |stats|
-          stats.reject { |project, _| archived.include?(project) }
-        end
-      end
+      result ||= dashboard_query_result(raw_filter_options, archived)
       result[:selected_interval] = interval.to_s
       result[:selected_from] = params[:from].to_s
       result[:selected_to] = params[:to].to_s
@@ -165,6 +92,182 @@ module DashboardData
     end
 
     cache_keys.transform_values { |cache_key| cached.fetch(cache_key, []) }
+  end
+
+  def dashboard_query_result(raw_filter_options, archived)
+    hb = current_user.heartbeats
+    result = dashboard_filter_options_result(raw_filter_options, archived)
+
+    Time.use_zone(current_user.timezone) do
+      dashboard_filters.each do |field|
+        next unless params[field].present?
+
+        arr = params[field].split(",")
+        hb = if %i[operating_system editor].include?(field)
+          hb.where(field => arr.flat_map { |value| [ value.downcase, value.capitalize ] }.uniq)
+        elsif field == :language
+          raw = raw_filter_options.fetch(:language, []).select { |language| arr.include?(language.categorize_language) }
+          raw.any? ? hb.where(field => raw) : hb
+        else
+          hb.where(field => arr)
+        end
+        result["singular_#{field}"] = arr.length == 1
+      end
+
+      hb = hb.filter_by_time_range(params[:interval], params[:from], params[:to])
+      dashboard_fill_aggregate_result(
+        result: result,
+        grouped_durations: dashboard_grouped_durations_snapshot(hb),
+        total_time: hb.duration_seconds,
+        total_heartbeats: hb.count,
+        weekly_project_stats: dashboard_weekly_project_stats(hb, current_user.timezone),
+        archived: archived
+      )
+    end
+
+    result
+  end
+
+  def dashboard_rollup_result(raw_filter_options, archived)
+    snapshot = dashboard_rollup_snapshot
+    return unless snapshot
+
+    result = dashboard_filter_options_result(raw_filter_options, archived)
+
+    Time.use_zone(current_user.timezone) do
+      dashboard_fill_aggregate_result(
+        result: result,
+        grouped_durations: snapshot.fetch(:grouped_durations),
+        total_time: snapshot.fetch(:total_time),
+        total_heartbeats: snapshot.fetch(:total_heartbeats),
+        weekly_project_stats: dashboard_weekly_project_stats(current_user.heartbeats, current_user.timezone),
+        archived: archived
+      )
+    end
+
+    result
+  end
+
+  def dashboard_filter_options_result(raw_filter_options, archived)
+    h = ApplicationController.helpers
+
+    dashboard_filters.each_with_object({}) do |field, result|
+      options = raw_filter_options.fetch(field, [])
+      options = options.reject { |name| archived.include?(name) } if field == :project
+      result[field] = options.map { |value|
+        if field == :language then value.categorize_language
+        elsif field == :editor then h.display_editor_name(value)
+        elsif field == :operating_system then h.display_os_name(value)
+        else value
+        end
+      }.uniq
+    end
+  end
+
+  def dashboard_fill_aggregate_result(result:, grouped_durations:, total_time:, total_heartbeats:, weekly_project_stats:, archived:)
+    h = ApplicationController.helpers
+
+    result[:total_time] = total_time
+    result[:total_heartbeats] = total_heartbeats
+
+    dashboard_filters.each do |field|
+      stats = dashboard_grouped_durations(grouped_durations, field, archived)
+      result["top_#{field}"] = stats.max_by { |_, duration| duration }&.first
+    end
+
+    result["top_editor"] &&= h.display_editor_name(result["top_editor"])
+    result["top_operating_system"] &&= h.display_os_name(result["top_operating_system"])
+    result["top_language"] &&= h.display_language_name(result["top_language"])
+
+    unless result["singular_project"]
+      result[:project_durations] = dashboard_grouped_durations(grouped_durations, :project, archived)
+        .sort_by { |_, duration| -duration }.first(10).to_h
+    end
+
+    %i[language editor operating_system category].each do |field|
+      next if result["singular_#{field}"]
+
+      stats = grouped_durations.fetch(field, {}).each_with_object({}) do |(raw, duration), agg|
+        key = raw.to_s.presence || "Unknown"
+        key = if field == :language
+          key == "Unknown" ? key : key.categorize_language
+        elsif %i[editor operating_system].include?(field)
+          key.downcase
+        else
+          key
+        end
+        agg[key] = (agg[key] || 0) + duration
+      end
+
+      result["#{field}_stats"] = stats.sort_by { |_, duration| -duration }.first(10).map { |key, value|
+        label = case field
+        when :editor then h.display_editor_name(key)
+        when :operating_system then h.display_os_name(key)
+        when :language then h.display_language_name(key)
+        else key
+        end
+        [ label, value ]
+      }.to_h
+    end
+
+    if result["language_stats"].present?
+      result[:language_colors] = LanguageUtils.colors_for(result["language_stats"].keys)
+    end
+
+    result[:weekly_project_stats] = weekly_project_stats.transform_values do |stats|
+      stats.reject { |project, _| archived.include?(project) }
+    end
+  end
+
+  def dashboard_rollup_snapshot
+    return unless dashboard_rollups_available?
+    return unless dashboard_rollup_eligible?
+    if DashboardRollup.dirty?(current_user.id)
+      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
+      return
+    end
+
+    rows = DashboardRollup.where(user_id: current_user.id).to_a
+    total_row = rows.find(&:total_dimension?)
+    unless total_row
+      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
+      return
+    end
+
+    source_heartbeats_count, source_max_heartbeat_time = dashboard_rollup_source_fingerprint
+    if total_row.source_heartbeats_count.to_i != source_heartbeats_count ||
+        total_row.source_max_heartbeat_time.to_f != source_max_heartbeat_time.to_f
+      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
+      return
+    end
+
+    grouped_rows = rows.reject(&:total_dimension?).group_by(&:dimension)
+
+    {
+      total_time: total_row.total_seconds,
+      total_heartbeats: total_row.source_heartbeats_count.to_i,
+      grouped_durations: dashboard_filters.index_with do |field|
+        grouped_rows.fetch(field.to_s, []).to_h { |row| [ row.bucket, row.total_seconds ] }
+      end
+    }
+  end
+
+  def dashboard_rollup_eligible?
+    params[:interval].blank? &&
+      params[:from].blank? &&
+      params[:to].blank? &&
+      dashboard_filters.none? { |field| params[field].present? }
+  end
+
+  def dashboard_rollups_available?
+    DashboardRollup.table_exists?
+  rescue ActiveRecord::StatementInvalid
+    false
+  end
+
+  def dashboard_rollup_source_fingerprint
+    row = current_user.heartbeats.pluck(Arel.sql("COUNT(*)"), Arel.sql("MAX(time)")).first
+    [ row[0].to_i, row[1]&.to_f ]
   end
 
   def dashboard_grouped_durations_snapshot(scope)

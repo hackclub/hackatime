@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_14_115348) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_14_131447) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -76,6 +76,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_115348) do
     t.index ["repository_id"], name: "index_commits_on_repository_id"
     t.index ["user_id", "created_at"], name: "index_commits_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_commits_on_user_id"
+  end
+
+  create_table "dashboard_rollups", force: :cascade do |t|
+    t.text "bucket_value", default: "", null: false
+    t.boolean "bucket_value_present", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "dimension", null: false
+    t.integer "source_heartbeats_count"
+    t.float "source_max_heartbeat_time"
+    t.integer "total_seconds", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "dimension", "bucket_value_present", "bucket_value"], name: "idx_dashboard_rollups_user_dimension_bucket", unique: true
+    t.index ["user_id", "dimension"], name: "index_dashboard_rollups_on_user_id_and_dimension"
+    t.index ["user_id"], name: "index_dashboard_rollups_on_user_id"
   end
 
   create_table "deletion_requests", force: :cascade do |t|
@@ -668,6 +683,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_115348) do
   add_foreign_key "api_keys", "users"
   add_foreign_key "commits", "repositories"
   add_foreign_key "commits", "users"
+  add_foreign_key "dashboard_rollups", "users"
   add_foreign_key "deletion_requests", "users"
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "email_addresses", "users"
