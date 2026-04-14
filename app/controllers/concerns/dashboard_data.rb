@@ -239,9 +239,9 @@ module DashboardData
       return
     end
 
-    source_max_heartbeat_time = dashboard_rollup_source_max_heartbeat_time
-    if DashboardRollup.dirty?(current_user.id) ||
-        dashboard_rollup_time_fingerprint(total_row.source_max_heartbeat_time) != source_max_heartbeat_time
+    if DashboardRollup.dirty?(current_user.id)
+      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
+    elsif dashboard_rollup_time_fingerprint(total_row.source_max_heartbeat_time) != dashboard_rollup_source_max_heartbeat_time
       DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
     end
 
