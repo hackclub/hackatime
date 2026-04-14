@@ -237,9 +237,8 @@ module DashboardData
       return
     end
 
-    source_heartbeats_count, source_max_heartbeat_time = dashboard_rollup_source_fingerprint
-    if total_row.source_heartbeats_count.to_i != source_heartbeats_count ||
-        dashboard_rollup_time_fingerprint(total_row.source_max_heartbeat_time) != source_max_heartbeat_time
+    source_max_heartbeat_time = dashboard_rollup_source_max_heartbeat_time
+    if dashboard_rollup_time_fingerprint(total_row.source_max_heartbeat_time) != source_max_heartbeat_time
       DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
       return
     end
@@ -268,9 +267,8 @@ module DashboardData
     false
   end
 
-  def dashboard_rollup_source_fingerprint
-    row = current_user.heartbeats.pluck(Arel.sql("COUNT(*)"), Arel.sql("MAX(time)")).first
-    [ row[0].to_i, dashboard_rollup_time_fingerprint(row[1]) ]
+  def dashboard_rollup_source_max_heartbeat_time
+    dashboard_rollup_time_fingerprint(current_user.heartbeats.maximum(:time))
   end
 
   def dashboard_rollup_time_fingerprint(timestamp)
