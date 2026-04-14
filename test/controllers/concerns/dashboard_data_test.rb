@@ -164,7 +164,8 @@ class DashboardDataTest < ActiveSupport::TestCase
       end
 
       result = nil
-      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
+      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ])
+      assert_no_enqueued_jobs(only: DashboardRollupRefreshJob) do
         result = harness.send(:filterable_dashboard_data)
       end
 
