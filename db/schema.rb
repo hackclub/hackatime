@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_14_115348) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -140,7 +140,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.integer "target_seconds", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["user_id", "period", "target_seconds", "languages", "projects"], name: "index_goals_on_user_and_scope"
+    t.index ["user_id", "period", "target_seconds", "languages", "projects"], name: "index_goals_on_user_and_scope", unique: true
     t.index ["user_id"], name: "index_goals_on_user_id"
   end
 
@@ -331,26 +331,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
 
-  create_table "instance_import_sources", force: :cascade do |t|
-    t.boolean "active", default: true, null: false
-    t.datetime "created_at", null: false
-    t.string "encrypted_api_key", null: false
-    t.string "endpoint_url", null: false
-    t.text "last_error"
-    t.datetime "last_import_finished_at"
-    t.datetime "last_import_started_at"
-    t.integer "last_imported_count", default: 0, null: false
-    t.float "last_imported_heartbeat_time"
-    t.integer "last_processed_count", default: 0, null: false
-    t.integer "last_skipped_count", default: 0, null: false
-    t.datetime "last_synced_at"
-    t.integer "sync_state", default: 0, null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["active"], name: "index_instance_import_sources_on_active"
-    t.index ["user_id"], name: "index_instance_import_sources_on_user_id", unique: true
-  end
-
   create_table "leaderboard_entries", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "leaderboard_id", null: false
@@ -380,8 +360,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
   create_table "mailkick_subscriptions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "list"
-    t.bigint "subscriber_id", null: false
-    t.string "subscriber_type", null: false
+    t.bigint "subscriber_id"
+    t.string "subscriber_type"
     t.datetime "updated_at", null: false
     t.index ["subscriber_type", "subscriber_id", "list"], name: "index_mailkick_subscriptions_on_subscriber_and_list", unique: true
     t.index ["subscriber_type", "subscriber_id"], name: "index_mailkick_subscriptions_on_subscriber"
@@ -646,7 +626,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.datetime "updated_at", null: false
     t.string "username"
     t.boolean "uses_slack_status", default: false, null: false
-    t.boolean "weekly_summary_email_enabled", default: true, null: false
+    t.boolean "weekly_summary_email_enabled", default: false, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
@@ -696,7 +676,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
   add_foreign_key "heartbeats", "users"
-  add_foreign_key "instance_import_sources", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
   add_foreign_key "leaderboard_entries", "users"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
