@@ -2,6 +2,7 @@ module DashboardData
   extend ActiveSupport::Concern
 
   FILTER_OPTIONS_CACHE_VERSION = "v1".freeze
+  WEEKLY_PROJECT_DIMENSION = "weekly_project".freeze
 
   private
 
@@ -10,18 +11,12 @@ module DashboardData
     interval = params[:interval]
     key = [ current_user ] + filters.map { |f| params[f] } + [ interval.to_s, params[:from], params[:to] ]
 
-    Rails.cache.fetch(key, expires_in: 5.minutes) do
-      archived = current_user.project_repo_mappings.archived.pluck(:project_name)
-      raw_filter_options = dashboard_raw_filter_options
-      result = dashboard_rollup_result(raw_filter_options, archived)
-
-      result ||= dashboard_query_result(raw_filter_options, archived)
-      result[:selected_interval] = interval.to_s
-      result[:selected_from] = params[:from].to_s
-      result[:selected_to] = params[:to].to_s
-      filters.each { |f| result["selected_#{f}"] = params[f]&.split(",") || [] }
-
-      result
+    if dashboard_rollup_eligible?
+      build_filterable_dashboard_data(filters, interval)
+    else
+      Rails.cache.fetch(key, expires_in: 5.minutes) do
+        build_filterable_dashboard_data(filters, interval)
+      end
     end
   end
 
@@ -78,6 +73,20 @@ module DashboardData
 
   def dashboard_filters
     %i[project language operating_system editor category]
+  end
+
+  def build_filterable_dashboard_data(filters, interval)
+    archived = current_user.project_repo_mappings.archived.pluck(:project_name)
+    raw_filter_options = dashboard_raw_filter_options
+    result = dashboard_rollup_result(raw_filter_options, archived)
+
+    result ||= dashboard_query_result(raw_filter_options, archived)
+    result[:selected_interval] = interval.to_s
+    result[:selected_from] = params[:from].to_s
+    result[:selected_to] = params[:to].to_s
+    filters.each { |f| result["selected_#{f}"] = params[f]&.split(",") || [] }
+
+    result
   end
 
   def dashboard_raw_filter_options
@@ -140,7 +149,7 @@ module DashboardData
         grouped_durations: snapshot.fetch(:grouped_durations),
         total_time: snapshot.fetch(:total_time),
         total_heartbeats: snapshot.fetch(:total_heartbeats),
-        weekly_project_stats: dashboard_weekly_project_stats(current_user.heartbeats, current_user.timezone),
+        weekly_project_stats: snapshot.fetch(:weekly_project_stats),
         archived: archived
       )
     end
@@ -250,7 +259,8 @@ module DashboardData
       total_heartbeats: total_row.source_heartbeats_count.to_i,
       grouped_durations: dashboard_filters.index_with do |field|
         grouped_rows.fetch(field.to_s, []).to_h { |row| [ row.bucket, row.total_seconds ] }
-      end
+      end,
+      weekly_project_stats: dashboard_rollup_weekly_project_stats(grouped_rows.fetch(WEEKLY_PROJECT_DIMENSION, []))
     }
   end
 
@@ -269,6 +279,17 @@ module DashboardData
 
   def dashboard_rollup_source_max_heartbeat_time
     dashboard_rollup_time_fingerprint(current_user.heartbeats.maximum(:time))
+  end
+
+  def dashboard_rollup_weekly_project_stats(rows)
+    result = dashboard_week_ranges.to_h { |week_key, *_| [ week_key, {} ] }
+
+    rows.each do |row|
+      week_key, project = JSON.parse(row.bucket_value)
+      result[week_key][project] = row.total_seconds
+    end
+
+    result
   end
 
   def dashboard_rollup_time_fingerprint(timestamp)

@@ -1,5 +1,5 @@
 class DashboardRollup < ApplicationRecord
-  DIMENSIONS = %w[total project language editor operating_system category].freeze
+  DIMENSIONS = %w[total project language editor operating_system category weekly_project].freeze
   TOTAL_DIMENSION = "total".freeze
   DIRTY_CACHE_KEY_PREFIX = "dashboard_rollup_dirty".freeze
 
@@ -25,7 +25,7 @@ class DashboardRollup < ApplicationRecord
   end
 
   def self.mark_dirty(user_id)
-    Rails.cache.write(dirty_cache_key(user_id), true, expires_in: 1.day)
+    Rails.cache.write(dirty_cache_key(user_id), true, expires_in: 1.day, unless_exist: true)
   end
 
   def self.clear_dirty(user_id)
