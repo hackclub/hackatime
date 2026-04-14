@@ -286,6 +286,8 @@ module DashboardData
 
     rows.each do |row|
       week_key, project = JSON.parse(row.bucket_value)
+      next unless result.key?(week_key)
+
       result[week_key][project] = row.total_seconds
     end
 
