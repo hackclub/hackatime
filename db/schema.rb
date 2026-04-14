@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_14_131447) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_14_163952) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -344,6 +344,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_131447) do
     t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
+  end
+
+  create_table "instance_import_sources", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "encrypted_api_key", null: false
+    t.string "endpoint_url", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_instance_import_sources_on_user_id", unique: true
   end
 
   create_table "leaderboard_entries", force: :cascade do |t|
@@ -692,6 +701,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_131447) do
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
   add_foreign_key "heartbeats", "users"
+  add_foreign_key "instance_import_sources", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
   add_foreign_key "leaderboard_entries", "users"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
