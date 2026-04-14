@@ -267,6 +267,7 @@ class HeartbeatImportRunner < ApplicationService
       finished_at: Time.current
     )
 
+    DashboardRollupRefreshJob.schedule_for(run.user_id)
     run.clear_sensitive_fields!
     send_completion_email(run)
   end
