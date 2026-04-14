@@ -135,7 +135,7 @@ class DashboardDataTest < ActiveSupport::TestCase
     end
   end
 
-  test "stale rollup fingerprint falls back to live data and schedules a refresh" do
+  test "dirty rollup serves last rollup and schedules a refresh" do
     with_memory_cache_store do
       Rails.cache.clear
 
@@ -152,6 +152,53 @@ class DashboardDataTest < ActiveSupport::TestCase
 
       DashboardRollupRefreshService.new(user: user).call
 
+      def harness.dashboard_grouped_durations_snapshot(_scope)
+        raise "expected rollup-backed dashboard path"
+      end
+
+      total_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::TOTAL_DIMENSION)
+
+      clear_enqueued_jobs
+      travel 1.minute do
+        create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
+      end
+
+      result = nil
+      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ])
+      assert_no_enqueued_jobs(only: DashboardRollupRefreshJob) do
+        result = harness.send(:filterable_dashboard_data)
+      end
+
+      assert_equal total_row.total_seconds, result[:total_time]
+      assert_equal total_row.source_heartbeats_count, result[:total_heartbeats]
+      assert_equal "alpha", result["top_project"]
+      assert_equal [ "alpha", "beta" ], result[:project]
+    end
+  end
+
+  test "stale rollup fingerprint serves last rollup and schedules a refresh" do
+    with_memory_cache_store do
+      Rails.cache.clear
+
+      user = User.create!(timezone: "UTC")
+      harness = Harness.new
+      harness.current_user = user
+      harness.params = ActionController::Parameters.new
+
+      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+        travel 1.minute
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      end
+
+      DashboardRollupRefreshService.new(user: user).call
+
+      def harness.dashboard_grouped_durations_snapshot(_scope)
+        raise "expected rollup-backed dashboard path"
+      end
+
+      total_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::TOTAL_DIMENSION)
+
       travel 1.minute do
         create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
       end
@@ -164,8 +211,8 @@ class DashboardDataTest < ActiveSupport::TestCase
         result = harness.send(:filterable_dashboard_data)
       end
 
-      assert_equal user.heartbeats.duration_seconds, result[:total_time]
-      assert_equal user.heartbeats.count, result[:total_heartbeats]
+      assert_equal total_row.total_seconds, result[:total_time]
+      assert_equal total_row.source_heartbeats_count, result[:total_heartbeats]
       assert_equal "alpha", result["top_project"]
       assert_equal [ "alpha", "beta" ], result[:project]
     end
