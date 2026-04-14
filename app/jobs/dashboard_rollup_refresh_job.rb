@@ -15,9 +15,13 @@ class DashboardRollupRefreshJob < ApplicationJob
   def self.schedule_for(user_id, wait: DEFAULT_WAIT)
     DashboardRollup.mark_dirty(user_id)
 
-    return if Rails.cache.exist?(enqueue_cache_key(user_id))
+    return unless Rails.cache.write(
+      enqueue_cache_key(user_id),
+      true,
+      expires_in: wait + 1.minute,
+      unless_exist: true
+    )
 
-    Rails.cache.write(enqueue_cache_key(user_id), true, expires_in: wait + 1.minute)
     set(wait: wait).perform_later(user_id)
   end
 

@@ -222,6 +222,9 @@ module DashboardData
   def dashboard_rollup_snapshot
     return unless dashboard_rollups_available?
     return unless dashboard_rollup_eligible?
+
+    # `wait: 0` is best-effort. If a per-user refresh is already queued, we reuse
+    # that pending job and fall back to the live query for this request.
     if DashboardRollup.dirty?(current_user.id)
       DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
       return
@@ -236,7 +239,7 @@ module DashboardData
 
     source_heartbeats_count, source_max_heartbeat_time = dashboard_rollup_source_fingerprint
     if total_row.source_heartbeats_count.to_i != source_heartbeats_count ||
-        total_row.source_max_heartbeat_time.to_f != source_max_heartbeat_time.to_f
+        dashboard_rollup_time_fingerprint(total_row.source_max_heartbeat_time) != source_max_heartbeat_time
       DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
       return
     end
@@ -267,7 +270,13 @@ module DashboardData
 
   def dashboard_rollup_source_fingerprint
     row = current_user.heartbeats.pluck(Arel.sql("COUNT(*)"), Arel.sql("MAX(time)")).first
-    [ row[0].to_i, row[1]&.to_f ]
+    [ row[0].to_i, dashboard_rollup_time_fingerprint(row[1]) ]
+  end
+
+  def dashboard_rollup_time_fingerprint(timestamp)
+    return if timestamp.nil?
+
+    (timestamp * 1_000_000).round
   end
 
   def dashboard_grouped_durations_snapshot(scope)
