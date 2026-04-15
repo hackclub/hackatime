@@ -512,6 +512,98 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
     end
   end
 
+  path '/api/admin/v1/users/{id}/visualization/quantized' do
+    get('Get quantized visualization for user') do
+      tags 'Admin Utils'
+      description 'Get quantized heartbeat points and daily totals for a user/month.'
+      security [ AdminToken: [] ]
+      produces 'application/json'
+
+      parameter name: :id, in: :path, type: :integer, description: 'User ID'
+      parameter name: :year, in: :query, type: :integer, description: 'Year (UTC)'
+      parameter name: :month, in: :query, type: :integer, description: 'Month (1-12, UTC)'
+
+      response(200, 'successful') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user) do
+          u = User.create!(username: 'viz_user')
+          EmailAddress.create!(user: u, email: 'viz@example.com')
+          u
+        end
+        let(:id) { user.id }
+        let(:year) { 2026 }
+        let(:month) { 1 }
+
+        before do
+          Heartbeat.create!(
+            user: user,
+            time: Time.utc(2026, 1, 15, 12, 0, 0).to_i,
+            lineno: 12,
+            cursorpos: 22,
+            source_type: :test_entry
+          )
+        end
+
+        schema type: :object,
+          properties: {
+            days: {
+              type: :array,
+              items: {
+                type: :object,
+                properties: {
+                  date_timestamp_s: { type: :integer },
+                  total_seconds: { type: :number },
+                  points: {
+                    type: :array,
+                    items: {
+                      type: :object,
+                      properties: {
+                        time: { type: :number },
+                        lineno: { type: :integer, nullable: true },
+                        cursorpos: { type: :integer, nullable: true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+        run_test! do |response|
+          expect(response).to have_http_status(:ok)
+          body = JSON.parse(response.body)
+          expect(body['days']).to be_an(Array)
+          expect(body['days'].length).to eq(31)
+
+          january_15 = Time.utc(2026, 1, 15).to_i
+          day = body['days'].find { |d| d['date_timestamp_s'] == january_15 }
+          expect(day).to be_present
+          expect(day['points']).to be_an(Array)
+          expect(day['points']).not_to be_empty
+        end
+      end
+
+      response(422, 'invalid month parameter') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user) do
+          u = User.create!(username: 'viz_bad_month')
+          EmailAddress.create!(user: u, email: 'viz-bad-month@example.com')
+          u
+        end
+        let(:id) { user.id }
+        let(:year) { 2026 }
+        let(:month) { 13 }
+        schema '$ref' => '#/components/schemas/Error'
+
+        run_test! do |response|
+          expect(response).to have_http_status(:unprocessable_entity)
+          body = JSON.parse(response.body)
+          expect(body['error']).to eq('invalid parameters')
+        end
+      end
+    end
+  end
+
   path '/api/admin/v1/user/get_user_by_email' do
     post('Get user by email') do
       tags 'Admin Utils'
@@ -565,7 +657,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
                 type: :object,
                 properties: {
                   id: { type: :integer },
-                  username: { type: :string },
+                  username: { type: :string, nullable: true },
                   slack_username: { type: :string, nullable: true },
                   github_username: { type: :string, nullable: true },
                   slack_avatar_url: { type: :string, nullable: true },
