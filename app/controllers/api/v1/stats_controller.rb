@@ -1,7 +1,6 @@
 class Api::V1::StatsController < ApplicationController
   before_action :ensure_authenticated!, only: [ :show ], unless: -> { Rails.env.development? }
   before_action :set_user, only: [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ]
-  around_action :disable_index_scans_for_stats, only: [ :show, :user_stats ]
 
   def show
     # take either user_id with a start date & end date
@@ -224,15 +223,6 @@ class Api::V1::StatsController < ApplicationController
   end
 
   private
-
-  def disable_index_scans_for_stats
-    ActiveRecord::Base.connection.transaction do
-      ActiveRecord::Base.connection.execute("SET LOCAL enable_indexscan = off")
-      ActiveRecord::Base.connection.execute("SET LOCAL enable_bitmapscan = off")
-      ActiveRecord::Base.connection.execute("SET LOCAL enable_indexonlyscan = off")
-      yield
-    end
-  end
 
   def set_user
     token = request.headers["Authorization"]&.split(" ")&.last
