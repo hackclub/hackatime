@@ -151,6 +151,32 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "falls back to heartbeat queries when goals rollup dimensions are missing" do
+    user = User.create!(timezone: "America/New_York")
+    goal = user.goals.create!(period: "day", target_seconds: 10)
+
+    travel_to Time.utc(2026, 1, 14, 16, 0, 0) do
+      create_heartbeat_pair(user, "2026-01-14 09:00:00", language: "rb", project: "alpha")
+      create_heartbeat_pair(user, "2026-01-14 09:10:00", language: "python", project: "alpha")
+
+      DashboardRollupRefreshService.new(user: user).call
+      stale_rows = DashboardRollup.where(user: user)
+        .where.not(
+          dimension: [
+            DashboardRollupRefreshService::GOALS_PERIOD_TOTAL_DIMENSION,
+            DashboardRollupRefreshService::GOALS_PERIOD_PROJECT_DIMENSION,
+            DashboardRollupRefreshService::GOALS_PERIOD_LANGUAGE_DIMENSION
+          ]
+        )
+        .to_a
+
+      progress = ProgrammingGoalsProgressService.new(user: user, rollup_rows: stale_rows).call
+
+      assert_equal 2, progress.first[:tracked_seconds]
+      assert_equal goal.id.to_s, progress.first[:id]
+    end
+  end
+
   private
 
   def create_heartbeat_pair(user, start_time, language: "Ruby", project: "alpha")

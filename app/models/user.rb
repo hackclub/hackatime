@@ -1,6 +1,9 @@
 class User < ApplicationRecord
   include TimezoneRegions
   include UserThemeConfiguration
+  include ::OauthAuthentication
+  include ::SlackIntegration
+  include ::GithubIntegration
 
   has_subscriptions
 
@@ -243,10 +246,6 @@ class User < ApplicationRecord
     heartbeat_import_runs.remote_imports.active_imports.exists?
   end
 
-  def github_account
-    @github_account ||= Users::GithubAccount.new(self)
-  end
-
   def format_extension_text(duration)
     case hackatime_extension_text_type
     when "simple_text"
@@ -257,10 +256,6 @@ class User < ApplicationRecord
     when "compliment_text"
       FlavorText.compliment.sample
     end
-  end
-
-  def slack_account
-    @slack_account ||= Users::SlackAccount.new(self)
   end
 
   def parse_and_set_timezone(timezone)

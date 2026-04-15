@@ -45,24 +45,24 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
     assert_equal today_scope.duration_seconds, today_total.total_seconds
 
     expected_language_counts = today_scope
-      .select(:language, "COUNT(*) OVER (PARTITION BY language) as language_count")
-      .distinct
-      .map { |row| [ row.language&.categorize_language, row.language_count ] }
-      .reject { |language, _| language.blank? }
-      .group_by(&:first)
-      .transform_values { |pairs| pairs.sum(&:last).to_i }
+      .where.not(language: [ nil, "" ])
+      .group(:language)
+      .count
+      .each_with_object({}) do |(language, count), grouped|
+        categorized = language&.categorize_language
+        next if categorized.blank?
+
+        grouped[categorized] = (grouped[categorized] || 0) + count.to_i
+      end
     assert_equal(
       expected_language_counts,
       DashboardRollup.where(user: user, dimension: DashboardRollupRefreshService::TODAY_LANGUAGE_COUNT_DIMENSION).to_h { |row| [ row.bucket, row.total_seconds ] }
     )
 
     expected_editor_counts = today_scope
-      .select(:editor, "COUNT(*) OVER (PARTITION BY editor) as editor_count")
-      .distinct
-      .map { |row| [ row.editor, row.editor_count ] }
-      .reject { |editor, _| editor.blank? }
-      .uniq
-      .to_h
+      .where.not(editor: [ nil, "" ])
+      .group(:editor)
+      .count
       .transform_values(&:to_i)
     assert_equal(
       expected_editor_counts,

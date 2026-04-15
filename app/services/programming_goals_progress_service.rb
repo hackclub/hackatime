@@ -58,6 +58,7 @@ class ProgrammingGoalsProgressService
 
   def tracked_seconds_from_rollup(goal)
     return if rollup_rows.blank?
+    return unless rollup_rows.any? { |row| row.dimension == DashboardRollupRefreshService::GOALS_PERIOD_TOTAL_DIMENSION }
 
     period_data = rollup_goals_data.fetch(goal.period, nil)
     return if period_data.nil?

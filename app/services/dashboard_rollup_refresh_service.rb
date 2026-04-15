@@ -16,6 +16,7 @@ class DashboardRollupRefreshService < ApplicationService
     TODAY_LANGUAGE_COUNT_DIMENSION,
     TODAY_EDITOR_COUNT_DIMENSION
   ].freeze
+  TODAY_ROLLUP_LOCK_NAMESPACE = 42_001
 
   def initialize(user:)
     @user = user
@@ -190,37 +191,34 @@ class DashboardRollupRefreshService < ApplicationService
 
   def self.today_rollup_data_for(user)
     timezone = user.timezone
-    local_date = Time.use_zone(timezone) { Time.zone.today.iso8601 }
+    Time.use_zone(timezone) do
+      today_scope = user.heartbeats.today
 
-    rows = Time.use_zone(timezone) do
-      user.heartbeats.today
-        .select(:language, :editor,
-                "COUNT(*) OVER (PARTITION BY language) as language_count",
-                "COUNT(*) OVER (PARTITION BY editor) as editor_count")
-        .distinct
-        .to_a
+      language_counts = today_scope
+        .where.not(language: [ nil, "" ])
+        .group(:language)
+        .count
+        .each_with_object({}) do |(language, count), grouped|
+          categorized = language&.categorize_language
+          next if categorized.blank?
+
+          grouped[categorized] = (grouped[categorized] || 0) + count.to_i
+        end
+
+      editor_counts = today_scope
+        .where.not(editor: [ nil, "" ])
+        .group(:editor)
+        .count
+        .transform_values(&:to_i)
+
+      {
+        timezone: timezone,
+        local_date: Time.zone.today.iso8601,
+        total_duration: today_scope.duration_seconds.to_i,
+        language_counts: language_counts,
+        editor_counts: editor_counts
+      }
     end
-
-    language_counts = rows
-      .map { |row| [ row.language&.categorize_language, row.language_count ] }
-      .reject { |language, _| language.blank? }
-      .group_by(&:first)
-      .transform_values { |pairs| pairs.sum(&:last).to_i }
-
-    editor_counts = rows
-      .map { |row| [ row.editor, row.editor_count ] }
-      .reject { |editor, _| editor.blank? }
-      .uniq
-      .to_h
-      .transform_values(&:to_i)
-
-    {
-      timezone: timezone,
-      local_date: local_date,
-      total_duration: Time.use_zone(timezone) { user.heartbeats.today.duration_seconds.to_i },
-      language_counts: language_counts,
-      editor_counts: editor_counts
-    }
   end
 
   def self.upsert_today_rollup!(user:, data:, now: Time.current)
@@ -277,6 +275,9 @@ class DashboardRollupRefreshService < ApplicationService
     end
 
     DashboardRollup.transaction do
+      DashboardRollup.connection.execute(
+        "SELECT pg_advisory_xact_lock(#{TODAY_ROLLUP_LOCK_NAMESPACE}, #{user.id.to_i})"
+      )
       DashboardRollup.where(user_id: user.id, dimension: TODAY_DIMENSIONS).delete_all
       DashboardRollup.insert_all!(records)
     end
