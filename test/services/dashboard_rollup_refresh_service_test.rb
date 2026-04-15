@@ -77,6 +77,13 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "today rollup advisory lock key stays in signed bigint range" do
+    lock_key = DashboardRollupRefreshService.today_rollup_lock_key((2**63) - 1)
+
+    assert_operator lock_key, :>=, -(2**63)
+    assert_operator lock_key, :<=, (2**63) - 1
+  end
+
   private
 
   def create_heartbeat(user, timestamp, project:, language:, editor:, operating_system:, category:)

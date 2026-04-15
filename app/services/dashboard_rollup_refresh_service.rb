@@ -17,6 +17,8 @@ class DashboardRollupRefreshService < ApplicationService
     TODAY_EDITOR_COUNT_DIMENSION
   ].freeze
   TODAY_ROLLUP_LOCK_NAMESPACE = 42_001
+  MAX_SIGNED_INT64 = (2**63) - 1
+  UINT64_RANGE = 2**64
 
   def initialize(user:)
     @user = user
@@ -275,12 +277,21 @@ class DashboardRollupRefreshService < ApplicationService
     end
 
     DashboardRollup.transaction do
+      lock_key = today_rollup_lock_key(user.id)
       DashboardRollup.connection.execute(
-        "SELECT pg_advisory_xact_lock(#{TODAY_ROLLUP_LOCK_NAMESPACE}, #{user.id.to_i})"
+        "SELECT pg_advisory_xact_lock(#{lock_key})"
       )
       DashboardRollup.where(user_id: user.id, dimension: TODAY_DIMENSIONS).delete_all
       DashboardRollup.insert_all!(records)
     end
+  end
+
+  def self.today_rollup_lock_key(user_id)
+    namespace = TODAY_ROLLUP_LOCK_NAMESPACE.to_i & 0xffff_ffff
+    id_bits = user_id.to_i & 0xffff_ffff
+    raw_key = (namespace << 32) | id_bits
+
+    raw_key > MAX_SIGNED_INT64 ? raw_key - UINT64_RANGE : raw_key
   end
 
   def goals_rollup_data
