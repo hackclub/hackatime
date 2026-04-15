@@ -58,7 +58,7 @@ module Admin
 
     def build_points_by_day(rows)
       rows.each_with_object({}) do |row, hash|
-        day = Time.at(row["time"].to_f).to_date
+        day = Time.at(row["time"].to_f).utc.to_date
         hash[day] ||= []
         hash[day] << {
           time: row["time"],
@@ -70,7 +70,7 @@ module Admin
 
     def build_days(start_epoch, end_epoch, daily_totals, points_by_day)
       (start_epoch...end_epoch).step(86_400).map do |epoch|
-        day = Time.at(epoch).to_date
+        day = Time.at(epoch).utc.to_date
         {
           date_timestamp_s: epoch,
           total_seconds: daily_totals[day] || 0,
@@ -89,7 +89,8 @@ module Admin
                 date_trunc('day', to_timestamp("time")) as day_start
             FROM heartbeats
             WHERE user_id = ?
-            AND "time" >= ? AND "time" <= ?
+            AND "time" >= ? AND "time" < ?
+            ORDER BY "time" ASC
             LIMIT 1000000
         ),
         daily_stats AS (
@@ -141,7 +142,7 @@ module Admin
             date_trunc('day', to_timestamp("time"))::date as day,
             "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time") as gap
           FROM heartbeats
-          WHERE user_id = ? AND time >= ? AND time <= ?
+          WHERE user_id = ? AND time >= ? AND time < ?
         )
         SELECT
           day,

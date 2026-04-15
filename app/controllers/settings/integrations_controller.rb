@@ -5,7 +5,7 @@ class Settings::IntegrationsController < Settings::BaseController
 
   def update
     if @user.update(integrations_params)
-      @user.update_slack_status if @user.uses_slack_status?
+      Users::SlackIntegrationService.new(@user).update_slack_status if @user.uses_slack_status?
       PosthogService.capture(@user, "settings_updated", { fields: integrations_params.keys })
       redirect_to my_settings_integrations_path, notice: "Settings updated successfully"
     else

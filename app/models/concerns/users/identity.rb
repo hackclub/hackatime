@@ -46,14 +46,6 @@ module Users
           candidates.find { |u| u.username == id }
       end
 
-      def not_convicted
-        where.not(trust_level: trust_levels[:red])
-      end
-
-      def not_suspect
-        where(trust_level: [ trust_levels[:blue], trust_levels[:green] ])
-      end
-
       if Rails.env.development?
         def slow_find_by_email(email)
           EmailAddress.find_by(email: email)&.user

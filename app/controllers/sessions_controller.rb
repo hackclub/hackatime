@@ -4,7 +4,7 @@ class SessionsController < ApplicationController
     Rails.logger.info("Sessions return data: #{session[:return_data]}")
     redirect_uri = url_for(action: :hca_create, only_path: false)
 
-    redirect_to User.hca_authorize_url(redirect_uri),
+    redirect_to Users::OauthAuthenticationService.hca_authorize_url(redirect_uri),
       host: "https://auth.hackclub.com",
       allow_other_host: "https://auth.hackclub.com"
   end
@@ -23,7 +23,7 @@ class SessionsController < ApplicationController
 
     redirect_uri = url_for(action: :hca_create, only_path: false)
 
-    @user = User.from_hca_token(params[:code], redirect_uri)
+    @user = Users::OauthAuthenticationService.from_hca_token(params[:code], redirect_uri)
 
     if @user&.persisted?
       session[:user_id] = @user.id
@@ -55,7 +55,7 @@ class SessionsController < ApplicationController
     }.to_json
 
     Rails.logger.info "Starting Slack OAuth flow with redirect URI: #{redirect_uri}"
-    redirect_to User.slack_authorize_url(redirect_uri, state: state_payload),
+    redirect_to Users::OauthAuthenticationService.slack_authorize_url(redirect_uri, state: state_payload),
                 host: "https://slack.com",
                 allow_other_host: "https://slack.com"
   end
@@ -80,7 +80,7 @@ class SessionsController < ApplicationController
       return
     end
 
-    @user = User.from_slack_token(params[:code], redirect_uri)
+    @user = Users::OauthAuthenticationService.from_slack_token(params[:code], redirect_uri)
 
     if @user&.persisted?
       session[:user_id] = @user.id
@@ -118,7 +118,7 @@ class SessionsController < ApplicationController
     oauth_nonce = SecureRandom.hex(24)
     session[:github_oauth_state_nonce] = oauth_nonce
     Rails.logger.info "Starting GitHub OAuth flow with redirect URI: #{redirect_uri}"
-    redirect_to User.github_authorize_url(redirect_uri, state: oauth_nonce),
+    redirect_to Users::OauthAuthenticationService.github_authorize_url(redirect_uri, state: oauth_nonce),
                 allow_other_host: "https://github.com"
   end
 
@@ -141,7 +141,7 @@ class SessionsController < ApplicationController
       return
     end
 
-    @user = User.from_github_token(params[:code], redirect_uri, current_user)
+    @user = Users::OauthAuthenticationService.from_github_token(params[:code], redirect_uri, current_user)
 
     if @user&.persisted?
       PosthogService.capture(@user, "github_linked")

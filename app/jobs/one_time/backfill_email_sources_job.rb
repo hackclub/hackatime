@@ -5,8 +5,8 @@ class OneTime::BackfillEmailSourcesJob < ApplicationJob
     # Backfill email addresses from Slack
 
     users.find_each do |user|
-      slack_user_info = user.raw_slack_user_info
-      github_user_info = user.raw_github_user_info
+      slack_user_info = Users::SlackIntegrationService.new(user).raw_slack_user_info
+      github_user_info = Users::GithubIntegrationService.new(user).raw_github_user_info
 
       # sleep if we hit an api
       sleep 1 unless slack_user_info.nil? && github_user_info.nil?

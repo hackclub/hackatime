@@ -1,11 +1,15 @@
-module SlackIntegration
-  extend ActiveSupport::Concern
+class Users::SlackIntegrationService
+  attr_reader :user
+
+  def initialize(user)
+    @user = user
+  end
 
   def set_timezone_from_slack
-    return unless slack_uid.present?
+    return unless user.slack_uid.present?
 
-    user_response = HTTP.auth("Bearer #{slack_access_token}")
-      .get("https://slack.com/api/users.info?user=#{slack_uid}")
+    user_response = HTTP.auth("Bearer #{user.slack_access_token}")
+      .get("https://slack.com/api/users.info?user=#{user.slack_uid}")
 
     user_data = JSON.parse(user_response.body.to_s)
 
@@ -15,15 +19,15 @@ module SlackIntegration
 
     return unless timezone_string.present?
 
-    parse_and_set_timezone(timezone_string)
+    user.parse_and_set_timezone(timezone_string)
   end
 
   def raw_slack_user_info
-    return nil unless slack_uid.present?
-    return nil unless slack_access_token.present?
+    return nil unless user.slack_uid.present?
+    return nil unless user.slack_access_token.present?
 
-    @slack_user_info ||= HTTP.auth("Bearer #{slack_access_token}")
-      .get("https://slack.com/api/users.info?user=#{slack_uid}")
+    @slack_user_info ||= HTTP.auth("Bearer #{user.slack_access_token}")
+      .get("https://slack.com/api/users.info?user=#{user.slack_uid}")
 
     JSON.parse(@slack_user_info.body.to_s).dig("user")
   end
@@ -35,18 +39,18 @@ module SlackIntegration
 
     profile = user_data["profile"] || {}
 
-    self.slack_avatar_url = profile["image_192"] || profile["image_72"]
+    user.slack_avatar_url = profile["image_192"] || profile["image_72"]
 
-    self.slack_username = profile["display_name_normalized"].presence
-    self.slack_username ||= profile["real_name_normalized"].presence
-    self.slack_username ||= user_data["name"].presence
-    self.slack_synced_at = Time.current
+    user.slack_username = profile["display_name_normalized"].presence
+    user.slack_username ||= profile["real_name_normalized"].presence
+    user.slack_username ||= user_data["name"].presence
+    user.slack_synced_at = Time.current
   end
 
   def update_slack_status
-    return unless uses_slack_status?
+    return unless user.uses_slack_status?
 
-    current_status_response = HTTP.auth("Bearer #{slack_access_token}")
+    current_status_response = HTTP.auth("Bearer #{user.slack_access_token}")
       .get("https://slack.com/api/users.profile.get")
 
     current_status = JSON.parse(current_status_response.body.to_s)
@@ -57,9 +61,9 @@ module SlackIntegration
 
     return if status_present && status_custom
 
-    current_project = heartbeats.order(time: :desc).first&.project
-    current_project_duration = Time.use_zone(timezone) do
-      heartbeats.where(project: current_project)
+    current_project = user.heartbeats.order(time: :desc).first&.project
+    current_project_duration = Time.use_zone(user.timezone) do
+      user.heartbeats.where(project: current_project)
                 .today
                 .duration_seconds
     end
@@ -92,7 +96,7 @@ module SlackIntegration
     status_emoji = ":#{status_emoji}:"
     status_text = "#{current_project_duration_formatted} spent on #{current_project} today"
 
-    HTTP.auth("Bearer #{slack_access_token}")
+    HTTP.auth("Bearer #{user.slack_access_token}")
       .post("https://slack.com/api/users.profile.set", form: {
         profile: {
           status_text:,

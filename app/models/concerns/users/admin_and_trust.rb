@@ -19,6 +19,16 @@ module Users
       }, prefix: :admin_level
     end
 
+    class_methods do
+      def not_convicted
+        where.not(trust_level: trust_levels[:red])
+      end
+
+      def not_suspect
+        where(trust_level: [ trust_levels[:blue], trust_levels[:green] ])
+      end
+    end
+
     def can_convict_users?
       admin_level_superadmin? || admin_level_ultraadmin?
     end

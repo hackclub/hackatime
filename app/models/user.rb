@@ -1,9 +1,7 @@
 class User < ApplicationRecord
   include TimezoneRegions
   include UserThemeConfiguration
-  include ::OauthAuthentication
-  include ::SlackIntegration
-  include ::GithubIntegration
+
   include ::Users::Identity
   include ::Users::AdminAndTrust
   include ::Users::Profile
@@ -103,6 +101,10 @@ class User < ApplicationRecord
 
   def flipper_id
     "User;#{id}"
+  end
+
+  def github_profile_url
+    "https://github.com/#{github_username}" if github_username.present?
   end
 
   def active_remote_heartbeat_import_run?

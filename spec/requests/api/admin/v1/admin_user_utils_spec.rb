@@ -520,8 +520,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       produces 'application/json'
 
       parameter name: :id, in: :path, type: :integer, description: 'User ID'
-      parameter name: :year, in: :query, type: :integer, description: 'Year (UTC)'
-      parameter name: :month, in: :query, type: :integer, description: 'Month (1-12, UTC)'
+      parameter name: :year, in: :query, type: :integer, required: true, description: 'Year (UTC)'
+      parameter name: :month, in: :query, type: :integer, required: true, description: 'Month (1-12, UTC)'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
