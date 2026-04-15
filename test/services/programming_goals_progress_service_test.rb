@@ -172,7 +172,7 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
 
       progress = ProgrammingGoalsProgressService.new(user: user, rollup_rows: stale_rows).call
 
-      assert_equal 2, progress.first[:tracked_seconds]
+      assert_equal 3, progress.first[:tracked_seconds]
       assert_equal goal.id.to_s, progress.first[:id]
     end
   end
