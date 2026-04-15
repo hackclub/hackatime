@@ -172,7 +172,12 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
 
       progress = ProgrammingGoalsProgressService.new(user: user, rollup_rows: stale_rows).call
 
-      assert_equal 3, progress.first[:tracked_seconds]
+      expected_tracked_seconds = Time.use_zone(user.timezone) do
+        now = Time.zone.now
+        user.heartbeats.where(time: now.beginning_of_day.to_i..now.end_of_day.to_i).duration_seconds
+      end
+
+      assert_equal expected_tracked_seconds, progress.first[:tracked_seconds]
       assert_equal goal.id.to_s, progress.first[:id]
     end
   end
