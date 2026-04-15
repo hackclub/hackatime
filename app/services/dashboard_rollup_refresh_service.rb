@@ -1,6 +1,21 @@
 class DashboardRollupRefreshService < ApplicationService
   GROUPED_DIMENSIONS = %i[project language editor operating_system category].freeze
   WEEKLY_PROJECT_DIMENSION = "weekly_project".freeze
+  DAILY_DURATION_DIMENSION = "daily_duration".freeze
+  TODAY_CONTEXT_DIMENSION = "today_context".freeze
+  TODAY_TOTAL_DURATION_DIMENSION = "today_total_duration".freeze
+  TODAY_LANGUAGE_COUNT_DIMENSION = "today_language_count".freeze
+  TODAY_EDITOR_COUNT_DIMENSION = "today_editor_count".freeze
+  GOALS_PERIOD_TOTAL_DIMENSION = "goals_period_total".freeze
+  GOALS_PERIOD_PROJECT_DIMENSION = "goals_period_project".freeze
+  GOALS_PERIOD_LANGUAGE_DIMENSION = "goals_period_language".freeze
+  GOALS_PERIODS = %w[day week month].freeze
+  TODAY_DIMENSIONS = [
+    TODAY_CONTEXT_DIMENSION,
+    TODAY_TOTAL_DURATION_DIMENSION,
+    TODAY_LANGUAGE_COUNT_DIMENSION,
+    TODAY_EDITOR_COUNT_DIMENSION
+  ].freeze
 
   def initialize(user:)
     @user = user
@@ -25,6 +40,46 @@ class DashboardRollupRefreshService < ApplicationService
         records << build_record(
           dimension: WEEKLY_PROJECT_DIMENSION,
           bucket: [ week_key, project ].to_json,
+          total_seconds: total_seconds,
+          now: now
+        )
+      end
+    end
+
+    daily_durations.each do |date_key, total_seconds|
+      records << build_record(
+        dimension: DAILY_DURATION_DIMENSION,
+        bucket: date_key,
+        total_seconds: total_seconds,
+        now: now
+      )
+    end
+
+    today_rollup_records(now).each do |record|
+      records << record
+    end
+
+    goals_rollup_data.each do |period, period_data|
+      records << build_record(
+        dimension: GOALS_PERIOD_TOTAL_DIMENSION,
+        bucket: period,
+        total_seconds: period_data.fetch(:total),
+        now: now
+      )
+
+      period_data.fetch(:project).each do |project, total_seconds|
+        records << build_record(
+          dimension: GOALS_PERIOD_PROJECT_DIMENSION,
+          bucket: [ period, project ].to_json,
+          total_seconds: total_seconds,
+          now: now
+        )
+      end
+
+      period_data.fetch(:language).each do |language, total_seconds|
+        records << build_record(
+          dimension: GOALS_PERIOD_LANGUAGE_DIMENSION,
+          bucket: [ period, language ].to_json,
           total_seconds: total_seconds,
           now: now
         )
@@ -127,5 +182,189 @@ class DashboardRollupRefreshService < ApplicationService
       week_start = w.weeks.ago.beginning_of_week
       [ week_start.to_date.iso8601, week_start.to_f, w.weeks.ago.end_of_week.to_f ]
     end
+  end
+
+  def daily_durations
+    @scope.daily_durations(user_timezone: @user.timezone).to_h.transform_keys { |date| date.iso8601 }
+  end
+
+  def self.today_rollup_data_for(user)
+    timezone = user.timezone
+    local_date = Time.use_zone(timezone) { Time.zone.today.iso8601 }
+
+    rows = Time.use_zone(timezone) do
+      user.heartbeats.today
+        .select(:language, :editor,
+                "COUNT(*) OVER (PARTITION BY language) as language_count",
+                "COUNT(*) OVER (PARTITION BY editor) as editor_count")
+        .distinct
+        .to_a
+    end
+
+    language_counts = rows
+      .map { |row| [ row.language&.categorize_language, row.language_count ] }
+      .reject { |language, _| language.blank? }
+      .group_by(&:first)
+      .transform_values { |pairs| pairs.sum(&:last).to_i }
+
+    editor_counts = rows
+      .map { |row| [ row.editor, row.editor_count ] }
+      .reject { |editor, _| editor.blank? }
+      .uniq
+      .to_h
+      .transform_values(&:to_i)
+
+    {
+      timezone: timezone,
+      local_date: local_date,
+      total_duration: Time.use_zone(timezone) { user.heartbeats.today.duration_seconds.to_i },
+      language_counts: language_counts,
+      editor_counts: editor_counts
+    }
+  end
+
+  def self.upsert_today_rollup!(user:, data:, now: Time.current)
+    records = []
+    records << {
+      user_id: user.id,
+      dimension: TODAY_CONTEXT_DIMENSION,
+      bucket_value: [ data.fetch(:timezone), data.fetch(:local_date) ].to_json,
+      bucket_value_present: true,
+      total_seconds: 0,
+      source_heartbeats_count: nil,
+      source_max_heartbeat_time: nil,
+      created_at: now,
+      updated_at: now
+    }
+    records << {
+      user_id: user.id,
+      dimension: TODAY_TOTAL_DURATION_DIMENSION,
+      bucket_value: "",
+      bucket_value_present: false,
+      total_seconds: data.fetch(:total_duration).to_i,
+      source_heartbeats_count: nil,
+      source_max_heartbeat_time: nil,
+      created_at: now,
+      updated_at: now
+    }
+
+    data.fetch(:language_counts, {}).each do |language, count|
+      records << {
+        user_id: user.id,
+        dimension: TODAY_LANGUAGE_COUNT_DIMENSION,
+        bucket_value: language.to_s,
+        bucket_value_present: true,
+        total_seconds: count.to_i,
+        source_heartbeats_count: nil,
+        source_max_heartbeat_time: nil,
+        created_at: now,
+        updated_at: now
+      }
+    end
+
+    data.fetch(:editor_counts, {}).each do |editor, count|
+      records << {
+        user_id: user.id,
+        dimension: TODAY_EDITOR_COUNT_DIMENSION,
+        bucket_value: editor.to_s,
+        bucket_value_present: true,
+        total_seconds: count.to_i,
+        source_heartbeats_count: nil,
+        source_max_heartbeat_time: nil,
+        created_at: now,
+        updated_at: now
+      }
+    end
+
+    DashboardRollup.transaction do
+      DashboardRollup.where(user_id: user.id, dimension: TODAY_DIMENSIONS).delete_all
+      DashboardRollup.insert_all!(records)
+    end
+  end
+
+  def goals_rollup_data
+    GOALS_PERIODS.each_with_object({}) do |period, result|
+      scope = goals_period_scope(period)
+      grouped_languages = scope.group(:language).duration_seconds.each_with_object({}) do |(language, seconds), grouped|
+        next if language.blank?
+
+        categorized = language.categorize_language
+        next if categorized.blank?
+
+        grouped[categorized] = (grouped[categorized] || 0) + seconds
+      end
+
+      result[period] = {
+        total: scope.duration_seconds,
+        project: project_grouped_durations_for(scope),
+        language: grouped_languages
+      }
+    end
+  end
+
+  def goals_period_scope(period)
+    range = Time.use_zone(@user.timezone) do
+      now = Time.zone.now
+      case period
+      when "day"
+        now.beginning_of_day..now.end_of_day
+      when "week"
+        now.beginning_of_week(:monday)..now.end_of_week(:monday)
+      when "month"
+        now.beginning_of_month..now.end_of_month
+      else
+        now.beginning_of_day..now.end_of_day
+      end
+    end
+
+    @scope.where(time: range.begin.to_i..range.end.to_i)
+  end
+
+  def project_grouped_durations_for(scope)
+    non_null = scope.where.not(project: nil).group(:project).duration_seconds
+    return non_null if scope.where(project: nil).none?
+
+    null_duration = scope.where(project: nil).duration_seconds
+    return non_null if null_duration.zero?
+
+    non_null.merge(nil => null_duration)
+  end
+
+  def today_rollup_records(now)
+    data = self.class.today_rollup_data_for(@user)
+    records = []
+
+    records << build_record(
+      dimension: TODAY_CONTEXT_DIMENSION,
+      bucket: [ data.fetch(:timezone), data.fetch(:local_date) ].to_json,
+      total_seconds: 0,
+      now: now
+    )
+    records << build_record(
+      dimension: TODAY_TOTAL_DURATION_DIMENSION,
+      bucket: nil,
+      total_seconds: data.fetch(:total_duration),
+      now: now
+    )
+
+    data.fetch(:language_counts).each do |language, count|
+      records << build_record(
+        dimension: TODAY_LANGUAGE_COUNT_DIMENSION,
+        bucket: language,
+        total_seconds: count,
+        now: now
+      )
+    end
+
+    data.fetch(:editor_counts).each do |editor, count|
+      records << build_record(
+        dimension: TODAY_EDITOR_COUNT_DIMENSION,
+        bucket: editor,
+        total_seconds: count,
+        now: now
+      )
+    end
+
+    records
   end
 end

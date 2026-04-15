@@ -105,6 +105,52 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "uses rollup aggregates for unfiltered project-only and language-only goals" do
+    user = User.create!(timezone: "America/New_York")
+
+    unfiltered_goal = user.goals.create!(period: "day", target_seconds: 10)
+    project_goal = user.goals.create!(period: "day", target_seconds: 10, projects: [ "alpha" ])
+    language_goal = user.goals.create!(period: "day", target_seconds: 10, languages: [ "Ruby" ])
+
+    travel_to Time.utc(2026, 1, 14, 16, 0, 0) do
+      create_heartbeat_pair(user, "2026-01-14 09:00:00", language: "rb", project: "alpha")
+      create_heartbeat_pair(user, "2026-01-14 09:10:00", language: "python", project: "alpha")
+      create_heartbeat_pair(user, "2026-01-14 09:20:00", language: "rb", project: "beta")
+
+      DashboardRollupRefreshService.new(user: user).call
+      rows = DashboardRollup.where(user: user).to_a
+
+      progress = ProgrammingGoalsProgressService.new(user: user, rollup_rows: rows).call.index_by { |goal| goal[:id] }
+
+      assert_equal 5, progress[unfiltered_goal.id.to_s][:tracked_seconds]
+      assert_equal 3, progress[project_goal.id.to_s][:tracked_seconds]
+      assert_equal 3, progress[language_goal.id.to_s][:tracked_seconds]
+    end
+  end
+
+  test "falls back to heartbeat queries for combined language and project filters" do
+    user = User.create!(timezone: "America/New_York")
+    and_goal = user.goals.create!(
+      period: "day",
+      target_seconds: 10,
+      languages: [ "Ruby" ],
+      projects: [ "alpha" ]
+    )
+
+    travel_to Time.utc(2026, 1, 14, 16, 0, 0) do
+      create_heartbeat_pair(user, "2026-01-14 09:00:00", language: "rb", project: "alpha")
+      create_heartbeat_pair(user, "2026-01-14 09:10:00", language: "python", project: "alpha")
+      create_heartbeat_pair(user, "2026-01-14 09:20:00", language: "rb", project: "beta")
+
+      DashboardRollupRefreshService.new(user: user).call
+      rows = DashboardRollup.where(user: user).to_a
+
+      progress = ProgrammingGoalsProgressService.new(user: user, rollup_rows: rows).call.index_by { |goal| goal[:id] }
+
+      assert_equal 1, progress[and_goal.id.to_s][:tracked_seconds]
+    end
+  end
+
   private
 
   def create_heartbeat_pair(user, start_time, language: "Ruby", project: "alpha")

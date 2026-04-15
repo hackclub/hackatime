@@ -1,7 +1,8 @@
 class ProgrammingGoalsProgressService
-  def initialize(user:, goals: nil)
+  def initialize(user:, goals: nil, rollup_rows: nil)
     @user = user
     @goals = goals || user.goals.order(:created_at)
+    @rollup_rows = rollup_rows
   end
 
   def call
@@ -15,7 +16,7 @@ class ProgrammingGoalsProgressService
 
   private
 
-  attr_reader :user, :goals
+  attr_reader :user, :goals, :rollup_rows
 
   def build_progress(goal, now:)
     tracked_seconds = tracked_seconds_for_goal(goal, now: now)
@@ -36,6 +37,9 @@ class ProgrammingGoalsProgressService
   end
 
   def tracked_seconds_for_goal(goal, now:)
+    rollup_tracked_seconds = tracked_seconds_from_rollup(goal)
+    return rollup_tracked_seconds unless rollup_tracked_seconds.nil?
+
     time_window = time_window_for(goal.period, now: now)
     scope = user.heartbeats.where(time: time_window.begin.to_i..time_window.end.to_i)
     scope = scope.where(project: goal.projects) if goal.projects.any?
@@ -50,6 +54,66 @@ class ProgrammingGoalsProgressService
     end
 
     scope.duration_seconds.to_i
+  end
+
+  def tracked_seconds_from_rollup(goal)
+    return if rollup_rows.blank?
+
+    period_data = rollup_goals_data.fetch(goal.period, nil)
+    return if period_data.nil?
+
+    projects = goal.projects.compact_blank
+    languages = goal.languages.compact_blank
+
+    if projects.empty? && languages.empty?
+      period_data.fetch(:total, 0)
+    elsif projects.any? && languages.empty?
+      projects.sum { |project| period_data.fetch(:project, {}).fetch(project, 0) }
+    elsif languages.any? && projects.empty?
+      languages.sum { |language| period_data.fetch(:language, {}).fetch(language, 0) }
+    end
+  end
+
+  def rollup_goals_data
+    return @rollup_goals_data if defined?(@rollup_goals_data)
+
+    grouped = rollup_rows.group_by(&:dimension)
+    totals = grouped.fetch(DashboardRollupRefreshService::GOALS_PERIOD_TOTAL_DIMENSION, [])
+      .index_by(&:bucket)
+      .transform_values { |row| row.total_seconds.to_i }
+
+    project = grouped.fetch(DashboardRollupRefreshService::GOALS_PERIOD_PROJECT_DIMENSION, [])
+      .each_with_object(Hash.new { |hash, key| hash[key] = {} }) do |row, acc|
+        period, project_name = parse_rollup_bucket_pair(row.bucket_value)
+        next if period.blank?
+
+        acc[period][project_name] = row.total_seconds.to_i
+      end
+
+    language = grouped.fetch(DashboardRollupRefreshService::GOALS_PERIOD_LANGUAGE_DIMENSION, [])
+      .each_with_object(Hash.new { |hash, key| hash[key] = {} }) do |row, acc|
+        period, language_name = parse_rollup_bucket_pair(row.bucket_value)
+        next if period.blank?
+
+        acc[period][language_name] = row.total_seconds.to_i
+      end
+
+    @rollup_goals_data = DashboardRollupRefreshService::GOALS_PERIODS.each_with_object({}) do |period, data|
+      data[period] = {
+        total: totals.fetch(period, 0),
+        project: project.fetch(period, {}),
+        language: language.fetch(period, {})
+      }
+    end
+  end
+
+  def parse_rollup_bucket_pair(bucket)
+    parsed = JSON.parse(bucket)
+    return [ nil, nil ] unless parsed.is_a?(Array) && parsed.size == 2
+
+    parsed
+  rescue JSON::ParserError
+    [ nil, nil ]
   end
 
   def languages_grouped_by_category(languages)

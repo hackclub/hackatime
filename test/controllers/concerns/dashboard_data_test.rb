@@ -218,6 +218,38 @@ class DashboardDataTest < ActiveSupport::TestCase
     end
   end
 
+  test "today stats refreshes rollup-backed today data when context is stale" do
+    with_memory_cache_store do
+      Rails.cache.clear
+
+      user = User.create!(timezone: "UTC")
+      harness = Harness.new
+      harness.current_user = user
+      harness.params = ActionController::Parameters.new
+
+      travel_to Time.utc(2026, 4, 14, 10, 0, 0) do
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+        travel 1.minute
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+
+        DashboardRollupRefreshService.new(user: user).call
+      end
+
+      stale_context = DashboardRollup.find_by!(user: user, dimension: DashboardRollupRefreshService::TODAY_CONTEXT_DIMENSION)
+      stale_context.update!(bucket_value: [ "UTC", "2026-04-13" ].to_json)
+
+      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+        stats = harness.send(:today_stats_data)
+
+        assert_equal false, stats[:show_logged_time_sentence]
+        assert_equal [ "Ruby" ], stats[:todays_languages]
+
+        refreshed_context = DashboardRollup.find_by!(user: user, dimension: DashboardRollupRefreshService::TODAY_CONTEXT_DIMENSION)
+        assert_equal [ "UTC", "2026-04-14" ], JSON.parse(refreshed_context.bucket_value)
+      end
+    end
+  end
+
   private
 
   def with_memory_cache_store

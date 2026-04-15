@@ -1,9 +1,6 @@
 class User < ApplicationRecord
   include TimezoneRegions
   include UserThemeConfiguration
-  include ::OauthAuthentication
-  include ::SlackIntegration
-  include ::GithubIntegration
 
   has_subscriptions
 
@@ -236,7 +233,7 @@ class User < ApplicationRecord
     compliment_text: 2
   }
 
-  after_save :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
+  after_save :handle_timezone_change, if: :saved_change_to_timezone?
 
   def flipper_id
     "User;#{id}"
@@ -244,6 +241,10 @@ class User < ApplicationRecord
 
   def active_remote_heartbeat_import_run?
     heartbeat_import_runs.remote_imports.active_imports.exists?
+  end
+
+  def github_account
+    @github_account ||= Users::GithubAccount.new(self)
   end
 
   def format_extension_text(duration)
@@ -256,6 +257,10 @@ class User < ApplicationRecord
     when "compliment_text"
       FlavorText.compliment.sample
     end
+  end
+
+  def slack_account
+    @slack_account ||= Users::SlackAccount.new(self)
   end
 
   def parse_and_set_timezone(timezone)
@@ -339,8 +344,16 @@ class User < ApplicationRecord
 
   private
 
-  def invalidate_activity_graph_cache
-    Rails.cache.delete("user_#{id}_daily_durations")
+  def handle_timezone_change
+    previous_timezone, current_timezone = saved_change_to_timezone
+    [ previous_timezone, current_timezone ].compact_blank.uniq.each do |timezone|
+      Rails.cache.delete("user_#{id}_daily_durations_#{timezone}")
+
+      local_date = Time.use_zone(timezone) { Time.zone.today.iso8601 }
+      Rails.cache.delete([ "user", id, "today_stats", timezone, local_date ])
+    end
+
+    DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
   end
 
   def track_signup
