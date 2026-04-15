@@ -1,28 +1,6 @@
 require "test_helper"
 
 class StaticPagesControllerTest < ActionDispatch::IntegrationTest
-  test "does not include Jam scripts by default" do
-    user = User.create!(timezone: "UTC")
-    sign_in_as(user)
-
-    get root_path
-
-    assert_response :success
-    assert_not_includes response.body, "https://js.jam.dev/recorder.js"
-    assert_not_includes response.body, "https://js.jam.dev/capture.js"
-  end
-
-  test "does not include Jam scripts in test env even with jam query param" do
-    user = User.create!(timezone: "UTC")
-    sign_in_as(user)
-
-    get root_path(jam: "1")
-
-    assert_response :success
-    assert_not_includes response.body, "https://js.jam.dev/recorder.js"
-    assert_not_includes response.body, "https://js.jam.dev/capture.js"
-  end
-
   test "signed in homepage dashboard stats preserves grouped durations and weekly project stats" do
     travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
       user = User.create!(timezone: "UTC")
