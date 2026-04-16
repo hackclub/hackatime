@@ -174,7 +174,7 @@ module ApplicationHelper
     return "Unknown" if editor.blank?
 
     case editor.downcase
-    when "vscode", "vs code" then "VS Code"
+    when "vscode", "vs code" then "VSCode"
     when "pycharm" then "PyCharm"
     when "intellij", "intellijidea" then "IntelliJ IDEA"
     when "webstorm" then "WebStorm"
