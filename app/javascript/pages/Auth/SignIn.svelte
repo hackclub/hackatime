@@ -44,6 +44,10 @@
   });
 </script>
 
+<svelte:head>
+  <title>Sign in - Hackatime</title>
+</svelte:head>
+
 <div
   class="min-h-screen w-full bg-darker text-surface-content flex flex-col items-center justify-center px-6"
 >

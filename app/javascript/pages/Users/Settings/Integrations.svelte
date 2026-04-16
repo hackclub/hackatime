@@ -38,6 +38,10 @@
   });
 </script>
 
+<svelte:head>
+  <title>Integrations - Hackatime Settings</title>
+</svelte:head>
+
 <SettingsShell
   {active_section}
   {section_paths}

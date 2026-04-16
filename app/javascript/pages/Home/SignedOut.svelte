@@ -94,6 +94,10 @@
   });
 </script>
 
+<svelte:head>
+  <title>Hackatime - Track your coding time</title>
+</svelte:head>
+
 <div class="landing-page min-h-screen w-full bg-darker text-surface-content">
   {#if flashVisible && flash.length > 0}
     <div

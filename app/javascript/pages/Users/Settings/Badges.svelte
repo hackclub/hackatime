@@ -64,6 +64,10 @@
   };
 </script>
 
+<svelte:head>
+  <title>Badges - Hackatime Settings</title>
+</svelte:head>
+
 <SettingsShell
   {active_section}
   {section_paths}
