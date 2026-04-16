@@ -15,6 +15,7 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
   end
 
   test "downloads the remote dump and enqueues the import job" do
+    run = nil
     run = User.create!(timezone: "UTC").heartbeat_import_runs.create!(
       source_kind: :wakatime_dump,
       state: :downloading_dump,
@@ -47,7 +48,7 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
     assert_equal "wakatime/v1.102.1 (darwin-arm64) go1.22.0 vscode/1.0.0",
       context.dig("user_agents_by_id", "ua-123", "value")
   ensure
-    FileUtils.rm_f(HeartbeatImportRunner::TMP_DIR.join("#{run.id}-remote.json"))
+    FileUtils.rm_f(HeartbeatImportRunner::TMP_DIR.join("#{run.id}-remote.json")) if run
     FileUtils.rm_f(context_path) if defined?(context_path)
   end
 
