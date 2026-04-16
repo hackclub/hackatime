@@ -138,6 +138,10 @@
   ];
 </script>
 
+<svelte:head>
+  <title>Wakatime vs Hackatime</title>
+</svelte:head>
+
 <div class="min-h-screen w-full bg-darker text-surface-content">
   <!-- Fixed Header -->
   <header
@@ -186,7 +190,7 @@
       <h1
         class="text-4xl md:text-5xl font-bold tracking-tight leading-[1.15] mb-6"
       >
-        WakaTime Alternative: Free & Open Source Coding Time Tracker
+        WakaTime vs Hackatime
       </h1>
       <p class="text-lg md:text-xl text-secondary leading-relaxed max-w-[75ch]">
         Looking for a WakaTime alternative? <strong class="text-surface-content"

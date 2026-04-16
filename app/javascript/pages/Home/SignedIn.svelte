@@ -100,6 +100,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Dashboard - Hackatime</title>
+</svelte:head>
+
 <div>
   <!-- Header Section -->
   <div class="mb-8">
