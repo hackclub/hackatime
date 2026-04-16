@@ -36,6 +36,19 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
         HeartbeatImportRemoteDownloadJob.perform_now(run.id, "https://wakatime.s3.amazonaws.com/export.json")
       end
     end
+
+    context_path = HeartbeatImportRunner.import_context_path_for(
+      HeartbeatImportRunner::TMP_DIR.join("#{run.id}-remote.json").to_s
+    )
+    context = JSON.parse(File.read(context_path))
+
+    assert_equal "vscode", context.dig("user_agents_by_id", "ua-123", "editor")
+    assert_equal "darwin", context.dig("user_agents_by_id", "ua-123", "os")
+    assert_equal "wakatime/v1.102.1 (darwin-arm64) go1.22.0 vscode/1.0.0",
+      context.dig("user_agents_by_id", "ua-123", "value")
+  ensure
+    FileUtils.rm_f(HeartbeatImportRunner::TMP_DIR.join("#{run.id}-remote.json"))
+    FileUtils.rm_f(context_path) if defined?(context_path)
   end
 
   test "marks the run as failed when the direct download is rejected" do
