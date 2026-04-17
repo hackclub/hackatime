@@ -1,6 +1,8 @@
 require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   test "theme defaults to gruvbox dark" do
     user = User.new
 
@@ -71,5 +73,37 @@ class UserTest < ActiveSupport::TestCase
     )
 
     assert user.active_remote_heartbeat_import_run?
+  end
+
+  test "changing timezone clears timezone-specific caches and schedules immediate rollup refresh" do
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+
+    user = User.create!(timezone: "UTC")
+
+    old_day_key = Time.use_zone("UTC") { Time.zone.today.iso8601 }
+    old_today_key = [ "user", user.id, "today_stats", "UTC", old_day_key ]
+    new_day_key = Time.use_zone("America/New_York") { Time.zone.today.iso8601 }
+    new_today_key = [ "user", user.id, "today_stats", "America/New_York", new_day_key ]
+    old_daily_key = "user_#{user.id}_daily_durations_UTC"
+    new_daily_key = "user_#{user.id}_daily_durations_America/New_York"
+
+    Rails.cache.write(old_today_key, { stale: true })
+    Rails.cache.write(new_today_key, { stale: true })
+    Rails.cache.write(old_daily_key, { stale: true })
+    Rails.cache.write(new_daily_key, { stale: true })
+
+    clear_enqueued_jobs
+
+    assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
+      user.update!(timezone: "America/New_York")
+    end
+
+    assert_nil Rails.cache.read(old_today_key)
+    assert_nil Rails.cache.read(new_today_key)
+    assert_nil Rails.cache.read(old_daily_key)
+    assert_nil Rails.cache.read(new_daily_key)
+  ensure
+    ActiveJob::Base.queue_adapter = original_adapter
   end
 end

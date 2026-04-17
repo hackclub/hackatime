@@ -3,6 +3,11 @@ module DashboardData
 
   FILTER_OPTIONS_CACHE_VERSION = "v1".freeze
   WEEKLY_PROJECT_DIMENSION = "weekly_project".freeze
+  DAILY_DURATION_DIMENSION = "daily_duration".freeze
+  TODAY_CONTEXT_DIMENSION = "today_context".freeze
+  TODAY_TOTAL_DURATION_DIMENSION = "today_total_duration".freeze
+  TODAY_LANGUAGE_COUNT_DIMENSION = "today_language_count".freeze
+  TODAY_EDITOR_COUNT_DIMENSION = "today_editor_count".freeze
 
   private
 
@@ -22,9 +27,12 @@ module DashboardData
 
   def activity_graph_data
     tz = current_user.timezone
-    key = "user_#{current_user.id}_daily_durations_#{tz}"
-    durations = Rails.cache.fetch(key, expires_in: 1.minute) do
-      Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
+    durations = dashboard_rollup_daily_durations
+    unless durations
+      key = "user_#{current_user.id}_daily_durations_#{tz}"
+      durations = Rails.cache.fetch(key, expires_in: 1.minute) do
+        Time.use_zone(tz) { current_user.heartbeats.daily_durations(user_timezone: tz).to_h }
+      end
     end
 
     {
@@ -38,37 +46,42 @@ module DashboardData
   end
 
   def today_stats_data
-    h = ApplicationController.helpers
-    Time.use_zone(current_user.timezone) do
-      rows = current_user.heartbeats.today
-        .select(:language, :editor,
-                "COUNT(*) OVER (PARTITION BY language) as language_count",
-                "COUNT(*) OVER (PARTITION BY editor) as editor_count")
-        .distinct.to_a
+    cache_key, timezone = today_stats_cache_key
+    Rails.cache.fetch(cache_key, expires_in: 1.minute) do
+      rollup_stats = dashboard_rollup_today_stats(timezone)
+      if rollup_stats
+        rollup_stats
+      else
+        today_data = DashboardRollupRefreshService.today_rollup_data_for(current_user)
+        DashboardRollupRefreshService.upsert_today_rollup!(user: current_user, data: today_data)
+        dashboard_clear_rollup_rows_memo
 
-      lang_counts = rows
-        .map { |r| [ r.language&.categorize_language, r.language_count ] }
-        .reject { |l, _| l.blank? }
-        .group_by(&:first).transform_values { |p| p.sum(&:last) }
-        .sort_by { |_, c| -c }
-
-      ed_counts = rows
-        .map { |r| [ r.editor, r.editor_count ] }
-        .reject { |e, _| e.blank? }.uniq
-        .sort_by { |_, c| -c }
-
-      todays_languages = lang_counts.map { |l, _| h.display_language_name(l) }
-      todays_editors = ed_counts.map { |e, _| h.display_editor_name(e) }
-      todays_duration = current_user.heartbeats.today.duration_seconds
-      show_logged_time_sentence = todays_duration > 1.minute && (todays_languages.any? || todays_editors.any?)
-
-      {
-        show_logged_time_sentence: show_logged_time_sentence,
-        todays_duration_display: h.short_time_detailed(todays_duration.to_i),
-        todays_languages: todays_languages,
-        todays_editors: todays_editors
-      }
+        build_today_stats_from_rollup_data(today_data)
+      end
     end
+  end
+
+  def build_today_stats_from_rollup_data(data)
+    h = ApplicationController.helpers
+    todays_languages = data.fetch(:language_counts).sort_by { |_, count| -count }
+      .map { |language, _| h.display_language_name(language) }
+    todays_editors = data.fetch(:editor_counts).sort_by { |_, count| -count }
+      .map { |editor, _| h.display_editor_name(editor) }
+    todays_duration = data.fetch(:total_duration).to_i
+
+    {
+      show_logged_time_sentence: todays_duration > 1.minute && (todays_languages.any? || todays_editors.any?),
+      todays_duration_display: h.short_time_detailed(todays_duration),
+      todays_languages: todays_languages,
+      todays_editors: todays_editors
+    }
+  end
+
+  def today_stats_cache_key
+    timezone = current_user.timezone
+    local_date = Time.use_zone(timezone) { Time.zone.today.iso8601 }
+    key = [ "user", current_user.id, "today_stats", timezone, local_date ]
+    [ key, timezone ]
   end
 
   def dashboard_filters
@@ -229,23 +242,13 @@ module DashboardData
   end
 
   def dashboard_rollup_snapshot
-    return unless dashboard_rollups_available?
     return unless dashboard_rollup_eligible?
 
-    rows = DashboardRollup.where(user_id: current_user.id).to_a
-    total_row = rows.find(&:total_dimension?)
-    unless total_row
-      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
-      return
-    end
-
-    if DashboardRollup.dirty?(current_user.id)
-      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
-    elsif dashboard_rollup_time_fingerprint(total_row.source_max_heartbeat_time) != dashboard_rollup_source_max_heartbeat_time
-      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
-    end
+    rows = dashboard_rollup_rows
+    return unless rows
 
     grouped_rows = rows.reject(&:total_dimension?).group_by(&:dimension)
+    total_row = rows.find(&:total_dimension?)
 
     {
       total_time: total_row.total_seconds,
@@ -268,6 +271,73 @@ module DashboardData
     DashboardRollup.table_exists?
   rescue ActiveRecord::StatementInvalid
     false
+  end
+
+  def dashboard_rollup_rows
+    return @dashboard_rollup_rows if defined?(@dashboard_rollup_rows)
+
+    unless dashboard_rollups_available?
+      @dashboard_rollup_rows = nil
+      return
+    end
+
+    rows = DashboardRollup.where(user_id: current_user.id).to_a
+    total_row = rows.find(&:total_dimension?)
+    unless total_row
+      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
+      @dashboard_rollup_rows = nil
+      return
+    end
+
+    if DashboardRollup.dirty?(current_user.id)
+      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
+    elsif dashboard_rollup_time_fingerprint(total_row.source_max_heartbeat_time) != dashboard_rollup_source_max_heartbeat_time
+      DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds)
+    end
+
+    @dashboard_rollup_rows = rows
+  end
+
+  def dashboard_rollup_grouped_rows
+    return @dashboard_rollup_grouped_rows if defined?(@dashboard_rollup_grouped_rows)
+
+    rows = dashboard_rollup_rows
+    @dashboard_rollup_grouped_rows = rows ? rows.reject(&:total_dimension?).group_by(&:dimension) : {}
+  end
+
+  def dashboard_rollup_daily_durations
+    rows = dashboard_rollup_grouped_rows.fetch(DAILY_DURATION_DIMENSION, [])
+    return if rows.empty?
+
+    rows.to_h { |row| [ row.bucket, row.total_seconds.to_i ] }
+  end
+
+  def dashboard_rollup_today_stats(timezone)
+    context_row = dashboard_rollup_grouped_rows.fetch(TODAY_CONTEXT_DIMENSION, []).first
+    return unless context_row
+
+    context_timezone, context_date = JSON.parse(context_row.bucket_value)
+    current_date = Time.use_zone(timezone) { Time.zone.today.iso8601 }
+    return unless context_timezone == timezone && context_date == current_date
+
+    total_row = dashboard_rollup_grouped_rows.fetch(TODAY_TOTAL_DURATION_DIMENSION, []).first
+    return unless total_row
+
+    data = {
+      timezone: timezone,
+      local_date: current_date,
+      total_duration: total_row.total_seconds.to_i,
+      language_counts: dashboard_rollup_grouped_rows.fetch(TODAY_LANGUAGE_COUNT_DIMENSION, []).to_h { |row| [ row.bucket.to_s, row.total_seconds.to_i ] },
+      editor_counts: dashboard_rollup_grouped_rows.fetch(TODAY_EDITOR_COUNT_DIMENSION, []).to_h { |row| [ row.bucket.to_s, row.total_seconds.to_i ] }
+    }
+    build_today_stats_from_rollup_data(data)
+  rescue JSON::ParserError
+    nil
+  end
+
+  def dashboard_clear_rollup_rows_memo
+    remove_instance_variable(:@dashboard_rollup_rows) if instance_variable_defined?(:@dashboard_rollup_rows)
+    remove_instance_variable(:@dashboard_rollup_grouped_rows) if instance_variable_defined?(:@dashboard_rollup_grouped_rows)
   end
 
   def dashboard_rollup_source_max_heartbeat_time

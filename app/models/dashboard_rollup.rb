@@ -1,5 +1,21 @@
 class DashboardRollup < ApplicationRecord
-  DIMENSIONS = %w[total project language editor operating_system category weekly_project].freeze
+  DIMENSIONS = %w[
+    total
+    project
+    language
+    editor
+    operating_system
+    category
+    weekly_project
+    daily_duration
+    today_context
+    today_total_duration
+    today_language_count
+    today_editor_count
+    goals_period_total
+    goals_period_project
+    goals_period_language
+  ].freeze
   TOTAL_DIMENSION = "total".freeze
   DIRTY_CACHE_KEY_PREFIX = "dashboard_rollup_dirty".freeze
 
