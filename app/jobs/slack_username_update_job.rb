@@ -16,7 +16,7 @@ class SlackUsernameUpdateJob < ApplicationJob
       .limit(100)
       .each do |user|
         begin
-          user.update_from_slack
+          Users::SlackIntegrationService.new(user).update_from_slack
           user.save!
         rescue => e
           report_error(e, message: "Failed to update Slack username and avatar for user #{user.id}")

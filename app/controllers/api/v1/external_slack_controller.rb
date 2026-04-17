@@ -30,7 +30,8 @@ module Api
 
         user.slack_access_token = token
 
-        user_data = user.raw_slack_user_info
+        slack_service = Users::SlackIntegrationService.new(user)
+        user_data = slack_service.raw_slack_user_info
         return render json: { error: "Invalid Slack token" }, status: :unauthorized unless user_data.present?
 
         email = user_data.dig("profile", "email")
@@ -40,7 +41,7 @@ module Api
         email_address.source ||= :slack
         user.email_addresses << email_address unless user.email_addresses.include?(email_address)
 
-        user.update_from_slack
+        slack_service.update_from_slack
         user.parse_and_set_timezone(user_data["tz"])
 
         if user.save

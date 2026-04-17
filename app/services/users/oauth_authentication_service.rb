@@ -1,8 +1,5 @@
-module OauthAuthentication
-  extend ActiveSupport::Concern
-  include ErrorReporting
-
-  class_methods do
+class Users::OauthAuthenticationService
+  class << self
     include ErrorReporting
 
     def hca_authorize_url(redirect_uri)
@@ -60,19 +57,19 @@ module OauthAuthentication
 
       hca_data = ::HCAService.me(access_token)
       identity = hca_data["identity"]
-      @user = User.find_by_hca_id(identity["id"]) unless identity["id"].blank?
-      @user ||= User.find_by_slack_uid(identity["slack_id"]) unless identity["slack_id"].blank?
-      @user ||= begin
+      user = User.find_by_hca_id(identity["id"]) unless identity["id"].blank?
+      user ||= User.find_by_slack_uid(identity["slack_id"]) unless identity["slack_id"].blank?
+      user ||= begin
                   EmailAddress.find_by(email: identity["primary_email"])&.user unless identity["primary_email"].blank?
                 end
 
-      @user.update(
+      user.update(
         hca_scopes: hca_data["scopes"],
         hca_id: identity["id"],
         hca_access_token: access_token
-      ) if !!@user
+      ) if !!user
 
-      @user ||= begin
+      user ||= begin
                   u = User.create!(
                     hca_id: identity["id"],
                     slack_uid: identity["slack_id"],

@@ -1305,6 +1305,69 @@ paths:
                               type: string
                             admin_level:
                               type: string
+  "/api/admin/v1/users/{id}/visualization/quantized":
+    get:
+      summary: Get quantized visualization for user
+      tags:
+      - Admin Utils
+      description: Get quantized heartbeat points and daily totals for a user/month.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID
+        required: true
+        schema:
+          type: integer
+      - name: year
+        in: query
+        required: true
+        description: Year (UTC)
+        schema:
+          type: integer
+      - name: month
+        in: query
+        required: true
+        description: Month (1-12, UTC)
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  days:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date_timestamp_s:
+                          type: integer
+                        total_seconds:
+                          type: number
+                        points:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              time:
+                                type: number
+                              lineno:
+                                type: integer
+                                nullable: true
+                              cursorpos:
+                                type: integer
+                                nullable: true
+        '422':
+          description: invalid month parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/api/admin/v1/user/get_user_by_email":
     post:
       summary: Get user by email
@@ -1358,6 +1421,7 @@ paths:
                           type: integer
                         username:
                           type: string
+                          nullable: true
                         slack_username:
                           type: string
                           nullable: true
