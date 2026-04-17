@@ -21,7 +21,7 @@
     "d3-scale": "^4.0.2",
     "layerchart": "^1.0.13",
     "plur": "^6.0.0",
-    "svelte": "^5.55.3",
+    "svelte": "^5.55.4",
     "svelte-check": "^4.4.6",
     "tailwindcss": "^4.2.2",
     "tslib": "^2.8.1",
