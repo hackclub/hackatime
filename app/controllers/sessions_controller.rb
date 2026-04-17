@@ -323,7 +323,7 @@ class SessionsController < ApplicationController
   end
 
   def impersonate
-    unless current_user && current_user.admin_level.in?([ "admin", "superadmin" ])
+    unless current_user && current_user.admin_level.in?([ "admin", "superadmin", "ultraadmin" ])
       redirect_to root_path, alert: "You are not authorized to impersonate users"
       return
     end
@@ -334,11 +334,11 @@ class SessionsController < ApplicationController
       return
     end
 
-    if user.admin_level == "superadmin"
+    if user.admin_level.in?(%w[superadmin ultraadmin])
       redirect_to root_path, alert: "nice try, you cant do that"
       return
     end
-    if user.admin_level == "admin" && current_user.admin_level != "superadmin"
+    if user.admin_level == "admin" && !current_user.admin_level.in?(%w[superadmin ultraadmin])
       redirect_to root_path, alert: "nice try, you cant do that"
       return
     end

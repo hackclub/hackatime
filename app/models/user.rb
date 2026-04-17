@@ -49,7 +49,8 @@ class User < ApplicationRecord
     default: 0,   # pleebs
     superadmin: 1,
     admin: 2,
-    viewer: 3
+    viewer: 3,
+    ultraadmin: 4
   }, prefix: :admin_level
 
   enum :theme, {
@@ -62,11 +63,35 @@ class User < ApplicationRecord
     github_light: 6,
     nord: 7,
     rose: 8,
-    rose_pine_dawn: 9
+    rose_pine_dawn: 9,
+    amoled: 10
   }
 
+  # Look up a user by numeric ID, slack_uid, hca_id, or username
+  def self.lookup_by_identifier(id)
+    return nil if id.blank?
+
+    numeric_id = id.to_i if id.match?(/^\d+$/)
+
+    relation = where(slack_uid: id)
+      .or(where(hca_id: id))
+      .or(where(username: id))
+    relation = where(id: numeric_id).or(relation) if numeric_id
+
+    candidates = relation.to_a
+
+    if numeric_id
+      match = candidates.find { |u| u.id == numeric_id }
+      return match if match
+    end
+
+    candidates.find { |u| u.slack_uid == id } ||
+      candidates.find { |u| u.hca_id == id } ||
+      candidates.find { |u| u.username == id }
+  end
+
   def can_convict_users?
-    admin_level_superadmin?
+    admin_level_superadmin? || admin_level_ultraadmin?
   end
 
   def set_admin_level(level)
@@ -86,7 +111,7 @@ class User < ApplicationRecord
 
     previous_level = trust_level
 
-    if changed_by_user.present? && level.to_s == "red" && !(changed_by_user.admin_level_superadmin?)
+    if changed_by_user.present? && level.to_s == "red" && !changed_by_user.can_convict_users?
       return false
     end
 
@@ -284,6 +309,20 @@ class User < ApplicationRecord
 
   def create_email_signin_token(continue_param: nil)
     sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
+  end
+
+  def rotate_api_keys!
+    api_keys.transaction do
+      api_keys.destroy_all
+      api_keys.create!(name: "Hackatime key")
+    end
+  end
+
+  def rotate_single_api_key!(api_key)
+    raise ActiveRecord::RecordNotFound unless api_key.user_id == id
+
+    api_key.update!(token: SecureRandom.uuid_v4)
+    api_key
   end
 
   def find_valid_token(token)

@@ -14,14 +14,10 @@ class Settings::AccessController < Settings::BaseController
   end
 
   def rotate_api_key
-    @user.api_keys.transaction do
-      @user.api_keys.destroy_all
+    new_api_key = @user.rotate_api_keys!
 
-      new_api_key = @user.api_keys.create!(name: "Hackatime key")
-
-      PosthogService.capture(@user, "api_key_rotated")
-      render json: { token: new_api_key.token }, status: :ok
-    end
+    PosthogService.capture(@user, "api_key_rotated")
+    render json: { token: new_api_key.token }, status: :ok
   rescue => e
     report_error(e, message: "error rotate #{e.class.name}")
     render json: { error: "cant rotate" }, status: :unprocessable_entity
@@ -43,7 +39,7 @@ class Settings::AccessController < Settings::BaseController
     {
       settings_update_path: my_settings_access_path,
       user: user_props,
-      options: options_props,
+      options: base_options,
       paths: paths_props,
       config_file: {
         content: generated_wakatime_config(api_key_token),

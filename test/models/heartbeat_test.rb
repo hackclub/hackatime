@@ -1,12 +1,19 @@
 require "test_helper"
 
 class HeartbeatTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   setup do
     Rails.cache.clear
+    clear_enqueued_jobs
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
   end
 
   teardown do
     Rails.cache.clear
+    clear_enqueued_jobs
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
   test "soft delete hides record from default scope and restore brings it back" do
@@ -34,10 +41,26 @@ class HeartbeatTest < ActiveSupport::TestCase
 
   test "daily streak cache is separated for browser-filtered leaderboard streaks" do
     user = User.create!(timezone: "UTC", username: "hb_streak_cache")
-    create_heartbeat_sequence(user: user, started_at: Time.current.beginning_of_day + 9.hours, editor: "firefox")
+    create_heartbeat_sequence(user: user, started_at: 1.day.ago.beginning_of_day + 9.hours, editor: "firefox")
 
     assert_equal 1, Heartbeat.daily_streaks_for_users([ user.id ])[user.id]
     assert_equal 0, Heartbeat.daily_streaks_for_users([ user.id ], exclude_browser_time: true)[user.id]
+  end
+
+  test "creating a heartbeat schedules a dashboard rollup refresh" do
+    user = User.create!(timezone: "UTC")
+
+    assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
+      user.heartbeats.create!(
+        entity: "src/main.rb",
+        type: "file",
+        category: "coding",
+        editor: "vscode",
+        time: Time.current.to_f,
+        project: "heartbeat-test",
+        source_type: :test_entry
+      )
+    end
   end
 
   private

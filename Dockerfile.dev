@@ -25,11 +25,10 @@ RUN curl -fsSL https://bun.sh/install | bash && \
 # Set working directory
 WORKDIR /app
 
-# Install npm dependencies for Vite
+# Install npm dependencies for Vite. Vendored Inertia packages must exist
+# before `bun install` because they are referenced via local file dependencies.
 COPY package.json bun.lock ./
-# Local file deps in package.json need to exist before bun install.
-COPY vendor/inertia/packages/core/package.json ./vendor/inertia/packages/core/package.json
-COPY vendor/inertia/packages/svelte/package.json ./vendor/inertia/packages/svelte/package.json
+COPY vendor/inertia vendor/inertia
 RUN bun install
 
 # Install application dependencies

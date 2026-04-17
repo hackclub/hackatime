@@ -115,16 +115,10 @@ class Settings::BaseController < InertiaController
   end
 
   def options_props
-    heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
-    goal_languages = []
-    goal_projects = project_list.map { |p| p[:display_name] }
+    base_options.merge(goals: goal_options)
+  end
 
-    heartbeat_language_and_projects.each do |language, project|
-      categorized_language = language&.categorize_language
-      goal_languages << categorized_language if categorized_language.present?
-      goal_projects << project if project.present?
-    end
-
+  def base_options
     {
       countries: ISO3166::Country.all.map { |country|
         { label: country.common_name, value: country.alpha2 }
@@ -136,17 +130,30 @@ class Settings::BaseController < InertiaController
         { label: key.humanize, value: key }
       },
       themes: User.theme_options,
-      badge_themes: GithubReadmeStats.themes,
-      goals: {
-        periods: Goal::PERIODS.map { |period|
-          { label: period.humanize, value: period }
-        },
-        preset_target_seconds: Goal::PRESET_TARGET_SECONDS,
-        selectable_languages: goal_languages.uniq.sort
-          .map { |language| { label: language, value: language } },
-        selectable_projects: goal_projects.uniq.sort
-          .map { |project| { label: project, value: project } }
-      }
+      badge_themes: GithubReadmeStats.themes
+    }
+  end
+
+  def goal_options
+    heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
+    goal_languages = []
+    goal_projects = project_list.map { |p| p[:display_name] }
+
+    heartbeat_language_and_projects.each do |language, project|
+      categorized_language = language&.categorize_language
+      goal_languages << categorized_language if categorized_language.present?
+      goal_projects << project if project.present?
+    end
+
+    {
+      periods: Goal::PERIODS.map { |period|
+        { label: period.humanize, value: period }
+      },
+      preset_target_seconds: Goal::PRESET_TARGET_SECONDS,
+      selectable_languages: goal_languages.uniq.sort
+        .map { |language| { label: language, value: language } },
+      selectable_projects: goal_projects.uniq.sort
+        .map { |project| { label: project, value: project } }
     }
   end
 
