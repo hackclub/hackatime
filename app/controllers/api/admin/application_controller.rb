@@ -44,7 +44,7 @@ module Api
       end
 
       def require_superadmin
-        unless current_user&.admin_level_superadmin?
+        unless current_user&.admin_level_superadmin? || current_user&.admin_level_ultraadmin?
           render json: { error: "lmao no perms" }, status: :unauthorized
         end
       end

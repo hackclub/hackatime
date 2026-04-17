@@ -86,6 +86,10 @@
   });
 </script>
 
+<svelte:head>
+  <title>Access - Hackatime Settings</title>
+</svelte:head>
+
 <SettingsShell
   {active_section}
   {section_paths}

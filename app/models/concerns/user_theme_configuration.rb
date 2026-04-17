@@ -172,6 +172,23 @@ module UserThemeConfiguration
         success: "#286983",
         warning: "#a35a00"
       }
+    },
+    {
+      value: "amoled",
+      label: "AMOLED",
+      description: "Pure black for the darkest dark mode.",
+      color_scheme: "dark",
+      theme_color: "#00e5ff",
+      preview: {
+        darker: "#000000",
+        dark: "#000000",
+        darkless: "#121212",
+        primary: "#00e5ff",
+        content: "#ffffff",
+        info: "#448aff",
+        success: "#00e676",
+        warning: "#ffea00"
+      }
     }
   ].freeze
   THEME_OPTION_BY_VALUE = THEME_OPTIONS.index_by { |theme| theme[:value] }.freeze

@@ -24,6 +24,10 @@
   ];
 </script>
 
+<svelte:head>
+  <title>Extensions - Hackatime</title>
+</svelte:head>
+
 <div class="max-w-4xl mx-auto">
   <div class="mb-8">
     <h1 class="text-3xl font-bold text-surface-content mb-2">Extensions</h1>
