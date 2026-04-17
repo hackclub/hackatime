@@ -47,7 +47,8 @@
                 rel="noreferrer"
                 class="underline font-semibold"
               >
-              >Fraud page</a>.
+                >Fraud page</a
+              >.
             </p>
             <p class="text-sm mt-3">
               Hack Club is a non-profit running on donations, so please keep
