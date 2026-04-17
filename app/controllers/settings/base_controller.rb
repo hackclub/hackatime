@@ -168,7 +168,7 @@ class Settings::BaseController < InertiaController
       project_badge_url: work_time_stats_url,
       project_badge_base_url: work_time_stats_base_url,
       projects: project_list,
-      profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
+      profile_url: (@user.username.present? ? "https://hackatime.hackclub.com/@#{@user.username}" : nil),
       markscribe_template: '{{ wakatimeDoubleCategoryBar "Languages:" wakatimeData.Languages "Projects:" wakatimeData.Projects 5 }}',
       markscribe_reference_url: "https://github.com/taciturnaxolotl/markscribe#your-wakatime-languages-formated-as-a-bar",
       markscribe_preview_image_url: "https://cdn.fluff.pw/slackcdn/524e293aa09bc5f9115c0c29c18fb4bc.png",

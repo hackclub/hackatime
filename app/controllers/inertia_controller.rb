@@ -144,6 +144,7 @@ class InertiaController < ApplicationController
 
     {
       display_name: current_user.display_name,
+      username: current_user.username,
       avatar_url: current_user.avatar_url,
       title: FlavorText.same_user.sample,
       country_code: current_user.country_code,
