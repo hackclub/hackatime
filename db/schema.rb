@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_14_131447) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_18_154638) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -83,6 +83,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_131447) do
     t.boolean "bucket_value_present", default: true, null: false
     t.datetime "created_at", null: false
     t.string "dimension", null: false
+    t.jsonb "payload"
     t.integer "source_heartbeats_count"
     t.float "source_max_heartbeat_time"
     t.integer "total_seconds", default: 0, null: false

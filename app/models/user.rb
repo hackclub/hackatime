@@ -236,7 +236,8 @@ class User < ApplicationRecord
     compliment_text: 2
   }
 
-  after_save :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
+  after_update_commit :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
+  after_update_commit :schedule_dashboard_rollup_refresh, if: :saved_change_to_timezone?
 
   def flipper_id
     "User;#{id}"
@@ -244,6 +245,10 @@ class User < ApplicationRecord
 
   def active_remote_heartbeat_import_run?
     heartbeat_import_runs.remote_imports.active_imports.exists?
+  end
+
+  def activity_graph_cache_key(timezone = self.timezone)
+    "user_#{id}_daily_durations_#{timezone}"
   end
 
   def format_extension_text(duration)
@@ -340,7 +345,15 @@ class User < ApplicationRecord
   private
 
   def invalidate_activity_graph_cache
-    Rails.cache.delete("user_#{id}_daily_durations")
+    previous_timezone, current_timezone = previous_changes.fetch("timezone", [ nil, timezone ])
+
+    [ previous_timezone, current_timezone ].compact.uniq.each do |cache_timezone|
+      Rails.cache.delete(activity_graph_cache_key(cache_timezone))
+    end
+  end
+
+  def schedule_dashboard_rollup_refresh
+    DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
   end
 
   def track_signup
