@@ -1,6 +1,19 @@
 require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
+  setup do
+    clear_enqueued_jobs
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+  end
+
+  teardown do
+    clear_enqueued_jobs
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
+  end
+
   test "theme defaults to gruvbox dark" do
     user = User.new
 
@@ -71,5 +84,32 @@ class UserTest < ActiveSupport::TestCase
     )
 
     assert user.active_remote_heartbeat_import_run?
+  end
+
+  test "changing timezone invalidates activity graph caches and schedules a dashboard rollup refresh" do
+    with_memory_cache_store do
+      Rails.cache.clear
+
+      user = User.create!(timezone: "UTC")
+      Rails.cache.write(user.activity_graph_cache_key("UTC"), { "2026-04-14" => 60 })
+      Rails.cache.write(user.activity_graph_cache_key("America/New_York"), { "2026-04-14" => 60 })
+
+      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
+        user.update!(timezone: "America/New_York")
+      end
+
+      assert_not Rails.cache.exist?(user.activity_graph_cache_key("UTC"))
+      assert_not Rails.cache.exist?(user.activity_graph_cache_key("America/New_York"))
+    end
+  end
+
+  private
+
+  def with_memory_cache_store
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+    yield
+  ensure
+    Rails.cache = original_cache
   end
 end

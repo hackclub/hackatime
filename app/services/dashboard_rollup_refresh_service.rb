@@ -9,7 +9,13 @@ class DashboardRollupRefreshService < ApplicationService
 
   def call
     now = Time.current
-    records = [ build_total_record(now) ]
+    records = [
+      build_total_record(now),
+      build_filter_options_record(now),
+      build_activity_graph_record(now),
+      build_today_stats_record(now)
+    ]
+
     GROUPED_DIMENSIONS.each do |dimension|
       grouped_durations(dimension).each do |bucket, total_seconds|
         records << build_record(
@@ -52,7 +58,37 @@ class DashboardRollupRefreshService < ApplicationService
     )
   end
 
-  def build_record(dimension:, bucket:, total_seconds:, now:, source_heartbeats_count: nil, source_max_heartbeat_time: nil)
+  def build_activity_graph_record(now)
+    build_record(
+      dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION,
+      bucket: nil,
+      total_seconds: 0,
+      now: now,
+      payload: activity_graph_payload
+    )
+  end
+
+  def build_filter_options_record(now)
+    build_record(
+      dimension: DashboardRollup::FILTER_OPTIONS_DIMENSION,
+      bucket: nil,
+      total_seconds: 0,
+      now: now,
+      payload: filter_options_payload
+    )
+  end
+
+  def build_today_stats_record(now)
+    build_record(
+      dimension: DashboardRollup::TODAY_STATS_DIMENSION,
+      bucket: nil,
+      total_seconds: 0,
+      now: now,
+      payload: today_stats_payload
+    )
+  end
+
+  def build_record(dimension:, bucket:, total_seconds:, now:, source_heartbeats_count: nil, source_max_heartbeat_time: nil, payload: nil)
     {
       user_id: @user.id,
       dimension: dimension.to_s,
@@ -61,6 +97,7 @@ class DashboardRollupRefreshService < ApplicationService
       total_seconds: total_seconds.to_i,
       source_heartbeats_count: source_heartbeats_count,
       source_max_heartbeat_time: source_max_heartbeat_time,
+      payload: payload,
       created_at: now,
       updated_at: now
     }
@@ -123,9 +160,65 @@ class DashboardRollupRefreshService < ApplicationService
   end
 
   def dashboard_week_ranges
-    (0..11).map do |w|
-      week_start = w.weeks.ago.beginning_of_week
-      [ week_start.to_date.iso8601, week_start.to_f, w.weeks.ago.end_of_week.to_f ]
+    Time.use_zone(@user.timezone) do
+      (0..11).map do |w|
+        week_start = w.weeks.ago.beginning_of_week
+        [ week_start.to_date.iso8601, week_start.to_f, w.weeks.ago.end_of_week.to_f ]
+      end
+    end
+  end
+
+  def activity_graph_payload
+    Time.use_zone(@user.timezone) do
+      end_date = Date.current
+      start_date = 365.days.ago.to_date
+      durations = @scope.daily_durations(user_timezone: @user.timezone).to_h
+
+      {
+        timezone: @user.timezone,
+        start_date: start_date.iso8601,
+        end_date: end_date.iso8601,
+        duration_by_date: durations.transform_keys { |date| date.to_date.iso8601 }.transform_values(&:to_i)
+      }
+    end
+  end
+
+  def filter_options_payload
+    GROUPED_DIMENSIONS.index_with do |dimension|
+      @scope.distinct.pluck(dimension).compact_blank.sort
+    end
+  end
+
+  def today_stats_payload
+    Time.use_zone(@user.timezone) do
+      rows = @scope.today
+        .select(:language, :editor,
+                "COUNT(*) OVER (PARTITION BY language) as language_count",
+                "COUNT(*) OVER (PARTITION BY editor) as editor_count")
+        .distinct.to_a
+
+      language_categories = rows
+        .map { |row| [ row.language&.categorize_language, row.language_count ] }
+        .reject { |language, _| language.blank? }
+        .group_by(&:first)
+        .transform_values { |pairs| pairs.sum(&:last) }
+        .sort_by { |_, count| -count }
+        .map(&:first)
+
+      editor_keys = rows
+        .map { |row| [ row.editor, row.editor_count ] }
+        .reject { |editor, _| editor.blank? }
+        .uniq
+        .sort_by { |_, count| -count }
+        .map(&:first)
+
+      {
+        timezone: @user.timezone,
+        today_date: Date.current.iso8601,
+        todays_duration_seconds: @scope.today.duration_seconds.to_i,
+        todays_language_categories: language_categories,
+        todays_editor_keys: editor_keys
+      }
     end
   end
 end
