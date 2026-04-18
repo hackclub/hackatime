@@ -304,7 +304,7 @@ GEM
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
-    minitest (6.0.3)
+    minitest (6.0.4)
       drb (~> 2.0)
       prism (~> 1.5)
     msgpack (1.8.0)
@@ -537,7 +537,7 @@ GEM
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
       logger
-    skylight (7.1.0)
+    skylight (7.1.1)
       activesupport (>= 7.2.0)
     slack-ruby-client (3.1.0)
       faraday (>= 2.0.1)
