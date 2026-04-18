@@ -97,6 +97,7 @@ class Settings::BaseController < InertiaController
       github_auth_path: github_auth_path,
       github_unlink_path: github_unlink_path,
       add_email_path: add_email_auth_path,
+      resend_email_verification_path: resend_email_verification_auth_path,
       unlink_email_path: unlink_email_auth_path,
       rotate_api_key_path: my_settings_rotate_api_key_path,
       export_all_heartbeats_path: export_my_heartbeats_path(all_data: "true"),
