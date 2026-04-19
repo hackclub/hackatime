@@ -35,6 +35,10 @@
   let page = $state({ ...initialPage, flash: initialPage.flash ?? {} })
   let renderProps = $derived.by<RenderProps>(() => resolveRenderProps(component, page, key))
 
+  // Populate the global page store before the initial render so SSR can
+  // resolve Deferred/WhenVisible content against the actual page props.
+  setPage(page)
+
   // Reactively update the global page state when local page state changes
   $effect.pre(() => {
     setPage(page)

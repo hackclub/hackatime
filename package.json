@@ -32,5 +32,8 @@
   "devDependencies": {
     "prettier": "^3.8.2",
     "prettier-plugin-svelte": "^3.5.1"
+  },
+  "patchedDependencies": {
+    "layercake@8.4.3": "patches/layercake@8.4.3.patch"
   }
 }
