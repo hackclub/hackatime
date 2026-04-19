@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Deferred, router } from "@inertiajs/svelte";
+  import { isSameUrlWithoutQueryOrHash } from "@inertiajs/core";
   import type { ActivityGraphData } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
@@ -89,6 +90,28 @@
     };
   } = $props();
 
+  let ssrReloading = $state(false);
+
+  $effect(() => {
+    const removeStart = router.on("start", (e: any) => {
+      const visit = e.detail.visit;
+      if (
+        visit.preserveState === true &&
+        isSameUrlWithoutQueryOrHash(visit.url, window.location) &&
+        visit.only.includes("dashboard_stats")
+      ) {
+        ssrReloading = true;
+      }
+    });
+    const removeFinish = router.on("finish", () => {
+      ssrReloading = false;
+    });
+    return () => {
+      removeStart();
+      removeFinish();
+    };
+  });
+
   function refreshDashboardData(search: string) {
     router.visit(`${window.location.pathname}${search}`, {
       only: ["dashboard_stats"],
@@ -133,11 +156,10 @@
     <GitHubLinkBanner {github_auth_path} />
   {/if}
 
-  {#if dashboard_stats}
-    <div class="flex flex-col gap-8">
-      <!-- Today Stats -->
+  {#snippet dashboardContent(reloading: boolean)}
+    <div class="flex flex-col gap-8" class:opacity-60={reloading}>
       <div>
-        {#if dashboard_stats.today_stats}
+        {#if dashboard_stats?.today_stats}
           <TodaySentence
             show_logged_time_sentence={dashboard_stats.today_stats
               .show_logged_time_sentence}
@@ -149,21 +171,23 @@
         {/if}
       </div>
 
-      <!-- Main Dashboard -->
-      {#if dashboard_stats.filterable_dashboard_data}
+      {#if dashboard_stats?.filterable_dashboard_data}
         <Dashboard
           data={dashboard_stats.filterable_dashboard_data}
-          programmingGoalsProgress={dashboard_stats.programming_goals_progress ||
+          programmingGoalsProgress={dashboard_stats?.programming_goals_progress ||
             []}
           onFiltersChange={refreshDashboardData}
         />
       {/if}
 
-      <!-- Activity Graph -->
-      {#if dashboard_stats.activity_graph}
+      {#if dashboard_stats?.activity_graph}
         <ActivityGraph data={dashboard_stats.activity_graph} />
       {/if}
     </div>
+  {/snippet}
+
+  {#if dashboard_stats}
+    {@render dashboardContent(ssrReloading)}
   {:else}
     <Deferred data="dashboard_stats">
       {#snippet fallback()}
@@ -177,33 +201,7 @@
       {/snippet}
 
       {#snippet children({ reloading })}
-        <div class="flex flex-col gap-8" class:opacity-60={reloading}>
-          <div>
-            {#if dashboard_stats?.today_stats}
-              <TodaySentence
-                show_logged_time_sentence={dashboard_stats.today_stats
-                  .show_logged_time_sentence}
-                todays_duration_display={dashboard_stats.today_stats
-                  .todays_duration_display}
-                todays_languages={dashboard_stats.today_stats.todays_languages}
-                todays_editors={dashboard_stats.today_stats.todays_editors}
-              />
-            {/if}
-          </div>
-
-          {#if dashboard_stats?.filterable_dashboard_data}
-            <Dashboard
-              data={dashboard_stats.filterable_dashboard_data}
-              programmingGoalsProgress={dashboard_stats
-                .programming_goals_progress || []}
-              onFiltersChange={refreshDashboardData}
-            />
-          {/if}
-
-          {#if dashboard_stats?.activity_graph}
-            <ActivityGraph data={dashboard_stats.activity_graph} />
-          {/if}
-        </div>
+        {@render dashboardContent(reloading)}
       {/snippet}
     </Deferred>
   {/if}
