@@ -79,6 +79,7 @@
     {#if data.length > 0}
       <PieChart
         {data}
+        ssr={true}
         key="name"
         value="value"
         cRange={colors}
