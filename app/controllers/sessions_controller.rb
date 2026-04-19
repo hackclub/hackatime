@@ -290,7 +290,11 @@ class SessionsController < ApplicationController
       return
     end
 
-    if user.admin_level.in?(%w[superadmin ultraadmin])
+    if user.admin_level == "ultraadmin"
+      redirect_to root_path, alert: "nice try, you cant do that"
+      return
+    end
+    if user.admin_level == "superadmin" && current_user.admin_level != "ultraadmin"
       redirect_to root_path, alert: "nice try, you cant do that"
       return
     end
