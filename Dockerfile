@@ -48,6 +48,7 @@ RUN apt-get update -qq && \
 # Install npm dependencies for Vite. Vendored Inertia packages must exist
 # before `bun i` because they are referenced via local file dependencies.
 COPY package.json bun.lock ./
+COPY patches patches
 COPY vendor/inertia vendor/inertia
 RUN bun i
 
