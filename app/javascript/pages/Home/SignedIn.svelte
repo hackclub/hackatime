@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Deferred, router } from "@inertiajs/svelte";
-  import { isSameUrlWithoutQueryOrHash } from "@inertiajs/core";
   import type { ActivityGraphData } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
@@ -90,28 +89,6 @@
     };
   } = $props();
 
-  let ssrReloading = $state(false);
-
-  $effect(() => {
-    const removeStart = router.on("start", (e: any) => {
-      const visit = e.detail.visit;
-      if (
-        visit.preserveState === true &&
-        isSameUrlWithoutQueryOrHash(visit.url, window.location) &&
-        visit.only.includes("dashboard_stats")
-      ) {
-        ssrReloading = true;
-      }
-    });
-    const removeFinish = router.on("finish", () => {
-      ssrReloading = false;
-    });
-    return () => {
-      removeStart();
-      removeFinish();
-    };
-  });
-
   function refreshDashboardData(search: string) {
     router.visit(`${window.location.pathname}${search}`, {
       only: ["dashboard_stats"],
@@ -186,23 +163,19 @@
     </div>
   {/snippet}
 
-  {#if dashboard_stats}
-    {@render dashboardContent(ssrReloading)}
-  {:else}
-    <Deferred data="dashboard_stats">
-      {#snippet fallback()}
-        <div class="flex flex-col gap-8">
-          <div>
-            <TodaySentenceSkeleton />
-          </div>
-          <DashboardSkeleton />
-          <ActivityGraphSkeleton />
+  <Deferred data="dashboard_stats">
+    {#snippet fallback()}
+      <div class="flex flex-col gap-8">
+        <div>
+          <TodaySentenceSkeleton />
         </div>
-      {/snippet}
+        <DashboardSkeleton />
+        <ActivityGraphSkeleton />
+      </div>
+    {/snippet}
 
-      {#snippet children({ reloading })}
-        {@render dashboardContent(reloading)}
-      {/snippet}
-    </Deferred>
-  {/if}
+    {#snippet children({ reloading })}
+      {@render dashboardContent(reloading)}
+    {/snippet}
+  </Deferred>
 </div>
