@@ -69,6 +69,9 @@
 
   const formatDuration = (value: number | null | undefined) =>
     secondsToDisplay(value ?? 0);
+
+  const CHART_WIDTH = 480;
+  const CHART_HEIGHT = 300;
 </script>
 
 <div
@@ -80,12 +83,19 @@
       <PieChart
         {data}
         ssr={true}
+        width={CHART_WIDTH}
+        height={CHART_HEIGHT}
         key="name"
         value="value"
         cRange={colors}
         legend={true}
         padding={{ bottom: legendPadding }}
         props={{
+          svg: {
+            class: "h-full w-full",
+            viewBox: `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`,
+            preserveAspectRatio: "xMidYMid meet",
+          },
           legend: { classes: legendClasses },
           tooltip: { item: { format: formatDuration } },
         }}
