@@ -133,6 +133,36 @@
     <GitHubLinkBanner {github_auth_path} />
   {/if}
 
+  {#snippet dashboardContent(reloading: boolean)}
+    <div class="flex flex-col gap-8" class:opacity-60={reloading}>
+      <div>
+        {#if dashboard_stats?.today_stats}
+          <TodaySentence
+            show_logged_time_sentence={dashboard_stats.today_stats
+              .show_logged_time_sentence}
+            todays_duration_display={dashboard_stats.today_stats
+              .todays_duration_display}
+            todays_languages={dashboard_stats.today_stats.todays_languages}
+            todays_editors={dashboard_stats.today_stats.todays_editors}
+          />
+        {/if}
+      </div>
+
+      {#if dashboard_stats?.filterable_dashboard_data}
+        <Dashboard
+          data={dashboard_stats.filterable_dashboard_data}
+          programmingGoalsProgress={dashboard_stats?.programming_goals_progress ||
+            []}
+          onFiltersChange={refreshDashboardData}
+        />
+      {/if}
+
+      {#if dashboard_stats?.activity_graph}
+        <ActivityGraph data={dashboard_stats.activity_graph} />
+      {/if}
+    </div>
+  {/snippet}
+
   <Deferred data="dashboard_stats">
     {#snippet fallback()}
       <div class="flex flex-col gap-8">
@@ -145,36 +175,7 @@
     {/snippet}
 
     {#snippet children({ reloading })}
-      <div class="flex flex-col gap-8" class:opacity-60={reloading}>
-        <!-- Today Stats -->
-        <div>
-          {#if dashboard_stats?.today_stats}
-            <TodaySentence
-              show_logged_time_sentence={dashboard_stats.today_stats
-                .show_logged_time_sentence}
-              todays_duration_display={dashboard_stats.today_stats
-                .todays_duration_display}
-              todays_languages={dashboard_stats.today_stats.todays_languages}
-              todays_editors={dashboard_stats.today_stats.todays_editors}
-            />
-          {/if}
-        </div>
-
-        <!-- Main Dashboard -->
-        {#if dashboard_stats?.filterable_dashboard_data}
-          <Dashboard
-            data={dashboard_stats.filterable_dashboard_data}
-            programmingGoalsProgress={dashboard_stats.programming_goals_progress ||
-              []}
-            onFiltersChange={refreshDashboardData}
-          />
-        {/if}
-
-        <!-- Activity Graph -->
-        {#if dashboard_stats?.activity_graph}
-          <ActivityGraph data={dashboard_stats.activity_graph} />
-        {/if}
-      </div>
+      {@render dashboardContent(reloading)}
     {/snippet}
   </Deferred>
 </div>
