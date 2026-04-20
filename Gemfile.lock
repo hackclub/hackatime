@@ -231,7 +231,7 @@ GEM
       logger
     htmlcompressor (0.4.0)
     htmlentities (4.4.2)
-    http (6.0.2)
+    http (6.0.3)
       http-cookie (~> 1.0)
       llhttp (~> 0.6.1)
     http-cookie (1.1.6)
