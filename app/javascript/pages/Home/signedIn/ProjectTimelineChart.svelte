@@ -31,6 +31,10 @@
     "#8b5cf6",
   ];
 
+  const MAX_PROJECT_SERIES = 16;
+  const OTHER_SERIES_KEY = "__other_projects__";
+  const OTHER_SERIES_LABEL = "Other projects";
+
   const sortedWeeks = $derived(Object.keys(weeklyStats).sort());
 
   const allProjects = $derived.by(() => {
@@ -45,6 +49,12 @@
       .map(([name]) => name);
   });
 
+  const chartProjects = $derived(allProjects.slice(0, MAX_PROJECT_SERIES));
+
+  const otherProjects = $derived(allProjects.slice(MAX_PROJECT_SERIES));
+
+  const includeOtherSeries = $derived(otherProjects.length > 0);
+
   const data = $derived(
     sortedWeeks.map((week) => {
       const row: Record<string, string | number> = {
@@ -53,19 +63,43 @@
           day: "numeric",
         }),
       };
-      for (const project of allProjects) {
-        row[project] = weeklyStats[week][project] || 0;
+
+      const weekStats = weeklyStats[week] || {};
+
+      for (const project of chartProjects) {
+        row[project] = weekStats[project] || 0;
       }
+
+      if (includeOtherSeries) {
+        row[OTHER_SERIES_KEY] = otherProjects.reduce(
+          (total, project) => total + (weekStats[project] || 0),
+          0,
+        );
+      }
+
       return row;
     }),
   );
 
   const series = $derived(
-    allProjects.map((project, i) => ({
+    chartProjects.map((project, i) => ({
       key: project,
       label: project,
       color: PIE_COLORS[i % PIE_COLORS.length],
     })),
+  );
+
+  const chartSeries = $derived(
+    includeOtherSeries
+      ? [
+          ...series,
+          {
+            key: OTHER_SERIES_KEY,
+            label: OTHER_SERIES_LABEL,
+            color: "#9ca3af",
+          },
+        ]
+      : series,
   );
 
   const chartPadding = $derived.by(() => ({
@@ -106,11 +140,14 @@
       <BarChart
         {data}
         x="week"
-        {series}
+        series={chartSeries}
         seriesLayout="stack"
         padding={chartPadding}
         props={{
           yAxis: { format: formatYAxis },
+          tooltip: {
+            root: { motion: false },
+          },
         }}
       >
         <svelte:fragment slot="tooltip">
@@ -118,7 +155,7 @@
             {#if data}
               <Tooltip.Header value={data.week} />
               <Tooltip.List>
-                {@const seriesItems = [...series]
+                {@const seriesItems = [...chartSeries]
                   .reverse()
                   .filter((s) => getSeriesValue(data, s.key) > 0)}
                 {#each seriesItems as s}
