@@ -257,6 +257,12 @@
 
   const navLinkClass = (active?: boolean) =>
     `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-on-primary font-bold" : "text-surface-content hover:bg-darkless hover:text-primary"}`;
+
+  const isLongCachedLink = (link: NavLink) =>
+    link.label === "Docs" || link.label === "Extensions";
+
+  const linkCacheFor = (link: NavLink): string | [string, string] =>
+    isLongCachedLink(link) ? "10m" : ["0s", "30s"];
 </script>
 
 {#if flashVisible && layout.nav.flash.length > 0}
@@ -410,6 +416,8 @@
           {:else if link.inertia}
             <Link
               href={link.href || "#"}
+              prefetch
+              cacheFor={linkCacheFor(link)}
               onclick={handleNavLinkClick}
               class={navLinkClass(link.active)}>{link.label}</Link
             >
@@ -428,6 +436,8 @@
               {#if link.inertia}
                 <Link
                   href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} dev-tool"
                 >
@@ -462,6 +472,8 @@
               {#if link.inertia}
                 <Link
                   href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} admin-tool"
                 >
@@ -496,6 +508,8 @@
               {#if link.inertia}
                 <Link
                   href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} viewer-tool"
                 >
@@ -530,6 +544,8 @@
               {#if link.inertia}
                 <Link
                   href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} superadmin-tool"
                 >
@@ -564,6 +580,8 @@
               {#if link.inertia}
                 <Link
                   href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} ultraadmin-tool"
                 >
