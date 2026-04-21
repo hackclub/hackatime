@@ -183,7 +183,6 @@ jobs:
         id: setup-chrome
         uses: browser-actions/setup-chrome@latest
         with:
-          chrome-version: 133
           install-chromedriver: true
 
       - name: Install JavaScript dependencies

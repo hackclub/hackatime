@@ -208,7 +208,10 @@ export type SettingsCommonProps = {
 };
 
 export type ProfilePageProps = SettingsCommonProps & {
-  settings_update_path: string;
+  region_update_path: string;
+  privacy_update_path: string;
+  username_update_path: string;
+  theme_update_path: string;
   username_max_length: number;
   user: UserProps;
   options: BaseOptionsProps;
