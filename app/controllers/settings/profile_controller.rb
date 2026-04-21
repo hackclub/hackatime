@@ -6,7 +6,7 @@ class Settings::ProfileController < Settings::BaseController
   def update
     if @user.update(profile_params)
       PosthogService.capture(@user, "settings_updated", { fields: profile_params.keys })
-      redirect_to my_settings_profile_path, notice: "Settings updated successfully"
+      redirect_back fallback_location: my_settings_profile_path, notice: "Settings updated successfully"
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
       render_profile(status: :unprocessable_entity)
