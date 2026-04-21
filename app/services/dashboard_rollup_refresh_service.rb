@@ -43,6 +43,7 @@ class DashboardRollupRefreshService < ApplicationService
     end
 
     DashboardRollup.clear_dirty(@user.id)
+    @user.recalculate_and_store_streak!
   end
 
   private

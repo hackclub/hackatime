@@ -185,7 +185,22 @@ class User < ApplicationRecord
            dependent: :delete_all
 
   def streak_days
-    @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
+    if streak_stale?
+      recalculate_and_store_streak!
+    else
+      self[:streak_days] || 0
+    end
+  end
+
+  def streak_stale?
+    return true unless streak_updated_at
+    streak_updated_at.in_time_zone(timezone).to_date < Time.current.in_time_zone(timezone).to_date
+  end
+
+  def recalculate_and_store_streak!
+    days = heartbeats.daily_streaks_for_users([ id ]).values.first || 0
+    update_columns(streak_days: days, streak_updated_at: Time.current)
+    days
   end
 
   def active_deletion_request
