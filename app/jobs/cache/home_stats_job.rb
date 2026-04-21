@@ -4,14 +4,12 @@ class Cache::HomeStatsJob < Cache::ActivityJob
   private
 
   def calculate
-    # seconds_by_user = Heartbeat.group(:user_id).duration_seconds
-    # {
-    #   users_tracked: seconds_by_user.size,
-    #   seconds_tracked: seconds_by_user.values.sum
-    # }
+    totals = DashboardRollup.where(dimension: DashboardRollup::TOTAL_DIMENSION)
+    active_totals = totals.where("total_seconds > 0")
+
     {
-      users_tracked: 23_000,
-      seconds_tracked: 3_600_000_000 # 1 million hours
+      users_tracked: active_totals.count,
+      seconds_tracked: active_totals.sum(:total_seconds)
     }
   end
 end
