@@ -139,7 +139,6 @@ Rails.application.routes.draw do
   # Nested under users for admin access
   resources :users, only: [] do
     get "settings", on: :member, to: "settings/profile#show"
-    patch "settings", on: :member, to: "settings/profile#update"
     member do
       patch :update_trust_level
     end
@@ -149,9 +148,11 @@ Rails.application.routes.draw do
 
   # Namespace for current user actions
   get "my/settings", to: "settings/profile#show", as: :my_settings
-  patch "my/settings", to: "settings/profile#update"
   get "my/settings/profile", to: "settings/profile#show", as: :my_settings_profile
-  patch "my/settings/profile", to: "settings/profile#update"
+  patch "my/settings/profile/region", to: "settings/profile#update_region", as: :my_settings_profile_region
+  patch "my/settings/profile/privacy", to: "settings/profile#update_privacy", as: :my_settings_profile_privacy
+  patch "my/settings/profile/username", to: "settings/profile#update_username", as: :my_settings_profile_username
+  patch "my/settings/profile/theme", to: "settings/profile#update_theme", as: :my_settings_profile_theme
   get "my/settings/integrations", to: "settings/integrations#show", as: :my_settings_integrations
   patch "my/settings/integrations", to: "settings/integrations#update"
   get "my/settings/notifications", to: "settings/notifications#show", as: :my_settings_notifications
