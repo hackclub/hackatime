@@ -33,7 +33,7 @@
 <% content = capture do %>
   <% if streak_count && streak_count.to_i > 0 %>
     <div class="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r <%= bg %> border <%= bc %> rounded-lg transition-all duration-200 <%= hbg %> group <%= 'super' if show_super_class %>"
-         title="<%= streak_count.to_i > 30 ? '30+ daily streak' : "#{streak_count} day streak" %>">
+         title="<%= streak_count %> day streak">
 
       <svg xmlns="http://www.w3.org/2000/svg"
            width="<%= icon_size %>"
@@ -44,10 +44,10 @@
       </svg>
 
       <span class="text-md font-semibold <%= tc %> transition-colors duration-200">
-        <%= streak_count.to_i > 30 ? '30+' : streak_count %>
+        <%= streak_count %>
         <% if show_text %>
           <span class="ml-1 font-normal <%= tm %>">
-            <%= streak_count.to_i > 30 ? 'day streak' : (streak_count.to_i == 1 ? 'day streak' : 'day streak') %>
+            <%= streak_count.to_i == 1 ? 'day streak' : 'day streak' %>
           </span>
         <% end %>
       </span>

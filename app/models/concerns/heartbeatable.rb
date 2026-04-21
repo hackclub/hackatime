@@ -119,9 +119,8 @@ module Heartbeatable
       end
     end
 
-    def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
+    def daily_streaks_for_users(user_ids, start_date: 5.years.ago, exclude_browser_time: false)
       return {} if user_ids.empty?
-      start_date = [ start_date, 30.days.ago ].max
       cache_prefix = exclude_browser_time ? "user_streak_without_browser" : "user_streak"
       keys = user_ids.map { |id| "#{cache_prefix}_#{id}" }
       streak_cache = Rails.cache.read_multi(*keys)

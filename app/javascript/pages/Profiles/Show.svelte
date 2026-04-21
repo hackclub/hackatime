@@ -3,6 +3,7 @@
   import Button from "../../components/Button.svelte";
   import ActivityGraph from "../Home/signedIn/ActivityGraph.svelte";
   import HorizontalBarList from "../Home/signedIn/HorizontalBarList.svelte";
+  import { streakTheme } from "../../utils";
 
   type SocialLink = {
     key: string;
@@ -102,8 +103,9 @@
               </span>
             {/if}
             {#if profile.streak_days && profile.streak_days > 0}
+              {@const streak = streakTheme(profile.streak_days)}
               <span
-                class="inline-flex items-center rounded-full bg-orange-500/15 px-2 py-1 text-xs font-semibold text-orange-300"
+                class={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${streak.tc} bg-gradient-to-r ${streak.bg} border ${streak.bc}`}
               >
                 Streak: {profile.streak_days} days
               </span>

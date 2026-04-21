@@ -358,9 +358,7 @@
               {@const streak = streakTheme(layout.nav.current_user.streak_days)}
               <div
                 class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streak.bg} border ${streak.bc} rounded-lg transition-all duration-200 ${streak.hbg} group`}
-                title={layout.nav.current_user.streak_days > 30
-                  ? "30+ daily streak"
-                  : `${layout.nav.current_user.streak_days} day streak`}
+                title={`${layout.nav.current_user.streak_days} day streak`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
