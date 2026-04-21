@@ -13,7 +13,10 @@
     page_title,
     heading,
     subheading,
-    settings_update_path,
+    region_update_path,
+    privacy_update_path,
+    username_update_path,
+    theme_update_path,
     username_max_length,
     user,
     options,
@@ -58,7 +61,7 @@
     <form
       id="profile-region-form"
       method="post"
-      action={settings_update_path}
+      action={region_update_path}
       class="space-y-4"
     >
       <input type="hidden" name="_method" value="patch" />
@@ -110,7 +113,7 @@
     <form
       id="profile-username-form"
       method="post"
-      action={settings_update_path}
+      action={username_update_path}
       class="space-y-3"
     >
       <input type="hidden" name="_method" value="patch" />
@@ -158,7 +161,7 @@
     <form
       id="profile-privacy-form"
       method="post"
-      action={settings_update_path}
+      action={privacy_update_path}
       class="space-y-3"
     >
       <input type="hidden" name="_method" value="patch" />
@@ -196,7 +199,7 @@
     <form
       id="profile-theme-form"
       method="post"
-      action={settings_update_path}
+      action={theme_update_path}
       class="space-y-4"
     >
       <input type="hidden" name="_method" value="patch" />
