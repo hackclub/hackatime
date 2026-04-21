@@ -4,12 +4,14 @@ class Cache::HomeStatsJob < Cache::ActivityJob
   private
 
   def calculate
-    totals = DashboardRollup.where(dimension: DashboardRollup::TOTAL_DIMENSION)
-    active_totals = totals.where("total_seconds > 0")
+    users_tracked, seconds_tracked = DashboardRollup
+      .where(dimension: DashboardRollup::TOTAL_DIMENSION)
+      .where(total_seconds: 1..)
+      .pick(Arel.sql("COUNT(*), COALESCE(SUM(total_seconds), 0)"))
 
     {
-      users_tracked: active_totals.count,
-      seconds_tracked: active_totals.sum(:total_seconds)
+      users_tracked: users_tracked || 0,
+      seconds_tracked: seconds_tracked || 0
     }
   end
 end

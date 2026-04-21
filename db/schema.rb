@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_18_154638) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_21_215522) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -89,6 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_18_154638) do
     t.integer "total_seconds", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["dimension"], name: "index_dashboard_rollups_on_dimension_total", where: "(((dimension)::text = 'total'::text) AND (total_seconds > 0))"
     t.index ["user_id", "dimension", "bucket_value_present", "bucket_value"], name: "idx_dashboard_rollups_user_dimension_bucket", unique: true
     t.index ["user_id", "dimension"], name: "index_dashboard_rollups_on_user_id_and_dimension"
     t.index ["user_id"], name: "index_dashboard_rollups_on_user_id"
