@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_18_154638) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_21_215521) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -656,6 +656,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_18_154638) do
     t.datetime "slack_synced_at"
     t.string "slack_uid"
     t.string "slack_username"
+    t.integer "streak_days", default: 0, null: false
+    t.datetime "streak_updated_at"
     t.integer "theme", default: 4, null: false
     t.string "timezone", default: "UTC"
     t.integer "trust_level", default: 0, null: false
@@ -666,6 +668,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_18_154638) do
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
+    t.index ["streak_updated_at"], name: "index_users_on_streak_updated_at"
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"
     t.index ["username"], name: "index_users_on_username"
