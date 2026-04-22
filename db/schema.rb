@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_21_215522) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_22_093841) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -157,7 +157,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_215522) do
     t.integer "target_seconds", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["user_id", "period", "target_seconds", "languages", "projects"], name: "index_goals_on_user_and_scope"
+    t.index ["user_id", "period", "target_seconds", "languages", "projects"], name: "index_goals_on_user_and_scope", unique: true
     t.index ["user_id"], name: "index_goals_on_user_id"
   end
 
@@ -332,6 +332,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_215522) do
     t.index ["project", "time"], name: "index_heartbeats_on_project_and_time"
     t.index ["project"], name: "index_heartbeats_on_project"
     t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
+    t.index ["time", "source_type"], name: "index_heartbeats_on_time_and_source_type"
+    t.index ["time"], name: "index_heartbeats_on_time_active_covering", where: "(deleted_at IS NULL)", include: ["source_type"]
+    t.index ["time"], name: "index_heartbeats_on_time_imported", where: "(source_type <> 0)"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
@@ -349,22 +352,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_215522) do
   end
 
   create_table "instance_import_sources", force: :cascade do |t|
-    t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.string "encrypted_api_key", null: false
     t.string "endpoint_url", null: false
-    t.text "last_error"
-    t.datetime "last_import_finished_at"
-    t.datetime "last_import_started_at"
-    t.integer "last_imported_count", default: 0, null: false
-    t.float "last_imported_heartbeat_time"
-    t.integer "last_processed_count", default: 0, null: false
-    t.integer "last_skipped_count", default: 0, null: false
-    t.datetime "last_synced_at"
-    t.integer "sync_state", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["active"], name: "index_instance_import_sources_on_active"
     t.index ["user_id"], name: "index_instance_import_sources_on_user_id", unique: true
   end
 
@@ -397,8 +389,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_215522) do
   create_table "mailkick_subscriptions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "list"
-    t.bigint "subscriber_id", null: false
-    t.string "subscriber_type", null: false
+    t.bigint "subscriber_id"
+    t.string "subscriber_type"
     t.datetime "updated_at", null: false
     t.index ["subscriber_type", "subscriber_id", "list"], name: "index_mailkick_subscriptions_on_subscriber_and_list", unique: true
     t.index ["subscriber_type", "subscriber_id"], name: "index_mailkick_subscriptions_on_subscriber"
