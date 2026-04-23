@@ -1,7 +1,7 @@
 module UserThemeConfiguration
   extend ActiveSupport::Concern
 
-  DEFAULT_THEME = "gruvbox_dark".freeze
+  DEFAULT_THEME = "rose".freeze
   THEME_OPTIONS = [
     {
       value: "standard",

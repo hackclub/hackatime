@@ -31,7 +31,7 @@
   $effect(() => {
     const html = document.documentElement;
     previousTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "gruvbox_dark");
+    html.setAttribute("data-theme", "rose");
 
     const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
     colorSchemeMeta?.setAttribute("content", "dark");
