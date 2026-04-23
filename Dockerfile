@@ -47,15 +47,18 @@ RUN apt-get update -qq && \
 
 # Install npm dependencies for Vite. Vendored Inertia packages must exist
 # before `bun i` because they are referenced via local file dependencies.
-COPY package.json bun.lock ./
+COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
 COPY vendor/inertia vendor/inertia
-RUN bun i
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun i --frozen-lockfile
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./
-RUN bundle install && \
-    rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
+RUN --mount=type=cache,target=/root/.bundle/cache \
+    --mount=type=cache,target=/usr/local/bundle/ruby/3.4.0/cache \
+    bundle install && \
+    rm -rf "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile
 
 # Copy application code
@@ -65,8 +68,14 @@ COPY . .
 RUN bundle exec bootsnap precompile app/ lib/
 
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails tailwindcss:build
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+RUN --mount=type=cache,target=/rails/node_modules/.vite \
+    --mount=type=cache,target=/root/.bun/install/cache \
+    --mount=type=cache,target=/root/.cache \
+    SECRET_KEY_BASE_DUMMY=1 ./bin/rails tailwindcss:build
+RUN --mount=type=cache,target=/rails/node_modules/.vite \
+    --mount=type=cache,target=/root/.bun/install/cache \
+    --mount=type=cache,target=/root/.cache \
+    SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 # Generate static llms.txt files for LLM consumption
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails docs:generate_llms
