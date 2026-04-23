@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_22_093841) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_23_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -333,20 +333,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_22_093841) do
     t.index ["project"], name: "index_heartbeats_on_project"
     t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
     t.index ["time", "source_type"], name: "index_heartbeats_on_time_and_source_type"
+    t.index ["time", "user_id"], name: "idx_heartbeats_time_user_active", where: "(deleted_at IS NULL)"
     t.index ["time"], name: "index_heartbeats_on_time_active_covering", where: "(deleted_at IS NULL)", include: ["source_type"]
     t.index ["time"], name: "index_heartbeats_on_time_imported", where: "(source_type <> 0)"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
-    t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time_incl_editor", where: "(deleted_at IS NULL)", include: ["editor"]
     t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
     t.index ["user_id", "language", "time"], name: "idx_heartbeats_user_language_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "operating_system", "time"], name: "idx_heartbeats_user_operating_system_time", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_covering", where: "(deleted_at IS NULL)", include: ["category"]
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
     t.index ["user_id", "project"], name: "index_heartbeats_on_user_id_and_project", where: "(deleted_at IS NULL)"
     t.index ["user_id", "source_type", "id"], name: "index_heartbeats_on_user_source_id_direct", where: "((source_type = 0) AND (deleted_at IS NULL))"
     t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
     t.index ["user_id", "time", "language"], name: "idx_heartbeats_user_time_language_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "time"], name: "idx_heartbeats_lb_eligible_user_time", where: "((deleted_at IS NULL) AND ((category)::text = 'coding'::text) AND ((editor IS NULL) OR (lower((editor)::text) <> ALL (ARRAY['arc'::text, 'brave'::text, 'chrome'::text, 'chromium'::text, 'edge'::text, 'firefox'::text, 'floorp'::text, 'librewolf'::text, 'microsoft-edge'::text, 'opera'::text, 'opera-gx'::text, 'safari'::text, 'vivaldi'::text, 'waterfox'::text, 'zen'::text]))))"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
