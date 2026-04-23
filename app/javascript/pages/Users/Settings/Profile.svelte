@@ -25,11 +25,11 @@
   }: ProfilePageProps = $props();
 
   let csrfToken = $state("");
-  let selectedTheme = $state("gruvbox_dark");
+  let selectedTheme = $state("rose");
   let allowPublicStatsLookup = $state(false);
 
   $effect(() => {
-    selectedTheme = user.theme || "gruvbox_dark";
+    selectedTheme = user.theme || "rose";
     allowPublicStatsLookup = user.allow_public_stats_lookup;
   });
 

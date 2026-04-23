@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_23_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -652,7 +652,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_200000) do
     t.datetime "slack_synced_at"
     t.string "slack_uid"
     t.string "slack_username"
-    t.integer "theme", default: 4, null: false
+    t.integer "theme", default: 8, null: false
     t.string "timezone", default: "UTC"
     t.integer "trust_level", default: 0, null: false
     t.datetime "updated_at", null: false

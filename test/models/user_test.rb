@@ -17,7 +17,7 @@ class UserTest < ActiveSupport::TestCase
   test "theme defaults to gruvbox dark" do
     user = User.new
 
-    assert_equal "gruvbox_dark", user.theme
+    assert_equal "rose", user.theme
   end
 
   test "theme options include all supported themes in order" do
@@ -29,7 +29,7 @@ class UserTest < ActiveSupport::TestCase
   test "theme metadata falls back to default for unknown themes" do
     metadata = User.theme_metadata("not-a-real-theme")
 
-    assert_equal "gruvbox_dark", metadata[:value]
+    assert_equal "rose", metadata[:value]
   end
 
   test "rotate_api_keys! replaces existing api key with a new one" do
