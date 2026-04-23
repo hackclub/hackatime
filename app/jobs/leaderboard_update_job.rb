@@ -44,7 +44,6 @@ class LeaderboardUpdateJob < ApplicationJob
       # Two-phase streak computation: query 8 days of data first (covers
       # most users whose streaks are < 7 days), then extend to 31 days
       # only for users whose streak maxed out the short window.
-      # This reduces heartbeat rows scanned from ~7M to ~2M for typical runs.
       streaks = Heartbeat.daily_streaks_for_users(data.keys, start_date: 8.days.ago, exclude_browser_time: true)
 
       needs_full_history = streaks.select { |_, streak| streak >= 6 }.keys
