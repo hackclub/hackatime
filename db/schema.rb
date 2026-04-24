@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_25_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
+  enable_extension "pg_trgm"
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
@@ -337,6 +338,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
     t.index ["time"], name: "index_heartbeats_on_time_active_covering", where: "(deleted_at IS NULL)", include: ["source_type"]
     t.index ["time"], name: "index_heartbeats_on_time_imported", where: "(source_type <> 0)"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
+    t.index ["user_agent"], name: "index_heartbeats_on_user_agent_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time_incl_editor", where: "(deleted_at IS NULL)", include: ["editor"]
     t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
@@ -344,6 +346,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
     t.index ["user_id", "operating_system", "time"], name: "idx_heartbeats_user_operating_system_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_covering", where: "(deleted_at IS NULL)", include: ["category"]
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
+    t.index ["user_id", "project", "time"], name: "index_heartbeats_on_user_project_time"
     t.index ["user_id", "project"], name: "index_heartbeats_on_user_id_and_project", where: "(deleted_at IS NULL)"
     t.index ["user_id", "source_type", "id"], name: "index_heartbeats_on_user_source_id_direct", where: "((source_type = 0) AND (deleted_at IS NULL))"
     t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
@@ -626,6 +629,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
   create_table "users", force: :cascade do |t|
     t.integer "admin_level", default: 0, null: false
     t.boolean "allow_public_stats_lookup", default: true, null: false
+    t.integer "cached_streak_days", default: 0, null: false
+    t.date "cached_streak_refreshed_on", default: -> { "CURRENT_DATE" }, null: false
     t.string "country_code"
     t.datetime "created_at", null: false
     t.boolean "default_timezone_leaderboard", default: true, null: false
@@ -652,16 +657,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
     t.datetime "slack_synced_at"
     t.string "slack_uid"
     t.string "slack_username"
+    t.integer "streak_days", default: 0, null: false
+    t.datetime "streak_updated_at"
     t.integer "theme", default: 8, null: false
     t.string "timezone", default: "UTC"
     t.integer "trust_level", default: 0, null: false
     t.datetime "updated_at", null: false
     t.string "username"
     t.boolean "uses_slack_status", default: false, null: false
-    t.boolean "weekly_summary_email_enabled", default: true, null: false
+    t.boolean "weekly_summary_email_enabled", default: false, null: false
+    t.index ["cached_streak_days"], name: "index_users_on_cached_streak_days"
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
+    t.index ["streak_updated_at"], name: "index_users_on_streak_updated_at"
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"
     t.index ["username"], name: "index_users_on_username"
