@@ -8,7 +8,7 @@
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=3.4.8
+ARG RUBY_VERSION=4.0.3
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
@@ -56,7 +56,7 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 # Install application gems
 COPY Gemfile Gemfile.lock ./
 RUN --mount=type=cache,target=/root/.bundle/cache \
-    --mount=type=cache,target=/usr/local/bundle/ruby/3.4.0/cache \
+    --mount=type=cache,target=/usr/local/bundle/ruby/4.0.0/cache \
     bundle install && \
     rm -rf "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile

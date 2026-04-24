@@ -1,4 +1,4 @@
-FROM ruby:3.4.8
+FROM ruby:4.0.3
 
 # Install system dependencies including Node.js
 RUN apt-get update -qq && \
