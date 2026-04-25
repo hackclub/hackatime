@@ -56,7 +56,7 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
 
     sql = <<~SQL.squish
       SELECT u.id AS user_id, h.ip_address
-      FROM unnest(ARRAY[#{user_ids.map(&:to_i).join(',')}]::bigint[]) AS u(id)
+      FROM unnest($1::bigint[]) AS u(id)
       CROSS JOIN LATERAL (
         SELECT ip_address
         FROM heartbeats
@@ -68,8 +68,14 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
       ) AS h
     SQL
 
+    ids = user_ids.map { |id| Integer(id) }
+    bind = ActiveRecord::Relation::QueryAttribute.new(
+      "user_ids", ids,
+      ActiveRecord::Type.lookup(:integer, array: true, adapter: :postgresql)
+    )
     ActiveRecord::Base.connection
-      .select_rows(sql)
+      .exec_query(sql, "GeocodeUsersWithoutCountryJob find", [ bind ])
+      .rows
       .group_by { |user_id, _ip| user_id.to_i }
       .transform_values { |pairs| pairs.map(&:last).uniq }
   end
