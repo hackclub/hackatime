@@ -299,6 +299,7 @@ Rails.application.routes.draw do
         get "alts/shared_machines", to: "admin#shared_machines"
         get "users/active", to: "admin#active_users"
         post "audit_logs/counts", to: "admin#audit_logs_counts"
+        get "heartbeats/by_user_agent_segment", to: "admin#heartbeats_by_user_agent_segment"
       end
     end
 
