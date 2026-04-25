@@ -35,12 +35,12 @@ Rails.application.configure do
       kwargs: { force_update: true }
     },
     sailors_log_poll: {
-       cron: "*/2 * * * *",
-       class: "SailorsLogPollForChangesJob"
+      cron: "*/2 * * * *",
+      class: "SailorsLogPollForChangesJob"
     },
     update_slack_channel_cache: {
-       cron: "0 11 * * *",
-       class: "SlackCommand::UpdateSlackChannelCacheJob"
+      cron: "0 11 * * *",
+      class: "SlackCommand::UpdateSlackChannelCacheJob"
     },
 
     slack_username_update: {

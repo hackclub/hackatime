@@ -49,9 +49,12 @@ class SailorsLogNotifyJob < ApplicationJob
       SailorsLogTeletypeJob.perform_later(message)
     else
       report_message("Failed to send Slack notification: #{response_data["error"]}")
-      removable_channel_errors = %w[channel_not_found is_archived no_permission not_in_channel restricted_action]
-      if removable_channel_errors.include?(response_data["error"])
+      permanent_channel_errors = %w[channel_not_found is_archived]
+      transient_channel_errors = %w[no_permission not_in_channel restricted_action]
+      if permanent_channel_errors.include?(response_data["error"])
         SailorsLogNotificationPreference.where(slack_channel_id: slack_channel_id).destroy_all
+      elsif transient_channel_errors.include?(response_data["error"])
+        SailorsLogNotificationPreference.where(slack_channel_id: slack_channel_id).update_all(enabled: false)
       else
         throw "Failed to send Slack notification: #{response_data["error"]} in #{slack_channel_id}"
       end
