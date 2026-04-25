@@ -87,8 +87,8 @@ gem "skylight"
 
 # Analytics
 gem "posthog-ruby"
-
 gem "geocoder"
+gem "maxminddb"
 
 # Airtable syncing
 gem "norairrecord", "~> 0.5.1"

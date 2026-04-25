@@ -20,8 +20,7 @@ RUN apt-get update -qq && \
     curl \
     libjemalloc2 \
     libvips \
-    sqlite3 \
-    libpq5 \
+    tar \
     unzip \
     vim \
     wget && \

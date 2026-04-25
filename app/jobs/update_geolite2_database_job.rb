@@ -1,48 +1,3 @@
-# Example environment variables
-
-# Slack oauth used for slack signin + profile status feature
-SLACK_CLIENT_ID=your_client_id_here
-SLACK_CLIENT_SECRET=your_client_secret_here
-SLACK_SIGNING_SECRET=your_signing_secret_here
-SLACK_USER_OAUTH_TOKEN=your_user_oauth_token_here
-
-# Sailors' log slack app for slack channel notifications
-SLACK_SAILORS_LOG_SIGNING_SECRET=your_signing_secret_here
-SLACK_SAILORS_LOG_BOT_OAUTH_TOKEN=your_bot_oauth_token_here
-TELETYPE_API_KEY=your_teletype_api_key_here
-
-# You can leave this alone if you're using the provided docker setup!
-DATABASE_URL=your_database_url_here
-POOL_DATABASE_URL=pg_bouncer_url_here
-
-# Secret key base
-SECRET_KEY_BASE=your_secret_key_base_here
-
-ENCRYPTION_PRIMARY_KEY=generate_a_key_and_put_it_here
-ENCRYPTION_DETERMINISTIC_KEY=generate_another_key_here
-ENCRYPTION_KEY_DERIVATION_SALT=generate_a_salt_and_put_it_here
-
-# By default, you don't need these for local development, as we use letter_opener
-SMTP_USER_NAME=replace_with_your_smtp_username
-SMTP_PASSWORD=replace_with_your_smtp_password
-SMTP_ADDRESS=replace_with_your_smtp_address
-SMTP_PORT=replace_with_your_smtp_port
-
-# Sentry DSN for error tracking
-SENTRY_DSN=your_sentry_dsn_here
-
-# key for updating loops via airtable
-LOOPS_AIRTABLE_PAT=your_airtable_key_here
-
-# key for updating address records
-ADDRESS_AIRTABLE_PAT=your_airtable_pat
-
-# GitHub oauth used for github signin
-GITHUB_CLIENT_ID=your_github_client_id_here
-GITHUB_CLIENT_SECRET=your_github_client_secret_here
-
-SKYLIGHT_AUTHENTICATION=replace_me
-
 require "fileutils"
 require "tmpdir"
 require "net/http"
@@ -109,8 +64,6 @@ class UpdateGeolite2DatabaseJob < ApplicationJob
     end
   end
 
-  # Performs an authenticated request, following redirects across hosts.
-  # Auth is only sent to the original MaxMind host (R2 presigned URLs reject it).
   def request(klass, url, redirects: MAX_REDIRECTS, &block)
     req = klass.new(url)
     req.basic_auth(ENV["MAXMIND_ACCOUNT_ID"], ENV["MAXMIND_LICENSE_KEY"]) if url.host == DOWNLOAD_URL.host
@@ -136,25 +89,4 @@ class UpdateGeolite2DatabaseJob < ApplicationJob
   def log_skip(reason)
     Rails.logger.info "UpdateGeolite2DatabaseJob: skipping — #{reason}"
   end
-end# MaxMind GeoLite2 credentials (free signup at https://www.maxmind.com/)
-MAXMIND_ACCOUNT_ID=your_maxmind_account_id_here
-MAXMIND_LICENSE_KEY=your_maxmind_license_key_here
-
-MAIL_HACKCLUB_TOKEN=replace_me
-
-# Hack Club Account
-HCA_CLIENT_ID=your_hackclub_account_client_id_here
-HCA_CLIENT_SECRET=your_hackclub_account_secret_id_here
-
-# PostHog Analytics
-POSTHOG_API_KEY=your_posthog_api_key_here
-POSTHOG_HOST=https://us.i.posthog.com
-
-# S3/R2 creds for ActiveStorage
-S3_ACCESS_KEY_ID=your_s3_access_key_id_here
-S3_SECRET_ACCESS_KEY=your_s3_secret_access_key_here
-S3_BUCKET=your_s3_bucket_name_here
-S3_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
-
-# Key for Revoker (https://github.com/hackclub/revoker)
-HKA_REVOCATION_KEY=your_hka_revocation_key_here
+end
