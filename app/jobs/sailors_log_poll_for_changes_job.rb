@@ -31,7 +31,6 @@ class SailorsLogPollForChangesJob < ApplicationJob
 
   def update_sailors_log(sailors_log)
     return [] if sailors_log.user.active_remote_heartbeat_import_run?
-    return [] if DashboardRollup.dirty?(sailors_log.user.id)
 
     project_updates = []
     project_durations = DashboardRollup
