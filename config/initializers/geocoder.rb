@@ -3,6 +3,15 @@ require "geocoder/results/geoip2"
 require "maxminddb"
 
 class Geocoder::Lookup::SafeGeoip2 < Geocoder::Lookup::Base
+  class << self
+    def database(file)
+      return @database if defined?(@database) && @database_file == file.to_s
+
+      @database_file = file.to_s
+      @database = MaxMindDB.new(@database_file)
+    end
+  end
+
   private
 
   def result_class
@@ -13,7 +22,7 @@ class Geocoder::Lookup::SafeGeoip2 < Geocoder::Lookup::Base
     file = Geocoder.config.geoip2[:file]
     return [] unless file.exist?
 
-    result = MaxMindDB.new(file.to_s).lookup(query.to_s)
+    result = self.class.database(file).lookup(query.to_s)
     result ? [ result ] : []
   rescue Errno::ENOENT
     []
