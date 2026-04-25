@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_25_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
+  enable_extension "pg_trgm"
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
@@ -337,6 +338,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
     t.index ["time"], name: "index_heartbeats_on_time_active_covering", where: "(deleted_at IS NULL)", include: ["source_type"]
     t.index ["time"], name: "index_heartbeats_on_time_imported", where: "(source_type <> 0)"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
+    t.index ["user_agent"], name: "index_heartbeats_on_user_agent_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time_incl_editor", where: "(deleted_at IS NULL)", include: ["editor"]
     t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
