@@ -166,7 +166,9 @@
             <div
               class="flex items-center p-2 sm:p-3 hover:bg-dark transition-colors duration-200 gap-2 sm:gap-0 {entry.is_current_user
                 ? 'bg-dark border-l-4 border-l-primary'
-                : ''} {entry.user.red ? 'opacity-40 hover:opacity-60' : ''}"
+                : ''} {entry.user.red
+                ? 'opacity-40 hover:opacity-60'
+                : ''} [content-visibility:auto] [contain-intrinsic-size:auto_64px]"
             >
               <!-- Rank -->
               <div
