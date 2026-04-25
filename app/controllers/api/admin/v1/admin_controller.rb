@@ -363,7 +363,9 @@ module Api
             return
           end
 
-          heartbeats = query.order(time: :desc).limit(limit).offset(offset).to_a
+          heartbeats = query.order(time: :desc).limit(limit + 1).offset(offset).to_a
+          has_more = heartbeats.size > limit
+          heartbeats = heartbeats.first(limit)
 
           render json: {
             segment: segment,
@@ -391,7 +393,7 @@ module Api
                 source_type: hb.source_type
               }
             end,
-            has_more: heartbeats.size == limit
+            has_more: has_more
           }
         end
 

@@ -1011,72 +1011,84 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  segment:
-                    type: string
-                  limit:
-                    type: integer
-                  offset:
-                    type: integer
-                  heartbeats:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        user_id:
-                          type: integer
-                        time:
-                          type: number
-                        project:
-                          type: string
-                          nullable: true
-                        language:
-                          type: string
-                          nullable: true
-                        entity:
-                          type: string
-                          nullable: true
-                        branch:
-                          type: string
-                          nullable: true
-                        category:
-                          type: string
-                          nullable: true
-                        editor:
-                          type: string
-                          nullable: true
-                        machine:
-                          type: string
-                          nullable: true
-                        operating_system:
-                          type: string
-                          nullable: true
-                        user_agent:
-                          type: string
-                          nullable: true
-                        ip_address:
-                          type: string
-                          nullable: true
-                        is_write:
-                          type: boolean
-                          nullable: true
-                        lineno:
-                          type: integer
-                          nullable: true
-                        cursorpos:
-                          type: integer
-                          nullable: true
-                        lines:
-                          type: integer
-                          nullable: true
-                        source_type:
-                          type: string
-                          nullable: true
-                  has_more:
-                    type: boolean
+                oneOf:
+                - type: object
+                  properties:
+                    segment:
+                      type: string
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    heartbeats:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          user_id:
+                            type: integer
+                          time:
+                            type: number
+                          project:
+                            type: string
+                            nullable: true
+                          language:
+                            type: string
+                            nullable: true
+                          entity:
+                            type: string
+                            nullable: true
+                          branch:
+                            type: string
+                            nullable: true
+                          category:
+                            type: string
+                            nullable: true
+                          editor:
+                            type: string
+                            nullable: true
+                          machine:
+                            type: string
+                            nullable: true
+                          operating_system:
+                            type: string
+                            nullable: true
+                          user_agent:
+                            type: string
+                            nullable: true
+                          ip_address:
+                            type: string
+                            nullable: true
+                          is_write:
+                            type: boolean
+                            nullable: true
+                          lineno:
+                            type: integer
+                            nullable: true
+                          cursorpos:
+                            type: integer
+                            nullable: true
+                          lines:
+                            type: integer
+                            nullable: true
+                          source_type:
+                            type: string
+                            nullable: true
+                    has_more:
+                      type: boolean
+                - type: object
+                  description: Returned when count_only=true
+                  additionalProperties: false
+                  required:
+                  - segment
+                  - total_count
+                  properties:
+                    segment:
+                      type: string
+                    total_count:
+                      type: integer
         '422':
           description: missing segment
           content:
