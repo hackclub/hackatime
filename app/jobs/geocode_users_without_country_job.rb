@@ -54,21 +54,29 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
   def find(user_ids)
     return {} if user_ids.empty?
 
-    ranked = Heartbeat
-      .where(user_id: user_ids)
-      .where.not(ip_address: nil)
-      .select(<<~SQL.squish)
-        user_id,
-        ip_address,
-        row_number() OVER (PARTITION BY user_id ORDER BY id DESC) AS rn
-      SQL
+    sql = <<~SQL.squish
+      SELECT u.id AS user_id, h.ip_address
+      FROM unnest($1::bigint[]) AS u(id)
+      CROSS JOIN LATERAL (
+        SELECT ip_address
+        FROM heartbeats
+        WHERE heartbeats.user_id = u.id
+          AND heartbeats.ip_address IS NOT NULL
+          AND heartbeats.deleted_at IS NULL
+        ORDER BY heartbeats.id DESC
+        LIMIT 10
+      ) AS h
+    SQL
 
-    Heartbeat
-      .unscoped
-      .from(ranked, :ranked_heartbeats)
-      .where("rn <= 10")
-      .pluck(:user_id, :ip_address)
-      .group_by(&:first)
+    ids = user_ids.map { |id| Integer(id) }
+    bind = ActiveRecord::Relation::QueryAttribute.new(
+      "user_ids", ids,
+      ActiveRecord::Type.lookup(:integer, array: true, adapter: :postgresql)
+    )
+    ActiveRecord::Base.connection
+      .exec_query(sql, "GeocodeUsersWithoutCountryJob find", [ bind ])
+      .rows
+      .group_by { |user_id, _ip| user_id.to_i }
       .transform_values { |pairs| pairs.map(&:last).uniq }
   end
 
