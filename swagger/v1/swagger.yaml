@@ -950,6 +950,151 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/heartbeats/by_user_agent_segment":
+    get:
+      summary: Get heartbeats matching a user_agent segment
+      tags:
+      - Admin Utils
+      description: Returns heartbeats whose user_agent contains the given substring
+        (e.g. "Godot_Super-Wakatime/2.0.0"). Useful for monitoring how a specific
+        editor/plugin behaves over time. Use count_only=true to avoid streaming rows
+        when only the total is needed.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: segment
+        in: query
+        required: true
+        description: Substring of user_agent to match (case-insensitive). Min length
+          3.
+        schema:
+          type: string
+      - name: user_id
+        in: query
+        required: false
+        description: Optional user ID to scope the query to a single user.
+        schema:
+          type: string
+      - name: start_date
+        in: query
+        required: false
+        description: Start date (YYYY-MM-DD or epoch seconds)
+        schema:
+          type: string
+      - name: end_date
+        in: query
+        required: false
+        description: End date (YYYY-MM-DD or epoch seconds)
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        description: Page size (default 1000, max 5000)
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        required: false
+        description: Pagination offset
+        schema:
+          type: integer
+      - name: count_only
+        in: query
+        required: false
+        description: If true, return only total_count and skip row payload
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: object
+                  properties:
+                    segment:
+                      type: string
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    heartbeats:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          user_id:
+                            type: integer
+                          time:
+                            type: number
+                          project:
+                            type: string
+                            nullable: true
+                          language:
+                            type: string
+                            nullable: true
+                          entity:
+                            type: string
+                            nullable: true
+                          branch:
+                            type: string
+                            nullable: true
+                          category:
+                            type: string
+                            nullable: true
+                          editor:
+                            type: string
+                            nullable: true
+                          machine:
+                            type: string
+                            nullable: true
+                          operating_system:
+                            type: string
+                            nullable: true
+                          user_agent:
+                            type: string
+                            nullable: true
+                          ip_address:
+                            type: string
+                            nullable: true
+                          is_write:
+                            type: boolean
+                            nullable: true
+                          lineno:
+                            type: integer
+                            nullable: true
+                          cursorpos:
+                            type: integer
+                            nullable: true
+                          lines:
+                            type: integer
+                            nullable: true
+                          source_type:
+                            type: string
+                            nullable: true
+                    has_more:
+                      type: boolean
+                - type: object
+                  description: Returned when count_only=true
+                  additionalProperties: false
+                  required:
+                  - segment
+                  - total_count
+                  properties:
+                    segment:
+                      type: string
+                    total_count:
+                      type: integer
+        '422':
+          description: missing segment
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/api/admin/v1/user/heartbeat_values":
     get:
       summary: Get heartbeat values
