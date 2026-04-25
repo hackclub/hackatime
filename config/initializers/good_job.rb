@@ -29,7 +29,7 @@ Rails.application.configure do
       kwargs: { force_update: true }
     },
     last_7_days_leaderboard_update: {
-      cron: "*/7 * * * *",
+      cron: "* * * * *",
       class: "LeaderboardUpdateJob",
       args: [ :last_7_days ],
       kwargs: { force_update: true }
