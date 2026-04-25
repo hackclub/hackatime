@@ -30,16 +30,25 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
     # Try IP-based geocoding first
     ids_by_ip.each do |ip, user_ids|
       country_code = geo(ip)
-      next unless country_code.present?
+      next if country_code.blank?
 
+      # Each user has only one IP because the lateral heartbeat query uses LIMIT 1
+      # (but if we change this later, I think (?) we need to update this too)
       User.where(id: user_ids).update_all(country_code: country_code)
     end
 
     # Fallback to timezone-based detection for anyone we couldn't geocode by IP
     all_user_ids = rows.map(&:first)
-    User.where(id: all_user_ids, country_code: nil).find_each do |user|
-      code = tz_to_cc(user.timezone)
-      user.update_column(:country_code, code) if code.present?
+    users_by_timezone = User.where(id: all_user_ids, country_code: nil)
+      .where.not(timezone: [ nil, "", "UTC" ])
+      .pluck(:timezone, :id)
+      .group_by(&:first)
+
+    users_by_timezone.each do |timezone, pairs|
+      country_code = tz_to_cc(timezone)
+      next if country_code.blank?
+
+      User.where(id: pairs.map(&:last)).update_all(country_code: country_code)
     end
   end
 
