@@ -298,6 +298,8 @@ GEM
       net-smtp
     mailkick (2.0.0)
       activesupport (>= 7.1)
+    marcel (1.1.0)
+    matrix (0.4.3)
     maxminddb (0.1.22)
     memory_profiler (1.1.0)
     mini_magick (5.3.1)
@@ -669,6 +671,8 @@ DEPENDENCIES
   jbuilder
   kamal
   letter_opener
+  letter_opener_web (~> 3.0)
+  mailkick
   maxminddb
   memory_profiler
   norairrecord (~> 0.5.1)
