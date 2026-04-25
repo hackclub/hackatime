@@ -1,5 +1,6 @@
 class LeaderboardsController < InertiaController
   layout "inertia"
+  LEADERBOARD_PAGE_SIZE = 300
 
   def index
     period_type = validated_period_type
@@ -58,16 +59,21 @@ class LeaderboardsController < InertiaController
   def entries_payload(leaderboard, scope, country)
     return { entries: [], total: 0 } unless leaderboard&.persisted?
 
+    page = [ params[:page].to_i, 1 ].max
     country_code = (scope == :country && country[:available]) ? country[:code] : nil
     payload = LeaderboardPageCache.fetch(
       leaderboard: leaderboard,
       scope: scope,
       country_code: country_code
     )
+    total_entries = payload[:total_entries]
+    page_entries = payload[:entries].slice((page - 1) * LEADERBOARD_PAGE_SIZE, LEADERBOARD_PAGE_SIZE) || []
+    next_page = page * LEADERBOARD_PAGE_SIZE < total_entries ? page + 1 : nil
+    previous_page = page > 1 ? page - 1 : nil
 
     active_projects = Cache::ActiveProjectsJob.perform_now
 
-    entries = payload[:entries].map do |e|
+    entries = page_entries.map do |e|
       user = e[:user]
       proj = active_projects&.dig(e[:user_id])
       {
@@ -87,9 +93,18 @@ class LeaderboardsController < InertiaController
       }
     end
 
-    {
-      entries: entries,
-      total: payload[:total_entries]
+    metadata = {
+      page_name: "page",
+      current_page: page,
+      previous_page: previous_page,
+      next_page: next_page
     }
+
+    InertiaRails.scroll(metadata, wrapper: "entries") do
+      {
+        entries: entries,
+        total: total_entries
+      }
+    end
   end
 end
