@@ -1,7 +1,31 @@
+geoip2_database = Rails.root.join("db/geo/GeoLite2-City.mmdb")
+require "geocoder/results/geoip2"
+require "maxminddb"
+
+class Geocoder::Lookup::SafeGeoip2 < Geocoder::Lookup::Base
+  private
+
+  def result_class
+    Geocoder::Result::Geoip2
+  end
+
+  def results(query)
+    file = Geocoder.config.geoip2[:file]
+    return [] unless file.exist?
+
+    result = MaxMindDB.new(file.to_s).lookup(query.to_s)
+    result ? [ result ] : []
+  rescue Errno::ENOENT
+    []
+  end
+end
+
+Geocoder::Lookup.ip_services = Geocoder::Lookup.ip_services + [ :safe_geoip2 ]
+
 Geocoder.configure(
   timeout: 15,
-  ip_lookup: :geoip2,
+  ip_lookup: :safe_geoip2,
   geoip2: {
-    file: Rails.root.join("db/geo/GeoLite2-City.mmdb")
+    file: geoip2_database
   }
 )

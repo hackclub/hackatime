@@ -33,7 +33,9 @@ class UpdateGeolite2DatabaseJob < ApplicationJob
   end
 
   def install_fresh_database(remote_mtime)
-    Dir.mktmpdir("geolite2_update") do |dir|
+    FileUtils.mkdir_p(DB_FILE.dirname)
+
+    Dir.mktmpdir("geolite2_update", DB_FILE.dirname) do |dir|
       tar_path = File.join(dir, "geolite2.tar.gz")
       download_archive(tar_path)
 
@@ -42,8 +44,9 @@ class UpdateGeolite2DatabaseJob < ApplicationJob
       mmdb = Dir.glob(File.join(dir, "GeoLite2-City_*/GeoLite2-City.mmdb")).first
       raise "GeoLite2-City.mmdb not found in archive" unless mmdb
 
-      FileUtils.mkdir_p(DB_FILE.dirname)
-      FileUtils.mv(mmdb, DB_FILE.to_s)
+      replacement = DB_FILE.dirname.join(".GeoLite2-City.mmdb.tmp")
+      FileUtils.cp(mmdb, replacement)
+      FileUtils.mv(replacement, DB_FILE.to_s)
       Rails.logger.info "GeoLite2 updated (built #{remote_mtime}) at #{DB_FILE}"
     end
   end
