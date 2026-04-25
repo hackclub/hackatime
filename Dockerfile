@@ -22,6 +22,7 @@ RUN apt-get update -qq && \
     libvips \
     sqlite3 \
     libpq5 \
+    tar \
     unzip \
     vim \
     wget && \

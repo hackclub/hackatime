@@ -123,6 +123,11 @@ Rails.application.configure do
       cron: "0 0 * * *",
       class: "CleanupSuccessfulJobsJob"
     },
+    update_geolite2_database: {
+      cron: "0 3 * * *",
+      class: "UpdateGeolite2DatabaseJob",
+      description: "Daily GeoLite2 database update from MaxMind"
+    },
     process_account_deletions: {
       cron: "0 2 * * *",
       class: "ProcessAccountDeletionsJob",

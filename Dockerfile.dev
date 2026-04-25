@@ -11,7 +11,7 @@ RUN apt-get update -qq && \
     libvips \
     pkg-config \
     curl \
-    vim \
+    tar \
     nodejs \
     npm \
     chromium \
