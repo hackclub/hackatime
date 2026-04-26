@@ -217,6 +217,13 @@ module ApplicationHelper
     }.merge(options)
   end
 
+  def shorten_file_path(entity)
+    return entity if entity.blank?
+    parts = entity.split("/")
+    return entity if parts.length <= 3
+    "#{parts.first}/…/#{parts.last(2).join("/")}"
+  end
+
   def safe_asset_path(asset_name, fallback: nil)
     asset_path(asset_name)
   rescue StandardError
