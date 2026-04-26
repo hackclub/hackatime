@@ -8,6 +8,7 @@ module LeaderboardDateRange
     when :last_7_days
       ((date - 6.days).beginning_of_day...date.end_of_day)
     else
+      # Daily leaderboards are intentionally rolling; date only keys the persisted board.
       (24.hours.ago...Time.current)
     end
   end
