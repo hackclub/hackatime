@@ -62,40 +62,30 @@
     label: "text-xs text-surface-content/70",
   };
 
-  const legendPadding = $derived.by(() => {
-    const rows = Math.max(1, Math.ceil(data.length / 4));
-    return Math.min(96, 24 + rows * 18);
-  });
+  const legendRows = $derived(Math.max(1, Math.ceil(data.length / 4)));
+  const legendPadding = $derived(Math.min(96, 24 + legendRows * 18));
 
   const formatDuration = (value: number | null | undefined) =>
     secondsToDisplay(value ?? 0);
-
-  const CHART_WIDTH = 480;
-  const CHART_HEIGHT = 300;
 </script>
 
 <div
   class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
 >
   <h2 class="mb-4 text-lg font-semibold text-surface-content/90">{title}</h2>
-  <div class="h-[260px] sm:h-[280px] lg:h-[300px]">
+  <div class="flex-1 min-h-[280px]">
     {#if data.length > 0}
       <PieChart
         {data}
         ssr={true}
-        width={CHART_WIDTH}
-        height={CHART_HEIGHT}
+        width={320}
+        height={280}
         key="name"
         value="value"
         cRange={colors}
         legend={true}
         padding={{ bottom: legendPadding }}
         props={{
-          svg: {
-            class: "h-full w-full",
-            viewBox: `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`,
-            preserveAspectRatio: "xMidYMid meet",
-          },
           legend: { classes: legendClasses },
           tooltip: { item: { format: formatDuration } },
         }}
