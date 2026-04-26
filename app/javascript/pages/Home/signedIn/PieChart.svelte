@@ -67,38 +67,20 @@
 
   const formatDuration = (value: number | null | undefined) =>
     secondsToDisplay(value ?? 0);
-
-  let containerWidth = $state(420);
-  let containerHeight = $state(420);
-
-  const outerRadius = $derived(
-    Math.max(
-      40,
-      Math.min(containerWidth, containerHeight - legendPadding) / 2 - 8,
-    ),
-  );
 </script>
 
 <div
   class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
 >
   <h2 class="mb-4 text-lg font-semibold text-surface-content/90">{title}</h2>
-  <div
-    class="flex-1 min-h-[320px] w-full"
-    bind:clientWidth={containerWidth}
-    bind:clientHeight={containerHeight}
-  >
+  <div class="flex-1 w-full">
     {#if data.length > 0}
       <PieChart
         {data}
-        ssr={true}
-        width={containerWidth}
-        height={containerHeight}
         key="name"
         value="value"
         cRange={colors}
         legend={true}
-        {outerRadius}
         padding={{ bottom: legendPadding }}
         props={{
           legend: { classes: legendClasses },
