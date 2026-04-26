@@ -48,11 +48,7 @@
             start.setDate(start.getDate() - 6);
             return `${start.toLocaleDateString("en-US", { month: "long", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
           })()
-        : new Date().toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })),
+        : "Last 24 hours"),
   );
 </script>
 
@@ -111,7 +107,8 @@
           class={tabClass(period_type === "daily")}
           preserveScroll
         >
-          Today
+          <span class="sm:hidden">24h</span>
+          <span class="hidden sm:inline">Last 24 Hours</span>
         </Link>
         <Link
           href={`/leaderboards?period_type=last_7_days&scope=${scope}`}
