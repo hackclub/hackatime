@@ -91,6 +91,7 @@ export type PathsProps = {
   github_auth_path: string;
   github_unlink_path: string;
   add_email_path: string;
+  resend_email_verification_path: string;
   unlink_email_path: string;
   rotate_api_key_path: string;
   export_all_heartbeats_path: string;
@@ -135,6 +136,10 @@ export type EmailProps = {
   email: string;
   source: string;
   can_unlink: boolean;
+  pending: boolean;
+  expired?: boolean;
+  can_resend: boolean;
+  resend_cooldown_seconds: number;
 };
 
 export type BadgesProps = {

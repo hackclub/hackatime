@@ -191,7 +191,7 @@ class SessionsController < ApplicationController
       return
     end
 
-    if EmailVerificationRequest.exists?(email: email)
+    if EmailVerificationRequest.where(deleted_at: nil).exists?(email: email)
       redirect_to my_settings_path, alert: "This email is already pending verification"
       return
     end
@@ -211,6 +211,40 @@ class SessionsController < ApplicationController
     redirect_to my_settings_path, alert: "Failed to add email: #{e.record.errors.full_messages.join(', ')}"
   end
 
+  def resend_email_verification
+    unless current_user
+      redirect_to root_path, alert: "Please sign in first"
+      return
+    end
+
+    email = params[:email].to_s.downcase
+    verification_request = current_user.email_verification_requests.valid.find_by(email: email)
+
+    unless verification_request
+      redirect_to my_settings_path, alert: "No pending verification found for that email"
+      return
+    end
+
+    unless verification_request.resend_available?
+      cooldown_minutes = (verification_request.resend_cooldown_seconds / 60.0).ceil
+      redirect_to my_settings_path,
+                  alert: "Please wait #{cooldown_minutes} minute#{'s' unless cooldown_minutes == 1} before resending"
+      return
+    end
+
+    verification_request.refresh_for_resend!
+
+    if Rails.env.production?
+      EmailVerificationMailer.verify_email(verification_request).deliver_later
+    else
+      EmailVerificationMailer.verify_email(verification_request).deliver_now
+    end
+
+    redirect_to my_settings_path, notice: "Verification email resent!"
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to my_settings_path, alert: "Failed to resend verification email: #{e.record.errors.full_messages.join(', ')}"
+  end
+
   def unlink_email
     unless current_user
       redirect_to root_path, alert: "Please sign in first to unlink an email"
@@ -224,7 +258,17 @@ class SessionsController < ApplicationController
     )
 
     unless email_record
-      redirect_to my_settings_path, alert: "Email must exist to be unlinked"
+      pending_request = current_user.email_verification_requests
+                   .where(deleted_at: nil)
+                   .find_by(email: email)
+
+      unless pending_request
+        redirect_to my_settings_path, alert: "Email must exist to be removed"
+        return
+      end
+
+      pending_request.soft_delete!
+      redirect_to my_settings_path, notice: "Pending email removed!"
       return
     end
 
@@ -238,7 +282,7 @@ class SessionsController < ApplicationController
     )
 
     email_record.destroy!
-    email_verification_request&.destroy
+    email_verification_request&.soft_delete!
 
     redirect_to my_settings_path, notice: "Email unlinked!"
   rescue ActiveRecord::RecordNotDestroyed => e
