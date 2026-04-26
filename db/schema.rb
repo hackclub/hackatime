@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_25_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_25_234150) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -583,6 +583,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_25_000001) do
     t.jsonb "projects_summary", default: {}, null: false
     t.string "slack_uid", null: false
     t.datetime "updated_at", null: false
+    t.index ["slack_uid"], name: "index_sailors_logs_on_slack_uid", unique: true
   end
 
   create_table "sign_in_tokens", force: :cascade do |t|

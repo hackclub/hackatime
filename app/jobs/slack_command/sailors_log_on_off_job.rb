@@ -13,7 +13,7 @@ class SlackCommand::SailorsLogOnOffJob < ApplicationJob
     if enabled
       HTTP.post(response_url, json: {
         response_type: "in_channel",
-        text: "@#{user_name} ran `/sailorslog on` to turn on High Seas notifications in this channel. Every time they code an hour on a project, a short message celebrating will be posted to this channel. They will also show on `/sailorslog leaderboard`."
+        text: "@#{user_name} ran `/sailorslog on` to turn on Hackatime notifications in this channel. Every time they code an hour on a project, a short message celebrating will be posted to this channel. They will also show on `/sailorslog leaderboard`."
       })
     else
       HTTP.post(response_url, json: {
