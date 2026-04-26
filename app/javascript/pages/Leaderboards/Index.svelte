@@ -111,7 +111,8 @@
           class={tabClass(period_type === "daily")}
           preserveScroll
         >
-          Today
+          <span class="sm:hidden">24h</span>
+          <span class="hidden sm:inline">Last 24 Hours</span>
         </Link>
         <Link
           href={`/leaderboards?period_type=last_7_days&scope=${scope}`}

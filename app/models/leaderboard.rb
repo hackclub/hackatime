@@ -24,7 +24,7 @@ class Leaderboard < ApplicationRecord
     if last_7_days?
       "#{(start_date - 6.days).strftime('%b %d')} - #{start_date.strftime('%b %d, %Y')}"
     else
-      start_date.strftime("%B %d, %Y")
+      "Last 24 hours"
     end
   end
 end

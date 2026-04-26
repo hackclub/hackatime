@@ -8,7 +8,7 @@ module LeaderboardDateRange
     when :last_7_days
       ((date - 6.days).beginning_of_day...date.end_of_day)
     else
-      date.all_day
+      (24.hours.ago...Time.current)
     end
   end
 

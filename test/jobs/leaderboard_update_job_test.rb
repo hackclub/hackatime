@@ -9,13 +9,15 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
     Rails.cache.clear
   end
 
-  test "perform excludes browser editor heartbeats from persisted leaderboard entries" do
+  test "perform uses rolling 24 hours and excludes browser editor heartbeats" do
     coded_user = create_user(username: "lb_job_coded", github_uid: "GH_LEADERBOARD_JOB_CODED")
     browser_only_user = create_user(username: "lb_job_browser", github_uid: "GH_LEADERBOARD_JOB_BROWSER")
+    old_user = create_user(username: "lb_job_old", github_uid: "GH_LEADERBOARD_JOB_OLD")
 
-    create_heartbeat_pair(user: coded_user, started_at: today_at(9, 0), editor: "vscode")
-    create_heartbeat_pair(user: coded_user, started_at: today_at(11, 0), editor: "firefox")
-    create_heartbeat_pair(user: browser_only_user, started_at: today_at(13, 0), editor: "firefox")
+    create_heartbeat_pair(user: coded_user, started_at: 23.hours.ago, editor: "vscode")
+    create_heartbeat_pair(user: coded_user, started_at: 2.hours.ago, editor: "firefox")
+    create_heartbeat_pair(user: browser_only_user, started_at: 1.hour.ago, editor: "firefox")
+    create_heartbeat_pair(user: old_user, started_at: 25.hours.ago, editor: "vscode")
 
     LeaderboardUpdateJob.perform_now(:daily, Date.current, force_update: true)
 
@@ -61,7 +63,4 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
     )
   end
 
-  def today_at(hour, minute)
-    Time.current.change(hour: hour, min: minute, sec: 0)
-  end
 end
