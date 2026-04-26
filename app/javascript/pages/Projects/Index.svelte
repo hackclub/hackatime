@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Link, router } from "@inertiajs/svelte";
+  import { DropdownMenu } from "bits-ui";
   import { onMount } from "svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
@@ -288,146 +289,170 @@
                   {/if}
                 </div>
 
-                <div class="flex shrink-0 items-center gap-2">
-                  {#if project.repository?.homepage}
-                    <a
-                      href={project.repository.homepage}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="View project website"
-                      class={cardActionClass}
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger
+                    class={cardActionClass}
+                    aria-label="Project actions"
+                  >
+                    <svg
+                      class="h-5 w-5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
                     >
-                      <svg
-                        class="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2m-5.15 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56M14.34 14H9.66c-.1-.66-.16-1.32-.16-2s.06-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2M12 19.96c-.83-1.2-1.5-2.53-1.91-3.96h3.82c-.41 1.43-1.08 2.76-1.91 3.96M8 8H5.08A7.92 7.92 0 0 1 9.4 4.44C8.8 5.55 8.35 6.75 8 8m-2.92 8H8c.35 1.25.8 2.45 1.4 3.56A8 8 0 0 1 5.08 16m-.82-2C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2M12 4.03c.83 1.2 1.5 2.54 1.91 3.97h-3.82c.41-1.43 1.08-2.77 1.91-3.97M18.92 8h-2.95a15.7 15.7 0 0 0-1.38-3.56c1.84.63 3.37 1.9 4.33 3.56M12 2C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2"
-                        />
-                      </svg>
-                    </a>
-                  {/if}
-                  {#if project.repo_url}
-                    <a
-                      href={project.repo_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="View repository"
-                      class={cardActionClass}
+                      <circle cx="12" cy="6" r="2" />
+                      <circle cx="12" cy="12" r="2" />
+                      <circle cx="12" cy="18" r="2" />
+                    </svg>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Content
+                      class="z-50 min-w-[180px] rounded-xl border border-surface-200 bg-dark py-1.5 px-1 shadow-lg"
+                      sideOffset={8}
                     >
-                      <svg
-                        class="h-5 w-5"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2a2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2c-.18 0-.35 0-.5.07L13.93 7.5a1.98 1.98 0 0 0-1.15-2.34c-.43-.16-.88-.2-1.28-.09L9.8 3.38l.79-.78c.78-.79 2.04-.79 2.82 0l7.99 7.99c.79.78.79 2.04 0 2.82l-7.99 7.99c-.78.79-2.04.79-2.82 0L2.6 13.41c-.79-.78-.79-2.04 0-2.82"
-                        />
-                      </svg>
-                    </a>
-                  {/if}
-                  {#if project.manage_enabled}
-                    <Button
-                      type="button"
-                      unstyled
-                      class={cardActionClass}
-                      title={project.repo_url
-                        ? "Edit mapping"
-                        : "Link repository"}
-                      onclick={() => openMappingEditor(project)}
-                    >
-                      <svg
-                        class="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M16.862 3.487a2.1 2.1 0 0 1 2.97 2.97L9.75 16.54 6 17.25l.71-3.75z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M14.5 5.85l3.65 3.65"
-                        />
-                      </svg>
-                    </Button>
-                  {/if}
-                  {#if show_archived && project.unarchive_path}
-                    <Button
-                      type="button"
-                      unstyled
-                      class={cardActionClass}
-                      title="Restore project"
-                      onclick={() => openStatusChangeModal(project, true)}
-                    >
-                      <svg
-                        class="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M10 14l-3-3 3-3"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M7 11h9a4 4 0 0 1 0 8h-2"
-                        />
-                      </svg>
-                    </Button>
-                  {:else if !show_archived && project.archive_path}
-                    <Button
-                      type="button"
-                      unstyled
-                      class={cardActionClass}
-                      title="Archive project"
-                      onclick={() => openStatusChangeModal(project, false)}
-                    >
-                      <svg
-                        class="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M3 7h18l-2 11H5z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M8 7V4h8v3"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M10 11h4"
-                        />
-                      </svg>
-                    </Button>
-                  {/if}
-                </div>
+                      {#if project.repository?.homepage}
+                        <DropdownMenu.Item
+                          class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-content data-highlighted:bg-surface-content/10 focus-visible:outline-none"
+                        >
+                          <a
+                            href={project.repository.homepage}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="flex w-full items-center gap-2"
+                          >
+                            <svg
+                              class="h-4 w-4 shrink-0"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2m-5.15 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56M14.34 14H9.66c-.1-.66-.16-1.32-.16-2s.06-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2M12 19.96c-.83-1.2-1.5-2.53-1.91-3.96h3.82c-.41 1.43-1.08 2.76-1.91 3.96M8 8H5.08A7.92 7.92 0 0 1 9.4 4.44C8.8 5.55 8.35 6.75 8 8m-2.92 8H8c.35 1.25.8 2.45 1.4 3.56A8 8 0 0 1 5.08 16m-.82-2C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2M12 4.03c.83 1.2 1.5 2.54 1.91 3.97h-3.82c.41-1.43 1.08-2.77 1.91-3.97M18.92 8h-2.95a15.7 15.7 0 0 0-1.38-3.56c1.84.63 3.37 1.9 4.33 3.56M12 2C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2"
+                              />
+                            </svg>
+                            View project website
+                          </a>
+                        </DropdownMenu.Item>
+                      {/if}
+                      {#if project.repo_url}
+                        <DropdownMenu.Item
+                          class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-content data-highlighted:bg-surface-content/10 focus-visible:outline-none"
+                        >
+                          <a
+                            href={project.repo_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="flex w-full items-center gap-2"
+                          >
+                            <svg
+                              class="h-4 w-4 shrink-0"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2a2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2c-.18 0-.35 0-.5.07L13.93 7.5a1.98 1.98 0 0 0-1.15-2.34c-.43-.16-.88-.2-1.28-.09L9.8 3.38l.79-.78c.78-.79 2.04-.79 2.82 0l7.99 7.99c.79.78.79 2.04 0 2.82l-7.99 7.99c-.78.79-2.04.79-2.82 0L2.6 13.41c-.79-.78-.79-2.04 0-2.82"
+                              />
+                            </svg>
+                            View repository
+                          </a>
+                        </DropdownMenu.Item>
+                      {/if}
+                      {#if project.manage_enabled}
+                        <DropdownMenu.Item
+                          class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-content data-highlighted:bg-surface-content/10 focus-visible:outline-none"
+                          onclick={() => openMappingEditor(project)}
+                        >
+                          <svg
+                            class="h-4 w-4 shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M16.862 3.487a2.1 2.1 0 0 1 2.97 2.97L9.75 16.54 6 17.25l.71-3.75z"
+                            />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M14.5 5.85l3.65 3.65"
+                            />
+                          </svg>
+                          {project.repo_url
+                            ? "Edit mapping"
+                            : "Link repository"}
+                        </DropdownMenu.Item>
+                      {/if}
+                      {#if show_archived && project.unarchive_path}
+                        <DropdownMenu.Item
+                          class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-content data-highlighted:bg-surface-content/10 focus-visible:outline-none"
+                          onclick={() => openStatusChangeModal(project, true)}
+                        >
+                          <svg
+                            class="h-4 w-4 shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M10 14l-3-3 3-3"
+                            />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M7 11h9a4 4 0 0 1 0 8h-2"
+                            />
+                          </svg>
+                          Restore project
+                        </DropdownMenu.Item>
+                      {:else if !show_archived && project.archive_path}
+                        <DropdownMenu.Item
+                          class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-content data-highlighted:bg-surface-content/10 focus-visible:outline-none"
+                          onclick={() => openStatusChangeModal(project, false)}
+                        >
+                          <svg
+                            class="h-4 w-4 shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M3 7h18l-2 11H5z"
+                            />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M8 7V4h8v3"
+                            />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M10 11h4"
+                            />
+                          </svg>
+                          Archive project
+                        </DropdownMenu.Item>
+                      {/if}
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Root>
               </div>
 
               <p class="text-2xl font-bold text-primary">
