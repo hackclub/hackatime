@@ -1,6 +1,12 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { PieChart } from "layerchart";
   import { secondsToDisplay } from "./utils";
+
+  let mounted = $state(false);
+  onMount(() => {
+    mounted = true;
+  });
 
   let {
     title,
@@ -73,23 +79,41 @@
   class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
 >
   <h2 class="mb-4 text-lg font-semibold text-surface-content/90">{title}</h2>
-  <div class="flex-1 w-full chart-container" style="min-height: 330px;">
+  <div
+    class="flex-1 w-full chart-container flex items-center justify-center"
+    style="min-height: 330px;"
+  >
     {#if data.length > 0}
-      <PieChart
-        {data}
-        key="name"
-        value="value"
-        cRange={colors}
-        legend={true}
-        padding={{ bottom: legendPadding }}
-        ssr={true}
-        width={400}
-        height={330}
-        props={{
-          legend: { classes: legendClasses },
-          tooltip: { item: { format: formatDuration } },
-        }}
-      />
+      {#if mounted}
+        <PieChart
+          {data}
+          key="name"
+          value="value"
+          cRange={colors}
+          legend={true}
+          padding={{ bottom: legendPadding }}
+          props={{
+            legend: { classes: legendClasses },
+            tooltip: { item: { format: formatDuration } },
+          }}
+        />
+      {:else}
+        <PieChart
+          {data}
+          key="name"
+          value="value"
+          cRange={colors}
+          legend={true}
+          padding={{ bottom: legendPadding }}
+          ssr={true}
+          width={400}
+          height={330}
+          props={{
+            legend: { classes: legendClasses },
+            tooltip: { item: { format: formatDuration } },
+          }}
+        />
+      {/if}
     {/if}
   </div>
 </div>
