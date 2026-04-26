@@ -83,37 +83,19 @@
     class="flex-1 w-full chart-container flex items-center justify-center"
     style="min-height: 330px;"
   >
-    {#if data.length > 0}
-      {#if mounted}
-        <PieChart
-          {data}
-          key="name"
-          value="value"
-          cRange={colors}
-          legend={true}
-          padding={{ bottom: legendPadding }}
-          props={{
-            legend: { classes: legendClasses },
-            tooltip: { item: { format: formatDuration } },
-          }}
-        />
-      {:else}
-        <PieChart
-          {data}
-          key="name"
-          value="value"
-          cRange={colors}
-          legend={true}
-          padding={{ bottom: legendPadding }}
-          ssr={true}
-          width={400}
-          height={330}
-          props={{
-            legend: { classes: legendClasses },
-            tooltip: { item: { format: formatDuration } },
-          }}
-        />
-      {/if}
+    {#if data.length > 0 && mounted}
+      <PieChart
+        {data}
+        key="name"
+        value="value"
+        cRange={colors}
+        legend={true}
+        padding={{ bottom: legendPadding }}
+        props={{
+          legend: { classes: legendClasses },
+          tooltip: { item: { format: formatDuration } },
+        }}
+      />
     {/if}
   </div>
 </div>
