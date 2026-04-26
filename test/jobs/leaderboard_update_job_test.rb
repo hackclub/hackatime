@@ -62,5 +62,4 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
       source_type: :test_entry
     )
   end
-
 end
