@@ -73,7 +73,7 @@
   class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
 >
   <h2 class="mb-4 text-lg font-semibold text-surface-content/90">{title}</h2>
-  <div class="flex-1 w-full">
+  <div class="flex-1 w-full chart-container" style="min-height: 330px;">
     {#if data.length > 0}
       <PieChart
         {data}
@@ -82,6 +82,9 @@
         cRange={colors}
         legend={true}
         padding={{ bottom: legendPadding }}
+        ssr={true}
+        width={400}
+        height={330}
         props={{
           legend: { classes: legendClasses },
           tooltip: { item: { format: formatDuration } },
@@ -90,3 +93,10 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .chart-container :global(svg) {
+    max-width: 100%;
+    height: auto;
+  }
+</style>
