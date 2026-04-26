@@ -70,16 +70,16 @@
 </script>
 
 <div
-  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
+  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col"
 >
   <h2 class="mb-4 text-lg font-semibold text-surface-content/90">{title}</h2>
-  <div class="flex-1 min-h-[280px]">
+  <div class="mx-auto w-full max-w-[420px] aspect-square">
     {#if data.length > 0}
       <PieChart
         {data}
         ssr={true}
-        width={320}
-        height={280}
+        width={420}
+        height={420}
         key="name"
         value="value"
         cRange={colors}
