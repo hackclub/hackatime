@@ -122,7 +122,7 @@ module Heartbeatable
     def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
       return {} if user_ids.empty?
       start_date = [ start_date, 31.days.ago ].max
-      cache_prefix = exclude_browser_time ? "user_streak_without_browser" : "user_streak"
+      cache_prefix = exclude_browser_time ? "user_streak_without_browser_v3" : "user_streak_v3"
       keys = user_ids.map { |id| "#{cache_prefix}_#{id}" }
       streak_cache = Rails.cache.read_multi(*keys)
 
@@ -142,7 +142,7 @@ module Heartbeatable
       SQL
       raw_durations = joins(:user)
         .where(user_id: uncached_users)
-        .coding_only
+        .where.not(category: "browsing")
         .with_valid_timestamps
         .where(time: start_date..Time.current)
         .select(
