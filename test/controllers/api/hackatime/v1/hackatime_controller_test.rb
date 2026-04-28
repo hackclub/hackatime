@@ -1,4 +1,5 @@
 require "test_helper"
+require "stringio"
 
 class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationTest
   test "single text plain heartbeat normalizes hash payloads" do
@@ -219,7 +220,11 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_response :accepted
     heartbeat = Heartbeat.order(:id).last
 
-    # Second request with same data should not create a duplicate
+    log_output = StringIO.new
+    previous_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(log_output)
+
+    # Second request with same data should not create a duplicate or log a uniqueness error
     assert_no_difference("Heartbeat.count") do
       post "/api/hackatime/v1/users/current/heartbeats",
         params: payload.to_json,
@@ -231,6 +236,9 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
     assert_response :accepted
     assert_equal heartbeat.id, JSON.parse(response.body)["id"]
+    assert_no_match(/RecordNotUnique|duplicate key|unique/i, log_output.string)
+  ensure
+    Rails.logger = previous_logger if previous_logger
   end
 
   test "bulk heartbeat normalizes permitted params" do
