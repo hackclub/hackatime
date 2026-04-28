@@ -27,5 +27,29 @@ end
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   include SystemTestAuthHelper
 
+  # flaky chromedriver bug :/
+  CHROMEDRIVER_NODE_ERROR = /Node with given id does not belong to the document/i
+
   driven_by :headless_chromium
+
+  def run
+    result = super
+    return result unless chromedriver_node_error?(result)
+
+    warn "Retrying #{self.class}##{name} after chromedriver node ownership error"
+
+    self.failures = []
+    self.assertions = 0
+    super
+  end
+
+  private
+
+  def chromedriver_node_error?(result)
+    result.failures.any? do |failure|
+      [ failure.message, failure.respond_to?(:error) ? failure.error&.message : nil ].any? do |message|
+        message&.match?(CHROMEDRIVER_NODE_ERROR)
+      end
+    end
+  end
 end
