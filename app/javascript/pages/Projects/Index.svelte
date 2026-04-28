@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link, router } from "@inertiajs/svelte";
+  import { Link } from "@inertiajs/svelte";
   import { onMount } from "svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
@@ -247,17 +247,18 @@
             {@const projectHref = project.project_key
               ? `/my/projects/${encodeURIComponent(project.project_key)}`
               : null}
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
-              onclick={() => projectHref && router.visit(projectHref)}
-              onkeydown={(e) =>
-                e.key === "Enter" && projectHref && router.visit(projectHref)}
-              role={projectHref ? "link" : undefined}
-              tabindex={projectHref ? 0 : undefined}
-              class="block h-full rounded-xl border border-primary bg-dark shadow-xs backdrop-blur-sm transition-all duration-300 hover:border-primary/80 hover:shadow-md {projectHref
+              class="relative block h-full rounded-xl border border-primary bg-dark shadow-xs backdrop-blur-sm transition-all duration-300 hover:border-primary/80 hover:shadow-md {projectHref
                 ? 'cursor-pointer'
-                : 'pointer-events-none'}"
+                : ''}"
             >
+              {#if projectHref}
+                <Link
+                  href={projectHref}
+                  aria-label={`View ${project.name}`}
+                  class="absolute inset-0 z-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                ></Link>
+              {/if}
               <article class="flex h-full flex-col gap-4 p-6">
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0 flex-1">
@@ -285,11 +286,7 @@
                     {/if}
                   </div>
 
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div
-                    class="flex shrink-0 items-center gap-2"
-                    onclick={(e) => e.stopPropagation()}
-                  >
+                  <div class="relative z-10 flex shrink-0 items-center gap-2">
                     {#if project.repository?.homepage}
                       <a
                         href={project.repository.homepage}
@@ -495,11 +492,7 @@
                 {/if}
 
                 {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div
-                    class="mt-1 border-t border-surface-200/40 pt-4"
-                    onclick={(e) => e.stopPropagation()}
-                  >
+                  <div class="relative z-10 mt-1 border-t border-surface-200/40 pt-4">
                     <form
                       method="post"
                       action={project.update_path}

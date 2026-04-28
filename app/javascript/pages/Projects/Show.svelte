@@ -193,7 +193,6 @@
     {#if is_shared && share_url}
       <div class="flex items-center gap-2">
         <input
-          bind:this={urlInput}
           type="text"
           readonly
           value={share_url}
