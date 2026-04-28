@@ -497,42 +497,43 @@
                   </div>
                 {/if}
 
-              {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
-                <div class="mt-1 border-t border-surface-200/40 pt-4">
-                  <Form
-                    action={project.update_path}
-                    method="patch"
-                    class="space-y-3"
-                  >
-                    <input
-                      type="url"
-                      name="project_repo_mapping[repo_url]"
-                      bind:value={repoUrlDraft}
-                      placeholder="https://github.com/owner/repo"
-                      class="w-full rounded-lg border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-                    />
+                {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
+                  <div class="mt-1 border-t border-surface-200/40 pt-4">
+                    <Form
+                      action={project.update_path}
+                      method="patch"
+                      class="space-y-3"
+                    >
+                      <input
+                        type="url"
+                        name="project_repo_mapping[repo_url]"
+                        bind:value={repoUrlDraft}
+                        placeholder="https://github.com/owner/repo"
+                        class="w-full rounded-lg border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+                      />
 
-                    <div class="flex gap-2">
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        size="sm"
-                        class="flex-1">Save</Button
-                      >
-                      <Button
-                        type="button"
-                        variant="dark"
-                        size="sm"
-                        class="flex-1"
-                        onclick={closeMappingEditor}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </Form>
-                </div>
-              {/if}
-            </article>
+                      <div class="flex gap-2">
+                        <Button
+                          type="submit"
+                          variant="primary"
+                          size="sm"
+                          class="flex-1">Save</Button
+                        >
+                        <Button
+                          type="button"
+                          variant="dark"
+                          size="sm"
+                          class="flex-1"
+                          onclick={closeMappingEditor}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </Form>
+                  </div>
+                {/if}
+              </article>
+            </div>
           {/each}
         </div>
       {/if}
