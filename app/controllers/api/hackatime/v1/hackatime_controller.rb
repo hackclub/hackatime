@@ -295,7 +295,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         )
         result = Heartbeat.insert(
           insert_attrs,
-          unique_by: :index_heartbeats_on_fields_hash_when_not_deleted,
+          unique_by: :fields_hash,
           returning: Heartbeat.column_names
         )
 
