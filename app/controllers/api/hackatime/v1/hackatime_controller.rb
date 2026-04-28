@@ -282,21 +282,37 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       }).slice(*Heartbeat.column_names.map(&:to_sym))
       # ^^ They say safety laws are written in blood. Well, so is this line!
       # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
-      begin
-        new_heartbeat = Heartbeat.find_or_create_by(attrs)
-      rescue ActiveRecord::RecordNotUnique
-        # Duplicate heartbeat (same fields_hash) exists but wasn't found because
-        # a non-indexed attribute differs (e.g., ip_address changed between requests).
-        temp = Heartbeat.new(attrs)
-        hash = Heartbeat.generate_fields_hash(temp.attributes)
-        new_heartbeat = @user.heartbeats.find_by(fields_hash: hash)
-        raise unless new_heartbeat
+      temp = Heartbeat.new(attrs)
+      fields_hash = Heartbeat.generate_fields_hash(temp.attributes)
+      new_heartbeat = @user.heartbeats.find_by(fields_hash: fields_hash)
+
+      unless new_heartbeat
+        now = Time.current
+        insert_attrs = attrs.merge(
+          fields_hash: fields_hash,
+          created_at: now,
+          updated_at: now
+        )
+        result = Heartbeat.insert(
+          insert_attrs,
+          unique_by: :fields_hash,
+          returning: Heartbeat.column_names
+        )
+
+        if result.any?
+          new_heartbeat = Heartbeat.new(result.first)
+          # This uses insert for deduplication, so model validations/callbacks are skipped.
+          # Keep manual fields_hash and rollup scheduling in sync with Heartbeat callbacks.
+          DashboardRollupRefreshJob.schedule_for(@user.id)
+        else
+          new_heartbeat = @user.heartbeats.find_by!(fields_hash: fields_hash)
+        end
       end
 
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
     rescue => e
-      report_error(e, message: "Error creating heartbeat")
+      report_error(e, message: "Error creating heartbeat: #{e.class}: #{e.message}", extra: { backtrace: e.backtrace&.first(20) })
       results << [ { error: e.message, type: e.class.name }, 422 ]
     end
 

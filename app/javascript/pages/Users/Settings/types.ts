@@ -233,6 +233,7 @@ export type AccessPageProps = SettingsCommonProps & {
   options: BaseOptionsProps;
   paths: PathsProps;
   config_file: ConfigFileProps;
+  rotated_api_key?: string | null;
 };
 
 export type NotificationsPageProps = SettingsCommonProps & {

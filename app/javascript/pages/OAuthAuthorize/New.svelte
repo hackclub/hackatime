@@ -12,6 +12,7 @@
 
   interface FormData {
     authorize_path: string;
+    csrf_token: string;
     client_id: string;
     redirect_uri: string;
     state: string;
@@ -33,19 +34,8 @@
   let { page_title, client_name, verified, scopes, form_data }: Props =
     $props();
 
-  const csrfToken =
-    typeof document === "undefined"
-      ? ""
-      : document
-          .querySelector("meta[name='csrf-token']")
-          ?.getAttribute("content") || "";
-
   let authorizing = $state(false);
   let denying = $state(false);
-
-  const handleSubmit = (form: HTMLFormElement) => {
-    form.requestSubmit();
-  };
 
   const scopeIcons: Record<string, string> = {
     profile:
@@ -131,12 +121,16 @@
 
     <div class="space-y-2.5">
       <form
-        method="post"
         action={form_data.authorize_path}
+        method="post"
         data-turbo="false"
         onsubmit={() => (authorizing = true)}
       >
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
+        <input
+          type="hidden"
+          name="authenticity_token"
+          value={form_data.csrf_token}
+        />
         <input type="hidden" name="client_id" value={form_data.client_id} />
         <input
           type="hidden"
@@ -200,12 +194,16 @@
       </form>
 
       <form
-        method="post"
         action={form_data.authorize_path}
+        method="post"
         data-turbo="false"
         onsubmit={() => (denying = true)}
       >
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
+        <input
+          type="hidden"
+          name="authenticity_token"
+          value={form_data.csrf_token}
+        />
         <input type="hidden" name="_method" value="delete" />
         <input type="hidden" name="client_id" value={form_data.client_id} />
         <input
