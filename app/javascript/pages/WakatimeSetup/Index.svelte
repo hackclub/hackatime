@@ -14,8 +14,10 @@
   let { current_user_api_key, setup_os, api_url, heartbeat_check_url }: Props =
     $props();
 
-  const isWindows = setup_os === "windows";
-  let activeSection = $state(isWindows ? "windows" : "mac-linux");
+  const defaultSection = () =>
+    setup_os === "windows" ? "windows" : "mac-linux";
+  let activeSection = $state(defaultSection());
+  const isWindows = $derived(setup_os === "windows");
 
   const tabBase =
     "flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]";
