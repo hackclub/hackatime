@@ -12,13 +12,6 @@
     applications,
   }: OAuthApplicationsIndexProps = $props();
 
-  const csrfToken =
-    typeof document === "undefined"
-      ? ""
-      : document
-          .querySelector("meta[name='csrf-token']")
-          ?.getAttribute("content") || "";
-
   let deleteModalOpen = $state(false);
   let pendingDelete = $state<{ name: string; path: string } | null>(null);
 
@@ -170,7 +163,6 @@
   description="This action permanently deletes the OAuth application and any integrations using it will stop working."
   actionPath={pendingDelete?.path || ""}
   confirmLabel="Delete application"
-  {csrfToken}
   method="delete"
   confirmStyle="danger"
 />

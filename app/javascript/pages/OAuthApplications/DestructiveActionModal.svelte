@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Form } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
 
@@ -10,7 +11,6 @@
     description,
     actionPath,
     confirmLabel,
-    csrfToken,
     method = "post",
     confirmStyle = "primary",
   }: {
@@ -19,7 +19,6 @@
     description: string;
     actionPath: string;
     confirmLabel: string;
-    csrfToken: string;
     method?: HttpMethod;
     confirmStyle?: "primary" | "danger";
   } = $props();
@@ -43,12 +42,7 @@
         Cancel
       </Button>
 
-      <form method="post" action={actionPath} class="m-0">
-        {#if method !== "post"}
-          <input type="hidden" name="_method" value={method} />
-        {/if}
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
-
+      <Form action={actionPath} {method} class="m-0">
         <Button
           type="submit"
           variant={confirmStyle === "danger" ? "surface" : "primary"}
@@ -56,7 +50,7 @@
         >
           {confirmLabel}
         </Button>
-      </form>
+      </Form>
     </div>
   {/snippet}
 </Modal>
