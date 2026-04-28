@@ -212,10 +212,12 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
         params: payload.to_json,
         headers: {
           "Authorization" => "Bearer #{api_key.token}",
-          "CONTENT_TYPE" => "text/plain"
+          "CONTENT_TYPE" => "text/plain",
+          "CF-Connecting-IP" => "203.0.113.10"
         }
     end
     assert_response :accepted
+    heartbeat = Heartbeat.order(:id).last
 
     # Second request with same data should not create a duplicate
     assert_no_difference("Heartbeat.count") do
@@ -223,10 +225,12 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
         params: payload.to_json,
         headers: {
           "Authorization" => "Bearer #{api_key.token}",
-          "CONTENT_TYPE" => "text/plain"
+          "CONTENT_TYPE" => "text/plain",
+          "CF-Connecting-IP" => "203.0.113.20"
         }
     end
     assert_response :accepted
+    assert_equal heartbeat.id, JSON.parse(response.body)["id"]
   end
 
   test "bulk heartbeat normalizes permitted params" do
