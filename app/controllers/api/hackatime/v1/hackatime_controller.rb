@@ -293,11 +293,16 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
           created_at: now,
           updated_at: now
         )
-        result = Heartbeat.insert(insert_attrs, unique_by: :index_heartbeats_on_fields_hash_when_not_deleted)
+        result = Heartbeat.insert(
+          insert_attrs,
+          unique_by: :index_heartbeats_on_fields_hash_when_not_deleted,
+          returning: Heartbeat.column_names
+        )
 
         if result.any?
-          new_heartbeat = Heartbeat.find(result.first["id"])
-          # FIXME: this is ugly
+          new_heartbeat = Heartbeat.new(result.first)
+          # This uses insert for deduplication, so model validations/callbacks are skipped.
+          # Keep manual fields_hash and rollup scheduling in sync with Heartbeat callbacks.
           DashboardRollupRefreshJob.schedule_for(@user.id)
         else
           new_heartbeat = @user.heartbeats.find_by!(fields_hash: fields_hash)
