@@ -292,6 +292,17 @@ GEM
       activesupport (>= 4)
       railties (>= 4)
       request_store (~> 1.0)
+    logtail (0.1.17)
+      msgpack (~> 1.0)
+    logtail-rack (0.2.6)
+      logtail (~> 0.1)
+      rack (>= 1.2, < 4.0)
+    logtail-rails (0.2.12)
+      actionpack (>= 5.0.0)
+      activerecord (>= 5.0.0)
+      logtail (~> 0.1, >= 0.1.14)
+      logtail-rack (~> 0.1)
+      railties (>= 5.0.0)
     loofah (2.25.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
@@ -678,6 +689,7 @@ DEPENDENCIES
   letter_opener
   letter_opener_web (~> 3.0)
   lograge
+  logtail-rails
   mailkick
   maxminddb
   memory_profiler
