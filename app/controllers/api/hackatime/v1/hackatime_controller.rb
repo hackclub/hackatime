@@ -287,11 +287,24 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       new_heartbeat = @user.heartbeats.find_by(fields_hash: fields_hash)
 
       unless new_heartbeat
-        begin
-          new_heartbeat = Heartbeat.create!(attrs)
-        rescue ActiveRecord::RecordNotUnique
-          # The unique index is on fields_hash, while attrs includes unindexed
-          # request metadata such as ip_address. Re-find by the indexed key.
+        now = Time.current
+        insert_attrs = attrs.merge(
+          fields_hash: fields_hash,
+          created_at: now,
+          updated_at: now
+        )
+        result = Heartbeat.insert(
+          insert_attrs,
+          unique_by: :fields_hash,
+          returning: Heartbeat.column_names
+        )
+
+        if result.any?
+          new_heartbeat = Heartbeat.new(result.first)
+          # This uses insert for deduplication, so model validations/callbacks are skipped.
+          # Keep manual fields_hash and rollup scheduling in sync with Heartbeat callbacks.
+          DashboardRollupRefreshJob.schedule_for(@user.id)
+        else
           new_heartbeat = @user.heartbeats.find_by!(fields_hash: fields_hash)
         end
       end
