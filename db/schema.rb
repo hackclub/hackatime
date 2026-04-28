@@ -510,6 +510,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_25_234150) do
     t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.string "project_name", null: false
+    t.datetime "public_shared_at"
     t.string "repo_url"
     t.bigint "repository_id"
     t.datetime "updated_at", null: false
