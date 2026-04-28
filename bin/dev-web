@@ -6,7 +6,7 @@ require "pty"
 PUBLIC_DEV_URL = "https://hackatime.local"
 $stdout.sync = true
 
-reader, _writer, pid = PTY.spawn("bin/rails", "server", "-b", "0.0.0.0")
+reader, writer, pid = PTY.spawn("bin/rails", "server", "-b", "0.0.0.0")
 
 %w[INT TERM].each do |signal|
   Signal.trap(signal) do
@@ -25,4 +25,5 @@ rescue Errno::EIO
 end
 
 Process.wait(pid)
+writer.close unless writer.closed?
 exit $?.exitstatus || 1
