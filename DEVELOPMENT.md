@@ -59,7 +59,7 @@ Run the Vite build with SSR (server-side-rendering):
 app# bin/vite build --ssr
 ```
 
-Now, let's start up the app!
+Now, let's start up the app! Run this _outside your container's shell:_
 
 ```bash
 app# bin/dev

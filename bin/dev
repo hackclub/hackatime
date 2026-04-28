@@ -1,23 +1,71 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
+set -e
 
-export PORT="${PORT:-3000}"
+# When invoked inside the docker container, just run the Procfile with foreman
+# (or whatever process manager is available). Detection: the docker entrypoint
+# sets RUNNING_INSIDE_CONTAINER, and /.dockerenv exists in every container.
+if [ -n "$RUNNING_INSIDE_CONTAINER" ] || [ -f /.dockerenv ]; then
+  export PORT="${PORT:-3000}"
 
-if command -v overmind 1> /dev/null 2>&1
-then
-  overmind start -f Procfile.dev "$@"
-  exit $?
+  if command -v overmind >/dev/null 2>&1; then
+    exec overmind start -f Procfile.dev "$@"
+  fi
+
+  if command -v hivemind >/dev/null 2>&1; then
+    echo "Hivemind is installed. Running the application with Hivemind..."
+    exec hivemind Procfile.dev "$@"
+  fi
+
+  if gem list --no-installed --exact --silent foreman; then
+    echo "Installing foreman..."
+    gem install foreman
+  fi
+
+  exec foreman start -f Procfile.dev "$@"
 fi
 
-if command -v hivemind 1> /dev/null 2>&1
-then
-  echo "Hivemind is installed. Running the application with Hivemind..."
-  exec hivemind Procfile.dev "$@"
-  exit $?
+# --- Host-side path: set up portless, then delegate to the container ---
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+PORTLESS="./node_modules/.bin/portless"
+MARKER="tmp/.portless-installed"
+
+if [ ! -x "$PORTLESS" ]; then
+  echo "==> portless not found in node_modules; running 'bun install'..."
+  bun install
 fi
 
-if gem list --no-installed --exact --silent foreman; then
-  echo "Installing foreman..."
-  gem install foreman
+mkdir -p tmp
+
+if [ ! -f "$MARKER" ]; then
+  cat <<'EOM'
+
+==> portless one-time setup
+    This is a ONE-TIME procedure. It will:
+      - add a local CA cert to your system trust store (sudo)
+      - start the portless HTTPS proxy on port 443 (sudo)
+      - register hackatime.localhost -> port 3000
+    After this, bin/dev will no longer prompt for your password.
+
+EOM
+  sudo -v
+  sudo "$PORTLESS" trust
+  sudo "$PORTLESS" proxy start --https
+  "$PORTLESS" alias hackatime 3000
+  touch "$MARKER"
+  echo "==> portless setup complete. https://hackatime.localhost is live."
+else
+  # Subsequent runs: no sudo. The proxy daemon survives until reboot/stop.
+  # Make sure the alias is registered (idempotent, no-op if already there).
+  "$PORTLESS" alias hackatime 3000 >/dev/null
 fi
 
-foreman start -f Procfile.dev "$@"
+# Bring the dev container up if it isn't already running.
+if ! docker compose ps --status running --services 2>/dev/null | grep -qx web; then
+  echo "==> Starting docker compose services..."
+  docker compose up -d
+fi
+
+# Hand off to the container, which will hit the in-container branch above.
+exec docker compose exec -e RUNNING_INSIDE_CONTAINER=1 web bin/dev "$@"
