@@ -1,4 +1,4 @@
-web: bin/rails server -b 0.0.0.0
-css: bin/rails tailwindcss:watch
-vite: bin/vite dev
-ssr: bin/vite ssr
+web: bin/dev-web
+css: bin/rails tailwindcss:watch >/dev/null
+vite: bin/vite dev >/dev/null
+ssr: bin/vite ssr >/dev/null

@@ -36,6 +36,19 @@ RUN bun install
 COPY Gemfile Gemfile.lock ./
 RUN bundle install
 
+# Rebuild native extensions for default gems that ship without compiled
+# extensions in the base image. Without this, Bundler floods every command
+# with "Source locally installed gems is ignoring..." warnings.
+RUN gem pristine --extensions json erb bigdecimal rdoc
+
+# The ruby:4.0.3 base image ships rdoc 7.0.3 in the system gem path with a
+# rubygems plugin that auto-loads it on every gem/bundler invocation. The
+# Gemfile resolves to rdoc 7.2.0 (also auto-loaded via its own plugin), so
+# both versions get required and we get "already initialized constant"
+# warnings on every command. Removing the system copy leaves only the
+# bundled rdoc 7.2.0 to be loaded.
+RUN gem uninstall -i /usr/local/lib/ruby/gems/4.0.0 -I -x rdoc -v 7.0.3 || true
+
 # Add a script to be executed every time the container starts
 COPY entrypoint.dev.sh /usr/bin/
 RUN chmod +x /usr/bin/entrypoint.dev.sh
