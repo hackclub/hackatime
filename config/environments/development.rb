@@ -66,8 +66,9 @@ Rails.application.configure do
   # Raise an error on page load if there are pending migrations.
   config.active_record.migration_error = :page_load
 
-  # Highlight code that triggered database queries in logs.
-  config.active_record.verbose_query_logs = true
+  # Keep SQL logs readable. The source line backtrace doubles every SQL log line
+  # and points at our development SQL filter instead of the application code.
+  config.active_record.verbose_query_logs = false
 
   # Append comments with runtime information tags to SQL queries in logs.
   config.active_record.query_log_tags_enabled = true
@@ -76,8 +77,11 @@ Rails.application.configure do
   config.active_job.queue_adapter = :good_job
   # config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Highlight code that enqueued background job in logs.
-  config.active_job.verbose_enqueue_logs = true
+  # ActiveJob cache refreshes can run inline during requests and drown out page
+  # logs. Keep failures visible through Rails.logger calls in job code, but hide
+  # the framework's perform/enqueue chatter in development.
+  config.active_job.verbose_enqueue_logs = false
+  config.active_job.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(nil))
 
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true

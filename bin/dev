@@ -7,21 +7,13 @@ set -e
 if [ -n "$RUNNING_INSIDE_CONTAINER" ] || [ -f /.dockerenv ]; then
   export PORT="${PORT:-3000}"
 
-  if command -v overmind >/dev/null 2>&1; then
-    exec overmind start -f Procfile.dev "$@"
-  fi
-
-  if command -v hivemind >/dev/null 2>&1; then
-    echo "Hivemind is installed. Running the application with Hivemind..."
-    exec hivemind Procfile.dev "$@"
-  fi
-
-  if gem list --no-installed --exact --silent foreman; then
+  if ! gem list -i --exact foreman >/dev/null; then
     echo "Installing foreman..."
     gem install foreman
   fi
 
-  exec foreman start -f Procfile.dev "$@"
+  foreman_path="$(ruby -e 'print File.join(Gem.bindir, "foreman")')"
+  exec bash -c '"$1" start --color -f Procfile.dev "${@:2}" 2>&1 | grep --line-buffered -vE "^[0-9:]+ [a-z]+\.1[[:space:]]+\| started with pid "' bash "$foreman_path" "$@"
 fi
 
 # --- Host-side path: set up portless, then delegate to the container ---
@@ -29,7 +21,7 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 PORTLESS="./node_modules/.bin/portless"
-MARKER="tmp/.portless-installed"
+MARKER="tmp/.portless-local-installed"
 
 if [ ! -x "$PORTLESS" ]; then
   echo "==> portless not found in node_modules; running 'bun install'..."
@@ -45,20 +37,21 @@ if [ ! -f "$MARKER" ]; then
     This is a ONE-TIME procedure. It will:
       - add a local CA cert to your system trust store (sudo)
       - start the portless HTTPS proxy on port 443 (sudo)
-      - register hackatime.localhost -> port 3000
+      - register hackatime.local -> port 3000
     After this, bin/dev will no longer prompt for your password.
 
 EOM
   sudo -v
   sudo "$PORTLESS" trust
-  sudo "$PORTLESS" proxy start --https
-  "$PORTLESS" alias hackatime 3000
+  "$PORTLESS" proxy stop >/dev/null 2>&1 || true
+  sudo "$PORTLESS" proxy start --https --lan
+  "$PORTLESS" alias hackatime 3000 --force
   touch "$MARKER"
-  echo "==> portless setup complete. https://hackatime.localhost is live."
+  echo "==> portless setup complete. https://hackatime.local is live."
 else
   # Subsequent runs: no sudo. The proxy daemon survives until reboot/stop.
   # Make sure the alias is registered (idempotent, no-op if already there).
-  "$PORTLESS" alias hackatime 3000 >/dev/null
+  "$PORTLESS" alias hackatime 3000 --force >/dev/null
 fi
 
 # Bring the dev container up if it isn't already running.

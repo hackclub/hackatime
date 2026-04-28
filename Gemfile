@@ -56,6 +56,9 @@ gem "thruster", require: false
 # For query count tracking
 gem "query_count"
 
+# Compact request logging
+gem "lograge"
+
 # Rate limiting
 gem "rack-attack"
 
