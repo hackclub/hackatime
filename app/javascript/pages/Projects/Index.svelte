@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
-  import { onMount } from "svelte";
+  import { Form, Link, router } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
@@ -68,7 +67,6 @@
     projects_data,
   }: PageProps = $props();
 
-  let csrfToken = $state("");
   let editingProjectKey = $state<string | null>(null);
   let repoUrlDraft = $state("");
   let statusChangeModalOpen = $state(false);
@@ -82,13 +80,6 @@
   const skeletonCount = $derived.by(() => {
     const safeCount = Number.isFinite(total_projects) ? total_projects : 0;
     return Math.min(Math.max(safeCount, 4), 10);
-  });
-
-  onMount(() => {
-    csrfToken =
-      document
-        .querySelector("meta[name='csrf-token']")
-        ?.getAttribute("content") || "";
   });
 
   const buildProjectsPath = ({
@@ -156,6 +147,21 @@
   const closeStatusChangeModal = () => {
     statusChangeModalOpen = false;
     pendingStatusAction = null;
+  };
+
+  const confirmStatusChange = () => {
+    if (!pendingStatusAction) return;
+    router.patch(
+      pendingStatusAction.path,
+      {},
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          statusChangeModalOpen = false;
+          pendingStatusAction = null;
+        },
+      },
+    );
   };
 
   const cardActionClass =
@@ -491,52 +497,42 @@
                   </div>
                 {/if}
 
-                {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
-                  <div
-                    class="relative z-10 mt-1 border-t border-surface-200/40 pt-4"
+              {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
+                <div class="mt-1 border-t border-surface-200/40 pt-4">
+                  <Form
+                    action={project.update_path}
+                    method="patch"
+                    class="space-y-3"
                   >
-                    <form
-                      method="post"
-                      action={project.update_path}
-                      class="space-y-3"
-                    >
-                      <input type="hidden" name="_method" value="patch" />
-                      <input
-                        type="hidden"
-                        name="authenticity_token"
-                        value={csrfToken}
-                      />
+                    <input
+                      type="url"
+                      name="project_repo_mapping[repo_url]"
+                      bind:value={repoUrlDraft}
+                      placeholder="https://github.com/owner/repo"
+                      class="w-full rounded-lg border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+                    />
 
-                      <input
-                        type="url"
-                        name="project_repo_mapping[repo_url]"
-                        bind:value={repoUrlDraft}
-                        placeholder="https://github.com/owner/repo"
-                        class="w-full rounded-lg border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-                      />
-
-                      <div class="flex gap-2">
-                        <Button
-                          type="submit"
-                          variant="primary"
-                          size="sm"
-                          class="flex-1">Save</Button
-                        >
-                        <Button
-                          type="button"
-                          variant="dark"
-                          size="sm"
-                          class="flex-1"
-                          onclick={closeMappingEditor}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </div>
-                {/if}
-              </article>
-            </div>
+                    <div class="flex gap-2">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        class="flex-1">Save</Button
+                      >
+                      <Button
+                        type="button"
+                        variant="dark"
+                        size="sm"
+                        class="flex-1"
+                        onclick={closeMappingEditor}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </Form>
+                </div>
+              {/if}
+            </article>
           {/each}
         </div>
       {/if}
@@ -583,17 +579,14 @@
         >
           Cancel
         </Button>
-        <form method="post" action={pendingStatusAction.path} class="m-0">
-          <input type="hidden" name="_method" value="patch" />
-          <input type="hidden" name="authenticity_token" value={csrfToken} />
-          <Button
-            type="submit"
-            variant="primary"
-            class="h-10 w-full text-on-primary"
-          >
-            {pendingStatusAction.confirmLabel}
-          </Button>
-        </form>
+        <Button
+          type="button"
+          variant="primary"
+          class="h-10 w-full text-on-primary"
+          onclick={confirmStatusChange}
+        >
+          {pendingStatusAction.confirmLabel}
+        </Button>
       </div>
     {/if}
   {/snippet}

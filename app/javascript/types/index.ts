@@ -6,27 +6,39 @@ export type FlashData = {
 export type SharedProps = {};
 
 export type LeaderboardEntryUser = {
-  id: number;
   display_name: string;
-  avatar_url: string;
-  profile_path: string;
-};
-
-export type LeaderboardActiveProject = {
-  name: string;
-  repo_url: string | null;
+  avatar_url: string | null;
+  profile_path: string | null;
+  verified: boolean;
+  country_code: string | null;
+  red: boolean;
 };
 
 export type LeaderboardEntry = {
-  rank: number;
+  user_id: number;
+  total_seconds: number;
+  streak_count: number;
   is_current_user: boolean;
   user: LeaderboardEntryUser;
-  total_seconds: number;
-  total_display: string;
-  streak_count: number;
-  active_project: LeaderboardActiveProject | null;
-  needs_github_link: boolean;
-  settings_path: string;
+  active_project: { name: string; repo_url: string | null } | null;
+};
+
+export type LeaderboardMeta = {
+  date_range_text: string;
+  updated_at: string;
+  finished_generating: boolean;
+  generation_duration_seconds: number | null;
+};
+
+export type LeaderboardCountry = {
+  code: string | null;
+  name: string | null;
+  available: boolean;
+};
+
+export type LeaderboardEntriesPayload = {
+  entries: LeaderboardEntry[];
+  total: number;
 };
 
 export type ActivityGraphData = {

@@ -70,11 +70,13 @@ class AttemptProjectRepoMappingJob < ApplicationJob
     response = HTTP.auth("Bearer #{@user.github_access_token}")
       .get("https://api.github.com/users/#{@user.github_username}/orgs")
 
-    Rails.logger.info "GitHub orgs response: #{response.body}"
-
     return [] unless response.status.success?
 
-    parsed_response = JSON.parse(response.body)
+    body = response.body.to_s
+    Rails.logger.info "GitHub orgs response: #{body.truncate(500)}"
+    return [] if body.blank?
+
+    parsed_response = JSON.parse(body)
     return [] unless parsed_response.is_a?(Array)
 
     parsed_response

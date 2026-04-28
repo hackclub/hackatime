@@ -1,6 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
+# gem "rails", github: "rails/rails", branch: "main" # currently broken w/ bullet
 gem "rails", "~> 8.1.2"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
@@ -55,6 +56,12 @@ gem "thruster", require: false
 # For query count tracking
 gem "query_count"
 
+# Compact request logging
+gem "lograge"
+
+# Better Stack (Logtail) logging
+gem "logtail-rails"
+
 # Rate limiting
 gem "rack-attack"
 
@@ -86,8 +93,8 @@ gem "skylight"
 
 # Analytics
 gem "posthog-ruby"
-
 gem "geocoder"
+gem "maxminddb"
 
 # Airtable syncing
 gem "norairrecord", "~> 0.5.1"
@@ -166,7 +173,7 @@ gem "tailwindcss-rails", "~> 4.2"
 
 gem "inertia_rails", "~> 3.17"
 
-gem "vite_rails", "~> 3.0"
+gem "vite_rails", "~> 3.10"
 
 gem "rubyzip", "~> 3.2"
 

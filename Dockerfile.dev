@@ -1,4 +1,4 @@
-FROM ruby:3.4.8
+FROM ruby:4.0.3
 
 # Install system dependencies including Node.js
 RUN apt-get update -qq && \
@@ -11,7 +11,7 @@ RUN apt-get update -qq && \
     libvips \
     pkg-config \
     curl \
-    vim \
+    tar \
     nodejs \
     npm \
     chromium \
@@ -25,16 +25,29 @@ RUN curl -fsSL https://bun.sh/install | bash && \
 # Set working directory
 WORKDIR /app
 
-# Install npm dependencies for Vite
+# Install npm dependencies for Vite. Vendored Inertia packages must exist
+# before `bun install` because they are referenced via local file dependencies.
 COPY package.json bun.lock ./
-# Local file deps in package.json need to exist before bun install.
-COPY vendor/inertia/packages/core/package.json ./vendor/inertia/packages/core/package.json
-COPY vendor/inertia/packages/svelte/package.json ./vendor/inertia/packages/svelte/package.json
+COPY patches patches
+COPY vendor/inertia vendor/inertia
 RUN bun install
 
 # Install application dependencies
 COPY Gemfile Gemfile.lock ./
 RUN bundle install
+
+# Rebuild native extensions for default gems that ship without compiled
+# extensions in the base image. Without this, Bundler floods every command
+# with "Source locally installed gems is ignoring..." warnings.
+RUN gem pristine --extensions json erb bigdecimal rdoc
+
+# The ruby:4.0.3 base image ships rdoc 7.0.3 in the system gem path with a
+# rubygems plugin that auto-loads it on every gem/bundler invocation. The
+# Gemfile resolves to rdoc 7.2.0 (also auto-loaded via its own plugin), so
+# both versions get required and we get "already initialized constant"
+# warnings on every command. Removing the system copy leaves only the
+# bundled rdoc 7.2.0 to be loaded.
+RUN gem uninstall -i /usr/local/lib/ruby/gems/4.0.0 -I -x rdoc -v 7.0.3 || true
 
 # Add a script to be executed every time the container starts
 COPY entrypoint.dev.sh /usr/bin/

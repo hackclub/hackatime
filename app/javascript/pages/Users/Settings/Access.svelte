@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { Form, router } from "@inertiajs/svelte";
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
   import Select from "../../../components/Select.svelte";
@@ -18,48 +18,36 @@
     options,
     paths,
     config_file,
+    rotated_api_key = "",
     errors,
   }: AccessPageProps = $props();
 
-  let csrfToken = $state("");
   let rotatingApiKey = $state(false);
-  let rotatedApiKey = $state("");
+  let rotatedApiKey = $derived(rotated_api_key || "");
   let rotatedApiKeyError = $state("");
   let apiKeyCopied = $state(false);
   let rotateApiKeyModalOpen = $state(false);
 
-  const rotateApiKey = async () => {
+  const rotateApiKey = () => {
     if (rotatingApiKey || typeof window === "undefined") return;
 
     rotatingApiKey = true;
-    rotatedApiKey = "";
     rotatedApiKeyError = "";
     apiKeyCopied = false;
 
-    try {
-      const response = await fetch(paths.rotate_api_key_path, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-          Accept: "application/json",
-          "Content-Type": "application/json",
+    router.post(
+      paths.rotate_api_key_path,
+      {},
+      {
+        preserveScroll: true,
+        onError: () => {
+          rotatedApiKeyError = "Unable to rotate API key.";
         },
-        body: JSON.stringify({}),
-      });
-
-      const body = await response.json();
-      if (!response.ok || !body.token) {
-        throw new Error(body.error || "Unable to rotate API key.");
-      }
-
-      rotatedApiKey = body.token;
-    } catch (error) {
-      rotatedApiKeyError =
-        error instanceof Error ? error.message : "Unable to rotate API key.";
-    } finally {
-      rotatingApiKey = false;
-    }
+        onFinish: () => {
+          rotatingApiKey = false;
+        },
+      },
+    );
   };
 
   const openRotateApiKeyModal = () => {
@@ -67,9 +55,9 @@
     rotateApiKeyModalOpen = true;
   };
 
-  const confirmRotateApiKey = async () => {
+  const confirmRotateApiKey = () => {
     rotateApiKeyModalOpen = false;
-    await rotateApiKey();
+    rotateApiKey();
   };
 
   const copyApiKey = async () => {
@@ -77,14 +65,11 @@
     await navigator.clipboard.writeText(rotatedApiKey);
     apiKeyCopied = true;
   };
-
-  onMount(() => {
-    csrfToken =
-      document
-        .querySelector("meta[name='csrf-token']")
-        ?.getAttribute("content") || "";
-  });
 </script>
+
+<svelte:head>
+  <title>Access - Hackatime Settings</title>
+</svelte:head>
 
 <SettingsShell
   {active_section}
@@ -114,15 +99,12 @@
     title="Extension Display"
     description="Choose how coding time appears in the extension status text."
   >
-    <form
+    <Form
       id="access-extension-form"
-      method="post"
       action={settings_update_path}
+      method="patch"
       class="space-y-4"
     >
-      <input type="hidden" name="_method" value="patch" />
-      <input type="hidden" name="authenticity_token" value={csrfToken} />
-
       <div>
         <label
           for="extension_type"
@@ -137,7 +119,7 @@
           items={options.extension_text_types}
         />
       </div>
-    </form>
+    </Form>
 
     {#snippet footer()}
       <Button type="submit" variant="primary" form="access-extension-form">

@@ -12,7 +12,7 @@ class Api::V1::StatsController < ApplicationController
 
     query = Heartbeat.where(time: start_date..end_date)
     if params[:username].present?
-      user = lookup_user(params[:username])
+      user = User.lookup_by_identifier(params[:username])
       return render json: { error: "User not found" }, status: :not_found unless user
 
       query = query.where(user_id: user.id)
@@ -48,7 +48,7 @@ class Api::V1::StatsController < ApplicationController
     scope = nil
     if params[:filter_by_project].present?
       filter_by_project = params[:filter_by_project].split(",")
-      scope = Heartbeat.where(project: filter_by_project)
+      scope = @user.heartbeats.where(project: filter_by_project)
     end
 
     limit = params[:limit].to_i
@@ -232,33 +232,9 @@ class Api::V1::StatsController < ApplicationController
       if identifier == "my" && token.present?
         ApiKey.find_by(token: token)&.user
       else
-        lookup_user(identifier)
+        User.lookup_by_identifier(identifier)
       end
     end
-  end
-
-  def lookup_user(id)
-    return nil if id.blank?
-
-    if id.match?(/^\d+$/)
-      user = User.find_by(id: id)
-      return user if user
-    end
-
-    user = User.find_by(slack_uid: id)
-    return user if user
-
-    # email lookup, but you really should not be using this cuz like wtf
-    # if identifier.include?("@")
-    #   email_record = EmailAddress.find_by(email: identifier)
-    #   return email_record.user if email_record
-    # end
-
-    user = User.find_by(username: id)
-    return user if user
-
-    # skill issue zone
-    nil
   end
 
   def ensure_authenticated!

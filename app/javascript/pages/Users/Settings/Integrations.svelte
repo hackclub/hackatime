@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Form } from "@inertiajs/svelte";
   import { Checkbox } from "bits-ui";
-  import { onMount } from "svelte";
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
   import SectionCard from "./components/SectionCard.svelte";
@@ -22,21 +22,12 @@
     errors,
   }: IntegrationsPageProps = $props();
 
-  let csrfToken = $state("");
-  let usesSlackStatus = $state(false);
   let unlinkGithubModalOpen = $state(false);
-
-  $effect(() => {
-    usesSlackStatus = user.uses_slack_status;
-  });
-
-  onMount(() => {
-    csrfToken =
-      document
-        .querySelector("meta[name='csrf-token']")
-        ?.getAttribute("content") || "";
-  });
 </script>
+
+<svelte:head>
+  <title>Integrations - Hackatime Settings</title>
+</svelte:head>
 
 <SettingsShell
   {active_section}
@@ -61,19 +52,16 @@
         </a>
       {/if}
 
-      <form
+      <Form
         id="integrations-slack-form"
-        method="post"
         action={settings_update_path}
+        method="patch"
         class="space-y-3"
       >
-        <input type="hidden" name="_method" value="patch" />
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
-
         <label class="flex items-center gap-3 text-sm text-surface-content">
           <input type="hidden" name="user[uses_slack_status]" value="0" />
           <Checkbox.Root
-            bind:checked={usesSlackStatus}
+            bind:checked={user.uses_slack_status}
             name="user[uses_slack_status]"
             value="1"
             class="inline-flex h-4 w-4 min-w-4 items-center justify-center rounded border border-surface-200 bg-darker text-on-primary transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary"
@@ -84,7 +72,7 @@
           </Checkbox.Root>
           Update my Slack status automatically
         </label>
-      </form>
+      </Form>
     </div>
 
     {#snippet footer()}
@@ -181,13 +169,7 @@
               <p class="text-xs text-muted">{email.source}</p>
             </div>
             {#if email.can_unlink}
-              <form method="post" action={paths.unlink_email_path}>
-                <input type="hidden" name="_method" value="delete" />
-                <input
-                  type="hidden"
-                  name="authenticity_token"
-                  value={csrfToken}
-                />
+              <Form action={paths.unlink_email_path} method="delete">
                 <input type="hidden" name="email" value={email.email} />
                 <Button
                   type="submit"
@@ -197,7 +179,7 @@
                 >
                   Unlink
                 </Button>
-              </form>
+              </Form>
             {/if}
           </div>
         {/each}
@@ -210,13 +192,12 @@
       {/if}
     </div>
 
-    <form
+    <Form
       id="integrations-email-form"
-      method="post"
       action={paths.add_email_path}
+      method="post"
       class="mt-4 flex flex-col gap-3 sm:flex-row"
     >
-      <input type="hidden" name="authenticity_token" value={csrfToken} />
       <input
         type="email"
         name="email"
@@ -224,7 +205,7 @@
         placeholder="name@example.com"
         class="grow rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
       />
-    </form>
+    </Form>
 
     {#snippet footer()}
       <Button type="submit" class="rounded-md" form="integrations-email-form">
@@ -251,9 +232,7 @@
       >
         Cancel
       </Button>
-      <form method="post" action={paths.github_unlink_path} class="m-0">
-        <input type="hidden" name="_method" value="delete" />
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
+      <Form action={paths.github_unlink_path} method="delete" class="m-0">
         <Button
           type="submit"
           variant="primary"
@@ -261,7 +240,7 @@
         >
           Unlink GitHub
         </Button>
-      </form>
+      </Form>
     </div>
   {/snippet}
 </Modal>

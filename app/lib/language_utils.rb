@@ -35,6 +35,55 @@ module LanguageUtils
     data.keys.find { |name| name.downcase == key }
   end
 
+  # Builds a lookup from file extension → canonical language name.
+  def self.extension_map
+    @extension_map ||= begin
+      map = {}
+      data.each do |name, info|
+        (info["extensions"] || []).each { |ext| map[ext.downcase] = name }
+      end
+      map
+    end
+  end
+
+  def self.filename_map
+    @filename_map ||= begin
+      map = {}
+      data.each do |name, info|
+        (info["filenames"] || []).each { |filename| map[filename.downcase] = name }
+      end
+      map
+    end
+  end
+
+  def self.blank_or_unknown?(raw)
+    raw.blank? || raw.to_s.strip.casecmp("unknown").zero?
+  end
+
+  def self.detect_from_filename(entity)
+    return nil if entity.blank?
+
+    filename_map[File.basename(entity).downcase]
+  end
+
+  # Detect language from a file entity's extension.
+  def self.detect_from_extension(entity)
+    return nil if entity.blank?
+    ext = File.extname(entity).downcase
+    return nil if ext.blank?
+    extension_map[ext]
+  end
+
+  def self.detect_from_entity(entity)
+    detect_from_filename(entity) || detect_from_extension(entity)
+  end
+
+  def self.fill_missing_language(raw, entity:)
+    return raw unless blank_or_unknown?(raw)
+
+    detect_from_entity(entity)
+  end
+
   # Canonical display name: "js" → "JavaScript", "cpp" → "C++"
   def self.display_name(raw)
     return "Unknown" if raw.blank?

@@ -38,9 +38,10 @@ class Settings::IntegrationsController < Settings::BaseController
       slack: {
         can_enable_status: can_enable_slack_status,
         notification_channels: channel_ids.map { |channel_id|
+          channel_name = SlackChannel.find_by_id(channel_id) rescue nil
           {
             id: channel_id,
-            label: "##{channel_id}",
+            label: channel_name.present? ? "##{channel_name}" : "##{channel_id}",
             url: "https://hackclub.slack.com/archives/#{channel_id}"
           }
         }

@@ -1,4 +1,5 @@
 require "test_helper"
+require "stringio"
 
 class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationTest
   test "single text plain heartbeat normalizes hash payloads" do
@@ -104,7 +105,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal "Python", heartbeats.last.language
   end
 
-  test "single heartbeat with <<LAST_LANGUAGE>> and no prior heartbeats stores nil language" do
+  test "single heartbeat with <<LAST_LANGUAGE>> and no prior heartbeats infers language from extension" do
     user = User.create!(timezone: "UTC")
     api_key = user.api_keys.create!(name: "primary")
 
@@ -128,7 +129,116 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
 
     assert_response :accepted
     heartbeat = Heartbeat.order(:id).last
-    assert_nil heartbeat.language
+    assert_equal "Ruby", heartbeat.language
+  end
+
+  test "single heartbeat ignores unknown fields like raw_data and ai_line_changes" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    payload = {
+      entity: "src/main.rb",
+      plugin: "vscode/1.131.0 vscode-wakatime/29.0.3",
+      project: "hackatime",
+      time: Time.current.to_f,
+      type: "file",
+      raw_data: '{"some": "data"}',
+      ai_line_changes: 5,
+      human_line_changes: 10,
+      completely_bogus_field: "should be ignored"
+    }
+
+    assert_difference("Heartbeat.count", 1) do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: payload.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain"
+        }
+    end
+
+    assert_response :accepted
+    heartbeat = Heartbeat.order(:id).last
+    assert_equal "src/main.rb", heartbeat.entity
+    assert_equal "hackatime", heartbeat.project
+  end
+
+  test "bulk heartbeat ignores unknown fields like raw_data and ai_line_changes" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    payload = [
+      {
+        entity: "src/first.rb",
+        plugin: "vscode/1.131.0 vscode-wakatime/29.0.3",
+        project: "hackatime",
+        time: Time.current.to_f,
+        type: "file",
+        raw_data: '{"some": "data"}',
+        ai_line_changes: 3,
+        human_line_changes: 7
+      }
+    ]
+
+    assert_difference("Heartbeat.count", 1) do
+      post "/api/hackatime/v1/users/current/heartbeats.bulk",
+        params: payload.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "application/json"
+        }
+    end
+
+    assert_response :created
+    heartbeat = Heartbeat.order(:id).last
+    assert_equal "src/first.rb", heartbeat.entity
+    assert_equal "hackatime", heartbeat.project
+  end
+
+  test "duplicate heartbeat with different ip returns existing record" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    payload = {
+      entity: "src/main.rb",
+      plugin: "vscode/1.0.0",
+      project: "hackatime",
+      time: Time.current.to_f,
+      type: "file"
+    }
+
+    # First request creates the heartbeat
+    assert_difference("Heartbeat.count", 1) do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: payload.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain",
+          "CF-Connecting-IP" => "203.0.113.10"
+        }
+    end
+    assert_response :accepted
+    heartbeat = Heartbeat.order(:id).last
+
+    log_output = StringIO.new
+    previous_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(log_output)
+
+    # Second request with same data should not create a duplicate or log a uniqueness error
+    assert_no_difference("Heartbeat.count") do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: payload.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain",
+          "CF-Connecting-IP" => "203.0.113.20"
+        }
+    end
+    assert_response :accepted
+    assert_equal heartbeat.id, JSON.parse(response.body)["id"]
+    assert_no_match(/RecordNotUnique|duplicate key|unique/i, log_output.string)
+  ensure
+    Rails.logger = previous_logger if previous_logger
   end
 
   test "bulk heartbeat normalizes permitted params" do

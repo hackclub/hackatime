@@ -7,6 +7,7 @@ Rails.application.configure do
   if Rails.env.development?
     config.good_job.execution_mode = :async # Run jobs in background threads in development
     config.good_job.poll_interval = 5 # Poll every 5 seconds for scheduled jobs
+    config.good_job.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(nil))
   else
     config.good_job.execution_mode = :external # Use external execution mode in production and staging
   end
@@ -34,14 +35,14 @@ Rails.application.configure do
       args: [ :last_7_days ],
       kwargs: { force_update: true }
     },
-    # sailors_log_poll: {
-    #   cron: "*/2 * * * *",
-    #   class: "SailorsLogPollForChangesJob"
-    # },
-    # update_slack_channel_cache: {
-    #   cron: "0 11 * * *",
-    #   class: "SlackCommand::UpdateSlackChannelCacheJob"
-    # },
+    sailors_log_poll: {
+      cron: "*/2 * * * *",
+      class: "SailorsLogPollForChangesJob"
+    },
+    update_slack_channel_cache: {
+      cron: "0 11 * * *",
+      class: "SlackCommand::UpdateSlackChannelCacheJob"
+    },
 
     slack_username_update: {
       cron: "0 0 * * *",
@@ -123,13 +124,18 @@ Rails.application.configure do
       cron: "0 0 * * *",
       class: "CleanupSuccessfulJobsJob"
     },
+    update_geolite2_database: {
+      cron: "0 3 * * *",
+      class: "UpdateGeolite2DatabaseJob",
+      description: "Daily GeoLite2 database update from MaxMind"
+    },
     process_account_deletions: {
       cron: "0 2 * * *",
       class: "ProcessAccountDeletionsJob",
       description: "nuke accounts after 30 days"
     }
     # sync_stale_repo_metadata: {
-    #   cron: "0 4 * * *", # Daily at 4 AM
+    #   cron: "0 4 * * *",
     #   class: "SyncStaleRepoMetadataJob",
     #   description: "Refreshes repository metadata (stars, commit counts, etc.) for repositories with stale data."
     # }

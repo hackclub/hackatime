@@ -76,13 +76,16 @@ class Settings::BaseController < InertiaController
       can_request_deletion: @user.can_request_deletion?,
       github_uid: @user.github_uid,
       github_username: @user.github_username,
-      slack_uid: @user.slack_uid,
-      programming_goals: @user.goals.order(:created_at).map { |goal|
-        goal.as_programming_goal_payload.merge(
-          update_path: my_settings_goal_update_path(goal),
-          destroy_path: my_settings_goal_destroy_path(goal)
-        )
-      }
+      slack_uid: @user.slack_uid
+    }
+  end
+
+  def programming_goals_props
+    @user.goals.order(:created_at).map { |goal|
+      goal.as_programming_goal_payload.merge(
+        update_path: my_settings_goal_update_path(goal),
+        destroy_path: my_settings_goal_destroy_path(goal)
+      )
     }
   end
 
@@ -105,21 +108,16 @@ class Settings::BaseController < InertiaController
 
   def project_list
     @project_list ||= @user.project_repo_mappings.includes(:repository).distinct.map do |mapping|
-      { display_name: mapping.project_name, repo_path: mapping.repository&.full_path || mapping.project_name }
+      repo_path = mapping.repository&.full_path || mapping.project_name
+      { display_name: mapping.project_name, repo_path: repo_path }
     end
   end
 
   def options_props
-    heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
-    goal_languages = []
-    goal_projects = project_list.map { |p| p[:display_name] }
+    base_options.merge(goals: goal_options)
+  end
 
-    heartbeat_language_and_projects.each do |language, project|
-      categorized_language = language&.categorize_language
-      goal_languages << categorized_language if categorized_language.present?
-      goal_projects << project if project.present?
-    end
-
+  def base_options
     {
       countries: ISO3166::Country.all.map { |country|
         { label: country.common_name, value: country.alpha2 }
@@ -131,22 +129,36 @@ class Settings::BaseController < InertiaController
         { label: key.humanize, value: key }
       },
       themes: User.theme_options,
-      badge_themes: GithubReadmeStats.themes,
-      goals: {
-        periods: Goal::PERIODS.map { |period|
-          { label: period.humanize, value: period }
-        },
-        preset_target_seconds: Goal::PRESET_TARGET_SECONDS,
-        selectable_languages: goal_languages.uniq.sort
-          .map { |language| { label: language, value: language } },
-        selectable_projects: goal_projects.uniq.sort
-          .map { |project| { label: project, value: project } }
-      }
+      badge_themes: GithubReadmeStats.themes
+    }
+  end
+
+  def goal_options
+    heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
+    goal_languages = []
+    goal_projects = project_list.map { |p| p[:display_name] }
+
+    heartbeat_language_and_projects.each do |language, project|
+      categorized_language = language&.categorize_language
+      goal_languages << categorized_language if categorized_language.present?
+      goal_projects << project if project.present?
+    end
+
+    {
+      periods: Goal::PERIODS.map { |period|
+        { label: period.humanize, value: period }
+      },
+      preset_target_seconds: Goal::PRESET_TARGET_SECONDS,
+      selectable_languages: goal_languages.uniq.sort
+        .map { |language| { label: language, value: language } },
+      selectable_projects: goal_projects.uniq.sort
+        .map { |project| { label: project, value: project } }
     }
   end
 
   def badges_props
-    work_time_stats_base_url = @user.slack_uid.present? ? "https://hackatime-badge.hackclub.com/#{@user.slack_uid}/" : nil
+    badge_user_id = @user.slack_uid.presence || @user.username.presence || @user.id.to_s
+    work_time_stats_base_url = "#{request.base_url}/api/v1/badge/#{badge_user_id}/"
     work_time_stats_url = if work_time_stats_base_url.present? && project_list.first.present?
       "#{work_time_stats_base_url}#{project_list.first[:repo_path]}"
     end

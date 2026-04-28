@@ -189,6 +189,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Data - Hackatime Settings</title>
+</svelte:head>
+
 <SettingsShell
   {active_section}
   {section_paths}

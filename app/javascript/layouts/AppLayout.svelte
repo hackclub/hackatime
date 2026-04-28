@@ -2,10 +2,10 @@
   import { Link, usePoll } from "@inertiajs/svelte";
   import Button from "../components/Button.svelte";
   import CountryFlag from "../components/CountryFlag.svelte";
-  import Modal from "../components/Modal.svelte";
   import type { Snippet } from "svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
+  import { streakTheme, streakLabel } from "../utils";
 
   type NavLink = {
     label: string;
@@ -16,7 +16,12 @@
     inertia?: boolean;
   };
 
-  type AdminLevel = "default" | "superadmin" | "admin" | "viewer";
+  type AdminLevel =
+    | "default"
+    | "superadmin"
+    | "admin"
+    | "viewer"
+    | "ultraadmin";
 
   type NavCurrentUser = {
     display_name: string;
@@ -38,6 +43,7 @@
     admin_links: NavLink[];
     viewer_links: NavLink[];
     superadmin_links: NavLink[];
+    ultraadmin_links?: NavLink[];
   };
 
   type Footer = {
@@ -89,6 +95,10 @@
 
   let navOpen = $state(false);
   let logoutOpen = $state(false);
+  let LogoutModal = $state<
+    null | typeof import("../components/Modal.svelte").default
+  >(null);
+  let loadingLogoutModal = $state(false);
   let currentlyExpanded = $state(false);
   let flashVisible = $state(false);
   let flashHiding = $state(false);
@@ -99,7 +109,22 @@
 
   const toggleNav = () => (navOpen = !navOpen);
   const closeNav = () => (navOpen = false);
-  const openLogout = () => (logoutOpen = true);
+  const ensureLogoutModal = async () => {
+    if (LogoutModal || loadingLogoutModal) return;
+
+    loadingLogoutModal = true;
+    try {
+      const mod = await import("../components/Modal.svelte");
+      LogoutModal = mod.default;
+    } finally {
+      loadingLogoutModal = false;
+    }
+  };
+
+  const openLogout = async () => {
+    await ensureLogoutModal();
+    logoutOpen = true;
+  };
   const closeLogout = () => (logoutOpen = false);
 
   usePoll(currentlyHackingPollInterval(), {
@@ -125,11 +150,8 @@
     `${layout.currently_hacking.count} ${plur("person", layout.currently_hacking.count)} currently hacking`;
 
   const visualizeGitUrl = (url?: string | null) =>
-    url?.startsWith("https://github.com/")
-      ? url.replace(
-          "https://github.com/",
-          "https://tkww0gcc0gkwwo4gc8kgs0sw.a.selfhosted.hackclub.com/",
-        )
+    url
+      ? `https://maxwofford.com/dandelion/?url=${encodeURIComponent(url)}`
       : "";
 
   const latinPhrases = [
@@ -154,43 +176,8 @@
   const footerStatsText = () =>
     `${layout.footer.heartbeat_recent_count} ${plur("heartbeat", layout.footer.heartbeat_recent_count)} (${layout.footer.heartbeat_recent_imported_count} imported) in the past 24 hours. (DB: ${layout.footer.query_count} ${plur("query", layout.footer.query_count)}, ${layout.footer.query_cache_count} cached) (CACHE: ${layout.footer.cache_hits} hits, ${layout.footer.cache_misses} misses) (${layout.footer.requests_per_second})`;
 
-  const streakThemeClasses = (streakDays: number) => {
-    if (streakDays >= 30) {
-      return {
-        bg: "from-blue/20 to-purple/20",
-        hbg: "hover:from-blue/30 hover:to-purple/30",
-        bc: "border-blue",
-        ic: "text-blue group-hover:text-blue",
-        tc: "text-blue group-hover:text-blue",
-        tm: "text-blue",
-      };
-    }
-
-    if (streakDays >= 7) {
-      return {
-        bg: "from-red/20 to-orange/20",
-        hbg: "hover:from-red/30 hover:to-orange/30",
-        bc: "border-red",
-        ic: "text-red group-hover:text-red",
-        tc: "text-red group-hover:text-red",
-        tm: "text-red",
-      };
-    }
-
-    return {
-      bg: "from-orange/20 to-yellow/20",
-      hbg: "hover:from-orange/30 hover:to-yellow/30",
-      bc: "border-orange",
-      ic: "text-orange group-hover:text-orange",
-      tc: "text-orange group-hover:text-orange",
-      tm: "text-orange",
-    };
-  };
-
-  const streakLabel = (streakDays: number) =>
-    streakDays > 30 ? "30+" : `${streakDays}`;
-
   const adminLevelLabel = (adminLevel?: AdminLevel | null) => {
+    if (adminLevel === "ultraadmin") return "Ultraadmin";
     if (adminLevel === "superadmin") return "Superadmin";
     if (adminLevel === "admin") return "Admin";
     if (adminLevel === "viewer") return "Viewer";
@@ -198,6 +185,7 @@
   };
 
   const adminLevelClass = (adminLevel?: AdminLevel | null) => {
+    if (adminLevel === "ultraadmin") return "text-purple-400 ultraadmin-tool";
     if (adminLevel === "superadmin") return "text-red superadmin-tool";
     if (adminLevel === "admin") return "text-yellow admin-tool";
     if (adminLevel === "viewer") return "text-blue viewer-tool";
@@ -269,6 +257,12 @@
 
   const navLinkClass = (active?: boolean) =>
     `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-on-primary font-bold" : "text-surface-content hover:bg-darkless hover:text-primary"}`;
+
+  const isLongCachedLink = (link: NavLink) =>
+    link.label === "Docs" || link.label === "Extensions";
+
+  const linkCacheFor = (link: NavLink): string | [string, string] =>
+    isLongCachedLink(link) ? "10m" : ["0s", "30s"];
 </script>
 
 {#if flashVisible && layout.nav.flash.length > 0}
@@ -361,11 +355,9 @@
             </div>
 
             {#if layout.nav.current_user.streak_days && layout.nav.current_user.streak_days > 0}
-              {@const streakTheme = streakThemeClasses(
-                layout.nav.current_user.streak_days,
-              )}
+              {@const streak = streakTheme(layout.nav.current_user.streak_days)}
               <div
-                class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streakTheme.bg} border ${streakTheme.bc} rounded-lg transition-all duration-200 ${streakTheme.hbg} group`}
+                class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streak.bg} border ${streak.bc} rounded-lg transition-all duration-200 ${streak.hbg} group`}
                 title={layout.nav.current_user.streak_days > 30
                   ? "30+ daily streak"
                   : `${layout.nav.current_user.streak_days} day streak`}
@@ -375,7 +367,7 @@
                   width="24"
                   height="24"
                   viewBox="0 0 24 24"
-                  class={`${streakTheme.ic} transition-colors duration-200 group-hover:animate-pulse`}
+                  class={`${streak.ic} transition-colors duration-200 group-hover:animate-pulse`}
                 >
                   <path
                     fill="currentColor"
@@ -384,11 +376,10 @@
                 </svg>
 
                 <span
-                  class={`text-md font-semibold ${streakTheme.tc} transition-colors duration-200`}
+                  class={`text-md font-semibold ${streak.tc} transition-colors duration-200`}
                 >
                   {streakLabel(layout.nav.current_user.streak_days)}
-                  <span class={`ml-1 font-normal ${streakTheme.tm}`}
-                    >day streak</span
+                  <span class={`ml-1 font-normal ${streak.tm}`}>day streak</span
                   >
                 </span>
               </div>
@@ -425,6 +416,8 @@
           {:else if link.inertia}
             <Link
               href={link.href || "#"}
+              prefetch
+              cacheFor={linkCacheFor(link)}
               onclick={handleNavLinkClick}
               class={navLinkClass(link.active)}>{link.label}</Link
             >
@@ -437,12 +430,14 @@
           {/if}
         {/each}
 
-        {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0}
+        {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0 || (layout.nav.ultraadmin_links && layout.nav.ultraadmin_links.length > 0)}
           <div class="pt-2 mt-2 border-t border-darkless space-y-1">
             {#each layout.nav.dev_links as link}
               {#if link.inertia}
                 <Link
                   href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} dev-tool"
                 >
@@ -477,6 +472,8 @@
               {#if link.inertia}
                 <Link
                   href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} admin-tool"
                 >
@@ -511,6 +508,8 @@
               {#if link.inertia}
                 <Link
                   href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} viewer-tool"
                 >
@@ -545,6 +544,8 @@
               {#if link.inertia}
                 <Link
                   href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} superadmin-tool"
                 >
@@ -562,6 +563,42 @@
                   href={link.href || "#"}
                   onclick={handleNavLinkClick}
                   class="{navLinkClass(link.active)} superadmin-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </a>
+              {/if}
+            {/each}
+
+            {#each layout.nav.ultraadmin_links || [] as link}
+              {#if link.inertia}
+                <Link
+                  href={link.href || "#"}
+                  prefetch
+                  cacheFor={linkCacheFor(link)}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} ultraadmin-tool"
+                >
+                  {link.label}
+                  {#if link.badge}
+                    <span
+                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+                    >
+                      {link.badge}
+                    </span>
+                  {/if}
+                </Link>
+              {:else}
+                <a
+                  href={link.href || "#"}
+                  onclick={handleNavLinkClick}
+                  class="{navLinkClass(link.active)} ultraadmin-tool"
                 >
                   {link.label}
                   {#if link.badge}
@@ -713,54 +750,57 @@
   </div>
 {/if}
 
-<Modal
-  bind:open={logoutOpen}
-  title="Woah, hold on a sec!"
-  description="You sure you want to log out? You can sign back in later but that is a bit of a hassle..."
-  maxWidth="max-w-lg"
-  hasIcon
-  hasActions
->
-  {#snippet icon()}
-    <svg
-      class="h-8 w-8"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path
-        fill="currentColor"
-        d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"
-      />
-    </svg>
-  {/snippet}
-
-  {#snippet actions()}
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <Button
-        type="button"
-        onclick={closeLogout}
-        variant="dark"
-        class="h-10 w-full border border-surface-300 text-muted">Go back</Button
+{#if LogoutModal}
+  <LogoutModal
+    bind:open={logoutOpen}
+    title="Woah, hold on a sec!"
+    description="You sure you want to log out? You can sign back in later but that is a bit of a hassle..."
+    maxWidth="max-w-lg"
+    hasIcon
+    hasActions
+  >
+    {#snippet icon()}
+      <svg
+        class="h-8 w-8"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
       >
-
-      <form method="post" action={layout.signout_path} class="m-0">
-        <input
-          type="hidden"
-          name="authenticity_token"
-          value={layout.csrf_token}
+        <path
+          fill="currentColor"
+          d="M5 21q-.825 0-1.412-.587T3 19v-3q0-.425.288-.712T4 15t.713.288T5 16v3h14V5H5v3q0 .425-.288.713T4 9t-.712-.288T3 8V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6.65-8H4q-.425 0-.712-.288T3 12t.288-.712T4 11h7.65L9.8 9.15q-.3-.3-.288-.7t.288-.7q.3-.3.713-.312t.712.287L14.8 11.3q.15.15.213.325t.062.375t-.062.375t-.213.325l-3.575 3.575q-.3.3-.712.288T9.8 16.25q-.275-.3-.288-.7t.288-.7z"
         />
-        <input type="hidden" name="_method" value="delete" />
+      </svg>
+    {/snippet}
+
+    {#snippet actions()}
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Button
-          type="submit"
-          variant="primary"
-          class="h-10 w-full text-on-primary">Log out now</Button
+          type="button"
+          onclick={closeLogout}
+          variant="dark"
+          class="h-10 w-full border border-surface-300 text-muted"
+          >Go back</Button
         >
-      </form>
-    </div>
-  {/snippet}
-</Modal>
+
+        <form method="post" action={layout.signout_path} class="m-0">
+          <input
+            type="hidden"
+            name="authenticity_token"
+            value={layout.csrf_token}
+          />
+          <input type="hidden" name="_method" value="delete" />
+          <Button
+            type="submit"
+            variant="primary"
+            class="h-10 w-full text-on-primary">Log out now</Button
+          >
+        </form>
+      </div>
+    {/snippet}
+  </LogoutModal>
+{/if}
 
 <style>
   :global(#app) {

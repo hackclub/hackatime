@@ -9,7 +9,7 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.clear
   end
 
-  test "index renders country tab label and preserves scope in period links" do
+  test "index renders with correct period_type and scope props" do
     us_user = create_user(username: "us_index_user", country_code: "US")
     create_boards_for_today(period_type: :last_7_days)
 
@@ -17,12 +17,15 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     get leaderboards_path(period_type: "last_7_days", scope: "country")
 
     assert_response :success
-    assert_select "a[href='#{leaderboards_path(period_type: "last_7_days", scope: "global")}']", text: "Global"
-    assert_select "a[href='#{leaderboards_path(period_type: "last_7_days", scope: "country")}']", text: /United States/
-    assert_select "a[href='#{leaderboards_path(period_type: "daily", scope: "country")}']", text: "Last 24 Hours"
+    assert_inertia_component "Leaderboards/Index"
+    assert_inertia_prop "period_type", "last_7_days"
+    assert_inertia_prop "scope", "country"
+    page = inertia_page
+    assert_equal "US", page.dig("props", "country", "code")
+    assert page.dig("props", "country", "available")
   end
 
-  test "index falls back to global selector state when country is missing" do
+  test "index falls back to global scope when country is missing" do
     viewer = create_user(username: "viewer_no_country")
     create_boards_for_today(period_type: :daily)
 
@@ -30,30 +33,21 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     get leaderboards_path(period_type: "daily", scope: "country")
 
     assert_response :success
-    assert_select "span", text: "Country"
-    assert_select "a[href='#{leaderboards_path(period_type: "daily", scope: "global")}']"
+    assert_inertia_component "Leaderboards/Index"
+    assert_inertia_prop "scope", "global"
+    page = inertia_page
+    assert_not page.dig("props", "country", "available")
   end
 
-  test "entries clamps page=0 to page 1 instead of erroring" do
-    user = create_user(username: "page_zero_user")
-    board = create_boards_for_today(period_type: :daily).first
-    board.entries.create!(user: user, total_seconds: 100)
+  test "index clamps invalid period_type to daily" do
+    user = create_user(username: "bad_period_user2")
+    create_boards_for_today(period_type: :daily)
 
     sign_in_as(user)
-    get entries_leaderboards_path(period_type: "daily", page: 0), xhr: true
+    get leaderboards_path(period_type: "bogus")
 
     assert_response :success
-  end
-
-  test "entries clamps negative page to page 1 instead of erroring" do
-    user = create_user(username: "neg_page_user")
-    board = create_boards_for_today(period_type: :daily).first
-    board.entries.create!(user: user, total_seconds: 100)
-
-    sign_in_as(user)
-    get entries_leaderboards_path(period_type: "daily", page: -5), xhr: true
-
-    assert_response :success
+    assert_inertia_prop "period_type", "daily"
   end
 
   test "validated_period_type does not intern arbitrary symbols" do

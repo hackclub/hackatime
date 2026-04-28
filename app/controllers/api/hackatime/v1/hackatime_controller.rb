@@ -3,7 +3,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   skip_before_action :verify_authenticity_token
   skip_before_action :enforce_lockout
   before_action :check_lockout, only: [ :push_heartbeats ]
-  before_action :set_raw_heartbeat_upload, only: [ :push_heartbeats ], if: :is_blank?
 
   def push_heartbeats
     # Handle both single and bulk heartbeats based on format
@@ -175,11 +174,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   private
 
-  def is_blank?
-    body = body_to_json
-    body.present? && (body.is_a?(Array) ? body.any? : true)
-  end
-
   def calculate_category_stats(heartbeats, category)
     durations = heartbeats.group(category).duration_seconds
 
@@ -214,13 +208,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         seconds: seconds
       }
     end.sort_by { |item| -item[:total_seconds] }
-  end
-
-  def set_raw_heartbeat_upload
-    @raw_heartbeat_upload = RawHeartbeatUpload.create!(
-      request_headers: headers_to_json,
-      request_body: body_to_json
-    )
   end
 
   def headers_to_json
@@ -260,6 +247,12 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
           .pick(:language)
       end
 
+      # Infer language from file extension when client sends blank or Unknown
+      if heartbeat[:language].blank? || heartbeat[:language] == "Unknown"
+        inferred = LanguageUtils.detect_from_extension(heartbeat[:entity])
+        heartbeat[:language] = inferred if inferred
+      end
+
       # Track the last known language for subsequent heartbeats in this batch.
       last_language = heartbeat[:language] if heartbeat[:language].present?
 
@@ -277,6 +270,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         source_type = :test_entry
       end
 
+      heartbeat[:project] = heartbeat[:project]&.gsub(/[[:cntrl:]]/, "")&.strip
+
       attrs = heartbeat.merge({
         user_id: @user.id,
         source_type: source_type,
@@ -284,16 +279,40 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         editor: parsed_ua[:editor],
         operating_system: parsed_ua[:os],
         machine: request.headers["X-Machine-Name"]
-      })
-      new_heartbeat = Heartbeat.find_or_create_by(attrs)
-      if @raw_heartbeat_upload.present? && new_heartbeat.persisted?
-        new_heartbeat.raw_heartbeat_upload ||= @raw_heartbeat_upload
-        new_heartbeat.save! if new_heartbeat.changed?
+      }).slice(*Heartbeat.column_names.map(&:to_sym))
+      # ^^ They say safety laws are written in blood. Well, so is this line!
+      # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
+      temp = Heartbeat.new(attrs)
+      fields_hash = Heartbeat.generate_fields_hash(temp.attributes)
+      new_heartbeat = @user.heartbeats.find_by(fields_hash: fields_hash)
+
+      unless new_heartbeat
+        now = Time.current
+        insert_attrs = attrs.merge(
+          fields_hash: fields_hash,
+          created_at: now,
+          updated_at: now
+        )
+        result = Heartbeat.insert(
+          insert_attrs,
+          unique_by: :fields_hash,
+          returning: Heartbeat.column_names
+        )
+
+        if result.any?
+          new_heartbeat = Heartbeat.new(result.first)
+          # This uses insert for deduplication, so model validations/callbacks are skipped.
+          # Keep manual fields_hash and rollup scheduling in sync with Heartbeat callbacks.
+          DashboardRollupRefreshJob.schedule_for(@user.id)
+        else
+          new_heartbeat = @user.heartbeats.find_by!(fields_hash: fields_hash)
+        end
       end
+
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
     rescue => e
-      report_error(e, message: "Error creating heartbeat")
+      report_error(e, message: "Error creating heartbeat: #{e.class}: #{e.message}", extra: { backtrace: e.backtrace&.first(20) })
       results << [ { error: e.message, type: e.class.name }, 422 ]
     end
 

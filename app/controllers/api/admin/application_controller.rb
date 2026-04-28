@@ -15,7 +15,7 @@ module Api
           if @admin_api_key
             @current_user = @admin_api_key.user
 
-            if @current_user.admin_level.in?([ "admin", "superadmin", "viewer" ])
+            if @current_user.admin_level.in?([ "admin", "superadmin", "viewer", "ultraadmin" ])
               true
             else
               @admin_api_key.revoke!
@@ -44,7 +44,7 @@ module Api
       end
 
       def require_superadmin
-        unless current_user&.admin_level_superadmin?
+        unless current_user&.admin_level_superadmin? || current_user&.admin_level_ultraadmin?
           render json: { error: "lmao no perms" }, status: :unauthorized
         end
       end

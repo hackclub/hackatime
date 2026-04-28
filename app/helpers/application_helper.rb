@@ -32,18 +32,23 @@ module ApplicationHelper
   end
 
   def superadmin_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "superadmin")
+    return unless current_user && (current_user.admin_level == "superadmin" || current_user.admin_level == "ultraadmin")
     concat content_tag(element, class: "superadmin-tool #{class_name}", **options, &block)
   end
 
   def admin_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "admin" || current_user.admin_level == "superadmin")
+    return unless current_user && (current_user.admin_level == "admin" || current_user.admin_level == "superadmin" || current_user.admin_level == "ultraadmin")
     concat content_tag(element, class: "admin-tool #{class_name}", **options, &block)
   end
 
   def viewer_tool(class_name = "", element = "div", **options, &block)
     return unless current_user && (current_user.admin_level == "viewer")
     concat content_tag(element, class: "viewer-tool #{class_name}", **options, &block)
+  end
+
+  def ultraadmin_tool(class_name = "", element = "div", **options, &block)
+    return unless current_user && (current_user.admin_level == "ultraadmin")
+    concat content_tag(element, class: "ultraadmin-tool #{class_name}", **options, &block)
   end
 
   def dev_tool(class_name = "", element = "div", **options, &block)
@@ -95,7 +100,9 @@ module ApplicationHelper
   end
 
   def visualize_git_url(url)
-    url.gsub("https://github.com/", "https://tkww0gcc0gkwwo4gc8kgs0sw.a.selfhosted.hackclub.com/")
+    return "" if url.blank?
+
+    "https://maxwofford.com/dandelion/?url=#{CGI.escape(url)}"
   end
 
   def digital_time(time)
@@ -167,7 +174,7 @@ module ApplicationHelper
     return "Unknown" if editor.blank?
 
     case editor.downcase
-    when "vscode", "vs code" then "VS Code"
+    when "vscode", "vs code" then "VSCode"
     when "pycharm" then "PyCharm"
     when "intellij", "intellijidea" then "IntelliJ IDEA"
     when "webstorm" then "WebStorm"

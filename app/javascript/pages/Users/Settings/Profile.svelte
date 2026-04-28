@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Form } from "@inertiajs/svelte";
   import { Checkbox, RadioGroup } from "bits-ui";
-  import { onMount } from "svelte";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
@@ -13,30 +13,29 @@
     page_title,
     heading,
     subheading,
-    settings_update_path,
+    region_update_path,
+    privacy_update_path,
+    username_update_path,
+    theme_update_path,
     username_max_length,
     user,
     options,
-    badges,
+    profile_url,
     errors,
   }: ProfilePageProps = $props();
 
-  let csrfToken = $state("");
-  let selectedTheme = $state("gruvbox_dark");
+  let selectedTheme = $state("rose");
   let allowPublicStatsLookup = $state(false);
 
   $effect(() => {
-    selectedTheme = user.theme || "gruvbox_dark";
+    selectedTheme = user.theme || "rose";
     allowPublicStatsLookup = user.allow_public_stats_lookup;
   });
-
-  onMount(() => {
-    csrfToken =
-      document
-        .querySelector("meta[name='csrf-token']")
-        ?.getAttribute("content") || "";
-  });
 </script>
+
+<svelte:head>
+  <title>Profile - Hackatime Settings</title>
+</svelte:head>
 
 <SettingsShell
   {active_section}
@@ -51,15 +50,12 @@
     title="Region and Timezone"
     description="Use your local region and timezone for accurate dashboards and leaderboards."
   >
-    <form
+    <Form
       id="profile-region-form"
-      method="post"
-      action={settings_update_path}
+      action={region_update_path}
+      method="patch"
       class="space-y-4"
     >
-      <input type="hidden" name="_method" value="patch" />
-      <input type="hidden" name="authenticity_token" value={csrfToken} />
-
       <div>
         <label
           for="country_code"
@@ -89,7 +85,7 @@
           items={options.timezones}
         />
       </div>
-    </form>
+    </Form>
 
     {#snippet footer()}
       <Button type="submit" variant="primary" form="profile-region-form">
@@ -103,15 +99,12 @@
     title="Username"
     description="This username is used in links and public profile pages."
   >
-    <form
+    <Form
       id="profile-username-form"
-      method="post"
-      action={settings_update_path}
+      action={username_update_path}
+      method="patch"
       class="space-y-3"
     >
-      <input type="hidden" name="_method" value="patch" />
-      <input type="hidden" name="authenticity_token" value={csrfToken} />
-
       <div>
         <label for="username" class="mb-2 block text-sm text-surface-content">
           Username
@@ -128,17 +121,13 @@
           <p class="mt-2 text-xs text-red">{errors.username[0]}</p>
         {/if}
       </div>
-    </form>
+    </Form>
 
-    {#if badges.profile_url}
+    {#if profile_url}
       <p class="text-sm text-muted">
         Public profile:
-        <a
-          href={badges.profile_url}
-          target="_blank"
-          class="text-primary underline"
-        >
-          {badges.profile_url}
+        <a href={profile_url} target="_blank" class="text-primary underline">
+          {profile_url}
         </a>
       </p>
     {/if}
@@ -155,15 +144,12 @@
     title="Privacy"
     description="Control whether your coding stats can be used by public APIs."
   >
-    <form
+    <Form
       id="profile-privacy-form"
-      method="post"
-      action={settings_update_path}
+      action={privacy_update_path}
+      method="patch"
       class="space-y-3"
     >
-      <input type="hidden" name="_method" value="patch" />
-      <input type="hidden" name="authenticity_token" value={csrfToken} />
-
       <label class="flex items-center gap-3 text-sm text-surface-content">
         <input type="hidden" name="user[allow_public_stats_lookup]" value="0" />
         <Checkbox.Root
@@ -178,7 +164,7 @@
         </Checkbox.Root>
         Allow public stats lookup
       </label>
-    </form>
+    </Form>
 
     {#snippet footer()}
       <Button type="submit" variant="primary" form="profile-privacy-form">
@@ -193,15 +179,12 @@
     description="Pick how Hackatime looks for your account."
     wide
   >
-    <form
+    <Form
       id="profile-theme-form"
-      method="post"
-      action={settings_update_path}
+      action={theme_update_path}
+      method="patch"
       class="space-y-4"
     >
-      <input type="hidden" name="_method" value="patch" />
-      <input type="hidden" name="authenticity_token" value={csrfToken} />
-
       <RadioGroup.Root
         name="user[theme]"
         bind:value={selectedTheme}
@@ -271,7 +254,7 @@
           </RadioGroup.Item>
         {/each}
       </RadioGroup.Root>
-    </form>
+    </Form>
 
     {#snippet footer()}
       <Button type="submit" variant="primary" form="profile-theme-form">
