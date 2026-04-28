@@ -27,7 +27,10 @@ end
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   include SystemTestAuthHelper
 
-  # flaky chromedriver bug :/
+  # Chrome 134+ has an intermittent ChromeDriver bug where node ownership
+  # gets stale after Capybara visit() calls, causing "Node with given id
+  # does not belong to the document" errors. Retry once as a workaround.
+  # See: https://github.com/teamcapybara/capybara/issues/2800
   CHROMEDRIVER_NODE_ERROR = /Node with given id does not belong to the document/i
 
   driven_by :headless_chromium
