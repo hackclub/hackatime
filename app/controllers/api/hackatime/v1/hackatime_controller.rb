@@ -296,7 +296,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       queue_project_mapping(heartbeat[:project])
       results << [ new_heartbeat.attributes, 201 ]
     rescue => e
-      report_error(e, message: "Error creating heartbeat")
+      report_error(e, message: "Error creating heartbeat: #{e.class}: #{e.message}", extra: { backtrace: e.backtrace&.first(20) })
       results << [ { error: e.message, type: e.class.name }, 422 ]
     end
 
