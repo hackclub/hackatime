@@ -42,7 +42,7 @@
         Cancel
       </Button>
 
-      <Form action={actionPath} {method} class="m-0">
+      <Form action={actionPath} {method} class="m-0" onSuccess={close}>
         <Button
           type="submit"
           variant={confirmStyle === "danger" ? "surface" : "primary"}
