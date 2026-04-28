@@ -492,7 +492,9 @@
                 {/if}
 
                 {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
-                  <div class="relative z-10 mt-1 border-t border-surface-200/40 pt-4">
+                  <div
+                    class="relative z-10 mt-1 border-t border-surface-200/40 pt-4"
+                  >
                     <form
                       method="post"
                       action={project.update_path}
