@@ -23,20 +23,15 @@
   }: AccessPageProps = $props();
 
   let rotatingApiKey = $state(false);
-  let rotatedApiKey = $state("");
+  let rotatedApiKey = $derived(rotated_api_key || "");
   let rotatedApiKeyError = $state("");
   let apiKeyCopied = $state(false);
   let rotateApiKeyModalOpen = $state(false);
-
-  $effect(() => {
-    rotatedApiKey = rotated_api_key || "";
-  });
 
   const rotateApiKey = () => {
     if (rotatingApiKey || typeof window === "undefined") return;
 
     rotatingApiKey = true;
-    rotatedApiKey = "";
     rotatedApiKeyError = "";
     apiKeyCopied = false;
 
