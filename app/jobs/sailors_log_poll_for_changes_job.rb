@@ -33,8 +33,16 @@ class SailorsLogPollForChangesJob < ApplicationJob
     return [] if sailors_log.user.active_remote_heartbeat_import_run?
 
     project_updates = []
-    project_durations = Heartbeat.where(user_id: sailors_log.user.id)
-                                 .group(:project).duration_seconds
+    project_durations = DashboardRollup
+      .where(user_id: sailors_log.user.id, dimension: "project", bucket_value_present: true)
+      .pluck(:bucket_value, :total_seconds)
+      .to_h
+
+    if project_durations.empty?
+      DashboardRollupRefreshJob.schedule_for(sailors_log.user.id, wait: 0.seconds)
+      return []
+    end
+
     project_durations.each do |k, v|
       old_duration = sailors_log.projects_summary[k] || 0
       new_duration = v
