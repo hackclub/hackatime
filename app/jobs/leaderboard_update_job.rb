@@ -48,7 +48,7 @@ class LeaderboardUpdateJob < ApplicationJob
 
       needs_full_history = streaks.select { |_, streak| streak >= 6 }.keys
       if needs_full_history.any?
-        needs_full_history.each { |id| Rails.cache.delete("user_streak_without_browser_#{id}") }
+        needs_full_history.each { |id| Rails.cache.delete("user_streak_without_browser_v3_#{id}") }
         full_streaks = Heartbeat.daily_streaks_for_users(needs_full_history, start_date: 31.days.ago, exclude_browser_time: true)
         streaks.merge!(full_streaks)
       end
