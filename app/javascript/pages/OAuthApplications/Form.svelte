@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Form } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import type { OAuthApplicationFormProps } from "./types";
 
@@ -13,13 +14,6 @@
     scope_options,
     errors,
   }: OAuthApplicationFormProps = $props();
-
-  const csrfToken =
-    typeof document === "undefined"
-      ? ""
-      : document
-          .querySelector("meta[name='csrf-token']")
-          ?.getAttribute("content") || "";
 
   let selectedScopes = $state<string[]>([]);
   let confidential = $state(false);
@@ -45,12 +39,7 @@
   </div>
 {/if}
 
-<form method="post" action={submit_path} class="space-y-5">
-  {#if form_method === "patch"}
-    <input type="hidden" name="_method" value="patch" />
-  {/if}
-  <input type="hidden" name="authenticity_token" value={csrfToken} />
-
+<Form action={submit_path} method={form_method} class="space-y-5">
   <section class="rounded-xl border border-surface-200 bg-dark p-6">
     <h2 class="text-lg font-semibold text-surface-content">
       Application details
@@ -199,4 +188,4 @@
     <Button type="submit" variant="primary">{labels.submit}</Button>
     <Button href={cancel_path} variant="surface">{labels.cancel}</Button>
   </div>
-</form>
+</Form>

@@ -17,10 +17,11 @@ class Settings::AccessController < Settings::BaseController
     new_api_key = @user.rotate_api_keys!
 
     PosthogService.capture(@user, "api_key_rotated")
-    render json: { token: new_api_key.token }, status: :ok
+    flash[:rotated_api_key] = new_api_key.token
+    redirect_to my_settings_access_path, notice: "API key rotated successfully"
   rescue => e
     report_error(e, message: "error rotate #{e.class.name}")
-    render json: { error: "cant rotate" }, status: :unprocessable_entity
+    redirect_to my_settings_access_path, alert: "Unable to rotate API key"
   end
 
   private
@@ -47,7 +48,8 @@ class Settings::AccessController < Settings::BaseController
         empty_message: "No API key is available yet. Rotate your API key to generate one.",
         api_key: api_key_token,
         api_url: "https://#{request.host_with_port}/api/hackatime/v1"
-      }
+      },
+      rotated_api_key: flash[:rotated_api_key]
     }
   end
 

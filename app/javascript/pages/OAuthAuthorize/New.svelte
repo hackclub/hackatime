@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+  import { Form } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
 
   interface Scope {
@@ -32,13 +33,6 @@
 
   let { page_title, client_name, verified, scopes, form_data }: Props =
     $props();
-
-  const csrfToken =
-    typeof document === "undefined"
-      ? ""
-      : document
-          .querySelector("meta[name='csrf-token']")
-          ?.getAttribute("content") || "";
 
   let authorizing = $state(false);
   let denying = $state(false);
@@ -130,13 +124,12 @@
     {/if}
 
     <div class="space-y-2.5">
-      <form
-        method="post"
+      <Form
         action={form_data.authorize_path}
+        method="post"
         data-turbo="false"
         onsubmit={() => (authorizing = true)}
       >
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
         <input type="hidden" name="client_id" value={form_data.client_id} />
         <input
           type="hidden"
@@ -197,16 +190,14 @@
             Authorize {client_name}
           {/if}
         </Button>
-      </form>
+      </Form>
 
-      <form
-        method="post"
+      <Form
         action={form_data.authorize_path}
+        method="delete"
         data-turbo="false"
         onsubmit={() => (denying = true)}
       >
-        <input type="hidden" name="authenticity_token" value={csrfToken} />
-        <input type="hidden" name="_method" value="delete" />
         <input type="hidden" name="client_id" value={form_data.client_id} />
         <input
           type="hidden"
@@ -248,7 +239,7 @@
             Deny
           {/if}
         </Button>
-      </form>
+      </Form>
     </div>
 
     <p class="mt-5 text-center text-xs text-muted">

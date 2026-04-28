@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import { Form, Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import DestructiveActionModal from "./DestructiveActionModal.svelte";
   import type { OAuthApplicationShowProps } from "./types";
@@ -13,13 +13,6 @@
     labels,
     confirmations,
   }: OAuthApplicationShowProps = $props();
-
-  const csrfToken =
-    typeof document === "undefined"
-      ? ""
-      : document
-          .querySelector("meta[name='csrf-token']")
-          ?.getAttribute("content") || "";
 
   let copiedValue = $state<string | null>(null);
   let destructiveModalOpen = $state(false);
@@ -320,12 +313,11 @@
         </Button>
 
         {#if application.toggle_verified_path}
-          <form
-            method="post"
+          <Form
             action={application.toggle_verified_path}
+            method="post"
             class="w-full"
           >
-            <input type="hidden" name="authenticity_token" value={csrfToken} />
             <Button
               type="submit"
               variant="surface"
@@ -335,7 +327,7 @@
                 ? "Remove verification"
                 : "Verify application"}
             </Button>
-          </form>
+          </Form>
         {/if}
 
         <Link
@@ -355,7 +347,6 @@
   description={destructiveModalDescription}
   actionPath={destructiveActionPath}
   confirmLabel={destructiveConfirmLabel}
-  {csrfToken}
   method={destructiveMethod}
   confirmStyle={destructiveConfirmStyle}
 />

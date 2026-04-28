@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Link, router } from "@inertiajs/svelte";
-  import { onMount } from "svelte";
+  import { Form, Link, router } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
@@ -68,7 +67,6 @@
     projects_data,
   }: PageProps = $props();
 
-  let csrfToken = $state("");
   let editingProjectKey = $state<string | null>(null);
   let repoUrlDraft = $state("");
   let statusChangeModalOpen = $state(false);
@@ -82,13 +80,6 @@
   const skeletonCount = $derived.by(() => {
     const safeCount = Number.isFinite(total_projects) ? total_projects : 0;
     return Math.min(Math.max(safeCount, 4), 10);
-  });
-
-  onMount(() => {
-    csrfToken =
-      document
-        .querySelector("meta[name='csrf-token']")
-        ?.getAttribute("content") || "";
   });
 
   const buildProjectsPath = ({
@@ -495,18 +486,11 @@
 
               {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
                 <div class="mt-1 border-t border-surface-200/40 pt-4">
-                  <form
-                    method="post"
+                  <Form
                     action={project.update_path}
+                    method="patch"
                     class="space-y-3"
                   >
-                    <input type="hidden" name="_method" value="patch" />
-                    <input
-                      type="hidden"
-                      name="authenticity_token"
-                      value={csrfToken}
-                    />
-
                     <input
                       type="url"
                       name="project_repo_mapping[repo_url]"
@@ -532,7 +516,7 @@
                         Cancel
                       </Button>
                     </div>
-                  </form>
+                  </Form>
                 </div>
               {/if}
             </article>
