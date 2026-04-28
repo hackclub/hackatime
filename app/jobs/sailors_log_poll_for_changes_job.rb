@@ -44,6 +44,7 @@ class SailorsLogPollForChangesJob < ApplicationJob
     end
 
     project_durations.each do |k, v|
+      next if ignored_project?(k)
       old_duration = sailors_log.projects_summary[k] || 0
       new_duration = v
       if old_duration / 3600 < new_duration / 3600
@@ -56,7 +57,7 @@ class SailorsLogPollForChangesJob < ApplicationJob
     if sailors_log.changed?
       sailors_log.notification_preferences.each do |np|
         project_updates.each do |pu|
-          next if pu[:project].blank?
+          next if ignored_project?(pu[:project])
           notifications_to_create << {
             slack_uid: sailors_log.user.slack_uid,
             slack_channel_id: np.slack_channel_id,
@@ -70,6 +71,11 @@ class SailorsLogPollForChangesJob < ApplicationJob
     end
 
     notifications_to_create
+  end
+
+  def ignored_project?(project)
+    return true if project.blank?
+    [ "<<LAST_PROJECT>>", "Unknown" ].include?(project)
   end
 end
 
