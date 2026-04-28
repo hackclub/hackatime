@@ -3,7 +3,6 @@
 </script>
 
 <script lang="ts">
-  import { Form } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
 
   interface Scope {
@@ -13,6 +12,7 @@
 
   interface FormData {
     authorize_path: string;
+    csrf_token: string;
     client_id: string;
     redirect_uri: string;
     state: string;
@@ -36,10 +36,6 @@
 
   let authorizing = $state(false);
   let denying = $state(false);
-
-  const handleSubmit = (form: HTMLFormElement) => {
-    form.requestSubmit();
-  };
 
   const scopeIcons: Record<string, string> = {
     profile:
@@ -124,12 +120,17 @@
     {/if}
 
     <div class="space-y-2.5">
-      <Form
+      <form
         action={form_data.authorize_path}
         method="post"
         data-turbo="false"
         onsubmit={() => (authorizing = true)}
       >
+        <input
+          type="hidden"
+          name="authenticity_token"
+          value={form_data.csrf_token}
+        />
         <input type="hidden" name="client_id" value={form_data.client_id} />
         <input
           type="hidden"
@@ -190,14 +191,20 @@
             Authorize {client_name}
           {/if}
         </Button>
-      </Form>
+      </form>
 
-      <Form
+      <form
         action={form_data.authorize_path}
-        method="delete"
+        method="post"
         data-turbo="false"
         onsubmit={() => (denying = true)}
       >
+        <input
+          type="hidden"
+          name="authenticity_token"
+          value={form_data.csrf_token}
+        />
+        <input type="hidden" name="_method" value="delete" />
         <input type="hidden" name="client_id" value={form_data.client_id} />
         <input
           type="hidden"
@@ -239,7 +246,7 @@
             Deny
           {/if}
         </Button>
-      </Form>
+      </form>
     </div>
 
     <p class="mt-5 text-center text-xs text-muted">
