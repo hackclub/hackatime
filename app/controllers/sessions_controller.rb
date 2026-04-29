@@ -28,9 +28,6 @@ class SessionsController < ApplicationController
     if @user&.persisted?
       session[:user_id] = @user.id
 
-      PosthogService.identify(@user)
-      PosthogService.capture(@user, "user_signed_in", { method: "hca" })
-
       if @user.previously_new_record?
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
       elsif session[:return_data]&.dig("url").present?
@@ -84,9 +81,6 @@ class SessionsController < ApplicationController
 
     if @user&.persisted?
       session[:user_id] = @user.id
-
-      PosthogService.identify(@user)
-      PosthogService.capture(@user, "user_signed_in", { method: "slack" })
 
       if slack_state&.dig("close_window")
         redirect_to close_window_path
@@ -144,7 +138,6 @@ class SessionsController < ApplicationController
     @user = User.from_github_token(params[:code], redirect_uri, current_user)
 
     if @user&.persisted?
-      PosthogService.capture(@user, "github_linked")
       redirect_to my_settings_path, notice: "Successfully linked GitHub account!"
     else
       report_message("Failed to link GitHub account")
@@ -265,8 +258,6 @@ class SessionsController < ApplicationController
       session[:return_data] = valid_token.return_data || {}
 
       user = User.find(valid_token.user_id)
-      PosthogService.identify(user)
-      PosthogService.capture(user, "user_signed_in", { method: "email" })
 
       if valid_token.continue_param.present? && safe_return_url(valid_token.continue_param).present?
         redirect_to safe_return_url(valid_token.continue_param), notice: "Successfully signed in!"
@@ -315,7 +306,6 @@ class SessionsController < ApplicationController
   end
 
   def destroy
-    PosthogService.capture(session[:user_id], "user_signed_out") if session[:user_id]
     session[:user_id] = nil
     session[:impersonater_user_id] = nil
     redirect_to root_path, notice: "Signed out!"

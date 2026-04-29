@@ -11,7 +11,6 @@ class User < ApplicationRecord
 
   has_paper_trail
 
-  after_create :track_signup
   after_create :subscribe_to_default_lists
   before_validation :normalize_username
   encrypts :slack_access_token, :github_access_token, :hca_access_token
@@ -354,11 +353,6 @@ class User < ApplicationRecord
 
   def schedule_dashboard_rollup_refresh
     DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
-  end
-
-  def track_signup
-    PosthogService.identify(self)
-    PosthogService.capture(self, "account_created", { source: "signup" })
   end
 
   def subscribe_to_default_lists
