@@ -11,6 +11,8 @@
 
 </div>
 
+<p align="center">The free, open source, WakaTime-compatible coding time tracker from Hack Club.</p>
+
 ## Local development
 
 Please read [DEVELOPMENT.md](DEVELOPMENT.md) for instructions on setting up and running the project locally.
