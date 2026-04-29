@@ -25,7 +25,7 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Scan for common Rails security vulnerabilities using static analysis
+      - name: Scan for vulnerabilities with Brakeman
         continue-on-error: true
         run: bin/brakeman --no-pager -f sarif -o brakeman.sarif.json
 
