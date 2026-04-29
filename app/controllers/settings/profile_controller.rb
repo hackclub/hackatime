@@ -44,7 +44,6 @@ class Settings::ProfileController < Settings::BaseController
 
   def update_section(permitted_params)
     if @user.update(permitted_params)
-      PosthogService.capture(@user, "settings_updated", { fields: permitted_params.keys })
       redirect_back(fallback_location: my_settings_profile_path, notice: "Settings updated successfully")
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"

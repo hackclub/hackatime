@@ -381,8 +381,6 @@ GEM
     pg (1.6.3-arm64-darwin)
     pg (1.6.3-x86_64-linux)
     pg (1.6.3-x86_64-linux-musl)
-    posthog-ruby (3.6.5)
-      concurrent-ruby (~> 1)
     pp (0.6.3)
       prettyprint
     premailer (1.29.0)
@@ -697,7 +695,6 @@ DEPENDENCIES
   oj
   paper_trail
   pg
-  posthog-ruby
   premailer-rails
   propshaft
   puma (>= 5.0)

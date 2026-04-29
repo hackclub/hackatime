@@ -5,7 +5,6 @@ class Settings::AccessController < Settings::BaseController
 
   def update
     if @user.update(access_params)
-      PosthogService.capture(@user, "settings_updated", { fields: access_params.keys })
       redirect_to my_settings_access_path, notice: "Settings updated successfully"
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
@@ -16,7 +15,6 @@ class Settings::AccessController < Settings::BaseController
   def rotate_api_key
     new_api_key = @user.rotate_api_keys!
 
-    PosthogService.capture(@user, "api_key_rotated")
     flash[:rotated_api_key] = new_api_key.token
     redirect_to my_settings_access_path, notice: "API key rotated successfully"
   rescue => e
