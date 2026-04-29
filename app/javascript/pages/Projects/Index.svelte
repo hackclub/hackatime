@@ -1,5 +1,10 @@
 <script lang="ts">
   import { Form, Link, router } from "@inertiajs/svelte";
+  import Archive from "hcicons-svelte/archive";
+  import Edit from "hcicons-svelte/edit";
+  import GithubFill from "hcicons-svelte/github-fill";
+  import Reply from "hcicons-svelte/reply";
+  import Web from "hcicons-svelte/web";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
@@ -300,17 +305,7 @@
                       title="View project website"
                       class={cardActionClass}
                     >
-                      <svg
-                        class="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2m-5.15 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56M14.34 14H9.66c-.1-.66-.16-1.32-.16-2s.06-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2M12 19.96c-.83-1.2-1.5-2.53-1.91-3.96h3.82c-.41 1.43-1.08 2.76-1.91 3.96M8 8H5.08A7.92 7.92 0 0 1 9.4 4.44C8.8 5.55 8.35 6.75 8 8m-2.92 8H8c.35 1.25.8 2.45 1.4 3.56A8 8 0 0 1 5.08 16m-.82-2C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2M12 4.03c.83 1.2 1.5 2.54 1.91 3.97h-3.82c.41-1.43 1.08-2.77 1.91-3.97M18.92 8h-2.95a15.7 15.7 0 0 0-1.38-3.56c1.84.63 3.37 1.9 4.33 3.56M12 2C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2"
-                        />
-                      </svg>
+                      <Web size={20} />
                     </a>
                   {/if}
                   {#if project.repo_url}
@@ -321,16 +316,7 @@
                       title="View repository"
                       class={cardActionClass}
                     >
-                      <svg
-                        class="h-5 w-5"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M2.6 10.59L8.38 4.8l1.69 1.7c-.24.85.15 1.78.93 2.23v5.54c-.6.34-1 .99-1 1.73a2 2 0 0 0 2 2a2 2 0 0 0 2-2c0-.74-.4-1.39-1-1.73V9.41l2.07 2.09c-.07.15-.07.32-.07.5a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2c-.18 0-.35 0-.5.07L13.93 7.5a1.98 1.98 0 0 0-1.15-2.34c-.43-.16-.88-.2-1.28-.09L9.8 3.38l.79-.78c.78-.79 2.04-.79 2.82 0l7.99 7.99c.79.78.79 2.04 0 2.82l-7.99 7.99c-.78.79-2.04.79-2.82 0L2.6 13.41c-.79-.78-.79-2.04 0-2.82"
-                        />
-                      </svg>
+                      <GithubFill size={20} />
                     </a>
                   {/if}
                   {#if project.manage_enabled}
@@ -343,26 +329,7 @@
                         : "Link repository"}
                       onclick={() => openMappingEditor(project)}
                     >
-                      <svg
-                        class="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M16.862 3.487a2.1 2.1 0 0 1 2.97 2.97L9.75 16.54 6 17.25l.71-3.75z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M14.5 5.85l3.65 3.65"
-                        />
-                      </svg>
+                      <Edit size={20} />
                     </Button>
                   {/if}
                   {#if show_archived && project.unarchive_path}
@@ -373,26 +340,7 @@
                       title="Restore project"
                       onclick={() => openStatusChangeModal(project, true)}
                     >
-                      <svg
-                        class="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M10 14l-3-3 3-3"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M7 11h9a4 4 0 0 1 0 8h-2"
-                        />
-                      </svg>
+                      <Reply size={20} />
                     </Button>
                   {:else if !show_archived && project.archive_path}
                     <Button
@@ -402,32 +350,7 @@
                       title="Archive project"
                       onclick={() => openStatusChangeModal(project, false)}
                     >
-                      <svg
-                        class="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M3 7h18l-2 11H5z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M8 7V4h8v3"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M10 11h4"
-                        />
-                      </svg>
+                      <Archive size={20} />
                     </Button>
                   {/if}
                 </div>
