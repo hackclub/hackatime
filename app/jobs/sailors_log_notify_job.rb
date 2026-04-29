@@ -46,7 +46,6 @@ class SailorsLogNotifyJob < ApplicationJob
     response_data = JSON.parse(response.body)
     if response_data["ok"]
       slsn.update(sent: true)
-      SailorsLogTeletypeJob.perform_later(message)
     else
       report_message("Failed to send Slack notification: #{response_data["error"]}")
       removable_channel_errors = %w[channel_not_found is_archived no_permission not_in_channel restricted_action]
