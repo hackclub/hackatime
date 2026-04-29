@@ -5,6 +5,86 @@ export type FlashData = {
 
 export type SharedProps = {};
 
+export type NavLink = {
+  label: string;
+  href?: string;
+  active?: boolean;
+  badge?: number | null;
+  action?: string;
+  inertia?: boolean;
+};
+
+export type AdminLevel =
+  | "default"
+  | "superadmin"
+  | "admin"
+  | "viewer"
+  | "ultraadmin";
+
+export type NavCurrentUser = {
+  display_name: string;
+  avatar_url?: string | null;
+  title: string;
+  country_code?: string | null;
+  country_name?: string | null;
+  streak_days?: number | null;
+  admin_level: AdminLevel;
+};
+
+export type LayoutNav = {
+  flash: { message: string; class_name: string }[];
+  user_present: boolean;
+  current_user?: NavCurrentUser | null;
+  login_path: string;
+  links: NavLink[];
+  dev_links: NavLink[];
+  admin_links: NavLink[];
+  viewer_links: NavLink[];
+  superadmin_links: NavLink[];
+  ultraadmin_links?: NavLink[];
+};
+
+export type Footer = {
+  git_version: string;
+  commit_link: string;
+  server_start_time_ago: string;
+  heartbeat_recent_count: number;
+  heartbeat_recent_imported_count: number;
+  query_count: number;
+  query_cache_count: number;
+  cache_hits: number;
+  cache_misses: number;
+  requests_per_second: string;
+  active_users_graph: { height: number; users: number }[];
+};
+
+export type CurrentlyHackingUser = {
+  id: number;
+  display_name?: string;
+  slack_uid?: string;
+  avatar_url?: string;
+  active_project?: { name: string; repo_url?: string | null };
+};
+
+export type LayoutProps = {
+  nav: LayoutNav;
+  footer: Footer;
+  theme: {
+    name: string;
+    color_scheme: "dark" | "light";
+    theme_color: string;
+  };
+  currently_hacking: {
+    count: number;
+    users: CurrentlyHackingUser[];
+    interval: number;
+  };
+  csrf_token: string;
+  signout_path: string;
+  show_stop_impersonating: boolean;
+  stop_impersonating_path: string;
+};
+
 export type LeaderboardEntryUser = {
   display_name: string;
   avatar_url: string | null;
