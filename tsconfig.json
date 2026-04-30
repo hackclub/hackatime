@@ -17,10 +17,9 @@
     "moduleDetection": "force",
 
     /* Aliases */
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["app/javascript/*"],
-      "~/*": ["app/javascript/*"]
+      "@/*": ["./app/javascript/*"],
+      "~/*": ["./app/javascript/*"]
     }
   },
 
