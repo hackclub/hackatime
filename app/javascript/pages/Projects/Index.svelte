@@ -360,7 +360,7 @@
                 <div
                   class="mt-auto flex flex-wrap items-center gap-2 pt-5 text-sm text-surface-content/55"
                 >
-                  {#if project.repository?.stars}
+                  <!-- {#if project.repository?.stars}
                     <p
                       class="inline-flex items-center gap-1.5 rounded-full bg-yellow/10 px-3 py-1.5 font-semibold tabular-nums text-yellow"
                     >
@@ -375,7 +375,7 @@
                       </svg>
                       {project.repository.stars}
                     </p>
-                  {/if}
+                  {/if} -->
 
                   {#if project.repository?.formatted_languages}
                     <p
