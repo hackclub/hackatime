@@ -103,6 +103,18 @@
   });
 
   $effect(() => {
+    if (!isBrowser) return;
+
+    document.documentElement.dataset.theme = layout.theme.name;
+    document
+      .querySelector('meta[name="color-scheme"]')
+      ?.setAttribute("content", layout.theme.color_scheme);
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", layout.theme.theme_color);
+  });
+
+  $effect(() => {
     if (!layout.nav.flash.length) {
       return;
     }

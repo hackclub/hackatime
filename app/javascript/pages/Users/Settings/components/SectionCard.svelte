@@ -26,9 +26,7 @@
   } = $props();
 
   const toneClasses = $derived(
-    tone === "danger"
-      ? "bg-danger/5 shadow-[inset_0_0_0_1px_rgba(200,57,79,0.35),0_16px_36px_rgba(0,0,0,0.12)]"
-      : "bg-surface shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_16px_36px_rgba(0,0,0,0.12)]",
+    tone === "danger" ? "bg-danger/5" : "bg-surface",
   );
   const contentWidth = $derived(wide ? "" : "max-w-2xl");
   const descriptionWidth = $derived(wide ? "max-w-3xl" : "max-w-2xl");
@@ -40,9 +38,7 @@
   data-settings-card-tone={tone}
   class={`scroll-mt-24 overflow-hidden rounded-2xl ${toneClasses}`}
 >
-  <div
-    class="px-5 py-4 shadow-[inset_0_-1px_0_rgba(255,255,255,0.08)] sm:px-6 sm:py-5"
-  >
+  <div data-settings-card-header class="px-5 py-4 sm:px-6 sm:py-5">
     <div class={descriptionWidth}>
       <h2
         class="text-balance text-xl font-semibold tracking-tight text-surface-content"
@@ -66,7 +62,7 @@
   {#if footer}
     <div
       data-settings-footer
-      class={`bg-surface-100/60 px-5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:px-6 sm:py-4 ${footerClass}`}
+      class={`bg-surface-100/60 px-5 py-3.5 sm:px-6 sm:py-4 ${footerClass}`}
     >
       {@render footer()}
     </div>

@@ -20,9 +20,13 @@
   }: BadgesPageProps = $props();
 
   function enablePublicStats() {
-    router.patch(settings_update_path, {
-      user: { allow_public_stats_lookup: true },
-    });
+    router.patch(
+      settings_update_path,
+      {
+        user: { allow_public_stats_lookup: true },
+      },
+      { preserveScroll: true },
+    );
   }
 
   const defaultTheme = (themes: string[]) =>

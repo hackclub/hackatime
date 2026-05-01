@@ -363,6 +363,57 @@ html[data-theme="rose_pine_dawn"] body {
   background-color: #FCF2E9;
 }
 
+:root {
+  --settings-border-color: color-mix(in srgb, var(--color-surface-content) 16%, transparent);
+  --settings-divider-color: color-mix(in srgb, var(--color-surface-content) 10%, transparent);
+  --settings-shadow-color: rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme="amoled"] {
+  --settings-border-color: #1e1e1e;
+  --settings-divider-color: #161616;
+  --settings-shadow-color: rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme="catppuccin_iced_latte"],
+html[data-theme="github_light"],
+html[data-theme="rose_pine_dawn"] {
+  --settings-border-color: color-mix(in srgb, var(--color-surface-content) 18%, transparent);
+  --settings-divider-color: color-mix(in srgb, var(--color-surface-content) 9%, transparent);
+  --settings-shadow-color: rgba(87, 82, 121, 0.08);
+}
+
+[data-settings-card],
+[data-settings-sidebar] {
+  box-shadow:
+    inset 0 0 0 1px var(--settings-border-color),
+    0 16px 36px var(--settings-shadow-color);
+}
+
+[data-settings-card-tone="danger"] {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 42%, transparent),
+    0 16px 36px var(--settings-shadow-color);
+}
+
+[data-settings-card-header] {
+  box-shadow: inset 0 -1px 0 var(--settings-divider-color);
+}
+
+[data-settings-footer] {
+  box-shadow: inset 0 1px 0 var(--settings-divider-color);
+}
+
+[data-settings-subnav-item],
+[data-settings-mobile-nav-item] {
+  box-shadow: inset 0 0 0 1px var(--settings-divider-color);
+}
+
+[data-settings-subnav-item][data-active="true"],
+[data-settings-mobile-nav-item][data-active="true"] {
+  box-shadow: inset 0 0 0 1px var(--settings-border-color);
+}
+
 .project-toggle-group {
   @apply flex items-center gap-2 rounded-lg p-1;
   background-color: var(--color-darkless);

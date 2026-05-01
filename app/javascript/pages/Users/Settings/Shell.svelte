@@ -89,10 +89,12 @@
       {#each sections as section}
         <Link
           href={section.path}
+          data-settings-mobile-nav-item
+          data-active={active_section === section.id}
           class={`inline-flex min-h-10 shrink-0 items-center rounded-full px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
             active_section === section.id
-              ? "bg-surface-100 text-surface-content shadow-[0_8px_20px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.08)]"
-              : "bg-surface/70 text-muted shadow-[0_1px_0_rgba(255,255,255,0.05)] hover:text-surface-content"
+              ? "bg-surface-100 text-surface-content"
+              : "bg-surface/70 text-muted hover:text-surface-content"
           }`}
         >
           {section.label}
@@ -105,10 +107,7 @@
     class="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8"
   >
     <aside class="hidden h-max lg:sticky lg:top-8 lg:block">
-      <div
-        data-settings-sidebar
-        class="rounded-[1.25rem] bg-surface/90 p-2 shadow-[0_12px_30px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.08)]"
-      >
+      <div data-settings-sidebar class="rounded-[1.25rem] bg-surface/90 p-2">
         {#each sections as section}
           <Link href={section.path} class={sectionButtonClass(section.id)}>
             <p class="text-sm font-semibold">{section.label}</p>
