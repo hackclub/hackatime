@@ -225,7 +225,7 @@
       alt={`${user.display_name}'s avatar`}
       width="32"
       height="32"
-      class="aspect-square rounded-full outline outline-1 -outline-offset-1 outline-[rgba(255,255,255,0.1)]"
+      class="avatar-image-outline aspect-square rounded-full"
       loading="lazy"
     />
   {/if}

@@ -17,9 +17,20 @@ main {
   outline: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.avatar-image-outline {
+  outline: 1px solid rgba(255, 255, 255, 0.1);
+  outline-offset: -1px;
+}
+
 html[data-theme="catppuccin_iced_latte"] .settings-image-outline,
 html[data-theme="github_light"] .settings-image-outline,
 html[data-theme="rose_pine_dawn"] .settings-image-outline {
+  outline-color: rgba(0, 0, 0, 0.1);
+}
+
+html[data-theme="catppuccin_iced_latte"] .avatar-image-outline,
+html[data-theme="github_light"] .avatar-image-outline,
+html[data-theme="rose_pine_dawn"] .avatar-image-outline {
   outline-color: rgba(0, 0, 0, 0.1);
 }
 

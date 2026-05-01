@@ -49,9 +49,9 @@
     if (total % 2 === 1) parts.push("sm:col-span-2");
 
     // 3-column grid (xl): last item fills remaining columns
-    const lgRemainder = total % 3;
-    if (lgRemainder === 1) parts.push("xl:col-span-3");
-    else if (lgRemainder === 2) parts.push("xl:col-span-2");
+    const xlRemainder = total % 3;
+    if (xlRemainder === 1) parts.push("xl:col-span-3");
+    else if (xlRemainder === 2) parts.push("xl:col-span-2");
     else parts.push("xl:col-span-1"); // reset sm:col-span-2
 
     return parts.join(" ");
