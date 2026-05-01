@@ -103,6 +103,18 @@
   });
 
   $effect(() => {
+    if (!isBrowser) return;
+
+    document.documentElement.dataset.theme = layout.theme.name;
+    document
+      .querySelector('meta[name="color-scheme"]')
+      ?.setAttribute("content", layout.theme.color_scheme);
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", layout.theme.theme_color);
+  });
+
+  $effect(() => {
     if (!layout.nav.flash.length) {
       return;
     }
@@ -148,7 +160,7 @@
   });
 
   const navLinkClass = (active?: boolean) =>
-    `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-on-primary font-bold" : "text-surface-content hover:bg-darkless hover:text-primary"}`;
+    `group flex min-h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${active ? "bg-primary text-on-primary font-bold shadow-[0_8px_20px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.18)]" : "text-surface-content hover:bg-darkless hover:text-primary hover:shadow-[0_1px_0_rgba(255,255,255,0.06)]"}`;
 
   const navLinkWithToolClass = (link: NavLink, toolClass = "") =>
     `${navLinkClass(link.active)}${toolClass ? ` ${toolClass}` : ""}`;
@@ -179,7 +191,7 @@
 {#snippet navBadge(link: NavLink)}
   {#if link.badge}
     <span
-      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
+      class={`ml-2 rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums ${link.active ? "bg-on-primary/20 text-on-primary" : "bg-primary text-on-primary"}`}
     >
       {link.badge}
     </span>
@@ -225,7 +237,7 @@
       alt={`${user.display_name}'s avatar`}
       width="32"
       height="32"
-      class="rounded-full aspect-square border border-surface-200"
+      class="avatar-image-outline aspect-square rounded-full"
       loading="lazy"
     />
   {/if}
@@ -249,7 +261,7 @@
   {#if user.streak_days && user.streak_days > 0}
     {@const streak = streakTheme(user.streak_days)}
     <div
-      class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streak.bg} border ${streak.bc} rounded-lg transition-all duration-200 ${streak.hbg} group`}
+      class={`group inline-flex items-center gap-1 rounded-lg bg-gradient-to-r px-2 py-1 transition-[background-color,border-color,color,box-shadow] duration-200 ${streak.bg} border ${streak.bc} ${streak.hbg}`}
       title={user.streak_days > 30
         ? "30+ daily streak"
         : `${user.streak_days} day streak`}
@@ -268,7 +280,7 @@
       </svg>
 
       <span
-        class={`text-md font-semibold ${streak.tc} transition-colors duration-200`}
+        class={`text-md font-semibold tabular-nums ${streak.tc} transition-colors duration-200`}
       >
         {streakLabel(user.streak_days)}
         <span class={`ml-1 font-normal ${streak.tm}`}>day streak</span>
@@ -278,7 +290,7 @@
 {/snippet}
 
 {#snippet currentUserSummary(user: NavCurrentUser)}
-  <div class="user-info flex items-center gap-2" title={user.title}>
+  <div class="user-info flex min-h-10 items-center gap-2" title={user.title}>
     {@render userAvatar(user)}
     <span class="inline-flex items-center gap-1">{user.display_name}</span>
     {@render userCountry(user)}
@@ -341,7 +353,7 @@
   ></Button>
 
   <aside
-    class="flex flex-col min-h-screen w-52 bg-dark text-surface-content px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
+    class="flex min-h-screen w-52 flex-col overflow-y-auto rounded-r-2xl bg-dark px-3 py-4 text-surface-content shadow-[4px_0_24px_rgba(0,0,0,0.16),inset_-1px_0_0_rgba(255,255,255,0.06)] lg:block"
     data-nav-target="nav"
     class:open={navOpen}
     style="scrollbar-width: none; -ms-overflow-style: none;"
@@ -349,7 +361,7 @@
     <div class="space-y-4">
       {#if layout.nav.user_present}
         <div
-          class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
+          class="flex flex-col items-center gap-2 rounded-xl px-2 pb-3 shadow-[0_1px_0_rgba(255,255,255,0.08)]"
         >
           {#if layout.nav.current_user}
             {@render currentUserSummary(layout.nav.current_user)}
@@ -371,7 +383,9 @@
         {/each}
 
         {#if hasAdminLinks()}
-          <div class="pt-2 mt-2 border-t border-darkless space-y-1">
+          <div
+            class="mt-2 space-y-1 pt-2 shadow-[0_-1px_0_rgba(255,255,255,0.08)]"
+          >
             {#each adminLinkSections() as { links, toolClass }}
               {#each links as link}
                 {@render navItem(link, toolClass)}
@@ -385,9 +399,9 @@
 {/if}
 
 <main
-  class={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
+  class={`min-h-screen min-w-0 flex-1 transition-[margin] duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
 >
-  <div class="w-full max-w-7xl mx-auto p-4 pt-16 lg:pt-8 md:p-8">
+  <div class="mx-auto w-full min-w-0 max-w-7xl p-4 pt-16 md:p-8 lg:pt-8">
     {@render children?.()}
 
     <footer

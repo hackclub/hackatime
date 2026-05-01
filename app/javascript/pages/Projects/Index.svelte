@@ -24,6 +24,7 @@
     duration_seconds: number;
     duration_label: string;
     duration_percent: number;
+    show_path?: string | null;
     repo_url?: string | null;
     repository?: RepositorySummary | null;
     broken_name: boolean;
@@ -170,7 +171,7 @@
   };
 
   const cardActionClass =
-    "inline-flex h-9 w-9 items-center justify-center rounded-lg bg-surface-content/5 text-surface-content/70 transition-colors duration-200 hover:bg-surface-content/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60";
+    "inline-flex h-10 w-10 items-center justify-center rounded-xl bg-surface-content/5 text-surface-content/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[background-color,color,transform] duration-200 hover:bg-surface-content/10 hover:text-surface-content active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60";
 </script>
 
 <svelte:head>
@@ -252,14 +253,12 @@
         </div>
       {:else}
         <div
-          class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6"
+          class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
         >
           {#each projects_data.projects as project (project.id)}
-            {@const projectHref = project.project_key
-              ? `/my/projects/${encodeURIComponent(project.project_key)}`
-              : null}
+            {@const projectHref = project.show_path || null}
             <article
-              class="relative flex h-full flex-col gap-4 rounded-xl border border-primary bg-dark p-6 shadow-xs backdrop-blur-sm transition-all duration-300 hover:border-primary/80 hover:shadow-md {projectHref
+              class="group relative flex min-h-36 overflow-hidden rounded-2xl transition-[box-shadow,transform,background-color] duration-300 hover:-translate-y-0.5 {projectHref
                 ? 'cursor-pointer'
                 : ''}"
             >
@@ -267,20 +266,103 @@
                 <Link
                   href={projectHref}
                   aria-label={`View ${project.name}`}
-                  class="absolute inset-0 z-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  class="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                 ></Link>
               {/if}
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0 flex-1">
-                  <h3
-                    class="truncate text-lg font-semibold text-surface-content"
-                    title={project.name}
-                  >
-                    {project.name}
-                  </h3>
+              <div
+                class="relative flex min-w-0 flex-1 flex-col rounded-2xl bg-dark p-5 shadow-[0_10px_24px_rgba(0,0,0,0.24),0_1px_0_rgba(255,255,255,0.06)_inset] transition-[background-color,box-shadow] duration-300 group-hover:bg-darkless group-hover:shadow-[0_14px_32px_rgba(0,0,0,0.28),0_1px_0_rgba(255,255,255,0.08)_inset]"
+              >
+                <div class="grid gap-3">
+                  <div class="flex min-w-0 items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                      <h3
+                        class="truncate text-xl font-bold tracking-tight text-surface-content"
+                        title={project.name}
+                      >
+                        {project.name}
+                      </h3>
+                    </div>
+                    <p
+                      class="shrink-0 text-lg font-semibold tabular-nums text-primary/80"
+                    >
+                      {project.duration_label}
+                    </p>
+                  </div>
+
+                  {#if project.repository?.description}
+                    <p
+                      class="line-clamp-2 text-sm leading-relaxed text-surface-content/70 text-pretty"
+                    >
+                      {project.repository.description}
+                    </p>
+                  {/if}
+
+                  <div class="relative z-20 flex flex-wrap items-center gap-2">
+                    {#if project.repository?.homepage}
+                      <a
+                        href={project.repository.homepage}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="View project website"
+                        class={cardActionClass}
+                      >
+                        <Web size={20} />
+                      </a>
+                    {/if}
+                    {#if project.repo_url}
+                      <a
+                        href={project.repo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="View repository"
+                        class={cardActionClass}
+                      >
+                        <GithubFill size={20} />
+                      </a>
+                    {/if}
+                    {#if project.manage_enabled}
+                      <Button
+                        type="button"
+                        unstyled
+                        class={cardActionClass}
+                        title={project.repo_url
+                          ? "Edit mapping"
+                          : "Link repository"}
+                        onclick={() => openMappingEditor(project)}
+                      >
+                        <Edit size={20} />
+                      </Button>
+                    {/if}
+                    {#if show_archived && project.unarchive_path}
+                      <Button
+                        type="button"
+                        unstyled
+                        class={cardActionClass}
+                        title="Restore project"
+                        onclick={() => openStatusChangeModal(project, true)}
+                      >
+                        <Reply size={20} />
+                      </Button>
+                    {:else if !show_archived && project.archive_path}
+                      <Button
+                        type="button"
+                        unstyled
+                        class={cardActionClass}
+                        title="Archive project"
+                        onclick={() => openStatusChangeModal(project, false)}
+                      >
+                        <Archive size={20} />
+                      </Button>
+                    {/if}
+                  </div>
+                </div>
+
+                <div
+                  class="mt-auto flex flex-wrap items-center gap-2 pt-5 text-sm text-surface-content/55"
+                >
                   {#if project.repository?.stars}
                     <p
-                      class="mt-2 inline-flex items-center gap-1 text-sm text-yellow"
+                      class="inline-flex items-center gap-1.5 rounded-full bg-yellow/10 px-3 py-1.5 font-semibold tabular-nums text-yellow"
                     >
                       <svg
                         class="h-4 w-4 fill-current"
@@ -294,168 +376,103 @@
                       {project.repository.stars}
                     </p>
                   {/if}
+
+                  {#if project.repository?.formatted_languages}
+                    <p
+                      class="flex min-w-0 items-center gap-1.5 rounded-full bg-surface-content/5 px-3 py-1.5"
+                    >
+                      <svg
+                        class="h-4 w-4 text-surface-content/50"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M5.59 3.41L7 4.82L3.82 8L7 11.18L5.59 12.6L1 8zm5.82 0L16 8l-4.59 4.6L10 11.18L13.18 8L10 4.82zM22 6v12c0 1.11-.89 2-2 2H4a2 2 0 0 1-2-2v-4h2v4h16V6h-2.97V4H20c1.11 0 2 .89 2 2"
+                        />
+                      </svg>
+                      <span class="truncate text-surface-content/60"
+                        >{project.repository.formatted_languages}</span
+                      >
+                    </p>
+                  {/if}
+
+                  {#if project.repository?.last_commit_ago}
+                    <p
+                      class="flex items-center gap-1.5 rounded-full bg-surface-content/5 px-3 py-1.5"
+                    >
+                      <svg
+                        class="h-4 w-4 text-surface-content/50"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M12 20c4.4 0 8-3.6 8-8s-3.6-8-8-8s-8 3.6-8 8s3.6 8 8 8m0-18c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12S6.5 2 12 2m.5 10.8l-4.8 2.8l-.7-1.4l4-2.3V7h1.5z"
+                        />
+                      </svg>
+                      <span class="text-surface-content/50"
+                        >Last commit {project.repository.last_commit_ago}</span
+                      >
+                    </p>
+                  {/if}
                 </div>
 
-                <div class="relative z-10 flex shrink-0 items-center gap-2">
-                  {#if project.repository?.homepage}
-                    <a
-                      href={project.repository.homepage}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="View project website"
-                      class={cardActionClass}
+                {#if project.broken_name}
+                  <div
+                    class="mt-4 rounded-2xl bg-yellow/10 p-3 shadow-[inset_0_0_0_1px_rgba(255,214,10,0.24)]"
+                  >
+                    <p
+                      class="text-sm leading-relaxed text-yellow/80 text-pretty"
                     >
-                      <Web size={20} />
-                    </a>
-                  {/if}
-                  {#if project.repo_url}
-                    <a
-                      href={project.repo_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="View repository"
-                      class={cardActionClass}
+                      Your editor may be sending invalid project names. Time is
+                      shown here but can't be submitted to Hack Club programs.
+                    </p>
+                  </div>
+                {/if}
+
+                {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
+                  <div
+                    class="relative z-20 mt-4 border-t border-surface-200/40 pt-4"
+                  >
+                    <Form
+                      action={project.update_path}
+                      method="patch"
+                      class="space-y-3"
                     >
-                      <GithubFill size={20} />
-                    </a>
-                  {/if}
-                  {#if project.manage_enabled}
-                    <Button
-                      type="button"
-                      unstyled
-                      class={cardActionClass}
-                      title={project.repo_url
-                        ? "Edit mapping"
-                        : "Link repository"}
-                      onclick={() => openMappingEditor(project)}
-                    >
-                      <Edit size={20} />
-                    </Button>
-                  {/if}
-                  {#if show_archived && project.unarchive_path}
-                    <Button
-                      type="button"
-                      unstyled
-                      class={cardActionClass}
-                      title="Restore project"
-                      onclick={() => openStatusChangeModal(project, true)}
-                    >
-                      <Reply size={20} />
-                    </Button>
-                  {:else if !show_archived && project.archive_path}
-                    <Button
-                      type="button"
-                      unstyled
-                      class={cardActionClass}
-                      title="Archive project"
-                      onclick={() => openStatusChangeModal(project, false)}
-                    >
-                      <Archive size={20} />
-                    </Button>
-                  {/if}
-                </div>
+                      <input
+                        type="url"
+                        name="project_repo_mapping[repo_url]"
+                        bind:value={repoUrlDraft}
+                        placeholder="https://github.com/owner/repo"
+                        class="w-full rounded-lg border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+                      />
+
+                      <div class="flex gap-2">
+                        <Button
+                          type="submit"
+                          variant="primary"
+                          size="sm"
+                          class="flex-1">Save</Button
+                        >
+                        <Button
+                          type="button"
+                          variant="dark"
+                          size="sm"
+                          class="flex-1"
+                          onclick={closeMappingEditor}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </Form>
+                  </div>
+                {/if}
               </div>
-
-              <p class="text-2xl font-bold text-primary">
-                {project.duration_label}
-              </p>
-
-              {#if project.repository?.description}
-                <p
-                  class="line-clamp-2 text-sm leading-relaxed text-surface-content/70"
-                >
-                  {project.repository.description}
-                </p>
-              {/if}
-
-              {#if project.repository?.formatted_languages}
-                <p class="flex items-center gap-1 text-sm">
-                  <svg
-                    class="h-4 w-4 text-surface-content/50"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="M5.59 3.41L7 4.82L3.82 8L7 11.18L5.59 12.6L1 8zm5.82 0L16 8l-4.59 4.6L10 11.18L13.18 8L10 4.82zM22 6v12c0 1.11-.89 2-2 2H4a2 2 0 0 1-2-2v-4h2v4h16V6h-2.97V4H20c1.11 0 2 .89 2 2"
-                    />
-                  </svg>
-                  <span class="truncate text-surface-content/50"
-                    >{project.repository.formatted_languages}</span
-                  >
-                </p>
-              {/if}
-
-              {#if project.repository?.last_commit_ago}
-                <p class="flex items-center gap-1 text-sm">
-                  <svg
-                    class="h-4 w-4 text-surface-content/50"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="M12 20c4.4 0 8-3.6 8-8s-3.6-8-8-8s-8 3.6-8 8s3.6 8 8 8m0-18c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12S6.5 2 12 2m.5 10.8l-4.8 2.8l-.7-1.4l4-2.3V7h1.5z"
-                    />
-                  </svg>
-                  <span class="text-surface-content/50"
-                    >Last commit {project.repository.last_commit_ago}</span
-                  >
-                </p>
-              {/if}
-
-              {#if project.broken_name}
-                <div
-                  class="rounded-lg border border-yellow/30 bg-yellow/10 p-3"
-                >
-                  <p class="text-sm leading-relaxed text-yellow/80">
-                    Your editor may be sending invalid project names. Time is
-                    shown here but can't be submitted to Hack Club programs.
-                  </p>
-                </div>
-              {/if}
-
-              {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
-                <div
-                  class="relative z-10 mt-1 border-t border-surface-200/40 pt-4"
-                >
-                  <Form
-                    action={project.update_path}
-                    method="patch"
-                    class="space-y-3"
-                  >
-                    <input
-                      type="url"
-                      name="project_repo_mapping[repo_url]"
-                      bind:value={repoUrlDraft}
-                      placeholder="https://github.com/owner/repo"
-                      class="w-full rounded-lg border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-                    />
-
-                    <div class="flex gap-2">
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        size="sm"
-                        class="flex-1">Save</Button
-                      >
-                      <Button
-                        type="button"
-                        variant="dark"
-                        size="sm"
-                        class="flex-1"
-                        onclick={closeMappingEditor}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </Form>
-                </div>
-              {/if}
             </article>
           {/each}
         </div>
@@ -465,10 +482,12 @@
     <section class="mt-6 animate-pulse">
       <div class="h-7 w-80 rounded bg-darkless"></div>
       <div
-        class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6"
+        class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
       >
         {#each Array.from({ length: skeletonCount }) as _unused, index (index)}
-          <div class="rounded-xl border border-primary bg-dark p-6">
+          <div
+            class="min-h-36 rounded-2xl bg-dark p-5 shadow-[0_10px_24px_rgba(0,0,0,0.24),0_1px_0_rgba(255,255,255,0.06)_inset] ring-1 ring-white/10"
+          >
             <div class="h-6 w-28 rounded bg-darkless"></div>
             <div class="mt-3 h-7 w-20 rounded bg-darkless"></div>
             <div class="mt-4 h-4 w-full rounded bg-darkless"></div>

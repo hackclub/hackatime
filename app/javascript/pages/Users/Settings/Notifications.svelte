@@ -40,6 +40,7 @@
       action={settings_update_path}
       method="patch"
       class="space-y-4"
+      options={{ preserveScroll: true }}
     >
       <div id="user_weekly_summary_email">
         <label class="flex items-center gap-3 text-sm text-surface-content">

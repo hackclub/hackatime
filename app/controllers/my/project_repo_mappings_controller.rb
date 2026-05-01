@@ -175,6 +175,7 @@ class My::ProjectRepoMappingsController < InertiaController
         duration_seconds: duration,
         duration_label: format_duration(duration),
         duration_percent: 0,
+        show_path: url_safe ? my_project_path(project_key) : nil,
         repo_url: mapping&.repo_url,
         repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
         broken_name: broken,

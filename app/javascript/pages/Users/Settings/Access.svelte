@@ -104,6 +104,7 @@
       action={settings_update_path}
       method="patch"
       class="space-y-4"
+      options={{ preserveScroll: true }}
     >
       <div>
         <label
