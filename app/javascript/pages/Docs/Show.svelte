@@ -7,20 +7,51 @@
   import { Link } from "@inertiajs/svelte";
 
   let {
-    doc_path,
     title,
     rendered_content,
     breadcrumbs,
     edit_url,
     meta,
   }: {
-    doc_path: string;
     title: string;
     rendered_content: string;
     breadcrumbs: { name: string; href: string | null; is_link: boolean }[];
     edit_url: string;
     meta: { description: string; keywords: string };
   } = $props();
+
+  const articleClass = `prose prose-invert prose-base sm:prose-lg max-w-none
+    prose-headings:text-surface-content prose-headings:font-bold prose-headings:leading-tight
+    prose-h1:text-4xl prose-h1:mb-6 prose-h1:mt-0
+    prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:border-b-darkless prose-h2:pb-2
+    prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
+    prose-h4:text-lg prose-h4:mt-4 prose-h4:mb-2 prose-h4:font-semibold
+    prose-p:text-surface-content prose-p:leading-7 prose-p:mb-5
+    prose-a:text-primary prose-a:hover:text-red prose-a:underline prose-a:font-medium
+    prose-strong:text-surface-content prose-strong:font-semibold
+    prose-em:text-secondary prose-em:italic
+    prose-code:bg-darkless prose-code:text-primary prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:break-words prose-code:before:content-none prose-code:after:content-none
+    prose-pre:bg-darkless prose-pre:border prose-pre:border-darkless prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto
+    prose-pre:text-surface-content prose-pre:text-sm
+    prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-darkless prose-blockquote:pl-6 prose-blockquote:py-4 prose-blockquote:rounded-r-lg
+    prose-blockquote:text-secondary prose-blockquote:italic prose-blockquote:font-normal prose-blockquote:my-6
+    prose-ul:text-surface-content prose-ul:mb-4 prose-ul:pl-6
+    prose-ol:text-surface-content prose-ol:mb-4 prose-ol:pl-6
+    prose-li:text-surface-content prose-li:mb-2 prose-li:leading-7 prose-li:pl-2
+    prose-table:border-collapse prose-table:border prose-table:border-darkless prose-table:rounded-lg prose-table:overflow-hidden prose-table:my-6
+    prose-th:bg-darkless prose-th:text-primary prose-th:font-semibold prose-th:p-3 prose-th:border prose-th:border-darkless
+    prose-td:text-surface-content prose-td:p-3 prose-td:border prose-td:border-darkless
+    prose-img:rounded-lg prose-img:shadow-lg prose-img:mx-auto prose-img:block prose-img:max-w-24 prose-img:h-auto prose-img:my-4
+    prose-hr:border-darkless prose-hr:my-8
+    [&_ol>li::marker]:text-primary [&_ol>li::marker]:font-semibold
+    [&_ul>li::marker]:text-primary
+    [&_h2:not(:first-child)]:mt-10
+    [&_h3:not(:first-child)]:mt-8
+    [&_p]:break-words [&_li]:break-words
+    [&_img[src*='/images/editor-icons/']]:size-16 [&_img[src*='/images/editor-icons/']]:mx-auto [&_img[src*='/images/editor-icons/']]:block [&_img[src*='/images/editor-icons/']]:my-4
+    [&_.editor-steps]:bg-darkless [&_.editor-steps]:p-6 [&_.editor-steps]:rounded-lg [&_.editor-steps]:my-4
+    [&_.editor-steps_ol]:m-0
+    [&_.editor-steps_li]:mb-2`;
 </script>
 
 <svelte:head>
@@ -36,7 +67,7 @@
 <nav class="mb-6 text-sm">
   {#each breadcrumbs as crumb, index}
     {#if index === breadcrumbs.length - 1}
-      <span class="text-primary font-medium">{crumb.name}</span>
+      <span class="font-medium text-primary">{crumb.name}</span>
     {:else}
       {#if crumb.is_link && crumb.href}
         <Link
@@ -47,46 +78,13 @@
       {:else}
         <span class="text-secondary">{crumb.name}</span>
       {/if}
-      <span class="text-secondary/60 mx-2">/</span>
+      <span class="mx-2 text-secondary/60">/</span>
     {/if}
   {/each}
 </nav>
 
 <!-- Article content -->
-<article
-  class="prose prose-invert prose-base sm:prose-lg max-w-none
-         prose-headings:text-surface-content prose-headings:font-bold prose-headings:leading-tight
-         prose-h1:text-4xl prose-h1:mb-6 prose-h1:mt-0
-         prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:border-b-darkless prose-h2:pb-2
-         prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
-         prose-h4:text-lg prose-h4:mt-4 prose-h4:mb-2 prose-h4:font-semibold
-         prose-p:text-surface-content prose-p:leading-7 prose-p:mb-5
-         prose-a:text-primary prose-a:hover:text-red prose-a:underline prose-a:font-medium
-         prose-strong:text-surface-content prose-strong:font-semibold
-         prose-em:text-secondary prose-em:italic
-         prose-code:bg-darkless prose-code:text-primary prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:break-words prose-code:before:content-none prose-code:after:content-none
-         prose-pre:bg-darkless prose-pre:border prose-pre:border-darkless prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto
-         prose-pre:text-surface-content prose-pre:text-sm
-         prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-darkless prose-blockquote:pl-6 prose-blockquote:py-4 prose-blockquote:rounded-r-lg
-         prose-blockquote:text-secondary prose-blockquote:italic prose-blockquote:font-normal prose-blockquote:my-6
-         prose-ul:text-surface-content prose-ul:mb-4 prose-ul:pl-6
-         prose-ol:text-surface-content prose-ol:mb-4 prose-ol:pl-6
-         prose-li:text-surface-content prose-li:mb-2 prose-li:leading-7 prose-li:pl-2
-         prose-table:border-collapse prose-table:border prose-table:border-darkless prose-table:rounded-lg prose-table:overflow-hidden prose-table:my-6
-         prose-th:bg-darkless prose-th:text-primary prose-th:font-semibold prose-th:p-3 prose-th:border prose-th:border-darkless
-         prose-td:text-surface-content prose-td:p-3 prose-td:border prose-td:border-darkless
-         prose-img:rounded-lg prose-img:shadow-lg prose-img:mx-auto prose-img:block prose-img:max-w-24 prose-img:h-auto prose-img:my-4
-         prose-hr:border-darkless prose-hr:my-8
-         [&_ol>li::marker]:text-primary [&_ol>li::marker]:font-semibold
-         [&_ul>li::marker]:text-primary
-         [&_h2:not(:first-child)]:mt-10
-         [&_h3:not(:first-child)]:mt-8
-         [&_p]:break-words [&_li]:break-words
-         [&_img[src*='/images/editor-icons/']]:w-16 [&_img[src*='/images/editor-icons/']]:h-16 [&_img[src*='/images/editor-icons/']]:mx-auto [&_img[src*='/images/editor-icons/']]:block [&_img[src*='/images/editor-icons/']]:my-4
-         [&_.editor-steps]:bg-darkless [&_.editor-steps]:p-6 [&_.editor-steps]:rounded-lg [&_.editor-steps]:my-4
-         [&_.editor-steps_ol]:m-0
-         [&_.editor-steps_li]:mb-2"
->
+<article class={articleClass}>
   {@html rendered_content}
 </article>
 
@@ -94,9 +92,7 @@
 <footer
   class="mt-12 pt-6 border-t border-darkless flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm"
 >
-  <span class="text-muted"
-    >Found a typo or want to improve this page?</span
-  >
+  <div class="text-muted">Found a typo or want to improve this page?</div>
   <a
     href={edit_url}
     target="_blank"
@@ -105,7 +101,7 @@
   >
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      class="w-4 h-4"
+      class="size-4"
       viewBox="0 0 16 16"
       fill="currentColor"
     >

@@ -67,18 +67,27 @@
     }
   });
 
+  const inactiveNavClass =
+    "text-surface-content hover:bg-darkless hover:text-primary";
+  const activeNavClass = "bg-darkless text-primary";
+  const navItemClass = "rounded-md px-3 py-2 text-sm transition-colors";
+  const inlineNavItemClass = `flex items-center gap-2 ${navItemClass}`;
+  const splitNavItemClass = `flex items-center justify-between ${navItemClass}`;
+
   const navLinkClass = (active?: boolean) =>
-    `block px-3 py-2 rounded-md text-sm transition-colors ${
-      active
-        ? "bg-primary text-on-primary font-bold"
-        : "text-surface-content hover:bg-darkless hover:text-primary"
-    }`;
+    `block ${navItemClass} ${active ? activeNavClass : inactiveNavClass}`;
+
+  const inlineNavLinkClass = (active?: boolean) =>
+    `${inlineNavItemClass} ${active ? activeNavClass : inactiveNavClass}`;
 
   const sectionTitleClass =
-    "px-3 pt-3 pb-1 text-[11px] uppercase tracking-wider text-secondary/80 font-semibold";
+    "px-3 pt-3 pb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-secondary/80";
 
-  const resourceLinkClass =
-    "flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors text-surface-content hover:bg-darkless hover:text-primary";
+  const resourceLinkClass = `${splitNavItemClass} ${inactiveNavClass}`;
+
+  const secondaryNavLinkClass = `block ${navItemClass} text-secondary hover:bg-darkless hover:text-primary`;
+
+  const externalIconClass = "size-3 text-muted";
 </script>
 
 <Button
@@ -114,23 +123,24 @@
 ></Button>
 
 <aside
-  class="flex flex-col min-h-screen w-60 bg-dark text-surface-content px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
-  data-nav-target="nav"
-  class:open={navOpen}
-  style="scrollbar-width: none; -ms-overflow-style: none;"
+  class={`fixed inset-y-0 left-0 z-1000 flex min-h-dvh w-60 flex-col overflow-y-auto border-r border-r-darkless bg-dark px-3 py-4 text-surface-content transition-transform duration-300 ease-in-out [scrollbar-width:none] [-ms-overflow-style:none] lg:block ${
+    navOpen
+      ? "translate-x-0 shadow-[2px_0_20px_rgba(0,0,0,0.3)]"
+      : "max-lg:-translate-x-full"
+  }`}
 >
   <!-- Branding / header -->
   <div class="px-3 pb-3 mb-2 border-b border-darkless">
     <Link
       href={docs_nav.home_url}
       onclick={handleNavLinkClick}
-      class="flex items-center gap-2 group"
+      class="group flex items-center gap-2"
     >
-      <div class="flex flex-col leading-tight">
-        <span class="text-sm font-bold text-surface-content">Hackatime</span>
-        <span class="text-[11px] uppercase tracking-wider text-secondary"
-          >Documentation</span
-        >
+      <div class="flex flex-col">
+        <div class="text-sm font-bold text-surface-content">Hackatime</div>
+        <div class="text-[0.6875rem] uppercase tracking-wider text-secondary">
+          Documentation
+        </div>
       </div>
     </Link>
   </div>
@@ -172,16 +182,12 @@
         prefetch
         cacheFor="10m"
         onclick={handleNavLinkClick}
-        class={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
-          active
-            ? "bg-primary text-on-primary font-bold"
-            : "text-surface-content hover:bg-darkless hover:text-primary"
-        }`}
+        class={inlineNavLinkClass(active)}
       >
         <img
           src={`/images/editor-icons/${slug}-128.png`}
           alt=""
-          class="w-4 h-4 shrink-0"
+          class="size-4 shrink-0"
           loading="lazy"
         />
         <span class="truncate">{name}</span>
@@ -190,7 +196,7 @@
     <Link
       href={docs_nav.home_url}
       onclick={handleNavLinkClick}
-      class={navLinkClass(false) + " text-secondary"}
+      class={secondaryNavLinkClass}
     >
       All {docs_nav.all_editors.length} editors →
     </Link>
@@ -204,7 +210,7 @@
     >
       API Reference
       <svg
-        class="w-3 h-3 text-muted"
+        class={externalIconClass}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -226,7 +232,7 @@
     >
       GitHub
       <svg
-        class="w-3 h-3 text-muted"
+        class={externalIconClass}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -248,7 +254,7 @@
     >
       #hackatime-help
       <svg
-        class="w-3 h-3 text-muted"
+        class={externalIconClass}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -267,11 +273,11 @@
       <a
         href="/"
         onclick={handleNavLinkClick}
-        class="flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-secondary hover:bg-darkless hover:text-primary"
+        class={`${inlineNavItemClass} text-secondary hover:bg-darkless hover:text-primary`}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          class="w-4 h-4"
+          class="size-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -289,10 +295,8 @@
   </nav>
 </aside>
 
-<main
-  class="flex-1 min-h-screen transition-all duration-300 ease-in-out lg:ml-72"
->
-  <div class="w-full max-w-5xl mx-auto p-4 pt-16 lg:pt-8 md:p-8">
+<main class="min-h-dvh flex-1 transition-all duration-300 ease-in-out lg:ml-72">
+  <div class="mx-auto w-full max-w-5xl p-4 pt-16 md:p-8 lg:pt-8">
     {@render children?.()}
   </div>
 </main>
