@@ -171,7 +171,7 @@
   };
 
   const cardActionClass =
-    "inline-flex h-10 w-10 items-center justify-center rounded-xl bg-surface-content/5 text-surface-content/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[background-color,color,transform] duration-200 hover:bg-surface-content/10 hover:text-surface-content active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60";
+    "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-surface-200/60 bg-surface-content/5 text-surface-content/70 shadow-sm transition-colors duration-200 ease-out hover:bg-surface-content/10 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60";
 </script>
 
 <svelte:head>
@@ -258,7 +258,7 @@
           {#each projects_data.projects as project (project.id)}
             {@const projectHref = project.show_path || null}
             <article
-              class="group relative flex min-h-36 overflow-hidden rounded-2xl transition-[box-shadow,transform,background-color] duration-300 hover:-translate-y-0.5 {projectHref
+              class="group relative flex min-h-36 overflow-hidden rounded-2xl {projectHref
                 ? 'cursor-pointer'
                 : ''}"
             >
@@ -270,7 +270,7 @@
                 ></Link>
               {/if}
               <div
-                class="relative flex min-w-0 flex-1 flex-col rounded-2xl bg-dark p-5 shadow-[0_10px_24px_rgba(0,0,0,0.24),0_1px_0_rgba(255,255,255,0.06)_inset] transition-[background-color,box-shadow] duration-300 group-hover:bg-darkless group-hover:shadow-[0_14px_32px_rgba(0,0,0,0.28),0_1px_0_rgba(255,255,255,0.08)_inset]"
+                class="relative flex min-w-0 flex-1 flex-col rounded-2xl border border-surface-200 bg-dark p-5 transition-colors duration-300 ease-out group-hover:border-surface-300"
               >
                 <div class="grid gap-3">
                   <div class="flex min-w-0 items-start justify-between gap-3">
@@ -424,7 +424,7 @@
 
                 {#if project.broken_name}
                   <div
-                    class="mt-4 rounded-2xl bg-yellow/10 p-3 shadow-[inset_0_0_0_1px_rgba(255,214,10,0.24)]"
+                    class="mt-4 rounded-2xl border border-yellow/30 bg-yellow/10 p-3"
                   >
                     <p
                       class="text-sm leading-relaxed text-yellow/80 text-pretty"
@@ -486,7 +486,7 @@
       >
         {#each Array.from({ length: skeletonCount }) as _unused, index (index)}
           <div
-            class="min-h-36 rounded-2xl bg-dark p-5 shadow-[0_10px_24px_rgba(0,0,0,0.24),0_1px_0_rgba(255,255,255,0.06)_inset] ring-1 ring-white/10"
+            class="min-h-36 rounded-2xl border border-surface-200 bg-dark p-5"
           >
             <div class="h-6 w-28 rounded bg-darkless"></div>
             <div class="mt-3 h-7 w-20 rounded bg-darkless"></div>
