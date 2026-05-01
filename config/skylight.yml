@@ -1,14 +1,11 @@
 ---
 # The authentication token for the application.
-authentication: SJGDElOyNN4OESRDxcL3qTgjIgJVyHnYCW6-XUddxgk
+authentication: <%= ENV["SKYLIGHT_AUTH_TOKEN"] %>
 disable_dev_warning: true
 ignored_endpoints:
   - SessionsController#impersonate
   - SessionsController#stop_impersonating
   - LetterOpenerWeb::Engine
-  - Api::Hackatime::V1::HackatimeController#push_heartbeats
-  - Api::Hackatime::V1::HackatimeController#status_bar_today
-  - Api::V1::StatsController#user_stats
   - Rails::HealthController#show
   - ActionDispatch::Routing::RouteSet#*
   - ActionDispatch::Static
