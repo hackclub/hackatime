@@ -75,10 +75,10 @@
 </script>
 
 <div
-  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full"
+  class="bg-dark/50 border border-surface-200 rounded-xl p-6 flex flex-col h-full min-w-0 overflow-hidden"
 >
   <h2 class="mb-4 text-lg font-semibold text-surface-content/90">{title}</h2>
-  <div class="h-[260px] sm:h-[280px] lg:h-[300px]">
+  <div class="h-[260px] sm:h-[290px] lg:h-[330px] min-w-0 overflow-hidden">
     {#if data.length > 0}
       <PieChart
         {data}
@@ -92,7 +92,7 @@
         padding={{ bottom: legendPadding }}
         props={{
           svg: {
-            class: "h-full w-full",
+            class: "h-full w-full max-w-full",
             viewBox: `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`,
             preserveAspectRatio: "xMidYMid meet",
           },
