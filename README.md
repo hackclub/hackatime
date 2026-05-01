@@ -6,6 +6,7 @@
 [![Ping](https://uptime.hackclub.com/api/badge/4/ping)](https://uptime.hackclub.com/status/hackatime)
 [![Status](https://uptime.hackclub.com/api/badge/4/status)](https://uptime.hackclub.com/status/hackatime)
 [![Work time](https://hackatime-badge.hackclub.com/U0C7B14Q3/harbor)](https://hackatime-badge.hackclub.com)
+![Skylight performance data](https://badges.skylight.io/rpm/gekOqYRbWn4F.svg?token=wAp7SSndwPO6w-7TFJvz7G-IXFMCDFmuCjm6wdKzibI)
 
 [**Documentation**](https://hackatime.hackclub.com/docs)
 

@@ -207,6 +207,7 @@
       method="post"
       action={paths.create_heartbeat_import_path}
       resetOnSuccess={["heartbeat_import[api_key]"]}
+      options={{ preserveScroll: true }}
       onSuccess={(page) =>
         onImportSuccess(
           page.props.latest_heartbeat_import as HeartbeatImportStatusProps,
@@ -308,7 +309,7 @@
                   <span class="text-red-300">{activeImport.error_message}</span>
                 {/if}
                 {#if importState === "completed"}
-                  <span class="text-muted">
+                  <span class="tabular-nums text-muted">
                     {formatCount(activeImport?.imported_count)} imported, {formatCount(
                       activeImport?.skipped_count,
                     )} skipped
@@ -395,7 +396,9 @@
             <p class="text-xs uppercase tracking-wide text-muted">
               Total heartbeats
             </p>
-            <p class="mt-1 text-lg font-semibold text-surface-content">
+            <p
+              class="mt-1 text-lg font-semibold tabular-nums text-surface-content"
+            >
               {data_export.total_heartbeats}
             </p>
           </div>
@@ -403,7 +406,9 @@
             <p class="text-xs uppercase tracking-wide text-muted">
               Total coding time
             </p>
-            <p class="mt-1 text-lg font-semibold text-surface-content">
+            <p
+              class="mt-1 text-lg font-semibold tabular-nums text-surface-content"
+            >
               {data_export.total_coding_time}
             </p>
           </div>
@@ -411,7 +416,9 @@
             <p class="text-xs uppercase tracking-wide text-muted">
               Last 7 days
             </p>
-            <p class="mt-1 text-lg font-semibold text-surface-content">
+            <p
+              class="mt-1 text-lg font-semibold tabular-nums text-surface-content"
+            >
               {data_export.heartbeats_last_7_days}
             </p>
           </div>
@@ -422,7 +429,11 @@
         </p>
 
         <div class="mt-4 space-y-3">
-          <Form method="post" action={paths.export_all_heartbeats_path}>
+          <Form
+            method="post"
+            action={paths.export_all_heartbeats_path}
+            options={{ preserveScroll: true }}
+          >
             {#snippet children({ processing })}
               <Button type="submit" class="rounded-md" disabled={processing}>
                 {processing ? "Exporting..." : "Export all heartbeats"}
@@ -434,6 +445,7 @@
             method="post"
             action={paths.export_range_heartbeats_path}
             class="grid grid-cols-1 gap-3 rounded-md border border-surface-200 bg-darker p-4 sm:grid-cols-3"
+            options={{ preserveScroll: true }}
           >
             {#snippet children({ processing })}
               <input
@@ -466,6 +478,7 @@
             action={paths.create_heartbeat_import_path}
             class="mt-4 rounded-md border border-surface-200 bg-darker p-4"
             resetOnSuccess={["heartbeat_file"]}
+            options={{ preserveScroll: true }}
             onSuccess={() => {
               selectedFile = null;
             }}
@@ -556,7 +569,7 @@
                     >
                   {/if}
                   {#if importState === "completed"}
-                    <span class="text-muted">
+                    <span class="tabular-nums text-muted">
                       {formatCount(activeImport?.imported_count)} imported, {formatCount(
                         activeImport?.skipped_count,
                       )} skipped
@@ -584,6 +597,7 @@
           method="post"
           action={paths.create_deletion_path}
           class="m-0"
+          options={{ preserveScroll: true }}
           onBefore={() =>
             window.confirm(
               "Submit account deletion request? This action starts the deletion process.",

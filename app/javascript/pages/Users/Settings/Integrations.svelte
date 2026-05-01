@@ -57,6 +57,7 @@
         action={settings_update_path}
         method="patch"
         class="space-y-3"
+        options={{ preserveScroll: true }}
       >
         <label class="flex items-center gap-3 text-sm text-surface-content">
           <input type="hidden" name="user[uses_slack_status]" value="0" />
@@ -169,7 +170,11 @@
               <p class="text-xs text-muted">{email.source}</p>
             </div>
             {#if email.can_unlink}
-              <Form action={paths.unlink_email_path} method="delete">
+              <Form
+                action={paths.unlink_email_path}
+                method="delete"
+                options={{ preserveScroll: true }}
+              >
                 <input type="hidden" name="email" value={email.email} />
                 <Button
                   type="submit"
@@ -197,6 +202,7 @@
       action={paths.add_email_path}
       method="post"
       class="mt-4 flex flex-col gap-3 sm:flex-row"
+      options={{ preserveScroll: true }}
     >
       <input
         type="email"
@@ -232,7 +238,12 @@
       >
         Cancel
       </Button>
-      <Form action={paths.github_unlink_path} method="delete" class="m-0">
+      <Form
+        action={paths.github_unlink_path}
+        method="delete"
+        class="m-0"
+        options={{ preserveScroll: true }}
+      >
         <Button
           type="submit"
           variant="primary"

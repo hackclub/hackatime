@@ -31,6 +31,24 @@
     selectedTheme = user.theme || "rose";
     allowPublicStatsLookup = user.allow_public_stats_lookup;
   });
+
+  const applySelectedTheme = () => {
+    if (typeof document === "undefined") return;
+
+    const theme = options.themes.find(
+      (option) => option.value === selectedTheme,
+    );
+    if (!theme) return;
+
+    document.documentElement.dataset.theme = theme.value;
+
+    document
+      .querySelector('meta[name="color-scheme"]')
+      ?.setAttribute("content", theme.color_scheme);
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", theme.theme_color);
+  };
 </script>
 
 <svelte:head>
@@ -55,6 +73,7 @@
       action={region_update_path}
       method="patch"
       class="space-y-4"
+      options={{ preserveScroll: true }}
     >
       <div>
         <label
@@ -104,6 +123,7 @@
       action={username_update_path}
       method="patch"
       class="space-y-3"
+      options={{ preserveScroll: true }}
     >
       <div>
         <label for="username" class="mb-2 block text-sm text-surface-content">
@@ -149,6 +169,7 @@
       action={privacy_update_path}
       method="patch"
       class="space-y-3"
+      options={{ preserveScroll: true }}
     >
       <label class="flex items-center gap-3 text-sm text-surface-content">
         <input type="hidden" name="user[allow_public_stats_lookup]" value="0" />
@@ -184,6 +205,8 @@
       action={theme_update_path}
       method="patch"
       class="space-y-4"
+      options={{ preserveScroll: true }}
+      onSuccess={applySelectedTheme}
     >
       <RadioGroup.Root
         name="user[theme]"

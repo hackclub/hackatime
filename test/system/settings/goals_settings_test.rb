@@ -74,7 +74,11 @@ class GoalsSettingsTest < ApplicationSystemTestCase
       )
     end
 
-    visit my_settings_goals_path
+    assert_settings_page(
+      path: my_settings_goals_path,
+      marker_text: "Programming Goals"
+    )
+
     assert_text(/5 Active Goals/i)
     assert_button "New goal", disabled: true
     assert_equal 5, @user.reload.goals.count
