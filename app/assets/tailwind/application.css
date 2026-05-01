@@ -6,10 +6,21 @@
 
 body {
   @apply flex min-h-screen;
+  -webkit-font-smoothing: antialiased;
 }
 
 main {
   @apply flex-1 p-5 mb-24 transition-[margin-left,max-width] duration-300 ease-in-out;
+}
+
+.settings-image-outline {
+  outline: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="catppuccin_iced_latte"] .settings-image-outline,
+html[data-theme="github_light"] .settings-image-outline,
+html[data-theme="rose_pine_dawn"] .settings-image-outline {
+  outline-color: rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 1023px) {

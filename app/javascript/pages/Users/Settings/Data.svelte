@@ -308,7 +308,7 @@
                   <span class="text-red-300">{activeImport.error_message}</span>
                 {/if}
                 {#if importState === "completed"}
-                  <span class="text-muted">
+                  <span class="tabular-nums text-muted">
                     {formatCount(activeImport?.imported_count)} imported, {formatCount(
                       activeImport?.skipped_count,
                     )} skipped
@@ -395,7 +395,9 @@
             <p class="text-xs uppercase tracking-wide text-muted">
               Total heartbeats
             </p>
-            <p class="mt-1 text-lg font-semibold text-surface-content">
+            <p
+              class="mt-1 text-lg font-semibold tabular-nums text-surface-content"
+            >
               {data_export.total_heartbeats}
             </p>
           </div>
@@ -403,7 +405,9 @@
             <p class="text-xs uppercase tracking-wide text-muted">
               Total coding time
             </p>
-            <p class="mt-1 text-lg font-semibold text-surface-content">
+            <p
+              class="mt-1 text-lg font-semibold tabular-nums text-surface-content"
+            >
               {data_export.total_coding_time}
             </p>
           </div>
@@ -411,7 +415,9 @@
             <p class="text-xs uppercase tracking-wide text-muted">
               Last 7 days
             </p>
-            <p class="mt-1 text-lg font-semibold text-surface-content">
+            <p
+              class="mt-1 text-lg font-semibold tabular-nums text-surface-content"
+            >
               {data_export.heartbeats_last_7_days}
             </p>
           </div>
@@ -556,7 +562,7 @@
                     >
                   {/if}
                   {#if importState === "completed"}
-                    <span class="text-muted">
+                    <span class="tabular-nums text-muted">
                       {formatCount(activeImport?.imported_count)} imported, {formatCount(
                         activeImport?.skipped_count,
                       )} skipped
