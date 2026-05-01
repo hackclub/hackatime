@@ -171,7 +171,7 @@
   };
 
   const cardActionClass =
-    "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-surface-200/60 bg-surface-content/5 text-surface-content/70 shadow-sm transition-colors duration-200 ease-out hover:bg-surface-content/10 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60";
+    "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-surface-200/60 bg-surface-content/5 text-surface-content/70 shadow-sm transition-colors duration-200 ease-out hover:bg-surface-content/10 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 cursor-pointer";
 </script>
 
 <svelte:head>
