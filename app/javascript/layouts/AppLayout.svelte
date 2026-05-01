@@ -387,9 +387,9 @@
 {/if}
 
 <main
-  class={`min-h-screen flex-1 transition-[margin] duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
+  class={`min-h-screen min-w-0 flex-1 transition-[margin] duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
 >
-  <div class="w-full max-w-7xl mx-auto p-4 pt-16 lg:pt-8 md:p-8">
+  <div class="mx-auto w-full min-w-0 max-w-7xl p-4 pt-16 md:p-8 lg:pt-8">
     {@render children?.()}
 
     <footer

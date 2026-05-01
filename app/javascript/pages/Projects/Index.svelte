@@ -24,6 +24,7 @@
     duration_seconds: number;
     duration_label: string;
     duration_percent: number;
+    show_path?: string | null;
     repo_url?: string | null;
     repository?: RepositorySummary | null;
     broken_name: boolean;
@@ -255,11 +256,9 @@
           class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
         >
           {#each projects_data.projects as project (project.id)}
-            {@const projectHref = project.project_key
-              ? `/my/projects/${encodeURIComponent(project.project_key)}`
-              : null}
+            {@const projectHref = project.show_path || null}
             <article
-              class="group relative flex min-h-36 overflow-hidden rounded-2xl bg-dark p-3 shadow-[0_10px_24px_rgba(0,0,0,0.24),0_1px_0_rgba(255,255,255,0.06)_inset] ring-1 ring-white/10 transition-[box-shadow,transform,background-color] duration-300 hover:-translate-y-0.5 hover:bg-darkless hover:shadow-[0_14px_32px_rgba(0,0,0,0.28),0_1px_0_rgba(255,255,255,0.08)_inset] {projectHref
+              class="group relative flex min-h-36 overflow-hidden rounded-2xl transition-[box-shadow,transform,background-color] duration-300 hover:-translate-y-0.5 {projectHref
                 ? 'cursor-pointer'
                 : ''}"
             >
@@ -267,11 +266,11 @@
                 <Link
                   href={projectHref}
                   aria-label={`View ${project.name}`}
-                  class="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  class="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                 ></Link>
               {/if}
               <div
-                class="relative z-10 flex min-w-0 flex-1 flex-col rounded-xl bg-surface-content/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                class="relative flex min-w-0 flex-1 flex-col rounded-2xl bg-dark p-5 shadow-[0_10px_24px_rgba(0,0,0,0.24),0_1px_0_rgba(255,255,255,0.06)_inset] transition-[background-color,box-shadow] duration-300 group-hover:bg-darkless group-hover:shadow-[0_14px_32px_rgba(0,0,0,0.28),0_1px_0_rgba(255,255,255,0.08)_inset]"
               >
                 <div class="grid gap-3">
                   <div class="flex min-w-0 items-start justify-between gap-3">
@@ -298,7 +297,7 @@
                     </p>
                   {/if}
 
-                  <div class="relative z-10 flex flex-wrap items-center gap-2">
+                  <div class="relative z-20 flex flex-wrap items-center gap-2">
                     {#if project.repository?.homepage}
                       <a
                         href={project.repository.homepage}
@@ -438,7 +437,7 @@
 
                 {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
                   <div
-                    class="relative z-10 mt-4 border-t border-surface-200/40 pt-4"
+                    class="relative z-20 mt-4 border-t border-surface-200/40 pt-4"
                   >
                     <Form
                       action={project.update_path}
