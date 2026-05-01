@@ -3,6 +3,12 @@ aside[data-nav-target="nav"] {
   color: var(--color-surface-content);
 }
 
+html[data-theme="catppuccin_iced_latte"] aside[data-nav-target="nav"],
+html[data-theme="github_light"] aside[data-nav-target="nav"],
+html[data-theme="rose_pine_dawn"] aside[data-nav-target="nav"] {
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.08);
+}
+
 aside[data-nav-target="nav"] a.block,
 aside[data-nav-target="nav"] button.block {
   @apply flex min-h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-left no-underline transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96];
@@ -34,6 +40,12 @@ aside[data-nav-target="nav"]
 
   aside[data-nav-target="nav"].open {
     @apply translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.28),inset_-1px_0_0_rgba(255,255,255,0.06)];
+  }
+
+  html[data-theme="catppuccin_iced_latte"] aside[data-nav-target="nav"].open,
+  html[data-theme="github_light"] aside[data-nav-target="nav"].open,
+  html[data-theme="rose_pine_dawn"] aside[data-nav-target="nav"].open {
+    box-shadow: 4px 0 18px rgba(0, 0, 0, 0.12), 1px 0 0 rgba(0, 0, 0, 0.08);
   }
 }
 
