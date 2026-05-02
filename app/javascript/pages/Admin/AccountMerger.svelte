@@ -203,7 +203,7 @@
               oninput={onOlderInput}
               onkeydown={(e) => handleKeydown(e, "older")}
               autocomplete="off"
-              class="w-full rounded-lg border border-surface-200 bg-darker py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
+              class="w-full rounded-lg border border-surface-200 bg-input py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
             />
           </div>
           {#if olderOpen && olderResults.length > 0}
@@ -332,7 +332,7 @@
               oninput={onNewerInput}
               onkeydown={(e) => handleKeydown(e, "newer")}
               autocomplete="off"
-              class="w-full rounded-lg border border-surface-200 bg-darker py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
+              class="w-full rounded-lg border border-surface-200 bg-input py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
             />
           </div>
           {#if newerOpen && newerResults.length > 0}

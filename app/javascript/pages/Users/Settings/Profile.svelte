@@ -41,6 +41,7 @@
     if (!theme) return;
 
     document.documentElement.dataset.theme = theme.value;
+    document.documentElement.dataset.colorScheme = theme.color_scheme;
 
     document
       .querySelector('meta[name="color-scheme"]')
@@ -135,7 +136,7 @@
           value={user.username || ""}
           maxlength={username_max_length}
           placeholder="your-name"
-          class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+          class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
         />
         {#if errors.username.length > 0}
           <p class="mt-2 text-xs text-red">{errors.username[0]}</p>
@@ -144,9 +145,14 @@
     </Form>
 
     {#if profile_url}
-      <p class="text-sm text-muted">
+      <p class="text-sm text-muted mt-2">
         Public profile:
-        <a href={profile_url} target="_blank" class="text-primary underline">
+        <a
+          href={profile_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-primary underline"
+        >
           {profile_url}
         </a>
       </p>

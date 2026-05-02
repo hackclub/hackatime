@@ -59,7 +59,7 @@
             id="doorkeeper_application_name"
             type="text"
             value={application.name}
-            class="w-full cursor-not-allowed rounded-md border border-surface-200 bg-darker/60 px-3 py-2 text-sm text-muted"
+            class="w-full cursor-not-allowed rounded-md border border-surface-200 bg-input/60 px-3 py-2 text-sm text-muted"
             disabled
           />
           <input
@@ -78,7 +78,7 @@
             value={application.name}
             required
             placeholder="My Awesome App"
-            class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+            class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
           />
         {/if}
 
@@ -100,7 +100,7 @@
           rows="4"
           bind:value={redirectUri}
           placeholder="https://example.com/auth/callback"
-          class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 font-mono text-sm text-surface-content focus:border-primary focus:outline-none"
+          class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 font-mono text-sm text-surface-content focus:border-primary focus:outline-none"
         ></textarea>
         <p class="mt-2 text-xs text-muted">{help_text.redirect_uri}</p>
         {#if allow_blank_redirect_uri}

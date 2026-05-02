@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>">
+<html lang="en" class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>" data-color-scheme="<%= current_theme_color_scheme %>">
   <head>
     <title><%= @page_title || content_for(:title) || 'Hackatime - Track your coding time' %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
