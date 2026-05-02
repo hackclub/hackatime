@@ -71,13 +71,13 @@ class InertiaController < ApplicationController
     if current_user
       links << inertia_link("Projects", my_projects_path, active: request.path.start_with?("/my/projects"), inertia: true)
       links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true)
-      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
+      links << inertia_link("Setup", my_wakatime_setup_path, active: helpers.current_page?(my_wakatime_setup_path), inertia: true)
       links << inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings"), inertia: true)
       links << inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications"), inertia: true)
       links << { label: "Logout", action: "logout" }
     else
       links << inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true)
-      links << inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
+      links << inertia_link("Setup", my_wakatime_setup_path, active: helpers.current_page?(my_wakatime_setup_path), inertia: true)
     end
 
     links

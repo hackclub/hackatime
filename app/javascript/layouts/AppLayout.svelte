@@ -166,8 +166,7 @@
   const navLinkWithToolClass = (link: NavLink, toolClass = "") =>
     `${navLinkClass(link.active)}${toolClass ? ` ${toolClass}` : ""}`;
 
-  const isLongCachedLink = (link: NavLink) =>
-    link.label === "Docs" || link.label === "Extensions";
+  const isLongCachedLink = (link: NavLink) => link.label === "Docs";
 
   const linkCacheFor = (link: NavLink): string | [string, string] =>
     isLongCachedLink(link) ? "10m" : ["0s", "30s"];
