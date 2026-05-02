@@ -110,6 +110,18 @@
     return queryString ? `${index_path}?${queryString}` : index_path;
   };
 
+  const intervalQueryString = $derived.by(() => {
+    const query = new URLSearchParams();
+    if (interval) query.set("interval", interval);
+    if (from) query.set("from", from);
+    if (to) query.set("to", to);
+    const qs = query.toString();
+    return qs ? `?${qs}` : "";
+  });
+
+  const withIntervalParams = (path: string) =>
+    intervalQueryString ? `${path}${intervalQueryString}` : path;
+
   const changeInterval = (
     nextInterval: string,
     nextFrom: string,
@@ -256,7 +268,9 @@
           class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
         >
           {#each projects_data.projects as project (project.id)}
-            {@const projectHref = project.show_path || null}
+            {@const projectHref = project.show_path
+              ? withIntervalParams(project.show_path)
+              : null}
             <article
               class="group relative flex min-h-36 overflow-hidden rounded-2xl {projectHref
                 ? 'cursor-pointer'

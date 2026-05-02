@@ -41,7 +41,7 @@
     }
     const qs = query.toString();
     router.visit(`${window.location.pathname}${qs ? `?${qs}` : ""}`, {
-      only: ["project_stats"],
+      only: ["project_stats", "interval", "from", "to"],
       preserveState: true,
       preserveScroll: true,
       replace: true,
