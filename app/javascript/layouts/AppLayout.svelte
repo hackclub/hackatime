@@ -106,6 +106,7 @@
     if (!isBrowser) return;
 
     document.documentElement.dataset.theme = layout.theme.name;
+    document.documentElement.dataset.colorScheme = layout.theme.color_scheme;
     document
       .querySelector('meta[name="color-scheme"]')
       ?.setAttribute("content", layout.theme.color_scheme);
@@ -160,7 +161,7 @@
   });
 
   const navLinkClass = (active?: boolean) =>
-    `group flex min-h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${active ? "bg-primary text-on-primary font-bold shadow-[0_8px_20px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.18)]" : "text-surface-content hover:bg-darkless hover:text-primary hover:shadow-[0_1px_0_rgba(255,255,255,0.06)]"}`;
+    `group flex min-h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${active ? "nav-link-active bg-primary text-on-primary font-bold" : "text-surface-content hover:bg-darkless hover:text-primary hover:shadow-[0_1px_0_rgba(255,255,255,0.06)]"}`;
 
   const navLinkWithToolClass = (link: NavLink, toolClass = "") =>
     `${navLinkClass(link.active)}${toolClass ? ` ${toolClass}` : ""}`;

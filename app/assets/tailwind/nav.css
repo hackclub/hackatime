@@ -9,6 +9,18 @@ html[data-theme="rose_pine_dawn"] aside[data-nav-target="nav"] {
   box-shadow: 1px 0 0 rgba(0, 0, 0, 0.08);
 }
 
+.nav-link-active {
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+html[data-color-scheme="light"] .nav-link-active {
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
 aside[data-nav-target="nav"] a.block,
 aside[data-nav-target="nav"] button.block {
   @apply flex min-h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-left no-underline transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96];
