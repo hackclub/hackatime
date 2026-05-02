@@ -151,29 +151,34 @@
       </div>
     {/snippet}
 
-    {#snippet children()}
-      {#if project_stats}
-        <ProjectStatsContent
-          total_time_label={project_stats.total_time_label}
-          file_count={project_stats.file_count}
-          language_stats={project_stats.language_stats}
-          language_colors={project_stats.language_colors}
-          editor_stats={project_stats.editor_stats}
-          os_stats={project_stats.os_stats}
-          category_stats={project_stats.category_stats}
-          file_stats={project_stats.file_stats}
-          branch_stats={project_stats.branch_stats}
-          activity_graph={project_stats.activity_graph}
-        />
-      {:else}
-        <div
-          class="rounded-xl border border-surface-200 bg-dark p-8 text-center"
-        >
-          <p class="text-muted">
-            No activity found for this project in this time range.
-          </p>
-        </div>
-      {/if}
+    {#snippet children({ reloading })}
+      <div
+        class="transition-opacity duration-300 ease-out"
+        class:opacity-60={reloading}
+      >
+        {#if project_stats}
+          <ProjectStatsContent
+            total_time_label={project_stats.total_time_label}
+            file_count={project_stats.file_count}
+            language_stats={project_stats.language_stats}
+            language_colors={project_stats.language_colors}
+            editor_stats={project_stats.editor_stats}
+            os_stats={project_stats.os_stats}
+            category_stats={project_stats.category_stats}
+            file_stats={project_stats.file_stats}
+            branch_stats={project_stats.branch_stats}
+            activity_graph={project_stats.activity_graph}
+          />
+        {:else}
+          <div
+            class="rounded-xl border border-surface-200 bg-dark p-8 text-center"
+          >
+            <p class="text-muted">
+              No activity found for this project in this time range.
+            </p>
+          </div>
+        {/if}
+      </div>
     {/snippet}
   </Deferred>
 </div>
