@@ -88,6 +88,24 @@
     return Math.min(Math.max(safeCount, 4), 10);
   });
 
+  const buildIntervalQuery = ({
+    nextInterval = interval || "",
+    nextFrom = from || "",
+    nextTo = to || "",
+  }: {
+    nextInterval?: string;
+    nextFrom?: string;
+    nextTo?: string;
+  } = {}) => {
+    const query = new URLSearchParams();
+
+    if (nextInterval) query.set("interval", nextInterval);
+    if (nextFrom) query.set("from", nextFrom);
+    if (nextTo) query.set("to", nextTo);
+
+    return query;
+  };
+
   const buildProjectsPath = ({
     nextShowArchived = show_archived,
     nextInterval = interval || "",
@@ -99,28 +117,25 @@
     nextFrom?: string;
     nextTo?: string;
   } = {}) => {
-    const query = new URLSearchParams();
+    const query = buildIntervalQuery({ nextInterval, nextFrom, nextTo });
 
     if (nextShowArchived) query.set("show_archived", "true");
-    if (nextInterval) query.set("interval", nextInterval);
-    if (nextFrom) query.set("from", nextFrom);
-    if (nextTo) query.set("to", nextTo);
 
     const queryString = query.toString();
     return queryString ? `${index_path}?${queryString}` : index_path;
   };
 
   const intervalQueryString = $derived.by(() => {
-    const query = new URLSearchParams();
-    if (interval) query.set("interval", interval);
-    if (from) query.set("from", from);
-    if (to) query.set("to", to);
-    const qs = query.toString();
-    return qs ? `?${qs}` : "";
+    const queryString = buildIntervalQuery().toString();
+    return queryString ? `?${queryString}` : "";
   });
 
-  const withIntervalParams = (path: string) =>
-    intervalQueryString ? `${path}${intervalQueryString}` : path;
+  const withIntervalParams = (path: string) => {
+    if (!intervalQueryString) return path;
+
+    const separator = path.includes("?") ? "&" : "?";
+    return `${path}${separator}${intervalQueryString.slice(1)}`;
+  };
 
   const changeInterval = (
     nextInterval: string,

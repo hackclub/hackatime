@@ -41,6 +41,7 @@
     if (!theme) return;
 
     document.documentElement.dataset.theme = theme.value;
+    document.documentElement.dataset.colorScheme = theme.color_scheme;
 
     document
       .querySelector('meta[name="color-scheme"]')
@@ -146,7 +147,12 @@
     {#if profile_url}
       <p class="text-sm text-muted mt-2">
         Public profile:
-        <a href={profile_url} target="_blank" class="text-primary underline">
+        <a
+          href={profile_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-primary underline"
+        >
           {profile_url}
         </a>
       </p>
