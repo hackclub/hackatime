@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_27_120404) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
+  enable_extension "pg_trgm"
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
@@ -76,6 +77,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.index ["repository_id"], name: "index_commits_on_repository_id"
     t.index ["user_id", "created_at"], name: "index_commits_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_commits_on_user_id"
+  end
+
+  create_table "dashboard_rollups", force: :cascade do |t|
+    t.text "bucket_value", default: "", null: false
+    t.boolean "bucket_value_present", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "dimension", null: false
+    t.jsonb "payload"
+    t.integer "source_heartbeats_count"
+    t.float "source_max_heartbeat_time"
+    t.integer "total_seconds", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["dimension"], name: "index_dashboard_rollups_on_dimension_total", where: "(((dimension)::text = 'total'::text) AND (total_seconds > 0))"
+    t.index ["user_id", "dimension", "bucket_value_present", "bucket_value"], name: "idx_dashboard_rollups_user_dimension_bucket", unique: true
+    t.index ["user_id", "dimension"], name: "index_dashboard_rollups_on_user_id_and_dimension"
+    t.index ["user_id"], name: "index_dashboard_rollups_on_user_id"
   end
 
   create_table "deletion_requests", force: :cascade do |t|
@@ -315,20 +333,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.index ["project", "time"], name: "index_heartbeats_on_project_and_time"
     t.index ["project"], name: "index_heartbeats_on_project"
     t.index ["source_type", "time", "user_id", "project"], name: "index_heartbeats_on_source_type_time_user_project"
+    t.index ["time", "source_type"], name: "index_heartbeats_on_time_and_source_type"
+    t.index ["time", "user_id"], name: "idx_heartbeats_time_user_active", where: "(deleted_at IS NULL)"
+    t.index ["time"], name: "index_heartbeats_on_time_active_covering", where: "(deleted_at IS NULL)", include: ["source_type"]
+    t.index ["time"], name: "index_heartbeats_on_time_imported", where: "(source_type <> 0)"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
-    t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time", where: "(deleted_at IS NULL)"
+    t.index ["user_agent"], name: "index_heartbeats_on_user_agent_trgm", opclass: :gin_trgm_ops, using: :gin
+    t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time_incl_editor", where: "(deleted_at IS NULL)", include: ["editor"]
     t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
     t.index ["user_id", "language", "time"], name: "idx_heartbeats_user_language_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "operating_system", "time"], name: "idx_heartbeats_user_operating_system_time", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_covering", where: "(deleted_at IS NULL)", include: ["category"]
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
     t.index ["user_id", "project"], name: "index_heartbeats_on_user_id_and_project", where: "(deleted_at IS NULL)"
     t.index ["user_id", "source_type", "id"], name: "index_heartbeats_on_user_source_id_direct", where: "((source_type = 0) AND (deleted_at IS NULL))"
     t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
     t.index ["user_id", "time", "language"], name: "idx_heartbeats_user_time_language_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "time"], name: "idx_heartbeats_lb_eligible_user_time", where: "((deleted_at IS NULL) AND ((category)::text = 'coding'::text) AND ((editor IS NULL) OR (lower((editor)::text) <> ALL (ARRAY['arc'::text, 'brave'::text, 'chrome'::text, 'chromium'::text, 'edge'::text, 'firefox'::text, 'floorp'::text, 'librewolf'::text, 'microsoft-edge'::text, 'opera'::text, 'opera-gx'::text, 'safari'::text, 'vivaldi'::text, 'waterfox'::text, 'zen'::text]))))"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
+  end
+
+  create_table "instance_import_sources", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "encrypted_api_key", null: false
+    t.string "endpoint_url", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_instance_import_sources_on_user_id", unique: true
   end
 
   create_table "leaderboard_entries", force: :cascade do |t|
@@ -476,6 +510,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.string "project_name", null: false
+    t.datetime "public_shared_at"
     t.string "repo_url"
     t.bigint "repository_id"
     t.datetime "updated_at", null: false
@@ -549,6 +584,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.jsonb "projects_summary", default: {}, null: false
     t.string "slack_uid", null: false
     t.datetime "updated_at", null: false
+    t.index ["slack_uid"], name: "index_sailors_logs_on_slack_uid", unique: true
   end
 
   create_table "sign_in_tokens", force: :cascade do |t|
@@ -620,13 +656,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
     t.datetime "slack_synced_at"
     t.string "slack_uid"
     t.string "slack_username"
-    t.integer "theme", default: 4, null: false
+    t.integer "theme", default: 8, null: false
     t.string "timezone", default: "UTC"
     t.integer "trust_level", default: 0, null: false
     t.datetime "updated_at", null: false
     t.string "username"
     t.boolean "uses_slack_status", default: false, null: false
-    t.boolean "weekly_summary_email_enabled", default: false, null: false
+    t.boolean "weekly_summary_email_enabled", default: true, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
@@ -668,6 +704,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
   add_foreign_key "api_keys", "users"
   add_foreign_key "commits", "repositories"
   add_foreign_key "commits", "users"
+  add_foreign_key "dashboard_rollups", "users"
   add_foreign_key "deletion_requests", "users"
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "email_addresses", "users"
@@ -676,6 +713,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_142838) do
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
   add_foreign_key "heartbeats", "users"
+  add_foreign_key "instance_import_sources", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
   add_foreign_key "leaderboard_entries", "users"
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"

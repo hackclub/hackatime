@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="en" class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>">
+<html lang="en" class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>" data-color-scheme="<%= current_theme_color_scheme %>">
   <head>
-    <title><%= @page_title || content_for(:title) || 'Hackatime - Free & Open Source Coding Time Tracker' %></title>
+    <title><%= @page_title || content_for(:title) || 'Hackatime - Track your coding time' %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -50,6 +50,9 @@
       <meta name="user-is-admin" content="<%= current_user.admin_level == 'admin' %>">
       <meta name="user-is-viewer" content="<%= current_user.admin_level == 'viewer' %>">
     <% end %>
+
+    <% include_external_scripts = !Rails.env.test? %>
+    <% include_jam_scripts = include_external_scripts && params[:jam].present? %>
 
     <%= yield :head %>
 
@@ -162,30 +165,6 @@
 
     <script defer data-domain="hackatime.hackclub.com" src="https://plausible.io/js/script.file-downloads.hash.js"></script>
 
-    <% if ENV['POSTHOG_API_KEY'].present? %>
-      <script>
-        !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace('.i.posthog.com','-assets.i.posthog.com')+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys getNextSurveyStep onSessionId setPersonProperties".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
-        posthog.init('<%= ENV['POSTHOG_API_KEY'] %>', {
-          api_host: '<%= ENV.fetch('POSTHOG_HOST', 'https://us.i.posthog.com') %>',
-          person_profiles: 'identified_only',
-          capture_pageview: true,
-          capture_pageleave: true,
-          autocapture: true,
-          session_recording: {
-            maskAllInputs: false,
-            maskTextSelector: '[data-posthog-mask]'
-          }
-        });
-        <% if current_user %>
-          posthog.identify('<%= current_user.id %>', {
-            slack_uid: '<%= current_user.slack_uid %>',
-            username: '<%= current_user.username %>',
-            timezone: '<%= current_user.timezone %>'
-          });
-        <% end %>
-      </script>
-    <% end %>
-
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
     <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
@@ -197,12 +176,14 @@
       <%= sanitize Sentry.get_trace_propagation_meta, tags: %w[meta], attributes: %w[name content] %>
     <% end %>
 
-    <!-- Lets users record their screen from your site -->
-    <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
-    <script type="module" src="https://js.jam.dev/recorder.js"></script>
+    <% if include_jam_scripts %>
+      <!-- Lets users record their screen from your site -->
+      <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
+      <script type="module" src="https://js.jam.dev/recorder.js"></script>
 
-    <!-- Captures user events and developer logs -->
-    <script type="module" src="https://js.jam.dev/capture.js"></script>
+      <!-- Captures user events and developer logs -->
+      <script type="module" src="https://js.jam.dev/capture.js"></script>
+    <% end %>
 
     <!--
       If using a TypeScript entrypoint file:

@@ -45,6 +45,8 @@ production:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 16 }.to_i + 8 %> # Web threads + 8 GoodJob threads
     url: <%= ENV['POOL_DATABASE_URL'] %>
+    prepared_statements: false
+    advisory_locks: false
   sailors_log:
     adapter: postgresql
     encoding: unicode

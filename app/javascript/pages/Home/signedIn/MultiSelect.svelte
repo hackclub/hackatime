@@ -45,7 +45,7 @@
   });
 </script>
 
-<div class="filter relative">
+<div class="filter relative min-w-0">
   <span
     class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider"
   >
@@ -54,7 +54,7 @@
 
   <Popover.Root bind:open>
     <div
-      class="group m-0 flex items-center rounded-lg border border-surface-200 bg-surface-100 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200 focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/35 focus-within:ring-offset-1 focus-within:ring-offset-surface"
+      class="group m-0 flex min-w-0 items-center rounded-lg border border-surface-200 bg-surface-100 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200 focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/35 focus-within:ring-offset-1 focus-within:ring-offset-surface"
     >
       <Popover.Trigger>
         {#snippet child({ props })}

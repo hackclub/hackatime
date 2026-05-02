@@ -221,6 +221,207 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
     end
   end
 
+  path '/api/admin/v1/heartbeats/by_user_agent_segment' do
+    get('Get heartbeats matching a user_agent segment') do
+      tags 'Admin Utils'
+      description 'Returns heartbeats whose user_agent contains the given substring (e.g. "Godot_Super-Wakatime/2.0.0"). Useful for monitoring how a specific editor/plugin behaves over time. Use count_only=true to avoid streaming rows when only the total is needed.'
+      security [ AdminToken: [] ]
+      produces 'application/json'
+
+      parameter name: :segment, in: :query, type: :string, required: true, description: 'Substring of user_agent to match (case-insensitive). Min length 3.'
+      parameter name: :user_id, in: :query, type: :string, required: false, description: 'Optional user ID to scope the query to a single user.'
+      parameter name: :start_date, in: :query, type: :string, required: false, description: 'Start date (YYYY-MM-DD or epoch seconds)'
+      parameter name: :end_date, in: :query, type: :string, required: false, description: 'End date (YYYY-MM-DD or epoch seconds)'
+      parameter name: :limit, in: :query, type: :integer, required: false, description: 'Page size (default 1000, max 5000)'
+      parameter name: :offset, in: :query, type: :integer, required: false, description: 'Pagination offset'
+      parameter name: :count_only, in: :query, type: :boolean, required: false, description: 'If true, return only total_count and skip row payload'
+
+      response(200, 'successful with matching rows') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:hb_user) do
+          u = User.create!(username: 'hb_segment_user')
+          EmailAddress.create!(user: u, email: 'hb-segment@example.com')
+          u
+        end
+        before do
+          Heartbeat.create!(
+            user: hb_user,
+            time: Time.current.to_i,
+            project: 'demo',
+            language: 'GDScript',
+            editor: 'Godot',
+            source_type: :direct_entry,
+            branch: 'main',
+            category: 'coding',
+            is_write: true,
+            user_agent: 'Godot/4.2 Godot_Super-Wakatime/2.0.0',
+            operating_system: 'linux',
+            machine: 'test-machine'
+          )
+        end
+        let(:segment) { 'Godot_Super-Wakatime' }
+        let(:user_id) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        let(:limit) { 10 }
+        let(:offset) { 0 }
+        let(:count_only) { nil }
+        run_test! do |response|
+          body = JSON.parse(response.body)
+          expect(body['heartbeats'].size).to eq(1)
+          expect(body['heartbeats'].first['user_agent']).to include('Godot_Super-Wakatime')
+          expect(body['has_more']).to eq(false)
+        end
+      end
+
+      response(200, 'count_only returns total only') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:hb_user) do
+          u = User.create!(username: 'hb_segment_count_user')
+          EmailAddress.create!(user: u, email: 'hb-segment-count@example.com')
+          u
+        end
+        before do
+          2.times do |i|
+            Heartbeat.create!(
+              user: hb_user,
+              time: Time.current.to_i - i,
+              project: 'demo',
+              language: 'GDScript',
+              editor: 'Godot',
+              source_type: :direct_entry,
+              branch: 'main',
+              category: 'coding',
+              is_write: true,
+              user_agent: 'Godot/4.2 Godot_Super-Wakatime/2.0.0',
+              operating_system: 'linux',
+              machine: 'test-machine'
+            )
+          end
+        end
+        let(:segment) { 'Godot_Super-Wakatime' }
+        let(:user_id) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        let(:limit) { nil }
+        let(:offset) { nil }
+        let(:count_only) { true }
+        run_test! do |response|
+          body = JSON.parse(response.body)
+          expect(body['total_count']).to eq(2)
+          expect(body).not_to have_key('heartbeats')
+        end
+      end
+
+      response(422, 'segment too short') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:segment) { 'ab' }
+        let(:user_id) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        let(:limit) { nil }
+        let(:offset) { nil }
+        let(:count_only) { nil }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(200, 'successful') do
+        schema oneOf: [
+          {
+            type: :object,
+            properties: {
+              segment: { type: :string },
+              limit: { type: :integer },
+              offset: { type: :integer },
+              heartbeats: {
+                type: :array,
+                items: {
+                  type: :object,
+                  properties: {
+                    id: { type: :integer },
+                    user_id: { type: :integer },
+                    time: { type: :number },
+                    project: { type: :string, nullable: true },
+                    language: { type: :string, nullable: true },
+                    entity: { type: :string, nullable: true },
+                    branch: { type: :string, nullable: true },
+                    category: { type: :string, nullable: true },
+                    editor: { type: :string, nullable: true },
+                    machine: { type: :string, nullable: true },
+                    operating_system: { type: :string, nullable: true },
+                    user_agent: { type: :string, nullable: true },
+                    ip_address: { type: :string, nullable: true },
+                    is_write: { type: :boolean, nullable: true },
+                    lineno: { type: :integer, nullable: true },
+                    cursorpos: { type: :integer, nullable: true },
+                    lines: { type: :integer, nullable: true },
+                    source_type: { type: :string, nullable: true }
+                  }
+                }
+              },
+              has_more: { type: :boolean }
+            }
+          },
+          {
+            type: :object,
+            description: 'Returned when count_only=true',
+            additionalProperties: false,
+            required: [ 'segment', 'total_count' ],
+            properties: {
+              segment: { type: :string },
+              total_count: { type: :integer }
+            }
+          }
+        ]
+
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:hb_user_doc) do
+          u = User.create!(username: 'hb_segment_doc_user')
+          EmailAddress.create!(user: u, email: 'hb-segment-doc@example.com')
+          u
+        end
+        before do
+          Heartbeat.create!(
+            user: hb_user_doc,
+            time: Time.current.to_i,
+            project: 'demo',
+            language: 'GDScript',
+            editor: 'Godot',
+            source_type: :direct_entry,
+            branch: 'main',
+            category: 'coding',
+            is_write: true,
+            user_agent: 'Godot/4.2 Godot_Super-Wakatime/2.0.0',
+            operating_system: 'linux',
+            machine: 'test-machine'
+          )
+        end
+        let(:segment) { 'Godot_Super-Wakatime' }
+        let(:user_id) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        let(:limit) { 10 }
+        let(:offset) { 0 }
+        let(:count_only) { nil }
+        run_test!
+      end
+
+      response(422, 'missing segment') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:segment) { '' }
+        let(:user_id) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        let(:limit) { nil }
+        let(:offset) { nil }
+        let(:count_only) { nil }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+    end
+  end
+
   path '/api/admin/v1/user/heartbeat_values' do
     get('Get heartbeat values') do
       tags 'Admin Utils'

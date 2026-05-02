@@ -46,15 +46,13 @@ class SailorsLogNotifyJob < ApplicationJob
     response_data = JSON.parse(response.body)
     if response_data["ok"]
       slsn.update(sent: true)
-      SailorsLogTeletypeJob.perform_later(message)
     else
       report_message("Failed to send Slack notification: #{response_data["error"]}")
-      ignorable_errors = %w[channel_not_found is_archived]
-      if ignorable_errors.include?(response_data["error"])
-        # disable any preferences for this channel
-        SailorsLogNotificationPreference.where(slack_channel_id: slack_channel_id).update_all(enabled: false)
+      removable_channel_errors = %w[channel_not_found is_archived no_permission not_in_channel restricted_action]
+      if removable_channel_errors.include?(response_data["error"])
+        SailorsLogNotificationPreference.where(slack_channel_id: slack_channel_id).destroy_all
       else
-        throw "Failed to send Slack notification: #{response_data["error"]} in #{slack_channel_id}"
+        raise "Failed to send Slack notification: #{response_data["error"]} in #{slack_channel_id}"
       end
     end
   end

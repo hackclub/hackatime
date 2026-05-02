@@ -7,6 +7,7 @@
   import IntervalSelect from "./IntervalSelect.svelte";
   import MultiSelect from "./MultiSelect.svelte";
   import GoalsProgressCard from "./GoalsProgressCard.svelte";
+  import type { ProgrammingGoalProgress } from "../../../types/index";
 
   let {
     data,
@@ -14,17 +15,7 @@
     onFiltersChange,
   }: {
     data: Record<string, any>;
-    programmingGoalsProgress?: {
-      id: string;
-      period: "day" | "week" | "month";
-      target_seconds: number;
-      tracked_seconds: number;
-      completion_percent: number;
-      complete: boolean;
-      languages: string[];
-      projects: string[];
-      period_end: string;
-    }[];
+    programmingGoalsProgress?: ProgrammingGoalProgress[];
     onFiltersChange?: (search: string) => void;
   } = $props();
 
@@ -72,9 +63,11 @@
   }
 </script>
 
-<div class="flex flex-col gap-6 w-full">
+<div class="flex w-full min-w-0 flex-col gap-6">
   <!-- Filters -->
-  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-2">
+  <div
+    class="mb-2 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"
+  >
     <IntervalSelect
       selected={data.selected_interval || ""}
       from={data.selected_from || ""}
@@ -121,7 +114,7 @@
   <GoalsProgressCard goals={programmingGoalsProgress} />
 
   <!-- Stats Grid -->
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+  <div class="grid min-w-0 grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
     <StatCard
       label="Total Time"
       value={secondsToDisplay(data.total_time)}

@@ -31,7 +31,7 @@
   $effect(() => {
     const html = document.documentElement;
     previousTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "gruvbox_dark");
+    html.setAttribute("data-theme", "rose");
 
     const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
     colorSchemeMeta?.setAttribute("content", "dark");
@@ -43,6 +43,10 @@
     };
   });
 </script>
+
+<svelte:head>
+  <title>Sign in - Hackatime</title>
+</svelte:head>
 
 <div
   class="min-h-screen w-full bg-darker text-surface-content flex flex-col items-center justify-center px-6"

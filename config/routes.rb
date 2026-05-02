@@ -32,10 +32,12 @@ Rails.application.routes.draw do
 
   resources :extensions, only: [ :index ]
 
-  constraints AdminLevelConstraint.new(:superadmin) do
+  constraints AdminLevelConstraint.new(:ultraadmin) do
     mount GoodJob::Engine => "good_job"
     mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
+  end
 
+  constraints AdminLevelConstraint.new(:superadmin, :ultraadmin) do
     namespace :admin do
       resources :admin_users, only: [ :index, :update ] do
         collection do
@@ -51,7 +53,16 @@ Rails.application.routes.draw do
     end
   end
 
-  constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer) do
+  constraints AdminLevelConstraint.new(:ultraadmin) do
+    namespace :admin do
+      resource :account_merger, only: [ :show ], controller: "account_merger" do
+        get :search_users
+        post :merge
+      end
+    end
+  end
+
+  constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer, :ultraadmin) do
     namespace :admin do
       get "timeline", to: "timeline#show", as: :timeline
       get "timeline/search_users", to: "timeline#search_users"
@@ -69,7 +80,7 @@ Rails.application.routes.draw do
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
   end
 
-  constraints AdminLevelConstraint.new(:superadmin) do
+  constraints AdminLevelConstraint.new(:superadmin, :ultraadmin) do
     namespace :admin do
       resources :permissions, only: [ :index, :update ]
     end
@@ -128,19 +139,21 @@ Rails.application.routes.draw do
   # Nested under users for admin access
   resources :users, only: [] do
     get "settings", on: :member, to: "settings/profile#show"
-    patch "settings", on: :member, to: "settings/profile#update"
     member do
       patch :update_trust_level
     end
   end
 
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
+  get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }
 
   # Namespace for current user actions
   get "my/settings", to: "settings/profile#show", as: :my_settings
-  patch "my/settings", to: "settings/profile#update"
   get "my/settings/profile", to: "settings/profile#show", as: :my_settings_profile
-  patch "my/settings/profile", to: "settings/profile#update"
+  patch "my/settings/profile/region", to: "settings/profile#update_region", as: :my_settings_profile_region
+  patch "my/settings/profile/privacy", to: "settings/profile#update_privacy", as: :my_settings_profile_privacy
+  patch "my/settings/profile/username", to: "settings/profile#update_username", as: :my_settings_profile_username
+  patch "my/settings/profile/theme", to: "settings/profile#update_theme", as: :my_settings_profile_theme
   get "my/settings/integrations", to: "settings/integrations#show", as: :my_settings_integrations
   patch "my/settings/integrations", to: "settings/integrations#update"
   get "my/settings/notifications", to: "settings/notifications#show", as: :my_settings_notifications
@@ -166,6 +179,7 @@ Rails.application.routes.draw do
       member do
         patch :archive
         patch :unarchive
+        patch :toggle_share
       end
     end
     # resource :mailing_address, only: [ :show, :edit ]
@@ -210,6 +224,8 @@ Rails.application.routes.draw do
 
       get "users/lookup_email/:email", to: "users#lookup_email", constraints: { email: /[^\/]+/ }
       get "users/lookup_slack_uid/:slack_uid", to: "users#lookup_slack_uid"
+
+      get "currently_hacking", to: "currently_hacking#index"
 
       get "banned_users/counts", to: "stats#banned_users_counts"
 
@@ -285,6 +301,7 @@ Rails.application.routes.draw do
         get "alts/shared_machines", to: "admin#shared_machines"
         get "users/active", to: "admin#active_users"
         post "audit_logs/counts", to: "admin#audit_logs_counts"
+        get "heartbeats/by_user_agent_segment", to: "admin#heartbeats_by_user_agent_segment"
       end
     end
 
@@ -312,6 +329,7 @@ Rails.application.routes.draw do
   get "/@:username/languages", to: "profiles#languages", as: :profile_languages, constraints: { username: /[A-Za-z0-9_-]+/ }
   get "/@:username/editors", to: "profiles#editors", as: :profile_editors, constraints: { username: /[A-Za-z0-9_-]+/ }
   get "/@:username/activity", to: "profiles#activity", as: :profile_activity, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/project/:project_name", to: "profiles#project", as: :profile_project, constraints: { username: /[A-Za-z0-9_-]+/, project_name: /.+/ }
 
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }

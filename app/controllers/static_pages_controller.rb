@@ -128,12 +128,14 @@ class StaticPagesController < InertiaController
   private
 
   def set_homepage_seo_content
-    @page_title = @og_title = @twitter_title = "Hackatime - Track How Much You Code | Free & Open Source"
+    @page_title = @og_title = @twitter_title = "Hackatime - Track your coding time"
     @meta_description = @og_description = @twitter_description = "Free and open-source coding time tracker. Works with VS Code, JetBrains, vim, emacs, and 70+ editors. Built by Hack Club for teenage developers."
     @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
   end
 
   def signed_in_props
+    dashboard_stats = initial_dashboard_stats_prop
+
     {
       flavor_text: @flavor_text.to_s,
       trust_level_red: current_user&.trust_level == "red",
@@ -144,7 +146,7 @@ class StaticPagesController < InertiaController
       github_uid_blank: current_user&.github_uid.blank?,
       github_auth_path: github_auth_path,
       wakatime_setup_path: my_wakatime_setup_path,
-      dashboard_stats: InertiaRails.defer { dashboard_stats_payload }
+      dashboard_stats: dashboard_stats || InertiaRails.defer { dashboard_stats_payload }
     }
   end
 
@@ -184,5 +186,20 @@ class StaticPagesController < InertiaController
     Rails.cache.fetch(cache_key, expires_in: 1.minute) do
       ProgrammingGoalsProgressService.new(user: current_user, goals: goals).call
     end
+  end
+
+  def initial_dashboard_stats_prop
+    return unless dashboard_rollup_eligible?
+    return unless dashboard_rollups_available?
+
+    rows = DashboardRollup.where(user_id: current_user.id).to_a
+    total_row = rows.find(&:total_dimension?)
+    return unless total_row
+
+    @dashboard_rollup_rows = rows
+    @dashboard_rollup_rows_by_dimension = rows.group_by(&:dimension)
+    @dashboard_rollup_total_row = total_row
+
+    dashboard_stats_payload
   end
 end

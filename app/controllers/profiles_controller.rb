@@ -59,6 +59,50 @@ class ProfilesController < InertiaController
     end
   end
 
+  def project
+    return head :not_found if @user.nil?
+
+    project_name = CGI.unescape(params[:project_name])
+    mapping = @user.project_repo_mappings.find_by(project_name: project_name)
+    return head :not_found unless mapping&.public_shared_at.present?
+
+    h = ApplicationController.helpers
+    hb = @user.heartbeats.where(project: project_name)
+    total_time = hb.duration_seconds
+    first_heartbeat = hb.minimum(:time)
+    since_date = first_heartbeat ? Time.at(first_heartbeat).to_date.strftime("%-m/%-d/%Y") : nil
+
+    language_stats = hb.group(:language).duration_seconds.each_with_object({}) do |(raw, dur), agg|
+      k = raw.to_s.presence || "Unknown"
+      k = k == "Unknown" ? k : k.categorize_language
+      agg[k] = (agg[k] || 0) + dur
+    end.sort_by { |_, d| -d }.first(15).to_h
+
+    file_stats = hb.group(:entity).duration_seconds
+      .reject { |e, dur| e.blank? || dur < 60 }
+      .sort_by { |_, d| -d }.first(50)
+      .map { |entity, dur| [ helpers.shorten_file_path(entity), dur ] }
+
+    branch_stats = hb.group(:branch).duration_seconds
+      .reject { |b, _| b.blank? }
+      .sort_by { |_, d| -d }.first(10)
+
+    render inertia: "Projects/PublicShow", props: {
+      page_title: "#{project_name} — @#{@user.username} | Hackatime",
+      project_name: project_name,
+      username: @user.username,
+      profile_path: profile_path(username: @user.username),
+      since_date: since_date,
+      repo_url: mapping.repo_url,
+      total_time_label: h.short_time_detailed(total_time),
+      file_count: hb.select(:entity).distinct.count,
+      language_stats: language_stats,
+      language_colors: language_stats.present? ? LanguageUtils.colors_for(language_stats.keys) : {},
+      file_stats: file_stats,
+      branch_stats: branch_stats
+    }
+  end
+
   private
 
   def find_user

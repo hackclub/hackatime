@@ -1,5 +1,6 @@
 class Heartbeat < ApplicationRecord
   before_save :set_fields_hash!
+  after_commit :schedule_dashboard_rollup_refresh, on: %i[create update destroy]
 
   include Heartbeatable
   include TimeRangeFilterable
@@ -111,10 +112,12 @@ class Heartbeat < ApplicationRecord
 
   def soft_delete
     update_column(:deleted_at, Time.current)
+    DashboardRollupRefreshJob.schedule_for(user_id)
   end
 
   def restore
     update_column(:deleted_at, nil)
+    DashboardRollupRefreshJob.schedule_for(user_id)
   end
 
   private
@@ -124,6 +127,10 @@ class Heartbeat < ApplicationRecord
     if self.class.column_names.include?("fields_hash")
       self.fields_hash = self.class.generate_fields_hash(self.attributes)
     end
+  end
+
+  def schedule_dashboard_rollup_refresh
+    DashboardRollupRefreshJob.schedule_for(user_id)
   end
 
   # def mirror_to_wakatime

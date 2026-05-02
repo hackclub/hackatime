@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Form } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import type { OAuthApplicationFormProps } from "./types";
 
@@ -13,13 +14,6 @@
     scope_options,
     errors,
   }: OAuthApplicationFormProps = $props();
-
-  const csrfToken =
-    typeof document === "undefined"
-      ? ""
-      : document
-          .querySelector("meta[name='csrf-token']")
-          ?.getAttribute("content") || "";
 
   let selectedScopes = $state<string[]>([]);
   let confidential = $state(false);
@@ -45,12 +39,7 @@
   </div>
 {/if}
 
-<form method="post" action={submit_path} class="space-y-5">
-  {#if form_method === "patch"}
-    <input type="hidden" name="_method" value="patch" />
-  {/if}
-  <input type="hidden" name="authenticity_token" value={csrfToken} />
-
+<Form action={submit_path} method={form_method} class="space-y-5">
   <section class="rounded-xl border border-surface-200 bg-dark p-6">
     <h2 class="text-lg font-semibold text-surface-content">
       Application details
@@ -70,7 +59,7 @@
             id="doorkeeper_application_name"
             type="text"
             value={application.name}
-            class="w-full cursor-not-allowed rounded-md border border-surface-200 bg-darker/60 px-3 py-2 text-sm text-muted"
+            class="w-full cursor-not-allowed rounded-md border border-surface-200 bg-input/60 px-3 py-2 text-sm text-muted"
             disabled
           />
           <input
@@ -89,7 +78,7 @@
             value={application.name}
             required
             placeholder="My Awesome App"
-            class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+            class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
           />
         {/if}
 
@@ -111,7 +100,7 @@
           rows="4"
           bind:value={redirectUri}
           placeholder="https://example.com/auth/callback"
-          class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 font-mono text-sm text-surface-content focus:border-primary focus:outline-none"
+          class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 font-mono text-sm text-surface-content focus:border-primary focus:outline-none"
         ></textarea>
         <p class="mt-2 text-xs text-muted">{help_text.redirect_uri}</p>
         {#if allow_blank_redirect_uri}
@@ -199,4 +188,4 @@
     <Button type="submit" variant="primary">{labels.submit}</Button>
     <Button href={cancel_path} variant="surface">{labels.cancel}</Button>
   </div>
-</form>
+</Form>

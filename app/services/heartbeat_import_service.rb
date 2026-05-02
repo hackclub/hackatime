@@ -1,7 +1,7 @@
 class HeartbeatImportService
   BATCH_SIZE = 50_000
 
-  def self.import_from_file(file_content, user, on_progress: nil, progress_interval: 250)
+  def self.import_from_file(file_content, user, on_progress: nil, progress_interval: 250, user_agents_by_id: {})
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     user_id = user.id
     imported_count = 0
@@ -15,6 +15,7 @@ class HeartbeatImportService
 
       begin
         time_value = hb["time"].is_a?(String) ? Time.parse(hb["time"]).to_f : hb["time"].to_f
+        normalized = normalize_imported_heartbeat(hb, user_agents_by_id:)
 
         attrs = {
           user_id: user_id,
@@ -23,12 +24,12 @@ class HeartbeatImportService
           type: hb["type"],
           category: hb["category"] || "coding",
           project: hb["project"],
-          language: hb["language"],
-          editor: hb["editor"],
-          operating_system: hb["operating_system"],
-          machine: hb["machine"] || hb["machine_name_id"],
+          language: normalized[:language],
+          editor: normalized[:editor],
+          operating_system: normalized[:operating_system],
+          machine: normalized[:machine],
           branch: hb["branch"],
-          user_agent: hb["user_agent"] || hb["user_agent_id"],
+          user_agent: normalized[:user_agent],
           is_write: hb["is_write"] || false,
           line_additions: hb["line_additions"],
           line_deletions: hb["line_deletions"],
@@ -97,6 +98,22 @@ class HeartbeatImportService
     total_count
   end
 
+  def self.normalize_imported_heartbeat(heartbeat, user_agents_by_id: {})
+    hb = heartbeat.respond_to?(:with_indifferent_access) ? heartbeat.with_indifferent_access : heartbeat.to_h.with_indifferent_access
+    user_agent_id = hb[:user_agent_id].to_s
+    user_agent_info = (user_agents_by_id[user_agent_id] || {}).with_indifferent_access
+    resolved_user_agent = hb[:user_agent].presence || user_agent_info[:value].presence || hb[:user_agent_id].presence
+    parsed_user_agent = parse_user_agent(resolved_user_agent)
+
+    {
+      language: LanguageUtils.fill_missing_language(hb[:language], entity: hb[:entity]),
+      editor: hb[:editor].presence || user_agent_info[:editor].presence || parsed_user_agent[:editor].presence,
+      operating_system: hb[:operating_system].presence || user_agent_info[:os].presence || parsed_user_agent[:os].presence,
+      machine: hb[:machine].presence || hb[:machine_name_id].presence,
+      user_agent: resolved_user_agent
+    }
+  end
+
   def self.flush_batch(seen_hashes)
     return 0 if seen_hashes.empty?
 
@@ -112,6 +129,17 @@ class HeartbeatImportService
       result.length
     end
   end
+
+  def self.parse_user_agent(user_agent)
+    return { editor: nil, os: nil } if user_agent.blank?
+
+    parsed = WakatimeService.parse_user_agent(user_agent)
+    {
+      editor: parsed[:editor].presence,
+      os: parsed[:os].presence
+    }
+  end
+  private_class_method :parse_user_agent
 
   class HeartbeatSaxHandler < Oj::Saj
     def initialize(&block)

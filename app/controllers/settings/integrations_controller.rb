@@ -6,7 +6,6 @@ class Settings::IntegrationsController < Settings::BaseController
   def update
     if @user.update(integrations_params)
       @user.update_slack_status if @user.uses_slack_status?
-      PosthogService.capture(@user, "settings_updated", { fields: integrations_params.keys })
       redirect_to my_settings_integrations_path, notice: "Settings updated successfully"
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
@@ -38,9 +37,10 @@ class Settings::IntegrationsController < Settings::BaseController
       slack: {
         can_enable_status: can_enable_slack_status,
         notification_channels: channel_ids.map { |channel_id|
+          channel_name = SlackChannel.find_by_id(channel_id) rescue nil
           {
             id: channel_id,
-            label: "##{channel_id}",
+            label: channel_name.present? ? "##{channel_name}" : "##{channel_id}",
             url: "https://hackclub.slack.com/archives/#{channel_id}"
           }
         }

@@ -11,7 +11,6 @@ class User < ApplicationRecord
 
   has_paper_trail
 
-  after_create :track_signup
   after_create :subscribe_to_default_lists
   before_validation :normalize_username
   encrypts :slack_access_token, :github_access_token, :hca_access_token
@@ -49,7 +48,8 @@ class User < ApplicationRecord
     default: 0,   # pleebs
     superadmin: 1,
     admin: 2,
-    viewer: 3
+    viewer: 3,
+    ultraadmin: 4
   }, prefix: :admin_level
 
   enum :theme, {
@@ -62,11 +62,35 @@ class User < ApplicationRecord
     github_light: 6,
     nord: 7,
     rose: 8,
-    rose_pine_dawn: 9
+    rose_pine_dawn: 9,
+    amoled: 10
   }
 
+  # Look up a user by numeric ID, slack_uid, hca_id, or username
+  def self.lookup_by_identifier(id)
+    return nil if id.blank?
+
+    numeric_id = id.to_i if id.match?(/^\d+$/)
+
+    relation = where(slack_uid: id)
+      .or(where(hca_id: id))
+      .or(where(username: id))
+    relation = where(id: numeric_id).or(relation) if numeric_id
+
+    candidates = relation.to_a
+
+    if numeric_id
+      match = candidates.find { |u| u.id == numeric_id }
+      return match if match
+    end
+
+    candidates.find { |u| u.slack_uid == id } ||
+      candidates.find { |u| u.hca_id == id } ||
+      candidates.find { |u| u.username == id }
+  end
+
   def can_convict_users?
-    admin_level_superadmin?
+    admin_level_superadmin? || admin_level_ultraadmin?
   end
 
   def set_admin_level(level)
@@ -86,7 +110,7 @@ class User < ApplicationRecord
 
     previous_level = trust_level
 
-    if changed_by_user.present? && level.to_s == "red" && !(changed_by_user.admin_level_superadmin?)
+    if changed_by_user.present? && level.to_s == "red" && !changed_by_user.can_convict_users?
       return false
     end
 
@@ -211,7 +235,8 @@ class User < ApplicationRecord
     compliment_text: 2
   }
 
-  after_save :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
+  after_update_commit :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
+  after_update_commit :schedule_dashboard_rollup_refresh, if: :saved_change_to_timezone?
 
   def flipper_id
     "User;#{id}"
@@ -219,6 +244,10 @@ class User < ApplicationRecord
 
   def active_remote_heartbeat_import_run?
     heartbeat_import_runs.remote_imports.active_imports.exists?
+  end
+
+  def activity_graph_cache_key(timezone = self.timezone)
+    "user_#{id}_daily_durations_#{timezone}"
   end
 
   def format_extension_text(duration)
@@ -286,6 +315,20 @@ class User < ApplicationRecord
     sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
   end
 
+  def rotate_api_keys!
+    api_keys.transaction do
+      api_keys.destroy_all
+      api_keys.create!(name: "Hackatime key")
+    end
+  end
+
+  def rotate_single_api_key!(api_key)
+    raise ActiveRecord::RecordNotFound unless api_key.user_id == id
+
+    api_key.update!(token: SecureRandom.uuid_v4)
+    api_key
+  end
+
   def find_valid_token(token)
     sign_in_tokens.valid.find_by(token: token)
   end
@@ -301,12 +344,15 @@ class User < ApplicationRecord
   private
 
   def invalidate_activity_graph_cache
-    Rails.cache.delete("user_#{id}_daily_durations")
+    previous_timezone, current_timezone = previous_changes.fetch("timezone", [ nil, timezone ])
+
+    [ previous_timezone, current_timezone ].compact.uniq.each do |cache_timezone|
+      Rails.cache.delete(activity_graph_cache_key(cache_timezone))
+    end
   end
 
-  def track_signup
-    PosthogService.identify(self)
-    PosthogService.capture(self, "account_created", { source: "signup" })
+  def schedule_dashboard_rollup_refresh
+    DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
   end
 
   def subscribe_to_default_lists
