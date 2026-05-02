@@ -1,86 +1,20 @@
 <script lang="ts">
-  import { Link, usePoll } from "@inertiajs/svelte";
+  import { Link, router, usePoll } from "@inertiajs/svelte";
   import Button from "../components/Button.svelte";
   import CountryFlag from "../components/CountryFlag.svelte";
+  import CurrentlyHackingPanel from "../components/CurrentlyHackingPanel.svelte";
   import Modal from "../components/Modal.svelte";
   import type { Snippet } from "svelte";
   import { onMount, onDestroy } from "svelte";
   import plur from "plur";
   import { streakTheme, streakLabel } from "../utils";
-
-  type NavLink = {
-    label: string;
-    href?: string;
-    active?: boolean;
-    badge?: number | null;
-    action?: string;
-    inertia?: boolean;
-  };
-
-  type AdminLevel = "default" | "superadmin" | "admin" | "viewer";
-
-  type NavCurrentUser = {
-    display_name: string;
-    avatar_url?: string | null;
-    title: string;
-    country_code?: string | null;
-    country_name?: string | null;
-    streak_days?: number | null;
-    admin_level: AdminLevel;
-  };
-
-  type LayoutNav = {
-    flash: { message: string; class_name: string }[];
-    user_present: boolean;
-    current_user?: NavCurrentUser | null;
-    login_path: string;
-    links: NavLink[];
-    dev_links: NavLink[];
-    admin_links: NavLink[];
-    viewer_links: NavLink[];
-    superadmin_links: NavLink[];
-  };
-
-  type Footer = {
-    git_version: string;
-    commit_link: string;
-    server_start_time_ago: string;
-    heartbeat_recent_count: number;
-    heartbeat_recent_imported_count: number;
-    query_count: number;
-    query_cache_count: number;
-    cache_hits: number;
-    cache_misses: number;
-    requests_per_second: string;
-    active_users_graph: { height: number; users: number }[];
-  };
-
-  type CurrentlyHackingUser = {
-    id: number;
-    display_name?: string;
-    slack_uid?: string;
-    avatar_url?: string;
-    active_project?: { name: string; repo_url?: string | null };
-  };
-
-  type LayoutProps = {
-    nav: LayoutNav;
-    footer: Footer;
-    theme: {
-      name: string;
-      color_scheme: "dark" | "light";
-      theme_color: string;
-    };
-    currently_hacking: {
-      count: number;
-      users: CurrentlyHackingUser[];
-      interval: number;
-    };
-    csrf_token: string;
-    signout_path: string;
-    show_stop_impersonating: boolean;
-    stop_impersonating_path: string;
-  };
+  import type {
+    AdminLevel,
+    LayoutNav,
+    LayoutProps,
+    NavCurrentUser,
+    NavLink,
+  } from "../types";
 
   let { layout, children }: { layout: LayoutProps; children?: Snippet } =
     $props();
@@ -90,9 +24,12 @@
 
   let navOpen = $state(false);
   let logoutOpen = $state(false);
-  let currentlyExpanded = $state(false);
   let flashVisible = $state(false);
   let flashHiding = $state(false);
+  let visibleFlash = $state<LayoutNav["flash"]>([]);
+  let activeFlashSignature = "";
+  let flashHideTimeoutId: ReturnType<typeof setTimeout> | undefined;
+  let flashRemoveTimeoutId: ReturnType<typeof setTimeout> | undefined;
   const flashHideDelay = 6000;
   const flashExitDuration = 250;
   const currentlyHackingPollInterval = () =>
@@ -100,7 +37,9 @@
 
   const toggleNav = () => (navOpen = !navOpen);
   const closeNav = () => (navOpen = false);
-  const openLogout = () => (logoutOpen = true);
+  const openLogout = () => {
+    logoutOpen = true;
+  };
   const closeLogout = () => (logoutOpen = false);
 
   usePoll(currentlyHackingPollInterval(), {
@@ -121,17 +60,6 @@
       closeLogout();
     }
   };
-
-  const countLabel = () =>
-    `${layout.currently_hacking.count} ${plur("person", layout.currently_hacking.count)} currently hacking`;
-
-  const visualizeGitUrl = (url?: string | null) =>
-    url?.startsWith("https://github.com/")
-      ? url.replace(
-          "https://github.com/",
-          "https://tkww0gcc0gkwwo4gc8kgs0sw.a.selfhosted.hackclub.com/",
-        )
-      : "";
 
   const latinPhrases = [
     "carpe diem",
@@ -155,67 +83,65 @@
   const footerStatsText = () =>
     `${layout.footer.heartbeat_recent_count} ${plur("heartbeat", layout.footer.heartbeat_recent_count)} (${layout.footer.heartbeat_recent_imported_count} imported) in the past 24 hours. (DB: ${layout.footer.query_count} ${plur("query", layout.footer.query_count)}, ${layout.footer.query_cache_count} cached) (CACHE: ${layout.footer.cache_hits} hits, ${layout.footer.cache_misses} misses) (${layout.footer.requests_per_second})`;
 
-  const adminLevelLabel = (adminLevel?: AdminLevel | null) => {
-    if (adminLevel === "superadmin") return "Superadmin";
-    if (adminLevel === "admin") return "Admin";
-    if (adminLevel === "viewer") return "Viewer";
-    return null;
+  const adminLevelMeta: Partial<
+    Record<AdminLevel, { label: string; class: string }>
+  > = {
+    ultraadmin: {
+      label: "Ultraadmin",
+      class: "text-purple-400 ultraadmin-tool",
+    },
+    superadmin: { label: "Superadmin", class: "text-red superadmin-tool" },
+    admin: { label: "Admin", class: "text-yellow admin-tool" },
+    viewer: { label: "Viewer", class: "text-blue viewer-tool" },
   };
 
-  const adminLevelClass = (adminLevel?: AdminLevel | null) => {
-    if (adminLevel === "superadmin") return "text-red superadmin-tool";
-    if (adminLevel === "admin") return "text-yellow admin-tool";
-    if (adminLevel === "viewer") return "text-blue viewer-tool";
-    return "";
-  };
-
-  const toggleCurrentlyHacking = () => {
-    currentlyExpanded = !currentlyExpanded;
-  };
+  const adminMetaFor = (adminLevel?: AdminLevel | null) =>
+    adminLevel ? adminLevelMeta[adminLevel] : null;
 
   $effect(() => {
     if (isBrowser) document.body.classList.toggle("overflow-hidden", navOpen);
   });
 
   $effect(() => {
-    if (!isBrowser || !layout.theme?.name) return;
+    if (!isBrowser) return;
 
-    document.documentElement.setAttribute("data-theme", layout.theme.name);
-
-    const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
-    colorSchemeMeta?.setAttribute("content", layout.theme.color_scheme);
-
-    const themeColorMeta = document.querySelector("meta[name='theme-color']");
-    themeColorMeta?.setAttribute("content", layout.theme.theme_color);
-
-    const tileColorMeta = document.querySelector(
-      "meta[name='msapplication-TileColor']",
-    );
-    tileColorMeta?.setAttribute("content", layout.theme.theme_color);
+    document.documentElement.dataset.theme = layout.theme.name;
+    document.documentElement.dataset.colorScheme = layout.theme.color_scheme;
+    document
+      .querySelector('meta[name="color-scheme"]')
+      ?.setAttribute("content", layout.theme.color_scheme);
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", layout.theme.theme_color);
   });
 
   $effect(() => {
     if (!layout.nav.flash.length) {
-      flashVisible = false;
-      flashHiding = false;
       return;
     }
 
+    const nextFlashSignature = flashSignature(layout.nav.flash);
+    if (nextFlashSignature === activeFlashSignature) {
+      return;
+    }
+
+    activeFlashSignature = nextFlashSignature;
+    if (flashHideTimeoutId) clearTimeout(flashHideTimeoutId);
+    if (flashRemoveTimeoutId) clearTimeout(flashRemoveTimeoutId);
+
+    visibleFlash = layout.nav.flash;
     flashVisible = true;
     flashHiding = false;
-    let removeTimeoutId: ReturnType<typeof setTimeout> | undefined;
-    const hideTimeoutId = setTimeout(() => {
+    router.replaceProp("layout.nav.flash", []);
+    flashHideTimeoutId = setTimeout(() => {
       flashHiding = true;
-      removeTimeoutId = setTimeout(() => {
+      flashRemoveTimeoutId = setTimeout(() => {
         flashVisible = false;
         flashHiding = false;
+        visibleFlash = [];
+        activeFlashSignature = "";
       }, flashExitDuration);
     }, flashHideDelay);
-
-    return () => {
-      clearTimeout(hideTimeoutId);
-      if (removeTimeoutId) clearTimeout(removeTimeoutId);
-    };
   });
 
   onMount(() => {
@@ -230,17 +156,162 @@
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("keydown", handleKeydown);
     }
+    if (flashHideTimeoutId) clearTimeout(flashHideTimeoutId);
+    if (flashRemoveTimeoutId) clearTimeout(flashRemoveTimeoutId);
   });
 
   const navLinkClass = (active?: boolean) =>
-    `block px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-primary text-on-primary font-bold" : "text-surface-content hover:bg-darkless hover:text-primary"}`;
+    `group flex min-h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${active ? "nav-link-active bg-primary text-on-primary font-bold" : "text-surface-content hover:bg-darkless hover:text-primary hover:shadow-[0_1px_0_rgba(255,255,255,0.06)]"}`;
+
+  const navLinkWithToolClass = (link: NavLink, toolClass = "") =>
+    `${navLinkClass(link.active)}${toolClass ? ` ${toolClass}` : ""}`;
+
+  const isLongCachedLink = (link: NavLink) =>
+    link.label === "Docs" || link.label === "Extensions";
+
+  const linkCacheFor = (link: NavLink): string | [string, string] =>
+    isLongCachedLink(link) ? "10m" : ["0s", "30s"];
+
+  const flashSignature = (flash: LayoutNav["flash"]) =>
+    JSON.stringify(
+      flash.map(({ message, class_name }) => [message, class_name]),
+    );
+
+  const adminLinkSections = () => [
+    { links: layout.nav.dev_links, toolClass: "dev-tool" },
+    { links: layout.nav.admin_links, toolClass: "admin-tool" },
+    { links: layout.nav.viewer_links, toolClass: "viewer-tool" },
+    { links: layout.nav.superadmin_links, toolClass: "superadmin-tool" },
+    { links: layout.nav.ultraadmin_links || [], toolClass: "ultraadmin-tool" },
+  ];
+
+  const hasAdminLinks = () =>
+    adminLinkSections().some(({ links }) => links.length > 0);
 </script>
 
-{#if flashVisible && layout.nav.flash.length > 0}
+{#snippet navBadge(link: NavLink)}
+  {#if link.badge}
+    <span
+      class={`ml-2 rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums ${link.active ? "bg-on-primary/20 text-on-primary" : "bg-primary text-on-primary"}`}
+    >
+      {link.badge}
+    </span>
+  {/if}
+{/snippet}
+
+{#snippet navItem(link: NavLink, toolClass = "")}
+  {#if link.action === "logout"}
+    <Button
+      type="button"
+      unstyled
+      onclick={openLogout}
+      class={`${navLinkClass(false)} cursor-pointer w-full text-left`}
+      >Logout</Button
+    >
+  {:else if link.inertia}
+    <Link
+      href={link.href || "#"}
+      prefetch
+      cacheFor={linkCacheFor(link)}
+      onclick={handleNavLinkClick}
+      class={navLinkWithToolClass(link, toolClass)}
+    >
+      {link.label}
+      {@render navBadge(link)}
+    </Link>
+  {:else}
+    <a
+      href={link.href || "#"}
+      onclick={handleNavLinkClick}
+      class={navLinkWithToolClass(link, toolClass)}
+    >
+      {link.label}
+      {@render navBadge(link)}
+    </a>
+  {/if}
+{/snippet}
+
+{#snippet userAvatar(user: NavCurrentUser)}
+  {#if user.avatar_url}
+    <img
+      src={user.avatar_url}
+      alt={`${user.display_name}'s avatar`}
+      width="32"
+      height="32"
+      class="avatar-image-outline aspect-square rounded-full"
+      loading="lazy"
+    />
+  {/if}
+{/snippet}
+
+{#snippet userCountry(user: NavCurrentUser)}
+  {#if user.country_code}
+    <span
+      class="flex items-center"
+      title={user.country_name || user.country_code}
+    >
+      <CountryFlag
+        countryCode={user.country_code}
+        countryName={user.country_name}
+      />
+    </span>
+  {/if}
+{/snippet}
+
+{#snippet userStreak(user: NavCurrentUser)}
+  {#if user.streak_days && user.streak_days > 0}
+    {@const streak = streakTheme(user.streak_days)}
+    <div
+      class={`group inline-flex items-center gap-1 rounded-lg bg-gradient-to-r px-2 py-1 transition-[background-color,border-color,color,box-shadow] duration-200 ${streak.bg} border ${streak.bc} ${streak.hbg}`}
+      title={user.streak_days > 30
+        ? "30+ daily streak"
+        : `${user.streak_days} day streak`}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        class={`${streak.ic} transition-colors duration-200 group-hover:animate-pulse`}
+      >
+        <path
+          fill="currentColor"
+          d="M10 2c0-.88 1.056-1.331 1.692-.722c1.958 1.876 3.096 5.995 1.75 9.12l-.08.174l.012.003c.625.133 1.203-.43 2.303-2.173l.14-.224a1 1 0 0 1 1.582-.153C18.733 9.46 20 12.402 20 14.295C20 18.56 16.409 22 12 22s-8-3.44-8-7.706c0-2.252 1.022-4.716 2.632-6.301l.605-.589c.241-.236.434-.43.618-.624C9.285 5.268 10 3.856 10 2"
+        ></path>
+      </svg>
+
+      <span
+        class={`text-md font-semibold tabular-nums ${streak.tc} transition-colors duration-200`}
+      >
+        {streakLabel(user.streak_days)}
+        <span class={`ml-1 font-normal ${streak.tm}`}>day streak</span>
+      </span>
+    </div>
+  {/if}
+{/snippet}
+
+{#snippet currentUserSummary(user: NavCurrentUser)}
+  <div class="user-info flex min-h-10 items-center gap-2" title={user.title}>
+    {@render userAvatar(user)}
+    <span class="inline-flex items-center gap-1">{user.display_name}</span>
+    {@render userCountry(user)}
+  </div>
+
+  {@render userStreak(user)}
+
+  {@const adminMeta = adminMetaFor(user.admin_level)}
+  {#if adminMeta}
+    <span class={`${adminMeta.class} font-semibold px-2`}>
+      {adminMeta.label}
+    </span>
+  {/if}
+{/snippet}
+
+{#if flashVisible && visibleFlash.length > 0}
   <div
     class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4 space-y-2"
   >
-    {#each layout.nav.flash as item}
+    {#each visibleFlash as item}
       <div
         class={`flash-message shadow-lg flash-message--enter ${flashHiding ? "flash-message--leaving" : ""} ${item.class_name}`}
       >
@@ -274,16 +345,16 @@
       />
     </svg>
   </Button>
-  <button
+  <Button
     type="button"
-    class="nav-overlay"
-    class:open={navOpen}
+    unstyled
+    class={`nav-overlay ${navOpen ? "open" : ""}`}
     onclick={closeNav}
     aria-label="Close navigation menu"
-  ></button>
+  ></Button>
 
   <aside
-    class="flex flex-col min-h-screen w-52 bg-dark text-surface-content px-3 py-4 rounded-r-lg overflow-y-auto lg:block"
+    class="flex min-h-screen w-52 flex-col overflow-y-auto rounded-r-2xl bg-dark px-3 py-4 text-surface-content shadow-[4px_0_24px_rgba(0,0,0,0.16),inset_-1px_0_0_rgba(255,255,255,0.06)] lg:block"
     data-nav-target="nav"
     class:open={navOpen}
     style="scrollbar-width: none; -ms-overflow-style: none;"
@@ -291,78 +362,10 @@
     <div class="space-y-4">
       {#if layout.nav.user_present}
         <div
-          class="flex flex-col items-center gap-2 pb-3 border-b border-darkless"
+          class="flex flex-col items-center gap-2 rounded-xl px-2 pb-3 shadow-[0_1px_0_rgba(255,255,255,0.08)]"
         >
           {#if layout.nav.current_user}
-            <div
-              class="user-info flex items-center gap-2"
-              title={layout.nav.current_user.title}
-            >
-              {#if layout.nav.current_user.avatar_url}
-                <img
-                  src={layout.nav.current_user.avatar_url}
-                  alt={`${layout.nav.current_user.display_name}'s avatar`}
-                  width="32"
-                  height="32"
-                  class="rounded-full aspect-square border border-surface-200"
-                  loading="lazy"
-                />
-              {/if}
-              <span class="inline-flex items-center gap-1">
-                {layout.nav.current_user.display_name}
-              </span>
-              {#if layout.nav.current_user.country_code}
-                <span
-                  class="flex items-center"
-                  title={layout.nav.current_user.country_name ||
-                    layout.nav.current_user.country_code}
-                >
-                  <CountryFlag
-                    countryCode={layout.nav.current_user.country_code}
-                    countryName={layout.nav.current_user.country_name}
-                  />
-                </span>
-              {/if}
-            </div>
-
-            {#if layout.nav.current_user.streak_days && layout.nav.current_user.streak_days > 0}
-              {@const streak = streakTheme(layout.nav.current_user.streak_days)}
-              <div
-                class={`inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${streak.bg} border ${streak.bc} rounded-lg transition-all duration-200 ${streak.hbg} group`}
-                title={layout.nav.current_user.streak_days > 30
-                  ? "30+ daily streak"
-                  : `${layout.nav.current_user.streak_days} day streak`}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  class={`${streak.ic} transition-colors duration-200 group-hover:animate-pulse`}
-                >
-                  <path
-                    fill="currentColor"
-                    d="M10 2c0-.88 1.056-1.331 1.692-.722c1.958 1.876 3.096 5.995 1.75 9.12l-.08.174l.012.003c.625.133 1.203-.43 2.303-2.173l.14-.224a1 1 0 0 1 1.582-.153C18.733 9.46 20 12.402 20 14.295C20 18.56 16.409 22 12 22s-8-3.44-8-7.706c0-2.252 1.022-4.716 2.632-6.301l.605-.589c.241-.236.434-.43.618-.624C9.285 5.268 10 3.856 10 2"
-                  ></path>
-                </svg>
-
-                <span
-                  class={`text-md font-semibold ${streak.tc} transition-colors duration-200`}
-                >
-                  {streakLabel(layout.nav.current_user.streak_days)}
-                  <span class={`ml-1 font-normal ${streak.tm}`}>day streak</span
-                  >
-                </span>
-              </div>
-            {/if}
-
-            {#if adminLevelLabel(layout.nav.current_user.admin_level)}
-              <span
-                class={`${adminLevelClass(layout.nav.current_user.admin_level)} font-semibold px-2`}
-              >
-                {adminLevelLabel(layout.nav.current_user.admin_level)}
-              </span>
-            {/if}
+            {@render currentUserSummary(layout.nav.current_user)}
           {/if}
         </div>
       {:else}
@@ -377,164 +380,17 @@
 
       <nav class="space-y-1">
         {#each layout.nav.links as link}
-          {#if link.action === "logout"}
-            <button
-              type="button"
-              onclick={openLogout}
-              class={`${navLinkClass(false)} cursor-pointer w-full text-left`}
-              >Logout</button
-            >
-          {:else if link.inertia}
-            <Link
-              href={link.href || "#"}
-              onclick={handleNavLinkClick}
-              class={navLinkClass(link.active)}>{link.label}</Link
-            >
-          {:else}
-            <a
-              href={link.href || "#"}
-              onclick={handleNavLinkClick}
-              class={navLinkClass(link.active)}>{link.label}</a
-            >
-          {/if}
+          {@render navItem(link)}
         {/each}
 
-        {#if layout.nav.dev_links.length > 0 || layout.nav.admin_links.length > 0 || layout.nav.viewer_links.length > 0 || layout.nav.superadmin_links.length > 0}
-          <div class="pt-2 mt-2 border-t border-darkless space-y-1">
-            {#each layout.nav.dev_links as link}
-              {#if link.inertia}
-                <Link
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} dev-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </Link>
-              {:else}
-                <a
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} dev-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </a>
-              {/if}
-            {/each}
-
-            {#each layout.nav.admin_links as link}
-              {#if link.inertia}
-                <Link
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} admin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </Link>
-              {:else}
-                <a
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} admin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </a>
-              {/if}
-            {/each}
-
-            {#each layout.nav.viewer_links as link}
-              {#if link.inertia}
-                <Link
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} viewer-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </Link>
-              {:else}
-                <a
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} viewer-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </a>
-              {/if}
-            {/each}
-
-            {#each layout.nav.superadmin_links as link}
-              {#if link.inertia}
-                <Link
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} superadmin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-white font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </Link>
-              {:else}
-                <a
-                  href={link.href || "#"}
-                  onclick={handleNavLinkClick}
-                  class="{navLinkClass(link.active)} superadmin-tool"
-                >
-                  {link.label}
-                  {#if link.badge}
-                    <span
-                      class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"
-                    >
-                      {link.badge}
-                    </span>
-                  {/if}
-                </a>
-              {/if}
+        {#if hasAdminLinks()}
+          <div
+            class="mt-2 space-y-1 pt-2 shadow-[0_-1px_0_rgba(255,255,255,0.08)]"
+          >
+            {#each adminLinkSections() as { links, toolClass }}
+              {#each links as link}
+                {@render navItem(link, toolClass)}
+              {/each}
             {/each}
           </div>
         {/if}
@@ -544,9 +400,9 @@
 {/if}
 
 <main
-  class={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
+  class={`min-h-screen min-w-0 flex-1 transition-[margin] duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
 >
-  <div class="w-full max-w-7xl mx-auto p-4 pt-16 lg:pt-8 md:p-8">
+  <div class="mx-auto w-full min-w-0 max-w-7xl p-4 pt-16 md:p-8 lg:pt-8">
     {@render children?.()}
 
     <footer
@@ -586,93 +442,7 @@
 </main>
 
 {#if layout.currently_hacking}
-  <div
-    class="fixed top-0 right-5 max-w-sm max-h-[80vh] bg-dark border border-darkless rounded-b-xl shadow-lg z-1000 overflow-hidden transform transition-transform duration-300 ease-out"
-  >
-    <button
-      type="button"
-      class="currently-hacking p-3 bg-dark cursor-pointer select-none flex items-center justify-between"
-      onclick={toggleCurrentlyHacking}
-      aria-expanded={currentlyExpanded}
-      aria-label="Toggle currently hacking list"
-    >
-      <div class="text-surface-content text-sm font-medium">
-        <div class="flex items-center">
-          <div class="w-2 h-2 rounded-full bg-green animate-pulse mr-2"></div>
-          <span class="text-base">{countLabel()}</span>
-        </div>
-      </div>
-    </button>
-
-    {#if currentlyExpanded}
-      {#if layout.currently_hacking.users.length === 0}
-        <div class="p-4 bg-dark">
-          <div class="text-center text-muted text-sm italic">
-            No one is currently hacking :(
-          </div>
-        </div>
-      {:else}
-        <div
-          class="currently-hacking-list max-h-[60vh] max-w-100 overflow-y-auto p-2 bg-darker"
-        >
-          <div class="space-y-2">
-            {#each layout.currently_hacking.users as user}
-              <div
-                class="flex flex-col space-y-1 p-2 rounded-md hover:bg-dark transition-colors"
-              >
-                <div class="flex items-center gap-2">
-                  {#if user.avatar_url}
-                    <img
-                      src={user.avatar_url}
-                      alt={`${user.display_name || `User ${user.id}`}'s avatar`}
-                      class="w-6 h-6 rounded-full aspect-square flex-shrink-0"
-                      loading="lazy"
-                    />
-                  {/if}
-                  {#if user.slack_uid}
-                    <a
-                      href={`https://hackclub.slack.com/team/${user.slack_uid}`}
-                      target="_blank"
-                      class="text-blue hover:underline text-sm"
-                    >
-                      @{user.display_name || `User ${user.id}`}
-                    </a>
-                  {:else}
-                    <span class="text-surface-content text-sm"
-                      >{user.display_name || `User ${user.id}`}</span
-                    >
-                  {/if}
-                </div>
-                {#if user.active_project}
-                  <div class="text-xs text-muted ml-8">
-                    working on
-                    {#if user.active_project.repo_url}
-                      <a
-                        href={user.active_project.repo_url}
-                        target="_blank"
-                        class="text-accent hover:text-cyan transition-colors"
-                      >
-                        {user.active_project.name}
-                      </a>
-                    {:else}
-                      {user.active_project.name}
-                    {/if}
-                    {#if visualizeGitUrl(user.active_project.repo_url)}
-                      <a
-                        href={visualizeGitUrl(user.active_project.repo_url)}
-                        target="_blank"
-                        class="ml-1">🌌</a
-                      >
-                    {/if}
-                  </div>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        </div>
-      {/if}
-    {/if}
-  </div>
+  <CurrentlyHackingPanel currentlyHacking={layout.currently_hacking} />
 {/if}
 
 <Modal

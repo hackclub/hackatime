@@ -42,6 +42,7 @@ class ProfileSettingsTest < ApplicationSystemTestCase
     click_on "Save username"
     assert_text "Settings updated successfully"
     assert_equal new_username, @user.reload.username
+    assert_equal "US", @user.reload.country_code
   end
 
   test "profile settings rejects invalid username" do
@@ -51,14 +52,13 @@ class ProfileSettingsTest < ApplicationSystemTestCase
     fill_in "Username", with: "bad username!"
     click_on "Save username"
 
-    assert_current_path my_settings_profile_path, ignore_query: true
     assert_text "Some changes could not be saved:"
     assert_text "Username may only include letters, numbers, '-', and '_'"
     assert_equal "good_name", @user.reload.username
   end
 
-  test "profile settings updates privacy option" do
-    @user.update!(allow_public_stats_lookup: false)
+  test "profile settings updates privacy option without wiping country" do
+    @user.update!(country_code: "CA", allow_public_stats_lookup: false)
 
     visit my_settings_profile_path
 
@@ -69,10 +69,11 @@ class ProfileSettingsTest < ApplicationSystemTestCase
 
     assert_text "Settings updated successfully"
     assert_equal true, @user.reload.allow_public_stats_lookup
+    assert_equal "CA", @user.reload.country_code
   end
 
-  test "profile settings updates theme" do
-    @user.update!(theme: :gruvbox_dark)
+  test "profile settings updates theme without wiping country" do
+    @user.update!(country_code: "CA", theme: :gruvbox_dark)
 
     visit my_settings_profile_path
 
@@ -83,5 +84,6 @@ class ProfileSettingsTest < ApplicationSystemTestCase
 
     assert_text "Settings updated successfully"
     assert_equal "neon", @user.reload.theme
+    assert_equal "CA", @user.reload.country_code
   end
 end

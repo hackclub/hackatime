@@ -83,6 +83,8 @@ class WakatimeService
     # Regex pattern to match wakatime client user agents
     user_agent_pattern = /wakatime\/[^ ]+ \(([^)]+)\)(?: [^ ]+ ([^\/]+)(?:\/([^\/]+))?)?/
 
+    return { os: "", editor: "", err: "failed to parse user agent string" } if user_agent.blank?
+
     if matches = user_agent.match(user_agent_pattern)
       os = matches[1].split("-").first
 

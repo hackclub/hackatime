@@ -53,6 +53,7 @@ module CustomDoorkeeper
         },
         form_data: {
           authorize_path: oauth_authorization_path,
+          csrf_token: form_authenticity_token,
           client_id: pre_auth.client.uid,
           redirect_uri: pre_auth.redirect_uri,
           state: pre_auth.state,

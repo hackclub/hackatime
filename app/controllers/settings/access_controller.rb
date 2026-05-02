@@ -5,7 +5,6 @@ class Settings::AccessController < Settings::BaseController
 
   def update
     if @user.update(access_params)
-      PosthogService.capture(@user, "settings_updated", { fields: access_params.keys })
       redirect_to my_settings_access_path, notice: "Settings updated successfully"
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
@@ -16,11 +15,11 @@ class Settings::AccessController < Settings::BaseController
   def rotate_api_key
     new_api_key = @user.rotate_api_keys!
 
-    PosthogService.capture(@user, "api_key_rotated")
-    render json: { token: new_api_key.token }, status: :ok
+    flash[:rotated_api_key] = new_api_key.token
+    redirect_to my_settings_access_path, notice: "API key rotated successfully"
   rescue => e
     report_error(e, message: "error rotate #{e.class.name}")
-    render json: { error: "cant rotate" }, status: :unprocessable_entity
+    redirect_to my_settings_access_path, alert: "Unable to rotate API key"
   end
 
   private
@@ -39,7 +38,7 @@ class Settings::AccessController < Settings::BaseController
     {
       settings_update_path: my_settings_access_path,
       user: user_props,
-      options: options_props,
+      options: base_options,
       paths: paths_props,
       config_file: {
         content: generated_wakatime_config(api_key_token),
@@ -47,7 +46,8 @@ class Settings::AccessController < Settings::BaseController
         empty_message: "No API key is available yet. Rotate your API key to generate one.",
         api_key: api_key_token,
         api_url: "https://#{request.host_with_port}/api/hackatime/v1"
-      }
+      },
+      rotated_api_key: flash[:rotated_api_key]
     }
   end
 

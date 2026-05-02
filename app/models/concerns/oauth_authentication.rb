@@ -44,7 +44,7 @@ module OauthAuthentication
       URI.parse("https://github.com/login/oauth/authorize?#{params.to_query}")
     end
 
-    def from_hca_token(code, redirect_uri)
+    def from_hca_token(code, redirect_uri, ip_address = nil)
       response = HTTP.post("#{HCAService.host}/oauth/token", form: {
         client_id: ENV["HCA_CLIENT_ID"],
         client_secret: ENV["HCA_CLIENT_SECRET"],
@@ -66,25 +66,31 @@ module OauthAuthentication
                   EmailAddress.find_by(email: identity["primary_email"])&.user unless identity["primary_email"].blank?
                 end
 
-      @user.update(
-        hca_scopes: hca_data["scopes"],
-        hca_id: identity["id"],
-        hca_access_token: access_token
-      ) if !!@user
+      if @user
+        attrs = {
+          hca_scopes: hca_data["scopes"],
+          hca_id: identity["id"],
+          hca_access_token: access_token
+        }
+        attrs[:country_code] = country_code_from_ip(ip_address) if @user.country_code.blank?
+        @user.update(attrs)
+      end
 
       @user ||= begin
+                  country_code = country_code_from_ip(ip_address)
                   u = User.create!(
                     hca_id: identity["id"],
                     slack_uid: identity["slack_id"],
                     hca_scopes: hca_data["scopes"],
                     hca_access_token: access_token,
+                    country_code: country_code,
                   )
                   EmailAddress.create!(email: identity["primary_email"], user: u) unless identity["primary_email"].blank?
                   u
                 end
     end
 
-    def from_slack_token(code, redirect_uri)
+    def from_slack_token(code, redirect_uri, ip_address = nil)
       response = HTTP.post("https://slack.com/api/oauth.v2.access", form: {
         client_id: ENV["SLACK_CLIENT_ID"],
         client_secret: ENV["SLACK_CLIENT_SECRET"],
@@ -131,11 +137,24 @@ module OauthAuthentication
 
       user.slack_access_token = data["authed_user"]["access_token"]
       user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
+      user.country_code = country_code_from_ip(ip_address) if user.country_code.blank?
 
       user.save!
       user
     rescue => e
       report_error(e, message: "Error creating user from Slack data: #{e.message}")
+      nil
+    end
+
+    def country_code_from_ip(ip_address)
+      return nil if ip_address.blank?
+
+      result = Geocoder.search(ip_address).first
+      return nil unless result&.country_code.present?
+
+      result.country_code.upcase
+    rescue => e
+      report_error(e, message: "country geocode fail for signup IP")
       nil
     end
 

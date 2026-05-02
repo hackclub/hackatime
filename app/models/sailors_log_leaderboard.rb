@@ -87,14 +87,22 @@ class SailorsLogLeaderboard < ApplicationRecord
   end
 
   def self.language_emoji(language)
+    return nil if language.blank?
+
     language = language.downcase
     case language
     when "ruby"
       [ ":#{language}:" || ":-ruby:" ].sample
     when "javascript"
       ":js:"
+    when "js"
+      ":js:"
+    when "reactjs", "react"
+      ":react:"
     when "typescript"
-      ":ts:"
+      ":typescript:"
+    when "ts"
+      ":typescript:"
     when "html"
       ":#{language}:"
     when "java"
@@ -113,14 +121,22 @@ class SailorsLogLeaderboard < ApplicationRecord
       [ ":ferris:", ":crab:", ":ferrisowo:" ].sample
     when "python"
       [ ":snake:", ":python:", ":pf:", ":tw_snake:" ].sample
+    when "swift", "xcode", "x code", "swiftui", "swift ui"
+      ":swift:"
     when "nix"
       [ ":nix:", ":parrot-nix:" ].sample
-    when "go"
+    when "nixos", "nixpkgs"
+      ":nix:"
+    when "go", "golang"
       [ ":golang:", ":gopher:", ":gothonk:" ].sample
+    when "deno"
+      ":deno:"
     when "kotlin"
       ":#{language}:"
     when "astro"
       ":#{language}:"
+    when "svelte"
+      ":svelte:"
     else
       nil
     end

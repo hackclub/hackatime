@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="en" class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>">
+<html lang="en" class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>" data-color-scheme="<%= current_theme_color_scheme %>">
   <head>
-    <title><%= @page_title || content_for(:title) || 'Hackatime - Free & Open Source Coding Time Tracker' %></title>
+    <title><%= @page_title || content_for(:title) || 'Hackatime - Track your coding time' %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -39,10 +39,11 @@
     <% end %>
 
     <% include_external_scripts = !Rails.env.test? %>
+    <% include_jam_scripts = include_external_scripts && params[:jam].present? %>
 
     <%= yield :head %>
 
-    <% if include_external_scripts %>
+    <% if include_jam_scripts %>
       <!-- Lets users record their screen from your site -->
       <meta name="jam:team" content="a5978e52-2479-4dd3-9883-593aa7a4f121">
       <script type="module" src="https://js.jam.dev/recorder.js"></script>

@@ -48,11 +48,7 @@
             start.setDate(start.getDate() - 6);
             return `${start.toLocaleDateString("en-US", { month: "long", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
           })()
-        : new Date().toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })),
+        : "Last 24 hours"),
   );
 </script>
 

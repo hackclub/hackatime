@@ -46,7 +46,7 @@ class LeaderboardPageCache
         scope_query = scope_query.joins(:user).where(users: { country_code: country_code })
       end
 
-      scope_query.includes(user: :email_addresses)
+      scope_query.preload(:user)
     end
 
     def serialize_user(user)

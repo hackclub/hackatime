@@ -121,8 +121,8 @@ module Heartbeatable
 
     def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
       return {} if user_ids.empty?
-      start_date = [ start_date, 30.days.ago ].max
-      cache_prefix = exclude_browser_time ? "user_streak_without_browser" : "user_streak"
+      start_date = [ start_date, 31.days.ago ].max
+      cache_prefix = exclude_browser_time ? "user_streak_without_browser_v3" : "user_streak_v3"
       keys = user_ids.map { |id| "#{cache_prefix}_#{id}" }
       streak_cache = Rails.cache.read_multi(*keys)
 
@@ -142,7 +142,7 @@ module Heartbeatable
       SQL
       raw_durations = joins(:user)
         .where(user_id: uncached_users)
-        .coding_only
+        .where.not(category: "browsing")
         .with_valid_timestamps
         .where(time: start_date..Time.current)
         .select(
@@ -190,23 +190,18 @@ module Heartbeatable
         current_date = data[:current_date]
         days = data[:days]
 
-        # Calculate streak
+        eligible_days = days.filter_map do |date, duration|
+          date if date <= current_date && duration >= 15 * 60
+        end
+
         streak = 0
-        days.each do |date, duration|
-          # Skip if this day is in the future
-          next if date > current_date
+        expected_date = eligible_days.first == current_date ? current_date : current_date - 1.day
 
-          # If they didn't code enough today, just skip
-          if date == current_date
-            next unless duration >= 15 * 60
+        eligible_days.each do |date|
+          if date == expected_date
             streak += 1
-            next
-          end
-
-          # For previous days, check if it's the next day in the streak
-          if date == current_date - streak.days && duration >= 15 * 60
-            streak += 1
-          else
+            expected_date -= 1.day
+          elsif date < expected_date
             break
           end
         end

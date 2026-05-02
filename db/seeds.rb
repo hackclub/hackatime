@@ -10,7 +10,7 @@ if Rails.env.development? || Rails.env.test?
     user.username = 'testuser'
     user.slack_username = 'testuser'
 
-    user.set_admin_level(:superadmin)
+    user.set_admin_level(:ultraadmin)
     # Ensure timezone is set to avoid nil timezone issues
     user.timezone = 'America/New_York'
   end

@@ -4,9 +4,14 @@ import { defineConfig } from 'vite'
 import RubyPlugin from 'vite-plugin-ruby'
 
 export default defineConfig({
+  server: {
+    hmr: {
+      host: "localhost",
+    },
+  },
   plugins: [
     svelte(),
     tailwindcss(),
     RubyPlugin(),
   ],
-})
+});

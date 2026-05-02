@@ -1,11 +1,29 @@
 aside[data-nav-target="nav"] {
-  @apply fixed inset-y-0 left-0 w-[15.625rem] bg-dark border-r border-r-darkless z-1000 overflow-y-auto py-6 px-2 transition-transform duration-300 ease-in-out;
+  @apply fixed inset-y-0 left-0 z-1000 w-[15.625rem] overflow-y-auto rounded-r-2xl bg-dark px-3 py-4 shadow-[4px_0_24px_rgba(0,0,0,0.16),inset_-1px_0_0_rgba(255,255,255,0.06)] transition-transform duration-300 ease-in-out;
   color: var(--color-surface-content);
+}
+
+html[data-theme="catppuccin_iced_latte"] aside[data-nav-target="nav"],
+html[data-theme="github_light"] aside[data-nav-target="nav"],
+html[data-theme="rose_pine_dawn"] aside[data-nav-target="nav"] {
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.08);
+}
+
+.nav-link-active {
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+html[data-color-scheme="light"] .nav-link-active {
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 aside[data-nav-target="nav"] a.block,
 aside[data-nav-target="nav"] button.block {
-  @apply block py-2.5 px-4 rounded-md transition-colors duration-150 no-underline;
+  @apply flex min-h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-left no-underline transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96];
 }
 
 aside[data-nav-target="nav"] a.block.bg-primary\/20,
@@ -33,14 +51,20 @@ aside[data-nav-target="nav"]
   }
 
   aside[data-nav-target="nav"].open {
-    @apply translate-x-0 shadow-[2px_0_20px_rgba(0,0,0,0.3)];
+    @apply translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.28),inset_-1px_0_0_rgba(255,255,255,0.06)];
+  }
+
+  html[data-theme="catppuccin_iced_latte"] aside[data-nav-target="nav"].open,
+  html[data-theme="github_light"] aside[data-nav-target="nav"].open,
+  html[data-theme="rose_pine_dawn"] aside[data-nav-target="nav"].open {
+    box-shadow: 4px 0 18px rgba(0, 0, 0, 0.12), 1px 0 0 rgba(0, 0, 0, 0.08);
   }
 }
 
 .mobile-nav-button {
   background: var(--color-darkless);
   color: var(--color-primary);
-  @apply hidden fixed top-5 left-5 z-100 border-none rounded-md p-3 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-[background-color] duration-200;
+  @apply fixed top-5 left-5 z-100 hidden min-h-10 min-w-10 cursor-pointer rounded-lg border-none p-3 shadow-[0_8px_20px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] transition-[background-color,box-shadow,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.96];
 }
 
 .mobile-nav-button:hover {
