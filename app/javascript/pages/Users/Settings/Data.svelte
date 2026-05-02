@@ -257,7 +257,7 @@
                 name="heartbeat_import[api_key]"
                 type="password"
                 bind:value={remoteApiKey}
-                class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-base text-surface-content focus:border-primary focus:outline-none"
+                class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-base text-surface-content focus:border-primary focus:outline-none"
                 disabled={importInProgress || processing}
               />
             </div>

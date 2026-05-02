@@ -196,7 +196,7 @@
           type="text"
           readonly
           value={share_url}
-          class="flex-1 rounded-lg border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content"
+          class="flex-1 rounded-lg border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content"
           onclick={(e) => e.currentTarget.select()}
         />
         <Button

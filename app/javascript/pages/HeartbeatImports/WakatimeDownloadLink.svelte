@@ -63,7 +63,7 @@
             placeholder="https://wakatime.s3.amazonaws.com/..."
             required
             disabled={processing}
-            class="w-full rounded-lg border border-surface-200 bg-darker px-4 py-3 text-sm text-surface-content focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            class="w-full rounded-lg border border-surface-200 bg-input px-4 py-3 text-sm text-surface-content focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
 

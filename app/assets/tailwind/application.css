@@ -67,6 +67,7 @@ html[data-theme="rose_pine_dawn"] .avatar-image-outline {
   --color-warning: #f1c40f;
   --color-danger: #c8394f;
   --color-on-primary: #ffffff;
+  --color-input: #1f1617;
 }
 
 :root {
@@ -82,6 +83,7 @@ html[data-theme="standard"] {
 html[data-theme="neon"] {
   --app-color-scheme: dark;
   --color-on-primary: #13160d;
+  --color-input: #050505;
   --color-darker: #050505;
   --color-dark: #101312;
   --color-darkless: #242a28;
@@ -110,6 +112,7 @@ html[data-theme="neon"] {
 html[data-theme="catppuccin_mocha"] {
   --app-color-scheme: dark;
   --color-on-primary: #1e1e2e;
+  --color-input: #11111b;
   --color-darker: #11111b;
   --color-dark: #181825;
   --color-darkless: #313244;
@@ -138,6 +141,7 @@ html[data-theme="catppuccin_mocha"] {
 html[data-theme="catppuccin_iced_latte"] {
   --app-color-scheme: light;
   --color-on-primary: #ffffff;
+  --color-input: #ffffff;
   --color-darker: #ccd0da;
   --color-dark: #dce0e8;
   --color-darkless: #bac2de;
@@ -166,6 +170,7 @@ html[data-theme="catppuccin_iced_latte"] {
 html[data-theme="gruvbox_dark"] {
   --app-color-scheme: dark;
   --color-on-primary: #1d2021;
+  --color-input: #1d2021;
   --color-darker: #1d2021;
   --color-dark: #282828;
   --color-darkless: #3c3836;
@@ -194,6 +199,7 @@ html[data-theme="gruvbox_dark"] {
 html[data-theme="github_dark"] {
   --app-color-scheme: dark;
   --color-on-primary: #ffffff;
+  --color-input: #1b1f23;
   --color-darker: #1b1f23;
   --color-dark: #1f2428;
   --color-darkless: #2f363d;
@@ -222,6 +228,7 @@ html[data-theme="github_dark"] {
 html[data-theme="github_light"] {
   --app-color-scheme: light;
   --color-on-primary: #ffffff;
+  --color-input: #f6f8fa;
   --color-darker: #d1d5da;
   --color-dark: #e1e4e8;
   --color-darkless: #f6f8fa;
@@ -250,6 +257,7 @@ html[data-theme="github_light"] {
 html[data-theme="nord"] {
   --app-color-scheme: dark;
   --color-on-primary: #2e3440;
+  --color-input: #2e3440;
   --color-darker: #2e3440;
   --color-dark: #3b4252;
   --color-darkless: #434c5e;
@@ -278,6 +286,7 @@ html[data-theme="nord"] {
 html[data-theme="rose"] {
   --app-color-scheme: dark;
   --color-on-primary: #191724;
+  --color-input: #191724;
   --color-darker: #191724;
   --color-dark: #1f1d2e;
   --color-darkless: #26233a;
@@ -306,6 +315,7 @@ html[data-theme="rose"] {
 html[data-theme="rose_pine_dawn"] {
   --app-color-scheme: light;
   --color-on-primary: #fffaf3;
+  --color-input: #ffffff;
   --color-darker: #dfdad9;
   --color-dark: #f2e9e1;
   --color-darkless: #cecacd;
@@ -334,6 +344,7 @@ html[data-theme="rose_pine_dawn"] {
 html[data-theme="amoled"] {
   --app-color-scheme: dark;
   --color-on-primary: #000000;
+  --color-input: #0a0a0a;
   --color-darker: #000000;
   --color-dark: #000000;
   --color-darkless: #121212;
