@@ -259,7 +259,10 @@ class User < ApplicationRecord
     when "clock_emoji"
       ::ApplicationController.helpers.time_in_emoji(duration)
     when "compliment_text"
-      FlavorText.compliment.sample
+      compliments = FlavorText.compliment
+      bucket = Time.now.to_i / (7 * 60)
+      seed = Digest::MD5.hexdigest("#{id}-#{bucket}").to_i(16)
+      compliments[Random.new(seed).rand(compliments.length)]
     end
   end
 
