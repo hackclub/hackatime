@@ -7,18 +7,12 @@
   import AuthForm from "../Home/signedOut/AuthForm.svelte";
 
   let {
-    hca_auth_path,
-    slack_auth_path,
-    email_auth_path,
     sign_in_email,
     show_dev_tool,
     dev_magic_link,
     csrf_token,
     continue_param,
   }: {
-    hca_auth_path: string;
-    slack_auth_path: string;
-    email_auth_path: string;
     sign_in_email: boolean;
     show_dev_tool: boolean;
     dev_magic_link?: string | null;
@@ -70,9 +64,6 @@
     </div>
 
     <AuthForm
-      {hca_auth_path}
-      {slack_auth_path}
-      {email_auth_path}
       {sign_in_email}
       {show_dev_tool}
       {dev_magic_link}

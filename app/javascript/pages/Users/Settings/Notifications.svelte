@@ -5,31 +5,25 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { NotificationsPageProps } from "./types";
+  import { settingsNotifications } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    settings_update_path,
     user,
     errors,
   }: NotificationsPageProps = $props();
+
+  const settingsUpdatePath = settingsNotifications.update.path();
 </script>
 
 <svelte:head>
   <title>Notifications - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   <SectionCard
     id="user_email_notifications"
     title="Email Notifications"
@@ -37,7 +31,7 @@
   >
     <Form
       id="notifications-settings-form"
-      action={settings_update_path}
+      action={settingsUpdatePath}
       method="patch"
       class="space-y-4"
       options={{ preserveScroll: true }}

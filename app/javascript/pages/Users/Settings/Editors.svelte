@@ -6,18 +6,19 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { EditorsPageProps } from "./types";
+  import { settingsEditors } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    settings_update_path,
     user,
     options,
     errors,
   }: EditorsPageProps = $props();
+
+  const settingsUpdatePath = settingsEditors.update.path();
 
   // When disabled, omit the field from submission entirely so the saved
   // preference is preserved instead of being silently cleared by the
@@ -31,14 +32,7 @@
   <title>Editors - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   <SectionCard
     id="user_hackatime_extension"
     title="Extension Display"
@@ -46,7 +40,7 @@
   >
     <Form
       id="editors-extension-form"
-      action={settings_update_path}
+      action={settingsUpdatePath}
       method="patch"
       class="space-y-4"
       options={{ preserveScroll: true }}

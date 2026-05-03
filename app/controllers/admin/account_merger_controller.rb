@@ -4,10 +4,7 @@ class Admin::AccountMergerController < InertiaController
   before_action :require_ultraadmin!
 
   def show
-    render inertia: "Admin/AccountMerger", props: {
-      search_url: search_users_admin_account_merger_path,
-      merge_url: merge_admin_account_merger_path
-    }
+    render inertia: "Admin/AccountMerger"
   end
 
   def search_users

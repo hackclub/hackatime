@@ -9,7 +9,6 @@ class Settings::SetupController < Settings::BaseController
     api_key_token = @user.api_keys.last&.token
 
     {
-      paths: paths_props(keys: %i[wakatime_setup_path]),
       config_file: {
         content: generated_wakatime_config(api_key_token),
         has_api_key: api_key_token.present?,

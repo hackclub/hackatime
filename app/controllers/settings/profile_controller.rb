@@ -22,8 +22,6 @@ class Settings::ProfileController < Settings::BaseController
 
   def section_props
     {
-      region_update_path: my_settings_profile_region_path,
-      username_update_path: my_settings_profile_username_path,
       username_max_length: User::USERNAME_MAX_LENGTH,
       user: user_props(keys: %i[country_code timezone username]),
       options: base_options(keys: %i[countries timezones]),
@@ -34,8 +32,7 @@ class Settings::ProfileController < Settings::BaseController
           source: email.source&.humanize || "Unknown",
           can_unlink: @user.can_delete_email_address?(email)
         }
-      },
-      paths: paths_props(keys: %i[add_email_path unlink_email_path])
+      }
     }
   end
 

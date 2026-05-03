@@ -68,6 +68,11 @@ COPY . .
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
+# Generate js_from_routes TypeScript path helpers. Must run before
+# assets:precompile so Vite/Svelte can import from app/javascript/api/.
+# These files are gitignored and regenerated on every build.
+RUN SECRET_KEY_BASE_DUMMY=1 JS_FROM_ROUTES_FORCE=true ./bin/rake js_from_routes:generate
+
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 RUN --mount=type=cache,target=/rails/node_modules/.vite \
     --mount=type=cache,target=/root/.bun/install/cache \

@@ -12,13 +12,14 @@ class UsersController < InertiaController
     render inertia: "WakatimeSetup/Index", props: {
       current_user_api_key: api_key.token,
       setup_os: detect_setup_os(request.user_agent).to_s,
-      api_url: api_hackatime_v1_url,
-      heartbeat_check_url: api_v1_my_heartbeats_most_recent_path(source_type: "test_entry")
+      # Full URL (with host) is shown to users in their config file, so we
+      # build it server-side rather than via js_from_routes.
+      api_url: api_hackatime_v1_url
     }
   end
 
   def wakatime_setup_step_2
-    render inertia: "WakatimeSetup/Step2", props: {}
+    render inertia: "WakatimeSetup/Step2"
   end
 
   def wakatime_setup_step_3
@@ -27,8 +28,7 @@ class UsersController < InertiaController
 
     render inertia: "WakatimeSetup/Step3", props: {
       current_user_api_key: api_key.token,
-      editor: params[:editor],
-      heartbeat_check_url: api_v1_my_heartbeats_most_recent_path
+      editor: params[:editor]
     }
   end
 

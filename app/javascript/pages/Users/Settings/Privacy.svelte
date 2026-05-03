@@ -6,19 +6,21 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { PrivacyPageProps } from "./types";
+  import { settingsPrivacy, deletionRequests } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    privacy_update_path,
     user,
-    paths,
     rotated_api_key = "",
     errors,
   }: PrivacyPageProps = $props();
+
+  const privacyUpdatePath = settingsPrivacy.update.path();
+  const rotateApiKeyPath = settingsPrivacy.rotateApiKey.path();
+  const createDeletionPath = deletionRequests.create.path();
 
   let rotatingApiKey = $state(false);
   let rotatedApiKey = $derived(rotated_api_key || "");
@@ -34,7 +36,7 @@
     apiKeyCopied = false;
 
     router.post(
-      paths.rotate_api_key_path,
+      rotateApiKeyPath,
       {},
       {
         preserveScroll: true,
@@ -69,14 +71,7 @@
   <title>Privacy & Security - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   <SectionCard
     id="user_privacy"
     title="Public Stats"
@@ -84,7 +79,7 @@
   >
     <Form
       id="privacy-public-stats-form"
-      action={privacy_update_path}
+      action={privacyUpdatePath}
       method="patch"
       class="space-y-3"
       options={{ preserveScroll: true }}
@@ -168,7 +163,7 @@
       {#snippet footer()}
         <Form
           method="post"
-          action={paths.create_deletion_path}
+          action={createDeletionPath}
           class="m-0"
           options={{ preserveScroll: true }}
           onBefore={() =>

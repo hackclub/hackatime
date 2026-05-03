@@ -8,6 +8,7 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { GoalsPageProps, ProgrammingGoal } from "./types";
+  import { settingsGoals } from "../../../api";
 
   const MAX_GOALS = 5;
   const QUICK_TARGETS = [
@@ -20,16 +21,16 @@
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    create_goal_path,
     programming_goals,
     options,
     errors,
     goal_form,
   }: GoalsPageProps = $props();
+
+  // settingsGoals is statically imported below.
 
   const goals = $derived(programming_goals || []);
   const hasReachedGoalLimit = $derived(goals.length >= MAX_GOALS);
@@ -166,9 +167,13 @@
     };
 
     if (editingGoal) {
-      router.patch(editingGoal.update_path, goalData(), callbacks);
+      router.patch(
+        settingsGoals.update.path({ goalId: editingGoal.id }),
+        goalData(),
+        callbacks,
+      );
     } else {
-      router.post(create_goal_path, goalData(), callbacks);
+      router.post(settingsGoals.create.path(), goalData(), callbacks);
     }
   }
 
@@ -176,7 +181,7 @@
     if (submitting) return;
     submitting = true;
 
-    router.delete(goal.destroy_path, {
+    router.delete(settingsGoals.destroy.path({ goalId: goal.id }), {
       preserveScroll: true,
       onSuccess: onRequestSuccess,
       onFinish: () => {
@@ -190,14 +195,7 @@
   <title>Goals - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   <SectionCard
     id="user_programming_goals"
     title="Programming Goals"

@@ -38,9 +38,6 @@ class StaticPagesController < InertiaController
     return redirect_to root_path if current_user
     continue_param = params[:continue].presence
     render inertia: "Auth/SignIn", props: {
-      hca_auth_path: hca_auth_path(continue: continue_param),
-      slack_auth_path: slack_auth_path(continue: continue_param),
-      email_auth_path: email_auth_path,
       sign_in_email: params[:sign_in_email].present?,
       show_dev_tool: Rails.env.development?,
       dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
@@ -144,8 +141,6 @@ class StaticPagesController < InertiaController
       ssp_users_recent: @ssp_users_recent || [],
       ssp_users_size: @ssp_users_size || @ssp_users_recent&.size || 0,
       github_uid_blank: current_user&.github_uid.blank?,
-      github_auth_path: github_auth_path,
-      wakatime_setup_path: my_wakatime_setup_path,
       dashboard_stats: dashboard_stats || InertiaRails.defer { dashboard_stats_payload }
     }
   end
@@ -162,9 +157,6 @@ class StaticPagesController < InertiaController
   def signed_out_props
     {
       flavor_text: @flavor_text.to_s,
-      hca_auth_path: hca_auth_path,
-      slack_auth_path: slack_auth_path,
-      email_auth_path: email_auth_path,
       sign_in_email: params[:sign_in_email].present?,
       show_dev_tool: Rails.env.development?,
       dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),

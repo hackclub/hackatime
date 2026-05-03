@@ -5,18 +5,19 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { AppearancePageProps } from "./types";
+  import { settingsAppearance } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    theme_update_path,
     user,
     options,
     errors,
   }: AppearancePageProps = $props();
+
+  const themeUpdatePath = settingsAppearance.updateTheme.path();
 
   let selectedTheme = $state("rose");
 
@@ -48,14 +49,7 @@
   <title>Appearance - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   <SectionCard
     id="user_theme"
     title="Theme"
@@ -64,7 +58,7 @@
   >
     <Form
       id="appearance-theme-form"
-      action={theme_update_path}
+      action={themeUpdatePath}
       method="patch"
       class="space-y-4"
       options={{ preserveScroll: true }}

@@ -16,6 +16,7 @@
     streakLabel,
     tabClass,
   } from "./utils";
+  import { sessions, settingsProfile } from "../../api";
 
   let {
     period_type,
@@ -24,8 +25,6 @@
     leaderboard,
     is_logged_in,
     github_uid_blank,
-    github_auth_path,
-    settings_path,
     entries,
   }: {
     period_type: string;
@@ -34,10 +33,11 @@
     leaderboard: LeaderboardMeta | null;
     is_logged_in: boolean;
     github_uid_blank: boolean;
-    github_auth_path: string;
-    settings_path: string;
     entries?: LeaderboardEntriesPayload;
   } = $props();
+
+  const githubAuthPath = sessions.githubNew.path();
+  const settingsPath = settingsProfile.mySettings.path();
 
   const dateRangeText = $derived(
     leaderboard?.date_range_text ??
@@ -125,7 +125,7 @@
       <p class="text-xs text-muted">
         Set your country in
         <Link
-          href={settings_path}
+          href={settingsPath}
           class="text-accent hover:text-cyan transition-colors">settings</Link
         >
         to unlock regional leaderboards.
@@ -139,7 +139,7 @@
         <span class="text-surface-content"
           >Connect your GitHub to qualify for the leaderboard.</span
         >
-        <Button href={github_auth_path} native size="md">Connect GitHub</Button>
+        <Button href={githubAuthPath} native size="md">Connect GitHub</Button>
       </div>
     {/if}
 

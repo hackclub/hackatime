@@ -7,6 +7,7 @@
     ImportsExportsPageProps,
     HeartbeatImportStatusProps,
   } from "./types";
+  import { myHeartbeatImports, myHeartbeats } from "../../../api";
 
   const PROVIDERS = [
     {
@@ -26,11 +27,9 @@
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    paths,
     data_export,
     imports_enabled,
     remote_import_cooldown_until,
@@ -38,6 +37,12 @@
     ui,
     errors,
   }: ImportsExportsPageProps = $props();
+
+  const createHeartbeatImportPath = myHeartbeatImports.create.path();
+  const exportAllHeartbeatsPath = myHeartbeats.export.path({
+    query: { all_data: "true" },
+  });
+  const exportRangeHeartbeatsPath = myHeartbeats.export.path();
 
   let selectedFile = $state<File | null>(null);
   let remoteProvider =
@@ -197,7 +202,6 @@
 
 <SettingsShell
   {active_section}
-  {section_paths}
   {page_title}
   {heading}
   {subheading}
@@ -207,7 +211,7 @@
   {#if ui.show_imports}
     <Form
       method="post"
-      action={paths.create_heartbeat_import_path}
+      action={createHeartbeatImportPath}
       resetOnSuccess={["heartbeat_import[api_key]"]}
       options={{ preserveScroll: true }}
       onSuccess={(page) =>
@@ -433,7 +437,7 @@
         <div class="mt-4 space-y-3">
           <Form
             method="post"
-            action={paths.export_all_heartbeats_path}
+            action={exportAllHeartbeatsPath}
             options={{ preserveScroll: true }}
           >
             {#snippet children({ processing })}
@@ -445,7 +449,7 @@
 
           <Form
             method="post"
-            action={paths.export_range_heartbeats_path}
+            action={exportRangeHeartbeatsPath}
             class="grid grid-cols-1 gap-3 rounded-md border border-surface-200 bg-darker p-4 sm:grid-cols-3"
             options={{ preserveScroll: true }}
           >
@@ -477,7 +481,7 @@
         {#if ui.show_dev_import}
           <Form
             method="post"
-            action={paths.create_heartbeat_import_path}
+            action={createHeartbeatImportPath}
             class="mt-4 rounded-md border border-surface-200 bg-darker p-4"
             resetOnSuccess={["heartbeat_file"]}
             options={{ preserveScroll: true }}

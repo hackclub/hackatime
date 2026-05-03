@@ -1,3 +1,16 @@
+import {
+  settingsProfile,
+  settingsSetup,
+  settingsAppearance,
+  settingsEditors,
+  settingsSlackGithub,
+  settingsNotifications,
+  settingsPrivacy,
+  settingsGoals,
+  settingsBadges,
+  settingsImportsExports,
+} from "../../../api";
+
 export type SectionId =
   | "profile"
   | "setup"
@@ -16,6 +29,21 @@ export type SettingsSection = {
   id: SectionId;
   label: string;
   path: string;
+};
+
+// Static map of section paths, derived from js_from_routes path helpers.
+// Stable across renders so we can pass it down without re-computing.
+export const SECTION_PATHS: SectionPaths = {
+  profile: settingsProfile.my.path(),
+  setup: settingsSetup.show.path(),
+  appearance: settingsAppearance.show.path(),
+  editors: settingsEditors.show.path(),
+  slack_github: settingsSlackGithub.show.path(),
+  notifications: settingsNotifications.show.path(),
+  privacy: settingsPrivacy.show.path(),
+  goals: settingsGoals.show.path(),
+  badges: settingsBadges.show.path(),
+  imports_exports: settingsImportsExports.show.path(),
 };
 
 export type SettingsSubsection = {
@@ -52,8 +80,6 @@ export type ProgrammingGoal = {
   target_seconds: number;
   languages: string[];
   projects: string[];
-  update_path: string;
-  destroy_path: string;
 };
 
 export type GoalForm = {
@@ -84,21 +110,6 @@ export type UserProps = {
   github_uid?: string | null;
   github_username?: string | null;
   slack_uid?: string | null;
-};
-
-export type PathsProps = {
-  settings_path: string;
-  wakatime_setup_path: string;
-  slack_auth_path: string;
-  github_auth_path: string;
-  github_unlink_path: string;
-  add_email_path: string;
-  unlink_email_path: string;
-  rotate_api_key_path: string;
-  export_all_heartbeats_path: string;
-  export_range_heartbeats_path: string;
-  create_heartbeat_import_path: string;
-  create_deletion_path: string;
 };
 
 export type BaseOptionsProps = {
@@ -203,7 +214,6 @@ export type ErrorsProps = {
 
 export type SettingsCommonProps = {
   active_section: SectionId;
-  section_paths: SectionPaths;
   page_title: string;
   heading: string;
   subheading: string;
@@ -211,59 +221,43 @@ export type SettingsCommonProps = {
 };
 
 export type ProfilePageProps = SettingsCommonProps & {
-  region_update_path: string;
-  username_update_path: string;
   username_max_length: number;
   user: Pick<UserProps, "country_code" | "timezone" | "username">;
   options: Pick<BaseOptionsProps, "countries" | "timezones">;
   profile_url: string | null;
   emails: EmailProps[];
-  paths: Pick<PathsProps, "add_email_path" | "unlink_email_path">;
 };
 
 export type SetupPageProps = SettingsCommonProps & {
-  paths: Pick<PathsProps, "wakatime_setup_path">;
   config_file: ConfigFileProps;
 };
 
 export type AppearancePageProps = SettingsCommonProps & {
-  theme_update_path: string;
   user: Pick<UserProps, "theme">;
   options: Pick<BaseOptionsProps, "themes">;
 };
 
 export type EditorsPageProps = SettingsCommonProps & {
-  settings_update_path: string;
   user: Pick<UserProps, "hackatime_extension_text_type" | "show_goals_in_statusbar">;
   options: Pick<BaseOptionsProps, "extension_text_types">;
 };
 
 export type SlackGithubPageProps = SettingsCommonProps & {
-  settings_update_path: string;
   user: Pick<UserProps, "uses_slack_status">;
   slack: SlackProps;
   github: GithubProps;
-  paths: Pick<
-    PathsProps,
-    "slack_auth_path" | "github_auth_path" | "github_unlink_path"
-  >;
 };
 
 export type NotificationsPageProps = SettingsCommonProps & {
-  settings_update_path: string;
   user: Pick<UserProps, "weekly_summary_email_enabled">;
 };
 
 export type PrivacyPageProps = SettingsCommonProps & {
-  privacy_update_path: string;
   user: Pick<UserProps, "allow_public_stats_lookup" | "can_request_deletion">;
-  paths: Pick<PathsProps, "rotate_api_key_path" | "create_deletion_path">;
   rotated_api_key?: string | null;
 };
 
 export type GoalsPageProps = SettingsCommonProps & {
-  settings_update_path: string;
-  create_goal_path: string;
   programming_goals: ProgrammingGoal[];
   options: GoalsOptionsProps;
   goal_form?: GoalForm | null;
@@ -273,16 +267,9 @@ export type BadgesPageProps = SettingsCommonProps & {
   badge_themes: string[];
   badges: BadgesProps;
   allow_public_stats_lookup: boolean;
-  settings_update_path: string;
 };
 
 export type ImportsExportsPageProps = SettingsCommonProps & {
-  paths: Pick<
-    PathsProps,
-    | "export_all_heartbeats_path"
-    | "export_range_heartbeats_path"
-    | "create_heartbeat_import_path"
-  >;
   data_export?: DataExportProps;
   imports_enabled: boolean;
   remote_import_cooldown_until?: string | null;
@@ -290,58 +277,32 @@ export type ImportsExportsPageProps = SettingsCommonProps & {
   ui: UiProps;
 };
 
-export const buildSections = (
-  sectionPaths: SectionPaths,
-): SettingsSection[] => [
-  {
-    id: "profile",
-    label: "Profile",
-    path: sectionPaths.profile,
-  },
-  {
-    id: "setup",
-    label: "Setup",
-    path: sectionPaths.setup,
-  },
-  {
-    id: "appearance",
-    label: "Appearance",
-    path: sectionPaths.appearance,
-  },
-  {
-    id: "editors",
-    label: "Editors",
-    path: sectionPaths.editors,
-  },
+export const buildSections = (): SettingsSection[] => [
+  { id: "profile", label: "Profile", path: SECTION_PATHS.profile },
+  { id: "setup", label: "Setup", path: SECTION_PATHS.setup },
+  { id: "appearance", label: "Appearance", path: SECTION_PATHS.appearance },
+  { id: "editors", label: "Editors", path: SECTION_PATHS.editors },
   {
     id: "slack_github",
     label: "Slack & GitHub",
-    path: sectionPaths.slack_github,
+    path: SECTION_PATHS.slack_github,
   },
   {
     id: "notifications",
     label: "Notifications",
-    path: sectionPaths.notifications,
+    path: SECTION_PATHS.notifications,
   },
   {
     id: "privacy",
     label: "Privacy & Security",
-    path: sectionPaths.privacy,
+    path: SECTION_PATHS.privacy,
   },
-  {
-    id: "goals",
-    label: "Goals",
-    path: sectionPaths.goals,
-  },
-  {
-    id: "badges",
-    label: "Badges",
-    path: sectionPaths.badges,
-  },
+  { id: "goals", label: "Goals", path: SECTION_PATHS.goals },
+  { id: "badges", label: "Badges", path: SECTION_PATHS.badges },
   {
     id: "imports_exports",
     label: "Imports & Exports",
-    path: sectionPaths.imports_exports,
+    path: SECTION_PATHS.imports_exports,
   },
 ];
 
