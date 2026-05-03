@@ -45,9 +45,7 @@ class My::HeartbeatImportsController < ApplicationController
 
   def wakatime_download_link
     render inertia: "HeartbeatImports/WakatimeDownloadLink", props: {
-      page_title: "Paste your WakaTime export link",
-      create_heartbeat_import_path: my_heartbeat_imports_path,
-      data_settings_path: my_settings_imports_exports_path
+      page_title: "Paste your WakaTime export link"
     }
   end
 

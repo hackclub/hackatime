@@ -31,7 +31,6 @@ class Settings::SlackGithubController < Settings::BaseController
     channel_ids = enabled_sailors_logs.pluck(:slack_channel_id)
 
     {
-      settings_update_path: my_settings_slack_github_path,
       user: user_props(keys: %i[uses_slack_status]),
       slack: {
         can_enable_status: can_enable_slack_status,
@@ -48,8 +47,7 @@ class Settings::SlackGithubController < Settings::BaseController
         connected: @user.github_uid.present?,
         username: @user.github_username,
         profile_url: (@user.github_username.present? ? "https://github.com/#{@user.github_username}" : nil)
-      },
-      paths: paths_props(keys: %i[slack_auth_path github_auth_path github_unlink_path])
+      }
     }
   end
 

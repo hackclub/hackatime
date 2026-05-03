@@ -257,6 +257,8 @@ GEM
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
     jmespath (1.6.2)
+    js_from_routes (4.0.2)
+      railties (>= 5.1, < 9)
     json (2.19.4)
     json-schema (6.2.0)
       addressable (~> 2.8)
@@ -683,6 +685,7 @@ DEPENDENCIES
   importmap-rails
   inertia_rails (~> 3.17)
   jbuilder
+  js_from_routes
   kamal
   letter_opener
   letter_opener_web (~> 3.0)

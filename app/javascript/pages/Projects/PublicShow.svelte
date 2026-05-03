@@ -3,12 +3,12 @@
   import Button from "../../components/Button.svelte";
   import ProjectStatsContent from "./ProjectStatsContent.svelte";
   import type { PublicProjectShowProps } from "../../types/index";
+  import { profiles } from "../../api";
 
   let {
     page_title,
     project_name,
     username,
-    profile_path,
     since_date,
     repo_url,
     total_time_label,
@@ -18,6 +18,8 @@
     file_stats,
     branch_stats,
   }: PublicProjectShowProps = $props();
+
+  const profilePath = $derived(profiles.show.path({ username }));
 </script>
 
 <svelte:head>
@@ -27,7 +29,7 @@
 <div class="mx-auto max-w-7xl">
   <div class="mb-6">
     <Link
-      href={profile_path}
+      href={profilePath}
       class="text-sm text-muted transition-colors hover:text-primary"
     >
       ← @{username}'s profile

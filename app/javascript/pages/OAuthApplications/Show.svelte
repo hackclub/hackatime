@@ -3,6 +3,7 @@
   import Button from "../../components/Button.svelte";
   import DestructiveActionModal from "./DestructiveActionModal.svelte";
   import type { OAuthApplicationShowProps } from "./types";
+  import { doorkeeperApplications, adminOauthApplications } from "../../api";
 
   let {
     page_title,
@@ -13,6 +14,30 @@
     labels,
     confirmations,
   }: OAuthApplicationShowProps = $props();
+
+  const editPath = $derived(
+    doorkeeperApplications.edit.path({ id: application.id }),
+  );
+  const destroyPath = $derived(
+    doorkeeperApplications.destroy.path({ id: application.id }),
+  );
+  const rotateSecretPath = $derived(
+    doorkeeperApplications.rotateSecret.path({ id: application.id }),
+  );
+  const indexPath = doorkeeperApplications.index.path();
+  const toggleVerifiedPath = $derived(
+    application.can_toggle_verified
+      ? adminOauthApplications.toggleVerified.path({ id: application.id })
+      : null,
+  );
+
+  const authorizePathFor = (uri: string) =>
+    `/oauth/authorize?${new URLSearchParams({
+      client_id: application.uid,
+      redirect_uri: uri,
+      response_type: "code",
+      scope: application.scopes.join(" "),
+    }).toString()}`;
 
   let copiedValue = $state<string | null>(null);
   let destructiveModalOpen = $state(false);
@@ -95,9 +120,9 @@
   });
 
   const destructiveActionPath = $derived.by(() => {
-    if (pendingDestructiveAction === "delete") return application.destroy_path;
+    if (pendingDestructiveAction === "delete") return destroyPath;
     if (pendingDestructiveAction === "rotate") {
-      return application.rotate_secret_path;
+      return rotateSecretPath;
     }
 
     return "";
@@ -258,17 +283,17 @@
 
         {#if application.redirect_uris.length > 0}
           <div class="mt-4 space-y-2">
-            {#each application.redirect_uris as redirect}
+            {#each application.redirect_uris as uri}
               <div
                 class="flex flex-wrap items-center gap-2 rounded-lg border border-surface-200 bg-darker/70 p-3"
               >
                 <code
                   class="min-w-0 flex-1 break-all font-mono text-xs text-surface-content"
                 >
-                  {redirect.value}
+                  {uri}
                 </code>
                 <a
-                  href={redirect.authorize_path}
+                  href={authorizePathFor(uri)}
                   target="_blank"
                   rel="noopener noreferrer"
                   class="inline-flex items-center justify-center rounded-lg border border-green bg-green px-3 py-2 text-xs font-semibold text-on-primary transition-opacity hover:opacity-90"
@@ -290,7 +315,7 @@
       </h2>
 
       <div class="mt-3 space-y-2">
-        <Button href={application.edit_path} variant="primary" class="w-full"
+        <Button href={editPath} variant="primary" class="w-full"
           >Edit application</Button
         >
 
@@ -312,12 +337,8 @@
           Rotate secret
         </Button>
 
-        {#if application.toggle_verified_path}
-          <Form
-            action={application.toggle_verified_path}
-            method="post"
-            class="w-full"
-          >
+        {#if toggleVerifiedPath}
+          <Form action={toggleVerifiedPath} method="post" class="w-full">
             <Button
               type="submit"
               variant="surface"
@@ -331,7 +352,7 @@
         {/if}
 
         <Link
-          href={application.index_path}
+          href={indexPath}
           class="inline-flex w-full items-center justify-center rounded-lg border border-surface-200 bg-surface-100 px-4 py-2 text-sm font-semibold text-surface-content transition-colors hover:bg-surface-200"
         >
           Back to applications

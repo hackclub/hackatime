@@ -6,20 +6,23 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { SlackGithubPageProps } from "./types";
+  import { sessions, settingsSlackGithub } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    settings_update_path,
     user,
     slack,
     github,
-    paths,
     errors,
   }: SlackGithubPageProps = $props();
+
+  const settingsUpdatePath = settingsSlackGithub.update.path();
+  const slackAuthPath = sessions.slackNew.path();
+  const githubAuthPath = sessions.githubNew.path();
+  const githubUnlinkPath = sessions.githubUnlink.path();
 
   let unlinkGithubModalOpen = $state(false);
 </script>
@@ -28,14 +31,7 @@
   <title>Slack & GitHub - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   <SectionCard
     id="user_slack_status"
     title="Slack Status Sync"
@@ -44,7 +40,7 @@
     <div class="space-y-4">
       {#if !slack.can_enable_status}
         <a
-          href={paths.slack_auth_path}
+          href={slackAuthPath}
           class="inline-flex rounded-md border border-surface-200 bg-surface-100 px-3 py-2 text-sm text-surface-content transition-colors hover:bg-surface-200"
         >
           Re-authorize with Slack
@@ -53,7 +49,7 @@
 
       <Form
         id="slack-github-slack-form"
-        action={settings_update_path}
+        action={settingsUpdatePath}
         method="patch"
         class="space-y-3"
         options={{ preserveScroll: true }}
@@ -134,7 +130,7 @@
 
     {#snippet footer()}
       {#if github.connected && github.username}
-        <Button href={paths.github_auth_path} native class="rounded-md">
+        <Button href={githubAuthPath} native class="rounded-md">
           Reconnect GitHub
         </Button>
         <Button
@@ -146,7 +142,7 @@
           Unlink GitHub
         </Button>
       {:else}
-        <Button href={paths.github_auth_path} native class="rounded-md">
+        <Button href={githubAuthPath} native class="rounded-md">
           Connect GitHub
         </Button>
       {/if}
@@ -172,7 +168,7 @@
         Cancel
       </Button>
       <Form
-        action={paths.github_unlink_path}
+        action={githubUnlinkPath}
         method="delete"
         class="m-0"
         options={{ preserveScroll: true }}

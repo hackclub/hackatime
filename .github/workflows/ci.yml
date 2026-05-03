@@ -72,11 +72,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
 
       - name: Install JavaScript dependencies
         run: bun install --frozen-lockfile
+
+      - name: Generate js_from_routes path helpers
+        env:
+          JS_FROM_ROUTES_FORCE: "true"
+        run: bin/rake js_from_routes:generate
 
       - name: Run Svelte type checks
         run: bun run check:svelte
@@ -182,6 +193,11 @@ jobs:
 
       - name: Install JavaScript dependencies
         run: bun install --frozen-lockfile
+
+      - name: Generate js_from_routes path helpers
+        env:
+          JS_FROM_ROUTES_FORCE: "true"
+        run: bin/rake js_from_routes:generate
 
       - name: Pre-build Vite assets for test
         run: bin/vite build

@@ -33,9 +33,7 @@ class Settings::PrivacyController < Settings::BaseController
 
   def section_props
     {
-      privacy_update_path: my_settings_privacy_update_path,
       user: user_props(keys: %i[allow_public_stats_lookup can_request_deletion]),
-      paths: paths_props(keys: %i[rotate_api_key_path create_deletion_path]),
       rotated_api_key: flash[:rotated_api_key]
     }
   end

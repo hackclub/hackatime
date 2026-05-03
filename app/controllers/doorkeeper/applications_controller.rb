@@ -33,7 +33,7 @@ module Doorkeeper
       render inertia: "OAuthApplications/New", props: form_props(
         heading: I18n.t("doorkeeper.applications.new.title"),
         subheading: "Create a new OAuth application to integrate with Hackatime.",
-        submit_path: oauth_applications_path,
+        form_mode: "new",
         form_method: "post"
       )
     end
@@ -56,7 +56,7 @@ module Doorkeeper
             render inertia: "OAuthApplications/New", props: form_props(
               heading: I18n.t("doorkeeper.applications.new.title"),
               subheading: "Create a new OAuth application to integrate with Hackatime.",
-              submit_path: oauth_applications_path,
+              form_mode: "new",
               form_method: "post"
             ), status: :unprocessable_entity
           end
@@ -72,7 +72,7 @@ module Doorkeeper
       render inertia: "OAuthApplications/Edit", props: form_props(
         heading: I18n.t("doorkeeper.applications.edit.title"),
         subheading: "Update the settings for #{@application.name}.",
-        submit_path: oauth_application_path(@application),
+        form_mode: "edit",
         form_method: "patch"
       )
     end
@@ -91,7 +91,7 @@ module Doorkeeper
             render inertia: "OAuthApplications/Edit", props: form_props(
               heading: I18n.t("doorkeeper.applications.edit.title"),
               subheading: "Update the settings for #{@application.name}.",
-              submit_path: oauth_application_path(@application),
+              form_mode: "edit",
               form_method: "patch"
             ), status: :unprocessable_entity
           end
@@ -166,7 +166,6 @@ module Doorkeeper
         page_title: "OAuth Applications",
         heading: I18n.t("doorkeeper.applications.index.title"),
         subheading: "Manage your OAuth applications that integrate with Hackatime.",
-        new_application_path: new_oauth_application_path,
         applications: @applications.map { |application|
           {
             id: application.id,
@@ -174,10 +173,7 @@ module Doorkeeper
             verified: application.verified?,
             confidential: application.confidential?,
             scopes: application.scopes.to_a.map(&:to_s),
-            redirect_uris: redirect_uris_for(application),
-            show_path: oauth_application_path(application),
-            edit_path: edit_oauth_application_path(application),
-            destroy_path: oauth_application_path(application)
+            redirect_uris: redirect_uris_for(application)
           }
         }
       }
@@ -197,26 +193,8 @@ module Doorkeeper
           verified: @application.verified?,
           confidential: @application.confidential?,
           scopes: @application.scopes.to_a.map(&:to_s),
-          redirect_uris: redirect_uris_for(@application).map { |uri|
-            {
-              value: uri,
-              authorize_path: oauth_authorization_path(
-                client_id: @application.uid,
-                redirect_uri: uri,
-                response_type: "code",
-                scope: @application.scopes.to_s
-              )
-            }
-          },
-          edit_path: edit_oauth_application_path(@application),
-          destroy_path: oauth_application_path(@application),
-          rotate_secret_path: rotate_secret_oauth_application_path(@application),
-          index_path: oauth_applications_path,
-          toggle_verified_path: (
-            current_user&.admin_level_superadmin? ?
-              toggle_verified_admin_oauth_application_path(@application) :
-              nil
-          )
+          redirect_uris: redirect_uris_for(@application),
+          can_toggle_verified: current_user&.admin_level_superadmin? || false
         },
         secret: {
           value: secret,
@@ -239,14 +217,15 @@ module Doorkeeper
       }
     end
 
-    def form_props(heading:, subheading:, submit_path:, form_method:)
+    def form_props(heading:, subheading:, form_mode:, form_method:)
       {
         page_title: heading,
         heading: heading,
         subheading: subheading,
-        submit_path: submit_path,
+        # `form_mode` lets the JS pick the right submit path: `new` posts to
+        # the index, `edit` patches to the application's URL.
+        form_mode: form_mode,
         form_method: form_method,
-        cancel_path: oauth_applications_path,
         labels: {
           submit: I18n.t("doorkeeper.applications.buttons.submit"),
           cancel: I18n.t("doorkeeper.applications.buttons.cancel")

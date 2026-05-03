@@ -5,37 +5,32 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { ProfilePageProps } from "./types";
+  import { settingsProfile, sessions } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    region_update_path,
-    username_update_path,
     username_max_length,
     user,
     options,
     profile_url,
     emails,
-    paths,
     errors,
   }: ProfilePageProps = $props();
+
+  const regionUpdatePath = settingsProfile.updateRegion.path();
+  const usernameUpdatePath = settingsProfile.updateUsername.path();
+  const addEmailPath = sessions.addEmail.path();
+  const unlinkEmailPath = sessions.unlinkEmail.path();
 </script>
 
 <svelte:head>
   <title>Profile - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   <SectionCard
     id="user_region"
     title="Region and Timezone"
@@ -43,7 +38,7 @@
   >
     <Form
       id="profile-region-form"
-      action={region_update_path}
+      action={regionUpdatePath}
       method="patch"
       class="space-y-4"
       options={{ preserveScroll: true }}
@@ -93,7 +88,7 @@
   >
     <Form
       id="profile-username-form"
-      action={username_update_path}
+      action={usernameUpdatePath}
       method="patch"
       class="space-y-3"
       options={{ preserveScroll: true }}
@@ -154,7 +149,7 @@
             </div>
             {#if email.can_unlink}
               <Form
-                action={paths.unlink_email_path}
+                action={unlinkEmailPath}
                 method="delete"
                 options={{ preserveScroll: true }}
               >
@@ -182,7 +177,7 @@
 
     <Form
       id="profile-email-form"
-      action={paths.add_email_path}
+      action={addEmailPath}
       method="post"
       class="mt-4 flex flex-col gap-3 sm:flex-row"
       options={{ preserveScroll: true }}

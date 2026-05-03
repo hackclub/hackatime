@@ -11,12 +11,9 @@ class My::ProjectRepoMappingsController < InertiaController
 
     render inertia: "Projects/Index", props: {
       page_title: "My Projects",
-      index_path: my_projects_path,
       show_archived: archived,
       archived_count: current_user.project_repo_mappings.archived.count,
       github_connected: current_user.github_uid.present?,
-      github_auth_path: github_auth_path,
-      settings_path: my_settings_path(anchor: "user_github_account"),
       interval: selected_interval,
       from: params[:from],
       to: params[:to],
@@ -60,12 +57,10 @@ class My::ProjectRepoMappingsController < InertiaController
     render inertia: "Projects/Show", props: {
       page_title: "#{project_name} | My Projects",
       project_name: project_name,
-      back_path: my_projects_path,
       since_date: since_date,
       repo_url: mapping&.repo_url,
       is_shared: mapping&.public_shared_at.present?,
       share_url: share_url,
-      toggle_share_path: toggle_share_my_project_repo_mapping_path(CGI.escape(project_name)),
       interval: selected_interval,
       from: params[:from],
       to: params[:to],
@@ -171,19 +166,15 @@ class My::ProjectRepoMappingsController < InertiaController
       {
         id: project_card_id(project_key),
         name: display_name,
-        project_key: project_key,
+        project_key:,
+        url_safe:,
         duration_seconds: duration,
         duration_label: format_duration(duration),
         duration_percent: 0,
-        show_path: url_safe ? my_project_path(project_key) : nil,
         repo_url: mapping&.repo_url,
         repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
         broken_name: broken,
-        manage_enabled: current_user.github_uid.present? && url_safe,
-        edit_path: url_safe ? edit_my_project_repo_mapping_path(project_key) : nil,
-        update_path: url_safe ? my_project_repo_mapping_path(project_key) : nil,
-        archive_path: url_safe ? archive_my_project_repo_mapping_path(project_key) : nil,
-        unarchive_path: url_safe ? unarchive_my_project_repo_mapping_path(project_key) : nil
+        manage_enabled: current_user.github_uid.present? && url_safe
       }
     end.sort_by { |project| -project[:duration_seconds] }
 
@@ -323,8 +314,7 @@ class My::ProjectRepoMappingsController < InertiaController
       end_date: Time.current.to_date.iso8601,
       duration_by_date: durations,
       busiest_day_seconds: 8.hours.to_i,
-      timezone_label: ActiveSupport::TimeZone[tz].to_s,
-      timezone_settings_path: "/my/settings#user_timezone"
+      timezone_label: ActiveSupport::TimeZone[tz].to_s
     }
   end
 end

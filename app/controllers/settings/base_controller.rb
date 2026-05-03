@@ -36,18 +36,6 @@ class Settings::BaseController < InertiaController
 
     {
       active_section: active_section,
-      section_paths: {
-        profile: my_settings_profile_path,
-        setup: my_settings_setup_path,
-        appearance: my_settings_appearance_path,
-        editors: my_settings_editors_path,
-        slack_github: my_settings_slack_github_path,
-        notifications: my_settings_notifications_path,
-        privacy: my_settings_privacy_path,
-        goals: my_settings_goals_path,
-        badges: my_settings_badges_path,
-        imports_exports: my_settings_imports_exports_path
-      },
       page_title: (is_own ? "My Settings" : "Settings | #{@user.display_name}"),
       heading: (is_own ? "Settings" : "Settings for #{@user.display_name}"),
       subheading: "Manage your profile, appearance, editors, integrations, privacy, goals, and data tools.",
@@ -92,34 +80,9 @@ class Settings::BaseController < InertiaController
   end
 
   def programming_goals_props
-    @user.goals.order(:created_at).map { |goal|
-      goal.as_programming_goal_payload.merge(
-        update_path: my_settings_goal_update_path(goal),
-        destroy_path: my_settings_goal_destroy_path(goal)
-      )
-    }
-  end
-
-  PATH_BUILDERS = {
-    settings_path: -> { my_settings_profile_path },
-    wakatime_setup_path: -> { my_wakatime_setup_path },
-    slack_auth_path: -> { slack_auth_path },
-    github_auth_path: -> { github_auth_path },
-    github_unlink_path: -> { github_unlink_path },
-    add_email_path: -> { add_email_auth_path },
-    unlink_email_path: -> { unlink_email_auth_path },
-    rotate_api_key_path: -> { my_settings_rotate_api_key_path },
-    export_all_heartbeats_path: -> { export_my_heartbeats_path(all_data: "true") },
-    export_range_heartbeats_path: -> { export_my_heartbeats_path },
-    create_heartbeat_import_path: -> { my_heartbeat_imports_path },
-    create_deletion_path: -> { create_deletion_path }
-  }.freeze
-
-  # Build a paths hash containing only the requested keys.
-  # Pass `keys:` to limit to a subset; defaults to all paths for backwards compatibility.
-  def paths_props(keys: nil)
-    selected = keys.present? ? PATH_BUILDERS.slice(*keys) : PATH_BUILDERS
-    selected.transform_values { |builder| instance_exec(&builder) }
+    # Path helpers (`update_path`, `destroy_path`) are built client-side from
+    # the goal `id` via js_from_routes — see app/javascript/api/Settings/GoalsApi.ts.
+    @user.goals.order(:created_at).map { |goal| goal.as_programming_goal_payload }
   end
 
   def project_list

@@ -46,8 +46,6 @@ class Settings::GoalsController < Settings::BaseController
 
   def section_props
     {
-      settings_update_path: my_settings_goals_path,
-      create_goal_path: my_settings_goals_create_path,
       programming_goals: programming_goals_props,
       options: { goals: goal_options }
     }

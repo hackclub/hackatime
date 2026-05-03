@@ -9,8 +9,7 @@ class Settings::BadgesController < Settings::BaseController
     {
       badge_themes: GithubReadmeStats.themes,
       badges: badges_props,
-      allow_public_stats_lookup: @user.allow_public_stats_lookup,
-      settings_update_path: my_settings_privacy_update_path
+      allow_public_stats_lookup: @user.allow_public_stats_lookup
     }
   end
 end

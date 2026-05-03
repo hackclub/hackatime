@@ -2,8 +2,12 @@
   import { Link } from "@inertiajs/svelte";
   import type { ActivityGraphData } from "../../../types/index";
   import { durationInWords } from "../../../utils";
+  import { settingsProfile } from "../../../api";
 
   let { data }: { data: ActivityGraphData } = $props();
+
+  // Deep-link to the timezone field on the profile settings page.
+  const timezoneSettingsPath = `${settingsProfile.my.path()}#user_timezone`;
 
   function buildDateRange(startStr: string, endStr: string): string[] {
     const dates: string[] = [];
@@ -48,6 +52,6 @@
   </div>
   <p class="super">
     Calculated in
-    <Link href={data.timezone_settings_path}>{data.timezone_label}</Link>
+    <Link href={timezoneSettingsPath}>{data.timezone_label}</Link>
   </p>
 </div>

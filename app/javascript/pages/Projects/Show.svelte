@@ -5,21 +5,27 @@
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
   import ProjectStatsContent from "./ProjectStatsContent.svelte";
   import type { ProjectShowProps } from "../../types/index";
+  import { myProjectRepoMappings } from "../../api";
 
   let {
     page_title,
     project_name,
-    back_path,
     since_date,
     repo_url,
     is_shared,
     share_url,
-    toggle_share_path,
     interval = "",
     from = "",
     to = "",
     project_stats,
   }: ProjectShowProps = $props();
+
+  const backPath = myProjectRepoMappings.index.path();
+  const toggleSharePath = $derived(
+    myProjectRepoMappings.toggleShare.path({
+      projectName: encodeURIComponent(project_name),
+    }),
+  );
 
   let shareModalOpen = $state(false);
   let copied = $state(false);
@@ -63,7 +69,7 @@
   const toggleShare = () => {
     toggling = true;
     router.patch(
-      toggle_share_path,
+      toggleSharePath,
       {},
       {
         preserveScroll: true,
@@ -83,7 +89,7 @@
   <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
     <div>
       <Link
-        href={back_path}
+        href={backPath}
         class="text-sm text-muted transition-colors hover:text-primary"
       >
         ← Back to Projects

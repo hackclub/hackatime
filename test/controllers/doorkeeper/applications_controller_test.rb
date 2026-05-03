@@ -51,7 +51,6 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "OAuthApplications/Show", page["component"]
     assert_equal application.id, page.dig("props", "application", "id")
     assert_equal application.name, page.dig("props", "application", "name")
-    assert_equal rotate_secret_oauth_application_path(application), page.dig("props", "application", "rotate_secret_path")
   end
 
   test "create persists owned application and redirects to show" do

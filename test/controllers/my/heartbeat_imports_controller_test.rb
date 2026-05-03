@@ -329,7 +329,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_inertia_component "HeartbeatImports/WakatimeDownloadLink"
-    assert_inertia_prop "create_heartbeat_import_path", my_heartbeat_imports_path
   end
 
   private

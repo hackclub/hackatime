@@ -5,15 +5,16 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
+  import { myHeartbeatImports, settingsImportsExports } from "../../api";
 
   interface Props {
     page_title: string;
-    create_heartbeat_import_path: string;
-    data_settings_path: string;
   }
 
-  let { page_title, create_heartbeat_import_path, data_settings_path }: Props =
-    $props();
+  let { page_title }: Props = $props();
+
+  const createHeartbeatImportPath = myHeartbeatImports.create.path();
+  const dataSettingsPath = settingsImportsExports.show.path();
 
   let downloadUrl = $state("");
 </script>
@@ -47,7 +48,7 @@
 
     <Form
       method="post"
-      action={create_heartbeat_import_path}
+      action={createHeartbeatImportPath}
       class="mt-6 space-y-4"
     >
       {#snippet children({ processing })}
@@ -76,7 +77,7 @@
           >
             {processing ? "Starting import..." : "Start import"}
           </Button>
-          <Button href={data_settings_path} variant="surface" size="lg">
+          <Button href={dataSettingsPath} variant="surface" size="lg">
             Back to data settings
           </Button>
         </div>

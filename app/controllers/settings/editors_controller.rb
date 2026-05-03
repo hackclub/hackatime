@@ -23,7 +23,6 @@ class Settings::EditorsController < Settings::BaseController
 
   def section_props
     {
-      settings_update_path: my_settings_editors_path,
       user: user_props(keys: %i[hackatime_extension_text_type show_goals_in_statusbar]),
       options: base_options(keys: %i[extension_text_types])
     }

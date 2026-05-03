@@ -4,6 +4,7 @@
 
 <script lang="ts">
   import Button from "../../components/Button.svelte";
+  import { customDoorkeeperAuthorizations } from "../../api";
 
   interface Scope {
     name: string;
@@ -11,7 +12,6 @@
   }
 
   interface FormData {
-    authorize_path: string;
     csrf_token: string;
     client_id: string;
     redirect_uri: string;
@@ -33,6 +33,8 @@
 
   let { page_title, client_name, verified, scopes, form_data }: Props =
     $props();
+
+  const authorizePath = customDoorkeeperAuthorizations.new.path();
 
   let authorizing = $state(false);
   let denying = $state(false);
@@ -121,7 +123,7 @@
 
     <div class="space-y-2.5">
       <form
-        action={form_data.authorize_path}
+        action={authorizePath}
         method="post"
         data-turbo="false"
         onsubmit={() => (authorizing = true)}
@@ -194,7 +196,7 @@
       </form>
 
       <form
-        action={form_data.authorize_path}
+        action={authorizePath}
         method="post"
         data-turbo="false"
         onsubmit={() => (denying = true)}

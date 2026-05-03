@@ -15,8 +15,6 @@ class LeaderboardsController < InertiaController
       leaderboard: leaderboard_metadata(leaderboard),
       is_logged_in: current_user.present?,
       github_uid_blank: current_user&.github_uid.blank? || false,
-      github_auth_path: "/auth/github",
-      settings_path: my_settings_path,
       entries: InertiaRails.defer { entries_payload(leaderboard, leaderboard_scope, country) }
     }
   end

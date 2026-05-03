@@ -3,31 +3,25 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { SetupPageProps } from "./types";
+  import { users } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    paths,
     config_file,
     errors,
   }: SetupPageProps = $props();
+
+  const wakatimeSetupPath = users.wakatimeSetup.path();
 </script>
 
 <svelte:head>
   <title>Setup - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   <SectionCard
     id="user_tracking_setup"
     title="Time Tracking Setup"
@@ -39,7 +33,7 @@
     </p>
 
     {#snippet footer()}
-      <Button href={paths.wakatime_setup_path}>Open setup guide</Button>
+      <Button href={wakatimeSetupPath}>Open setup guide</Button>
     {/snippet}
   </SectionCard>
 

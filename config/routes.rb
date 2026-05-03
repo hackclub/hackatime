@@ -164,15 +164,15 @@ Rails.application.routes.draw do
 
   # Editors
   get "my/settings/editors", to: "settings/editors#show", as: :my_settings_editors
-  patch "my/settings/editors", to: "settings/editors#update"
+  patch "my/settings/editors", to: "settings/editors#update", as: :my_settings_editors_update
 
   # Slack & GitHub
   get "my/settings/slack_github", to: "settings/slack_github#show", as: :my_settings_slack_github
-  patch "my/settings/slack_github", to: "settings/slack_github#update"
+  patch "my/settings/slack_github", to: "settings/slack_github#update", as: :my_settings_slack_github_update
 
   # Notifications
   get "my/settings/notifications", to: "settings/notifications#show", as: :my_settings_notifications
-  patch "my/settings/notifications", to: "settings/notifications#update"
+  patch "my/settings/notifications", to: "settings/notifications#update", as: :my_settings_notifications_update
 
   # Privacy & Security
   get "my/settings/privacy", to: "settings/privacy#show", as: :my_settings_privacy

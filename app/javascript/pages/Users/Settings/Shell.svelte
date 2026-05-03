@@ -5,12 +5,16 @@
   import { Icon } from "svelte-hero-icons";
   import SubsectionNav from "./components/SubsectionNav.svelte";
   import { sectionIcons } from "./components/SectionIcons";
-  import { buildSections, buildSubsections, sectionFromHash } from "./types";
+  import {
+    buildSections,
+    buildSubsections,
+    sectionFromHash,
+    SECTION_PATHS,
+  } from "./types";
   import type { SectionPaths, SettingsCommonProps } from "./types";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
@@ -22,13 +26,11 @@
     hidden_subsections?: Set<string>;
   } = $props();
 
-  const sections = $derived(buildSections(section_paths));
+  const sections = buildSections();
   const subsections = $derived(
     buildSubsections(active_section, hidden_subsections),
   );
-  const knownSectionIds = $derived(
-    new Set(sections.map((section) => section.id)),
-  );
+  const knownSectionIds = new Set(sections.map((section) => section.id));
 
   const sectionButtonClass = (sectionId: keyof SectionPaths) =>
     `group flex min-h-10 w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
@@ -41,10 +43,10 @@
     const syncSectionFromHash = () => {
       const section = sectionFromHash(window.location.hash);
       if (!section || !knownSectionIds.has(section)) return;
-      if (section === active_section || !section_paths[section]) return;
+      if (section === active_section || !SECTION_PATHS[section]) return;
 
       window.location.replace(
-        `${section_paths[section]}${window.location.hash}`,
+        `${SECTION_PATHS[section]}${window.location.hash}`,
       );
     };
 

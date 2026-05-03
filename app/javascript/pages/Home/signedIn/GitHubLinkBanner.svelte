@@ -1,5 +1,7 @@
 <script lang="ts">
-  let { github_auth_path }: { github_auth_path: string } = $props();
+  import { sessions } from "../../../api";
+
+  const githubAuthPath = sessions.githubNew.path();
 </script>
 
 <div class="bg-dark border border-primary/40 rounded-xl p-4 md:p-5 mb-4">
@@ -24,7 +26,7 @@
       >
     </div>
     <a
-      href={github_auth_path}
+      href={githubAuthPath}
       class="bg-primary hover:opacity-90 text-on-primary font-medium px-4 py-2 rounded-lg transition-colors duration-200 shrink-0 text-center w-full md:w-fit"
       data-turbo="false">Connect GitHub</a
     >

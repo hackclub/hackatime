@@ -1,10 +1,8 @@
 <script lang="ts">
   import Button from "../../../components/Button.svelte";
+  import { sessions } from "../../../api";
 
   let {
-    hca_auth_path,
-    slack_auth_path,
-    email_auth_path,
     sign_in_email,
     show_dev_tool,
     dev_magic_link,
@@ -12,9 +10,6 @@
     redirect_to,
     continue_param,
   }: {
-    hca_auth_path: string;
-    slack_auth_path: string;
-    email_auth_path: string;
     sign_in_email: boolean;
     show_dev_tool: boolean;
     dev_magic_link?: string | null;
@@ -22,6 +17,18 @@
     redirect_to?: string;
     continue_param?: string | null;
   } = $props();
+
+  const hcaAuthPath = $derived(
+    continue_param
+      ? sessions.hcaNew.path({ query: { continue: continue_param } })
+      : sessions.hcaNew.path(),
+  );
+  const slackAuthPath = $derived(
+    continue_param
+      ? sessions.slackNew.path({ query: { continue: continue_param } })
+      : sessions.slackNew.path(),
+  );
+  const emailAuthPath = sessions.email.path();
 
   let isSigningIn = $state(false);
 </script>
@@ -47,7 +54,7 @@
     </div>
   {:else}
     <a
-      href={hca_auth_path}
+      href={hcaAuthPath}
       onclick={() => (isSigningIn = true)}
       class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-primary text-on-primary font-medium hover:opacity-90 transition-all"
     >
@@ -74,7 +81,7 @@
     </a>
 
     <a
-      href={slack_auth_path}
+      href={slackAuthPath}
       class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-surface border border-surface-200 text-surface-content font-medium hover:bg-surface-100 transition-all"
     >
       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -91,7 +98,7 @@
       <div class="flex-1 h-px bg-surface-200"></div>
     </div>
 
-    <form method="post" action={email_auth_path} data-turbo="false">
+    <form method="post" action={emailAuthPath} data-turbo="false">
       <input type="hidden" name="authenticity_token" value={csrf_token} />
       {#if redirect_to}
         <input type="hidden" name="redirect_to" value={redirect_to} />
