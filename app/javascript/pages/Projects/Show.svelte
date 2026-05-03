@@ -23,7 +23,7 @@
   const backPath = myProjectRepoMappings.index.path();
   const toggleSharePath = $derived(
     myProjectRepoMappings.toggleShare.path({
-      projectName: encodeURIComponent(project_name),
+      projectName: project_name,
     }),
   );
 

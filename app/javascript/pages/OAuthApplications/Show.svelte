@@ -3,7 +3,11 @@
   import Button from "../../components/Button.svelte";
   import DestructiveActionModal from "./DestructiveActionModal.svelte";
   import type { OAuthApplicationShowProps } from "./types";
-  import { doorkeeperApplications, adminOauthApplications } from "../../api";
+  import {
+    doorkeeperApplications,
+    adminOauthApplications,
+    customDoorkeeperAuthorizations,
+  } from "../../api";
 
   let {
     page_title,
@@ -32,12 +36,14 @@
   );
 
   const authorizePathFor = (uri: string) =>
-    `/oauth/authorize?${new URLSearchParams({
-      client_id: application.uid,
-      redirect_uri: uri,
-      response_type: "code",
-      scope: application.scopes.join(" "),
-    }).toString()}`;
+    customDoorkeeperAuthorizations.new.path({
+      query: {
+        client_id: application.uid,
+        redirect_uri: uri,
+        response_type: "code",
+        scope: application.scopes.join(" "),
+      },
+    });
 
   let copiedValue = $state<string | null>(null);
   let destructiveModalOpen = $state(false);
