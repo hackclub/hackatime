@@ -64,11 +64,17 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         goal_progress = ProgrammingGoalsProgressService.new(user: @user, goals: [ daily_goal ]).call.first
 
         if goal_progress
-          # Append goal progress to the user's preferred text format
-          user_text = result[:data][:grand_total][:text]
-          goal_text = ApplicationController.helpers.short_time_simple(daily_goal.target_seconds)
+          # Only append the goal text to the status bar string for users who:
+          #   - have the simple_text extension display style (other styles like
+          #     clock_emoji or compliment_text aren't designed to carry the goal)
+          #   - have the show_goals_in_statusbar preference enabled
+          if @user.simple_text? && @user.show_goals_in_statusbar
+            user_text = result[:data][:grand_total][:text]
+            goal_text = ApplicationController.helpers.short_time_simple(daily_goal.target_seconds)
 
-          result[:data][:grand_total][:text] = "#{user_text} / #{goal_text} today"
+            result[:data][:grand_total][:text] = "#{user_text} / #{goal_text} goal"
+          end
+
           result[:data][:goal] = {
             target_seconds: daily_goal.target_seconds,
             tracked_seconds: goal_progress[:tracked_seconds],

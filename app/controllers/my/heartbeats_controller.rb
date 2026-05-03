@@ -5,7 +5,7 @@ module My
 
     def export
       unless current_user.email_addresses.exists?
-        redirect_to my_settings_data_path, alert: "You need an email address on your account to export heartbeats."
+        redirect_to my_settings_imports_exports_path, alert: "You need an email address on your account to export heartbeats."
         return
       end
 
@@ -25,7 +25,7 @@ module My
         )
       end
 
-      redirect_to my_settings_data_path, notice: "Your export is being prepared and will be emailed to you."
+      redirect_to my_settings_imports_exports_path, notice: "Your export is being prepared and will be emailed to you."
     end
 
     private
@@ -54,7 +54,7 @@ module My
       return nil if end_date.nil?
 
       if start_date > end_date
-        redirect_to my_settings_data_path, alert: "Start date must be on or before end date."
+        redirect_to my_settings_imports_exports_path, alert: "Start date must be on or before end date."
         return nil
       end
 
@@ -66,7 +66,7 @@ module My
 
       Date.iso8601(value)
     rescue ArgumentError
-      redirect_to my_settings_data_path, alert: "Invalid date format. Please use YYYY-MM-DD."
+      redirect_to my_settings_imports_exports_path, alert: "Invalid date format. Please use YYYY-MM-DD."
       nil
     end
   end

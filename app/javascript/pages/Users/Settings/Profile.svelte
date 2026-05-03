@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
-  import { Checkbox, RadioGroup } from "bits-ui";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
@@ -14,42 +13,15 @@
     heading,
     subheading,
     region_update_path,
-    privacy_update_path,
     username_update_path,
-    theme_update_path,
     username_max_length,
     user,
     options,
     profile_url,
+    emails,
+    paths,
     errors,
   }: ProfilePageProps = $props();
-
-  let selectedTheme = $state("rose");
-  let allowPublicStatsLookup = $state(false);
-
-  $effect(() => {
-    selectedTheme = user.theme || "rose";
-    allowPublicStatsLookup = user.allow_public_stats_lookup;
-  });
-
-  const applySelectedTheme = () => {
-    if (typeof document === "undefined") return;
-
-    const theme = options.themes.find(
-      (option) => option.value === selectedTheme,
-    );
-    if (!theme) return;
-
-    document.documentElement.dataset.theme = theme.value;
-    document.documentElement.dataset.colorScheme = theme.color_scheme;
-
-    document
-      .querySelector('meta[name="color-scheme"]')
-      ?.setAttribute("content", theme.color_scheme);
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", theme.theme_color);
-  };
 </script>
 
 <svelte:head>
@@ -166,128 +138,67 @@
   </SectionCard>
 
   <SectionCard
-    id="user_privacy"
-    title="Privacy"
-    description="Control whether your coding stats can be used by public APIs."
+    id="user_email_addresses"
+    title="Email Addresses"
+    description="Add or remove email addresses used for sign-in and verification."
   >
-    <Form
-      id="profile-privacy-form"
-      action={privacy_update_path}
-      method="patch"
-      class="space-y-3"
-      options={{ preserveScroll: true }}
-    >
-      <label class="flex items-center gap-3 text-sm text-surface-content">
-        <input type="hidden" name="user[allow_public_stats_lookup]" value="0" />
-        <Checkbox.Root
-          bind:checked={allowPublicStatsLookup}
-          name="user[allow_public_stats_lookup]"
-          value="1"
-          class="inline-flex h-4 w-4 min-w-4 items-center justify-center rounded border border-surface-200 bg-darker text-on-primary transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary"
-        >
-          {#snippet children({ checked })}
-            <span class={checked ? "text-[10px]" : "hidden"}>✓</span>
-          {/snippet}
-        </Checkbox.Root>
-        Allow public stats lookup
-      </label>
-    </Form>
-
-    {#snippet footer()}
-      <Button type="submit" variant="primary" form="profile-privacy-form">
-        Save privacy settings
-      </Button>
-    {/snippet}
-  </SectionCard>
-
-  <SectionCard
-    id="user_theme"
-    title="Theme"
-    description="Pick how Hackatime looks for your account."
-    wide
-  >
-    <Form
-      id="profile-theme-form"
-      action={theme_update_path}
-      method="patch"
-      class="space-y-4"
-      options={{ preserveScroll: true }}
-      onSuccess={applySelectedTheme}
-    >
-      <RadioGroup.Root
-        name="user[theme]"
-        bind:value={selectedTheme}
-        class="grid grid-cols-1 gap-4 md:grid-cols-2"
-      >
-        {#each options.themes as theme}
-          <RadioGroup.Item
-            value={theme.value}
-            class="block cursor-pointer rounded-xl border p-4 text-left outline-none transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-surface-100 data-[state=unchecked]:border-surface-200 data-[state=unchecked]:bg-darker/40 data-[state=unchecked]:hover:border-surface-300"
+    <div class="space-y-2">
+      {#if emails.length > 0}
+        {#each emails as email}
+          <div
+            class="flex flex-wrap items-center gap-2 rounded-md border border-surface-200 bg-darker px-3 py-2"
           >
-            {#snippet children({ checked })}
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="text-sm font-semibold text-surface-content">
-                    {theme.label}
-                  </p>
-                  <p class="mt-1 text-xs text-muted">{theme.description}</p>
-                </div>
-                {#if checked}
-                  <span
-                    class="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary"
-                  >
-                    Selected
-                  </span>
-                {/if}
-              </div>
-
-              <div
-                class="mt-3 rounded-lg border p-2"
-                style={`background:${theme.preview.darker};border-color:${theme.preview.darkless};color:${theme.preview.content};`}
+            <div class="grow text-sm text-surface-content">
+              <p>{email.email}</p>
+              <p class="text-xs text-muted">{email.source}</p>
+            </div>
+            {#if email.can_unlink}
+              <Form
+                action={paths.unlink_email_path}
+                method="delete"
+                options={{ preserveScroll: true }}
               >
-                <div
-                  class="flex items-center justify-between rounded-md px-2 py-1"
-                  style={`background:${theme.preview.dark};`}
+                <input type="hidden" name="email" value={email.email} />
+                <Button
+                  type="submit"
+                  variant="surface"
+                  size="xs"
+                  class="rounded-md"
                 >
-                  <span class="text-[11px] font-semibold">Dashboard</span>
-                  <span class="text-[10px] opacity-80">2h 14m</span>
-                </div>
-
-                <div class="mt-2 grid grid-cols-[1fr_auto] items-center gap-2">
-                  <span
-                    class="h-2 rounded"
-                    style={`background:${theme.preview.primary};`}
-                  ></span>
-                  <span
-                    class="h-2 w-8 rounded"
-                    style={`background:${theme.preview.darkless};`}
-                  ></span>
-                </div>
-
-                <div class="mt-2 flex gap-1.5">
-                  <span
-                    class="h-1.5 w-6 rounded"
-                    style={`background:${theme.preview.info};`}
-                  ></span>
-                  <span
-                    class="h-1.5 w-6 rounded"
-                    style={`background:${theme.preview.success};`}
-                  ></span>
-                  <span
-                    class="h-1.5 w-6 rounded"
-                    style={`background:${theme.preview.warning};`}
-                  ></span>
-                </div>
-              </div>
-            {/snippet}
-          </RadioGroup.Item>
+                  Unlink
+                </Button>
+              </Form>
+            {/if}
+          </div>
         {/each}
-      </RadioGroup.Root>
+      {:else}
+        <p
+          class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
+        >
+          No email addresses are linked.
+        </p>
+      {/if}
+    </div>
+
+    <Form
+      id="profile-email-form"
+      action={paths.add_email_path}
+      method="post"
+      class="mt-4 flex flex-col gap-3 sm:flex-row"
+      options={{ preserveScroll: true }}
+    >
+      <input
+        type="email"
+        name="email"
+        required
+        placeholder="name@example.com"
+        class="grow rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+      />
     </Form>
 
     {#snippet footer()}
-      <Button type="submit" variant="primary" form="profile-theme-form">
-        Save theme
+      <Button type="submit" class="rounded-md" form="profile-email-form">
+        Add email
       </Button>
     {/snippet}
   </SectionCard>

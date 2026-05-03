@@ -1,14 +1,14 @@
-class Settings::DataController < Settings::BaseController
+class Settings::ImportsExportsController < Settings::BaseController
   def show
-    render_data
+    render_imports_exports
   end
 
   private
 
-  def render_data(status: :ok)
+  def render_imports_exports(status: :ok)
     render_settings_page(
-      active_section: "data",
-      settings_update_path: my_settings_profile_path,
+      active_section: "imports_exports",
+      settings_update_path: my_settings_imports_exports_path,
       status: status
     )
   end

@@ -28,6 +28,7 @@ class User < ApplicationRecord
 
   attribute :allow_public_stats_lookup, :boolean, default: true
   attribute :default_timezone_leaderboard, :boolean, default: true
+  attribute :show_goals_in_statusbar, :boolean, default: true
 
   def country_name
     ISO3166::Country.new(country_code).common_name

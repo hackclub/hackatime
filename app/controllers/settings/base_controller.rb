@@ -18,12 +18,15 @@ class Settings::BaseController < InertiaController
   def settings_component_for(active_section)
     {
       "profile" => "Users/Settings/Profile",
-      "integrations" => "Users/Settings/Integrations",
+      "setup" => "Users/Settings/Setup",
+      "appearance" => "Users/Settings/Appearance",
+      "editors" => "Users/Settings/Editors",
+      "slack_github" => "Users/Settings/SlackGithub",
       "notifications" => "Users/Settings/Notifications",
-      "access" => "Users/Settings/Access",
+      "privacy" => "Users/Settings/Privacy",
       "goals" => "Users/Settings/Goals",
       "badges" => "Users/Settings/Badges",
-      "data" => "Users/Settings/Data"
+      "imports_exports" => "Users/Settings/ImportsExports"
     }.fetch(active_section.to_s, "Users/Settings/Profile")
   end
 
@@ -35,16 +38,19 @@ class Settings::BaseController < InertiaController
       active_section: active_section,
       section_paths: {
         profile: my_settings_profile_path,
-        integrations: my_settings_integrations_path,
+        setup: my_settings_setup_path,
+        appearance: my_settings_appearance_path,
+        editors: my_settings_editors_path,
+        slack_github: my_settings_slack_github_path,
         notifications: my_settings_notifications_path,
-        access: my_settings_access_path,
+        privacy: my_settings_privacy_path,
         goals: my_settings_goals_path,
         badges: my_settings_badges_path,
-        data: my_settings_data_path
+        imports_exports: my_settings_imports_exports_path
       },
       page_title: (is_own ? "My Settings" : "Settings | #{@user.display_name}"),
       heading: (is_own ? "Settings" : "Settings for #{@user.display_name}"),
-      subheading: "Manage your profile, integrations, notifications, access, goals, and data tools.",
+      subheading: "Manage your profile, appearance, editors, integrations, privacy, goals, and data tools.",
 
       errors: {
         full_messages: @user.errors.full_messages,
@@ -71,6 +77,7 @@ class Settings::BaseController < InertiaController
       uses_slack_status: @user.uses_slack_status,
       weekly_summary_email_enabled: @user.subscribed?("weekly_summary"),
       hackatime_extension_text_type: @user.hackatime_extension_text_type,
+      show_goals_in_statusbar: @user.show_goals_in_statusbar,
       allow_public_stats_lookup: @user.allow_public_stats_lookup,
       trust_level: @user.trust_level,
       can_request_deletion: @user.can_request_deletion?,

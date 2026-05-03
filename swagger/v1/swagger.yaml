@@ -1840,7 +1840,7 @@ paths:
                             example: 7200.0
                           text:
                             type: string
-                            example: 2h 30m / 4h today
+                            example: 2h 30m / 4h goal
                       goal:
                         type: object
                         nullable: true

@@ -107,11 +107,11 @@
     class="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8"
   >
     <aside class="hidden h-max lg:sticky lg:top-8 lg:block">
-      <div data-settings-sidebar class="rounded-[1.25rem] bg-surface/90 p-2">
+      <div data-settings-sidebar class="rounded-[1.25rem] bg-surface/90 p-1">
         {#each sections as section}
           <Link href={section.path} class={sectionButtonClass(section.id)}>
             <p class="text-sm font-semibold">{section.label}</p>
-            <p class="mt-1 text-xs leading-5 opacity-80">{section.blurb}</p>
+            <!-- <p class="mt-1 text-xs leading-5 opacity-80">{section.blurb}</p> -->
           </Link>
         {/each}
       </div>
