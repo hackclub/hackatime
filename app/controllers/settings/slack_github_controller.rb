@@ -33,7 +33,7 @@ class Settings::SlackGithubController < Settings::BaseController
 
     {
       settings_update_path: my_settings_slack_github_path,
-      user: user_props,
+      user: user_props(keys: %i[uses_slack_status]),
       slack: {
         can_enable_status: can_enable_slack_status,
         notification_channels: channel_ids.map { |channel_id|
@@ -50,7 +50,7 @@ class Settings::SlackGithubController < Settings::BaseController
         username: @user.github_username,
         profile_url: (@user.github_username.present? ? "https://github.com/#{@user.github_username}" : nil)
       },
-      paths: paths_props
+      paths: paths_props(keys: %i[slack_auth_path github_auth_path github_unlink_path])
     }
   end
 

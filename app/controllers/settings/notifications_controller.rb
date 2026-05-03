@@ -35,7 +35,7 @@ class Settings::NotificationsController < Settings::BaseController
   def section_props
     {
       settings_update_path: my_settings_notifications_path,
-      user: user_props
+      user: user_props(keys: %i[weekly_summary_email_enabled])
     }
   end
 end

@@ -21,8 +21,11 @@ class Settings::ImportsExportsController < Settings::BaseController
     end
 
     {
-      user: user_props,
-      paths: paths_props,
+      paths: paths_props(keys: %i[
+        export_all_heartbeats_path
+        export_range_heartbeats_path
+        create_heartbeat_import_path
+      ]),
       data_export: InertiaRails.defer {
         {
           total_heartbeats: number_with_delimiter(@user.heartbeats.count),

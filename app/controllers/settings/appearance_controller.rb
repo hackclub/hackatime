@@ -25,8 +25,8 @@ class Settings::AppearanceController < Settings::BaseController
   def section_props
     {
       theme_update_path: my_settings_appearance_theme_path,
-      user: user_props,
-      options: base_options
+      user: user_props(keys: %i[theme]),
+      options: base_options(keys: %i[themes])
     }
   end
 

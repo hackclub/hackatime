@@ -15,7 +15,6 @@ export type SectionPaths = Record<SectionId, string>;
 export type SettingsSection = {
   id: SectionId;
   label: string;
-  blurb: string;
   path: string;
 };
 
@@ -85,7 +84,6 @@ export type UserProps = {
   github_uid?: string | null;
   github_username?: string | null;
   slack_uid?: string | null;
-  programming_goals: ProgrammingGoal[];
 };
 
 export type PathsProps = {
@@ -111,7 +109,7 @@ export type BaseOptionsProps = {
   badge_themes: string[];
 };
 
-export type OptionsProps = BaseOptionsProps & {
+export type GoalsOptionsProps = {
   goals: {
     periods: Option[];
     preset_target_seconds: number[];
@@ -119,6 +117,8 @@ export type OptionsProps = BaseOptionsProps & {
     selectable_projects: Option[];
   };
 };
+
+export type OptionsProps = BaseOptionsProps & GoalsOptionsProps;
 
 export type SlackProps = {
   can_enable_status: boolean;
@@ -146,7 +146,6 @@ export type BadgesProps = {
   project_badge_url?: string | null;
   project_badge_base_url?: string | null;
   projects: Array<{ display_name: string; repo_path: string }>;
-  profile_url?: string | null;
   markscribe_template: string;
   markscribe_reference_url: string;
   markscribe_preview_image_url: string;
@@ -215,56 +214,58 @@ export type ProfilePageProps = SettingsCommonProps & {
   region_update_path: string;
   username_update_path: string;
   username_max_length: number;
-  user: UserProps;
-  options: BaseOptionsProps;
+  user: Pick<UserProps, "country_code" | "timezone" | "username">;
+  options: Pick<BaseOptionsProps, "countries" | "timezones">;
   profile_url: string | null;
   emails: EmailProps[];
-  paths: PathsProps;
+  paths: Pick<PathsProps, "add_email_path" | "unlink_email_path">;
 };
 
 export type SetupPageProps = SettingsCommonProps & {
-  paths: PathsProps;
+  paths: Pick<PathsProps, "wakatime_setup_path">;
   config_file: ConfigFileProps;
 };
 
 export type AppearancePageProps = SettingsCommonProps & {
   theme_update_path: string;
-  user: UserProps;
-  options: BaseOptionsProps;
+  user: Pick<UserProps, "theme">;
+  options: Pick<BaseOptionsProps, "themes">;
 };
 
 export type EditorsPageProps = SettingsCommonProps & {
   settings_update_path: string;
-  user: UserProps;
-  options: BaseOptionsProps;
+  user: Pick<UserProps, "hackatime_extension_text_type" | "show_goals_in_statusbar">;
+  options: Pick<BaseOptionsProps, "extension_text_types">;
 };
 
 export type SlackGithubPageProps = SettingsCommonProps & {
   settings_update_path: string;
-  user: UserProps;
+  user: Pick<UserProps, "uses_slack_status">;
   slack: SlackProps;
   github: GithubProps;
-  paths: PathsProps;
+  paths: Pick<
+    PathsProps,
+    "slack_auth_path" | "github_auth_path" | "github_unlink_path"
+  >;
 };
 
 export type NotificationsPageProps = SettingsCommonProps & {
   settings_update_path: string;
-  user: UserProps;
+  user: Pick<UserProps, "weekly_summary_email_enabled">;
 };
 
 export type PrivacyPageProps = SettingsCommonProps & {
   privacy_update_path: string;
-  user: UserProps;
-  paths: PathsProps;
+  user: Pick<UserProps, "allow_public_stats_lookup" | "can_request_deletion">;
+  paths: Pick<PathsProps, "rotate_api_key_path" | "create_deletion_path">;
   rotated_api_key?: string | null;
 };
 
 export type GoalsPageProps = SettingsCommonProps & {
   settings_update_path: string;
   create_goal_path: string;
-  user: UserProps;
   programming_goals: ProgrammingGoal[];
-  options: OptionsProps;
+  options: GoalsOptionsProps;
   goal_form?: GoalForm | null;
 };
 
@@ -276,8 +277,12 @@ export type BadgesPageProps = SettingsCommonProps & {
 };
 
 export type ImportsExportsPageProps = SettingsCommonProps & {
-  user: UserProps;
-  paths: PathsProps;
+  paths: Pick<
+    PathsProps,
+    | "export_all_heartbeats_path"
+    | "export_range_heartbeats_path"
+    | "create_heartbeat_import_path"
+  >;
   data_export?: DataExportProps;
   imports_enabled: boolean;
   remote_import_cooldown_until?: string | null;
@@ -291,61 +296,51 @@ export const buildSections = (
   {
     id: "profile",
     label: "Profile",
-    blurb: "Username, region, and email addresses.",
     path: sectionPaths.profile,
   },
   {
     id: "setup",
     label: "Setup",
-    blurb: "Editor setup guide and WakaTime config file.",
     path: sectionPaths.setup,
   },
   {
     id: "appearance",
     label: "Appearance",
-    blurb: "Theme and visual preferences.",
     path: sectionPaths.appearance,
   },
   {
     id: "editors",
     label: "Editors",
-    blurb: "Extension display and editor preferences.",
     path: sectionPaths.editors,
   },
   {
     id: "slack_github",
     label: "Slack & GitHub",
-    blurb: "Slack status, channel notifications, and GitHub link.",
     path: sectionPaths.slack_github,
   },
   {
     id: "notifications",
     label: "Notifications",
-    blurb: "Email notifications and weekly summary preferences.",
     path: sectionPaths.notifications,
   },
   {
     id: "privacy",
     label: "Privacy & Security",
-    blurb: "Public stats, API key, and account deletion.",
     path: sectionPaths.privacy,
   },
   {
     id: "goals",
     label: "Goals",
-    blurb: "Set daily, weekly, or monthly programming targets.",
     path: sectionPaths.goals,
   },
   {
     id: "badges",
     label: "Badges",
-    blurb: "Shareable badges and profile snippets.",
     path: sectionPaths.badges,
   },
   {
     id: "imports_exports",
     label: "Imports & Exports",
-    blurb: "Import heartbeats from other services or export your data.",
     path: sectionPaths.imports_exports,
   },
 ];

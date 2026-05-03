@@ -25,7 +25,6 @@
     heading,
     subheading,
     create_goal_path,
-    user,
     programming_goals,
     options,
     errors,
