@@ -1,6 +1,8 @@
 class Admin::DeletionRequestsController < Admin::BaseController
+  self.authorization_record = ->(c) { c.instance_variable_get(:@deletion_request) || DeletionRequest }
+
   before_action :set_deletion_request, only: [ :show, :approve, :reject ]
-  before_action -> { require_admin_level!(:superadmin) }, only: [ :index, :show, :approve, :reject ]
+  before_action :authorize_admin_action!
 
   def index
     @pending = DeletionRequest.pending.includes(:user).order(requested_at: :asc)

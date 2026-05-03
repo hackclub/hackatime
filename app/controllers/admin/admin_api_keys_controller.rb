@@ -1,5 +1,8 @@
 class Admin::AdminApiKeysController < Admin::BaseController
+  self.authorization_record = ->(c) { c.instance_variable_get(:@admin_api_key) || AdminApiKey }
+
   before_action :set_admin_api_key, only: [ :show, :destroy ]
+  before_action :authorize_admin_action!
 
   def index
     @admin_api_keys = AdminApiKey.includes(:user).active.order(created_at: :desc)

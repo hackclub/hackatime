@@ -405,6 +405,8 @@ GEM
     public_suffix (7.0.5)
     puma (8.0.1)
       nio4r (~> 2.0)
+    pundit (2.5.2)
+      activesupport (>= 3.0.0)
     query_count (1.1.1)
       activerecord (>= 4.2)
       railties (>= 4.2)
@@ -701,6 +703,7 @@ DEPENDENCIES
   premailer-rails
   propshaft
   puma (>= 5.0)
+  pundit (~> 2.4)
   query_count
   rack-attack
   rack-cors

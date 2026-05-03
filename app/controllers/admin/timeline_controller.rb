@@ -1,6 +1,10 @@
 class Admin::TimelineController < Admin::BaseController
   include ApplicationHelper
 
+  self.authorization_record = :timeline
+
+  before_action :authorize_admin_action!
+
   def show
     @date ||= params[:date] ? Date.parse(params[:date]) : Time.current.to_date
     @next_date = @date + 1.day

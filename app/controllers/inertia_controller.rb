@@ -89,18 +89,17 @@ class InertiaController < ApplicationController
     ]
   end
 
+  # Admin nav is split into four conceptual sections (admin / viewer /
+  # superadmin / ultraadmin) so the Svelte layout can render them as
+  # separate groups. Within each section, gating is policy-driven so the
+  # cascade (ultraadmin >= superadmin >= admin >= viewer) lives in one
+  # place. Each section returns [] when the user lacks any link in it.
+  #
+  # Note: with the strict linear hierarchy, a superadmin sees BOTH the
+  # admin section AND the superadmin section. The frontend collapses
+  # them visually as needed.
   def inertia_admin_links
-    return [] unless current_user&.admin_level.in?(%w[admin superadmin ultraadmin])
-
-    links = []
-    links << inertia_link("Review Timeline", admin_timeline_path, active: helpers.current_page?(admin_timeline_path))
-    links << inertia_link("Trust Level Logs", admin_trust_level_audit_logs_path, active: helpers.current_page?(admin_trust_level_audit_logs_path) || request.path.start_with?("/admin/trust_level_audit_logs"))
-    links << inertia_link("Admin API Keys", admin_admin_api_keys_path, active: helpers.current_page?(admin_admin_api_keys_path) || request.path.start_with?("/admin/admin_api_keys"))
-    links
-  end
-
-  def inertia_viewer_links
-    return [] unless current_user&.admin_level == "viewer"
+    return [] unless current_user && policy(:admin).access?
 
     [
       inertia_link("Review Timeline", admin_timeline_path, active: helpers.current_page?(admin_timeline_path)),
@@ -109,19 +108,29 @@ class InertiaController < ApplicationController
     ]
   end
 
-  def inertia_superadmin_links
-    return [] unless current_user&.admin_level.in?(%w[superadmin ultraadmin])
+  # Kept for layout backward-compat: the viewer section duplicates the
+  # admin section (since hierarchy gives admin a superset of viewer's
+  # reads). Only emits links for actual viewers so the frontend can show
+  # a "Viewer" header without duplicating links for higher tiers.
+  def inertia_viewer_links
+    return [] unless current_user&.admin_level_viewer?
 
-    links = []
-    links << inertia_link("Admin Management", admin_admin_users_path, active: helpers.current_page?(admin_admin_users_path))
+    inertia_admin_links
+  end
+
+  def inertia_superadmin_links
+    return [] unless current_user && policy(DeletionRequest).index?
+
     pending_count = DeletionRequest.pending.count
-    links << inertia_link("Account Deletions", admin_deletion_requests_path, active: helpers.current_page?(admin_deletion_requests_path), badge: pending_count.positive? ? pending_count : nil)
-    links << inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications"))
-    links
+    [
+      inertia_link("Admin Management", admin_admin_users_path, active: helpers.current_page?(admin_admin_users_path)),
+      inertia_link("Account Deletions", admin_deletion_requests_path, active: helpers.current_page?(admin_deletion_requests_path), badge: pending_count.positive? ? pending_count : nil),
+      inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications"))
+    ]
   end
 
   def inertia_ultraadmin_links
-    return [] unless current_user&.admin_level == "ultraadmin"
+    return [] unless current_user && policy(:account_merger).access?
 
     [
       inertia_link("GoodBoy", good_job_path, active: helpers.current_page?(good_job_path)),

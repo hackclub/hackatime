@@ -1,5 +1,6 @@
 class ApplicationController < ActionController::Base
   include ErrorReporting
+  include Pundit::Authorization
 
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user
@@ -10,6 +11,10 @@ class ApplicationController < ActionController::Base
   before_action :set_cache_headers
 
   around_action :switch_time_zone, if: :current_user
+
+  rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+
+  helper_method :policy
 
   def switch_time_zone(&block)
     Time.use_zone(current_user.timezone, &block)
@@ -38,8 +43,27 @@ class ApplicationController < ActionController::Base
   end
 
   def try_rack_mini_profiler_enable
-    if current_user && (current_user.admin_level == "admin" || current_user.admin_level == "superadmin")
+    if current_user && policy(:admin).mini_profiler?
       Rack::MiniProfiler.authorize_request
+    end
+  end
+
+  # Pundit needs `current_user` defined before policies are instantiated.
+  # The default Pundit `pundit_user` already returns `current_user`, but
+  # we override here in case a subclass redefines `current_user` (e.g. the
+  # admin API uses an admin_api_key-derived user).
+  def pundit_user
+    current_user
+  end
+
+  def user_not_authorized(exception)
+    respond_to do |format|
+      format.json { render json: { error: "lmao no perms" }, status: :forbidden }
+      format.html do
+        flash[:alert] = "You are not authorized to access this page."
+        redirect_back fallback_location: root_path
+      end
+      format.any { head :forbidden }
     end
   end
 

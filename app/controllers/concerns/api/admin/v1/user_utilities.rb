@@ -4,10 +4,6 @@ module Api
       module UserUtilities
         extend ActiveSupport::Concern
 
-        included do
-          before_action :can_write!, only: [ :user_convict ]
-        end
-
         def get_user_by_email
           email = params[:email]
 
@@ -321,9 +317,10 @@ module Api
             return render json: { error: "read the docs you idiot" }, status: :unprocessable_entity
           end
 
-          if trust_level == "red" && !current_user.can_convict_users?
-            return render json: { error: "no perms lmaooo" }, status: :forbidden
-          end
+          # Pundit gates the trust change. Red conviction is superadmin+;
+          # other trust changes are admin+. Viewers (read-only) are blocked.
+          required = trust_level == "red" ? :convict? : :update_trust_level?
+          authorize user, required
 
           success = user.set_trust(
             trust_level,
@@ -544,13 +541,6 @@ module Api
         end
 
         private
-
-        def can_write!
-          # blocks viewers
-          unless current_user.admin_level.in?([ "admin", "superadmin", "ultraadmin" ])
-            render json: { error: "no perms lmaooo" }, status: :forbidden
-          end
-        end
 
         def find_user_by_id
           user_id = params[:id] || params[:user_id]

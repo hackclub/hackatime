@@ -194,7 +194,7 @@ module Doorkeeper
           confidential: @application.confidential?,
           scopes: @application.scopes.to_a.map(&:to_s),
           redirect_uris: redirect_uris_for(@application),
-          can_toggle_verified: current_user&.admin_level_superadmin? || false
+          can_toggle_verified: policy(@application).toggle_verified?
         },
         secret: {
           value: secret,

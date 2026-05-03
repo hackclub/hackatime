@@ -2,7 +2,7 @@ module Api
   module Admin
     module V1
       class PermissionsController < Api::Admin::V1::ApplicationController
-        before_action :require_superadmin
+        before_action :authorize_permissions_index!, only: [ :index ]
 
         def index
           users = User.where.not(admin_level: :default)
@@ -41,6 +41,12 @@ module Api
             return render json: { error: "Invalid admin level" }, status: :unprocessable_entity
           end
 
+          # Same gate as web flow: superadmin+ may change levels, blocks
+          # self-edit, and granting ultraadmin requires being one.
+          # (Previously the API skipped these checks — bug fixed by Pundit.)
+          authorize user, :change_admin_level?
+          authorize user, :grant_ultraadmin? if new_level == "ultraadmin"
+
           if user.set_admin_level(new_level)
             Rails.logger.info "Admin level changed: User #{user.id} (#{user.display_name}) from #{previous_level} to #{new_level} by #{current_user.display_name}"
 
@@ -61,6 +67,12 @@ module Api
           end
         rescue ActiveRecord::RecordNotFound
           render json: { error: "User not found" }, status: :not_found
+        end
+
+        private
+
+        def authorize_permissions_index!
+          authorize :permission, :index?
         end
       end
     end
