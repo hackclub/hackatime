@@ -18,7 +18,6 @@ class Settings::SlackGithubController < Settings::BaseController
   def render_slack_github(status: :ok)
     render_settings_page(
       active_section: "slack_github",
-      settings_update_path: my_settings_slack_github_path,
       status: status
     )
   end

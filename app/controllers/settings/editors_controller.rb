@@ -17,7 +17,6 @@ class Settings::EditorsController < Settings::BaseController
   def render_editors(status: :ok)
     render_settings_page(
       active_section: "editors",
-      settings_update_path: my_settings_editors_path,
       status: status
     )
   end

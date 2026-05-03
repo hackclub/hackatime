@@ -1,9 +1,6 @@
 class Settings::BadgesController < Settings::BaseController
   def show
-    render_settings_page(
-      active_section: "badges",
-      settings_update_path: my_settings_privacy_update_path
-    )
+    render_settings_page(active_section: "badges")
   end
 
   private

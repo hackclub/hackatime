@@ -17,7 +17,6 @@ class Settings::AppearanceController < Settings::BaseController
   def render_appearance(status: :ok)
     render_settings_page(
       active_section: "appearance",
-      settings_update_path: my_settings_appearance_path,
       status: status
     )
   end

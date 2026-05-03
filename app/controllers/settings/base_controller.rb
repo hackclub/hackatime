@@ -9,7 +9,7 @@ class Settings::BaseController < InertiaController
 
   private
 
-  def render_settings_page(active_section:, settings_update_path:, status: :ok, extra_props: {})
+  def render_settings_page(active_section:, status: :ok, extra_props: {})
     render inertia: settings_component_for(active_section), props: common_props(
       active_section: active_section
     ).merge(section_props).merge(extra_props), status: status

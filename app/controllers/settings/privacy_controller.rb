@@ -27,7 +27,6 @@ class Settings::PrivacyController < Settings::BaseController
   def render_privacy(status: :ok)
     render_settings_page(
       active_section: "privacy",
-      settings_update_path: my_settings_privacy_update_path,
       status: status
     )
   end

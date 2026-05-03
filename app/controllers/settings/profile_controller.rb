@@ -16,7 +16,6 @@ class Settings::ProfileController < Settings::BaseController
   def render_profile(status: :ok)
     render_settings_page(
       active_section: "profile",
-      settings_update_path: my_settings_profile_path,
       status: status
     )
   end

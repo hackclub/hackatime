@@ -8,7 +8,6 @@ class Settings::ImportsExportsController < Settings::BaseController
   def render_imports_exports(status: :ok)
     render_settings_page(
       active_section: "imports_exports",
-      settings_update_path: my_settings_imports_exports_path,
       status: status
     )
   end

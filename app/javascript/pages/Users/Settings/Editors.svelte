@@ -18,6 +18,13 @@
     options,
     errors,
   }: EditorsPageProps = $props();
+
+  // When disabled, omit the field from submission entirely so the saved
+  // preference is preserved instead of being silently cleared by the
+  // hidden "0" fallback input.
+  let goals_in_statusbar_disabled = $derived(
+    user.hackatime_extension_text_type !== "simple_text",
+  );
 </script>
 
 <svelte:head>
@@ -61,12 +68,20 @@
 
       <div>
         <label class="flex items-start gap-3 text-sm text-surface-content">
-          <input type="hidden" name="user[show_goals_in_statusbar]" value="0" />
+          {#if !goals_in_statusbar_disabled}
+            <input
+              type="hidden"
+              name="user[show_goals_in_statusbar]"
+              value="0"
+            />
+          {/if}
           <Checkbox.Root
             bind:checked={user.show_goals_in_statusbar}
-            name="user[show_goals_in_statusbar]"
+            name={goals_in_statusbar_disabled
+              ? undefined
+              : "user[show_goals_in_statusbar]"}
             value="1"
-            disabled={user.hackatime_extension_text_type !== "simple_text"}
+            disabled={goals_in_statusbar_disabled}
             class="mt-0.5 inline-flex h-4 w-4 min-w-4 items-center justify-center rounded border border-surface-200 bg-darker text-on-primary transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[disabled]:opacity-50"
           >
             {#snippet children({ checked })}

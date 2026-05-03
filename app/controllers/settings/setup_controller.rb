@@ -1,9 +1,6 @@
 class Settings::SetupController < Settings::BaseController
   def show
-    render_settings_page(
-      active_section: "setup",
-      settings_update_path: my_settings_setup_path
-    )
+    render_settings_page(active_section: "setup")
   end
 
   private

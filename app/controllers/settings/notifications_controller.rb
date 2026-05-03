@@ -27,7 +27,6 @@ class Settings::NotificationsController < Settings::BaseController
   def render_notifications(status: :ok)
     render_settings_page(
       active_section: "notifications",
-      settings_update_path: my_settings_notifications_path,
       status: status
     )
   end

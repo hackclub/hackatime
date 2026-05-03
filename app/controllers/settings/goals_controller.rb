@@ -39,7 +39,6 @@ class Settings::GoalsController < Settings::BaseController
 
     render_settings_page(
       active_section: "goals",
-      settings_update_path: my_settings_goals_path,
       status: status,
       extra_props: extra_props
     )

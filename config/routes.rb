@@ -193,7 +193,7 @@ Rails.application.routes.draw do
 
   # Backward-compat redirects from the old settings categories.
   get "my/settings/integrations", to: redirect("/my/settings/slack_github")
-  get "my/settings/access", to: redirect("/my/settings/setup")
+  get "my/settings/access", to: redirect("/my/settings/privacy")
   get "my/settings/data", to: redirect("/my/settings/imports_exports")
 
   namespace :my do
