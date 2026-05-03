@@ -1,9 +1,6 @@
 class Settings::BadgesController < Settings::BaseController
   def show
-    render_settings_page(
-      active_section: "badges",
-      settings_update_path: my_settings_profile_privacy_path
-    )
+    render_settings_page(active_section: "badges")
   end
 
   private
@@ -13,7 +10,7 @@ class Settings::BadgesController < Settings::BaseController
       badge_themes: GithubReadmeStats.themes,
       badges: badges_props,
       allow_public_stats_lookup: @user.allow_public_stats_lookup,
-      settings_update_path: my_settings_profile_privacy_path
+      settings_update_path: my_settings_privacy_update_path
     }
   end
 end

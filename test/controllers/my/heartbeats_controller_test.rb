@@ -25,7 +25,7 @@ class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :redirect
-    assert_redirected_to my_settings_data_path
+    assert_redirected_to my_settings_imports_exports_path
     assert_equal "Invalid date format. Please use YYYY-MM-DD.", flash[:alert]
   end
 
@@ -41,7 +41,7 @@ class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :redirect
-    assert_redirected_to my_settings_data_path
+    assert_redirected_to my_settings_imports_exports_path
     assert_equal "Start date must be on or before end date.", flash[:alert]
   end
 end

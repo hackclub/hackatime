@@ -69,7 +69,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     run = user.heartbeat_import_runs.order(:created_at).last
 
-    assert_redirected_to my_settings_data_url
+    assert_redirected_to my_settings_imports_exports_url
     assert_equal "queued", run.state
     assert_equal "dev_upload", run.source_kind
   end
@@ -119,7 +119,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to my_settings_data_url
+    assert_redirected_to my_settings_imports_exports_url
     assert_nil flash[:cooldown_until]
   end
 
@@ -152,7 +152,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     run = user.heartbeat_import_runs.order(:created_at).last
 
-    assert_redirected_to my_settings_data_url
+    assert_redirected_to my_settings_imports_exports_url
     assert_equal "wakatime_dump", run.source_kind
     assert_equal "queued", run.state
   end
@@ -170,7 +170,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     run = user.heartbeat_import_runs.order(:created_at).last
 
-    assert_redirected_to my_settings_data_url
+    assert_redirected_to my_settings_imports_exports_url
     assert_equal "hackatime_v1_dump", run.source_kind
     assert_equal "queued", run.state
   end
@@ -192,7 +192,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     run = user.heartbeat_import_runs.order(:created_at).last
 
-    assert_redirected_to my_settings_data_url
+    assert_redirected_to my_settings_imports_exports_url
     assert_equal "wakatime_download_link", run.source_kind
     assert_equal "downloading_dump", run.state
   end
@@ -363,7 +363,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def assert_redirected_with_import_error(message)
-    assert_redirected_to my_settings_data_url
+    assert_redirected_to my_settings_imports_exports_url
     assert_equal message, session[:inertia_errors]&.dig(:import)
   end
 end

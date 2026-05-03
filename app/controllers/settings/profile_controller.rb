@@ -7,16 +7,8 @@ class Settings::ProfileController < Settings::BaseController
     update_section(region_params)
   end
 
-  def update_privacy
-    update_section(privacy_params)
-  end
-
   def update_username
     update_section(username_params)
-  end
-
-  def update_theme
-    update_section(theme_params)
   end
 
   private
@@ -24,7 +16,6 @@ class Settings::ProfileController < Settings::BaseController
   def render_profile(status: :ok)
     render_settings_page(
       active_section: "profile",
-      settings_update_path: my_settings_profile_path,
       status: status
     )
   end
@@ -32,13 +23,19 @@ class Settings::ProfileController < Settings::BaseController
   def section_props
     {
       region_update_path: my_settings_profile_region_path,
-      privacy_update_path: my_settings_profile_privacy_path,
       username_update_path: my_settings_profile_username_path,
-      theme_update_path: my_settings_profile_theme_path,
       username_max_length: User::USERNAME_MAX_LENGTH,
-      user: user_props,
-      options: base_options,
-      profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil)
+      user: user_props(keys: %i[country_code timezone username]),
+      options: base_options(keys: %i[countries timezones]),
+      profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
+      emails: @user.email_addresses.map { |email|
+        {
+          email: email.email,
+          source: email.source&.humanize || "Unknown",
+          can_unlink: @user.can_delete_email_address?(email)
+        }
+      },
+      paths: paths_props(keys: %i[add_email_path unlink_email_path])
     }
   end
 
@@ -57,15 +54,7 @@ class Settings::ProfileController < Settings::BaseController
     permitted
   end
 
-  def privacy_params
-    params.require(:user).permit(:allow_public_stats_lookup)
-  end
-
   def username_params
     params.require(:user).permit(:username)
-  end
-
-  def theme_params
-    params.require(:user).permit(:theme)
   end
 end

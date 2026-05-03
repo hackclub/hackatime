@@ -3,7 +3,10 @@
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
-  import type { DataPageProps, HeartbeatImportStatusProps } from "./types";
+  import type {
+    ImportsExportsPageProps,
+    HeartbeatImportStatusProps,
+  } from "./types";
 
   const PROVIDERS = [
     {
@@ -27,7 +30,6 @@
     page_title,
     heading,
     subheading,
-    user,
     paths,
     data_export,
     imports_enabled,
@@ -35,7 +37,7 @@
     latest_heartbeat_import,
     ui,
     errors,
-  }: DataPageProps = $props();
+  }: ImportsExportsPageProps = $props();
 
   let selectedFile = $state<File | null>(null);
   let remoteProvider =
@@ -190,7 +192,7 @@
 </script>
 
 <svelte:head>
-  <title>Data - Hackatime Settings</title>
+  <title>Imports & Exports - Hackatime Settings</title>
 </svelte:head>
 
 <SettingsShell
@@ -583,44 +585,4 @@
       {/if}
     </Deferred>
   </SectionCard>
-
-  {#if user.can_request_deletion}
-    <SectionCard
-      id="delete_account"
-      title="Account Deletion"
-      description="Request permanent deletion. The account enters a waiting period before final removal."
-      tone="danger"
-      hasBody={false}
-    >
-      {#snippet footer()}
-        <Form
-          method="post"
-          action={paths.create_deletion_path}
-          class="m-0"
-          options={{ preserveScroll: true }}
-          onBefore={() =>
-            window.confirm(
-              "Submit account deletion request? This action starts the deletion process.",
-            )}
-        >
-          <Button type="submit" variant="surface" class="rounded-md">
-            Request deletion
-          </Button>
-        </Form>
-      {/snippet}
-    </SectionCard>
-  {:else}
-    <SectionCard
-      id="delete_account"
-      title="Account Deletion"
-      description="Request permanent deletion. The account enters a waiting period before final removal."
-      tone="danger"
-    >
-      <p
-        class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
-      >
-        Deletion request is unavailable for this account right now.
-      </p>
-    </SectionCard>
-  {/if}
 </SettingsShell>

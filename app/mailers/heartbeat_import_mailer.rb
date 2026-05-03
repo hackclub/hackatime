@@ -2,7 +2,7 @@ class HeartbeatImportMailer < ApplicationMailer
   def import_completed(user, run:, recipient_email:)
     @user = user
     @run = run
-    @settings_url = my_settings_data_url
+    @settings_url = my_settings_imports_exports_url
     @source_name = HeartbeatImportRunner.import_source_name(run)
 
     mail(
@@ -14,7 +14,7 @@ class HeartbeatImportMailer < ApplicationMailer
   def import_failed(user, run:, recipient_email:)
     @user = user
     @run = run
-    @settings_url = my_settings_data_url
+    @settings_url = my_settings_imports_exports_url
     @source_name = HeartbeatImportRunner.import_source_name(run)
 
     mail(

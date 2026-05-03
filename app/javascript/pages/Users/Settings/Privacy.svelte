@@ -1,11 +1,11 @@
 <script lang="ts">
   import { Form, router } from "@inertiajs/svelte";
+  import { Checkbox } from "bits-ui";
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
-  import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
-  import type { AccessPageProps } from "./types";
+  import type { PrivacyPageProps } from "./types";
 
   let {
     active_section,
@@ -13,14 +13,12 @@
     page_title,
     heading,
     subheading,
-    settings_update_path,
+    privacy_update_path,
     user,
-    options,
     paths,
-    config_file,
     rotated_api_key = "",
     errors,
-  }: AccessPageProps = $props();
+  }: PrivacyPageProps = $props();
 
   let rotatingApiKey = $state(false);
   let rotatedApiKey = $derived(rotated_api_key || "");
@@ -68,7 +66,7 @@
 </script>
 
 <svelte:head>
-  <title>Access - Hackatime Settings</title>
+  <title>Privacy & Security - Hackatime Settings</title>
 </svelte:head>
 
 <SettingsShell
@@ -80,51 +78,36 @@
   {errors}
 >
   <SectionCard
-    id="user_tracking_setup"
-    title="Time Tracking Setup"
-    description="Use the setup guide if you are configuring a new editor or device."
-  >
-    <p class="text-sm text-muted">
-      Hackatime uses the WakaTime plugin ecosystem, so the setup guide covers
-      editor installation, API keys, and API URL configuration.
-    </p>
-
-    {#snippet footer()}
-      <Button href={paths.wakatime_setup_path}>Open setup guide</Button>
-    {/snippet}
-  </SectionCard>
-
-  <SectionCard
-    id="user_hackatime_extension"
-    title="Extension Display"
-    description="Choose how coding time appears in the extension status text."
+    id="user_privacy"
+    title="Public Stats"
+    description="Control whether your coding stats can be looked up by other users and public APIs."
   >
     <Form
-      id="access-extension-form"
-      action={settings_update_path}
+      id="privacy-public-stats-form"
+      action={privacy_update_path}
       method="patch"
-      class="space-y-4"
+      class="space-y-3"
       options={{ preserveScroll: true }}
     >
-      <div>
-        <label
-          for="extension_type"
-          class="mb-2 block text-sm text-surface-content"
+      <label class="flex items-center gap-3 text-sm text-surface-content">
+        <input type="hidden" name="user[allow_public_stats_lookup]" value="0" />
+        <Checkbox.Root
+          bind:checked={user.allow_public_stats_lookup}
+          name="user[allow_public_stats_lookup]"
+          value="1"
+          class="inline-flex h-4 w-4 min-w-4 items-center justify-center rounded border border-surface-200 bg-darker text-on-primary transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary"
         >
-          Display style
-        </label>
-        <Select
-          id="extension_type"
-          name="user[hackatime_extension_text_type]"
-          value={user.hackatime_extension_text_type}
-          items={options.extension_text_types}
-        />
-      </div>
+          {#snippet children({ checked })}
+            <span class={checked ? "text-[10px]" : "hidden"}>✓</span>
+          {/snippet}
+        </Checkbox.Root>
+        Allow public stats lookup
+      </label>
     </Form>
 
     {#snippet footer()}
-      <Button type="submit" variant="primary" form="access-extension-form">
-        Save extension settings
+      <Button type="submit" variant="primary" form="privacy-public-stats-form">
+        Save privacy settings
       </Button>
     {/snippet}
   </SectionCard>
@@ -174,23 +157,45 @@
     {/snippet}
   </SectionCard>
 
-  <SectionCard
-    id="user_config_file"
-    title="WakaTime Config File"
-    description="Copy this into your ~/.wakatime.cfg file."
-    wide
-  >
-    {#if config_file.has_api_key && config_file.content}
-      <pre
-        class="overflow-x-auto rounded-md border border-surface-200 bg-darker p-4 text-xs text-surface-content">{config_file.content}</pre>
-    {:else}
+  {#if user.can_request_deletion}
+    <SectionCard
+      id="delete_account"
+      title="Account Deletion"
+      description="Request permanent deletion. The account enters a waiting period before final removal."
+      tone="danger"
+      hasBody={false}
+    >
+      {#snippet footer()}
+        <Form
+          method="post"
+          action={paths.create_deletion_path}
+          class="m-0"
+          options={{ preserveScroll: true }}
+          onBefore={() =>
+            window.confirm(
+              "Submit account deletion request? This action starts the deletion process.",
+            )}
+        >
+          <Button type="submit" variant="surface" class="rounded-md">
+            Request deletion
+          </Button>
+        </Form>
+      {/snippet}
+    </SectionCard>
+  {:else}
+    <SectionCard
+      id="delete_account"
+      title="Account Deletion"
+      description="Request permanent deletion. The account enters a waiting period before final removal."
+      tone="danger"
+    >
       <p
         class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
       >
-        {config_file.empty_message}
+        Deletion request is unavailable for this account right now.
       </p>
-    {/if}
-  </SectionCard>
+    </SectionCard>
+  {/if}
 </SettingsShell>
 
 <Modal

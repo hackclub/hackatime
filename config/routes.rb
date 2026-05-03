@@ -149,24 +149,52 @@ Rails.application.routes.draw do
 
   # Namespace for current user actions
   get "my/settings", to: "settings/profile#show", as: :my_settings
+
+  # Profile
   get "my/settings/profile", to: "settings/profile#show", as: :my_settings_profile
   patch "my/settings/profile/region", to: "settings/profile#update_region", as: :my_settings_profile_region
-  patch "my/settings/profile/privacy", to: "settings/profile#update_privacy", as: :my_settings_profile_privacy
   patch "my/settings/profile/username", to: "settings/profile#update_username", as: :my_settings_profile_username
-  patch "my/settings/profile/theme", to: "settings/profile#update_theme", as: :my_settings_profile_theme
-  get "my/settings/integrations", to: "settings/integrations#show", as: :my_settings_integrations
-  patch "my/settings/integrations", to: "settings/integrations#update"
+
+  # Setup
+  get "my/settings/setup", to: "settings/setup#show", as: :my_settings_setup
+
+  # Appearance
+  get "my/settings/appearance", to: "settings/appearance#show", as: :my_settings_appearance
+  patch "my/settings/appearance/theme", to: "settings/appearance#update_theme", as: :my_settings_appearance_theme
+
+  # Editors
+  get "my/settings/editors", to: "settings/editors#show", as: :my_settings_editors
+  patch "my/settings/editors", to: "settings/editors#update"
+
+  # Slack & GitHub
+  get "my/settings/slack_github", to: "settings/slack_github#show", as: :my_settings_slack_github
+  patch "my/settings/slack_github", to: "settings/slack_github#update"
+
+  # Notifications
   get "my/settings/notifications", to: "settings/notifications#show", as: :my_settings_notifications
   patch "my/settings/notifications", to: "settings/notifications#update"
-  get "my/settings/access", to: "settings/access#show", as: :my_settings_access
-  patch "my/settings/access", to: "settings/access#update"
+
+  # Privacy & Security
+  get "my/settings/privacy", to: "settings/privacy#show", as: :my_settings_privacy
+  patch "my/settings/privacy", to: "settings/privacy#update", as: :my_settings_privacy_update
+  post "my/settings/privacy/rotate_api_key", to: "settings/privacy#rotate_api_key", as: :my_settings_rotate_api_key
+
+  # Goals
   get "my/settings/goals", to: "settings/goals#show", as: :my_settings_goals
   post "my/settings/goals", to: "settings/goals#create", as: :my_settings_goals_create
   patch "my/settings/goals/:goal_id", to: "settings/goals#update", as: :my_settings_goal_update
   delete "my/settings/goals/:goal_id", to: "settings/goals#destroy", as: :my_settings_goal_destroy
+
+  # Badges
   get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
-  get "my/settings/data", to: "settings/data#show", as: :my_settings_data
-  post "my/settings/rotate_api_key", to: "settings/access#rotate_api_key", as: :my_settings_rotate_api_key
+
+  # Imports & Exports
+  get "my/settings/imports_exports", to: "settings/imports_exports#show", as: :my_settings_imports_exports
+
+  # Backward-compat redirects from the old settings categories.
+  get "my/settings/integrations", to: redirect("/my/settings/slack_github")
+  get "my/settings/access", to: redirect("/my/settings/privacy")
+  get "my/settings/data", to: redirect("/my/settings/imports_exports")
 
   namespace :my do
     resources :heartbeat_imports, only: [ :create, :show ] do

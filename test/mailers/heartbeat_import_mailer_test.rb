@@ -45,7 +45,7 @@ class HeartbeatImportMailerTest < ActionMailer::TestCase
     assert_equal "Your WakaTime import is complete", mail.subject
     assert_includes mail.html_part.body.decoded, "Your WakaTime import is complete"
     assert_includes mail.text_part.body.decoded, run.message
-    assert_includes mail.text_part.body.decoded, "/my/settings/data"
+    assert_includes mail.text_part.body.decoded, "/my/settings/imports_exports"
   end
 
   test "import_failed includes the failure reason" do
@@ -66,6 +66,6 @@ class HeartbeatImportMailerTest < ActionMailer::TestCase
     assert_equal "Your Hackatime v1 import failed", mail.subject
     assert_includes mail.html_part.body.decoded, "Your Hackatime v1 import failed"
     assert_includes mail.text_part.body.decoded, run.error_message
-    assert_includes mail.text_part.body.decoded, "/my/settings/data"
+    assert_includes mail.text_part.body.decoded, "/my/settings/imports_exports"
   end
 end

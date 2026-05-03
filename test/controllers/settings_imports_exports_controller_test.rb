@@ -1,17 +1,17 @@
 require "test_helper"
 
-class SettingsDataControllerTest < ActionDispatch::IntegrationTest
+class SettingsImportsExportsControllerTest < ActionDispatch::IntegrationTest
   test "deferred data export reload does not clobber user props" do
     user = User.create!(timezone: "UTC")
     sign_in_as(user)
 
-    get my_settings_data_path
+    get my_settings_imports_exports_path
 
-    get my_settings_data_path, headers: {
+    get my_settings_imports_exports_path, headers: {
       "X-Inertia" => "true",
       "X-Requested-With" => "XMLHttpRequest",
       "X-Inertia-Version" => inertia_page["version"],
-      "X-Inertia-Partial-Component" => "Users/Settings/Data",
+      "X-Inertia-Partial-Component" => "Users/Settings/ImportsExports",
       "X-Inertia-Partial-Data" => "data_export"
     }
 
@@ -21,7 +21,7 @@ class SettingsDataControllerTest < ActionDispatch::IntegrationTest
     assert_equal false, page.dig("props", "data_export", "is_restricted")
   end
 
-  test "data page omits remote cooldown for superadmins" do
+  test "imports & exports page omits remote cooldown for superadmins" do
     user = User.create!(timezone: "UTC", admin_level: :superadmin)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
@@ -33,14 +33,14 @@ class SettingsDataControllerTest < ActionDispatch::IntegrationTest
       remote_requested_at: 1.minute.ago
     )
 
-    get my_settings_data_path
+    get my_settings_imports_exports_path
 
     assert_response :success
     assert_nil inertia_page.dig("props", "remote_import_cooldown_until")
     assert_nil inertia_page.dig("props", "latest_heartbeat_import", "cooldown_until")
   end
 
-  test "data page refreshes stale remote imports" do
+  test "imports & exports page refreshes stale remote imports" do
     user = User.create!(timezone: "UTC")
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
@@ -67,14 +67,14 @@ class SettingsDataControllerTest < ActionDispatch::IntegrationTest
     end
 
     begin
-      get my_settings_data_path
+      get my_settings_imports_exports_path
     ensure
       singleton_class.alias_method :refresh_remote_run!, :__original_refresh_remote_run_for_test
       singleton_class.remove_method :__original_refresh_remote_run_for_test
     end
 
     assert_response :success
-    assert_inertia_component "Users/Settings/Data"
+    assert_inertia_component "Users/Settings/ImportsExports"
     latest_import = inertia_page.dig("props", "latest_heartbeat_import")
     assert_equal run.id.to_s, latest_import["import_id"]
     assert_equal "Completed", latest_import["remote_dump_status"]

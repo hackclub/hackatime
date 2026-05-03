@@ -60,3 +60,7 @@ Skip running checks which aren't relevant to your changes. However, at the very 
 On Inertia pages, use the `<Button />` component for buttons, not `<button>` tags.
 
 When linking to an Inertia page, use the `<Link />` component instead of `<a>` tags.
+
+## Svelte 5 Runes
+
+Don't mirror Inertia props into local `$state` with a `$effect` that just copies them back. Props are already reactive — bind to `user.foo` directly (or pass it as `value={user.foo}`) instead of introducing a redundant `let foo = $state(user.foo)` + `$effect(() => { foo = user.foo })`. Only introduce local `$state` when you actually need state that diverges from the prop.

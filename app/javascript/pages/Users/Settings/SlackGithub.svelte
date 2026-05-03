@@ -5,7 +5,7 @@
   import Modal from "../../../components/Modal.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
-  import type { IntegrationsPageProps } from "./types";
+  import type { SlackGithubPageProps } from "./types";
 
   let {
     active_section,
@@ -17,16 +17,15 @@
     user,
     slack,
     github,
-    emails,
     paths,
     errors,
-  }: IntegrationsPageProps = $props();
+  }: SlackGithubPageProps = $props();
 
   let unlinkGithubModalOpen = $state(false);
 </script>
 
 <svelte:head>
-  <title>Integrations - Hackatime Settings</title>
+  <title>Slack & GitHub - Hackatime Settings</title>
 </svelte:head>
 
 <SettingsShell
@@ -53,7 +52,7 @@
       {/if}
 
       <Form
-        id="integrations-slack-form"
+        id="slack-github-slack-form"
         action={settings_update_path}
         method="patch"
         class="space-y-3"
@@ -77,7 +76,7 @@
     </div>
 
     {#snippet footer()}
-      <Button type="submit" form="integrations-slack-form">
+      <Button type="submit" form="slack-github-slack-form">
         Save Slack settings
       </Button>
     {/snippet}
@@ -151,72 +150,6 @@
           Connect GitHub
         </Button>
       {/if}
-    {/snippet}
-  </SectionCard>
-
-  <SectionCard
-    id="user_email_addresses"
-    title="Email Addresses"
-    description="Add or remove email addresses used for sign-in and verification."
-  >
-    <div class="space-y-2">
-      {#if emails.length > 0}
-        {#each emails as email}
-          <div
-            class="flex flex-wrap items-center gap-2 rounded-md border border-surface-200 bg-darker px-3 py-2"
-          >
-            <div class="grow text-sm text-surface-content">
-              <p>{email.email}</p>
-              <p class="text-xs text-muted">{email.source}</p>
-            </div>
-            {#if email.can_unlink}
-              <Form
-                action={paths.unlink_email_path}
-                method="delete"
-                options={{ preserveScroll: true }}
-              >
-                <input type="hidden" name="email" value={email.email} />
-                <Button
-                  type="submit"
-                  variant="surface"
-                  size="xs"
-                  class="rounded-md"
-                >
-                  Unlink
-                </Button>
-              </Form>
-            {/if}
-          </div>
-        {/each}
-      {:else}
-        <p
-          class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
-        >
-          No email addresses are linked.
-        </p>
-      {/if}
-    </div>
-
-    <Form
-      id="integrations-email-form"
-      action={paths.add_email_path}
-      method="post"
-      class="mt-4 flex flex-col gap-3 sm:flex-row"
-      options={{ preserveScroll: true }}
-    >
-      <input
-        type="email"
-        name="email"
-        required
-        placeholder="name@example.com"
-        class="grow rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-      />
-    </Form>
-
-    {#snippet footer()}
-      <Button type="submit" class="rounded-md" form="integrations-email-form">
-        Add email
-      </Button>
     {/snippet}
   </SectionCard>
 </SettingsShell>

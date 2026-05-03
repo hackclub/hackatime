@@ -1,7 +1,7 @@
 require "application_system_test_case"
 require_relative "test_helpers"
 
-class IntegrationsSettingsTest < ApplicationSystemTestCase
+class SlackGithubSettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
@@ -9,22 +9,21 @@ class IntegrationsSettingsTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
-  test "integrations settings page renders key sections" do
+  test "slack & github settings page renders key sections" do
     assert_settings_page(
-      path: my_settings_integrations_path,
+      path: my_settings_slack_github_path,
       marker_text: "Slack Status Sync",
-      card_count: 4
+      card_count: 3
     )
 
     assert_text "Slack Channel Notifications"
     assert_text "Connected GitHub Account"
-    assert_text "Email Addresses"
   end
 
-  test "integrations settings updates slack status sync preference" do
+  test "slack & github settings updates slack status sync preference" do
     @user.update!(uses_slack_status: false)
 
-    visit my_settings_integrations_path
+    visit my_settings_slack_github_path
 
     within("#user_slack_status") do
       find("[role='checkbox']", wait: 10).click
@@ -36,14 +35,14 @@ class IntegrationsSettingsTest < ApplicationSystemTestCase
     assert_equal true, @user.reload.uses_slack_status
   end
 
-  test "integrations settings opens and cancels unlink github modal" do
+  test "slack & github settings opens and cancels unlink github modal" do
     @user.update!(
       github_uid: "12345",
       github_username: "octocat",
       github_access_token: "github-token"
     )
 
-    visit my_settings_integrations_path
+    visit my_settings_slack_github_path
     assert_text "@octocat"
 
     click_on "Unlink GitHub"
@@ -52,7 +51,7 @@ class IntegrationsSettingsTest < ApplicationSystemTestCase
       click_on "Cancel"
     end
 
-    assert_current_path my_settings_integrations_path, ignore_query: true
+    assert_current_path my_settings_slack_github_path, ignore_query: true
     assert_text "@octocat"
   end
 end

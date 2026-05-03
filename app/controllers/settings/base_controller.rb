@@ -9,7 +9,7 @@ class Settings::BaseController < InertiaController
 
   private
 
-  def render_settings_page(active_section:, settings_update_path:, status: :ok, extra_props: {})
+  def render_settings_page(active_section:, status: :ok, extra_props: {})
     render inertia: settings_component_for(active_section), props: common_props(
       active_section: active_section
     ).merge(section_props).merge(extra_props), status: status
@@ -18,12 +18,15 @@ class Settings::BaseController < InertiaController
   def settings_component_for(active_section)
     {
       "profile" => "Users/Settings/Profile",
-      "integrations" => "Users/Settings/Integrations",
+      "setup" => "Users/Settings/Setup",
+      "appearance" => "Users/Settings/Appearance",
+      "editors" => "Users/Settings/Editors",
+      "slack_github" => "Users/Settings/SlackGithub",
       "notifications" => "Users/Settings/Notifications",
-      "access" => "Users/Settings/Access",
+      "privacy" => "Users/Settings/Privacy",
       "goals" => "Users/Settings/Goals",
       "badges" => "Users/Settings/Badges",
-      "data" => "Users/Settings/Data"
+      "imports_exports" => "Users/Settings/ImportsExports"
     }.fetch(active_section.to_s, "Users/Settings/Profile")
   end
 
@@ -35,16 +38,19 @@ class Settings::BaseController < InertiaController
       active_section: active_section,
       section_paths: {
         profile: my_settings_profile_path,
-        integrations: my_settings_integrations_path,
+        setup: my_settings_setup_path,
+        appearance: my_settings_appearance_path,
+        editors: my_settings_editors_path,
+        slack_github: my_settings_slack_github_path,
         notifications: my_settings_notifications_path,
-        access: my_settings_access_path,
+        privacy: my_settings_privacy_path,
         goals: my_settings_goals_path,
         badges: my_settings_badges_path,
-        data: my_settings_data_path
+        imports_exports: my_settings_imports_exports_path
       },
       page_title: (is_own ? "My Settings" : "Settings | #{@user.display_name}"),
       heading: (is_own ? "Settings" : "Settings for #{@user.display_name}"),
-      subheading: "Manage your profile, integrations, notifications, access, goals, and data tools.",
+      subheading: "Manage your profile, appearance, editors, integrations, privacy, goals, and data tools.",
 
       errors: {
         full_messages: @user.errors.full_messages,
@@ -60,24 +66,29 @@ class Settings::BaseController < InertiaController
 
   # Shared helpers used by multiple section controllers
 
-  def user_props
-    {
-      id: @user.id,
-      display_name: @user.display_name,
-      timezone: @user.timezone,
-      country_code: @user.country_code,
-      username: @user.username,
-      theme: @user.theme,
-      uses_slack_status: @user.uses_slack_status,
-      weekly_summary_email_enabled: @user.subscribed?("weekly_summary"),
-      hackatime_extension_text_type: @user.hackatime_extension_text_type,
-      allow_public_stats_lookup: @user.allow_public_stats_lookup,
-      trust_level: @user.trust_level,
-      can_request_deletion: @user.can_request_deletion?,
-      github_uid: @user.github_uid,
-      github_username: @user.github_username,
-      slack_uid: @user.slack_uid
-    }
+  USER_PROP_BUILDERS = {
+    id: ->(u) { u.id },
+    display_name: ->(u) { u.display_name },
+    timezone: ->(u) { u.timezone },
+    country_code: ->(u) { u.country_code },
+    username: ->(u) { u.username },
+    theme: ->(u) { u.theme },
+    uses_slack_status: ->(u) { u.uses_slack_status },
+    weekly_summary_email_enabled: ->(u) { u.subscribed?("weekly_summary") },
+    hackatime_extension_text_type: ->(u) { u.hackatime_extension_text_type },
+    show_goals_in_statusbar: ->(u) { u.show_goals_in_statusbar },
+    allow_public_stats_lookup: ->(u) { u.allow_public_stats_lookup },
+    trust_level: ->(u) { u.trust_level },
+    can_request_deletion: ->(u) { u.can_request_deletion? },
+    github_uid: ->(u) { u.github_uid },
+    github_username: ->(u) { u.github_username },
+    slack_uid: ->(u) { u.slack_uid }
+  }.freeze
+
+  # Build a user prop hash containing only the requested keys.
+  def user_props(keys: nil)
+    selected = keys.present? ? USER_PROP_BUILDERS.slice(*keys) : USER_PROP_BUILDERS
+    selected.transform_values { |builder| builder.call(@user) }
   end
 
   def programming_goals_props
@@ -89,21 +100,26 @@ class Settings::BaseController < InertiaController
     }
   end
 
-  def paths_props
-    {
-      settings_path: my_settings_profile_path,
-      wakatime_setup_path: my_wakatime_setup_path,
-      slack_auth_path: slack_auth_path,
-      github_auth_path: github_auth_path,
-      github_unlink_path: github_unlink_path,
-      add_email_path: add_email_auth_path,
-      unlink_email_path: unlink_email_auth_path,
-      rotate_api_key_path: my_settings_rotate_api_key_path,
-      export_all_heartbeats_path: export_my_heartbeats_path(all_data: "true"),
-      export_range_heartbeats_path: export_my_heartbeats_path,
-      create_heartbeat_import_path: my_heartbeat_imports_path,
-      create_deletion_path: create_deletion_path
-    }
+  PATH_BUILDERS = {
+    settings_path: -> { my_settings_profile_path },
+    wakatime_setup_path: -> { my_wakatime_setup_path },
+    slack_auth_path: -> { slack_auth_path },
+    github_auth_path: -> { github_auth_path },
+    github_unlink_path: -> { github_unlink_path },
+    add_email_path: -> { add_email_auth_path },
+    unlink_email_path: -> { unlink_email_auth_path },
+    rotate_api_key_path: -> { my_settings_rotate_api_key_path },
+    export_all_heartbeats_path: -> { export_my_heartbeats_path(all_data: "true") },
+    export_range_heartbeats_path: -> { export_my_heartbeats_path },
+    create_heartbeat_import_path: -> { my_heartbeat_imports_path },
+    create_deletion_path: -> { create_deletion_path }
+  }.freeze
+
+  # Build a paths hash containing only the requested keys.
+  # Pass `keys:` to limit to a subset; defaults to all paths for backwards compatibility.
+  def paths_props(keys: nil)
+    selected = keys.present? ? PATH_BUILDERS.slice(*keys) : PATH_BUILDERS
+    selected.transform_values { |builder| instance_exec(&builder) }
   end
 
   def project_list
@@ -117,20 +133,31 @@ class Settings::BaseController < InertiaController
     base_options.merge(goals: goal_options)
   end
 
-  def base_options
-    {
-      countries: ISO3166::Country.all.map { |country|
+  BASE_OPTION_BUILDERS = {
+    countries: -> {
+      ISO3166::Country.all.map { |country|
         { label: country.common_name, value: country.alpha2 }
-      }.sort_by { |country| country[:label] },
-      timezones: TZInfo::Timezone.all_identifiers.sort.map { |timezone|
+      }.sort_by { |country| country[:label] }
+    },
+    timezones: -> {
+      TZInfo::Timezone.all_identifiers.sort.map { |timezone|
         { label: timezone, value: timezone }
-      },
-      extension_text_types: User.hackatime_extension_text_types.keys.map { |key|
+      }
+    },
+    extension_text_types: -> {
+      User.hackatime_extension_text_types.keys.map { |key|
         { label: key.humanize, value: key }
-      },
-      themes: User.theme_options,
-      badge_themes: GithubReadmeStats.themes
-    }
+      }
+    },
+    themes: -> { User.theme_options },
+    badge_themes: -> { GithubReadmeStats.themes }
+  }.freeze
+
+  # Build a base options hash containing only the requested keys.
+  # Pass `keys:` to limit to a subset; defaults to all options for backwards compatibility.
+  def base_options(keys: nil)
+    selected = keys.present? ? BASE_OPTION_BUILDERS.slice(*keys) : BASE_OPTION_BUILDERS
+    selected.transform_values { |builder| builder.call }
   end
 
   def goal_options
@@ -157,7 +184,6 @@ class Settings::BaseController < InertiaController
   end
 
   def badges_props
-    badge_user_id = @user.slack_uid.presence || @user.username.presence || @user.id.to_s
     work_time_stats_base_url = "#{request.base_url}/api/v1/badge/#{badge_user_id}/"
     work_time_stats_url = if work_time_stats_base_url.present? && project_list.first.present?
       "#{work_time_stats_base_url}#{project_list.first[:repo_path]}"
@@ -168,7 +194,6 @@ class Settings::BaseController < InertiaController
       project_badge_url: work_time_stats_url,
       project_badge_base_url: work_time_stats_base_url,
       projects: project_list,
-      profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
       markscribe_template: '{{ wakatimeDoubleCategoryBar "Languages:" wakatimeData.Languages "Projects:" wakatimeData.Projects 5 }}',
       markscribe_reference_url: "https://github.com/taciturnaxolotl/markscribe#your-wakatime-languages-formated-as-a-bar",
       markscribe_preview_image_url: "https://cdn.fluff.pw/slackcdn/524e293aa09bc5f9115c0c29c18fb4bc.png",
@@ -177,6 +202,10 @@ class Settings::BaseController < InertiaController
       hackabox_repo_url: "https://github.com/quackclub/hacka-box",
       hackabox_preview_image_url: "https://user-cdn.hackclub-assets.com/019cef81-366a-7543-ad7c-21b738310f23/image.png"
     }
+  end
+
+  def badge_user_id
+    @user.slack_uid.presence || @user.username.presence || @user.id.to_s
   end
 
   def generated_wakatime_config(api_key)

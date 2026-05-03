@@ -1,14 +1,13 @@
-class Settings::DataController < Settings::BaseController
+class Settings::ImportsExportsController < Settings::BaseController
   def show
-    render_data
+    render_imports_exports
   end
 
   private
 
-  def render_data(status: :ok)
+  def render_imports_exports(status: :ok)
     render_settings_page(
-      active_section: "data",
-      settings_update_path: my_settings_profile_path,
+      active_section: "imports_exports",
       status: status
     )
   end
@@ -21,8 +20,11 @@ class Settings::DataController < Settings::BaseController
     end
 
     {
-      user: user_props,
-      paths: paths_props,
+      paths: paths_props(keys: %i[
+        export_all_heartbeats_path
+        export_range_heartbeats_path
+        create_heartbeat_import_path
+      ]),
       data_export: InertiaRails.defer {
         {
           total_heartbeats: number_with_delimiter(@user.heartbeats.count),

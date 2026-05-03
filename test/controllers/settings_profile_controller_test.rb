@@ -7,10 +7,10 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
     user = users(:one)
     sign_in_as(user)
 
-    patch my_settings_profile_theme_path, params: { user: { theme: "nord" } }
+    patch my_settings_appearance_theme_path, params: { user: { theme: "nord" } }
 
     assert_response :redirect
-    assert_redirected_to my_settings_profile_path
+    assert_redirected_to my_settings_appearance_path
     assert_equal "nord", user.reload.theme
   end
 
