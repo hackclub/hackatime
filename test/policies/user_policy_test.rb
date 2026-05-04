@@ -33,10 +33,46 @@ class UserPolicyTest < PolicyTestCase
     end
   end
 
+  # Regression: red trust = banned from authenticated API. A superadmin
+  # marking an ultraadmin as red is functionally equivalent to demoting
+  # them (and is blocked by change_admin_level?), so it must also be
+  # blocked here. Same ultraadmin ⊇ superadmin invariant.
+  test "convict? — superadmin cannot convict an ultraadmin" do
+    actor = users_by_role[:superadmin]
+    target = users_by_role[:ultraadmin]
+    refute UserPolicy.new(actor, target).convict?
+  end
+
+  test "update_trust_level? — admin cannot change an ultraadmin's trust" do
+    actor = users_by_role[:admin]
+    target = users_by_role[:ultraadmin]
+    refute UserPolicy.new(actor, target).update_trust_level?
+  end
+
+  test "update_trust_level? — superadmin cannot change an ultraadmin's trust" do
+    actor = users_by_role[:superadmin]
+    target = users_by_role[:ultraadmin]
+    refute UserPolicy.new(actor, target).update_trust_level?
+  end
+
   test "impersonate? — default actor cannot impersonate anyone" do
     actor = users_by_role[:default]
     ROLES.each do |role|
       refute UserPolicy.new(actor, users_by_role[role]).impersonate?
+    end
+  end
+
+  # Regression: viewer is documented as read-only and is NOT listed in the
+  # impersonate? cascade docstring (which enumerates admin/superadmin/
+  # ultraadmin only). The policy must reject viewer actors against every
+  # target tier — otherwise a read-only role escalates to full account
+  # takeover via SessionsController#impersonate.
+  test "impersonate? — viewer (read-only) cannot impersonate anyone" do
+    actor = users_by_role[:viewer]
+    ROLES.each do |role|
+      target = role == :viewer ? user_with(admin_level: :viewer) : users_by_role[role]
+      refute UserPolicy.new(actor, target).impersonate?,
+        "viewer should not be able to impersonate #{role}"
     end
   end
 
@@ -85,6 +121,23 @@ class UserPolicyTest < PolicyTestCase
       actor = users_by_role[role]
       refute UserPolicy.new(actor, actor).change_admin_level?
     end
+  end
+
+  # Regression: a superadmin must not be able to demote an ultraadmin —
+  # the hierarchy is ultraadmin ⊇ superadmin, so the lower tier cannot
+  # strip privileges from the higher tier. Mirror of the `impersonate?`
+  # cascade rule.
+  test "change_admin_level? — superadmin cannot mutate an ultraadmin's level" do
+    actor = users_by_role[:superadmin]
+    target = users_by_role[:ultraadmin]
+    refute UserPolicy.new(actor, target).change_admin_level?,
+      "superadmin should not be able to change an ultraadmin's level"
+  end
+
+  test "change_admin_level? — ultraadmin can mutate any other ultraadmin's level" do
+    actor = users_by_role[:ultraadmin]
+    other_ultra = user_with(admin_level: :ultraadmin)
+    assert UserPolicy.new(actor, other_ultra).change_admin_level?
   end
 
   test "grant_ultraadmin? requires ultraadmin actor" do
