@@ -1,20 +1,26 @@
 class Admin::BaseController < ApplicationController
-  # Each subclass declares which Pundit record it authorizes against by
-  # setting `authorization_record`, then adds:
-  #
-  #   before_action :authorize_admin_action!
-  #
-  # *after* its `set_*` before_actions so the record is populated. The
-  # default `authorization_record` is `:admin` (gating via
-  # `AdminPolicy#<action>?`).
+  # Authorization is opt-OUT: every admin controller automatically goes
+  # through `authorize_admin_action!`. Subclasses customize behavior via
+  # the `authorization_record` class attribute (default: `:admin`, which
+  # gates through `AdminPolicy#<action>?`).
   #
   # Examples:
   #   self.authorization_record = TrustLevelAuditLog
   #   self.authorization_record = ->(c) { c.instance_variable_get(:@deletion_request) || DeletionRequest }
   #
+  # If `authorization_record` is a lambda that depends on an instance
+  # variable set by another `before_action` (e.g. `set_application`),
+  # the subclass must declare that loader with `prepend_before_action`
+  # so it runs before this base callback. Skipping authorization for
+  # specific actions is allowed via `skip_before_action` (see
+  # `AdminUsersController#update`, which authorizes inline because the
+  # policy depends on the target user).
+  #
   # Subclasses can also override `authorize_action` if the predicate
   # name doesn't match `action_name`.
   class_attribute :authorization_record, instance_accessor: false, default: :admin
+
+  before_action :authorize_admin_action!
 
   private
 

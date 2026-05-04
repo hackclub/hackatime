@@ -1,8 +1,10 @@
 class Admin::AdminUsersController < Admin::BaseController
   self.authorization_record = :admin_user
 
-  # `update` is authorized inline (rules depend on the target user).
-  before_action :authorize_admin_action!, except: [ :update ]
+  # `update` is authorized inline (rules depend on the target user, and
+  # use `UserPolicy#change_admin_level?` / `#grant_ultraadmin?` instead
+  # of the generic `AdminUserPolicy#update?`).
+  skip_before_action :authorize_admin_action!, only: [ :update ]
 
   def index
     @current_user_id = current_user.id

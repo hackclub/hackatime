@@ -52,8 +52,12 @@ module Api
         render json: { error: "lmao no perms" }, status: :forbidden
       end
 
+      # Pundit semantically maps to 403 Forbidden, but we return 401 here
+      # to preserve back-compat with existing API clients that branch on
+      # the legacy status code from `require_superadmin`. Update the
+      # contract before changing this to `:forbidden`.
       def user_not_authorized(_exception)
-        render json: { error: "lmao no perms" }, status: :forbidden
+        render json: { error: "lmao no perms" }, status: :unauthorized
       end
     end
   end

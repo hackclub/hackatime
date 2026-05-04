@@ -9,8 +9,6 @@ class UserPolicyTest < PolicyTestCase
     @target = user_with(admin_level: :default)
   end
 
-  # ---- update_trust_level? (non-red trust changes) ----
-
   test "update_trust_level? requires admin and above, blocks self" do
     assert_equal({ default: false, viewer: false, admin: true, superadmin: true, ultraadmin: true },
                  ROLES.index_with { |r| UserPolicy.new(users_by_role[r], @target).update_trust_level? })
@@ -22,8 +20,6 @@ class UserPolicyTest < PolicyTestCase
       refute UserPolicy.new(actor, actor).update_trust_level?, "#{role} should not be able to change own trust"
     end
   end
-
-  # ---- convict? (set trust to red) ----
 
   test "convict? requires superadmin or ultraadmin" do
     assert_equal({ default: false, viewer: false, admin: false, superadmin: true, ultraadmin: true },
@@ -37,8 +33,6 @@ class UserPolicyTest < PolicyTestCase
     end
   end
 
-  # ---- impersonate? ----
-
   test "impersonate? — default actor cannot impersonate anyone" do
     actor = users_by_role[:default]
     ROLES.each do |role|
@@ -50,7 +44,8 @@ class UserPolicyTest < PolicyTestCase
     actor = users_by_role[:admin]
     expectations = { default: true, viewer: true, admin: false, superadmin: false, ultraadmin: false }
     actual = ROLES.index_with { |r| UserPolicy.new(actor, users_by_role[r]).impersonate? }
-    # Self check: an admin impersonating themselves is blocked
+    # Same-tier check: an admin cannot impersonate other admins (covered
+    # by the same predicate that blocks self-impersonation).
     actual[:admin] = UserPolicy.new(actor, user_with(admin_level: :admin)).impersonate?
     assert_equal expectations, actual
   end
@@ -59,6 +54,7 @@ class UserPolicyTest < PolicyTestCase
     actor = users_by_role[:superadmin]
     expectations = { default: true, viewer: true, admin: true, superadmin: false, ultraadmin: false }
     actual = ROLES.index_with { |r| UserPolicy.new(actor, users_by_role[r]).impersonate? }
+    # Same-tier check: a different superadmin user is still blocked.
     actual[:superadmin] = UserPolicy.new(actor, user_with(admin_level: :superadmin)).impersonate?
     assert_equal expectations, actual
   end
@@ -67,6 +63,7 @@ class UserPolicyTest < PolicyTestCase
     actor = users_by_role[:ultraadmin]
     expectations = { default: true, viewer: true, admin: true, superadmin: true, ultraadmin: false }
     actual = ROLES.index_with { |r| UserPolicy.new(actor, users_by_role[r]).impersonate? }
+    # Same-tier check: a different ultraadmin user is blocked.
     actual[:ultraadmin] = UserPolicy.new(actor, user_with(admin_level: :ultraadmin)).impersonate?
     assert_equal expectations, actual
   end
@@ -77,8 +74,6 @@ class UserPolicyTest < PolicyTestCase
       refute UserPolicy.new(actor, actor).impersonate?
     end
   end
-
-  # ---- change_admin_level? ----
 
   test "change_admin_level? requires superadmin and above, blocks self" do
     assert_equal({ default: false, viewer: false, admin: false, superadmin: true, ultraadmin: true },
@@ -92,8 +87,6 @@ class UserPolicyTest < PolicyTestCase
     end
   end
 
-  # ---- grant_ultraadmin? ----
-
   test "grant_ultraadmin? requires ultraadmin actor" do
     assert_equal({ default: false, viewer: false, admin: false, superadmin: false, ultraadmin: true },
                  ROLES.index_with { |r| UserPolicy.new(users_by_role[r], @target).grant_ultraadmin? })
@@ -103,8 +96,6 @@ class UserPolicyTest < PolicyTestCase
     actor = users_by_role[:ultraadmin]
     refute UserPolicy.new(actor, actor).grant_ultraadmin?
   end
-
-  # ---- API soft-ban predicates ----
 
   test "use_authenticated_api? is true for any signed-in non-red user" do
     ROLES.each do |role|
@@ -127,8 +118,6 @@ class UserPolicyTest < PolicyTestCase
     assert UserPolicy.new(actor, actor).export_heartbeats?
     refute UserPolicy.new(red_user, red_user).export_heartbeats?
   end
-
-  # ---- skip_import_cooldown? ----
 
   test "skip_import_cooldown? requires superadmin and above" do
     assert_equal({ default: false, viewer: false, admin: false, superadmin: true, ultraadmin: true },

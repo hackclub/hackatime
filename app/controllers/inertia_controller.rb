@@ -98,9 +98,9 @@ class InertiaController < ApplicationController
   # Note: with the strict linear hierarchy, a superadmin sees BOTH the
   # admin section AND the superadmin section. The frontend collapses
   # them visually as needed.
-  def inertia_admin_links
-    return [] unless current_user && policy(:admin).access?
-
+  # The shared admin/viewer link list. Viewers and admins+ see the same
+  # set, but they're surfaced under different nav headers.
+  def admin_section_links
     [
       inertia_link("Review Timeline", admin_timeline_path, active: helpers.current_page?(admin_timeline_path)),
       inertia_link("Trust Level Logs", admin_trust_level_audit_logs_path, active: helpers.current_page?(admin_trust_level_audit_logs_path) || request.path.start_with?("/admin/trust_level_audit_logs")),
@@ -108,14 +108,21 @@ class InertiaController < ApplicationController
     ]
   end
 
-  # Kept for layout backward-compat: the viewer section duplicates the
-  # admin section (since hierarchy gives admin a superset of viewer's
-  # reads). Only emits links for actual viewers so the frontend can show
-  # a "Viewer" header without duplicating links for higher tiers.
+  # Admin section: shown to admin and above (excludes viewers, who get
+  # the same links under viewer_links instead).
+  def inertia_admin_links
+    return [] unless current_user && policy(:admin).admin?
+
+    admin_section_links
+  end
+
+  # Viewer section: shown only to actual viewer-tier users so the
+  # frontend can render a "Viewer" header without duplicating the
+  # admin-tier links.
   def inertia_viewer_links
     return [] unless current_user&.admin_level_viewer?
 
-    inertia_admin_links
+    admin_section_links
   end
 
   def inertia_superadmin_links

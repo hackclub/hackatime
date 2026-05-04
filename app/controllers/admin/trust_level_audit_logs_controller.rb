@@ -1,8 +1,6 @@
 class Admin::TrustLevelAuditLogsController < Admin::BaseController
   self.authorization_record = TrustLevelAuditLog
 
-  before_action :authorize_admin_action!
-
   def index
     @audit_logs = TrustLevelAuditLog.includes(:user, :changed_by)
                                    .recent

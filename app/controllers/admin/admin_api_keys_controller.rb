@@ -1,8 +1,9 @@
 class Admin::AdminApiKeysController < Admin::BaseController
   self.authorization_record = ->(c) { c.instance_variable_get(:@admin_api_key) || AdminApiKey }
 
-  before_action :set_admin_api_key, only: [ :show, :destroy ]
-  before_action :authorize_admin_action!
+  # Must run before the inherited `authorize_admin_action!` so the
+  # lambda above sees the loaded `@admin_api_key`.
+  prepend_before_action :set_admin_api_key, only: [ :show, :destroy ]
 
   def index
     @admin_api_keys = AdminApiKey.includes(:user).active.order(created_at: :desc)

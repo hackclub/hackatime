@@ -21,8 +21,6 @@ class ApplicationPolicy
     @record = record
   end
 
-  # ---- Role predicates (canonical hierarchy) ----
-
   def ultraadmin?
     !!user&.admin_level_ultraadmin?
   end
@@ -44,8 +42,6 @@ class ApplicationPolicy
     viewer?
   end
 
-  # ---- Trust predicates ----
-
   def signed_in?
     user.present?
   end
@@ -53,8 +49,6 @@ class ApplicationPolicy
   def red?
     !!user&.red?
   end
-
-  # ---- Default RESTful actions deny everything ----
 
   def index?    = false
   def show?     = false

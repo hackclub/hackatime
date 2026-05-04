@@ -59,8 +59,8 @@ class Admin::AccountMergerController < InertiaController
   private
 
   # Centralized admin-area gate via Pundit. The action_name maps to a
-  # policy predicate (`show?`, `search_users?`, `merge?`) — all are
-  # ultraadmin-only.
+  # policy predicate (`access?` for show, `search_users?`, `merge?`) —
+  # all are ultraadmin-only.
   #
   # We rescue NotAuthorizedError locally to preserve the legacy
   # "redirect to root with alert" UX rather than the default

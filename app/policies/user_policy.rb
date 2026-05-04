@@ -20,8 +20,6 @@ class UserPolicy < ApplicationPolicy
     superadmin? && record != user
   end
 
-  # ---- Impersonation ----
-
   # Cascading impersonation rules:
   #   - admin    -> can impersonate default + viewer
   #   - superadmin -> can impersonate default + viewer + admin
@@ -38,8 +36,6 @@ class UserPolicy < ApplicationPolicy
     true
   end
 
-  # ---- Admin level (role) changes ----
-
   # Whether `user` may change `record`'s admin level.
   # Self-edit is always blocked. Granting `ultraadmin` is ultraadmin-only.
   # Used by both web `Admin::AdminUsersController#update` and the API
@@ -55,8 +51,6 @@ class UserPolicy < ApplicationPolicy
     ultraadmin? && record != user
   end
 
-  # ---- Authenticated API soft-ban ----
-
   # Whether the user may use the OAuth-authenticated API at all. Red trust
   # users are soft-banned.
   def use_authenticated_api?
@@ -68,8 +62,6 @@ class UserPolicy < ApplicationPolicy
   def export_heartbeats?
     signed_in? && !red?
   end
-
-  # ---- Heartbeat import cooldowns ----
 
   # Superadmins (and ultraadmins) skip the remote-import cooldown for
   # debugging.
