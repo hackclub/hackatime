@@ -99,7 +99,7 @@ class HeartbeatImportRunner < ApplicationService
   end
 
   def self.remote_import_cooldown_until(user:)
-    return nil if user.admin_level_superadmin?
+    return nil if UserPolicy.new(user, user).skip_import_cooldown?
 
     HeartbeatImportRun.remote_cooldown_until_for(user)
   end

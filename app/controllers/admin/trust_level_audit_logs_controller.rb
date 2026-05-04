@@ -1,5 +1,5 @@
 class Admin::TrustLevelAuditLogsController < Admin::BaseController
-  before_action -> { require_admin_level!(:admin, :superadmin, :viewer) }
+  self.authorization_record = TrustLevelAuditLog
 
   def index
     @audit_logs = TrustLevelAuditLog.includes(:user, :changed_by)
@@ -62,6 +62,4 @@ class Admin::TrustLevelAuditLogsController < Admin::BaseController
   def show
     @audit_log = TrustLevelAuditLog.find(params[:id])
   end
-
-  private
 end

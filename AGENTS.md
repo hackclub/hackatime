@@ -55,6 +55,58 @@ Skip running checks which aren't relevant to your changes. However, at the very 
 - **Auth**: `ensure_authenticated!` for APIs, token via `Authorization` header or `?api_key=`
 - **CSS**: Using Tailwind CSS, no inline styles, use utility classes. We define some custom classes in `config/tailwind.config.js` and `app/assets/tailwind/application.css`.
 
+## Authorization (Pundit)
+
+Role-based authorization lives in `app/policies/`. The role hierarchy is
+strict-linear: **ultraadmin ⊇ superadmin ⊇ admin ⊇ viewer ⊇ default**.
+
+`ApplicationPolicy` defines the canonical predicates (`ultraadmin?`,
+`superadmin?`, `admin?`, `viewer?`, `any_admin?`, plus `red?` /
+`signed_in?`). Each tier `||`s up to the next, so a higher tier passes
+every gate a lower tier does. Always reach for these predicates inside
+policy methods rather than calling `user.admin_level_*?` directly.
+
+Admin web controllers inherit from `Admin::BaseController`, which
+applies `before_action :authorize_admin_action!` automatically (opt-out
+model — every action is gated unless explicitly skipped). To add a new
+admin controller, just declare the `authorization_record`:
+
+```ruby
+class Admin::WidgetsController < Admin::BaseController
+  self.authorization_record = ->(c) { c.instance_variable_get(:@widget) || Widget }
+
+  # Use prepend_before_action so the loader runs BEFORE the inherited
+  # authorize_admin_action! callback. (A plain before_action would run
+  # after, which means the lambda above would still see a nil @widget
+  # and authorize against the class instead of the instance.)
+  prepend_before_action :set_widget, only: [ :show, :update ]
+end
+```
+
+The `authorize_admin_action!` helper calls `authorize(record, "#{action_name}?")`
+and rescues `Pundit::NotAuthorizedError` into the legacy "redirect to
+root with alert" UX. Define the matching predicates in
+`app/policies/widget_policy.rb`.
+
+If a specific action needs custom authorization (e.g. rules that depend
+on the target record's relationship to `current_user`), skip the
+default and authorize inline:
+
+```ruby
+skip_before_action :authorize_admin_action!, only: [ :update ]
+
+def update
+  return redirect_to(...) unless policy(@target).my_custom?
+  # ...
+end
+```
+
+For headless policies (no AR record), pass a symbol:
+`authorize :admin, :access?` resolves `AdminPolicy#access?`.
+
+Test new policies under `test/policies/<name>_policy_test.rb` against
+the role matrix (see `policy_test_helper.rb`).
+
 ## Inertia Components
 
 On Inertia pages, use the `<Button />` component for buttons, not `<button>` tags.

@@ -2,8 +2,11 @@ module Api
   module Admin
     class ApplicationController < ActionController::API
       include ActionController::HttpAuthentication::Token::ControllerMethods
+      include Pundit::Authorization
 
       before_action :authenticate_admin_api_key!
+
+      rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
       private
 
@@ -15,7 +18,9 @@ module Api
           if @admin_api_key
             @current_user = @admin_api_key.user
 
-            if @current_user.admin_level.in?([ "admin", "superadmin", "viewer", "ultraadmin" ])
+            # Any non-default tier (admin/superadmin/viewer/ultraadmin) may
+            # use admin API keys. The fine-grained gate happens via Pundit.
+            if AdminPolicy.new(@current_user, :admin).access?
               true
             else
               @admin_api_key.revoke!
@@ -31,6 +36,10 @@ module Api
         @current_user
       end
 
+      def pundit_user
+        current_user
+      end
+
       def current_admin_api_key
         @admin_api_key
       end
@@ -43,10 +52,12 @@ module Api
         render json: { error: "lmao no perms" }, status: :forbidden
       end
 
-      def require_superadmin
-        unless current_user&.admin_level_superadmin? || current_user&.admin_level_ultraadmin?
-          render json: { error: "lmao no perms" }, status: :unauthorized
-        end
+      # Pundit semantically maps to 403 Forbidden, but we return 401 here
+      # to preserve back-compat with existing API clients that branch on
+      # the legacy status code from `require_superadmin`. Update the
+      # contract before changing this to `:forbidden`.
+      def user_not_authorized(_exception)
+        render json: { error: "lmao no perms" }, status: :unauthorized
       end
     end
   end

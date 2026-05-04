@@ -2,8 +2,8 @@ module Api
   module Admin
     module V1
       class DeletionRequestsController < Api::Admin::V1::ApplicationController
-        before_action :require_superadmin
         before_action :set_deletion_request, only: [ :show, :approve, :reject ]
+        before_action :authorize_deletion_request!
 
         def index
           pending = DeletionRequest.pending.includes(:user).order(requested_at: :asc)
@@ -45,6 +45,10 @@ module Api
           @deletion_request = DeletionRequest.find(params[:id])
         rescue ActiveRecord::RecordNotFound
           render json: { error: "Deletion request not found" }, status: :not_found
+        end
+
+        def authorize_deletion_request!
+          authorize(@deletion_request || DeletionRequest, "#{action_name}?".to_sym)
         end
 
         def deletion_request_json(dr)

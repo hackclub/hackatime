@@ -1,5 +1,9 @@
 class Admin::OauthApplicationsController < Admin::BaseController
-  before_action :set_application, only: [ :show, :edit, :update, :toggle_verified, :rotate_secret ]
+  self.authorization_record = ->(c) { c.instance_variable_get(:@application) || OauthApplication }
+
+  # Must run before the inherited `authorize_admin_action!` so the
+  # lambda above sees the loaded `@application`.
+  prepend_before_action :set_application, only: [ :show, :edit, :update, :toggle_verified, :rotate_secret ]
 
   def index
     @applications = OauthApplication.includes(:owner).order(created_at: :desc)

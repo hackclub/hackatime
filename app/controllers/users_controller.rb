@@ -3,7 +3,8 @@ class UsersController < InertiaController
 
   before_action :ensure_current_user_for_setup, only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
   before_action :set_wakatime_setup_meta, only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
-  before_action :require_admin, only: [ :update_trust_level ]
+  before_action :set_target_user, only: [ :update_trust_level ]
+  before_action :authorize_trust_change!, only: [ :update_trust_level ]
 
   def wakatime_setup
     api_key = current_user&.api_keys&.last
@@ -41,40 +42,35 @@ class UsersController < InertiaController
   end
 
   def update_trust_level
-    @user = User.find(params[:id])
-    require_admin
-
     trust_level = params[:trust_level]
     reason = params[:reason]
     notes = params[:notes]
 
-    if @user && current_user.admin_level.in?(%w[admin superadmin ultraadmin]) && trust_level.present?
-      unless User.trust_levels.key?(trust_level)
-        return render json: { error: "you fucked it up lmaooo" }, status: :unprocessable_entity
-      end
+    return render json: { error: "lmao no perms" }, status: :unprocessable_entity if trust_level.blank?
 
-      if trust_level == "red" && !current_user.can_convict_users?
-        return render json: { error: "no perms lmaooo" }, status: :forbidden
-      end
+    unless User.trust_levels.key?(trust_level)
+      return render json: { error: "you fucked it up lmaooo" }, status: :unprocessable_entity
+    end
 
-      success = @user.set_trust(
-        trust_level,
-        changed_by_user: current_user,
-        reason: reason,
-        notes: notes
-      )
+    if trust_level == "red" && !policy(@user).convict?
+      return render json: { error: "no perms lmaooo" }, status: :forbidden
+    end
 
-      if success
-        render json: {
-          success: true,
-          message: "updated",
-          trust_level: @user.trust_level
-        }
-      else
-        render json: { error: "402 invalid" }, status: :unprocessable_entity
-      end
+    success = @user.set_trust(
+      trust_level,
+      changed_by_user: current_user,
+      reason: reason,
+      notes: notes
+    )
+
+    if success
+      render json: {
+        success: true,
+        message: "updated",
+        trust_level: @user.trust_level
+      }
     else
-      render json: { error: "lmao no perms" }, status: :unprocessable_entity
+      render json: { error: "402 invalid" }, status: :unprocessable_entity
     end
   end
 
@@ -91,10 +87,18 @@ class UsersController < InertiaController
     @og_description   = "Connect your code editor to Hackatime in minutes. Install the WakaTime plugin and start tracking your coding time for free."
   end
 
-  def require_admin
-    unless current_user && current_user.admin_level.in?(%w[admin superadmin ultraadmin])
-      redirect_to root_path, alert: "You are not authorized to access this page"
-    end
+  def set_target_user
+    @user = User.find(params[:id])
+  end
+
+  # Authorize the target trust change. We rescue Pundit::NotAuthorizedError
+  # locally because this endpoint returns JSON, but the controller as a
+  # whole inherits from InertiaController (HTML default). The default
+  # ApplicationController rescue would `redirect_back` which is wrong here.
+  def authorize_trust_change!
+    authorize @user, :update_trust_level?
+  rescue Pundit::NotAuthorizedError
+    render json: { error: "lmao no perms" }, status: :forbidden
   end
 
   def require_current_user

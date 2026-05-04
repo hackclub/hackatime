@@ -1,4 +1,11 @@
 class Admin::AdminUsersController < Admin::BaseController
+  self.authorization_record = :admin_user
+
+  # `update` is authorized inline (rules depend on the target user, and
+  # use `UserPolicy#change_admin_level?` / `#grant_ultraadmin?` instead
+  # of the generic `AdminUserPolicy#update?`).
+  skip_before_action :authorize_admin_action!, only: [ :update ]
+
   def index
     @current_user_id = current_user.id
     @ultraadmins = User.where(admin_level: :ultraadmin).order(:slack_username).to_a
@@ -11,12 +18,15 @@ class Admin::AdminUsersController < Admin::BaseController
     @user = User.find(params[:id])
     new_level = params[:admin_level]
 
-    if @user == current_user
-      redirect_to admin_admin_users_path, alert: "You cannot change your own admin level."
+    # `change_admin_level?` blocks self-edits and non-superadmins.
+    unless policy(@user).change_admin_level?
+      redirect_to admin_admin_users_path,
+        alert: @user == current_user ? "You cannot change your own admin level." : "You are not authorized."
       return
     end
 
-    if new_level == "ultraadmin" && current_user.admin_level != "ultraadmin"
+    # Granting the ultraadmin role requires being one yourself.
+    if new_level == "ultraadmin" && !policy(@user).grant_ultraadmin?
       redirect_to admin_admin_users_path, alert: "Only ultraadmins can grant the ultraadmin role."
       return
     end

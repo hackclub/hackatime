@@ -31,23 +31,30 @@ module ApplicationHelper
     User.theme_metadata(current_theme).fetch(:theme_color, "#c8394f")
   end
 
+  # The `*_tool` helpers wrap blocks in a tagged container, but only if
+  # the current user holds the corresponding admin tier. Tier predicates
+  # come from ApplicationPolicy so the hierarchy lives in one place.
+  #
+  # Note: `viewer_tool` keeps its legacy "viewer-only" semantics — it's
+  # used in views that have viewer-specific affordances. The hierarchy
+  # cascade applies to access, not to UI-tagged decorations.
   def superadmin_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "superadmin" || current_user.admin_level == "ultraadmin")
+    return unless ApplicationPolicy.new(current_user, nil).superadmin?
     concat content_tag(element, class: "superadmin-tool #{class_name}", **options, &block)
   end
 
   def admin_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "admin" || current_user.admin_level == "superadmin" || current_user.admin_level == "ultraadmin")
+    return unless ApplicationPolicy.new(current_user, nil).admin?
     concat content_tag(element, class: "admin-tool #{class_name}", **options, &block)
   end
 
   def viewer_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "viewer")
+    return unless current_user&.admin_level_viewer?
     concat content_tag(element, class: "viewer-tool #{class_name}", **options, &block)
   end
 
   def ultraadmin_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "ultraadmin")
+    return unless ApplicationPolicy.new(current_user, nil).ultraadmin?
     concat content_tag(element, class: "ultraadmin-tool #{class_name}", **options, &block)
   end
 

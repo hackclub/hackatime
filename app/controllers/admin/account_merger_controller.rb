@@ -1,7 +1,7 @@
 class Admin::AccountMergerController < InertiaController
   layout "inertia"
 
-  before_action :require_ultraadmin!
+  before_action :authorize_account_merger!
 
   def show
     render inertia: "Admin/AccountMerger"
@@ -58,10 +58,18 @@ class Admin::AccountMergerController < InertiaController
 
   private
 
-  def require_ultraadmin!
-    unless current_user&.admin_level == "ultraadmin"
-      redirect_to root_path, alert: "You are not authorized to access this page."
-    end
+  # Centralized admin-area gate via Pundit. The action_name maps to a
+  # policy predicate (`access?` for show, `search_users?`, `merge?`) —
+  # all are ultraadmin-only.
+  #
+  # We rescue NotAuthorizedError locally to preserve the legacy
+  # "redirect to root with alert" UX rather than the default
+  # ApplicationController#user_not_authorized behavior.
+  def authorize_account_merger!
+    action = action_name == "show" ? :access? : "#{action_name}?".to_sym
+    authorize :account_merger, action
+  rescue Pundit::NotAuthorizedError
+    redirect_to root_path, alert: "You are not authorized to access this page."
   end
 
   def format_user(user)

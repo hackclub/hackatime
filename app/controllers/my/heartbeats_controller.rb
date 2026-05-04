@@ -35,7 +35,7 @@ module My
     end
 
     def ensure_no_ban
-      if current_user.trust_level == "red"
+      unless policy(current_user).export_heartbeats?
         redirect_to my_settings_path, alert: "Sorry, you are not permitted to this action."
       end
     end

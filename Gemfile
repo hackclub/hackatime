@@ -74,6 +74,9 @@ gem "dotenv-rails"
 # Authentication
 # gem "oauth2"
 
+# Authorization
+gem "pundit", "~> 2.4"
+
 # Added from the code block
 gem "http"
 
