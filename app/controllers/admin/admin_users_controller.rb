@@ -1,4 +1,6 @@
 class Admin::AdminUsersController < Admin::BaseController
+  include AdminLevelChangeMessages
+
   def index
     @current_user_id = current_user.id
     @ultraadmins = User.where(admin_level: :ultraadmin).order(:slack_username).to_a
@@ -12,7 +14,7 @@ class Admin::AdminUsersController < Admin::BaseController
     new_level = params[:admin_level]
 
     unless current_user.can_change_admin_level_of?(@user, new_level)
-      redirect_to admin_admin_users_path, alert: not_authorized_message(@user, new_level)
+      redirect_to admin_admin_users_path, alert: admin_level_change_denial_message(@user, new_level)
       return
     end
 
@@ -34,19 +36,5 @@ class Admin::AdminUsersController < Admin::BaseController
     end
 
     render partial: "search_results", locals: { users: @users }
-  end
-
-  private
-
-  def not_authorized_message(target_user, new_level)
-    if target_user == current_user
-      "You cannot change your own admin level."
-    elsif new_level.to_s == "ultraadmin" && current_user.admin_level != "ultraadmin"
-      "Only ultraadmins can grant the ultraadmin role."
-    elsif target_user.admin_level == "ultraadmin"
-      "Only ultraadmins can change an ultraadmin's role."
-    else
-      "You are not authorized to change this user's admin level."
-    end
   end
 end

@@ -43,16 +43,16 @@ class Admin::AccountMergerController < InertiaController
       return
     end
 
+    if older_user == current_user || newer_user == current_user
+      redirect_to admin_account_merger_path, alert: "You cannot merge your own account."
+      return
+    end
+
     privileged = [ older_user, newer_user ].select { |u| u.admin_level != "default" }
     if privileged.any?
       names = privileged.map { |u| "#{u.display_name} (#{u.admin_level})" }.to_sentence
       redirect_to admin_account_merger_path,
                   alert: "Refusing to merge accounts with elevated admin_level: #{names}. Demote them to `default` first."
-      return
-    end
-
-    if older_user == current_user || newer_user == current_user
-      redirect_to admin_account_merger_path, alert: "You cannot merge your own account."
       return
     end
 
