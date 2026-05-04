@@ -41,7 +41,11 @@ module Api
             return render json: { error: "Invalid admin level" }, status: :unprocessable_entity
           end
 
-          if user.set_admin_level(new_level)
+          unless current_user.can_change_admin_level_of?(user, new_level)
+            return render json: { error: forbidden_reason(user, new_level) }, status: :forbidden
+          end
+
+          if user.set_admin_level(new_level, changed_by_user: current_user)
             Rails.logger.info "Admin level changed: User #{user.id} (#{user.display_name}) from #{previous_level} to #{new_level} by #{current_user.display_name}"
 
             render json: {
@@ -61,6 +65,20 @@ module Api
           end
         rescue ActiveRecord::RecordNotFound
           render json: { error: "User not found" }, status: :not_found
+        end
+
+        private
+
+        def forbidden_reason(target_user, new_level)
+          if target_user == current_user
+            "You cannot change your own admin level"
+          elsif new_level.to_s == "ultraadmin" && current_user.admin_level != "ultraadmin"
+            "Only ultraadmins can grant the ultraadmin role"
+          elsif target_user.admin_level == "ultraadmin"
+            "Only ultraadmins can change an ultraadmin's role"
+          else
+            "You are not authorized to change this user's admin level"
+          end
         end
       end
     end

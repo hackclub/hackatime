@@ -11,17 +11,12 @@ class Admin::AdminUsersController < Admin::BaseController
     @user = User.find(params[:id])
     new_level = params[:admin_level]
 
-    if @user == current_user
-      redirect_to admin_admin_users_path, alert: "You cannot change your own admin level."
+    unless current_user.can_change_admin_level_of?(@user, new_level)
+      redirect_to admin_admin_users_path, alert: not_authorized_message(@user, new_level)
       return
     end
 
-    if new_level == "ultraadmin" && current_user.admin_level != "ultraadmin"
-      redirect_to admin_admin_users_path, alert: "Only ultraadmins can grant the ultraadmin role."
-      return
-    end
-
-    if @user.set_admin_level(new_level)
+    if @user.set_admin_level(new_level, changed_by_user: current_user)
       redirect_to admin_admin_users_path, notice: "#{@user.display_name}'s admin level updated to #{new_level}."
     else
       redirect_to admin_admin_users_path, alert: "Failed to update admin level."
@@ -39,5 +34,19 @@ class Admin::AdminUsersController < Admin::BaseController
     end
 
     render partial: "search_results", locals: { users: @users }
+  end
+
+  private
+
+  def not_authorized_message(target_user, new_level)
+    if target_user == current_user
+      "You cannot change your own admin level."
+    elsif new_level.to_s == "ultraadmin" && current_user.admin_level != "ultraadmin"
+      "Only ultraadmins can grant the ultraadmin role."
+    elsif target_user.admin_level == "ultraadmin"
+      "Only ultraadmins can change an ultraadmin's role."
+    else
+      "You are not authorized to change this user's admin level."
+    end
   end
 end

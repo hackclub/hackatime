@@ -49,6 +49,7 @@
       <meta name="user-is-superadmin" content="<%= current_user.admin_level == 'superadmin' %>">
       <meta name="user-is-admin" content="<%= current_user.admin_level == 'admin' %>">
       <meta name="user-is-viewer" content="<%= current_user.admin_level == 'viewer' %>">
+      <meta name="user-is-ultraadmin" content="<%= current_user.admin_level == 'ultraadmin' %>">
     <% end %>
 
     <% include_external_scripts = !Rails.env.test? %>

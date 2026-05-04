@@ -42,39 +42,38 @@ class UsersController < InertiaController
 
   def update_trust_level
     @user = User.find(params[:id])
-    require_admin
 
     trust_level = params[:trust_level]
     reason = params[:reason]
     notes = params[:notes]
 
-    if @user && current_user.admin_level.in?(%w[admin superadmin ultraadmin]) && trust_level.present?
-      unless User.trust_levels.key?(trust_level)
-        return render json: { error: "you fucked it up lmaooo" }, status: :unprocessable_entity
-      end
+    unless @user && trust_level.present?
+      return render json: { error: "lmao no perms" }, status: :unprocessable_entity
+    end
 
-      if trust_level == "red" && !current_user.can_convict_users?
-        return render json: { error: "no perms lmaooo" }, status: :forbidden
-      end
+    unless User.trust_levels.key?(trust_level)
+      return render json: { error: "you fucked it up lmaooo" }, status: :unprocessable_entity
+    end
 
-      success = @user.set_trust(
-        trust_level,
-        changed_by_user: current_user,
-        reason: reason,
-        notes: notes
-      )
+    unless current_user.can_change_trust_of?(@user, trust_level)
+      return render json: { error: "no perms lmaooo" }, status: :forbidden
+    end
 
-      if success
-        render json: {
-          success: true,
-          message: "updated",
-          trust_level: @user.trust_level
-        }
-      else
-        render json: { error: "402 invalid" }, status: :unprocessable_entity
-      end
+    success = @user.set_trust(
+      trust_level,
+      changed_by_user: current_user,
+      reason: reason,
+      notes: notes
+    )
+
+    if success
+      render json: {
+        success: true,
+        message: "updated",
+        trust_level: @user.trust_level
+      }
     else
-      render json: { error: "lmao no perms" }, status: :unprocessable_entity
+      render json: { error: "402 invalid" }, status: :unprocessable_entity
     end
   end
 

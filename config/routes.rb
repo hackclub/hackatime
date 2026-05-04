@@ -62,6 +62,7 @@ Rails.application.routes.draw do
     end
   end
 
+  # Read-only admin surfaces — viewers are allowed.
   constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer, :ultraadmin) do
     namespace :admin do
       get "timeline", to: "timeline#show", as: :timeline
@@ -69,7 +70,15 @@ Rails.application.routes.draw do
       get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
 
       resources :trust_level_audit_logs, only: [ :index, :show ]
+      # Viewers are allowed to LIST/SHOW their own admin api keys, but the
+      # `:create`/`:destroy` actions are gated to admin+ inside the
+      # controller (see Admin::AdminApiKeysController).
       resources :admin_api_keys, except: [ :edit, :update ]
+    end
+  end
+
+  constraints AdminLevelConstraint.new(:superadmin, :admin, :ultraadmin) do
+    namespace :admin do
       resources :deletion_requests, only: [ :index, :show ] do
         member do
           post :approve
@@ -80,11 +89,6 @@ Rails.application.routes.draw do
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
   end
 
-  constraints AdminLevelConstraint.new(:superadmin, :ultraadmin) do
-    namespace :admin do
-      resources :permissions, only: [ :index, :update ]
-    end
-  end
   get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
 
   if Rails.env.development?
@@ -139,9 +143,12 @@ Rails.application.routes.draw do
   # Nested under users for admin access
   resources :users, only: [] do
     get "settings", on: :member, to: "settings/profile#show"
-    member do
-      patch :update_trust_level
-    end
+  end
+
+  constraints AdminLevelConstraint.new(:admin, :superadmin, :ultraadmin) do
+    patch "users/:id/update_trust_level",
+          to: "users#update_trust_level",
+          as: :update_trust_level_user
   end
 
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
