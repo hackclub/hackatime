@@ -683,7 +683,7 @@ DEPENDENCIES
   http
   image_processing (~> 1.2)
   importmap-rails
-  inertia_rails (~> 3.17)
+  inertia_rails (~> 3.21)
   jbuilder
   js_from_routes
   kamal
