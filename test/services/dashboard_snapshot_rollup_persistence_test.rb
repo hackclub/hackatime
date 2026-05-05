@@ -1,6 +1,6 @@
 require "test_helper"
 
-class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
+class DashboardSnapshotRollupPersistenceTest < ActiveSupport::TestCase
   test "rebuilds dashboard rollups from current heartbeat aggregates" do
     travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
       user = User.create!(timezone: "UTC")
@@ -14,7 +14,7 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
       create_heartbeat(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       create_heartbeat(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
-      DashboardRollupRefreshService.new(user: user).call
+      DashboardSnapshot.new(user: user).persist_rollups!
 
       total_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::TOTAL_DIMENSION)
       filter_options_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::FILTER_OPTIONS_DIMENSION)

@@ -11,7 +11,7 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
       create_heartbeat(user, "2026-04-13 10:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       create_heartbeat(user, "2026-04-13 10:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
-      DashboardRollupRefreshService.new(user: user).call
+      DashboardSnapshot.new(user: user).persist_rollups!
 
       get root_path
 

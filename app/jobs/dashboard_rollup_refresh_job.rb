@@ -33,7 +33,7 @@ class DashboardRollupRefreshJob < ApplicationJob
     user = User.find_by(id: user_id)
     return unless user
 
-    DashboardRollupRefreshService.new(user: user).call
+    DashboardSnapshot.new(user: user).persist_rollups!
   ensure
     Rails.cache.delete(self.class.enqueue_cache_key(user_id))
   end
