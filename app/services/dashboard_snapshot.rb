@@ -149,9 +149,10 @@ class DashboardSnapshot < ApplicationService
     if rollup_eligible?
       live_raw_snapshot(filter_options: raw_filter_options, scope: scope)
     else
-      Rails.cache.fetch(live_aggregate_cache_key, expires_in: 5.minutes) do
-        live_raw_snapshot(filter_options: raw_filter_options, scope: scope)
+      cached = Rails.cache.fetch(live_aggregate_cache_key, expires_in: 5.minutes) do
+        live_raw_snapshot(filter_options: raw_filter_options, scope: scope).to_h
       end
+      cached.is_a?(Raw) ? cached : Raw.new(**cached.symbolize_keys)
     end
   end
 
