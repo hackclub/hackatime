@@ -259,7 +259,7 @@ GEM
     jmespath (1.6.2)
     js_from_routes (4.0.2)
       railties (>= 5.1, < 9)
-    json (2.19.4)
+    json (2.19.5)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
@@ -323,7 +323,7 @@ GEM
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
-    minitest (6.0.5)
+    minitest (6.0.6)
       drb (~> 2.0)
       prism (~> 1.5)
     msgpack (1.8.0)
@@ -619,7 +619,7 @@ GEM
     uniform_notifier (1.18.0)
     uri (1.1.1)
     useragent (0.16.11)
-    vite_rails (3.10.0)
+    vite_rails (3.11.0)
       railties (>= 5.1, < 9)
       vite_ruby (~> 3.0, >= 3.2.2)
     vite_ruby (3.10.2)
@@ -729,7 +729,7 @@ DEPENDENCIES
   thruster
   turbo-rails
   tzinfo-data
-  vite_rails (~> 3.10)
+  vite_rails (~> 3.11)
   web-console
   webmock
 

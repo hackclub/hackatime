@@ -175,7 +175,7 @@ gem "tailwindcss-rails", "~> 4.2"
 
 gem "inertia_rails", "~> 3.21"
 
-gem "vite_rails", "~> 3.10"
+gem "vite_rails", "~> 3.11"
 
 gem "rubyzip", "~> 3.2"
 
