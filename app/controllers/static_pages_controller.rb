@@ -155,7 +155,7 @@ class StaticPagesController < InertiaController
   end
 
   def dashboard_snapshot
-    @dashboard_snapshot ||= DashboardSnapshot.new(user: current_user, params: params).call
+    @dashboard_snapshot ||= DashboardSnapshot.new(user: current_user, params: params, rollup_rows: @dashboard_rollup_rows).call
   end
 
   def signed_out_props
@@ -188,7 +188,11 @@ class StaticPagesController < InertiaController
     return unless params[:interval].blank? && params[:from].blank? && params[:to].blank?
     return if DashboardSnapshot::FILTERS.any? { |field| params[field].present? }
     return unless DashboardRollup.table_exists?
-    return unless DashboardRollup.where(user_id: current_user.id, dimension: DashboardRollup::TOTAL_DIMENSION).exists?
+
+    rows = DashboardRollup.where(user_id: current_user.id).to_a
+    return unless rows.any?(&:total_dimension?)
+
+    @dashboard_rollup_rows = rows
 
     dashboard_stats_payload
   rescue ActiveRecord::StatementInvalid

@@ -17,9 +17,10 @@ class DashboardSnapshot < ApplicationService
     :timezone
   )
 
-  def initialize(user:, params: {})
+  def initialize(user:, params: {}, rollup_rows: nil)
     @user = user
     @params = params.respond_to?(:to_unsafe_h) ? params : ActionController::Parameters.new(params)
+    @rollup_rows = rollup_rows
     @sources = {}
     @rollup_refresh_scheduled = false
   end
@@ -30,16 +31,19 @@ class DashboardSnapshot < ApplicationService
     aggregate_raw = aggregate_raw_for_read(raw_filter_options)
 
     Result.new(
-      filterable_dashboard_data: product_filterable_dashboard_data(aggregate_raw, archived),
-      activity_graph: product_activity_graph(activity_graph_raw_for_read),
-      today_stats: product_today_stats(today_stats_raw_for_read),
+      filterable_dashboard_data: build_filterable_dashboard_data(aggregate_raw, archived),
+      activity_graph: build_activity_graph(activity_graph_raw_for_read),
+      today_stats: build_today_stats(today_stats_raw_for_read),
       sources: @sources.dup
     )
   end
 
   def persist_rollups!
     now = Time.current
-    raw = live_raw_snapshot(filter_options: live_raw_filter_options)
+    raw = live_raw_snapshot(filter_options: live_raw_filter_options).with(
+      activity_graph: live_activity_graph_raw,
+      today_stats: live_today_stats_raw(@user.heartbeats)
+    )
     records = rollup_records(raw, now: now)
 
     DashboardRollup.transaction do
@@ -52,7 +56,7 @@ class DashboardSnapshot < ApplicationService
 
   private
 
-  def product_filterable_dashboard_data(raw, archived)
+  def build_filterable_dashboard_data(raw, archived)
     result = filter_options_result(raw.filter_options, archived)
     filter_selections = selected_filters
 
@@ -110,7 +114,7 @@ class DashboardSnapshot < ApplicationService
     result
   end
 
-  def product_activity_graph(raw)
+  def build_activity_graph(raw)
     {
       start_date: raw.fetch(:start_date),
       end_date: raw.fetch(:end_date),
@@ -120,7 +124,7 @@ class DashboardSnapshot < ApplicationService
     }
   end
 
-  def product_today_stats(raw)
+  def build_today_stats(raw)
     h = ApplicationController.helpers
     todays_languages = Array(raw.fetch(:todays_language_categories)).filter_map { |language| h.display_language_name(language) if language.present? }
     todays_editors = Array(raw.fetch(:todays_editor_keys)).filter_map { |editor| h.display_editor_name(editor) if editor.present? }
@@ -141,11 +145,12 @@ class DashboardSnapshot < ApplicationService
     end
 
     @sources[:aggregate] = :live
+    scope = filtered_scope(raw_filter_options)
     if rollup_eligible?
-      live_raw_snapshot(filter_options: raw_filter_options, scope: filtered_scope)
+      live_raw_snapshot(filter_options: raw_filter_options, scope: scope)
     else
       Rails.cache.fetch(live_aggregate_cache_key, expires_in: 5.minutes) do
-        live_raw_snapshot(filter_options: raw_filter_options, scope: filtered_scope)
+        live_raw_snapshot(filter_options: raw_filter_options, scope: scope)
       end
     end
   end
@@ -223,8 +228,8 @@ class DashboardSnapshot < ApplicationService
         grouped_durations: grouped_durations_snapshot(scope),
         filter_options: filter_options,
         weekly_project_stats: weekly_project_stats(scope, @user.timezone),
-        activity_graph: live_activity_graph_raw,
-        today_stats: live_today_stats_raw(scope),
+        activity_graph: nil,
+        today_stats: nil,
         timezone: @user.timezone
       )
     end
@@ -255,9 +260,8 @@ class DashboardSnapshot < ApplicationService
     FILTERS.index_with { |field| Array(payload[field.to_s] || payload[field]) }
   end
 
-  def filtered_scope
+  def filtered_scope(raw_filter_options)
     hb = @user.heartbeats
-    raw_filter_options = live_raw_filter_options
     selected_filters.each do |field, arr|
       next if arr.blank?
 
@@ -485,14 +489,21 @@ class DashboardSnapshot < ApplicationService
     return false unless payload.is_a?(Hash)
 
     start_date, end_date = activity_graph_date_range(@user.timezone)
-    payload["timezone"] == @user.timezone && payload["start_date"] == start_date && payload["end_date"] == end_date && payload["duration_by_date"].is_a?(Hash)
+    payload["timezone"] == @user.timezone &&
+      payload["start_date"] == start_date &&
+      payload["end_date"] == end_date &&
+      payload["duration_by_date"].is_a?(Hash)
   end
 
   def today_stats_rollup_valid?(row)
     payload = row&.payload
     return false unless payload.is_a?(Hash)
 
-    payload["timezone"] == @user.timezone && payload["today_date"] == today_date && payload.key?("todays_duration_seconds") && payload["todays_language_categories"].is_a?(Array) && payload["todays_editor_keys"].is_a?(Array)
+    payload["timezone"] == @user.timezone &&
+      payload["today_date"] == today_date &&
+      payload.key?("todays_duration_seconds") &&
+      payload["todays_language_categories"].is_a?(Array) &&
+      payload["todays_editor_keys"].is_a?(Array)
   end
 
   def schedule_rollup_refresh(wait:)
