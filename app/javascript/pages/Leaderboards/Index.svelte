@@ -65,6 +65,12 @@
       <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
         <Link
           href={`/leaderboards?period_type=${period_type}&scope=global`}
+          component="Leaderboards/Index"
+          pageProps={(current) => ({
+            ...current,
+            scope: "global",
+            entries: undefined,
+          })}
           class={`${tabClass(scope === "global")} inline-flex items-center justify-center gap-2`}
           preserveScroll
         >
@@ -75,6 +81,12 @@
         {#if country.available}
           <Link
             href={`/leaderboards?period_type=${period_type}&scope=country`}
+            component="Leaderboards/Index"
+            pageProps={(current) => ({
+              ...current,
+              scope: "country",
+              entries: undefined,
+            })}
             class={`${tabClass(scope === "country")} inline-flex items-center justify-center gap-2`}
             preserveScroll
           >
@@ -104,6 +116,12 @@
       <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
         <Link
           href={`/leaderboards?period_type=daily&scope=${scope}`}
+          component="Leaderboards/Index"
+          pageProps={(current) => ({
+            ...current,
+            period_type: "daily",
+            entries: undefined,
+          })}
           class={tabClass(period_type === "daily")}
           preserveScroll
         >
@@ -112,6 +130,12 @@
         </Link>
         <Link
           href={`/leaderboards?period_type=last_7_days&scope=${scope}`}
+          component="Leaderboards/Index"
+          pageProps={(current) => ({
+            ...current,
+            period_type: "last_7_days",
+            entries: undefined,
+          })}
           class={tabClass(period_type === "last_7_days")}
           preserveScroll
         >

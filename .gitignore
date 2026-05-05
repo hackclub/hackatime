@@ -66,3 +66,5 @@ pg-dump*
 
 rust-stats-server/target/
 scratch/
+
+public/vite
