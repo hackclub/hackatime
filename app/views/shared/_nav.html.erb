@@ -61,7 +61,7 @@
       <% end %>
 
       <% if current_user&.admin_level.present? || Rails.env.development? %>
-        <div class="pt-2 mt-2 border-t border-darkless space-y-1">
+        <div class="pt-2 mt-2 space-y-1 shadow-[0_-1px_0_rgba(255,255,255,0.08)]">
           <% dev_tool(nil, "div") do %>
             <%= link_to 'Letter Opener', letter_opener_web_path, class: nav_link_class.call(current_page?(letter_opener_web_path)), data: { action: "click->nav#clickLink" } %>
           <% end %>
@@ -109,7 +109,7 @@
               Account Deletions
               <% pending_count = DeletionRequest.pending.count %>
               <% if pending_count > 0 %>
-                <span class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium"><%= pending_count %></span>
+                <span class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-on-primary font-medium tabular-nums"><%= pending_count %></span>
               <% end %>
             <% end %>
           <% end %>
