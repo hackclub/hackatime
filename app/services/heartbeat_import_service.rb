@@ -6,17 +6,18 @@ class HeartbeatImportService
     imported_count = 0
     total_count = 0
     errors = []
-    heartbeat_batch = []
+    heartbeat_batch = {}
 
     handler = HeartbeatSaxHandler.new do |hb|
       total_count += 1
       on_progress&.call(total_count) if progress_interval.positive? && (total_count % progress_interval).zero?
 
       begin
-        heartbeat_batch << hb
+        attrs = HeartbeatIngest.normalize_imported_heartbeat(user:, heartbeat: hb, user_agents_by_id:)
+        heartbeat_batch[attrs[:fields_hash]] = hb
 
         if heartbeat_batch.size >= BATCH_SIZE
-          result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch, user_agents_by_id:, schedule_rollup_refresh: false)
+          result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch.values, user_agents_by_id:, schedule_rollup_refresh: false)
           imported_count += result.persisted_count
           errors.concat(result.errors)
           heartbeat_batch.clear
@@ -33,7 +34,7 @@ class HeartbeatImportService
       raise StandardError, "Expected a heartbeat export JSON file."
     end
     if heartbeat_batch.any?
-      result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch, user_agents_by_id:, schedule_rollup_refresh: false)
+      result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch.values, user_agents_by_id:, schedule_rollup_refresh: false)
       imported_count += result.persisted_count
       errors.concat(result.errors)
     end

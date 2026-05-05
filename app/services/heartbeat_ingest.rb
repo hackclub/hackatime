@@ -12,6 +12,10 @@ class HeartbeatIngest
     DashboardRollupRefreshJob.schedule_for(user.id)
   end
 
+  def self.normalize_imported_heartbeat(user:, heartbeat:, user_agents_by_id: {})
+    new(user:, mode: :import, heartbeats: [], user_agents_by_id:).send(:normalize_imported_heartbeat, heartbeat)
+  end
+
   def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {}, schedule_rollup_refresh: true)
     @user = user
     @mode = mode
@@ -43,9 +47,9 @@ class HeartbeatIngest
 
     @heartbeats.each do |heartbeat|
       attrs = normalize_direct_heartbeat(heartbeat, last_language:)
-      last_language = attrs[:language] if attrs[:language].present?
 
       persisted, duplicate = persist_direct_heartbeat(attrs)
+      last_language = attrs[:language] if attrs[:language].present?
       persisted_count += 1 unless duplicate
       duplicate_count += 1 if duplicate
       items << Item.new(heartbeat: persisted, status: :accepted, error: nil)
@@ -191,7 +195,7 @@ class HeartbeatIngest
     end
 
     ActiveRecord::Base.logger.silence do
-      Heartbeat.upsert_all(records, unique_by: [ :fields_hash ]).length
+      Heartbeat.insert_all(records, unique_by: [ :fields_hash ]).length
     end
   end
 
