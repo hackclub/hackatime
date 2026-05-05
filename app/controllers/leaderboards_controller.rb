@@ -14,7 +14,7 @@ class LeaderboardsController < InertiaController
       country: country,
       leaderboard: leaderboard_metadata(leaderboard),
       is_logged_in: current_user.present?,
-      github_uid_blank: current_user&.github_uid.blank? || false,
+      github_uid_blank: current_user.present? && current_user.github_uid.blank?,
       entries: InertiaRails.defer { entries_payload(leaderboard, leaderboard_scope, country) }
     }
   end
@@ -34,12 +34,22 @@ class LeaderboardsController < InertiaController
   end
 
   def load_country_context
-    c = ISO3166::Country.new(current_user&.country_code)
+    code = current_user&.country_code.presence || country_code_from_request_ip
+    c = ISO3166::Country.new(code)
     {
       code: c&.alpha2,
       name: c&.common_name,
       available: c&.alpha2.present? && c&.common_name.present?
     }
+  end
+
+  def country_code_from_request_ip
+    ip = request.remote_ip
+    return nil if ip.blank?
+
+    Rails.cache.fetch([ "leaderboards", "ip_country", ip ], expires_in: 1.day) do
+      User.country_code_from_ip(ip)
+    end
   end
 
   def leaderboard_metadata(leaderboard)
