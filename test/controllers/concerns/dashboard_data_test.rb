@@ -387,6 +387,50 @@ class DashboardDataTest < ActiveSupport::TestCase
     end
   end
 
+  test "selecting a remapped operating_system filter value matches the underlying raw rows" do
+    with_memory_cache_store do
+      Rails.cache.clear
+
+      user = User.create!(timezone: "UTC")
+      create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "Mac", category: "coding")
+      create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "Mac", category: "coding")
+      create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
+
+      harness = build_harness(user, params: { operating_system: "macOS" })
+
+      def harness.dashboard_rollups_available?
+        false
+      end
+
+      result = harness.send(:filterable_dashboard_data)
+
+      assert_equal 2, result[:total_heartbeats]
+      assert_equal "alpha", result["top_project"]
+    end
+  end
+
+  test "selecting a remapped editor filter value matches the underlying raw rows" do
+    with_memory_cache_store do
+      Rails.cache.clear
+
+      user = User.create!(timezone: "UTC")
+      create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
+
+      harness = build_harness(user, params: { editor: "VSCode" })
+
+      def harness.dashboard_rollups_available?
+        false
+      end
+
+      result = harness.send(:filterable_dashboard_data)
+
+      assert_equal 2, result[:total_heartbeats]
+      assert_equal "alpha", result["top_project"]
+    end
+  end
+
   test "missing today stats and activity graph rollups recalculate only those fragments and schedule one refresh" do
     with_memory_cache_store do
       Rails.cache.clear
