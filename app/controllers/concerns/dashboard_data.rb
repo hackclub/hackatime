@@ -104,13 +104,13 @@ module DashboardData
         arr = params[field].split(",")
         hb = if field == :operating_system
           raw = raw_filter_options.fetch(:operating_system, []).select { |value| arr.include?(h.display_os_name(value)) }
-          raw.any? ? hb.where(field => raw) : hb
+          hb.where(field => raw)
         elsif field == :editor
           raw = raw_filter_options.fetch(:editor, []).select { |value| arr.include?(h.display_editor_name(value)) }
-          raw.any? ? hb.where(field => raw) : hb
+          hb.where(field => raw)
         elsif field == :language
           raw = raw_filter_options.fetch(:language, []).select { |language| arr.include?(language.categorize_language) }
-          raw.any? ? hb.where(field => raw) : hb
+          hb.where(field => raw)
         else
           hb.where(field => arr)
         end
