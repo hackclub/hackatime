@@ -189,7 +189,7 @@ module ApplicationHelper
     when "opencode" then "OpenCode"
     when "claudecode" then "Claude Code"
     when "zoom.us" then "Zoom"
-    when "Windowspowershell" then "PowerShell"
+    when "windowspowershell" then "PowerShell"
     else editor.capitalize
     end
   end
