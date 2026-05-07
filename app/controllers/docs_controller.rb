@@ -1,6 +1,8 @@
 class DocsController < InertiaController
   layout "inertia"
 
+  inertia_share docs_nav: -> { docs_nav_props }
+
   POPULAR_EDITORS = [
     [ "VS Code", "vs-code" ], [ "PyCharm", "pycharm" ], [ "IntelliJ IDEA", "intellij-idea" ],
     [ "Sublime Text", "sublime-text" ], [ "Vim", "vim" ], [ "Neovim", "neovim" ],
@@ -103,6 +105,36 @@ class DocsController < InertiaController
   end
 
   private
+
+  def docs_nav_props
+    current_path = request.path
+    {
+      current_path: current_path,
+      home_url: docs_path,
+      api_docs_url: "/api-docs",
+      github_url: "https://github.com/hackclub/hackatime",
+      slack_url: "https://hackclub.slack.com/archives/C07MQ845X1F",
+      sections: [
+        {
+          title: "Getting Started",
+          links: [
+            { label: "Quick Start",   href: doc_path("getting-started/quick-start") },
+            { label: "Installation",  href: doc_path("getting-started/installation") },
+            { label: "Configuration", href: doc_path("getting-started/configuration") }
+          ]
+        },
+        {
+          title: "Developers",
+          links: [
+            { label: "API Docs", href: "/api-docs/" },
+            { label: "OAuth Apps", href: doc_path("oauth/oauth-apps") }
+          ]
+        }
+      ],
+      popular_editors: POPULAR_EDITORS,
+      all_editors: ALL_EDITORS
+    }
+  end
 
   def sanitize_path(path)
     # Remove any directory traversal attempts and normalize path
