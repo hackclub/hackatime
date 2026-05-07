@@ -7,17 +7,10 @@ features:
   bot_user:
     display_name: hackatime
     always_online: false
-  slash_commands:
-    - command: /timedump
-      url: https://timedump.hackclub.com/timedump/slack/commands
-      description: check your time dump!
-      should_escape: false
 oauth_config:
   redirect_urls:
     - http://localhost:3000/auth/slack/callback
     - https://hackatime.hackclub.com/auth/slack/callback
-    - https://timedump.hackclub.com/auth/slack/callback
-    - https://harbor.hackclub.com/auth/slack/callback
   scopes:
     user:
       - users.profile:read

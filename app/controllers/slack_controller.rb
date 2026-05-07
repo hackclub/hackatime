@@ -60,9 +60,7 @@ class SlackController < ApplicationController
       return
     end
 
-    # if coming from /sailorslog, use sailors_log_signing_secret
-    # if coming from /timedump, use slack_signing_secret
-    signing_secret = params_hash[:command].include?("sailorslog") ? ENV["SAILORS_LOG_SLACK_SIGNING_SECRET"] : ENV["SLACK_SIGNING_SECRET"]
+    signing_secret = ENV["SAILORS_LOG_SLACK_SIGNING_SECRET"]
 
     sig_basestring = "v0:#{timestamp}:#{request.raw_post}"
 
