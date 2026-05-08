@@ -7,11 +7,16 @@ class LeaderboardTest < ActiveSupport::TestCase
     Rails.cache.clear
     # `perform_later` enqueues onto the GoodJob backend, which we don't
     # want firing in unit tests; capture into ActiveJob's TestAdapter.
+    # Save the original adapter so we restore it in teardown — without
+    # this, the :test adapter leaks into other test files that depend
+    # on the real GoodJob backend (e.g. HeartbeatExportJobTest).
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :test
   end
 
   teardown do
     Rails.cache.clear
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
   # --- normalize_date -------------------------------------------------------
