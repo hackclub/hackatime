@@ -1,6 +1,6 @@
 class Api::V1::LeaderboardController < ApplicationController
   def daily
-    leaderboard = LeaderboardService.get(period: :daily, date: Date.current)
+    leaderboard = Leaderboard.fetch(period: :daily, date: Date.current)
 
     if leaderboard.nil?
       render json: { error: "Leaderboard is being generated" }, status: :service_unavailable
@@ -10,7 +10,7 @@ class Api::V1::LeaderboardController < ApplicationController
   end
 
   def weekly
-    leaderboard = LeaderboardService.get(period: :last_7_days, date: Date.current)
+    leaderboard = Leaderboard.fetch(period: :last_7_days, date: Date.current)
 
     if leaderboard.nil?
       render json: { error: "Leaderboard is being generated" }, status: :service_unavailable
