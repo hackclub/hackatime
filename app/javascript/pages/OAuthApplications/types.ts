@@ -5,16 +5,12 @@ export type OAuthApplicationSummary = {
   confidential: boolean;
   scopes: string[];
   redirect_uris: string[];
-  show_path: string;
-  edit_path: string;
-  destroy_path: string;
 };
 
 export type OAuthApplicationsIndexProps = {
   page_title: string;
   heading: string;
   subheading: string;
-  new_application_path: string;
   applications: OAuthApplicationSummary[];
 };
 
@@ -46,9 +42,8 @@ export type OAuthApplicationFormProps = {
   page_title: string;
   heading: string;
   subheading: string;
-  submit_path: string;
+  form_mode: "new" | "edit";
   form_method: "post" | "patch";
-  cancel_path: string;
   labels: {
     submit: string;
     cancel: string;
@@ -64,11 +59,6 @@ export type OAuthApplicationFormProps = {
   errors: OAuthApplicationFormErrors;
 };
 
-export type OAuthShowRedirectUri = {
-  value: string;
-  authorize_path: string;
-};
-
 export type OAuthApplicationShowApplication = {
   id: number;
   name: string;
@@ -76,12 +66,8 @@ export type OAuthApplicationShowApplication = {
   verified: boolean;
   confidential: boolean;
   scopes: string[];
-  redirect_uris: OAuthShowRedirectUri[];
-  edit_path: string;
-  destroy_path: string;
-  rotate_secret_path: string;
-  index_path: string;
-  toggle_verified_path: string | null;
+  redirect_uris: string[];
+  can_toggle_verified: boolean;
 };
 
 export type OAuthApplicationShowProps = {

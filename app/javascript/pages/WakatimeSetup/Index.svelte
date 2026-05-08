@@ -3,16 +3,19 @@
   import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
+  import { apiV1MyHeartbeats } from "../../api";
 
   interface Props {
     current_user_api_key: string;
     setup_os: string;
     api_url: string;
-    heartbeat_check_url: string;
   }
 
-  let { current_user_api_key, setup_os, api_url, heartbeat_check_url }: Props =
-    $props();
+  let { current_user_api_key, setup_os, api_url }: Props = $props();
+
+  const heartbeatCheckUrl = apiV1MyHeartbeats.mostRecent.path({
+    query: { source_type: "test_entry" },
+  });
 
   const defaultSection = () =>
     setup_os === "windows" ? "windows" : "mac-linux";
@@ -58,7 +61,7 @@
 
   async function checkHeartbeat() {
     try {
-      const response = await fetch(heartbeat_check_url, {
+      const response = await fetch(heartbeatCheckUrl, {
         headers: {
           Authorization: `Bearer ${current_user_api_key}`,
         },

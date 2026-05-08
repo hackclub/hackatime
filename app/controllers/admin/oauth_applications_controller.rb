@@ -12,8 +12,7 @@ class Admin::OauthApplicationsController < Admin::BaseController
   end
 
   def update
-    @application.admin_bypass = true
-    if @application.update(application_params)
+    if @application.admin_update(application_params)
       redirect_to admin_oauth_application_path(@application), notice: "updated successfully."
     else
       render :edit, status: :unprocessable_entity

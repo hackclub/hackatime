@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_27_120404) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -650,6 +650,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_120404) do
     t.string "profile_linkedin_url"
     t.string "profile_twitter_url"
     t.string "profile_website_url"
+    t.boolean "show_goals_in_statusbar", default: true, null: false
     t.text "slack_access_token"
     t.string "slack_avatar_url"
     t.string "slack_scopes", default: [], array: true

@@ -3,6 +3,7 @@
   import Button from "../../components/Button.svelte";
   import ActivityGraph from "../Home/signedIn/ActivityGraph.svelte";
   import HorizontalBarList from "../Home/signedIn/HorizontalBarList.svelte";
+  import { settingsProfile } from "../../api";
 
   type SocialLink = {
     key: string;
@@ -49,7 +50,6 @@
       duration_by_date: Record<string, number>;
       busiest_day_seconds: number;
       timezone_label: string;
-      timezone_settings_path: string;
     };
   };
 
@@ -57,19 +57,18 @@
     page_title,
     profile_visible,
     is_own_profile,
-    edit_profile_path,
     profile,
     stats,
   }: {
     page_title: string;
     profile_visible: boolean;
     is_own_profile: boolean;
-    edit_profile_path?: string | null;
     profile: ProfileData;
     stats?: StatsData;
   } = $props();
 
   const hasStats = $derived(Boolean(stats));
+  const editProfilePath = settingsProfile.my.path();
 </script>
 
 <svelte:head>
@@ -122,9 +121,9 @@
         </div>
       </div>
 
-      {#if is_own_profile && edit_profile_path}
+      {#if is_own_profile}
         <div class="md:pl-4">
-          <Button href={edit_profile_path}>Edit Profile</Button>
+          <Button href={editProfilePath}>Edit Profile</Button>
         </div>
       {/if}
     </div>
@@ -252,9 +251,9 @@
       <p class="mt-2 text-sm text-muted">
         This user chose not to share coding stats publicly.
       </p>
-      {#if is_own_profile && edit_profile_path}
+      {#if is_own_profile}
         <div class="mt-4">
-          <Button href={`${edit_profile_path}#user_privacy`} variant="surface">
+          <Button href={`${editProfilePath}#user_privacy`} variant="surface">
             Update privacy settings
           </Button>
         </div>

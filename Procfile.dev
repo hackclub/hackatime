@@ -1,4 +1,3 @@
 web: bin/dev-web
 css: bin/rails tailwindcss:watch >/dev/null
 vite: bin/vite dev
-ssr: bin/vite ssr >/dev/null

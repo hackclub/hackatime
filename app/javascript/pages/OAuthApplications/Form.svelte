@@ -2,11 +2,11 @@
   import { Form } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import type { OAuthApplicationFormProps } from "./types";
+  import { doorkeeperApplications } from "../../api";
 
   let {
-    submit_path,
+    form_mode,
     form_method,
-    cancel_path,
     labels,
     help_text,
     allow_blank_redirect_uri,
@@ -26,6 +26,14 @@
   });
 
   const nameLocked = $derived(application.persisted && application.verified);
+
+  // `new` posts to create, `edit` patches by id.
+  const submitPath = $derived(
+    form_mode === "edit" && application.id != null
+      ? doorkeeperApplications.update.path({ id: application.id })
+      : doorkeeperApplications.create.path(),
+  );
+  const cancelPath = doorkeeperApplications.index.path();
 </script>
 
 {#if errors.full_messages.length > 0}
@@ -39,7 +47,7 @@
   </div>
 {/if}
 
-<Form action={submit_path} method={form_method} class="space-y-5">
+<Form action={submitPath} method={form_method} class="space-y-5">
   <section class="rounded-xl border border-surface-200 bg-dark p-6">
     <h2 class="text-lg font-semibold text-surface-content">
       Application details
@@ -186,6 +194,6 @@
 
   <div class="flex flex-wrap gap-3">
     <Button type="submit" variant="primary">{labels.submit}</Button>
-    <Button href={cancel_path} variant="surface">{labels.cancel}</Button>
+    <Button href={cancelPath} variant="surface">{labels.cancel}</Button>
   </div>
 </Form>

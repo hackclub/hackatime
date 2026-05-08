@@ -35,7 +35,6 @@ export type LayoutNav = {
   flash: { message: string; class_name: string }[];
   user_present: boolean;
   current_user?: NavCurrentUser | null;
-  login_path: string;
   links: NavLink[];
   dev_links: NavLink[];
   admin_links: NavLink[];
@@ -80,9 +79,7 @@ export type LayoutProps = {
     interval: number;
   };
   csrf_token: string;
-  signout_path: string;
   show_stop_impersonating: boolean;
-  stop_impersonating_path: string;
 };
 
 export type LeaderboardEntryUser = {
@@ -127,7 +124,6 @@ export type ActivityGraphData = {
   duration_by_date: Record<string, number>;
   busiest_day_seconds: number;
   timezone_label: string;
-  timezone_settings_path: string;
 };
 
 export type ProjectStats = {
@@ -184,12 +180,10 @@ export type TodayStats = {
 export type ProjectShowProps = {
   page_title: string;
   project_name: string;
-  back_path: string;
   since_date?: string | null;
   repo_url?: string | null;
   is_shared: boolean;
   share_url?: string | null;
-  toggle_share_path: string;
   interval?: string | null;
   from?: string | null;
   to?: string | null;
@@ -200,7 +194,6 @@ export type PublicProjectShowProps = {
   page_title: string;
   project_name: string;
   username: string;
-  profile_path: string;
   since_date?: string | null;
   repo_url?: string | null;
   total_time_label: string;

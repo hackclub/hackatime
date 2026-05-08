@@ -16,6 +16,7 @@
     streakLabel,
     tabClass,
   } from "./utils";
+  import { sessions, settingsProfile } from "../../api";
 
   let {
     period_type,
@@ -24,8 +25,6 @@
     leaderboard,
     is_logged_in,
     github_uid_blank,
-    github_auth_path,
-    settings_path,
     entries,
   }: {
     period_type: string;
@@ -34,10 +33,11 @@
     leaderboard: LeaderboardMeta | null;
     is_logged_in: boolean;
     github_uid_blank: boolean;
-    github_auth_path: string;
-    settings_path: string;
     entries?: LeaderboardEntriesPayload;
   } = $props();
+
+  const githubAuthPath = sessions.githubNew.path();
+  const settingsPath = settingsProfile.mySettings.path();
 
   const dateRangeText = $derived(
     leaderboard?.date_range_text ??
@@ -65,6 +65,12 @@
       <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
         <Link
           href={`/leaderboards?period_type=${period_type}&scope=global`}
+          component="Leaderboards/Index"
+          pageProps={(current) => ({
+            ...current,
+            scope: "global",
+            entries: undefined,
+          })}
           class={`${tabClass(scope === "global")} inline-flex items-center justify-center gap-2`}
           preserveScroll
         >
@@ -75,6 +81,12 @@
         {#if country.available}
           <Link
             href={`/leaderboards?period_type=${period_type}&scope=country`}
+            component="Leaderboards/Index"
+            pageProps={(current) => ({
+              ...current,
+              scope: "country",
+              entries: undefined,
+            })}
             class={`${tabClass(scope === "country")} inline-flex items-center justify-center gap-2`}
             preserveScroll
           >
@@ -104,6 +116,12 @@
       <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
         <Link
           href={`/leaderboards?period_type=daily&scope=${scope}`}
+          component="Leaderboards/Index"
+          pageProps={(current) => ({
+            ...current,
+            period_type: "daily",
+            entries: undefined,
+          })}
           class={tabClass(period_type === "daily")}
           preserveScroll
         >
@@ -112,6 +130,12 @@
         </Link>
         <Link
           href={`/leaderboards?period_type=last_7_days&scope=${scope}`}
+          component="Leaderboards/Index"
+          pageProps={(current) => ({
+            ...current,
+            period_type: "last_7_days",
+            entries: undefined,
+          })}
           class={tabClass(period_type === "last_7_days")}
           preserveScroll
         >
@@ -125,7 +149,7 @@
       <p class="text-xs text-muted">
         Set your country in
         <Link
-          href={settings_path}
+          href={settingsPath}
           class="text-accent hover:text-cyan transition-colors">settings</Link
         >
         to unlock regional leaderboards.
@@ -139,7 +163,7 @@
         <span class="text-surface-content"
           >Connect your GitHub to qualify for the leaderboard.</span
         >
-        <Button href={github_auth_path} native size="md">Connect GitHub</Button>
+        <Button href={githubAuthPath} native size="md">Connect GitHub</Button>
       </div>
     {/if}
 

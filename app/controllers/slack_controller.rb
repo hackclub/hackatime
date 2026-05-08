@@ -55,9 +55,12 @@ class SlackController < ApplicationController
     # Skip verification in development
     return true if Rails.env.development?
 
-    # if coming from /sailorslog, use sailors_log_signing_secret
-    # if coming from /timedump, use slack_signing_secret
-    signing_secret = params_hash[:command].include?("sailorslog") ? ENV["SAILORS_LOG_SLACK_SIGNING_SECRET"] : ENV["SLACK_SIGNING_SECRET"]
+    if timestamp.blank? || (Time.now.to_i - timestamp.to_i).abs > 300
+      head :unauthorized
+      return
+    end
+
+    signing_secret = ENV["SAILORS_LOG_SLACK_SIGNING_SECRET"]
 
     sig_basestring = "v0:#{timestamp}:#{request.raw_post}"
 

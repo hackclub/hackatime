@@ -91,7 +91,6 @@ class ProfilesController < InertiaController
       page_title: "#{project_name} — @#{@user.username} | Hackatime",
       project_name: project_name,
       username: @user.username,
-      profile_path: profile_path(username: @user.username),
       since_date: since_date,
       repo_url: mapping.repo_url,
       total_time_label: h.short_time_detailed(total_time),
@@ -114,7 +113,6 @@ class ProfilesController < InertiaController
       page_title: profile_page_title,
       profile_visible: @profile_visible,
       is_own_profile: @is_own_profile,
-      edit_profile_path: (@is_own_profile ? my_settings_profile_path : nil),
       profile: profile_summary_payload,
       stats: (@profile_visible ? profile_stats_payload : nil)
     }
@@ -189,8 +187,7 @@ class ProfilesController < InertiaController
         end_date: Time.current.to_date.iso8601,
         duration_by_date: durations.transform_keys { |date| date.to_date.iso8601 }.transform_values(&:to_i),
         busiest_day_seconds: 8.hours.to_i,
-        timezone_label: ActiveSupport::TimeZone[timezone].to_s,
-        timezone_settings_path: "/my/settings#user_timezone"
+        timezone_label: ActiveSupport::TimeZone[timezone].to_s
       }
     }
   end

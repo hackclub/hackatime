@@ -2,9 +2,10 @@
   import { router } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
+  import { adminAccountMerger } from "../../api";
 
-  let { search_url, merge_url }: { search_url: string; merge_url: string } =
-    $props();
+  const searchUrl = adminAccountMerger.searchUsers.path();
+  const mergeUrl = adminAccountMerger.merge.path();
 
   type UserResult = {
     id: number;
@@ -42,7 +43,7 @@
 
     try {
       const res = await fetch(
-        `${search_url}?query=${encodeURIComponent(query.trim())}`,
+        `${searchUrl}?query=${encodeURIComponent(query.trim())}`,
       );
       if (!res.ok) throw new Error(`Search failed with ${res.status}`);
 
@@ -125,7 +126,7 @@
   function handleMerge() {
     merging = true;
     router.post(
-      merge_url,
+      mergeUrl,
       { older_id: olderUser!.id, newer_id: newerUser!.id },
       {
         onFinish: () => {

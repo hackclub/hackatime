@@ -46,11 +46,9 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Install npm dependencies for Vite. Vendored Inertia packages must exist
-# before `bun i` because they are referenced via local file dependencies.
+# Install npm dependencies for Vite.
 COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
-COPY vendor/inertia vendor/inertia
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun i --frozen-lockfile
 
@@ -67,6 +65,11 @@ COPY . .
 
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
+
+# Generate js_from_routes TypeScript path helpers. Must run before
+# assets:precompile so Vite/Svelte can import from app/javascript/api/.
+# These files are gitignored and regenerated on every build.
+RUN SECRET_KEY_BASE_DUMMY=1 JS_FROM_ROUTES_FORCE=true ./bin/rake js_from_routes:generate
 
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 RUN --mount=type=cache,target=/rails/node_modules/.vite \

@@ -257,6 +257,8 @@ GEM
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
     jmespath (1.6.2)
+    js_from_routes (4.0.2)
+      railties (>= 5.1, < 9)
     json (2.19.4)
     json-schema (6.2.0)
       addressable (~> 2.8)
@@ -534,7 +536,7 @@ GEM
       logger
     ruby_identicon (0.0.6)
       chunky_png (~> 1.4.0)
-    rubyzip (3.2.2)
+    rubyzip (3.3.0)
     sanitize (7.0.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.16.8)
@@ -681,8 +683,9 @@ DEPENDENCIES
   http
   image_processing (~> 1.2)
   importmap-rails
-  inertia_rails (~> 3.17)
+  inertia_rails (~> 3.21)
   jbuilder
+  js_from_routes
   kamal
   letter_opener
   letter_opener_web (~> 3.0)
@@ -710,7 +713,7 @@ DEPENDENCIES
   rswag-ui
   rubocop-rails-omakase
   ruby_identicon
-  rubyzip (~> 3.2)
+  rubyzip (~> 3.3)
   selenium-webdriver
   sentry-rails
   sentry-ruby

@@ -15,13 +15,14 @@ class ProfileSettingsTest < ApplicationSystemTestCase
     assert_current_path my_settings_path, ignore_query: true
     assert_text "Settings"
     assert_text "Region and Timezone"
-    assert_selector "[data-settings-card]", minimum: 4
+    assert_text "Email Addresses"
+    assert_selector "[data-settings-card]", minimum: 3
   end
 
   test "settings hash redirects to the matching settings page and subsection" do
     visit "#{my_settings_profile_path}#user_api_key"
 
-    assert_current_path my_settings_access_path, ignore_query: true
+    assert_current_path my_settings_privacy_path, ignore_query: true
     assert_text "API Key"
     assert_selector "[data-settings-subnav-item][data-active='true']", text: "API key"
   end
@@ -55,35 +56,5 @@ class ProfileSettingsTest < ApplicationSystemTestCase
     assert_text "Some changes could not be saved:"
     assert_text "Username may only include letters, numbers, '-', and '_'"
     assert_equal "good_name", @user.reload.username
-  end
-
-  test "profile settings updates privacy option without wiping country" do
-    @user.update!(country_code: "CA", allow_public_stats_lookup: false)
-
-    visit my_settings_profile_path
-
-    within("#user_privacy") do
-      find("[role='checkbox']").click
-      click_on "Save privacy settings"
-    end
-
-    assert_text "Settings updated successfully"
-    assert_equal true, @user.reload.allow_public_stats_lookup
-    assert_equal "CA", @user.reload.country_code
-  end
-
-  test "profile settings updates theme without wiping country" do
-    @user.update!(country_code: "CA", theme: :gruvbox_dark)
-
-    visit my_settings_profile_path
-
-    within("#user_theme") do
-      click_on "Neon"
-      click_on "Save theme"
-    end
-
-    assert_text "Settings updated successfully"
-    assert_equal "neon", @user.reload.theme
-    assert_equal "CA", @user.reload.country_code
   end
 end

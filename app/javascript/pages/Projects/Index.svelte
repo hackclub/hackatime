@@ -8,6 +8,7 @@
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
+  import { myProjectRepoMappings, sessions, settingsProfile } from "../../api";
 
   type RepositorySummary = {
     homepage?: string | null;
@@ -21,17 +22,14 @@
     id: string;
     name: string;
     project_key?: string | null;
+    url_safe: boolean;
     duration_seconds: number;
     duration_label: string;
     duration_percent: number;
-    show_path?: string | null;
     repo_url?: string | null;
     repository?: RepositorySummary | null;
     broken_name: boolean;
     manage_enabled: boolean;
-    update_path?: string | null;
-    archive_path?: string | null;
-    unarchive_path?: string | null;
   };
 
   type ProjectsData = {
@@ -43,12 +41,9 @@
 
   type PageProps = {
     page_title: string;
-    index_path: string;
     show_archived: boolean;
     archived_count: number;
     github_connected: boolean;
-    github_auth_path: string;
-    settings_path: string;
     interval?: string | null;
     from?: string | null;
     to?: string | null;
@@ -59,12 +54,9 @@
 
   let {
     page_title,
-    index_path,
     show_archived,
     archived_count,
     github_connected,
-    github_auth_path,
-    settings_path,
     interval = "",
     from = "",
     to = "",
@@ -72,6 +64,39 @@
     total_projects,
     projects_data,
   }: PageProps = $props();
+
+  const indexPath = myProjectRepoMappings.index.path();
+  const githubAuthPath = sessions.githubNew.path();
+  const settingsPath = `${settingsProfile.mySettings.path()}#user_github_account`;
+
+  const showPathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.show.path({ projectName: project.project_key })
+      : null;
+
+  const editPathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.edit.path({ projectName: project.project_key })
+      : null;
+
+  const updatePathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.update.path({ projectName: project.project_key })
+      : null;
+
+  const archivePathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.archive.path({
+          projectName: project.project_key,
+        })
+      : null;
+
+  const unarchivePathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.unarchive.path({
+          projectName: project.project_key,
+        })
+      : null;
 
   let editingProjectKey = $state<string | null>(null);
   let repoUrlDraft = $state("");
@@ -122,7 +147,7 @@
     if (nextShowArchived) query.set("show_archived", "true");
 
     const queryString = query.toString();
-    return queryString ? `${index_path}?${queryString}` : index_path;
+    return queryString ? `${indexPath}?${queryString}` : indexPath;
   };
 
   const intervalQueryString = $derived.by(() => {
@@ -175,7 +200,9 @@
   };
 
   const openStatusChangeModal = (project: ProjectCard, restoring: boolean) => {
-    const path = restoring ? project.unarchive_path : project.archive_path;
+    const path = restoring
+      ? unarchivePathFor(project)
+      : archivePathFor(project);
     if (!path) return;
 
     pendingStatusAction = {
@@ -249,10 +276,10 @@
         account.
       </p>
       <div class="mt-3 flex flex-wrap gap-2">
-        <Button href={github_auth_path} native class="w-full sm:w-fit">
+        <Button href={githubAuthPath} native class="w-full sm:w-fit">
           Sign in with GitHub
         </Button>
-        <Button href={settings_path} variant="surface" class="w-full sm:w-fit">
+        <Button href={settingsPath} variant="surface" class="w-full sm:w-fit">
           Open settings
         </Button>
       </div>
@@ -323,8 +350,9 @@
               class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
             >
               {#each projects_data.projects as project (project.id)}
-                {@const projectHref = project.show_path
-                  ? withIntervalParams(project.show_path)
+                {@const showPath = showPathFor(project)}
+                {@const projectHref = showPath
+                  ? withIntervalParams(showPath)
                   : null}
                 <article
                   class="group relative flex min-h-36 overflow-hidden rounded-2xl {projectHref
@@ -406,7 +434,7 @@
                             <Edit size={20} />
                           </Button>
                         {/if}
-                        {#if show_archived && project.unarchive_path}
+                        {#if show_archived && unarchivePathFor(project)}
                           <Button
                             type="button"
                             unstyled
@@ -416,7 +444,7 @@
                           >
                             <Reply size={20} />
                           </Button>
-                        {:else if !show_archived && project.archive_path}
+                        {:else if !show_archived && archivePathFor(project)}
                           <Button
                             type="button"
                             unstyled
@@ -511,12 +539,12 @@
                       </div>
                     {/if}
 
-                    {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
+                    {#if project.manage_enabled && editingProjectKey === project.project_key && updatePathFor(project)}
                       <div
                         class="relative z-20 mt-4 border-t border-surface-200/40 pt-4"
                       >
                         <Form
-                          action={project.update_path}
+                          action={updatePathFor(project)!}
                           method="patch"
                           class="space-y-3"
                         >

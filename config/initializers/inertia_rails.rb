@@ -4,6 +4,8 @@ InertiaRails.configure do |config|
   config.version = ViteRuby.digest
   config.encrypt_history = Rails.env.production?
   config.always_include_errors_hash = true
+  # Required for Inertia.js v3 client compatibility. Defaults are still `false`
+  # in inertia_rails 3.x; will become the only behavior in inertia_rails 4.0.
   config.use_script_element_for_initial_page = true
   config.use_data_inertia_head_attribute = true
   config.ssr_enabled = ViteRuby.config.ssr_build_enabled

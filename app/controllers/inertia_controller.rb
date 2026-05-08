@@ -12,9 +12,7 @@ class InertiaController < ApplicationController
       theme: inertia_theme_props,
       # currently_hacking: currently_hacking_props,
       csrf_token: form_authenticity_token,
-      signout_path: signout_path,
-      show_stop_impersonating: session[:impersonater_user_id].present?,
-      stop_impersonating_path: stop_impersonating_path
+      show_stop_impersonating: session[:impersonater_user_id].present?
     }
   end
 
@@ -31,7 +29,6 @@ class InertiaController < ApplicationController
       flash: inertia_flash_messages,
       user_present: current_user.present?,
       current_user: inertia_nav_current_user,
-      login_path: slack_auth_path,
       links: inertia_primary_links,
       dev_links: inertia_dev_links,
       admin_links: inertia_admin_links,

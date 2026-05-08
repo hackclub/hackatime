@@ -25,8 +25,6 @@
     ssp_users_recent,
     ssp_users_size,
     github_uid_blank,
-    github_auth_path,
-    wakatime_setup_path,
     dashboard_stats,
   }: {
     flavor_text: string;
@@ -36,8 +34,6 @@
     ssp_users_recent: SocialProofUser[];
     ssp_users_size: number;
     github_uid_blank: boolean;
-    github_auth_path: string;
-    wakatime_setup_path: string;
     dashboard_stats?: {
       filterable_dashboard_data: FilterableDashboardData;
       activity_graph: ActivityGraphData;
@@ -80,14 +76,9 @@
   {/if}
 
   {#if show_wakatime_setup_notice}
-    <SetupNotice
-      {wakatime_setup_path}
-      {ssp_message}
-      {ssp_users_recent}
-      {ssp_users_size}
-    />
+    <SetupNotice {ssp_message} {ssp_users_recent} {ssp_users_size} />
   {:else if github_uid_blank}
-    <GitHubLinkBanner {github_auth_path} />
+    <GitHubLinkBanner />
   {/if}
 
   {#snippet dashboardContent(reloading: boolean)}

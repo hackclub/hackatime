@@ -16,7 +16,7 @@ class My::HeartbeatImportsController < ApplicationController
       start_remote_import!
     end
 
-    redirect_to my_settings_data_path
+    redirect_to my_settings_imports_exports_path
   rescue DevelopmentOnlyError => e
     redirect_with_import_error(e.message)
   rescue HeartbeatImportRunner::FeatureDisabledError => e
@@ -45,9 +45,7 @@ class My::HeartbeatImportsController < ApplicationController
 
   def wakatime_download_link
     render inertia: "HeartbeatImports/WakatimeDownloadLink", props: {
-      page_title: "Paste your WakaTime export link",
-      create_heartbeat_import_path: my_heartbeat_imports_path,
-      data_settings_path: my_settings_data_path
+      page_title: "Paste your WakaTime export link"
     }
   end
 
@@ -98,7 +96,7 @@ class My::HeartbeatImportsController < ApplicationController
   end
 
   def redirect_with_import_error(message)
-    redirect_to my_settings_data_path, inertia: { errors: { import: message } }
+    redirect_to my_settings_imports_exports_path, inertia: { errors: { import: message } }
   end
 
   def remote_import_params

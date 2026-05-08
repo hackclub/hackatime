@@ -3,14 +3,20 @@
   import Button from "../../components/Button.svelte";
   import DestructiveActionModal from "./DestructiveActionModal.svelte";
   import type { OAuthApplicationsIndexProps } from "./types";
+  import { doorkeeperApplications } from "../../api";
 
   let {
     page_title,
     heading,
     subheading,
-    new_application_path,
     applications,
   }: OAuthApplicationsIndexProps = $props();
+
+  const newApplicationPath = doorkeeperApplications.new.path();
+  const showPathFor = (id: number) => doorkeeperApplications.show.path({ id });
+  const editPathFor = (id: number) => doorkeeperApplications.edit.path({ id });
+  const destroyPathFor = (id: number) =>
+    doorkeeperApplications.destroy.path({ id });
 
   let deleteModalOpen = $state(false);
   let pendingDelete = $state<{ name: string; path: string } | null>(null);
@@ -32,9 +38,7 @@
       <p class="mt-1 text-sm text-muted">{subheading}</p>
     </div>
 
-    <Button href={new_application_path} variant="primary"
-      >New application</Button
-    >
+    <Button href={newApplicationPath} variant="primary">New application</Button>
   </header>
 
   {#if applications.length > 0}
@@ -110,13 +114,13 @@
 
             <div class="flex items-center gap-2">
               <Link
-                href={application.show_path}
+                href={showPathFor(application.id)}
                 class="inline-flex items-center justify-center rounded-lg border border-surface-200 bg-surface-100 px-3 py-2 text-sm font-medium text-surface-content transition-colors hover:bg-surface-200"
               >
                 View
               </Link>
               <Link
-                href={application.edit_path}
+                href={editPathFor(application.id)}
                 class="inline-flex items-center justify-center rounded-lg border border-primary bg-primary px-3 py-2 text-sm font-medium text-on-primary transition-opacity hover:opacity-90"
               >
                 Edit
@@ -127,7 +131,10 @@
                 variant="surface"
                 class="!border-red/45 !bg-red/15 !text-red hover:!bg-red/25"
                 onclick={() =>
-                  openDeleteModal(application.name, application.destroy_path)}
+                  openDeleteModal(
+                    application.name,
+                    destroyPathFor(application.id),
+                  )}
               >
                 Delete
               </Button>
@@ -147,7 +154,7 @@
         Create your first OAuth application to start integrating with Hackatime.
       </p>
       <div class="mt-5">
-        <Button href={new_application_path} variant="primary"
+        <Button href={newApplicationPath} variant="primary"
           >New application</Button
         >
       </div>

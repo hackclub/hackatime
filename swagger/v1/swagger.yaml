@@ -1840,7 +1840,7 @@ paths:
                             example: 7200.0
                           text:
                             type: string
-                            example: 2h 30m / 4h today
+                            example: 2h 30m / 4h goal
                       goal:
                         type: object
                         nullable: true
@@ -3506,35 +3506,6 @@ paths:
       tags:
       - Slack
       description: Handle incoming Slack slash commands for Sailor's Log (/sailorslog).
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  response_type:
-                    type: string
-                  text:
-                    type: string
-                    nullable: true
-                  blocks:
-                    type: array
-                    items:
-                      type: object
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: string
-  "/timedump/slack/commands":
-    post:
-      summary: Handle Timedump Command
-      tags:
-      - Slack
-      description: Handle incoming Slack slash commands for Timedump (/timedump).
       parameters: []
       responses:
         '200':

@@ -3,7 +3,6 @@ module DashboardData
 
   FILTER_OPTIONS_CACHE_VERSION = "v1".freeze
   WEEKLY_PROJECT_DIMENSION = "weekly_project".freeze
-  DASHBOARD_TIMEZONE_SETTINGS_PATH = "/my/settings#user_timezone".freeze
 
   private
 
@@ -96,17 +95,22 @@ module DashboardData
   def dashboard_query_result(raw_filter_options, archived)
     hb = current_user.heartbeats
     result = dashboard_filter_options_result(raw_filter_options, archived)
+    h = ApplicationController.helpers
 
     Time.use_zone(current_user.timezone) do
       dashboard_filters.each do |field|
         next unless params[field].present?
 
         arr = params[field].split(",")
-        hb = if %i[operating_system editor].include?(field)
-          hb.where(field => arr.flat_map { |value| [ value.downcase, value.capitalize ] }.uniq)
+        hb = if field == :operating_system
+          raw = raw_filter_options.fetch(:operating_system, []).select { |value| arr.include?(h.display_os_name(value)) }
+          hb.where(field => raw)
+        elsif field == :editor
+          raw = raw_filter_options.fetch(:editor, []).select { |value| arr.include?(h.display_editor_name(value)) }
+          hb.where(field => raw)
         elsif field == :language
           raw = raw_filter_options.fetch(:language, []).select { |language| arr.include?(language.categorize_language) }
-          raw.any? ? hb.where(field => raw) : hb
+          hb.where(field => raw)
         else
           hb.where(field => arr)
         end
@@ -339,8 +343,7 @@ module DashboardData
       end_date: end_date,
       duration_by_date: duration_by_date.to_h.transform_keys { |date| date.to_s }.transform_values(&:to_i),
       busiest_day_seconds: 8.hours.to_i,
-      timezone_label: ActiveSupport::TimeZone[timezone]&.to_s || timezone,
-      timezone_settings_path: DASHBOARD_TIMEZONE_SETTINGS_PATH
+      timezone_label: ActiveSupport::TimeZone[timezone]&.to_s || timezone
     }
   end
 

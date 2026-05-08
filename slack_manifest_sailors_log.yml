@@ -9,7 +9,7 @@ features:
     always_online: false
   slash_commands:
     - command: /sailorslog
-      url: https://timedump.hackclub.com/sailors_log/slack/commands
+      url: https://hackatime.hackclub.com/sailors_log/slack/commands
       description: Celebrate your coding hours
       usage_hint: "[on|off|leaderboard]"
       should_escape: true

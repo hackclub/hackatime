@@ -111,6 +111,9 @@ gem "flipper"
 gem "flipper-active_record"
 gem "flipper-ui"
 
+# Generate path helpers and API methods from Rails routes [https://js-from-routes.netlify.app]
+gem "js_from_routes"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
@@ -170,11 +173,11 @@ gem "tailwindcss-ruby", "~> 4.1"
 
 gem "tailwindcss-rails", "~> 4.2"
 
-gem "inertia_rails", "~> 3.17"
+gem "inertia_rails", "~> 3.21"
 
 gem "vite_rails", "~> 3.10"
 
-gem "rubyzip", "~> 3.2"
+gem "rubyzip", "~> 3.3"
 
 gem "aws-sdk-s3", require: false
 

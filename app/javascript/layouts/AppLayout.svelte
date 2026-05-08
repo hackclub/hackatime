@@ -15,9 +15,14 @@
     NavCurrentUser,
     NavLink,
   } from "../types";
+  import { sessions } from "../api";
 
   let { layout, children }: { layout: LayoutProps; children?: Snippet } =
     $props();
+
+  const loginPath = sessions.slackNew.path();
+  const signoutPath = sessions.destroy.path();
+  const stopImpersonatingPath = sessions.stopImpersonating.path();
 
   const isBrowser =
     typeof window !== "undefined" && typeof document !== "undefined";
@@ -371,7 +376,7 @@
       {:else}
         <div>
           <a
-            href={layout.nav.login_path}
+            href={loginPath}
             class="block px-4 py-2 rounded-md transition text-on-primary font-semibold bg-primary hover:bg-secondary text-center"
             >Login</a
           >
@@ -421,7 +426,7 @@
         </p>
         {#if layout.show_stop_impersonating}
           <a
-            href={layout.stop_impersonating_path}
+            href={stopImpersonatingPath}
             data-turbo-prefetch="false"
             class="text-primary font-bold hover:text-red transition-colors duration-200"
             >Stop impersonating</a
@@ -477,7 +482,7 @@
         class="h-10 w-full border border-surface-300 text-muted">Go back</Button
       >
 
-      <form method="post" action={layout.signout_path} class="m-0">
+      <form method="post" action={signoutPath} class="m-0">
         <input
           type="hidden"
           name="authenticity_token"
