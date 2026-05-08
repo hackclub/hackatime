@@ -16,7 +16,7 @@ class Leaderboard
 
     def initialize(period:, date:)
       @period = period.to_sym
-      @date = Leaderboard.normalize_date(date, @period)
+      @date = Leaderboard.normalize_date(date)
     end
 
     def call(force: false)

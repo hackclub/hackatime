@@ -23,19 +23,18 @@ class LeaderboardTest < ActiveSupport::TestCase
 
   test "normalize_date returns today when blank" do
     travel_to Time.zone.local(2024, 3, 20, 12) do
-      assert_equal Date.new(2024, 3, 20), Leaderboard.normalize_date(nil, :daily)
-      assert_equal Date.new(2024, 3, 20), Leaderboard.normalize_date("", :daily)
+      assert_equal Date.new(2024, 3, 20), Leaderboard.normalize_date(nil)
+      assert_equal Date.new(2024, 3, 20), Leaderboard.normalize_date("")
     end
   end
 
   test "normalize_date parses string dates" do
-    assert_equal Date.new(2024, 3, 20), Leaderboard.normalize_date("2024-03-20", :daily)
-    assert_equal Date.new(2024, 3, 20), Leaderboard.normalize_date("2024-03-20", :last_7_days)
+    assert_equal Date.new(2024, 3, 20), Leaderboard.normalize_date("2024-03-20")
   end
 
   test "normalize_date passes through Date objects" do
     d = Date.new(2024, 3, 20)
-    assert_equal d, Leaderboard.normalize_date(d, :daily)
+    assert_equal d, Leaderboard.normalize_date(d)
   end
 
   # --- range ---------------------------------------------------------------

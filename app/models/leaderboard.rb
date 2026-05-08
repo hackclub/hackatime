@@ -18,7 +18,7 @@ class Leaderboard < ApplicationRecord
 
   def self.fetch(period: :daily, date: Date.current)
     period = period.to_sym
-    date = normalize_date(date, period)
+    date = normalize_date(date)
     key = cache_key(period, date)
 
     if (cached = Rails.cache.read(key))
@@ -39,7 +39,7 @@ class Leaderboard < ApplicationRecord
     Builder.new(period: period, date: date).call(force: force)
   end
 
-  def self.normalize_date(date, _period)
+  def self.normalize_date(date)
     date = Date.current if date.blank?
     date.is_a?(Date) ? date : Date.parse(date.to_s)
   end
