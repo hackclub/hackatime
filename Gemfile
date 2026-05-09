@@ -177,7 +177,7 @@ gem "inertia_rails", "~> 3.21"
 
 gem "vite_rails", "~> 3.11"
 
-gem "rubyzip", "~> 3.2"
+gem "rubyzip", "~> 3.3"
 
 gem "aws-sdk-s3", require: false
 
