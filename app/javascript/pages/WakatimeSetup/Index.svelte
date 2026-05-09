@@ -225,7 +225,7 @@
                   >
                     <pre
                       class="p-4 pr-20 text-sm font-mono text-cyan whitespace-pre-wrap break-all"><code
-                        >curl -fsSL https://hack.club/setup/install.sh | bash -s -- {current_user_api_key}</code
+                        >curl -fsSL https://raw.githubusercontent.com/hackclub/hackatime-setup/refs/heads/main/install.sh | bash -s -- {current_user_api_key}</code
                       ></pre>
                   </div>
                 </div>
@@ -313,7 +313,7 @@
                   >
                     <pre
                       class="p-4 pr-20 text-sm font-mono text-cyan whitespace-pre-wrap break-all"><code
-                        >& ([scriptblock]::Create((irm https://hack.club/setup/install.ps1))) -ApiKey {current_user_api_key}</code
+                        >& ([scriptblock]::Create((irm https://raw.githubusercontent.com/hackclub/hackatime-setup/refs/heads/main/install.ps1))) -ApiKey {current_user_api_key}</code
                       ></pre>
                   </div>
                 </div>
