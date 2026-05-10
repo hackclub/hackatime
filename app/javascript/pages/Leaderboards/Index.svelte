@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Deferred, Link } from "@inertiajs/svelte";
+  import { WindowVirtualizer } from "virtua/svelte";
   import CountryFlag from "../../components/CountryFlag.svelte";
   import Twemoji from "../../components/Twemoji.svelte";
   import Button from "../../components/Button.svelte";
@@ -16,7 +17,7 @@
     streakLabel,
     tabClass,
   } from "./utils";
-  import { sessions, settingsProfile } from "../../api";
+  import { leaderboards, sessions, settingsProfile } from "../../api";
 
   let {
     period_type,
@@ -38,6 +39,12 @@
 
   const githubAuthPath = sessions.githubNew.path();
   const settingsPath = settingsProfile.mySettings.path();
+  const leaderboardPath = (query: Record<string, string | number>) =>
+    leaderboards.index.path({ query });
+  const resetEntries = (current: Record<string, unknown>) => ({
+    ...current,
+    entries: undefined,
+  });
 
   const dateRangeText = $derived(
     leaderboard?.date_range_text ??
@@ -66,12 +73,11 @@
       <!-- Scope tabs -->
       <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
         <Link
-          href={`/leaderboards?period_type=${period_type}&scope=global`}
+          href={leaderboardPath({ period_type, scope: "global" })}
           component="Leaderboards/Index"
           pageProps={(current) => ({
-            ...current,
+            ...resetEntries(current),
             scope: "global",
-            entries: undefined,
           })}
           class={`${tabClass(scope === "global")} inline-flex items-center justify-center gap-2`}
           preserveScroll
@@ -82,12 +88,11 @@
 
         {#if country.available}
           <Link
-            href={`/leaderboards?period_type=${period_type}&scope=country`}
+            href={leaderboardPath({ period_type, scope: "country" })}
             component="Leaderboards/Index"
             pageProps={(current) => ({
-              ...current,
+              ...resetEntries(current),
               scope: "country",
-              entries: undefined,
             })}
             class={`${tabClass(scope === "country")} inline-flex items-center justify-center gap-2`}
             preserveScroll
@@ -117,12 +122,11 @@
       <!-- Period tabs -->
       <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
         <Link
-          href={`/leaderboards?period_type=daily&scope=${scope}`}
+          href={leaderboardPath({ period_type: "daily", scope })}
           component="Leaderboards/Index"
           pageProps={(current) => ({
-            ...current,
+            ...resetEntries(current),
             period_type: "daily",
-            entries: undefined,
           })}
           class={tabClass(period_type === "daily")}
           preserveScroll
@@ -131,12 +135,11 @@
           <span class="hidden sm:inline">Last 24 Hours</span>
         </Link>
         <Link
-          href={`/leaderboards?period_type=last_7_days&scope=${scope}`}
+          href={leaderboardPath({ period_type: "last_7_days", scope })}
           component="Leaderboards/Index"
           pageProps={(current) => ({
-            ...current,
+            ...resetEntries(current),
             period_type: "last_7_days",
-            entries: undefined,
           })}
           class={tabClass(period_type === "last_7_days")}
           preserveScroll
@@ -197,11 +200,17 @@
 
         {#snippet children()}
           {#if entries && entries.total > 0}
-            <div class="divide-y divide-gray-800">
-              {#each entries.entries as entry, i}
+            <WindowVirtualizer
+              data={entries.entries}
+              getKey={(entry) => entry.user_id}
+              itemSize={64}
+              bufferSize={2_000}
+            >
+              {#snippet children(entry, i)}
                 {@const theme = streakTheme(entry.streak_count)}
                 <div
-                  class="flex items-center p-2 sm:p-3 hover:bg-dark transition-colors duration-200 gap-2 sm:gap-0 {entry.is_current_user
+                  role="listitem"
+                  class="flex items-center p-2 sm:p-3 hover:bg-dark transition-colors duration-200 gap-2 sm:gap-0 border-b border-gray-800 {entry.is_current_user
                     ? 'bg-dark border-l-4 border-l-primary'
                     : ''} {entry.user.red ? 'opacity-40 hover:opacity-60' : ''}"
                 >
@@ -300,8 +309,8 @@
                     {secondsToDetailedDisplay(entry.total_seconds)}
                   </div>
                 </div>
-              {/each}
-            </div>
+              {/snippet}
+            </WindowVirtualizer>
 
             {#if leaderboard?.finished_generating && leaderboard?.generation_duration_seconds != null}
               <div
