@@ -6,8 +6,8 @@
     open = $bindable(false),
     title,
     description = "",
-    maxWidth = "max-w-lg",
-    bodyClass = "mb-6 rounded-xl border border-surface-200/60 bg-darker/30 p-4",
+    maxWidth = "",
+    bodyClass = "",
     onContentClick,
     hasIcon = false,
     hasBody = false,
@@ -38,31 +38,29 @@
     />
 
     <Dialog.Content
-      class={`bits-modal-content fixed inset-0 z-10000 m-auto h-fit w-[calc(100vw-2rem)] ${maxWidth} overflow-hidden rounded-2xl border border-surface-300/70 bg-surface shadow-[0_28px_90px_rgba(0,0,0,0.5)] outline-none`}
+      class={`bits-modal-content fixed inset-0 z-10000 m-auto h-fit w-full ${maxWidth} overflow-hidden rounded-2xl border border-surface-300/70 bg-surface shadow-[0_28px_90px_rgba(0,0,0,0.5)] outline-none`}
       onclick={onContentClick}
     >
-      <div class="absolute inset-x-0 top-0 h-1 bg-primary"></div>
-
       <div class="p-6 sm:p-8">
         <div class="mb-5 flex items-start justify-between gap-4">
           <div class="min-w-0">
             {#if hasIcon}
               <div
-                class="mb-3 inline-flex items-center justify-center rounded-xl border border-surface-200/70 bg-surface-100/50 p-2.5 text-primary"
+                class="mb-3 inline-flex items-center justify-center rounded-xl text-primary"
               >
                 {@render icon?.()}
               </div>
             {/if}
 
             <Dialog.Title
-              class="text-balance text-2xl font-semibold tracking-tight text-surface-content"
+              class="text-balance text-lg font-semibold tracking-tight text-surface-content"
             >
               {title}
             </Dialog.Title>
 
             {#if description}
               <Dialog.Description
-                class="mt-2 text-sm leading-relaxed text-muted sm:text-[15px]"
+                class="mt-1 text-sm leading-relaxed text-muted sm:text-[15px]"
               >
                 {description}
               </Dialog.Description>
@@ -70,7 +68,7 @@
           </div>
 
           <Dialog.Close
-            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-surface-content/75 outline-none transition-colors hover:bg-surface-100/60 hover:text-surface-content focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            class="inline-flex h-10 w-10 shrink-0 items-start justify-center rounded-lg text-surface-content/75 outline-none transition-colors hover:bg-surface-100/60 hover:text-surface-content focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             aria-label="Close"
           >
             <svg

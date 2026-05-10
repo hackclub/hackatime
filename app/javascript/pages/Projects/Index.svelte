@@ -101,6 +101,7 @@
   let editingProjectKey = $state<string | null>(null);
   let repoUrlDraft = $state("");
   let statusChangeModalOpen = $state(false);
+  let brokenNameModalOpen = $state(false);
   let pendingStatusAction = $state<{
     path: string;
     title: string;
@@ -532,9 +533,14 @@
                         <p
                           class="text-sm leading-relaxed text-yellow/80 text-pretty"
                         >
-                          Your editor may be sending invalid project names. Time
-                          is shown here but can't be submitted to Hack Club
-                          programs.
+                          Time can't be used in Hack Club programs
+                          <button
+                            type="button"
+                            class="underline underline-offset-2 hover:text-yellow"
+                            onclick={() => (brokenNameModalOpen = true)}
+                          >
+                            (why?)
+                          </button>
                         </p>
                       </div>
                     {/if}
@@ -619,5 +625,34 @@
         </Button>
       </div>
     {/if}
+  {/snippet}
+</Modal>
+
+<Modal
+  bind:open={brokenNameModalOpen}
+  title="Why is my time showing up as “Unknown”?"
+  description="Your editor isn't sending a valid project name."
+  maxWidth="max-w-lg"
+  hasBody
+>
+  {#snippet body()}
+    <div class="space-y-3 text-sm leading-relaxed text-surface-content/80">
+      <p>
+        The WakaTime extension needs one of two things in order for time to
+        properly count:
+      </p>
+      <ul class="list-disc space-y-1 pl-5">
+        <li>You have a Git repo inside your project folder, or</li>
+        <li>
+          You have a <code
+            class="rounded bg-surface-content/10 px-1 py-0.5 text-xs"
+            >.wakatime-project</code
+          >
+          file in your folder's root, with the contents set to the name you want
+          for your project.
+        </li>
+      </ul>
+      <p>To get your time to properly track, do one of the above!</p>
+    </div>
   {/snippet}
 </Modal>
