@@ -323,7 +323,7 @@
 
           {#if !github_connected}
             <div
-              class="mt-8 rounded-xl border border-yellow/30 bg-yellow/10 p-4"
+              class="mt-4 rounded-xl border border-yellow/30 bg-yellow/10 p-4"
             >
               <p class="text-base font-medium text-surface-content">
                 Heads up! You can't link projects to GitHub until you connect
