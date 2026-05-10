@@ -5,12 +5,7 @@
   import type { OAuthApplicationsIndexProps } from "./types";
   import { doorkeeperApplications } from "../../api";
 
-  let {
-    page_title,
-    heading,
-    subheading,
-    applications,
-  }: OAuthApplicationsIndexProps = $props();
+  let { page_title, applications }: OAuthApplicationsIndexProps = $props();
 
   const newApplicationPath = doorkeeperApplications.new.path();
   const showPathFor = (id: number) => doorkeeperApplications.show.path({ id });
@@ -37,9 +32,11 @@
       <h1
         class="text-2xl sm:text-3xl font-bold text-surface-content mb-1 sm:mb-2"
       >
-        {heading}
+        Your applications
       </h1>
-      <p class="text-sm sm:text-base text-muted">{subheading}</p>
+      <p class="text-sm sm:text-base text-muted">
+        Manage your OAuth applications that integrate with Hackatime.
+      </p>
     </div>
 
     {#if applications.length > 0}
