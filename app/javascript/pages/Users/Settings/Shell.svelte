@@ -61,13 +61,13 @@
 </svelte:head>
 
 <div data-settings-shell class="mx-auto max-w-7xl">
-  <header class="mb-8">
+  <header class="mb-6 sm:mb-8">
     <h1
-      class="text-3xl font-bold tracking-tight text-balance text-surface-content"
+      class="text-2xl font-bold tracking-tight text-balance text-surface-content sm:text-3xl"
     >
       {heading}
     </h1>
-    <p class="mt-2 max-w-3xl text-pretty text-sm leading-6 text-muted">
+    <p class="mt-1 max-w-3xl text-pretty text-sm leading-6 text-muted sm:mt-2">
       {subheading}
     </p>
   </header>
