@@ -58,7 +58,9 @@
 
 <div>
   <div class="mb-6 sm:mb-8 space-y-4">
-    <h1 class="text-2xl sm:text-3xl font-bold text-surface-content">Leaderboards</h1>
+    <h1 class="text-2xl sm:text-3xl font-bold text-surface-content">
+      Leaderboards
+    </h1>
 
     <div class="flex flex-row items-center justify-between gap-3">
       <!-- Scope tabs -->

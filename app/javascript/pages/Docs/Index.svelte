@@ -20,7 +20,11 @@
 
 <div>
   <div class="mb-6 sm:mb-8">
-    <h1 class="text-2xl sm:text-3xl font-bold text-surface-content mb-1 sm:mb-2">Documentation</h1>
+    <h1
+      class="text-2xl sm:text-3xl font-bold text-surface-content mb-1 sm:mb-2"
+    >
+      Documentation
+    </h1>
     <p class="text-sm sm:text-base text-muted">
       Free, open-source time tracking for Hack Club. Like WakaTime, but free.
     </p>
