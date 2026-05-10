@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Deferred, Link } from "@inertiajs/svelte";
   import { WindowVirtualizer } from "virtua/svelte";
+  import { Icon, MagnifyingGlass } from "svelte-hero-icons";
   import CountryFlag from "../../components/CountryFlag.svelte";
   import Twemoji from "../../components/Twemoji.svelte";
   import Button from "../../components/Button.svelte";
@@ -37,6 +38,13 @@
     entries?: LeaderboardEntriesPayload;
   } = $props();
 
+  type LeaderboardVirtualizer = {
+    scrollToIndex: (
+      index: number,
+      opts?: { align?: "start" | "center" | "end" },
+    ) => void;
+  };
+
   const githubAuthPath = sessions.githubNew.path();
   const settingsPath = settingsProfile.mySettings.path();
   const leaderboardPath = (query: Record<string, string | number>) =>
@@ -44,6 +52,47 @@
   const resetEntries = (current: Record<string, unknown>) => ({
     ...current,
     entries: undefined,
+  });
+  let virtualizer: LeaderboardVirtualizer | undefined = $state();
+  let searchQuery = $state("");
+
+  const normalizeSearchText = (value: string) => value.trim().toLowerCase();
+
+  const entryMatches = (
+    entry: NonNullable<LeaderboardEntriesPayload["entries"]>[number],
+    normalizedQuery: string,
+  ) => {
+    const searchableText = [
+      entry.user.display_name,
+      entry.user.profile_path,
+      entry.user.country_code,
+      entry.active_project?.name,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(normalizedQuery);
+  };
+
+  const filteredEntries = $derived.by(() => {
+    if (!entries?.entries) return [];
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    if (!normalizedQuery) return entries.entries;
+    return entries.entries.filter((entry) =>
+      entryMatches(entry, normalizedQuery),
+    );
+  });
+
+  // Map filtered entry back to its original rank in the full leaderboard
+  const entryRank = $derived.by(() => {
+    const map = new Map<number, number>();
+    if (entries?.entries) {
+      entries.entries.forEach((entry, index) => {
+        map.set(entry.user_id, index);
+      });
+    }
+    return map;
   });
 
   const dateRangeText = $derived(
@@ -172,10 +221,36 @@
       </div>
     {/if}
 
-    <div class="text-muted text-sm flex flex-wrap items-center gap-x-2 gap-y-1">
-      {dateRangeText}
-      {#if leaderboard?.finished_generating && leaderboard?.updated_at}
-        <span class="italic">• Updated {timeAgo(leaderboard.updated_at)}.</span>
+    <div
+      class="text-muted text-sm flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {dateRangeText}
+        {#if leaderboard?.finished_generating && leaderboard?.updated_at}
+          <span class="italic"
+            >• Updated {timeAgo(leaderboard.updated_at)}.</span
+          >
+        {/if}
+      </div>
+
+      {#if entries && entries.total > 0}
+        <div class="relative w-full sm:w-64 sm:shrink-0">
+          <label for="leaderboard-search" class="sr-only"
+            >Find a leaderboard user</label
+          >
+          <Icon
+            src={MagnifyingGlass}
+            size="16"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+          />
+          <input
+            id="leaderboard-search"
+            type="search"
+            bind:value={searchQuery}
+            placeholder="Find user"
+            class="h-9 w-full rounded-full border border-primary/30 bg-darkless pl-9 pr-3 text-sm text-surface-content placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+          />
+        </div>
       {/if}
     </div>
   </div>
@@ -200,30 +275,46 @@
 
         {#snippet children()}
           {#if entries && entries.total > 0}
-            <WindowVirtualizer
-              data={entries.entries}
-              getKey={(entry) => entry.user_id}
-              itemSize={64}
-              bufferSize={2_000}
-            >
-              {#snippet children(entry, i)}
-                {@const theme = streakTheme(entry.streak_count)}
-                <div
-                  role="listitem"
-                  class="flex items-center p-2 sm:p-3 hover:bg-dark transition-colors duration-200 gap-2 sm:gap-0 border-b border-gray-800 {entry.is_current_user
-                    ? 'bg-dark border-l-4 border-l-primary'
-                    : ''} {entry.user.red ? 'opacity-40 hover:opacity-60' : ''}"
-                >
-                  <!-- Rank -->
+            {#if filteredEntries.length === 0}
+              <div class="py-16 text-center px-3">
+                <h3 class="text-xl font-medium text-surface-content mb-2">
+                  No matches
+                </h3>
+                <p class="text-muted">
+                  No users matching "{searchQuery}".
+                </p>
+              </div>
+            {:else}
+              <WindowVirtualizer
+                bind:this={virtualizer}
+                data={filteredEntries}
+                getKey={(entry) => entry.user_id}
+                itemSize={64}
+                bufferSize={2_000}
+              >
+                {#snippet children(entry)}
+                  {@const theme = streakTheme(entry.streak_count)}
+                  {@const i = entryRank.get(entry.user_id) ?? 0}
                   <div
-                    class="w-8 sm:w-12 shrink-0 text-center font-medium text-muted"
+                    role="listitem"
+                    class="flex items-center p-2 sm:p-3 hover:bg-dark transition-colors duration-200 gap-2 sm:gap-0 border-b border-gray-800 {entry.is_current_user
+                      ? 'bg-dark border-l-4 border-l-primary'
+                      : ''} {entry.user.red
+                      ? 'opacity-40 hover:opacity-60'
+                      : ''}"
                   >
-                    {#if i <= 2}
-                      <span class="text-xl sm:text-2xl">{rankDisplay(i)}</span>
-                    {:else}
-                      <span class="text-base sm:text-lg">{i + 1}</span>
-                    {/if}
-                  </div>
+                    <!-- Rank -->
+                    <div
+                      class="w-8 sm:w-12 shrink-0 text-center font-medium text-muted"
+                    >
+                      {#if i <= 2}
+                        <span class="text-xl sm:text-2xl"
+                          >{rankDisplay(i)}</span
+                        >
+                      {:else}
+                        <span class="text-base sm:text-lg">{i + 1}</span>
+                      {/if}
+                    </div>
 
                   <!-- User info -->
                   <div class="flex-1 mx-1 sm:mx-4 min-w-0">
@@ -310,14 +401,15 @@
                   </div>
                 </div>
               {/snippet}
-            </WindowVirtualizer>
+              </WindowVirtualizer>
 
-            {#if leaderboard?.finished_generating && leaderboard?.generation_duration_seconds != null}
-              <div
-                class="px-4 py-2 text-xs italic text-muted border-t border-primary"
-              >
-                Generated in {leaderboard.generation_duration_seconds} seconds
-              </div>
+              {#if leaderboard?.finished_generating && leaderboard?.generation_duration_seconds != null}
+                <div
+                  class="px-4 py-2 text-xs italic text-muted border-t border-primary"
+                >
+                  Generated in {leaderboard.generation_duration_seconds} seconds
+                </div>
+              {/if}
             {/if}
           {:else}
             <div class="py-16 text-center px-3">
