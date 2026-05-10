@@ -38,7 +38,7 @@
     />
 
     <Dialog.Content
-      class={`bits-modal-content fixed inset-0 z-10000 m-auto h-fit w-full ${maxWidth} overflow-hidden rounded-2xl border border-surface-300/70 bg-surface shadow-[0_28px_90px_rgba(0,0,0,0.5)] outline-none data-[state=open]:animate-shadcn-content-in data-[state=closed]:animate-shadcn-content-out`}
+      class={`bits-modal-content fixed inset-0 z-10000 m-auto h-fit w-[calc(100%-2rem)] ${maxWidth} overflow-hidden rounded-2xl border border-surface-300/70 bg-surface shadow-[0_28px_90px_rgba(0,0,0,0.5)] outline-none data-[state=open]:animate-shadcn-content-in data-[state=closed]:animate-shadcn-content-out`}
       onclick={onContentClick}
     >
       <div class="h-1 w-full bg-primary"></div>
@@ -54,7 +54,7 @@
             {/if}
 
             <Dialog.Title
-              class="text-balance text-lg font-semibold tracking-tight text-surface-content"
+              class="text-balance text-md md:text-lg font-semibold tracking-tight text-surface-content"
             >
               {title}
             </Dialog.Title>

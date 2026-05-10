@@ -250,7 +250,9 @@
 <div>
   <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-4">
-      <h1 class="text-2xl sm:text-3xl font-bold text-surface-content">My Projects</h1>
+      <h1 class="text-2xl sm:text-3xl font-bold text-surface-content">
+        My Projects
+      </h1>
       {#if archived_count > 0}
         <div class="project-toggle-group">
           <Link
@@ -269,23 +271,6 @@
       {/if}
     </div>
   </div>
-
-  {#if !github_connected}
-    <div class="mb-4 rounded-xl border border-yellow/30 bg-yellow/10 p-4">
-      <p class="text-base font-medium text-surface-content">
-        Heads up! You can't link projects to GitHub until you connect your
-        account.
-      </p>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <Button href={githubAuthPath} native class="w-full sm:w-fit">
-          Sign in with GitHub
-        </Button>
-        <Button href={settingsPath} variant="surface" class="w-full sm:w-fit">
-          Open settings
-        </Button>
-      </div>
-    </div>
-  {/if}
 
   <div class="sm:max-w-3xs">
     <IntervalSelect
@@ -335,6 +320,29 @@
               You haven't logged any time for this interval yet.
             {/if}
           </p>
+
+          {#if !github_connected}
+            <div
+              class="mt-8 rounded-xl border border-yellow/30 bg-yellow/10 p-4"
+            >
+              <p class="text-base font-medium text-surface-content">
+                Heads up! You can't link projects to GitHub until you connect
+                your account.
+              </p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <Button href={githubAuthPath} native class="w-full sm:w-fit">
+                  Sign in with GitHub
+                </Button>
+                <Button
+                  href={settingsPath}
+                  variant="surface"
+                  class="w-full sm:w-fit"
+                >
+                  Open settings
+                </Button>
+              </div>
+            </div>
+          {/if}
 
           {#if projects_data.projects.length == 0}
             <div
@@ -527,22 +535,22 @@
                     </div>
 
                     {#if project.broken_name}
-                      <div
-                        class="mt-4 rounded-2xl border border-yellow/30 bg-yellow/10 p-3"
+                      <button
+                        type="button"
+                        class="mt-4 block w-full cursor-pointer rounded-2xl border border-yellow/30 bg-yellow/10 p-3 text-left hover:bg-yellow/15"
+                        onclick={() => (brokenNameModalOpen = true)}
                       >
                         <p
                           class="text-sm leading-relaxed text-yellow/80 text-pretty"
                         >
                           Time can't be used in Hack Club programs
-                          <button
-                            type="button"
+                          <span
                             class="underline underline-offset-2 hover:text-yellow"
-                            onclick={() => (brokenNameModalOpen = true)}
                           >
                             (why?)
-                          </button>
+                          </span>
                         </p>
-                      </div>
+                      </button>
                     {/if}
 
                     {#if project.manage_enabled && editingProjectKey === project.project_key && updatePathFor(project)}
@@ -630,7 +638,7 @@
 
 <Modal
   bind:open={brokenNameModalOpen}
-  title="Why is my time showing up as “Unknown”?"
+  title="Why is my project invalid?"
   description="Your editor isn't sending a valid project name."
   maxWidth="max-w-lg"
   hasBody
@@ -648,8 +656,8 @@
             class="rounded bg-surface-content/10 px-1 py-0.5 text-xs"
             >.wakatime-project</code
           >
-          file in your folder's root, with the contents set to the name you want
-          for your project.
+          file in your folder's root, with the contents set to the name you want for
+          your project.
         </li>
       </ul>
       <p>To get your time to properly track, do one of the above!</p>
