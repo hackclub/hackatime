@@ -31,25 +31,33 @@
   <title>{page_title}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-6xl space-y-6">
+<div class="space-y-6">
   <header class="flex flex-wrap items-start justify-between gap-3">
     <div class="min-w-0">
-      <h1 class="text-2xl font-bold text-surface-content sm:text-3xl">
+      <h1
+        class="text-2xl sm:text-3xl font-bold text-surface-content mb-1 sm:mb-2"
+      >
         {heading}
       </h1>
-      <p class="mt-1 text-sm text-muted">{subheading}</p>
+      <p class="text-sm sm:text-base text-muted">{subheading}</p>
     </div>
 
     {#if applications.length > 0}
-      <Button href={newApplicationPath} variant="primary">New application</Button>
+      <Button href={newApplicationPath} variant="primary"
+        >New application</Button
+      >
     {/if}
   </header>
 
   {#if applications.length > 0}
     <div class="space-y-3">
       {#each applications as application (application.id)}
-        <article class="rounded-xl border border-surface-200 bg-dark p-4 sm:p-5">
-          <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <article
+          class="rounded-xl border border-surface-200 bg-dark p-4 sm:p-5"
+        >
+          <div
+            class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between"
+          >
             <div class="min-w-0 flex-1 space-y-3">
               <div class="flex flex-wrap items-center gap-2">
                 <h2 class="truncate text-lg font-semibold text-surface-content">

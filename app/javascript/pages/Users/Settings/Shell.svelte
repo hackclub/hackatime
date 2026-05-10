@@ -60,7 +60,7 @@
   <title>{page_title}</title>
 </svelte:head>
 
-<div data-settings-shell class="mx-auto max-w-7xl">
+<div data-settings-shell>
   <header class="mb-6 sm:mb-8">
     <h1
       class="text-2xl font-bold tracking-tight text-balance text-surface-content sm:text-3xl"
