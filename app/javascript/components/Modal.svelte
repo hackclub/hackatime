@@ -34,11 +34,11 @@
 <Dialog.Root bind:open>
   <Dialog.Portal>
     <Dialog.Overlay
-      class="bits-modal-overlay fixed inset-0 z-9999 bg-darker/80 backdrop-blur-md data-[state=open]:animate-shadcn-overlay-in data-[state=closed]:animate-shadcn-overlay-out"
+      class="bits-modal-overlay fixed inset-0 z-9999 bg-darker/80 backdrop-blur-md"
     />
 
     <Dialog.Content
-      class={`bits-modal-content fixed inset-0 z-10000 m-auto h-fit w-[calc(100%-2rem)] ${maxWidth} overflow-hidden rounded-2xl border border-surface-300/70 bg-surface shadow-[0_28px_90px_rgba(0,0,0,0.5)] outline-none data-[state=open]:animate-shadcn-content-in data-[state=closed]:animate-shadcn-content-out`}
+      class={`bits-modal-content fixed inset-0 z-10000 m-auto h-fit w-[calc(100%-2rem)] ${maxWidth} overflow-hidden rounded-2xl border border-surface-300/70 bg-surface shadow-[0_28px_90px_rgba(0,0,0,0.5)] outline-none`}
       onclick={onContentClick}
     >
       <div class="h-1 w-full bg-primary"></div>
@@ -54,7 +54,7 @@
             {/if}
 
             <Dialog.Title
-              class="text-balance text-md md:text-lg font-semibold tracking-tight text-surface-content"
+              class="text-balance text-base md:text-lg font-semibold tracking-tight text-surface-content"
             >
               {title}
             </Dialog.Title>
