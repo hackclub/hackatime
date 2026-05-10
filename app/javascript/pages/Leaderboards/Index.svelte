@@ -367,7 +367,7 @@
 
                         {#if entry.streak_count > 0}
                           <div
-                            class="inline-flex items-center gap-1 px-2 py-1 bg-linear-to-r {theme.bg} border {theme.bc} rounded-lg transition-all duration-200 {theme.hbg} group shrink-0"
+                            class="inline-flex items-center gap-1 transition-all duration-200 {theme.hbg} group shrink-0"
                             title={entry.streak_count > 30
                               ? "30+ daily streak"
                               : `${entry.streak_count} day streak`}
@@ -377,7 +377,7 @@
                               width="16"
                               height="16"
                               viewBox="0 0 24 24"
-                              class="{theme.ic} transition-colors duration-200 group-hover:animate-pulse"
+                              class={theme.ic}
                             >
                               <path
                                 fill="currentColor"
