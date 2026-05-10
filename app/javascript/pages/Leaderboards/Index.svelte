@@ -56,9 +56,11 @@
   <title>Leaderboards | Hackatime</title>
 </svelte:head>
 
-<div class="max-w-6xl mx-auto px-3 py-4 sm:p-6">
-  <div class="mb-8 space-y-4">
-    <h1 class="text-3xl font-bold text-surface-content">Leaderboards</h1>
+<div>
+  <div class="mb-6 sm:mb-8 space-y-4">
+    <h1 class="text-2xl sm:text-3xl font-bold text-surface-content">
+      Leaderboards
+    </h1>
 
     <div class="flex flex-row items-center justify-between gap-3">
       <!-- Scope tabs -->

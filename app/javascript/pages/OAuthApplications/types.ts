@@ -9,8 +9,6 @@ export type OAuthApplicationSummary = {
 
 export type OAuthApplicationsIndexProps = {
   page_title: string;
-  heading: string;
-  subheading: string;
   applications: OAuthApplicationSummary[];
 };
 

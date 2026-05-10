@@ -16,50 +16,6 @@ if [ -n "$RUNNING_INSIDE_CONTAINER" ] || [ -f /.dockerenv ]; then
   exec bash -c '"$1" start --color -f Procfile.dev "${@:2}" 2>&1 | grep --line-buffered -vE "^[0-9:]+ [a-z]+\.1[[:space:]]+\| started with pid "' bash "$foreman_path" "$@"
 fi
 
-# --- Host-side path: set up portless, then delegate to the container ---
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$PROJECT_ROOT"
-
-PORTLESS="./node_modules/.bin/portless"
-MARKER="tmp/.portless-local-installed"
-
-if [ ! -x "$PORTLESS" ]; then
-  echo "==> portless not found in node_modules; running 'bun install'..."
-  bun install
-fi
-
-mkdir -p tmp
-
-portless_https_running() {
-  response="$(curl -k -sI --max-time 2 https://127.0.0.1/ -H "Host: hackatime.local" || true)"
-  printf "%s" "$response" | grep -qi '^x-portless:' && ! printf "%s" "$response" | grep -q '^HTTP/2 404'
-}
-
-if [ ! -f "$MARKER" ] || ! portless_https_running; then
-  cat <<'EOM'
-
-==> portless setup
-    This procedure will:
-      - add a local CA cert to your system trust store (sudo)
-      - start the portless HTTPS proxy on port 443 (sudo)
-      - register hackatime.local -> port 3000
-    After this, bin/dev will not prompt again while the proxy keeps running.
-
-EOM
-  sudo -v
-  sudo "$PORTLESS" trust
-  sudo "$PORTLESS" proxy stop >/dev/null 2>&1 || true
-  sudo "$PORTLESS" proxy start -p 443 --https --lan
-  "$PORTLESS" alias hackatime 3000 --force
-  sudo "$PORTLESS" hosts sync
-  touch "$MARKER"
-  echo "==> portless setup complete. https://hackatime.local is live."
-else
-  # Subsequent runs: no sudo. The proxy daemon survives until reboot/stop.
-  # Make sure the alias is registered (idempotent, no-op if already there).
-  "$PORTLESS" alias hackatime 3000 --force >/dev/null
-fi
-
 # Bring the dev container up if it isn't already running.
 if ! docker compose ps --status running --services 2>/dev/null | grep -qx web; then
   echo "==> Starting docker compose services..."
