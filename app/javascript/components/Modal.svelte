@@ -34,13 +34,14 @@
 <Dialog.Root bind:open>
   <Dialog.Portal>
     <Dialog.Overlay
-      class="bits-modal-overlay fixed inset-0 z-9999 bg-darker/80 backdrop-blur-md"
+      class="bits-modal-overlay fixed inset-0 z-9999 bg-darker/80 backdrop-blur-md data-[state=open]:animate-shadcn-overlay-in data-[state=closed]:animate-shadcn-overlay-out"
     />
 
     <Dialog.Content
-      class={`bits-modal-content fixed inset-0 z-10000 m-auto h-fit w-full ${maxWidth} overflow-hidden rounded-2xl border border-surface-300/70 bg-surface shadow-[0_28px_90px_rgba(0,0,0,0.5)] outline-none`}
+      class={`bits-modal-content fixed inset-0 z-10000 m-auto h-fit w-full ${maxWidth} overflow-hidden rounded-2xl border border-surface-300/70 bg-surface shadow-[0_28px_90px_rgba(0,0,0,0.5)] outline-none data-[state=open]:animate-shadcn-content-in data-[state=closed]:animate-shadcn-content-out`}
       onclick={onContentClick}
     >
+      <div class="h-1 w-full bg-primary"></div>
       <div class="p-6 sm:p-8">
         <div class="mb-5 flex items-start justify-between gap-4">
           <div class="min-w-0">
@@ -68,7 +69,7 @@
           </div>
 
           <Dialog.Close
-            class="inline-flex h-10 w-10 shrink-0 items-start justify-center rounded-lg text-surface-content/75 outline-none transition-colors hover:bg-surface-100/60 hover:text-surface-content focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-surface-content/75 outline-none transition-colors hover:bg-surface-100/60 hover:text-surface-content focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             aria-label="Close"
           >
             <svg
@@ -101,3 +102,56 @@
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
+
+<style>
+  /* shadcn-ui dialog animations: 200ms duration, ease-out, fade + zoom 95% */
+  :global(.bits-modal-overlay[data-state="open"]) {
+    animation: shadcn-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  :global(.bits-modal-overlay[data-state="closed"]) {
+    animation: shadcn-fade-out 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  :global(.bits-modal-content[data-state="open"]) {
+    animation:
+      shadcn-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      shadcn-zoom-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  :global(.bits-modal-content[data-state="closed"]) {
+    animation:
+      shadcn-fade-out 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      shadcn-zoom-out 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes shadcn-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes shadcn-fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes shadcn-zoom-in {
+    from {
+      transform: scale(0.95);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+  @keyframes shadcn-zoom-out {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(0.95);
+    }
+  }
+</style>
