@@ -63,5 +63,7 @@ EXPOSE 3036
 RUN bundle exec skylight disable_dev_warning
 RUN bundle config set default_cli_command install --global
 
+RUN bin/vite build --ssr
+
 # Start the main process
 CMD ["rails", "server", "-b", "0.0.0.0"]
