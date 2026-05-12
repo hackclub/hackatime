@@ -1641,6 +1641,96 @@ paths:
                           description: Primary email or "no email"
         '401':
           description: unauthorized
+  "/api/admin/v1/heartbeats/ip_machine_pairs":
+    get:
+      summary: List users sharing the same machine + IP combination
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        description: Number of days to look back (default: 30, max: 365)
+        required: false
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        description: 'Max results (default: 1000, max: 10000)'
+        required: false
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: returns pairs of users sharing machine+IP
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_a_id:
+                          type: integer
+                        user_b_id:
+                          type: integer
+                        machine:
+                          type: string
+                        ip_address:
+                          type: string
+                        user_a_first_seen:
+                          type: integer
+                        user_a_last_seen:
+                          type: integer
+                        user_b_first_seen:
+                          type: integer
+                        user_b_last_seen:
+                          type: integer
+  "/api/admin/v1/heartbeats/shared_machines":
+    get:
+      summary: List machines used by multiple users
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        description: Number of days to look back (default: 30, max: 365)
+        required: false
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        description: 'Max results (default: 1000, max: 10000)'
+        required: false
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: returns machines shared by multiple users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  machines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        machine:
+                          type: string
+                        machine_frequency:
+                          type: integer
+                        user_ids:
+                          type: array
+                          items:
+                            type: integer
   "/api/admin/v1/permissions":
     get:
       summary: List Permissions
