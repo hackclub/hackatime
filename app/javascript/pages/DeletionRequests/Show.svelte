@@ -32,9 +32,7 @@
     >
       Account scheduled for deletion
     </h1>
-    <p class="mt-1 text-muted text-pretty">
-      Your account is scheduled to self-destruct soon.
-    </p>
+    <p class="mt-1 text-muted text-pretty">We're sorry to see you go!</p>
   </header>
 
   <div class="rounded-2xl border border-surface-200 bg-dark p-6">
@@ -47,13 +45,6 @@
           >
             {deletion_request.status_label}
           </span>
-        </dd>
-      </div>
-
-      <div class="flex items-center justify-between gap-4 py-4">
-        <dt class="text-sm text-muted">Requested</dt>
-        <dd class="text-right text-sm tabular-nums text-surface-content">
-          {deletion_request.requested_at}
         </dd>
       </div>
 
@@ -71,12 +62,16 @@
     </dl>
 
     {#if isPending}
-      <p class="mt-4 border-l-2 border-yellow/70 pl-3 text-sm leading-relaxed text-yellow/90 text-pretty">
+      <p
+        class="border-l-2 border-yellow/70 pl-3 text-sm leading-relaxed text-yellow/90 text-pretty"
+      >
         Your deletion request is pending approval. We'll review it and get back
         to you as soon as possible.
       </p>
     {:else if isApproved && deletion_request.scheduled_deletion_at}
-      <p class="mt-4 border-l-2 border-red/70 pl-3 text-sm leading-relaxed text-red/90 text-pretty">
+      <p
+        class="border-l-2 border-red/70 pl-3 text-sm leading-relaxed text-red/90 text-pretty"
+      >
         Your account will be permanently deleted on {deletion_request.scheduled_deletion_at}.
         After deletion, your email address will be retained on file, but all
         other personal information will be removed or anonymized.
