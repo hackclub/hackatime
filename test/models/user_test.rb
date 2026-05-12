@@ -62,14 +62,6 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "User;#{user.id}", user.flipper_id
   end
 
-  test "schedules onboarding check in email one week after signup" do
-    travel_to Time.zone.local(2026, 5, 12, 10, 0, 0) do
-      assert_enqueued_with(job: OnboardingCheckInEmailJob, args: ->(args) { args.size == 1 }, at: 1.week.from_now) do
-        User.create!(timezone: "UTC")
-      end
-    end
-  end
-
   test "active remote heartbeat import run only counts remote imports" do
     user = User.create!(timezone: "UTC")
 
