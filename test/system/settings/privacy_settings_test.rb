@@ -56,7 +56,7 @@ class PrivacySettingsTest < ApplicationSystemTestCase
     visit my_settings_privacy_path
 
     assert_current_path deletion_path, ignore_query: true
-    assert_text "Account Scheduled for Deletion"
+    assert_text "Account scheduled for deletion"
     assert_text "I changed my mind"
   end
 
