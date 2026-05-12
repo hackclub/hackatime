@@ -27,7 +27,7 @@ module Api
               WHERE user_id IS NOT NULL
                 AND machine IS NOT NULL
                 AND ip_address IS NOT NULL
-                AND time >= ?
+                AND time > ?
               GROUP BY user_id, machine, ip_address
             ) r1
             JOIN (
@@ -37,7 +37,7 @@ module Api
               WHERE user_id IS NOT NULL
                 AND machine IS NOT NULL
                 AND ip_address IS NOT NULL
-                AND time >= ?
+                AND time > ?
               GROUP BY user_id, machine, ip_address
             ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
             WHERE r1.user_id < r2.user_id
