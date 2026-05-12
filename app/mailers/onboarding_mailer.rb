@@ -6,7 +6,7 @@ class OnboardingMailer < ApplicationMailer
 
     mail(
       to: recipient_email,
-      from: "Mahad from Hackatime <mahad@hackclub.com>",
+      from: ENV.fetch("ONBOARDING_CHECK_IN_FROM_EMAIL", "Mahad from Hackatime <mahad@hackclub.com>"),
       subject: "How are you finding Hackatime?"
     )
   end
