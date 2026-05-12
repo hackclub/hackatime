@@ -32,7 +32,7 @@ class DeletionRequestsController < InertiaController
   private
 
   def inertia_layout_props
-    super.merge(hide_sidebar: true)
+    super.merge(hide_sidebar: true, hide_footer: true)
   end
 
   def require_login

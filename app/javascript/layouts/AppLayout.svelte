@@ -411,6 +411,7 @@
   <div class="mx-auto w-full min-w-0 max-w-7xl p-4 pt-16 md:p-8 lg:pt-8">
     {@render children?.()}
 
+    {#if !layout.hide_footer}
     <footer
       class="relative w-full mt-12 mb-5 p-2.5 text-center text-xs text-text-muted"
     >
@@ -444,6 +445,7 @@
         {/each}
       </div>
     </footer>
+    {/if}
   </div>
 </main>
 
