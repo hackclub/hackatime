@@ -79,6 +79,8 @@ export type LayoutProps = {
     interval: number;
   };
   csrf_token: string;
+  hide_sidebar: boolean;
+  hide_footer: boolean;
   show_stop_impersonating: boolean;
 };
 

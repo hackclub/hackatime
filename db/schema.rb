@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_12_142509) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -102,6 +102,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
     t.datetime "cancelled_at"
     t.datetime "completed_at"
     t.datetime "created_at", null: false
+    t.text "reason"
+    t.text "reason_details"
     t.datetime "requested_at", null: false
     t.datetime "scheduled_deletion_at"
     t.integer "status", default: 0, null: false
