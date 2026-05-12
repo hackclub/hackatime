@@ -39,6 +39,7 @@
   const flashExitDuration = 250;
   const currentlyHackingPollInterval = () =>
     layout.currently_hacking?.interval || 30000;
+  const showSidebar = $derived(layout.nav.user_present && !layout.hide_sidebar);
 
   const toggleNav = () => (navOpen = !navOpen);
   const closeNav = () => (navOpen = false);
@@ -326,7 +327,7 @@
   </div>
 {/if}
 
-{#if layout.nav.user_present}
+{#if showSidebar}
   <Button
     type="button"
     unstyled
@@ -405,7 +406,7 @@
 {/if}
 
 <main
-  class={`min-h-screen min-w-0 flex-1 transition-[margin] duration-300 ease-in-out ${layout.nav.user_present ? "lg:ml-62.5" : ""}`}
+  class={`min-h-screen min-w-0 flex-1 transition-[margin] duration-300 ease-in-out ${showSidebar ? "lg:ml-62.5" : ""}`}
 >
   <div class="mx-auto w-full min-w-0 max-w-7xl p-4 pt-16 md:p-8 lg:pt-8">
     {@render children?.()}

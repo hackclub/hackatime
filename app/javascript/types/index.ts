@@ -79,6 +79,7 @@ export type LayoutProps = {
     interval: number;
   };
   csrf_token: string;
+  hide_sidebar: boolean;
   show_stop_impersonating: boolean;
 };
 
