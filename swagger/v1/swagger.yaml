@@ -1651,19 +1651,19 @@ paths:
       parameters:
       - name: lookback_days
         in: query
-        description: Number of days to look back (default: 30, max: 365)
         required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
         schema:
           type: integer
       - name: limit
         in: query
-        description: 'Max results (default: 1000, max: 10000)'
         required: false
+        description: 'Max results (default: 1000, max: 10000)'
         schema:
           type: integer
       responses:
         '200':
-          description: returns pairs of users sharing machine+IP
+          description: returns empty pairs when no shared machine+IP exists
           content:
             application/json:
               schema:
@@ -1700,19 +1700,19 @@ paths:
       parameters:
       - name: lookback_days
         in: query
-        description: Number of days to look back (default: 30, max: 365)
         required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
         schema:
           type: integer
       - name: limit
         in: query
-        description: 'Max results (default: 1000, max: 10000)'
         required: false
+        description: 'Max results (default: 1000, max: 10000)'
         schema:
           type: integer
       responses:
         '200':
-          description: returns machines shared by multiple users
+          description: excludes machines used by only one user
           content:
             application/json:
               schema:
