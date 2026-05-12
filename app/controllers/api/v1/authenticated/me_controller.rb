@@ -2,6 +2,8 @@ module Api
   module V1
     module Authenticated
       class MeController < ApplicationController
+        skip_before_action :ensure_no_ban, only: :index
+
         def index
           render json: {
             id: current_user.id,
