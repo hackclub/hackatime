@@ -332,10 +332,12 @@ Rails.application.routes.draw do
         get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
         get "users/:id/visualization/quantized", to: "admin#visualization_quantized"
         get "alts/candidates", to: "admin#alt_candidates"
-        get "alts/shared_machines", to: "admin#shared_machines"
+        get "alts/shared_machines", to: "heartbeats#shared_machines"
         get "users/active", to: "admin#active_users"
         post "audit_logs/counts", to: "admin#audit_logs_counts"
         get "heartbeats/by_user_agent_segment", to: "admin#heartbeats_by_user_agent_segment"
+        get "heartbeats/ip_machine_pairs", to: "heartbeats#ip_machine_pairs"
+        get "heartbeats/shared_machines", to: "heartbeats#shared_machines"
       end
     end
 
