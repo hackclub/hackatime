@@ -8,7 +8,7 @@ class DeletionRequestsController < ApplicationController
   end
 
   def create
-    @deletion_request = DeletionRequest.create_for_user!(current_user)
+    @deletion_request = DeletionRequest.create_for_user!(current_user, **deletion_request_params)
     redirect_to deletion_path
   rescue ActiveRecord::RecordInvalid => e
     report_error(e, message: "Deletion request creation failed")
@@ -35,5 +35,9 @@ class DeletionRequestsController < ApplicationController
     unless current_user.can_request_deletion?
       redirect_to my_settings_path, alert: "You can't request deletion right now."
     end
+  end
+
+  def deletion_request_params
+    params.fetch(:deletion_request, {}).permit(:reason, :reason_details).to_h.symbolize_keys
   end
 end

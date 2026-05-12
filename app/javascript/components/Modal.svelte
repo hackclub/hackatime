@@ -9,10 +9,8 @@
     maxWidth = "",
     bodyClass = "",
     onContentClick,
-    hasIcon = false,
     hasBody = false,
     hasActions = false,
-    icon,
     body,
     actions,
   }: {
@@ -22,10 +20,8 @@
     maxWidth?: string;
     bodyClass?: string;
     onContentClick?: (event: MouseEvent) => void;
-    hasIcon?: boolean;
     hasBody?: boolean;
     hasActions?: boolean;
-    icon?: Snippet;
     body?: Snippet;
     actions?: Snippet;
   } = $props();
@@ -42,17 +38,9 @@
       onclick={onContentClick}
     >
       <div class="h-1 w-full bg-primary"></div>
-      <div class="p-6 sm:p-8">
+      <div class="p-4 sm:p-6">
         <div class="mb-5 flex items-start justify-between gap-4">
           <div class="min-w-0">
-            {#if hasIcon}
-              <div
-                class="mb-3 inline-flex items-center justify-center rounded-xl text-primary"
-              >
-                {@render icon?.()}
-              </div>
-            {/if}
-
             <Dialog.Title
               class="text-balance text-base md:text-lg font-semibold tracking-tight text-surface-content"
             >
@@ -61,7 +49,7 @@
 
             {#if description}
               <Dialog.Description
-                class="mt-1 text-sm leading-relaxed text-muted sm:text-[15px]"
+                class="mt-1 text-sm leading-snug text-muted sm:text-[15px]"
               >
                 {description}
               </Dialog.Description>
