@@ -62,8 +62,8 @@ class ProfileStatsService
           language,
           editor,
           CASE
-            WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout_quoted})
+            WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
+            ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout_quoted})
           END AS diff
         FROM heartbeats
         WHERE user_id = #{user_id}
