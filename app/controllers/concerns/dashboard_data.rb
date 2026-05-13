@@ -494,9 +494,9 @@ module DashboardData
         SELECT project AS grouped_time,
                #{week_group_sql} AS week_group,
                CASE
-                  WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
-                  ELSE LEAST(
-                    time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
+                 WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
+                 ELSE LEAST(
+                   time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
                    #{Heartbeat.heartbeat_timeout_duration.to_i}
                  )
                END AS diff

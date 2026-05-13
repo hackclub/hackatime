@@ -123,10 +123,10 @@ class DashboardRollupRefreshService < ApplicationService
     week_ranges = dashboard_week_ranges
     result = week_ranges.to_h { |week_key, *_| [ week_key, {} ] }
 
-      relation_sql = @scope.with_valid_timestamps
-        .where.not(time: nil)
-        .where(time: week_ranges.last[1]..week_ranges.first[2])
-        .select(:id, :time, :project)
+    relation_sql = @scope.with_valid_timestamps
+      .where.not(time: nil)
+      .where(time: week_ranges.last[1]..week_ranges.first[2])
+      .select(:id, :time, :project)
       .to_sql
 
     quoted_timezone = Heartbeat.connection.quote(@user.timezone)
@@ -140,9 +140,9 @@ class DashboardRollupRefreshService < ApplicationService
         SELECT project AS grouped_time,
                #{week_group_sql} AS week_group,
                CASE
-                  WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
-                  ELSE LEAST(
-                    time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
+                 WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
+                 ELSE LEAST(
+                   time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
                    #{Heartbeat.heartbeat_timeout_duration.to_i}
                  )
                END AS diff
