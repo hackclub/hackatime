@@ -105,7 +105,7 @@ module Api
             WITH heartbeats_with_gaps AS (
               SELECT
                 date_trunc('day', to_timestamp("time"))::date as day,
-                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time") as gap
+                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time", id) as gap
               FROM heartbeats
               WHERE user_id = ? AND time >= ? AND time <= ?
             )

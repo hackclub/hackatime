@@ -44,13 +44,13 @@ module Heartbeatable
     def to_span(timeout_duration: nil)
       timeout_duration ||= heartbeat_timeout_duration.to_i
 
-      heartbeats = with_valid_timestamps.order(time: :asc)
+      heartbeats = with_valid_timestamps.order(time: :asc, id: :asc)
       return [] if heartbeats.empty?
 
       sql = <<~SQL
         SELECT
           time,
-          LEAD(time) OVER (ORDER BY time) as next_time
+          LEAD(time) OVER (ORDER BY time, id) as next_time
         FROM (#{heartbeats.to_sql}) AS heartbeats
       SQL
 
@@ -136,7 +136,7 @@ module Heartbeatable
       day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone)"
       streak_diff_sql = <<~SQL.squish
         LEAST(
-          time - LAG(time) OVER (PARTITION BY user_id, #{day_group_sql} ORDER BY time),
+          time - LAG(time) OVER (PARTITION BY user_id, #{day_group_sql} ORDER BY time, #{quoted_table_name}.id),
           #{timeout}
         ) as diff
       SQL
@@ -249,8 +249,8 @@ module Heartbeatable
 
         capped_diffs = scope
           .select("#{group_expr} as grouped_time, CASE
-            WHEN LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time), #{timeout})
+            WHEN LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0
+            ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id), #{timeout})
           END as diff")
           .where.not(time: nil)
           .unscope(:group)
@@ -266,8 +266,8 @@ module Heartbeatable
         # when not grouped, return a single value
         capped_diffs = scope
           .select("CASE
-            WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout})
+            WHEN LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0
+            ELSE LEAST(time - LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id), #{timeout})
           END as diff")
           .where.not(time: nil)
 
@@ -303,7 +303,7 @@ module Heartbeatable
       # get the heartbeat before the start_time
       boundary_heartbeat = base_scope
         .where("time < ?", start_time)
-        .order(time: :desc)
+        .order(time: :desc, id: :desc)
         .limit(1)
         .first
 
@@ -321,11 +321,11 @@ module Heartbeatable
       timeout = heartbeat_timeout_duration.to_i
       capped_diffs = combined_scope
         .select("time, CASE
-          WHEN LAG(time) OVER (ORDER BY time) IS NULL THEN 0
-          ELSE LEAST(time - LAG(time) OVER (ORDER BY time), #{timeout})
+          WHEN LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0
+          ELSE LEAST(time - LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id), #{timeout})
         END as diff")
         .where.not(time: nil)
-        .order(time: :asc)
+        .order(time: :asc, id: :asc)
 
       sql = "SELECT COALESCE(SUM(diff), 0)::integer
              FROM (#{capped_diffs.to_sql}) AS diffs
