@@ -18,7 +18,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.4",
     "@tsconfig/svelte": "^5.0.8",
-    "axios": "^1.16.0",
+    "axios": "^1.16.1",
     "bits-ui": "^2.18.1",
     "d3-scale": "^4.0.2",
     "d3-shape": "^3.2.0",
