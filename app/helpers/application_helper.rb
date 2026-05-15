@@ -187,9 +187,11 @@ module ApplicationHelper
     when "iterm2" then "iTerm2"
     when "rubymine" then "RubyMine"
     when "opencode" then "OpenCode"
-    when "claudecode" then "Claude Code"
+    when "claudecode", "claude code" then "Claude Code"
     when "zoom.us" then "Zoom"
     when "windowspowershell" then "PowerShell"
+    when "goland" then "GoLand"
+    when "rustrover" then "RustRover"
     else editor.capitalize
     end
   end
