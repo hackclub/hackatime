@@ -191,13 +191,14 @@ module DashboardData
       next if result["singular_#{field}"]
 
       stats = grouped_durations.fetch(field, {}).each_with_object({}) do |(raw, duration), agg|
-        key = raw.to_s.presence || "Unknown"
+        next if raw.to_s.blank?
+
         key = if field == :language
-          key == "Unknown" ? key : key.categorize_language
+          raw.to_s.categorize_language
         elsif %i[editor operating_system].include?(field)
-          key.downcase
+          raw.to_s.downcase
         else
-          key
+          raw.to_s
         end
         agg[key] = (agg[key] || 0) + duration
       end
@@ -452,7 +453,7 @@ module DashboardData
 
   def dashboard_grouped_durations_snapshot(scope)
     dashboard_filters.index_with do |field|
-      field == :project ? dashboard_project_grouped_durations(scope) : scope.group(field).duration_seconds
+      field == :project ? dashboard_project_grouped_durations(scope) : Heartbeat.attributed_durations_by(scope, field)
     end
   end
 

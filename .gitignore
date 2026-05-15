@@ -68,3 +68,5 @@ rust-stats-server/target/
 scratch/
 
 public/vite
+
+target.txt
