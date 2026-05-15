@@ -242,37 +242,33 @@ class My::ProjectRepoMappingsController < InertiaController
 
     total_time = hb.duration_seconds
 
-    language_stats = hb.group(:language).duration_seconds.each_with_object({}) do |(raw, dur), agg|
-      k = raw.to_s.presence || "Unknown"
-      k = k == "Unknown" ? k : k.categorize_language
+    language_stats = Heartbeat.attributed_durations_by(hb, :language).each_with_object({}) do |(raw, dur), agg|
+      k = raw.to_s.categorize_language
       agg[k] = (agg[k] || 0) + dur
     end.sort_by { |_, d| -d }.first(15).to_h
 
-    editor_stats = hb.group(:editor).duration_seconds.each_with_object({}) do |(raw, dur), agg|
-      k = raw.to_s.presence || "Unknown"
-      agg[k.downcase] = (agg[k.downcase] || 0) + dur
+    editor_stats = Heartbeat.attributed_durations_by(hb, :editor).each_with_object({}) do |(raw, dur), agg|
+      k = raw.to_s.downcase
+      agg[k] = (agg[k] || 0) + dur
     end.sort_by { |_, d| -d }.first(10).map { |k, v| [ h.display_editor_name(k), v ] }.to_h
 
-    os_stats = hb.group(:operating_system).duration_seconds.each_with_object({}) do |(raw, dur), agg|
-      k = raw.to_s.presence || "Unknown"
-      agg[k.downcase] = (agg[k.downcase] || 0) + dur
+    os_stats = Heartbeat.attributed_durations_by(hb, :operating_system).each_with_object({}) do |(raw, dur), agg|
+      k = raw.to_s.downcase
+      agg[k] = (agg[k] || 0) + dur
     end.sort_by { |_, d| -d }.first(10).map { |k, v| [ h.display_os_name(k), v ] }.to_h
 
-    all_file_stats = hb.group(:entity).duration_seconds
-      .reject { |e, dur| e.blank? || dur < 60 }
+    all_file_stats = Heartbeat.attributed_durations_by(hb, :entity)
+      .reject { |_, dur| dur < 60 }
       .sort_by { |_, d| -d }
 
     file_stats = all_file_stats.first(50)
       .map { |entity, dur| [ helpers.shorten_file_path(entity), dur ] }
 
-    branch_stats = hb.group(:branch).duration_seconds
-      .reject { |b, _| b.blank? }
+    branch_stats = Heartbeat.attributed_durations_by(hb, :branch)
       .sort_by { |_, d| -d }.first(10)
 
-    category_stats = hb.group(:category).duration_seconds.each_with_object({}) do |(raw, dur), agg|
-      k = raw.to_s.presence || "Unknown"
-      agg[k] = (agg[k] || 0) + dur
-    end.sort_by { |_, d| -d }.first(10).to_h
+    category_stats = Heartbeat.attributed_durations_by(hb, :category)
+      .sort_by { |_, d| -d }.first(10).to_h
 
     language_colors = language_stats.present? ? LanguageUtils.colors_for(language_stats.keys) : {}
 

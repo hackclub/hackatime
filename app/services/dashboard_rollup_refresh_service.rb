@@ -106,7 +106,7 @@ class DashboardRollupRefreshService < ApplicationService
   def grouped_durations(dimension)
     return project_grouped_durations if dimension == :project
 
-    @scope.group(dimension).duration_seconds
+    Heartbeat.attributed_durations_by(@scope, dimension)
   end
 
   def project_grouped_durations

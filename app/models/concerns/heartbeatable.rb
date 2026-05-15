@@ -233,6 +233,32 @@ module Heartbeatable
         .map { |date, duration| [ date.to_date, duration ] }
     end
 
+    def attributed_durations_by(scope, field)
+      scope = scope.with_valid_timestamps
+      timeout = heartbeat_timeout_duration.to_i
+      field_expr = connection.quote_column_name(field.to_s)
+
+      base_sql = scope.unscope(:group, :select, :order).select(:id, :time, field).to_sql
+
+      sql = <<~SQL.squish
+        SELECT bucket, COALESCE(SUM(diff), 0)::integer AS duration
+        FROM (
+          SELECT #{field_expr} AS bucket,
+                 CASE
+                   WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
+                   ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout})
+                 END AS diff
+          FROM (#{base_sql}) heartbeats_for_attribution
+        ) capped_diffs
+        WHERE bucket IS NOT NULL AND bucket <> ''
+        GROUP BY bucket
+      SQL
+
+      connection.select_all(sql).each_with_object({}) do |row, hash|
+        hash[row["bucket"]] = row["duration"].to_i
+      end
+    end
+
     def duration_seconds(scope = all)
       scope = scope.with_valid_timestamps
       timeout = heartbeat_timeout_duration.to_i
