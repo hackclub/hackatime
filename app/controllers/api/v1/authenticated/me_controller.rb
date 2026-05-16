@@ -6,7 +6,8 @@ module Api
 
         def index
           exposed_level = current_user.trust_level
-          unless doorkeeper_token&.application&.verified?
+          app = doorkeeper_token&.application
+          unless app&.verified? && app&.confidential?
             exposed_level = "blue" if exposed_level == "yellow"
           end
 
