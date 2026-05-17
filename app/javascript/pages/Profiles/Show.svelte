@@ -127,6 +127,7 @@
       <Dashboard
         data={dashboard_stats.filterable_dashboard_data}
         showFilters={false}
+        showGoals={false}
       />
 
       <section

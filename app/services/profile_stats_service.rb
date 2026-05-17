@@ -60,8 +60,10 @@ class ProfileStatsService
 
   def week_seconds(activity_graph)
     duration_by_date = activity_graph[:duration_by_date] || {}
-    week_start = Date.current.beginning_of_week
-    week_end = Date.current.end_of_week
+    week_start, week_end = Time.use_zone(user.timezone) do
+      today = Date.current
+      [ today.beginning_of_week, today.end_of_week ]
+    end
 
     duration_by_date.sum do |date, seconds|
       d = parse_date(date)
