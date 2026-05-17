@@ -14,7 +14,9 @@ class ApiKeyController < InertiaController
   private
 
   def require_login
-    redirect_to root_path, alert: "You must be signed in to view your API key." unless current_user
+    return if current_user
+    redirect_to signin_path(continue: request.fullpath),
+                alert: "You must be signed in to view your API key."
   end
 
   def inertia_layout_props
