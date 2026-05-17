@@ -28,8 +28,7 @@ class ProfileStatsService
 
   private
 
-  # Keys Dashboard.svelte actually reads when filters are hidden.
-  PROFILE_DASHBOARD_KEYS = %i[
+  PROFILE_DASHBOARD_KEYS = %w[
     total_time
     total_heartbeats
     project_durations
@@ -39,9 +38,6 @@ class ProfileStatsService
     category_stats
     weekly_project_stats
     language_colors
-  ].freeze
-
-  PROFILE_DASHBOARD_TOP_KEYS = %w[
     top_project
     top_language
     top_editor
@@ -52,12 +48,10 @@ class ProfileStatsService
     singular_editor
     singular_operating_system
     singular_category
-  ].freeze
+  ].to_set.freeze
 
   def filterable_dashboard_data_for_profile
-    full = stats.filterable_dashboard_data
-    PROFILE_DASHBOARD_KEYS.each_with_object({}) { |k, h| h[k] = full[k] if full.key?(k) }
-      .merge(PROFILE_DASHBOARD_TOP_KEYS.each_with_object({}) { |k, h| h[k] = full[k] if full.key?(k) })
+    stats.filterable_dashboard_data.select { |k, _| PROFILE_DASHBOARD_KEYS.include?(k.to_s) }
   end
 
   def stats
