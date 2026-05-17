@@ -258,7 +258,7 @@ class ProfileOgImageGenerator
     end
 
     def fetch_avatar_data_uri(avatar_url)
-      response = HTTP.follow.timeout(AVATAR_TIMEOUT).get(avatar_url)
+      response = HTTP.timeout(AVATAR_TIMEOUT).get(avatar_url)
       return nil unless response.status.success?
       body = response.body.to_s
       return nil if body.bytesize > AVATAR_MAX_BYTES

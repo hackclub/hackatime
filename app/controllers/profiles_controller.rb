@@ -25,13 +25,17 @@ class ProfilesController < InertiaController
     return head :not_found if @user.nil?
 
     generated = ensure_profile_og_image!
+    blob = @user.profile_og_image.blob
+    etag = generated&.fingerprint || blob.metadata["fingerprint"] || blob.checksum
+
+    expires_in 1.hour, public: true
+    return if stale?(etag: etag, last_modified: blob.created_at, public: true)
+
     if generated
       send_data generated.png, filename: generated.filename, type: "image/png", disposition: "inline"
-      return
+    else
+      send_data @user.profile_og_image.download, filename: blob.filename.to_s, type: blob.content_type, disposition: "inline"
     end
-
-    blob = @user.profile_og_image.blob
-    send_data @user.profile_og_image.download, filename: blob.filename.to_s, type: blob.content_type, disposition: "inline"
   end
 
   def time_stats
@@ -168,13 +172,14 @@ class ProfilesController < InertiaController
     return nil if @user.profile_og_image.attached? && @user.profile_og_image.blob.metadata["fingerprint"] == generator.fingerprint
 
     result = generator.call
-    @user.profile_og_image.purge if @user.profile_og_image.attached?
+    previous_attachment = @user.profile_og_image.attachment if @user.profile_og_image.attached?
     @user.profile_og_image.attach(
       io: StringIO.new(result.png),
       filename: result.filename,
       content_type: "image/png",
       metadata: { fingerprint: result.fingerprint }
     )
+    previous_attachment&.purge_later
     result
   end
 
