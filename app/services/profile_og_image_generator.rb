@@ -1,9 +1,4 @@
 require "base64"
-require "date"
-require "digest"
-require "erb"
-require "stringio"
-require "uri"
 require "vips"
 
 class ProfileOgImageGenerator
