@@ -11,8 +11,8 @@ class AdminLevelConstraint
 end
 
 Rails.application.routes.draw do
-  # Redirect to localhost from 127.0.0.1 to use same IP address with Vite server
-  constraints(host: "127.0.0.1") do
+  # Redirect to localhost from 127.0.0.1 / 0.0.0.0 to use same IP address with Vite server
+  constraints(host: /\A(127\.0\.0\.1|0\.0\.0\.0)\z/) do
     get "(*path)", to: redirect { |params, req|
       path = params[:path].to_s
       query = req.query_string.presence
@@ -150,6 +150,8 @@ Rails.application.routes.draw do
           to: "users#update_trust_level",
           as: :update_trust_level_user
   end
+
+  get "api-key", to: "api_key#show", as: :api_key
 
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
   get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }
