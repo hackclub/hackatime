@@ -18,6 +18,7 @@ WORKDIR /rails
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     curl \
+    fontconfig \
     libjemalloc2 \
     libvips \
     sqlite3 \
@@ -41,9 +42,10 @@ ENV RAILS_ENV="production" \
 # Throw-away build stage to reduce size of final image
 FROM base AS build
 
-# Install packages needed to build gems
+# Install packages needed to build gems and convert the bundled web font into a
+# TTF that librsvg/Pango can rasterize for generated OG images.
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs && \
+    apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs woff2 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install npm dependencies for Vite.
@@ -51,6 +53,10 @@ COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun i --frozen-lockfile
+
+RUN cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
+    woff2_decompress /tmp/spline-sans-latin-wght-normal.woff2 && \
+    install -Dm644 /tmp/spline-sans-latin-wght-normal.ttf vendor/fonts/spline-sans-latin-wght-normal.ttf
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./
@@ -92,6 +98,12 @@ COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
 COPY --from=build /usr/bin/git /usr/bin/git
 COPY --from=build /usr/lib/git-core /usr/lib/git-core
+
+# Make Spline Sans available to librsvg/libvips via fontconfig. Pango does not
+# rasterize the bundled WOFF2 reliably, so production installs the converted TTF.
+RUN install -Dm644 /rails/vendor/fonts/spline-sans-latin-wght-normal.ttf \
+      /usr/local/share/fonts/spline-sans/spline-sans-latin-wght-normal.ttf && \
+    fc-cache -f /usr/local/share/fonts/spline-sans
 
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="<%= width %>" height="<%= height %>" viewBox="0 0 <%= width %> <%= height %>">
+  <defs>
+    <style type="text/css">
+      text {
+        font-family: "Spline Sans", system-ui, sans-serif;
+        text-rendering: geometricPrecision;
+      }
+    </style>
+    <clipPath id="avatarClip">
+      <circle cx="124" cy="156" r="56" />
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="<%= width %>" height="<%= height %>" fill="<%= palette[:bg] %>" />
+  <rect x="0" y="<%= height - 4 %>" width="<%= width %>" height="4" fill="<%= palette[:primary] %>" />
+
+  <!-- Avatar -->
+  <% if avatar_data_uri.present? %>
+    <image href="<%= avatar_data_uri %>" x="68" y="100" width="112" height="112" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatarClip)" />
+    <circle cx="124" cy="156" r="56" fill="none" stroke="<%= palette[:divider] %>" stroke-width="1" />
+  <% else %>
+    <circle cx="124" cy="156" r="56" fill="<%= palette[:surface] %>" stroke="<%= palette[:divider] %>" stroke-width="1" />
+    <text x="124" y="175" text-anchor="middle" font-size="42" font-weight="700" fill="<%= palette[:text] %>" letter-spacing="-1"><%= initials %></text>
+  <% end %>
+
+  <!-- Display name + handle -->
+  <text x="212" y="152" font-size="60" font-weight="700" fill="<%= palette[:text] %>" letter-spacing="-2.2"><%= display_name %></text>
+  <text x="214" y="192" font-size="22" font-weight="500" fill="<%= palette[:muted] %>"><%= username %></text>
+
+  <!-- Hero stat: all-time coded -->
+  <% if show_stats %>
+    <text x="1118" y="148" text-anchor="end" font-size="56" font-weight="700" fill="<%= palette[:text] %>" letter-spacing="-1.6"><%= all_label %></text>
+    <text x="1118" y="186" text-anchor="end" font-size="13" font-weight="600" fill="<%= palette[:dim] %>" letter-spacing="2.5">ALL-TIME CODED</text>
+  <% end %>
+
+  <!-- Bio -->
+  <!--
+  <% if bio.present? %>
+    <text x="64" y="252" font-size="20" font-weight="400" fill="<%= palette[:muted] %>"><%= bio %></text>
+  <% end %>
+  -->
+
+  <!-- Heatmap -->
+  <% if show_heatmap %>
+    <text x="<%= heatmap_x %>" y="250" font-size="13" font-weight="600" fill="<%= palette[:dim] %>" letter-spacing="2.5">ACTIVITY · LAST 52 WEEKS</text>
+    <g shape-rendering="crispEdges">
+      <% heatmap_cells.each do |cell| %><rect x="<%= cell[:x] %>" y="<%= cell[:y] %>" width="<%= heatmap_cell %>" height="<%= heatmap_cell %>" rx="3" fill="<%= cell[:color] %>" /><% end %>
+    </g>
+  <% end %>
+
+  <!-- Stats: value above, label below -->
+  <% if show_stats %>
+    <g>
+      <% [
+        [82,   "start",  44, week_label,         "This week"],
+        [600,  "middle", 44, streak_label,       "Streak"],
+        [1118, "end",    36, top_language_label, "Top language"]
+      ].each do |x, anchor, size, value, label| %>
+        <text x="<%= x %>" y="490" text-anchor="<%= anchor %>" font-size="<%= size %>" font-weight="700" fill="<%= palette[:text] %>" letter-spacing="-1.2"><%= value %></text>
+        <text x="<%= x %>" y="524" text-anchor="<%= anchor %>" font-size="14" font-weight="600" fill="<%= palette[:dim] %>" letter-spacing="1.8"><%= label.upcase %></text>
+      <% end %>
+    </g>
+  <% else %>
+    <text x="<%= heatmap_x %>" y="490" font-size="26" font-weight="500" fill="<%= palette[:muted] %>">Coding time stats are private</text>
+  <% end %>
+
+  <!-- Footer -->
+  <text x="<%= heatmap_x %>" y="588" font-size="15" font-weight="500" fill="<%= palette[:dim] %>">Free, open-source coding time tracker</text>
+  <text x="<%= width - heatmap_x %>" y="588" text-anchor="end" font-size="15" font-weight="500" fill="<%= palette[:dim] %>"><%= username %></text>
+</svg>

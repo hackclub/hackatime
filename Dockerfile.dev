@@ -4,6 +4,7 @@ FROM ruby:4.0.3
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential \
+    fontconfig \
     git \
     libpq-dev \
     libyaml-dev \
@@ -14,6 +15,7 @@ RUN apt-get update -qq && \
     tar \
     nodejs \
     npm \
+    woff2 \
     chromium \
     chromium-driver \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
@@ -29,6 +31,14 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY patches patches
 RUN bun install
+
+# Make Spline Sans available to librsvg/libvips via fontconfig. Pango does not
+# rasterize the bundled WOFF2 reliably, so dev installs a converted TTF.
+RUN cp /app/node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
+    woff2_decompress /tmp/spline-sans-latin-wght-normal.woff2 && \
+    install -Dm644 /tmp/spline-sans-latin-wght-normal.ttf \
+      /usr/local/share/fonts/spline-sans/spline-sans-latin-wght-normal.ttf && \
+    fc-cache -f /usr/local/share/fonts/spline-sans
 
 # Install application dependencies
 COPY Gemfile Gemfile.lock ./

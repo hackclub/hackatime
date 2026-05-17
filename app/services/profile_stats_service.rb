@@ -13,6 +13,12 @@ class ProfileStatsService
     end
   end
 
+  def og_stats
+    Rails.cache.fetch("profile_og_stats:v1:#{cache_key}", expires_in: CACHE_TTL) do
+      compute_og_stats
+    end
+  end
+
   private
 
   def cache_key
@@ -41,6 +47,125 @@ class ProfileStatsService
         top_projects_month: base_result[:top_projects_month],
         top_editors: base_result[:top_editors]
       }
+    end
+  end
+
+  def compute_og_stats
+    rollup_stats = rollup_og_stats
+    return rollup_stats if rollup_stats
+
+    Time.use_zone(user.timezone) do
+      timeout = Heartbeat.heartbeat_timeout_duration.to_i
+      week_start = Time.current.beginning_of_week.to_i
+      week_end = Time.current.end_of_week.to_i
+
+      conn = Heartbeat.connection
+      user_id = conn.quote(user.id)
+      timeout_quoted = conn.quote(timeout)
+      week_start_quoted = conn.quote(week_start)
+      week_end_quoted = conn.quote(week_end)
+
+      sql = <<~SQL
+        WITH heartbeat_diffs AS MATERIALIZED (
+          SELECT
+            time,
+            language,
+            CASE
+              WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
+              ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout_quoted})
+            END AS diff
+          FROM heartbeats
+          WHERE user_id = #{user_id}
+            AND deleted_at IS NULL
+            AND time IS NOT NULL
+            AND time >= 0 AND time <= 253402300799
+        ), totals AS (
+          SELECT
+            COALESCE(SUM(diff), 0)::integer AS all_seconds,
+            COALESCE(SUM(diff) FILTER (WHERE time >= #{week_start_quoted} AND time <= #{week_end_quoted}), 0)::integer AS week_seconds
+          FROM heartbeat_diffs
+        ), top_language AS (
+          SELECT language
+          FROM heartbeat_diffs
+          WHERE language IS NOT NULL AND language != ''
+          GROUP BY language
+          ORDER BY SUM(diff) DESC
+          LIMIT 1
+        )
+        SELECT totals.all_seconds, totals.week_seconds, top_language.language AS top_language
+        FROM totals
+        LEFT JOIN top_language ON true
+      SQL
+
+      row = conn.select_one(sql)
+      {
+        total_time_all: row["all_seconds"].to_i,
+        total_time_week: row["week_seconds"].to_i,
+        top_language: row["top_language"]
+      }
+    end
+  end
+
+  def rollup_og_stats
+    return nil unless DashboardRollup.table_exists?
+
+    rows = DashboardRollup.where(user_id: user.id, dimension: [ DashboardRollup::TOTAL_DIMENSION, "language" ]).to_a
+    total = rows.find(&:total_dimension?)
+    top_language = rows.select { |row| row.dimension == "language" }.max_by(&:total_seconds)
+    return nil unless total
+
+    {
+      total_time_all: total.total_seconds,
+      total_time_week: compute_week_total,
+      top_language: top_language&.bucket
+    }
+  end
+
+  def compute_week_total
+    Time.use_zone(user.timezone) do
+      conn = Heartbeat.connection
+      user_id = conn.quote(user.id)
+      timeout = conn.quote(Heartbeat.heartbeat_timeout_duration.to_i)
+      week_start = conn.quote(Time.current.beginning_of_week.to_f)
+      week_end = conn.quote(Time.current.end_of_week.to_f)
+
+      sql = <<~SQL
+        WITH scoped_heartbeats AS (
+          (
+            SELECT id, time
+            FROM heartbeats
+            WHERE user_id = #{user_id}
+              AND deleted_at IS NULL
+              AND time IS NOT NULL
+              AND time >= 0 AND time <= 253402300799
+              AND time < #{week_start}
+            ORDER BY time DESC, id DESC
+            LIMIT 1
+          )
+          UNION ALL
+          (
+            SELECT id, time
+            FROM heartbeats
+            WHERE user_id = #{user_id}
+              AND deleted_at IS NULL
+              AND time IS NOT NULL
+              AND time >= 0 AND time <= 253402300799
+              AND time >= #{week_start} AND time <= #{week_end}
+          )
+        ), diffs AS (
+          SELECT
+            time,
+            CASE
+              WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
+              ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout})
+            END AS diff
+          FROM scoped_heartbeats
+        )
+        SELECT COALESCE(SUM(diff) FILTER (WHERE time >= #{week_start}), 0)::integer AS week_seconds
+        FROM diffs
+      SQL
+
+      conn.select_value(sql).to_i
     end
   end
 
