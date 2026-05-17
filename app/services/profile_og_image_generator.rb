@@ -9,7 +9,7 @@ require "vips"
 class ProfileOgImageGenerator
   WIDTH = 1200
   HEIGHT = 630
-  TEMPLATE_VERSION = 12
+  TEMPLATE_VERSION = 13
   AVATAR_MAX_BYTES = 1.megabyte
   HEATMAP_WEEKS = 52
   HEATMAP_CELL = 16
@@ -28,14 +28,17 @@ class ProfileOgImageGenerator
 
   Result = Data.define(:png, :fingerprint, :filename)
 
-  def self.call(user, stats: nil, heatmap: nil)
-    new(user, stats: stats, heatmap: heatmap).call
+  STATS_STATUSES = %i[available private not_computed].freeze
+
+  def self.call(user, stats: nil, heatmap: nil, stats_status: :available)
+    new(user, stats: stats, heatmap: heatmap, stats_status: stats_status).call
   end
 
-  def initialize(user, stats: nil, heatmap: nil)
+  def initialize(user, stats: nil, heatmap: nil, stats_status: :available)
     @user = user
     @stats = stats
     @heatmap = heatmap
+    @stats_status = STATS_STATUSES.include?(stats_status) ? stats_status : :available
   end
 
   def call
@@ -58,12 +61,20 @@ class ProfileOgImageGenerator
       stat_label(:week_label),
       stat_label(:streak_label),
       stat_label(:top_language_label),
-      heatmap_signature
+      heatmap_signature,
+      @stats_status
     ].join("|"))
   end
 
   private
     attr_reader :user, :stats, :heatmap
+
+    def unavailable_message
+      case @stats_status
+      when :private then "Coding time stats are private"
+      when :not_computed then "Statistics not yet computed"
+      end
+    end
 
     def svg
       ERB.new(template).result_with_hash(
@@ -79,6 +90,8 @@ class ProfileOgImageGenerator
         streak_label: escape(stat_label(:streak_label)),
         top_language_label: escape(stat_label(:top_language_label)),
         show_stats: stats.present?,
+        stats_status: @stats_status,
+        unavailable_message: unavailable_message,
         show_heatmap: heatmap_cells.present?,
         heatmap_cells: heatmap_cells,
         heatmap_width: heatmap_width,

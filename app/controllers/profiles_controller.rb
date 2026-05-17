@@ -153,7 +153,18 @@ class ProfilesController < InertiaController
   end
 
   def ensure_profile_og_image!
-    generator = ProfileOgImageGenerator.new(@user, stats: public_profile_og_stats, heatmap: public_profile_og_heatmap)
+    stats = public_profile_og_stats
+    heatmap = public_profile_og_heatmap
+    stats_status =
+      if !@user.allow_public_stats_lookup
+        :private
+      elsif stats.blank?
+        :not_computed
+      else
+        :available
+      end
+
+    generator = ProfileOgImageGenerator.new(@user, stats: stats, heatmap: heatmap, stats_status: stats_status)
     return nil if @user.profile_og_image.attached? && @user.profile_og_image.blob.metadata["fingerprint"] == generator.fingerprint
 
     result = generator.call
@@ -170,8 +181,10 @@ class ProfilesController < InertiaController
   def public_profile_og_stats
     return nil unless @user.allow_public_stats_lookup
 
-    h = ApplicationController.helpers
     stats = ProfileStatsService.new(@user).og_stats
+    return nil if stats.blank?
+
+    h = ApplicationController.helpers
     top_language = stats[:top_language]
 
     {
@@ -185,12 +198,14 @@ class ProfilesController < InertiaController
   def public_profile_og_heatmap
     return nil unless @user.allow_public_stats_lookup
 
-    timezone = @user.timezone
-    durations = Rails.cache.fetch("user_#{@user.id}_daily_durations_#{timezone}", expires_in: 1.minute) do
-      rollup = DashboardRollup.find_by(user_id: @user.id, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
-      rollup&.payload&.fetch("duration_by_date", nil) || Time.use_zone(timezone) { @user.heartbeats.daily_durations(user_timezone: timezone).to_h }
+    rollup = DashboardRollup.find_by(user_id: @user.id, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
+    duration_by_date = rollup&.payload&.fetch("duration_by_date", nil)
+    return nil if duration_by_date.blank?
+
+    duration_by_date.each_with_object({}) do |(date, seconds), out|
+      key = date.is_a?(Date) ? date.iso8601 : date.to_date.iso8601 rescue date.to_s
+      out[key] = seconds.to_i
     end
-    durations.transform_keys { |date| date.to_date.iso8601 }.transform_values(&:to_i)
   end
 
   def profile_summary_payload
