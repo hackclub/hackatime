@@ -2,16 +2,11 @@
   let { api_key }: { api_key: string } = $props();
 
   let copied = $state(false);
-  let inputEl: HTMLInputElement | undefined = $state();
 
-  const copyApiKey = () => {
-    if (!inputEl) return;
-    inputEl.focus();
-    inputEl.select();
-    if (document.execCommand("copy")) {
-      copied = true;
-      setTimeout(() => (copied = false), 3000);
-    }
+  const copyApiKey = async () => {
+    await navigator.clipboard.writeText(api_key);
+    copied = true;
+    setTimeout(() => (copied = false), 3000);
   };
 </script>
 
@@ -35,7 +30,6 @@
     <input
       type="text"
       readonly
-      bind:this={inputEl}
       value={api_key}
       onclick={(e) => {
         e.currentTarget.select();

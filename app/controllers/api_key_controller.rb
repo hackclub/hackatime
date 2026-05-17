@@ -4,7 +4,7 @@ class ApiKeyController < InertiaController
   before_action :require_login
 
   def show
-    api_key = current_user.api_keys.last || current_user.api_keys.create!(name: "Hackatime key")
+    api_key = current_user.api_keys.order(created_at: :desc).first || current_user.api_keys.create!(name: "Hackatime key")
 
     render inertia: "ApiKey/Show", props: {
       api_key: api_key.token
