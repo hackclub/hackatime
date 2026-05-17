@@ -1,5 +1,4 @@
 require "base64"
-require "vips"
 
 class ProfileOgImageGenerator
   WIDTH = 1200
@@ -38,6 +37,7 @@ class ProfileOgImageGenerator
   end
 
   def call
+    require "vips" # we do it here so that CI doesn't need to install vips
     image = Vips::Image.svgload_buffer(svg, scale: 2).resize(0.5)
     png = image.write_to_buffer(".png[compression=3,filter=0]")
 
