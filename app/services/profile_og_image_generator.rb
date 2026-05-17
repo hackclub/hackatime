@@ -4,7 +4,7 @@ require "vips"
 class ProfileOgImageGenerator
   WIDTH = 1200
   HEIGHT = 630
-  TEMPLATE_VERSION = 14
+  TEMPLATE_VERSION = 0
   AVATAR_MAX_BYTES = 1.megabyte
   HEATMAP_WEEKS = 52
   HEATMAP_CELL = 16
@@ -24,6 +24,7 @@ class ProfileOgImageGenerator
   Result = Data.define(:png, :fingerprint, :filename)
 
   STATS_STATUSES = %i[available private not_computed].freeze
+  STAT_LABEL_KEYS = %i[all_label week_label streak_label top_language_label].freeze
 
   def self.call(user, stats: nil, heatmap: nil, stats_status: :available)
     new(user, stats: stats, heatmap: heatmap, stats_status: stats_status).call
@@ -45,18 +46,9 @@ class ProfileOgImageGenerator
 
   def fingerprint
     @fingerprint ||= Digest::SHA256.hexdigest([
-      TEMPLATE_VERSION,
-      user.id,
-      theme_key,
-      display_name,
-      username,
-      user.avatar_url,
-      stat_label(:all_label),
-      stat_label(:week_label),
-      stat_label(:streak_label),
-      stat_label(:top_language_label),
-      heatmap_signature,
-      @stats_status
+      TEMPLATE_VERSION, user.id, theme_key, display_name, username, user.avatar_url,
+      *STAT_LABEL_KEYS.map { |k| stat_label(k) },
+      heatmap_signature, @stats_status
     ].join("|"))
   end
 
@@ -71,26 +63,17 @@ class ProfileOgImageGenerator
     end
 
     def svg
-      ERB.new(template).result_with_hash(
-        width: WIDTH,
-        height: HEIGHT,
-        display_name: escape(display_name),
-        username: escape(username),
-        avatar_data_uri: avatar_data_uri,
-        initials: escape(initials),
-        all_label: escape(stat_label(:all_label)),
-        week_label: escape(stat_label(:week_label)),
-        streak_label: escape(stat_label(:streak_label)),
-        top_language_label: escape(stat_label(:top_language_label)),
-        show_stats: stats.present?,
-        stats_status: @stats_status,
-        unavailable_message: unavailable_message,
-        show_heatmap: heatmap_cells.present?,
-        heatmap_cells: heatmap_cells,
-        heatmap_cell: HEATMAP_CELL,
-        heatmap_x: HEATMAP_X,
+      locals = {
+        width: WIDTH, height: HEIGHT,
+        display_name: escape(display_name), username: escape(username),
+        avatar_data_uri: avatar_data_uri, initials: escape(initials),
+        show_stats: stats.present?, unavailable_message: unavailable_message,
+        show_heatmap_placeholder: heatmap_cells.empty? && @stats_status == :not_computed,
+        heatmap_cells: heatmap_cells, heatmap_cell: HEATMAP_CELL, heatmap_x: HEATMAP_X,
         palette: palette
-      )
+      }
+      STAT_LABEL_KEYS.each { |k| locals[k] = escape(stat_label(k)) }
+      ERB.new(template).result_with_hash(locals)
     end
 
     def template
@@ -124,92 +107,64 @@ class ProfileOgImageGenerator
       @theme_preview ||= User.theme_metadata(theme_key).fetch(:preview)
     end
 
-    # Theme -> OG palette mapping. Mirrors the CSS variable naming used elsewhere:
-    #   surface  -> theme[:dark]
-    #   content  -> theme[:content]
-    #   primary  -> theme[:primary]
-    #   success  -> theme[:success]
     def palette
       @palette ||= begin
-        surface  = theme_preview[:dark]
-        content  = theme_preview[:content]
-        primary  = theme_preview[:primary]
-        success  = theme_preview[:success]
-        darker   = theme_preview[:darker]
-        darkless = theme_preview[:darkless]
-
+        t = theme_preview
         {
-          bg:        darker,
-          surface:   surface,
-          divider:   darkless,
-          primary:   primary,
-          text:      content,
-          muted:     hex_mix(content, surface, 0.55),
-          dim:       hex_mix(content, surface, 0.35),
-          # 5 heatmap intensity colors, mirroring main.css activity-cell--N.
+          bg: t[:darker], surface: t[:dark], divider: t[:darkless],
+          primary: t[:primary], text: t[:content],
+          muted: hex_mix(t[:content], t[:dark], 0.55),
+          dim:   hex_mix(t[:content], t[:dark], 0.35),
           heatmap: [
-            hex_mix(content, surface, 0.12),
-            hex_mix(success, surface, 0.35),
-            hex_mix(success, surface, 0.55),
-            hex_mix(success, surface, 0.75),
-            hex_mix(success, surface, 0.95)
+            hex_mix(t[:content], t[:dark], 0.12),
+            *[ 0.35, 0.55, 0.75, 0.95 ].map { |p| hex_mix(t[:success], t[:dark], p) }
           ]
         }
       end
     end
 
-    # Linear-sRGB mix: returns `pct` of `a` mixed with `1 - pct` of `b`.
+    # Linear-sRGB mix: `pct` of `a` mixed with `1 - pct` of `b`.
     def hex_mix(a, b, pct)
-      ra, ga, ba = hex_to_rgb(a)
-      rb, gb, bb = hex_to_rgb(b)
-      r = (ra * pct + rb * (1 - pct)).round.clamp(0, 255)
-      g = (ga * pct + gb * (1 - pct)).round.clamp(0, 255)
-      bl = (ba * pct + bb * (1 - pct)).round.clamp(0, 255)
-      format("#%02x%02x%02x", r, g, bl)
+      mixed = hex_to_rgb(a).zip(hex_to_rgb(b)).map { |x, y| (x * pct + y * (1 - pct)).round.clamp(0, 255) }
+      format("#%02x%02x%02x", *mixed)
     end
 
     def hex_to_rgb(hex)
-      h = hex.to_s.delete_prefix("#")
-      [ h[0..1], h[2..3], h[4..5] ].map { |c| c.to_i(16) }
+      hex.to_s.delete_prefix("#").scan(/../).map { |c| c.to_i(16) }
     end
 
-    # Heatmap layout: HEATMAP_WEEKS columns x 7 rows ending today.
-    # Each cell is keyed by ISO date string in the supplied `heatmap` hash.
     def heatmap_cells
-      return @heatmap_cells if defined?(@heatmap_cells)
-      return @heatmap_cells = nil if heatmap.blank?
+      @heatmap_cells ||= compute_heatmap_cells
+    end
+
+    def compute_heatmap_cells
+      return [] if heatmap.blank?
 
       total_days = HEATMAP_WEEKS * 7
-      today = Date.current
-      start = today - (total_days - 1)
-      # Align so that the rightmost column ends on the current weekday row.
-      busiest = heatmap.values.max.to_i
-      busiest = 1 if busiest <= 0
+      start = Date.current - (total_days - 1)
+      busiest = [ heatmap.values.max.to_i, 1 ].max
+      step = HEATMAP_CELL + HEATMAP_GAP
 
-      cells = []
-      (0...total_days).each do |i|
-        date = start + i
-        col = i / 7
-        row = i % 7
-        seconds = heatmap[date.iso8601].to_i
-        level = intensity_level(seconds, busiest)
-        cells << {
-          x: HEATMAP_X + col * (HEATMAP_CELL + HEATMAP_GAP),
-          y: HEATMAP_Y + row * (HEATMAP_CELL + HEATMAP_GAP),
-          color: palette[:heatmap][level]
+      (0...total_days).map do |i|
+        seconds = heatmap[(start + i).iso8601].to_i
+        {
+          x: HEATMAP_X + (i / 7) * step,
+          y: HEATMAP_Y + (i % 7) * step,
+          color: palette[:heatmap][intensity_level(seconds, busiest)]
         }
       end
-      @heatmap_cells = cells
     end
 
+    # 0 = inactive (< 1 min), then bucketed by fraction of the busiest day
     def intensity_level(seconds, busiest)
       return 0 if seconds < 60
 
-      ratio = seconds.to_f / busiest
-      return 4 if ratio >= 0.8
-      return 3 if ratio >= 0.5
-      return 2 if ratio >= 0.2
-      1
+      case seconds.to_f / busiest
+      when 0.8..  then 4
+      when 0.5..  then 3
+      when 0.2..  then 2
+      else             1
+      end
     end
 
     def heatmap_signature

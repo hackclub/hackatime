@@ -35,12 +35,11 @@
   <% end %>
 
   <!-- Heatmap -->
-  <% if show_heatmap %>
-    <text x="<%= heatmap_x %>" y="250" font-size="13" font-weight="600" fill="<%= palette[:dim] %>" letter-spacing="2.5">ACTIVITY · LAST 52 WEEKS</text>
+  <% if heatmap_cells.any? %>
     <g shape-rendering="crispEdges">
       <% heatmap_cells.each do |cell| %><rect x="<%= cell[:x] %>" y="<%= cell[:y] %>" width="<%= heatmap_cell %>" height="<%= heatmap_cell %>" rx="3" fill="<%= cell[:color] %>" /><% end %>
     </g>
-  <% elsif stats_status == :not_computed %>
+  <% elsif show_heatmap_placeholder %>
     <text x="<%= heatmap_x %>" y="340" font-size="13" font-weight="600" fill="<%= palette[:dim] %>" letter-spacing="2.5">ACTIVITY · LAST 52 WEEKS</text>
     <text x="<%= heatmap_x %>" y="380" font-size="22" font-weight="500" fill="<%= palette[:muted] %>">Statistics not yet computed</text>
   <% end %>

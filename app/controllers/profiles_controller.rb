@@ -29,12 +29,10 @@ class ProfilesController < InertiaController
     etag = generated&.fingerprint || blob.metadata["fingerprint"] || blob.checksum
 
     expires_in 1.hour, public: true
-    return if stale?(etag: etag, last_modified: blob.created_at, public: true)
-
-    if generated
-      send_data generated.png, filename: generated.filename, type: "image/png", disposition: "inline"
-    else
-      send_data @user.profile_og_image.download, filename: blob.filename.to_s, type: blob.content_type, disposition: "inline"
+    if stale?(etag: etag, last_modified: blob.created_at, public: true)
+      png = generated&.png || @user.profile_og_image.download
+      filename = generated&.filename || blob.filename.to_s
+      send_data png, filename: filename, type: "image/png", disposition: "inline"
     end
   end
 
