@@ -13,6 +13,12 @@ class ProfileStatsService
     end
   end
 
+  def og_stats
+    Rails.cache.fetch("profile_og_stats:v1:#{cache_key}", expires_in: CACHE_TTL) do
+      compute_og_stats
+    end
+  end
+
   private
 
   def cache_key
@@ -41,6 +47,46 @@ class ProfileStatsService
         top_projects_month: base_result[:top_projects_month],
         top_editors: base_result[:top_editors]
       }
+    end
+  end
+
+  def compute_og_stats
+    rollup_og_stats
+  end
+
+  def rollup_og_stats
+    return nil unless DashboardRollup.table_exists?
+
+    rows = DashboardRollup.where(
+      user_id: user.id,
+      dimension: [ DashboardRollup::TOTAL_DIMENSION, DashboardRollup::ACTIVITY_GRAPH_DIMENSION, "language" ]
+    ).to_a
+    total = rows.find(&:total_dimension?)
+    return nil unless total
+
+    activity = rows.find { |row| row.dimension == DashboardRollup::ACTIVITY_GRAPH_DIMENSION }
+    top_language = rows.select { |row| row.dimension == "language" }.max_by(&:total_seconds)
+
+    {
+      total_time_all: total.total_seconds,
+      total_time_week: week_total_from_activity(activity),
+      top_language: top_language&.bucket
+    }
+  end
+
+  def week_total_from_activity(activity)
+    duration_by_date = activity&.payload&.fetch("duration_by_date", nil)
+    return 0 if duration_by_date.blank?
+
+    Time.use_zone(user.timezone) do
+      week_start = Date.current.beginning_of_week
+      week_end = Date.current.end_of_week
+      duration_by_date.sum do |date, seconds|
+        d = date.is_a?(Date) ? date : Date.parse(date.to_s)
+        (d >= week_start && d <= week_end) ? seconds.to_i : 0
+      rescue ArgumentError
+        0
+      end
     end
   end
 

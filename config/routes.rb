@@ -362,6 +362,7 @@ Rails.application.routes.draw do
   end
 
   get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/og.png", to: "profiles#og_image", as: :profile_og_image, constraints: { username: /[A-Za-z0-9_-]+/ }
   get "/@:username/time_stats", to: "profiles#time_stats", as: :profile_time_stats, constraints: { username: /[A-Za-z0-9_-]+/ }
   get "/@:username/projects", to: "profiles#projects", as: :profile_projects, constraints: { username: /[A-Za-z0-9_-]+/ }
   get "/@:username/languages", to: "profiles#languages", as: :profile_languages, constraints: { username: /[A-Za-z0-9_-]+/ }

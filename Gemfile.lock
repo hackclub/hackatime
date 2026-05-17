@@ -712,6 +712,7 @@ DEPENDENCIES
   rswag-specs
   rswag-ui
   rubocop-rails-omakase
+  ruby-vips (~> 2.3)
   ruby_identicon
   rubyzip (~> 3.3)
   selenium-webdriver

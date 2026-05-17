@@ -67,6 +67,7 @@ gem "rack-attack"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.2"
+gem "ruby-vips", "~> 2.3", require: false
 
 # Use dotenv for environment variables
 gem "dotenv-rails"

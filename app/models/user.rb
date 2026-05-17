@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  has_one_attached :profile_og_image
+
   include TimezoneRegions
   include UserThemeConfiguration
   include ::OauthAuthentication

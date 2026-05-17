@@ -16,8 +16,24 @@ class ProfilesController < InertiaController
 
     @is_own_profile = current_user.present? && current_user.id == @user.id
     @profile_visible = @user.allow_public_stats_lookup || @is_own_profile
+    set_profile_social_preview
 
     render inertia: "Profiles/Show", props: profile_props
+  end
+
+  def og_image
+    return head :not_found if @user.nil?
+
+    generated = ensure_profile_og_image!
+    blob = @user.profile_og_image.blob
+    etag = generated&.fingerprint || blob.metadata["fingerprint"] || blob.checksum
+
+    expires_in 1.hour, public: true
+    if stale?(etag: etag, last_modified: blob.created_at, public: true)
+      png = generated&.png || @user.profile_og_image.download
+      filename = generated&.filename || blob.filename.to_s
+      send_data png, filename: filename, type: "image/png", disposition: "inline"
+    end
   end
 
   def time_stats
@@ -121,6 +137,78 @@ class ProfilesController < InertiaController
   def profile_page_title
     username = @user.username.present? ? "@#{@user.username}" : @user.display_name
     "#{username} | Hackatime"
+  end
+
+  def set_profile_social_preview
+    @social_preview = true
+    @page_title = profile_page_title
+    @og_title = @twitter_title = profile_page_title
+    @og_description = @twitter_description = profile_social_description
+    @og_image = @twitter_image = profile_og_image_url(username: @user.username)
+  end
+
+  def profile_social_description
+    display_name = @user.display_name_override.presence || @user.display_name
+    return @user.profile_bio.to_s.squish.truncate(180) if @user.profile_bio.present?
+
+    "View #{display_name}'s Hackatime coding profile."
+  end
+
+  def ensure_profile_og_image!
+    stats = public_profile_og_stats
+    heatmap = public_profile_og_heatmap
+    stats_status =
+      if !@user.allow_public_stats_lookup
+        :private
+      elsif stats.blank?
+        :not_computed
+      else
+        :available
+      end
+
+    generator = ProfileOgImageGenerator.new(@user, stats: stats, heatmap: heatmap, stats_status: stats_status)
+    return nil if @user.profile_og_image.attached? && @user.profile_og_image.blob.metadata["fingerprint"] == generator.fingerprint
+
+    result = generator.call
+    previous_attachment = @user.profile_og_image.attachment if @user.profile_og_image.attached?
+    @user.profile_og_image.attach(
+      io: StringIO.new(result.png),
+      filename: result.filename,
+      content_type: "image/png",
+      metadata: { fingerprint: result.fingerprint }
+    )
+    previous_attachment&.purge_later
+    result
+  end
+
+  def public_profile_og_stats
+    return nil unless @user.allow_public_stats_lookup
+
+    stats = ProfileStatsService.new(@user).og_stats
+    return nil if stats.blank?
+
+    h = ApplicationController.helpers
+    top_language = stats[:top_language]
+
+    {
+      all_label: h.short_time_simple(stats[:total_time_all]),
+      week_label: h.short_time_simple(stats[:total_time_week]),
+      streak_label: "#{@user.streak_days}d",
+      top_language_label: (top_language.present? ? h.display_language_name(top_language).truncate(14) : "None")
+    }
+  end
+
+  def public_profile_og_heatmap
+    return nil unless @user.allow_public_stats_lookup
+
+    rollup = DashboardRollup.find_by(user_id: @user.id, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
+    duration_by_date = rollup&.payload&.fetch("duration_by_date", nil)
+    return nil if duration_by_date.blank?
+
+    duration_by_date.each_with_object({}) do |(date, seconds), out|
+      key = date.is_a?(Date) ? date.iso8601 : date.to_date.iso8601 rescue date.to_s
+      out[key] = seconds.to_i
+    end
   end
 
   def profile_summary_payload
