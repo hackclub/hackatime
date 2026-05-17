@@ -73,11 +73,11 @@ class ProfileOgImageGenerator
         palette: palette
       }
       STAT_LABEL_KEYS.each { |k| locals[k] = escape(stat_label(k)) }
-      ERB.new(template).result_with_hash(locals)
+      self.class.template.result_with_hash(locals)
     end
 
-    def template
-      @template ||= Rails.root.join("app/views/og/profile.svg.erb").read
+    def self.template
+      @template ||= ERB.new(Rails.root.join("app/views/og/profile.svg.erb").read)
     end
 
     def display_name
