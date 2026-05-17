@@ -151,7 +151,7 @@ Rails.application.routes.draw do
           as: :update_trust_level_user
   end
 
-  get "api-key", to: "api_key#show", as: :api_key
+  resource :api_key, only: [ :show ], path: "api-key"
 
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
   get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }
