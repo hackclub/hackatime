@@ -4,7 +4,7 @@ require "vips"
 class ProfileOgImageGenerator
   WIDTH = 1200
   HEIGHT = 630
-  TEMPLATE_VERSION = 13
+  TEMPLATE_VERSION = 14
   AVATAR_MAX_BYTES = 1.megabyte
   HEATMAP_WEEKS = 52
   HEATMAP_CELL = 16
@@ -50,7 +50,6 @@ class ProfileOgImageGenerator
       theme_key,
       display_name,
       username,
-      bio,
       user.avatar_url,
       stat_label(:all_label),
       stat_label(:week_label),
@@ -77,7 +76,6 @@ class ProfileOgImageGenerator
         height: HEIGHT,
         display_name: escape(display_name),
         username: escape(username),
-        bio: escape(truncated_bio),
         avatar_data_uri: avatar_data_uri,
         initials: escape(initials),
         all_label: escape(stat_label(:all_label)),
@@ -89,7 +87,6 @@ class ProfileOgImageGenerator
         unavailable_message: unavailable_message,
         show_heatmap: heatmap_cells.present?,
         heatmap_cells: heatmap_cells,
-        heatmap_width: heatmap_width,
         heatmap_cell: HEATMAP_CELL,
         heatmap_x: HEATMAP_X,
         palette: palette
@@ -106,14 +103,6 @@ class ProfileOgImageGenerator
 
     def username
       @username ||= user.username.present? ? "@#{user.username}" : "Hackatime profile"
-    end
-
-    def bio
-      @bio ||= user.profile_bio.to_s.squish
-    end
-
-    def truncated_bio
-      bio.truncate(110)
     end
 
     def initials
@@ -133,14 +122,6 @@ class ProfileOgImageGenerator
 
     def theme_preview
       @theme_preview ||= User.theme_metadata(theme_key).fetch(:preview)
-    end
-
-    def theme_color_scheme
-      @theme_color_scheme ||= User.theme_metadata(theme_key).fetch(:color_scheme, "dark")
-    end
-
-    def light_theme?
-      theme_color_scheme == "light"
     end
 
     # Theme -> OG palette mapping. Mirrors the CSS variable naming used elsewhere:
@@ -229,10 +210,6 @@ class ProfileOgImageGenerator
       return 3 if ratio >= 0.5
       return 2 if ratio >= 0.2
       1
-    end
-
-    def heatmap_width
-      HEATMAP_WEEKS * (HEATMAP_CELL + HEATMAP_GAP) - HEATMAP_GAP
     end
 
     def heatmap_signature
