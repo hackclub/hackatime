@@ -5,13 +5,10 @@ class ProfileStatsService
     @user = user
   end
 
-  # Returns the same shape consumed by Home/SignedIn.svelte so the profile
-  # page can render <Dashboard />, <ActivityGraph />, etc. directly.
   def dashboard_stats
     @dashboard_stats ||= {
-      filterable_dashboard_data: stats.filterable_dashboard_data,
-      activity_graph: stats.activity_graph_data,
-      today_stats: stats.today_stats_data
+      filterable_dashboard_data: filterable_dashboard_data_for_profile,
+      activity_graph: stats.activity_graph_data
     }
   end
 
@@ -30,6 +27,38 @@ class ProfileStatsService
   end
 
   private
+
+  # Keys Dashboard.svelte actually reads when filters are hidden.
+  PROFILE_DASHBOARD_KEYS = %i[
+    total_time
+    total_heartbeats
+    project_durations
+    language_stats
+    editor_stats
+    operating_system_stats
+    category_stats
+    weekly_project_stats
+    language_colors
+  ].freeze
+
+  PROFILE_DASHBOARD_TOP_KEYS = %w[
+    top_project
+    top_language
+    top_editor
+    top_operating_system
+    top_category
+    singular_project
+    singular_language
+    singular_editor
+    singular_operating_system
+    singular_category
+  ].freeze
+
+  def filterable_dashboard_data_for_profile
+    full = stats.filterable_dashboard_data
+    PROFILE_DASHBOARD_KEYS.each_with_object({}) { |k, h| h[k] = full[k] if full.key?(k) }
+      .merge(PROFILE_DASHBOARD_TOP_KEYS.each_with_object({}) { |k, h| h[k] = full[k] if full.key?(k) })
+  end
 
   def stats
     @stats ||= DashboardStats.new(user: user)

@@ -7,7 +7,6 @@
   import type {
     ActivityGraphData,
     FilterableDashboardData,
-    TodayStats,
   } from "../../types/index";
 
   type SocialLink = {
@@ -29,9 +28,8 @@
   };
 
   type DashboardStats = {
-    filterable_dashboard_data: FilterableDashboardData;
+    filterable_dashboard_data: Partial<FilterableDashboardData>;
     activity_graph: ActivityGraphData;
-    today_stats: TodayStats;
   };
 
   let {

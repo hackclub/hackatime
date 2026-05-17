@@ -20,7 +20,6 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
     assert payload[:filterable_dashboard_data].present?
     assert_equal 120, payload[:filterable_dashboard_data][:total_time]
     assert payload[:activity_graph][:duration_by_date].is_a?(Hash)
-    assert payload[:today_stats].key?(:show_logged_time_sentence)
   end
 
   test "og_stats reports totals and top language from rollups" do
