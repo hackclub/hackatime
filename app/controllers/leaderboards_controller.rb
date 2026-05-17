@@ -6,7 +6,7 @@ class LeaderboardsController < InertiaController
     country = load_country_context
     leaderboard_scope = validated_leaderboard_scope(country)
 
-    leaderboard = LeaderboardService.get(period: period_type, date: Date.current)
+    leaderboard = Leaderboard.fetch(period: period_type, date: Date.current)
 
     render inertia: "Leaderboards/Index", props: {
       period_type: period_type.to_s,
@@ -76,23 +76,12 @@ class LeaderboardsController < InertiaController
     active_projects = Cache::ActiveProjectsJob.perform_now
 
     entries = payload[:entries].map do |e|
-      user = e[:user]
       proj = active_projects&.dig(e[:user_id])
-      {
-        user_id: e[:user_id],
-        total_seconds: e[:total_seconds],
-        streak_count: e[:streak_count],
+      e.merge(
         is_current_user: e[:user_id] == current_user&.id,
-        user: {
-          display_name: user[:display_name],
-          avatar_url: user[:avatar_url],
-          profile_path: user[:profile_path],
-          verified: user[:verified],
-          country_code: user[:country_code],
-          red: user[:red]
-        },
+        user: e[:user].except(:id),
         active_project: proj ? { name: proj.project_name, repo_url: proj.repo_url } : nil
-      }
+      )
     end
 
     {

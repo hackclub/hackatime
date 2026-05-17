@@ -1,10 +1,14 @@
 class CleanupOldLeaderboardsJob < ApplicationJob
   queue_as :literally_whenever # fucking wild that this exists
 
-  def perform
-    cutoff = 2.days.ago.beginning_of_day
+  # `RETAIN_DAYS = 2` keeps today + 2 prior days of boards (3 dates total)
+  # before reaping older ones. Boards with `start_date < (today - 2)` go.
+  RETAIN_DAYS = 2
 
-    old_leaderboards = Leaderboard.where("created_at < ?", cutoff)
+  def perform
+    cutoff = RETAIN_DAYS.days.ago.to_date
+
+    old_leaderboards = Leaderboard.where(start_date: ...cutoff)
     count = old_leaderboards.count
     return if count.zero?
 
