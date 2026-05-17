@@ -181,16 +181,9 @@ class StaticPagesController < InertiaController
   end
 
   def initial_dashboard_stats_prop
-    return unless dashboard_rollup_eligible?
-    return unless dashboard_rollups_available?
-
-    rows = DashboardRollup.where(user_id: current_user.id).to_a
-    total_row = rows.find(&:total_dimension?)
-    return unless total_row
-
-    @dashboard_rollup_rows = rows
-    @dashboard_rollup_rows_by_dimension = rows.group_by(&:dimension)
-    @dashboard_rollup_total_row = total_row
+    return unless dashboard_stats.rollup_eligible?
+    return unless dashboard_stats.rollups_available?
+    return unless dashboard_stats.rollup_total_row
 
     dashboard_stats_payload
   end
