@@ -67,7 +67,7 @@ class Admin::DeletionRequestsController < Admin::BaseController
   end
 
   def lookup_user(q)
-    User.lookup_by_identifier(q.to_s) || User.slow_find_by_email(q.to_s)
+    User.lookup_by_identifier(q.to_s) || EmailAddress.find_by(email: q.to_s)&.user
   end
 
   def deletion_request_params = params.fetch(:deletion_request, {}).permit(:user_id, :instant, :confirm_username)
