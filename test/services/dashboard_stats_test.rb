@@ -366,8 +366,6 @@ class DashboardStatsTest < ActiveSupport::TestCase
 
         stats = build_stats(user)
         def stats.grouped_durations_snapshot(_scope) = raise("expected rollup-backed dashboard path")
-        def stats.live_today_stats_data = { source: :live_today }
-        def stats.live_activity_graph_data = { source: :live_activity }
 
         clear_enqueued_jobs
         Rails.cache.delete(DashboardRollupRefreshJob.enqueue_cache_key(user.id))
@@ -380,8 +378,9 @@ class DashboardStatsTest < ActiveSupport::TestCase
         end
 
         assert_equal 120, aggregate[:total_time]
-        assert_equal({ source: :live_today }, today_stats)
-        assert_equal({ source: :live_activity }, activity_graph)
+        assert today_stats[:show_logged_time_sentence]
+        assert_equal [ ApplicationController.helpers.display_language_name("ruby") ], today_stats[:todays_languages]
+        assert_equal 120, activity_graph[:duration_by_date]["2026-04-14"]
         assert_equal 1, enqueued_jobs.count { |job| job[:job] == DashboardRollupRefreshJob }
       end
     end

@@ -290,27 +290,16 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def project_activity_graph(project_name)
-    tz = current_user.timezone
-    unless TZInfo::Timezone.all_identifiers.include?(tz)
-      tz = "UTC"
-    end
-    hb = current_user.heartbeats.where(project: project_name)
+    snapshot = DashboardData::Snapshots.activity_graph_snapshot(
+      user: current_user,
+      scope: current_user.heartbeats.where(project: project_name)
+    )
 
-    day_trunc = Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE #{ActiveRecord::Base.connection.quote(tz)})")
-
-    durations = hb.select(day_trunc.as("day_group"))
-      .where(time: 365.days.ago..Time.current)
-      .group(day_trunc)
-      .duration_seconds
-      .map { |date, duration| [ date.to_date.iso8601, duration ] }
-      .to_h
-
-    {
-      start_date: 365.days.ago.to_date.iso8601,
-      end_date: Time.current.to_date.iso8601,
-      duration_by_date: durations,
-      busiest_day_seconds: 8.hours.to_i,
-      timezone_label: ActiveSupport::TimeZone[tz].to_s
-    }
+    DashboardData::Snapshots.activity_graph_result(
+      start_date: snapshot[:start_date],
+      end_date: snapshot[:end_date],
+      duration_by_date: snapshot[:duration_by_date],
+      timezone: snapshot[:timezone]
+    )
   end
 end

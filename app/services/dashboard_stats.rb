@@ -346,13 +346,12 @@ class DashboardStats
   end
 
   def activity_graph_result(start_date:, end_date:, duration_by_date:, timezone:)
-    {
+    DashboardData::Snapshots.activity_graph_result(
       start_date: start_date,
       end_date: end_date,
-      duration_by_date: duration_by_date.to_h.transform_keys { |date| date.to_s }.transform_values(&:to_i),
-      busiest_day_seconds: 8.hours.to_i,
-      timezone_label: ActiveSupport::TimeZone[timezone]&.to_s || timezone
-    }
+      duration_by_date: duration_by_date,
+      timezone: timezone
+    )
   end
 
   def live_today_stats_data
