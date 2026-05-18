@@ -17,7 +17,7 @@ class Admin::DeletionRequestsController < Admin::BaseController
 
   def confirm
     @user = lookup_user(params[:q])
-    return redirect_to new_admin_deletion_request_path, alert: "user not found" unless @user
+    redirect_to new_admin_deletion_request_path, alert: "user not found" unless @user
   end
 
   def create
@@ -46,7 +46,7 @@ class Admin::DeletionRequestsController < Admin::BaseController
       redirect_to admin_deletion_requests_path, notice: "deletion request created for #{user.display_name}"
     end
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to new_admin_deletion_request_path, alert: e.message
+    redirect_to confirm_admin_deletion_requests_path(q: user.id), alert: e.message
   end
 
 

@@ -34,12 +34,12 @@
   </div>
 
   <div class="border border-primary rounded-xl p-6 bg-dark">
-    <%= form_with url: admin_deletion_requests_path, method: :post do |f| %>
-      <%= hidden_field_tag "deletion_request[user_id]", @user.id %>
+    <%= form_with url: admin_deletion_requests_path, method: :post, scope: :deletion_request do |f| %>
+      <%= f.hidden_field :user_id, value: @user.id %>
       <div class="space-y-4">
         <div class="border border-red/40 rounded-lg p-4 bg-red/5">
           <label class="flex items-start gap-3 cursor-pointer">
-            <%= check_box_tag "deletion_request[instant]", "1", false, class: "mt-0.5 accent-red shrink-0" %>
+            <%= f.check_box :instant, class: "mt-0.5 accent-red shrink-0" %>
             <div>
               <span class="text-red font-medium text-sm">instant deletion</span>
               <p class="text-muted text-xs mt-0.5">skips the 30-day grace period. approves, sets deletion to now, and enqueues the job immediately. cannot be undone.</p>
@@ -49,7 +49,7 @@
 
         <div>
           <label class="block text-sm text-muted mb-1">type <span class="text-surface-content font-mono"><%= @user.username %></span> to confirm</label>
-          <%= text_field_tag "deletion_request[confirm_username]", "", class: "w-full bg-surface border border-surface-200 rounded-lg px-3 py-2 text-surface-content focus:outline-none focus:border-red font-mono", autocomplete: "off", autofocus: true %>
+          <%= f.text_field :confirm_username, value: "", class: "w-full bg-surface border border-surface-200 rounded-lg px-3 py-2 text-surface-content focus:outline-none focus:border-red font-mono", autocomplete: "off", autofocus: true %>
         </div>
 
         <%= f.submit "create deletion request", class: "w-full px-4 py-2 bg-red hover:bg-red text-on-primary font-medium rounded-lg transition-colors cursor-pointer" %>
