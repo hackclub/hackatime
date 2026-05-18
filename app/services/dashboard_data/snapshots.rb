@@ -21,6 +21,51 @@ module DashboardData
       non_null.merge(nil => null_duration)
     end
 
+    def project_details_snapshot(scope:)
+      timeout = Heartbeat.heartbeat_timeout_duration.to_i
+      relation_sql = scope.with_valid_timestamps
+        .where.not(project: [ nil, "" ], time: nil)
+        .select(:id, :time, :project, :language)
+        .to_sql
+
+      rows = Heartbeat.connection.select_all(<<~SQL.squish)
+        SELECT grouped_time,
+               COUNT(*)::integer AS heartbeat_count,
+               MIN(time) AS first_heartbeat,
+               MAX(time) AS last_heartbeat,
+               ARRAY_REMOVE(ARRAY_AGG(DISTINCT NULLIF(language, '')), NULL) AS languages,
+               COALESCE(SUM(diff), 0)::integer AS duration
+        FROM (
+          SELECT project AS grouped_time,
+                 time,
+                 language,
+                 CASE
+                   WHEN LAG(time) OVER (PARTITION BY project ORDER BY time, id) IS NULL THEN 0
+                   ELSE LEAST(time - LAG(time) OVER (PARTITION BY project ORDER BY time, id), #{timeout})
+                 END AS diff
+          FROM (#{relation_sql}) project_detail_heartbeats
+        ) diffs
+        GROUP BY grouped_time
+      SQL
+
+      rows.each_with_object({}) do |row, result|
+        result[row["grouped_time"]] = {
+          total_seconds: row["duration"].to_i,
+          total_heartbeats: row["heartbeat_count"].to_i,
+          first_heartbeat: row["first_heartbeat"],
+          last_heartbeat: row["last_heartbeat"],
+          languages: pg_array(row["languages"]).compact_blank
+        }
+      end
+    end
+
+    def pg_array(value)
+      return value if value.is_a?(Array)
+      return [] if value.blank?
+
+      PG::TextDecoder::Array.new.decode(value.to_s)
+    end
+
     def weekly_project_stats(user:, scope:)
       ranges = week_ranges(user.timezone)
       result = ranges.to_h { |week_key, *_| [ week_key, {} ] }

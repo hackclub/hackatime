@@ -8,6 +8,7 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def index
     archived = show_archived?
+    projects_data = projects_data_for_index(archived: archived)
 
     render inertia: "Projects/Index", props: {
       page_title: "My Projects",
@@ -18,8 +19,8 @@ class My::ProjectRepoMappingsController < InertiaController
       from: params[:from],
       to: params[:to],
       interval_label: helpers.human_interval_name(selected_interval, from: params[:from], to: params[:to]),
-      total_projects: project_count(archived),
-      projects_data: InertiaRails.defer { projects_payload(archived: archived) }
+      total_projects: projects_data.is_a?(Hash) ? projects_data[:projects].size : project_count(archived),
+      projects_data: projects_data
     }
   end
 
@@ -159,32 +160,82 @@ class My::ProjectRepoMappingsController < InertiaController
       next if archived_names.key?(project_key) != archived
 
       mapping = mappings_by_name[project_key]
-      display_name = project_key.presence || "Unknown"
-      broken = broken_project_name?(project_key, display_name)
-      url_safe = !broken && project_key.present?
-
-      {
-        id: project_card_id(project_key),
-        name: display_name,
-        project_key:,
-        url_safe:,
-        duration_seconds: duration,
-        duration_label: format_duration(duration),
-        duration_percent: 0,
-        repo_url: mapping&.repo_url,
-        repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
-        broken_name: broken,
-        manage_enabled: current_user.github_uid.present? && url_safe
-      }
+      project_summary_payload(project_key, duration, mapping, latest_user_commit_at_by_repo_id)
     end.sort_by { |project| -project[:duration_seconds] }
 
+    build_projects_payload(projects)
+  end
+
+  def projects_data_for_index(archived:)
+    return rollup_projects_payload(archived: archived) if rollup_projects_path?
+
+    InertiaRails.defer { projects_payload(archived: archived) }
+  end
+
+  def rollup_projects_path?
+    selected_interval.blank? && params[:from].blank? && params[:to].blank?
+  end
+
+  def rollup_projects_payload(archived:)
+    rollups = DashboardRollup
+      .where(user_id: current_user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true)
+      .to_a
+
+    DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds) if DashboardRollup.dirty?(current_user.id) || rollups.empty?
+    return InertiaRails.defer { projects_payload(archived: archived) } if rollups.empty?
+
+    mappings = current_user.project_repo_mappings.includes(:repository)
+    scoped_mappings = archived ? mappings.archived : mappings.active
+    mappings_by_name = scoped_mappings.index_by(&:project_name)
+    archived_names = current_user.project_repo_mappings.archived.pluck(:project_name).index_with(true)
+    repository_ids = scoped_mappings.where.not(repository_id: nil).distinct.pluck(:repository_id)
+    latest_user_commit_at_by_repo_id = Commit.where(user_id: current_user.id, repository_id: repository_ids)
+                                             .group(:repository_id)
+                                             .maximum(:created_at)
+
+    projects = rollups.filter_map do |rollup|
+      project_key = rollup.bucket
+      next if project_key.blank?
+      next if archived_names.key?(project_key) != archived
+
+      duration = rollup.total_seconds.to_i
+      next if duration <= 0
+
+      mapping = mappings_by_name[project_key]
+      project_summary_payload(project_key, duration, mapping, latest_user_commit_at_by_repo_id)
+    end.sort_by { |project| -project[:duration_seconds] }
+
+    build_projects_payload(projects)
+  end
+
+  def project_summary_payload(project_key, duration, mapping, latest_user_commit_at_by_repo_id)
+    display_name = project_key.presence || "Unknown"
+    broken = broken_project_name?(project_key, display_name)
+    url_safe = !broken && project_key.present?
+
+    {
+      id: project_card_id(project_key),
+      name: display_name,
+      project_key:,
+      url_safe:,
+      duration_seconds: duration,
+      duration_label: format_duration(duration),
+      duration_percent: 0,
+      repo_url: mapping&.repo_url,
+      repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
+      broken_name: broken,
+      manage_enabled: current_user.github_uid.present? && url_safe
+    }
+  end
+
+  def build_projects_payload(projects)
     max_duration = projects.map { |project| project[:duration_seconds].to_f }.max || 1.0
 
     projects.each do |project|
       project[:duration_percent] = ((project[:duration_seconds].to_f / max_duration) * 100).round(1)
     end
 
-    total_time = projects.sum { |p| p[:duration_seconds] }
+    total_time = projects.sum { |project| project[:duration_seconds] }
 
     {
       total_time_seconds: total_time,

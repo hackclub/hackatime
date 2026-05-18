@@ -36,6 +36,21 @@ class DashboardRollupRefreshService < ApplicationService
         )
       end
     end
+    project_details.each do |project, details|
+      records << build_record(
+        dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION,
+        bucket: project,
+        total_seconds: details.fetch(:total_seconds),
+        now: now,
+        source_heartbeats_count: details.fetch(:total_heartbeats),
+        source_max_heartbeat_time: details.fetch(:last_heartbeat),
+        payload: {
+          first_heartbeat: details.fetch(:first_heartbeat),
+          last_heartbeat: details.fetch(:last_heartbeat),
+          languages: details.fetch(:languages)
+        }
+      )
+    end
 
     DashboardRollup.transaction do
       DashboardRollup.where(user_id: @user.id).delete_all
@@ -111,6 +126,10 @@ class DashboardRollupRefreshService < ApplicationService
 
   def weekly_project_stats
     DashboardData::Snapshots.weekly_project_stats(user: @user, scope: @scope)
+  end
+
+  def project_details
+    DashboardData::Snapshots.project_details_snapshot(scope: @scope)
   end
 
   def activity_graph_payload
