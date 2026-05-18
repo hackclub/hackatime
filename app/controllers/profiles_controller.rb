@@ -70,7 +70,7 @@ class ProfilesController < InertiaController
 
   def activity
     Time.use_zone(@user.timezone) do
-      daily_durations = @user.heartbeats.daily_durations(user_timezone: @user.timezone).to_h
+      daily_durations = profile_activity_graph_data[:duration_by_date]
       render partial: "profiles/activity", locals: { daily_durations: daily_durations, user_tz: @user.timezone }
     end
   end
@@ -240,12 +240,8 @@ class ProfilesController < InertiaController
 
   def profile_stats_payload
     h = ApplicationController.helpers
-    timezone = @user.timezone
     stats = ProfileStatsService.new(@user).stats
-
-    durations = Rails.cache.fetch("user_#{@user.id}_daily_durations_#{timezone}", expires_in: 1.minute) do
-      Time.use_zone(timezone) { @user.heartbeats.daily_durations(user_timezone: timezone).to_h }
-    end
+    activity_graph = profile_activity_graph_data
 
     {
       totals: {
@@ -270,14 +266,22 @@ class ProfilesController < InertiaController
       top_editors: stats[:top_editors].map { |editor, duration|
         [ h.display_editor_name(editor), duration ]
       },
-      activity_graph: {
-        start_date: 365.days.ago.to_date.iso8601,
-        end_date: Time.current.to_date.iso8601,
-        duration_by_date: durations.transform_keys { |date| date.to_date.iso8601 }.transform_values(&:to_i),
-        busiest_day_seconds: 8.hours.to_i,
-        timezone_label: ActiveSupport::TimeZone[timezone].to_s
-      }
+      activity_graph: activity_graph
     }
+  end
+
+  def profile_activity_graph_data
+    timezone = @user.timezone
+    snapshot = Rails.cache.fetch(@user.activity_graph_cache_key(timezone), expires_in: 1.minute) do
+      DashboardData::Snapshots.activity_graph_snapshot(user: @user, scope: @user.heartbeats)
+    end
+
+    DashboardData::Snapshots.activity_graph_result(
+      start_date: snapshot[:start_date],
+      end_date: snapshot[:end_date],
+      duration_by_date: snapshot[:duration_by_date],
+      timezone: snapshot[:timezone]
+    )
   end
 
   def check_profile_visibility

@@ -330,7 +330,8 @@ class DashboardDataTest < ActiveSupport::TestCase
         end
 
         assert_equal 120, aggregate[:total_time]
-        assert_equal({ source: :live_today }, today_stats)
+        assert today_stats[:show_logged_time_sentence]
+        assert_equal [ ApplicationController.helpers.display_language_name("ruby") ], today_stats[:todays_languages]
         assert_equal 120, activity_graph[:duration_by_date]["2026-04-14"]
         assert_equal 1, enqueued_jobs.count { |job| job[:job] == DashboardRollupRefreshJob }
       end
@@ -381,7 +382,7 @@ class DashboardDataTest < ActiveSupport::TestCase
 
         assert_equal 120, aggregate[:total_time]
         assert today_stats[:show_logged_time_sentence]
-        assert_equal({ source: :live_activity }, activity_graph)
+        assert_equal 120, activity_graph[:duration_by_date]["2026-04-14"]
         assert_equal 1, enqueued_jobs.count { |job| job[:job] == DashboardRollupRefreshJob }
       end
     end
@@ -475,8 +476,9 @@ class DashboardDataTest < ActiveSupport::TestCase
         end
 
         assert_equal 120, aggregate[:total_time]
-        assert_equal({ source: :live_today }, today_stats)
-        assert_equal({ source: :live_activity }, activity_graph)
+        assert today_stats[:show_logged_time_sentence]
+        assert_equal [ ApplicationController.helpers.display_language_name("ruby") ], today_stats[:todays_languages]
+        assert_equal 120, activity_graph[:duration_by_date]["2026-04-14"]
         assert_equal 1, enqueued_jobs.count { |job| job[:job] == DashboardRollupRefreshJob }
       end
     end
