@@ -27,7 +27,7 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "alpha" ], page.dig("props", "projects_data", "projects").map { |project| project["name"] }
   end
 
-  test "index returns no projects when default rollups are missing" do
+  test "index falls back to deferred project data when default rollups are missing" do
     user = User.create!(timezone: "UTC")
     user.project_repo_mappings.create!(project_name: "alpha")
     create_project_heartbeats(user, "alpha")
@@ -38,9 +38,7 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     page = inertia_page
-    assert_nil page["deferredProps"]
-    assert_equal 0, page.dig("props", "total_projects")
-    assert_equal [], page.dig("props", "projects_data", "projects")
+    assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
   end
 
   test "index still defers interval-filtered project data" do

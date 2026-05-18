@@ -177,12 +177,12 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def rollup_projects_payload(archived:)
-    DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds) if DashboardRollup.dirty?(current_user.id)
-
     rollups = DashboardRollup
       .where(user_id: current_user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true)
       .to_a
-    return empty_projects_payload if rollups.empty?
+
+    DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds) if DashboardRollup.dirty?(current_user.id) || rollups.empty?
+    return InertiaRails.defer { projects_payload(archived: archived) } if rollups.empty?
 
     mappings = current_user.project_repo_mappings.includes(:repository)
     scoped_mappings = archived ? mappings.archived : mappings.active
