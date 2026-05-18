@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Popover, RadioGroup } from "bits-ui";
+  import { onMount } from "svelte";
   import Button from "../../../components/Button.svelte";
 
   const INTERVALS = [
@@ -69,7 +70,51 @@
     onchange("", "", "");
     open = false;
   }
+
+  // Popover is slow asf to mount for some reason :pf:
+  let popoverMounted = $state(false);
+
+  onMount(() => {
+    if (typeof window === "undefined") return undefined;
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(
+        () => {
+          popoverMounted = true;
+        },
+        { timeout: 1500 },
+      );
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(() => {
+      popoverMounted = true;
+    }, 200);
+    return () => clearTimeout(id);
+  });
+
+  function eagerOpen() {
+    popoverMounted = true;
+    queueMicrotask(() => {
+      open = true;
+    });
+  }
 </script>
+
+{#snippet triggerLabel()}
+  <span class="truncate font-medium">{displayLabel}</span>
+  <svg
+    class={`h-4 w-4 text-secondary/60 transition-all duration-200 group-hover:text-secondary ${open ? "rotate-180 text-primary" : ""}`}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      d="M19 9l-7 7-7-7"
+    ></path>
+  </svg>
+{/snippet}
 
 <div class="filter relative min-w-0">
   <span
@@ -78,35 +123,112 @@
     Date Range
   </span>
 
-  <Popover.Root bind:open>
-    <div
-      class="group m-0 flex min-w-0 items-center rounded-lg border border-surface-200 bg-surface-100 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200 focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/35 focus-within:ring-offset-1 focus-within:ring-offset-surface"
-    >
-      <Popover.Trigger>
-        {#snippet child({ props })}
+  {#if popoverMounted}
+    <Popover.Root bind:open>
+      <div
+        class="group m-0 flex min-w-0 items-center rounded-lg border border-surface-200 bg-surface-100 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200 focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/35 focus-within:ring-offset-1 focus-within:ring-offset-surface"
+      >
+        <Popover.Trigger>
+          {#snippet child({ props })}
+            <Button
+              type="button"
+              unstyled
+              class="m-0 flex min-w-0 flex-1 cursor-pointer select-none items-center justify-between border-0 bg-transparent px-3 py-2.5 text-sm text-surface-content"
+              {...props}
+            >
+              {@render triggerLabel()}
+            </Button>
+          {/snippet}
+        </Popover.Trigger>
+
+        {#if !isDefault}
           <Button
             type="button"
             unstyled
-            class="m-0 flex min-w-0 flex-1 cursor-pointer select-none items-center justify-between border-0 bg-transparent px-3 py-2.5 text-sm text-surface-content"
-            {...props}
+            class="m-0 cursor-pointer border-0 border-l border-surface-200 bg-transparent px-2.5 py-2 text-sm leading-none text-secondary/60 transition-colors duration-150 hover:bg-red/10 hover:text-red"
+            onclick={clear}
           >
-            <span class="truncate font-medium">{displayLabel}</span>
-            <svg
-              class={`h-4 w-4 text-secondary/60 transition-all duration-200 group-hover:text-secondary ${open ? "rotate-180 text-primary" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 9l-7 7-7-7"
-              ></path>
-            </svg>
+            ✕
           </Button>
-        {/snippet}
-      </Popover.Trigger>
+        {/if}
+      </div>
+
+      <Popover.Portal>
+        <Popover.Content
+          sideOffset={8}
+          align="start"
+          class="dashboard-select-popover z-1000 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-surface-content/20 bg-darkless/95 p-4 shadow-xl shadow-black/50 outline-none backdrop-blur-sm"
+        >
+          <div class="m-0 max-h-56 overflow-y-auto">
+            <RadioGroup.Root
+              value={selectedIntervalValue}
+              onValueChange={selectInterval}
+              class="flex flex-col gap-1 overflow-hidden"
+            >
+              {#each INTERVALS as interval}
+                <RadioGroup.Item
+                  value={interval.key}
+                  class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-muted outline-none transition-all duration-150 hover:bg-surface-100/60 hover:text-surface-content data-[highlighted]:bg-surface-100/70 data-[state=checked]:bg-primary/12 data-[state=checked]:text-surface-content"
+                >
+                  {#snippet children({ checked })}
+                    <span
+                      class={`mr-3 h-4 w-4 min-w-4 rounded-full border transition-colors ${checked ? "border-primary bg-primary shadow-[0_0_0_3px_rgba(0,0,0,0.2)]" : "border-surface-content/35 bg-surface/40"}`}
+                    ></span>
+                    <span>{interval.label}</span>
+                  {/snippet}
+                </RadioGroup.Item>
+              {/each}
+            </RadioGroup.Root>
+          </div>
+
+          <div class="mt-2 border-t border-surface-content/15 pt-2">
+            <div class="flex flex-col gap-2">
+              <label
+                class="flex items-center justify-between text-sm text-muted"
+              >
+                <span class="text-secondary/80">Start</span>
+                <input
+                  type="date"
+                  class="ml-2 h-9 rounded-md border border-surface-content/20 bg-dark px-3 text-sm text-muted transition-colors duration-150 focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-1 focus:ring-offset-dark"
+                  bind:value={customFrom}
+                />
+              </label>
+              <label
+                class="flex items-center justify-between text-sm text-muted"
+              >
+                <span class="text-secondary/80">End</span>
+                <input
+                  type="date"
+                  class="ml-2 h-9 rounded-md border border-surface-content/20 bg-dark px-3 text-sm text-muted transition-colors duration-150 focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-1 focus:ring-offset-dark"
+                  bind:value={customTo}
+                />
+              </label>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              class="mt-2 h-9 border-0"
+              onclick={applyCustomRange}
+            >
+              Apply
+            </Button>
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  {:else}
+    <div
+      class="group m-0 flex min-w-0 items-center rounded-lg border border-surface-200 bg-surface-100 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200 focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/35 focus-within:ring-offset-1 focus-within:ring-offset-surface"
+    >
+      <Button
+        type="button"
+        unstyled
+        class="m-0 flex min-w-0 flex-1 cursor-pointer select-none items-center justify-between border-0 bg-transparent px-3 py-2.5 text-sm text-surface-content"
+        onclick={eagerOpen}
+        aria-haspopup="dialog"
+      >
+        {@render triggerLabel()}
+      </Button>
 
       {#if !isDefault}
         <Button
@@ -119,64 +241,5 @@
         </Button>
       {/if}
     </div>
-
-    <Popover.Portal>
-      <Popover.Content
-        sideOffset={8}
-        align="start"
-        class="dashboard-select-popover z-1000 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-surface-content/20 bg-darkless/95 p-4 shadow-xl shadow-black/50 outline-none backdrop-blur-sm"
-      >
-        <div class="m-0 max-h-56 overflow-y-auto">
-          <RadioGroup.Root
-            value={selectedIntervalValue}
-            onValueChange={selectInterval}
-            class="flex flex-col gap-1 overflow-hidden"
-          >
-            {#each INTERVALS as interval}
-              <RadioGroup.Item
-                value={interval.key}
-                class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-muted outline-none transition-all duration-150 hover:bg-surface-100/60 hover:text-surface-content data-[highlighted]:bg-surface-100/70 data-[state=checked]:bg-primary/12 data-[state=checked]:text-surface-content"
-              >
-                {#snippet children({ checked })}
-                  <span
-                    class={`mr-3 h-4 w-4 min-w-4 rounded-full border transition-colors ${checked ? "border-primary bg-primary shadow-[0_0_0_3px_rgba(0,0,0,0.2)]" : "border-surface-content/35 bg-surface/40"}`}
-                  ></span>
-                  <span>{interval.label}</span>
-                {/snippet}
-              </RadioGroup.Item>
-            {/each}
-          </RadioGroup.Root>
-        </div>
-
-        <div class="mt-2 border-t border-surface-content/15 pt-2">
-          <div class="flex flex-col gap-2">
-            <label class="flex items-center justify-between text-sm text-muted">
-              <span class="text-secondary/80">Start</span>
-              <input
-                type="date"
-                class="ml-2 h-9 rounded-md border border-surface-content/20 bg-dark px-3 text-sm text-muted transition-colors duration-150 focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-1 focus:ring-offset-dark"
-                bind:value={customFrom}
-              />
-            </label>
-            <label class="flex items-center justify-between text-sm text-muted">
-              <span class="text-secondary/80">End</span>
-              <input
-                type="date"
-                class="ml-2 h-9 rounded-md border border-surface-content/20 bg-dark px-3 text-sm text-muted transition-colors duration-150 focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-1 focus:ring-offset-dark"
-                bind:value={customTo}
-              />
-            </label>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            class="mt-2 h-9 border-0"
-            onclick={applyCustomRange}
-          >
-            Apply
-          </Button>
-        </div>
-      </Popover.Content>
-    </Popover.Portal>
-  </Popover.Root>
+  {/if}
 </div>
