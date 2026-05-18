@@ -347,10 +347,10 @@ class DashboardStats
 
   def activity_graph_result(start_date:, end_date:, duration_by_date:, timezone:)
     DashboardData::Snapshots.activity_graph_result(
-      start_date: start_date,
-      end_date: end_date,
-      duration_by_date: duration_by_date,
-      timezone: timezone
+      start_date:,
+      end_date:,
+      duration_by_date:,
+      timezone:
     )
   end
 
