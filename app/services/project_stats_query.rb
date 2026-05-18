@@ -36,11 +36,14 @@ class ProjectStatsQuery
 
     durations = query.group(:project).duration_seconds
 
-    languages_by_project = query.where.not(language: [ nil, "" ])
-                                .group(:project, :language)
-                                .pluck(:project, :language)
-                                .group_by(&:first)
-                                .transform_values { |pairs| pairs.map(&:last).uniq }
+    project_names_by_name = names.index_with(true)
+    languages_by_project = scoped_heartbeats(stats_start_time, stats_end_time)
+      .where.not(language: [ nil, "" ])
+      .group(:project, :language)
+      .pluck(:project, :language)
+      .select { |project, _| project_names_by_name.key?(project) }
+      .group_by(&:first)
+      .transform_values { |pairs| pairs.map(&:last).uniq }
 
     repo_mappings = @user.project_repo_mappings
                          .where(project_name: names)

@@ -135,6 +135,19 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
     assert_equal project[:last_heartbeat], project[:most_recent_heartbeat]
   end
 
+  test "project details only returns languages for selected projects" do
+    base = 5.days.ago.to_f
+    create_heartbeat(project: "alpha", language: "Ruby", time: base)
+    create_heartbeat(project: "alpha", language: "TypeScript", time: base + 60)
+    create_heartbeat(project: "beta", language: "Go", time: base + 120)
+
+    query = ProjectStatsQuery.new(user: @user, params: {}, default_discovery_start: 0, default_stats_start: 0)
+
+    project = query.project_details(names: [ "alpha" ]).first
+
+    assert_equal [ "Ruby", "TypeScript" ], project[:languages].sort
+  end
+
   test "project details sorts projects by total_seconds descending" do
     base = 4.days.ago.to_f
     create_heartbeat(project: "alpha", time: base)
