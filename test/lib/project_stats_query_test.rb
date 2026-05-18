@@ -139,13 +139,14 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
     base = 5.days.ago.to_f
     create_heartbeat(project: "alpha", language: "Ruby", time: base)
     create_heartbeat(project: "alpha", language: "TypeScript", time: base + 60)
+    create_heartbeat(project: "alpha", language: "Visual Basic", time: base + 120)
     create_heartbeat(project: "beta", language: "Go", time: base + 120)
 
     query = ProjectStatsQuery.new(user: @user, params: {}, default_discovery_start: 0, default_stats_start: 0)
 
     project = query.project_details(names: [ "alpha" ]).first
 
-    assert_equal [ "Ruby", "TypeScript" ], project[:languages].sort
+    assert_equal [ "Ruby", "TypeScript", "Visual Basic" ], project[:languages].sort
   end
 
   test "project details uses project detail rollups for default all-time data" do
@@ -194,6 +195,7 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
     base = 5.days.ago.to_f
     create_heartbeat(project: "alpha", language: "Ruby", time: base)
     create_heartbeat(project: "alpha", language: "TypeScript", time: base + 60)
+    create_heartbeat(project: "alpha", language: "Visual Basic", time: base + 120)
 
     DashboardRollupRefreshService.new(user: @user).call
 
@@ -203,11 +205,11 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
       bucket_value: "alpha"
     )
 
-    assert_equal 60, rollup.total_seconds
-    assert_equal 2, rollup.source_heartbeats_count
+    assert_equal 120, rollup.total_seconds
+    assert_equal 3, rollup.source_heartbeats_count
     assert_in_delta base, rollup.payload["first_heartbeat"], 0.001
-    assert_in_delta base + 60, rollup.payload["last_heartbeat"], 0.001
-    assert_equal [ "Ruby", "TypeScript" ], rollup.payload["languages"].sort
+    assert_in_delta base + 120, rollup.payload["last_heartbeat"], 0.001
+    assert_equal [ "Ruby", "TypeScript", "Visual Basic" ], rollup.payload["languages"].sort
   end
 
   test "project details sorts projects by total_seconds descending" do

@@ -245,10 +245,6 @@ class My::ProjectRepoMappingsController < InertiaController
     }
   end
 
-  def empty_projects_payload
-    build_projects_payload([])
-  end
-
   def format_duration(seconds)
     helpers.short_time_detailed(seconds).presence || "0m"
   end

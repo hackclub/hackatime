@@ -63,7 +63,7 @@ module DashboardData
       return value if value.is_a?(Array)
       return [] if value.blank?
 
-      value.to_s.delete_prefix("{").delete_suffix("}").split(",")
+      PG::TextDecoder::Array.new.decode(value.to_s)
     end
 
     def weekly_project_stats(user:, scope:)
