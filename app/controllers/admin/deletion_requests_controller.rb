@@ -21,6 +21,7 @@ class Admin::DeletionRequestsController < Admin::BaseController
   end
 
   def create
+    user = nil
     user = User.find_by(id: deletion_request_params[:user_id])
     return redirect_to new_admin_deletion_request_path, alert: "user not found" unless user
 
@@ -46,7 +47,7 @@ class Admin::DeletionRequestsController < Admin::BaseController
       redirect_to admin_deletion_requests_path, notice: "deletion request created for #{user.display_name}"
     end
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to confirm_admin_deletion_requests_path(q: user.id), alert: e.message
+    redirect_to confirm_admin_deletion_requests_path(q: user&.id || deletion_request_params[:user_id]), alert: e.message
   end
 
 
