@@ -22,50 +22,51 @@ class ProjectStatsQuery
   end
 
   def project_details(names: nil)
-    names = normalize_names(names)
-    names = project_names if names.empty?
-    return [] if names.empty?
+    requested_names = normalize_names(names)
 
     query = scoped_heartbeats(stats_start_time, stats_end_time)
-            .where(project: names)
-    return [] unless query.exists?
+    query = query.where(project: requested_names) if requested_names.any?
 
-    stats = query.group(:project)
-                 .select("project, COUNT(*) AS heartbeat_count, MIN(time) AS first_heartbeat, MAX(time) AS last_heartbeat")
-                 .index_by(&:project)
+    stats = project_activity_stats(query)
+    return [] if stats.empty?
 
-    durations = query.group(:project).duration_seconds
+    candidate_names = requested_names.presence || stats.keys
+    repo_mappings = @user.project_repo_mappings
+                         .where(project_name: candidate_names)
+                         .index_by(&:project_name)
 
-    project_names_by_name = names.index_with(true)
-    languages_by_project = scoped_heartbeats(stats_start_time, stats_end_time)
+    selected_names = candidate_names.reject do |name|
+      !@include_archived && repo_mappings[name]&.archived?
+    end
+    selected_project_names = selected_names.index_with(true)
+
+    language_scope = scoped_heartbeats(stats_start_time, stats_end_time)
+    language_scope = language_scope.where(project: requested_names) if requested_names.any?
+
+    languages_by_project = language_scope
       .where.not(language: [ nil, "" ])
       .group(:project, :language)
       .pluck(:project, :language)
-      .select { |project, _| project_names_by_name.key?(project) }
+      .select { |project, _| selected_project_names.key?(project) }
       .group_by(&:first)
       .transform_values { |pairs| pairs.map(&:last).uniq }
 
-    repo_mappings = @user.project_repo_mappings
-                         .where(project_name: names)
-                         .index_by(&:project_name)
-
-    names.filter_map do |name|
+    selected_names.filter_map do |name|
       stat = stats[name]
       next unless stat
 
       repo_mapping = repo_mappings[name]
       archived = repo_mapping&.archived? || false
-      next if archived && !@include_archived
 
-      first_heartbeat = format_heartbeat_time(stat.first_heartbeat)
-      last_heartbeat = format_heartbeat_time(stat.last_heartbeat)
+      first_heartbeat = format_heartbeat_time(stat[:first_heartbeat])
+      last_heartbeat = format_heartbeat_time(stat[:last_heartbeat])
 
       {
         name: name,
-        total_seconds: durations[name] || 0,
+        total_seconds: stat[:total_seconds],
         languages: languages_by_project[name] || [],
         repo_url: repo_mapping&.repo_url,
-        total_heartbeats: stat.heartbeat_count || 0,
+        total_heartbeats: stat[:total_heartbeats],
         first_heartbeat: first_heartbeat,
         last_heartbeat: last_heartbeat,
         most_recent_heartbeat: last_heartbeat,
@@ -99,6 +100,38 @@ class ProjectStatsQuery
 
   def archived_project_names
     @archived_project_names ||= @user.project_repo_mappings.archived.pluck(:project_name)
+  end
+
+  def project_activity_stats(scope)
+    timeout = Heartbeat.heartbeat_timeout_duration.to_i
+    base_sql = scope.unscope(:group, :select, :order).select(:id, :project, :time).where.not(time: nil).to_sql
+
+    sql = <<~SQL.squish
+      SELECT grouped_time,
+             COUNT(*)::integer AS heartbeat_count,
+             MIN(time) AS first_heartbeat,
+             MAX(time) AS last_heartbeat,
+             COALESCE(SUM(diff), 0)::integer AS duration
+      FROM (
+        SELECT project AS grouped_time,
+               time,
+               CASE
+                 WHEN LAG(time) OVER (PARTITION BY project ORDER BY time, heartbeats.id) IS NULL THEN 0
+                 ELSE LEAST(time - LAG(time) OVER (PARTITION BY project ORDER BY time, heartbeats.id), #{timeout})
+               END AS diff
+        FROM (#{base_sql}) heartbeats
+      ) diffs
+      GROUP BY grouped_time
+    SQL
+
+    Heartbeat.connection.select_all(sql).each_with_object({}) do |row, hash|
+      hash[row["grouped_time"]] = {
+        total_seconds: row["duration"].to_i,
+        total_heartbeats: row["heartbeat_count"].to_i,
+        first_heartbeat: row["first_heartbeat"],
+        last_heartbeat: row["last_heartbeat"]
+      }
+    end
   end
 
   def discovery_start_time
