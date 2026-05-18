@@ -2,7 +2,6 @@ class ProfilesController < InertiaController
   layout "inertia"
 
   before_action :find_user
-  before_action :check_profile_visibility, only: %i[time_stats projects languages editors activity]
 
   def show
     if @user.nil?
@@ -33,45 +32,6 @@ class ProfilesController < InertiaController
       png = generated&.png || @user.profile_og_image.download
       filename = generated&.filename || blob.filename.to_s
       send_data png, filename: filename, type: "image/png", disposition: "inline"
-    end
-  end
-
-  def time_stats
-    Time.use_zone(@user.timezone) do
-      stats = ProfileStatsService.new(@user).stats
-      render partial: "profiles/time_stats", locals: {
-        total_time_today: stats[:total_time_today],
-        total_time_week: stats[:total_time_week],
-        total_time_all: stats[:total_time_all]
-      }
-    end
-  end
-
-  def projects
-    Time.use_zone(@user.timezone) do
-      stats = ProfileStatsService.new(@user).stats
-      render partial: "profiles/projects", locals: { projects: stats[:top_projects_month] }
-    end
-  end
-
-  def languages
-    Time.use_zone(@user.timezone) do
-      stats = ProfileStatsService.new(@user).stats
-      render partial: "profiles/languages", locals: { languages: stats[:top_languages] }
-    end
-  end
-
-  def editors
-    Time.use_zone(@user.timezone) do
-      stats = ProfileStatsService.new(@user).stats
-      render partial: "profiles/editors", locals: { editors: stats[:top_editors] }
-    end
-  end
-
-  def activity
-    Time.use_zone(@user.timezone) do
-      daily_durations = profile_activity_graph_data[:duration_by_date]
-      render partial: "profiles/activity", locals: { daily_durations: daily_durations, user_tz: @user.timezone }
     end
   end
 
@@ -130,7 +90,7 @@ class ProfilesController < InertiaController
       profile_visible: @profile_visible,
       is_own_profile: @is_own_profile,
       profile: profile_summary_payload,
-      stats: (@profile_visible ? profile_stats_payload : nil)
+      dashboard_stats: (@profile_visible ? ProfileStatsService.new(@user).dashboard_stats : nil)
     }
   end
 
@@ -236,60 +196,5 @@ class ProfilesController < InertiaController
     links << { key: "website", label: "Website", url: @user.profile_website_url } if @user.profile_website_url.present?
 
     links
-  end
-
-  def profile_stats_payload
-    h = ApplicationController.helpers
-    stats = ProfileStatsService.new(@user).stats
-    activity_graph = profile_activity_graph_data
-
-    {
-      totals: {
-        today_seconds: stats[:total_time_today],
-        week_seconds: stats[:total_time_week],
-        all_seconds: stats[:total_time_all],
-        today_label: h.short_time_simple(stats[:total_time_today]),
-        week_label: h.short_time_simple(stats[:total_time_week]),
-        all_label: h.short_time_simple(stats[:total_time_all])
-      },
-      top_projects_month: stats[:top_projects_month].map { |project|
-        {
-          project: project[:project],
-          duration_seconds: project[:duration],
-          duration_label: h.short_time_simple(project[:duration]),
-          repo_url: project[:repo_url]
-        }
-      },
-      top_languages: stats[:top_languages].map { |language, duration|
-        [ h.display_language_name(language), duration ]
-      },
-      top_editors: stats[:top_editors].map { |editor, duration|
-        [ h.display_editor_name(editor), duration ]
-      },
-      activity_graph: activity_graph
-    }
-  end
-
-  def profile_activity_graph_data
-    timezone = @user.timezone
-    snapshot = Rails.cache.fetch(@user.activity_graph_cache_key(timezone), expires_in: 1.minute) do
-      DashboardData::Snapshots.activity_graph_snapshot(user: @user, scope: @user.heartbeats)
-    end
-
-    DashboardData::Snapshots.activity_graph_result(
-      start_date: snapshot[:start_date],
-      end_date: snapshot[:end_date],
-      duration_by_date: snapshot[:duration_by_date],
-      timezone: snapshot[:timezone]
-    )
-  end
-
-  def check_profile_visibility
-    return if @user.nil?
-
-    is_own_profile = current_user && current_user.id == @user.id
-    profile_visible = @user.allow_public_stats_lookup || is_own_profile
-
-    head :not_found unless profile_visible
   end
 end
