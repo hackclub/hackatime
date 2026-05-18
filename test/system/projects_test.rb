@@ -12,6 +12,7 @@ class ProjectsTest < ApplicationSystemTestCase
     archived_mapping = @user.project_repo_mappings.create!(project_name: "archived-project")
     archived_mapping.archive!
     create_project_heartbeats(@user, "archived-project", started_at: 2.days.ago.change(hour: 14))
+    DashboardRollupRefreshService.new(user: @user).call
 
     visit my_projects_path
 

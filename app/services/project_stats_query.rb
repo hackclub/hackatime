@@ -24,10 +24,15 @@ class ProjectStatsQuery
   def project_details(names: nil)
     requested_names = normalize_names(names)
 
+    if requested_names.empty? && rollup_eligible?
+      rollup_details = rollup_project_details
+      return rollup_details if rollup_details
+    end
+
     query = scoped_heartbeats(stats_start_time, stats_end_time)
     query = query.where(project: requested_names) if requested_names.any?
 
-    stats = project_activity_stats(query)
+    stats = DashboardData::Snapshots.project_details_snapshot(scope: query)
     return [] if stats.empty?
 
     candidate_names = requested_names.presence || stats.keys
@@ -38,19 +43,6 @@ class ProjectStatsQuery
     selected_names = candidate_names.reject do |name|
       !@include_archived && repo_mappings[name]&.archived?
     end
-    selected_project_names = selected_names.index_with(true)
-
-    language_scope = scoped_heartbeats(stats_start_time, stats_end_time)
-    language_scope = language_scope.where(project: requested_names) if requested_names.any?
-
-    languages_by_project = language_scope
-      .where.not(language: [ nil, "" ])
-      .group(:project, :language)
-      .pluck(:project, :language)
-      .select { |project, _| selected_project_names.key?(project) }
-      .group_by(&:first)
-      .transform_values { |pairs| pairs.map(&:last).uniq }
-
     selected_names.filter_map do |name|
       stat = stats[name]
       next unless stat
@@ -64,7 +56,7 @@ class ProjectStatsQuery
       {
         name: name,
         total_seconds: stat[:total_seconds],
-        languages: languages_by_project[name] || [],
+        languages: stat[:languages] || [],
         repo_url: repo_mapping&.repo_url,
         total_heartbeats: stat[:total_heartbeats],
         first_heartbeat: first_heartbeat,
@@ -102,36 +94,52 @@ class ProjectStatsQuery
     @archived_project_names ||= @user.project_repo_mappings.archived.pluck(:project_name)
   end
 
-  def project_activity_stats(scope)
-    timeout = Heartbeat.heartbeat_timeout_duration.to_i
-    base_sql = scope.unscope(:group, :select, :order).select(:id, :project, :time).where.not(time: nil).to_sql
+  def rollup_project_details
+    project_detail_rows = DashboardRollup
+      .where(user_id: @user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true)
+      .to_a
+    return if project_detail_rows.empty?
 
-    sql = <<~SQL.squish
-      SELECT grouped_time,
-             COUNT(*)::integer AS heartbeat_count,
-             MIN(time) AS first_heartbeat,
-             MAX(time) AS last_heartbeat,
-             COALESCE(SUM(diff), 0)::integer AS duration
-      FROM (
-        SELECT project AS grouped_time,
-               time,
-               CASE
-                 WHEN LAG(time) OVER (PARTITION BY project ORDER BY time, heartbeats.id) IS NULL THEN 0
-                 ELSE LEAST(time - LAG(time) OVER (PARTITION BY project ORDER BY time, heartbeats.id), #{timeout})
-               END AS diff
-        FROM (#{base_sql}) heartbeats
-      ) diffs
-      GROUP BY grouped_time
-    SQL
+    DashboardRollupRefreshJob.schedule_for(@user.id, wait: 0.seconds) if DashboardRollup.dirty?(@user.id)
 
-    Heartbeat.connection.select_all(sql).each_with_object({}) do |row, hash|
-      hash[row["grouped_time"]] = {
-        total_seconds: row["duration"].to_i,
-        total_heartbeats: row["heartbeat_count"].to_i,
-        first_heartbeat: row["first_heartbeat"],
-        last_heartbeat: row["last_heartbeat"]
-      }
+    details_by_project = project_detail_rows.index_by(&:bucket)
+    details_by_project.delete("")
+    return if details_by_project.empty?
+
+    repo_mappings = @user.project_repo_mappings
+      .where(project_name: details_by_project.keys)
+      .index_by(&:project_name)
+
+    selected_names = details_by_project.keys.reject do |name|
+      !@include_archived && repo_mappings[name]&.archived?
     end
+
+    selected_names.filter_map do |name|
+      rollup = details_by_project[name]
+      payload = rollup.payload.to_h
+
+      repo_mapping = repo_mappings[name]
+      first_heartbeat = format_heartbeat_time(payload["first_heartbeat"])
+      last_heartbeat = format_heartbeat_time(payload["last_heartbeat"])
+
+      {
+        name: name,
+        total_seconds: rollup.total_seconds.to_i,
+        languages: Array(payload["languages"]).compact_blank,
+        repo_url: repo_mapping&.repo_url,
+        total_heartbeats: rollup.source_heartbeats_count.to_i,
+        first_heartbeat: first_heartbeat,
+        last_heartbeat: last_heartbeat,
+        most_recent_heartbeat: last_heartbeat,
+        archived: repo_mapping&.archived? || false
+      }
+    end.sort_by { |project| -project[:total_seconds] }
+  end
+
+  def rollup_eligible?
+    @params[:projects].blank? &&
+      %i[start start_date end end_date].none? { |key| @params[key].present? } &&
+      timestamp_value(@default_stats_start).to_f.zero?
   end
 
   def discovery_start_time
