@@ -1,0 +1,63 @@
+<div class="max-w-lg mx-auto p-6 space-y-6">
+  <header class="text-center mb-8">
+    <h1 class="text-4xl font-bold text-surface-content mb-2">confirm deletion</h1>
+  </header>
+
+  <% if flash[:alert] %>
+    <div class="border border-red rounded-xl p-4 bg-dark text-red text-sm"><%= flash[:alert] %></div>
+  <% end %>
+
+  <div class="border border-surface-200 rounded-xl p-6 bg-dark space-y-3">
+    <div class="flex items-center gap-4">
+      <img src="<%= @user.avatar_url %>" alt="Avatar" class="w-14 h-14 rounded-full">
+      <div>
+        <p class="text-surface-content font-semibold text-lg"><%= @user.display_name %></p>
+        <p class="text-muted text-sm">@<%= @user.username %> &middot; #<%= @user.id %></p>
+      </div>
+      <span class="ml-auto px-2 py-1 rounded text-xs font-medium
+        <%= case @user.trust_level
+            when 'green' then 'bg-green/20 text-green'
+            when 'yellow' then 'bg-yellow/20 text-yellow'
+            when 'red' then 'bg-red/20 text-red'
+            else 'bg-blue/20 text-blue'
+            end %>">
+        <%= @user.trust_level %>
+      </span>
+    </div>
+    <div class="text-sm text-muted space-y-1 pt-2 border-t border-surface-200">
+      <p>email: <%= @user.email_addresses.first&.email || "none" %></p>
+      <p>joined: <%= @user.created_at.strftime("%B %d, %Y") %></p>
+      <% if @user.active_deletion_request.present? %>
+        <p class="text-yellow">already has an active deletion request</p>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="border border-primary rounded-xl p-6 bg-dark">
+    <%= form_with url: admin_deletion_requests_path, method: :post, scope: :deletion_request do |f| %>
+      <%= f.hidden_field :user_id, value: @user.id %>
+      <div class="space-y-4">
+        <div class="border border-red/40 rounded-lg p-4 bg-red/5">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <%= f.check_box :instant, class: "mt-0.5 accent-red shrink-0" %>
+            <div>
+              <span class="text-red font-medium text-sm">instant deletion</span>
+              <p class="text-muted text-xs mt-0.5">skips the 30-day grace period. approves, sets deletion to now, and enqueues the job immediately. cannot be undone.</p>
+            </div>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-sm text-muted mb-1">type <span class="text-surface-content font-mono"><%= @user.username %></span> to confirm</label>
+          <%= f.text_field :confirm_username, value: "", class: "w-full bg-surface border border-surface-200 rounded-lg px-3 py-2 text-surface-content focus:outline-none focus:border-red font-mono", autocomplete: "off", autofocus: true %>
+        </div>
+
+        <%= f.submit "create deletion request", class: "w-full px-4 py-2 bg-red hover:bg-red text-on-primary font-medium rounded-lg transition-colors cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="text-center">
+    <%= link_to "back to lookup", new_admin_deletion_request_path, class: "text-sm text-muted hover:text-surface-content" %>
+  </div>
+</div>
