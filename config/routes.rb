@@ -79,7 +79,7 @@ Rails.application.routes.draw do
 
   constraints AdminLevelConstraint.new(:superadmin, :admin, :ultraadmin) do
     namespace :admin do
-      resources :deletion_requests, only: [ :index, :show ] do
+      resources :deletion_requests, only: [ :index, :show, :new, :create ] do
         member do
           post :approve
           post :reject

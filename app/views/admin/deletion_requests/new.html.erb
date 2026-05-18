@@ -1,0 +1,37 @@
+<div class="max-w-lg mx-auto p-6 space-y-6">
+  <header class="text-center mb-8">
+    <h1 class="text-4xl font-bold text-surface-content mb-2">manual del req</h1>
+    <p class="text-muted text-sm">create a deletion request on behalf of a user</p>
+  </header>
+
+  <% if flash[:alert] %>
+    <div class="border border-red rounded-xl p-4 bg-dark text-red text-sm"><%= flash[:alert] %></div>
+  <% end %>
+
+  <div class="border border-primary rounded-xl p-6 bg-dark">
+    <%= form_with url: admin_deletion_requests_path, method: :post do |f| %>
+      <div class="space-y-4">
+        <div>
+          <%= f.label :user_id, "user id", class: "block text-sm text-muted mb-1" %>
+          <%= f.number_field :user_id, name: "deletion_request[user_id]", class: "w-full bg-surface border border-surface-200 rounded-lg px-3 py-2 text-surface-content focus:outline-none focus:border-primary", placeholder: "12345", min: 1 %>
+        </div>
+
+<div class="border border-red/40 rounded-lg p-4 bg-red/5">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <%= f.check_box :instant, name: "deletion_request[instant]", class: "mt-0.5 accent-red shrink-0" %>
+            <div>
+              <span class="text-red font-medium text-sm">instant deletion</span>
+              <p class="text-muted text-xs mt-0.5">skips the 30-day grace period. approves, sets deletion to now, and enqueues the job immediately. cannot be undone.</p>
+            </div>
+          </label>
+        </div>
+
+        <%= f.submit "create deletion request", class: "w-full px-4 py-2 bg-red hover:bg-red text-on-primary font-medium rounded-lg transition-colors cursor-pointer mt-2" %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="text-center">
+    <%= link_to "← back to deletion requests", admin_deletion_requests_path, class: "text-sm text-muted hover:text-surface-content" %>
+  </div>
+</div>
