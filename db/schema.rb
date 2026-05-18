@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_12_142509) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
+  enable_extension "pg_trgm"
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
@@ -101,6 +102,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
     t.datetime "cancelled_at"
     t.datetime "completed_at"
     t.datetime "created_at", null: false
+    t.text "reason"
+    t.text "reason_details"
     t.datetime "requested_at", null: false
     t.datetime "scheduled_deletion_at"
     t.integer "status", default: 0, null: false
@@ -337,6 +340,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
     t.index ["time"], name: "index_heartbeats_on_time_active_covering", where: "(deleted_at IS NULL)", include: ["source_type"]
     t.index ["time"], name: "index_heartbeats_on_time_imported", where: "(source_type <> 0)"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
+    t.index ["user_agent"], name: "index_heartbeats_on_user_agent_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time_incl_editor", where: "(deleted_at IS NULL)", include: ["editor"]
     t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
@@ -508,6 +512,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
     t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.string "project_name", null: false
+    t.datetime "public_shared_at"
     t.string "repo_url"
     t.bigint "repository_id"
     t.datetime "updated_at", null: false
@@ -581,6 +586,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
     t.jsonb "projects_summary", default: {}, null: false
     t.string "slack_uid", null: false
     t.datetime "updated_at", null: false
+    t.index ["slack_uid"], name: "index_sailors_logs_on_slack_uid", unique: true
   end
 
   create_table "sign_in_tokens", force: :cascade do |t|
@@ -646,6 +652,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_23_222814) do
     t.string "profile_linkedin_url"
     t.string "profile_twitter_url"
     t.string "profile_website_url"
+    t.boolean "show_goals_in_statusbar", default: true, null: false
     t.text "slack_access_token"
     t.string "slack_avatar_url"
     t.string "slack_scopes", default: [], array: true

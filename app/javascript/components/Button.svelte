@@ -14,6 +14,7 @@
     variant = "primary",
     native = false,
     unstyled = false,
+    static: staticPress = false,
     children,
     class: className = "",
     ...rest
@@ -24,6 +25,7 @@
     variant?: ButtonVariant;
     native?: boolean;
     unstyled?: boolean;
+    static?: boolean;
     children?: Snippet;
     class?: string;
     [key: string]: unknown;
@@ -50,9 +52,10 @@
     unstyled
       ? className
       : [
-          "inline-flex items-center justify-center rounded-lg font-semibold transition-colors duration-200",
+          "inline-flex min-h-10 items-center justify-center rounded-lg font-semibold transition-[background-color,border-color,color,box-shadow,opacity,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
           "disabled:cursor-not-allowed disabled:opacity-60",
+          staticPress ? "" : "active:scale-[0.96]",
           sizeClasses[size],
           variantClasses[variant],
           className,

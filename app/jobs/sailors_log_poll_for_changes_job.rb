@@ -33,9 +33,18 @@ class SailorsLogPollForChangesJob < ApplicationJob
     return [] if sailors_log.user.active_remote_heartbeat_import_run?
 
     project_updates = []
-    project_durations = Heartbeat.where(user_id: sailors_log.user.id)
-                                 .group(:project).duration_seconds
+    project_durations = DashboardRollup
+      .where(user_id: sailors_log.user.id, dimension: "project", bucket_value_present: true)
+      .pluck(:bucket_value, :total_seconds)
+      .to_h
+
+    if project_durations.empty?
+      DashboardRollupRefreshJob.schedule_for(sailors_log.user.id, wait: 0.seconds)
+      return []
+    end
+
     project_durations.each do |k, v|
+      next if ignored_project?(k)
       old_duration = sailors_log.projects_summary[k] || 0
       new_duration = v
       if old_duration / 3600 < new_duration / 3600
@@ -48,7 +57,7 @@ class SailorsLogPollForChangesJob < ApplicationJob
     if sailors_log.changed?
       sailors_log.notification_preferences.each do |np|
         project_updates.each do |pu|
-          next if pu[:project].blank?
+          next if ignored_project?(pu[:project])
           notifications_to_create << {
             slack_uid: sailors_log.user.slack_uid,
             slack_channel_id: np.slack_channel_id,
@@ -62,6 +71,11 @@ class SailorsLogPollForChangesJob < ApplicationJob
     end
 
     notifications_to_create
+  end
+
+  def ignored_project?(project)
+    return true if project.blank?
+    [ "<<LAST_PROJECT>>", "Unknown" ].include?(project)
   end
 end
 

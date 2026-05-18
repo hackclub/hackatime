@@ -37,6 +37,14 @@ Rails.application.configure do
   config.log_tags = [ :request_id ]
   config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
 
+  # Send logs to Better Stack (Logtail) when configured.
+  if ENV["BETTER_STACK_SOURCE_TOKEN"].present?
+    config.logger = Logtail::Logger.create_default_logger(
+      ENV["BETTER_STACK_SOURCE_TOKEN"],
+      ingesting_host: ENV.fetch("BETTER_STACK_INGESTING_HOST", "s1234567.eu-nbg-2.betterstackdata.com")
+    )
+  end
+
   # Change to "debug" to log everything (including potentially personally-identifiable information!)
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 

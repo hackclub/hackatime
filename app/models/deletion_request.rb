@@ -10,16 +10,20 @@ class DeletionRequest < ApplicationRecord
   }
 
   validates :requested_at, presence: true
+  validates :reason, presence: true, if: -> { reason_details.present? }
+  validates :reason_details, presence: true, if: -> { reason.present? }
   validate :user_not_banned_from_deletion, on: :create
 
   scope :active, -> { where(status: [ :pending, :approved ]) }
   scope :ready_for_deletion, -> { approved.where("scheduled_deletion_at <= ?", Time.current) }
 
-  def self.create_for_user!(user)
+  def self.create_for_user!(user, reason: nil, reason_details: nil)
     create!(
       user: user,
       requested_at: Time.current,
-      status: :pending
+      status: :pending,
+      reason: reason,
+      reason_details: reason_details
     )
   end
 

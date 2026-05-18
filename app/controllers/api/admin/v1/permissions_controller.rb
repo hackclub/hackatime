@@ -2,6 +2,8 @@ module Api
   module Admin
     module V1
       class PermissionsController < Api::Admin::V1::ApplicationController
+        include AdminLevelChangeMessages
+
         before_action :require_superadmin
 
         def index
@@ -41,7 +43,11 @@ module Api
             return render json: { error: "Invalid admin level" }, status: :unprocessable_entity
           end
 
-          if user.set_admin_level(new_level)
+          unless current_user.can_change_admin_level_of?(user, new_level)
+            return render json: { error: admin_level_change_denial_message(user, new_level) }, status: :forbidden
+          end
+
+          if user.set_admin_level(new_level, changed_by_user: current_user)
             Rails.logger.info "Admin level changed: User #{user.id} (#{user.display_name}) from #{previous_level} to #{new_level} by #{current_user.display_name}"
 
             render json: {

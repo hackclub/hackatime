@@ -105,7 +105,7 @@ module Api
             WITH heartbeats_with_gaps AS (
               SELECT
                 date_trunc('day', to_timestamp("time"))::date as day,
-                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time") as gap
+                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time", id) as gap
               FROM heartbeats
               WHERE user_id = ? AND time >= ? AND time <= ?
             )
@@ -211,54 +211,6 @@ module Api
           render json: { candidates: result.to_a }
         end
 
-        def shared_machines
-          lookback_days = (params[:lookback_days] || 30).to_i.clamp(1, 365)
-          cutoff = lookback_days.days.ago.to_i
-
-          query = <<-SQL
-            SELECT
-              sms.machine,
-              sms.machine_frequency,
-              ARRAY_AGG(DISTINCT u.id) AS user_ids
-            FROM
-              (
-                SELECT
-                  machine,
-                  COUNT(user_id) AS machine_frequency,
-                  ARRAY_AGG(user_id) AS user_ids
-                FROM
-                  (
-                    SELECT DISTINCT
-                      machine,
-                      user_id
-                    FROM
-                      heartbeats
-                    WHERE
-                      machine IS NOT NULL
-                      AND time > ?
-                  ) AS UserMachines
-                GROUP BY
-                  machine
-                HAVING
-                  COUNT(user_id) > 1
-              ) AS sms,
-              LATERAL UNNEST(sms.user_ids) AS user_id_from_array
-            JOIN
-              users AS u ON u.id = user_id_from_array
-            GROUP BY
-              sms.machine,
-              sms.machine_frequency
-            ORDER BY
-              sms.machine_frequency DESC
-            LIMIT 5000
-          SQL
-
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff ])
-          )
-
-          render json: { machines: result.to_a }
-        end
 
         def active_users
           since_ts = params[:since].to_i
@@ -317,6 +269,84 @@ module Api
           end
 
           render json: { counts: counts }
+        end
+
+        def heartbeats_by_user_agent_segment
+          segment = params[:segment].to_s.strip
+
+          if segment.blank?
+            render json: { error: "segment parameter required" }, status: :unprocessable_entity
+            return
+          end
+
+          if segment.length < 3
+            render json: { error: "segment must be at least 3 characters" }, status: :unprocessable_entity
+            return
+          end
+
+          start_timestamp = nil
+          end_timestamp = nil
+
+          if params[:start_date].present?
+            start_timestamp = parse_timestamp_param(params[:start_date], field_name: "start_date", boundary: :start)
+            return if performed?
+          end
+
+          if params[:end_date].present?
+            end_timestamp = parse_timestamp_param(params[:end_date], field_name: "end_date", boundary: :end)
+            return if performed?
+          end
+
+          limit = (params[:limit] || 1000).to_i.clamp(1, 5_000)
+          offset = (params[:offset] || 0).to_i.clamp(0, Float::INFINITY)
+          user_id = params[:user_id].presence
+
+          # Escape LIKE wildcards in the segment so it's matched as a literal substring.
+          escaped = segment.gsub(/[\\%_]/) { |c| "\\#{c}" }
+          pattern = "%#{escaped}%"
+
+          query = Heartbeat.where("user_agent ILIKE ?", pattern)
+          query = query.where(user_id: user_id) if user_id
+          query = query.where("time >= ?", start_timestamp) if start_timestamp
+          query = query.where("time <= ?", end_timestamp) if end_timestamp
+
+          if ActiveModel::Type::Boolean.new.cast(params[:count_only])
+            render json: { segment: segment, total_count: query.limit(nil).count }
+            return
+          end
+
+          heartbeats = query.order(time: :desc).limit(limit + 1).offset(offset).to_a
+          has_more = heartbeats.size > limit
+          heartbeats = heartbeats.first(limit)
+
+          render json: {
+            segment: segment,
+            limit: limit,
+            offset: offset,
+            heartbeats: heartbeats.map do |hb|
+              {
+                id: hb.id,
+                user_id: hb.user_id,
+                time: hb.time,
+                project: hb.project,
+                language: hb.language,
+                entity: hb.entity,
+                branch: hb.branch,
+                category: hb.category,
+                editor: hb.editor,
+                machine: hb.machine,
+                operating_system: hb.operating_system,
+                user_agent: hb.user_agent,
+                ip_address: hb.ip_address,
+                is_write: hb.is_write,
+                lineno: hb.lineno,
+                cursorpos: hb.cursorpos,
+                lines: hb.lines,
+                source_type: hb.source_type
+              }
+            end,
+            has_more: has_more
+          }
         end
 
         def banned_users

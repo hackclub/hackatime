@@ -2,9 +2,10 @@
   import { router } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
+  import { adminAccountMerger } from "../../api";
 
-  let { search_url, merge_url }: { search_url: string; merge_url: string } =
-    $props();
+  const searchUrl = adminAccountMerger.searchUsers.path();
+  const mergeUrl = adminAccountMerger.merge.path();
 
   type UserResult = {
     id: number;
@@ -42,7 +43,7 @@
 
     try {
       const res = await fetch(
-        `${search_url}?query=${encodeURIComponent(query.trim())}`,
+        `${searchUrl}?query=${encodeURIComponent(query.trim())}`,
       );
       if (!res.ok) throw new Error(`Search failed with ${res.status}`);
 
@@ -125,7 +126,7 @@
   function handleMerge() {
     merging = true;
     router.post(
-      merge_url,
+      mergeUrl,
       { older_id: olderUser!.id, newer_id: newerUser!.id },
       {
         onFinish: () => {
@@ -203,7 +204,7 @@
               oninput={onOlderInput}
               onkeydown={(e) => handleKeydown(e, "older")}
               autocomplete="off"
-              class="w-full rounded-lg border border-surface-200 bg-darker py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
+              class="w-full rounded-lg border border-surface-200 bg-input py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
             />
           </div>
           {#if olderOpen && olderResults.length > 0}
@@ -332,7 +333,7 @@
               oninput={onNewerInput}
               onkeydown={(e) => handleKeydown(e, "newer")}
               autocomplete="off"
-              class="w-full rounded-lg border border-surface-200 bg-darker py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
+              class="w-full rounded-lg border border-surface-200 bg-input py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
             />
           </div>
           {#if newerOpen && newerResults.length > 0}

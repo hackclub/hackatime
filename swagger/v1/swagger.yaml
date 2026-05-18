@@ -950,6 +950,151 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/heartbeats/by_user_agent_segment":
+    get:
+      summary: Get heartbeats matching a user_agent segment
+      tags:
+      - Admin Utils
+      description: Returns heartbeats whose user_agent contains the given substring
+        (e.g. "Godot_Super-Wakatime/2.0.0"). Useful for monitoring how a specific
+        editor/plugin behaves over time. Use count_only=true to avoid streaming rows
+        when only the total is needed.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: segment
+        in: query
+        required: true
+        description: Substring of user_agent to match (case-insensitive). Min length
+          3.
+        schema:
+          type: string
+      - name: user_id
+        in: query
+        required: false
+        description: Optional user ID to scope the query to a single user.
+        schema:
+          type: string
+      - name: start_date
+        in: query
+        required: false
+        description: Start date (YYYY-MM-DD or epoch seconds)
+        schema:
+          type: string
+      - name: end_date
+        in: query
+        required: false
+        description: End date (YYYY-MM-DD or epoch seconds)
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        description: Page size (default 1000, max 5000)
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        required: false
+        description: Pagination offset
+        schema:
+          type: integer
+      - name: count_only
+        in: query
+        required: false
+        description: If true, return only total_count and skip row payload
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: object
+                  properties:
+                    segment:
+                      type: string
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    heartbeats:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          user_id:
+                            type: integer
+                          time:
+                            type: number
+                          project:
+                            type: string
+                            nullable: true
+                          language:
+                            type: string
+                            nullable: true
+                          entity:
+                            type: string
+                            nullable: true
+                          branch:
+                            type: string
+                            nullable: true
+                          category:
+                            type: string
+                            nullable: true
+                          editor:
+                            type: string
+                            nullable: true
+                          machine:
+                            type: string
+                            nullable: true
+                          operating_system:
+                            type: string
+                            nullable: true
+                          user_agent:
+                            type: string
+                            nullable: true
+                          ip_address:
+                            type: string
+                            nullable: true
+                          is_write:
+                            type: boolean
+                            nullable: true
+                          lineno:
+                            type: integer
+                            nullable: true
+                          cursorpos:
+                            type: integer
+                            nullable: true
+                          lines:
+                            type: integer
+                            nullable: true
+                          source_type:
+                            type: string
+                            nullable: true
+                    has_more:
+                      type: boolean
+                - type: object
+                  description: Returned when count_only=true
+                  additionalProperties: false
+                  required:
+                  - segment
+                  - total_count
+                  properties:
+                    segment:
+                      type: string
+                    total_count:
+                      type: integer
+        '422':
+          description: missing segment
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/api/admin/v1/user/heartbeat_values":
     get:
       summary: Get heartbeat values
@@ -1496,6 +1641,96 @@ paths:
                           description: Primary email or "no email"
         '401':
           description: unauthorized
+  "/api/admin/v1/heartbeats/ip_machine_pairs":
+    get:
+      summary: List users sharing the same machine + IP combination
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results (default: 1000, max: 10000)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: returns empty pairs when no shared machine+IP exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_a_id:
+                          type: integer
+                        user_b_id:
+                          type: integer
+                        machine:
+                          type: string
+                        ip_address:
+                          type: string
+                        user_a_first_seen:
+                          type: integer
+                        user_a_last_seen:
+                          type: integer
+                        user_b_first_seen:
+                          type: integer
+                        user_b_last_seen:
+                          type: integer
+  "/api/admin/v1/heartbeats/shared_machines":
+    get:
+      summary: List machines used by multiple users
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results (default: 1000, max: 10000)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: excludes machines used by only one user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  machines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        machine:
+                          type: string
+                        machine_frequency:
+                          type: integer
+                        user_ids:
+                          type: array
+                          items:
+                            type: integer
   "/api/admin/v1/permissions":
     get:
       summary: List Permissions
@@ -1695,7 +1930,7 @@ paths:
                             example: 7200.0
                           text:
                             type: string
-                            example: 2h 30m / 4h today
+                            example: 2h 30m / 4h goal
                       goal:
                         type: object
                         nullable: true
@@ -3361,35 +3596,6 @@ paths:
       tags:
       - Slack
       description: Handle incoming Slack slash commands for Sailor's Log (/sailorslog).
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  response_type:
-                    type: string
-                  text:
-                    type: string
-                    nullable: true
-                  blocks:
-                    type: array
-                    items:
-                      type: object
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: string
-  "/timedump/slack/commands":
-    post:
-      summary: Handle Timedump Command
-      tags:
-      - Slack
-      description: Handle incoming Slack slash commands for Timedump (/timedump).
       parameters: []
       responses:
         '200':

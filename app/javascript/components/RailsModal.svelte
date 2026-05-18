@@ -12,7 +12,6 @@
     modalId,
     title,
     description = "",
-    iconHtml = "",
     customHtml = "",
     actionsHtml = "",
     maxWidth = "max-w-md",
@@ -20,7 +19,6 @@
     modalId: string;
     title: string;
     description?: string;
-    iconHtml?: string;
     customHtml?: string;
     actionsHtml?: string;
     maxWidth?: string;
@@ -59,14 +57,9 @@
   {description}
   {maxWidth}
   onContentClick={handleActionClick}
-  hasIcon={Boolean(iconHtml)}
   hasBody={Boolean(customHtml)}
   hasActions={Boolean(actionsHtml)}
 >
-  {#snippet icon()}
-    {@html iconHtml}
-  {/snippet}
-
   {#snippet body()}
     {@html customHtml}
   {/snippet}

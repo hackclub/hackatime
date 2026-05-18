@@ -106,7 +106,7 @@ class DashboardRollupRefreshService < ApplicationService
   def grouped_durations(dimension)
     return project_grouped_durations if dimension == :project
 
-    @scope.group(dimension).duration_seconds
+    Heartbeat.attributed_durations_by(@scope, dimension)
   end
 
   def project_grouped_durations
@@ -126,7 +126,7 @@ class DashboardRollupRefreshService < ApplicationService
     relation_sql = @scope.with_valid_timestamps
       .where.not(time: nil)
       .where(time: week_ranges.last[1]..week_ranges.first[2])
-      .select(:time, :project)
+      .select(:id, :time, :project)
       .to_sql
 
     quoted_timezone = Heartbeat.connection.quote(@user.timezone)
@@ -140,9 +140,9 @@ class DashboardRollupRefreshService < ApplicationService
         SELECT project AS grouped_time,
                #{week_group_sql} AS week_group,
                CASE
-                 WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time) IS NULL THEN 0
+                 WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
                  ELSE LEAST(
-                   time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time),
+                   time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
                    #{Heartbeat.heartbeat_timeout_duration.to_i}
                  )
                END AS diff

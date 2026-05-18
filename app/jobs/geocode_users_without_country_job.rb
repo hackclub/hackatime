@@ -6,84 +6,58 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
 
   enqueue_limit 1
 
-  BATCH_SIZE = 500 # moving this higher can make stuff shaky, do it at your own risk!
-
   def perform
-    heartbeats_with_ip = Heartbeat.where.not(ip_address: nil)
-                                  .where("heartbeats.user_id = users.id")
+    rows = ActiveRecord::Base.connection.select_rows(<<~SQL.squish)
+      SELECT u.id AS user_id, h.ip_address
+      FROM (
+        SELECT id FROM users WHERE country_code IS NULL
+      ) AS u(id)
+      CROSS JOIN LATERAL (
+        SELECT ip_address
+        FROM heartbeats
+        WHERE heartbeats.user_id = u.id
+          AND heartbeats.ip_address IS NOT NULL
+          AND heartbeats.deleted_at IS NULL
+        ORDER BY heartbeats.id DESC
+        LIMIT 1
+      ) AS h
+    SQL
 
-    scope = User.where(country_code: nil)
-                .where(heartbeats_with_ip.arel.exists)
+    return if rows.empty?
 
-    scope.in_batches(of: BATCH_SIZE) do |relation|
-      User.transaction do
-        ActiveRecord::Base.connection.execute("SET LOCAL lock_timeout = '1s'")
-        ActiveRecord::Base.connection.execute("SET LOCAL statement_timeout = '30s'")
-        users = relation.select(:id, :timezone).to_a
-        x(users)
-      end
+    ids_by_ip = rows.group_by(&:last).transform_values { |pairs| pairs.map(&:first) }
+
+    # Try IP-based geocoding first
+    ids_by_ip.each do |ip, user_ids|
+      country_code = geo(ip)
+      next if country_code.blank?
+
+      # Each user has only one IP because the lateral heartbeat query uses LIMIT 1
+      # (but if we change this later, I think (?) we need to update this too)
+      User.where(id: user_ids).update_all(country_code: country_code)
     end
-  rescue ActiveRecord::LockWaitTimeout, ActiveRecord::QueryAborted => e
-    Rails.logger.warn "GeocodeUsersWithoutCountryJob backing off due to lock contention: #{e.message}"
-    self.class.set(wait: 5.minutes).perform_later
+
+    # Fallback to timezone-based detection for anyone we couldn't geocode by IP
+    all_user_ids = rows.map(&:first)
+    users_by_timezone = User.where(id: all_user_ids, country_code: nil)
+      .where.not(timezone: [ nil, "", "UTC" ])
+      .pluck(:timezone, :id)
+      .group_by(&:first)
+
+    users_by_timezone.each do |timezone, pairs|
+      country_code = tz_to_cc(timezone)
+      next if country_code.blank?
+
+      User.where(id: pairs.map(&:last)).update_all(country_code: country_code)
+    end
   end
 
   private
 
-  def x(users)
-    return if users.empty?
-
-    ips_by_user = find(users.map(&:id))
-    updates = {}
-
-    users.each do |user|
-      ips = ips_by_user[user.id] || []
-      country_code = find_country_code(user, ips)
-      updates[user.id] = country_code if country_code.present?
-    end
-
-    return if updates.empty?
-
-    User.upsert_all(
-      updates.map { |id, code| { id: id, country_code: code } },
-      unique_by: :id,
-      update_only: [ :country_code ]
-    )
-  end
-
-  def find(user_ids)
-    return {} if user_ids.empty?
-
-    ranked = Heartbeat
-      .where(user_id: user_ids)
-      .where.not(ip_address: nil)
-      .select(<<~SQL.squish)
-        user_id,
-        ip_address,
-        row_number() OVER (PARTITION BY user_id ORDER BY id DESC) AS rn
-      SQL
-
-    Heartbeat
-      .unscoped
-      .from(ranked, :ranked_heartbeats)
-      .where("rn <= 10")
-      .pluck(:user_id, :ip_address)
-      .group_by(&:first)
-      .transform_values { |pairs| pairs.map(&:last).uniq }
-  end
-
-  def find_country_code(user, ips)
-    ips.each do |ip_address|
-      country_code = geo(ip_address)
-      return country_code if country_code.present?
-    end
-
-    tz_to_cc(user.timezone)
-  end
-
   def geo(ip)
     result = Geocoder.search(ip).first
     return nil unless result&.country_code.present?
+
     result.country_code.upcase
   rescue => e
     report_error(e, message: "geocode fail on #{ip}")
@@ -95,6 +69,7 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
 
     tz = ActiveSupport::TimeZone[timezone]
     return nil unless tz&.tzinfo&.respond_to?(:country_code)
+
     tz.tzinfo.country_code&.upcase
   rescue => e
     report_error(e, message: "timezone geocode fail for #{timezone}")

@@ -5,24 +5,30 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { BadgesPageProps } from "./types";
+  import { settingsPrivacy } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
     badge_themes,
     badges,
     allow_public_stats_lookup,
-    settings_update_path,
     errors,
   }: BadgesPageProps = $props();
 
+  // Public stats live on the Privacy controller; toggle via that endpoint.
+  const privacyUpdatePath = settingsPrivacy.update.path();
+
   function enablePublicStats() {
-    router.patch(settings_update_path, {
-      user: { allow_public_stats_lookup: true },
-    });
+    router.patch(
+      privacyUpdatePath,
+      {
+        user: { allow_public_stats_lookup: true },
+      },
+      { preserveScroll: true },
+    );
   }
 
   const defaultTheme = (themes: string[]) =>
@@ -68,14 +74,7 @@
   <title>Badges - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   {#if !allow_public_stats_lookup}
     <div
       class="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-surface-content"
@@ -129,7 +128,7 @@
           <img
             src={badgeUrl()}
             alt="General coding stats badge preview"
-            class="max-w-full rounded"
+            class="settings-image-outline max-w-full rounded"
           />
           <pre
             class="mt-3 overflow-x-auto text-xs text-surface-content">{badgeUrl()}</pre>
@@ -156,7 +155,7 @@
             <img
               src={projectBadgeUrl()}
               alt="Project stats badge preview"
-              class="max-w-full rounded"
+              class="settings-image-outline max-w-full rounded"
             />
             <pre
               class="mt-3 overflow-x-auto text-xs text-surface-content">{projectBadgeUrl()}</pre>
@@ -188,7 +187,7 @@
       <img
         src={badges.markscribe_preview_image_url}
         alt="Example markscribe output"
-        class="mt-4 w-full max-w-3xl rounded-md border border-surface-200"
+        class="settings-image-outline mt-4 w-full max-w-3xl rounded-md"
       />
     </SectionCard>
 
@@ -211,7 +210,7 @@
           <img
             src={badges.heatmap_badge_url}
             alt="Heatmap badge preview"
-            class="max-w-full"
+            class="settings-image-outline max-w-full"
           />
         </a>
         <pre
@@ -237,7 +236,7 @@
       <img
         src={badges.hackabox_preview_image_url}
         alt="Example hackabox output"
-        class="mt-4 w-full max-w-3xl rounded-md border border-surface-200"
+        class="settings-image-outline mt-4 w-full max-w-3xl rounded-md"
       />
     </SectionCard>
   </div>

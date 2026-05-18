@@ -20,6 +20,7 @@ RUN apt-get update -qq && \
     libvips \
     sqlite3 \
     libpq5 \
+    tar \
     vim \
     wget && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives

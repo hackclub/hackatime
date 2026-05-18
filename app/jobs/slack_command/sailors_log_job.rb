@@ -2,14 +2,16 @@ class SlackCommand::SailorsLogJob < ApplicationJob
   queue_as :latency_10s
 
   def perform(params)
-    case params[:text].downcase.strip
+    command_text = params[:text].to_s.downcase.strip
+
+    case command_text
     when "on", "off"
       SlackCommand::SailorsLogOnOffJob.perform_now(
         params[:user_id],
         params[:channel_id],
         params[:user_name],
         params[:response_url],
-        params[:text].downcase.strip == "on",
+        command_text == "on",
       )
     when "leaderboard"
       # Process in background

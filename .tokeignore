@@ -7,3 +7,4 @@ tsconfig.json
 tsconfig.*.json
 db/migrate/
 config/languages.yml
+app/javascript/api/

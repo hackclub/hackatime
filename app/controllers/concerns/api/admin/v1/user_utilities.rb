@@ -321,7 +321,7 @@ module Api
             return render json: { error: "read the docs you idiot" }, status: :unprocessable_entity
           end
 
-          if trust_level == "red" && !current_user.can_convict_users?
+          unless current_user.can_change_trust_of?(user, trust_level)
             return render json: { error: "no perms lmaooo" }, status: :forbidden
           end
 

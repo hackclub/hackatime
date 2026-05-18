@@ -133,7 +133,22 @@ class FlavorText
       "You're doing great!",
       "You're a star!",
       "Keep it up!",
-      "No stopping you!"
+      "No stopping you!",
+      "You're crushing it!",
+      "Look at you go!",
+      "Absolute legend!",
+      "You're on fire!",
+      "Nailed it!",
+      "Unstoppable!",
+      "Way to go!",
+      "You've got this!",
+      "Smashing it!",
+      "Total rockstar!",
+      "Brilliant work!",
+      "You're the best!",
+      "Keep shining!",
+      "Phenomenal!",
+      "You're killing it!"
     ]
   end
 

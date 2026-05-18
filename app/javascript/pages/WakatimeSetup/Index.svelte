@@ -3,19 +3,24 @@
   import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
+  import { apiV1MyHeartbeats } from "../../api";
 
   interface Props {
     current_user_api_key: string;
     setup_os: string;
     api_url: string;
-    heartbeat_check_url: string;
   }
 
-  let { current_user_api_key, setup_os, api_url, heartbeat_check_url }: Props =
-    $props();
+  let { current_user_api_key, setup_os, api_url }: Props = $props();
 
-  const isWindows = setup_os === "windows";
-  let activeSection = $state(isWindows ? "windows" : "mac-linux");
+  const heartbeatCheckUrl = apiV1MyHeartbeats.mostRecent.path({
+    query: { source_type: "test_entry" },
+  });
+
+  const defaultSection = () =>
+    setup_os === "windows" ? "windows" : "mac-linux";
+  let activeSection = $state(defaultSection());
+  const isWindows = $derived(setup_os === "windows");
 
   const tabBase =
     "flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]";
@@ -56,7 +61,7 @@
 
   async function checkHeartbeat() {
     try {
-      const response = await fetch(heartbeat_check_url, {
+      const response = await fetch(heartbeatCheckUrl, {
         headers: {
           Authorization: `Bearer ${current_user_api_key}`,
         },
@@ -220,7 +225,7 @@
                   >
                     <pre
                       class="p-4 pr-20 text-sm font-mono text-cyan whitespace-pre-wrap break-all"><code
-                        >curl -fsSL https://hack.club/setup/install.sh | bash -s -- {current_user_api_key}</code
+                        >curl -fsSL https://raw.githubusercontent.com/hackclub/hackatime-setup/refs/heads/main/install.sh | bash -s -- {current_user_api_key}</code
                       ></pre>
                   </div>
                 </div>
@@ -308,7 +313,7 @@
                   >
                     <pre
                       class="p-4 pr-20 text-sm font-mono text-cyan whitespace-pre-wrap break-all"><code
-                        >& ([scriptblock]::Create((irm https://hack.club/setup/install.ps1))) -ApiKey {current_user_api_key}</code
+                        >& ([scriptblock]::Create((irm https://raw.githubusercontent.com/hackclub/hackatime-setup/refs/heads/main/install.ps1))) -ApiKey {current_user_api_key}</code
                       ></pre>
                   </div>
                 </div>

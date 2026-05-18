@@ -17,10 +17,10 @@
   <div
     class="relative flex items-center justify-between w-full max-w-2xl mx-auto"
   >
-    <div class="absolute top-5 left-0 w-full h-0.5 bg-darkless -z-10"></div>
+    <div class="absolute top-5 left-5 right-5 h-0.5 bg-darkless -z-10"></div>
 
     {#each steps as step}
-      <div class="flex flex-col items-center gap-2 bg-darker z-10 px-2">
+      <div class="flex flex-col items-center gap-2 z-10">
         <div
           class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors duration-200
           {currentStep > step.number
