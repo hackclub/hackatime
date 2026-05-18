@@ -16,17 +16,12 @@ class StaticPagesController < InertiaController
 
       if !current_user.heartbeats.exists? || params[:show_wakatime_setup_notice]
         @show_wakatime_setup_notice = true
-        if (ssp = Cache::SetupSocialProofJob.perform_now)
-          @ssp_message, @ssp_users_recent, @ssp_users_size = ssp.values_at(:message, :users_recent, :users_size)
-        end
       end
 
       render inertia: "Home/SignedIn", props: signed_in_props
     else
       # Set homepage SEO content for logged-out users only
       set_homepage_seo_content
-
-      @usage_social_proof = Cache::UsageSocialProofJob.perform_now
 
       @home_stats = Cache::HomeStatsJob.perform_now
 
@@ -137,9 +132,6 @@ class StaticPagesController < InertiaController
       flavor_text: @flavor_text.to_s,
       trust_level_red: current_user&.trust_level == "red",
       show_wakatime_setup_notice: !!@show_wakatime_setup_notice,
-      ssp_message: @ssp_message,
-      ssp_users_recent: @ssp_users_recent || [],
-      ssp_users_size: @ssp_users_size || @ssp_users_recent&.size || 0,
       github_uid_blank: current_user&.github_uid.blank?,
       dashboard_stats: dashboard_stats || InertiaRails.defer { dashboard_stats_payload }
     }

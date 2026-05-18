@@ -90,16 +90,6 @@ Rails.application.configure do
       class: "Cache::ActiveProjectsJob",
       kwargs: { force_reload: true }
     },
-    cache_usage_social_proof: {
-      cron: "* * * * *",
-      class: "Cache::UsageSocialProofJob",
-      kwargs: { force_reload: true }
-    },
-    cache_setup_social_proof: {
-      cron: "* * * * *",
-      class: "Cache::SetupSocialProofJob",
-      kwargs: { force_reload: true }
-    },
     cache_minutes_logged: {
       cron: "* * * * *",
       class: "Cache::MinutesLoggedJob",
