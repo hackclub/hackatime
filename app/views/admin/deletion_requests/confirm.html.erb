@@ -48,7 +48,7 @@
         </div>
 
         <div>
-          <label class="block text-sm text-muted mb-1">type <span class="text-surface-content font-mono"><%= @user.username %></span> to confirm</label>
+          <label class="block text-sm text-muted mb-1">type <span class="text-surface-content font-mono"><%= @user.username.presence || "DELETE" %></span> to confirm</label>
           <%= f.text_field :confirm_username, value: "", class: "w-full bg-surface border border-surface-200 rounded-lg px-3 py-2 text-surface-content focus:outline-none focus:border-red font-mono", autocomplete: "off", autofocus: true %>
         </div>
 

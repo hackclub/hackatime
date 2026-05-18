@@ -84,6 +84,17 @@ class Admin::DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_includes req.reason_details, "speedy"
   end
 
+  test "create accepts DELETE as confirmation when user has no username" do
+    @target.update_column(:username, nil)
+    sign_in_as(@ultraadmin)
+    assert_difference "DeletionRequest.count", 1 do
+      post admin_deletion_requests_path, params: {
+        deletion_request: { user_id: @target.id, confirm_username: "DELETE" }
+      }
+    end
+    assert_redirected_to admin_deletion_requests_path
+  end
+
   test "create bounces back to confirm when username doesn't match" do
     sign_in_as(@ultraadmin)
     assert_no_difference "DeletionRequest.count" do

@@ -25,7 +25,8 @@ class Admin::DeletionRequestsController < Admin::BaseController
     user = User.find_by(id: deletion_request_params[:user_id])
     return redirect_to new_admin_deletion_request_path, alert: "user not found" unless user
 
-    if deletion_request_params[:confirm_username] != user.username
+    expected_confirmation = user.username.presence || "DELETE"
+    if deletion_request_params[:confirm_username] != expected_confirmation
       return redirect_to confirm_admin_deletion_requests_path(q: user.id), alert: "username didn't match"
     end
 
