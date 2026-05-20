@@ -205,6 +205,12 @@
     });
   };
 
+  const changeArchivedStatus = (nextValue: string) => {
+    window.location.href = buildProjectsPath({
+      nextShowArchived: nextValue === "archived",
+    });
+  };
+
   const openMappingEditor = (project: ProjectCard) => {
     editingProjectKey = project.project_key || null;
     repoUrlDraft = project.repo_url || "";
