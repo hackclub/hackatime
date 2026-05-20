@@ -245,7 +245,7 @@ GEM
       actionpack (>= 6.0.0)
       activesupport (>= 6.0.0)
       railties (>= 6.0.0)
-    inertia_rails (3.21.0)
+    inertia_rails (3.21.1)
       railties (>= 6)
     io-console (0.8.2)
     irb (1.18.0)
@@ -643,7 +643,7 @@ GEM
     websocket-extensions (0.1.5)
     xpath (3.2.0)
       nokogiri (~> 1.8)
-    zeitwerk (2.7.5)
+    zeitwerk (2.8.1)
 
 PLATFORMS
   aarch64-linux
