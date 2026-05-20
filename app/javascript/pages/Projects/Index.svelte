@@ -7,6 +7,7 @@
   import Web from "hcicons-svelte/web";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
+  import Select from "../../components/Select.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
 
   type RepositorySummary = {
@@ -142,6 +143,40 @@
     const separator = path.includes("?") ? "&" : "?";
     return `${path}${separator}${intervalQueryString.slice(1)}`;
   };
+
+  const filteredAndSortedProjects = $derived.by(() => {
+    if (!projects_data?.projects) return [];
+
+    const searchLower = searchQuery.toLowerCase();
+    const filtered = projects_data.projects.filter((project) => {
+      return (
+        project.name.toLowerCase().includes(searchLower) ||
+        (project.repo_url?.toLowerCase().includes(searchLower) ?? false)
+      );
+    });
+
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "name_az":
+          return a.name.localeCompare(b.name);
+        case "name_za":
+          return b.name.localeCompare(a.name);
+        case "least_time":
+          return a.duration_seconds - b.duration_seconds;
+        case "most_time":
+          return b.duration_seconds - a.duration_seconds;
+        default:
+          return b.duration_seconds - a.duration_seconds;
+      }
+    });
+  });
+
+  $effect(() => {
+    const expectedValue = show_archived ? "archived" : "active";
+    if (archivalStatus !== expectedValue) {
+      changeArchivedStatus(archivalStatus);
+    }
+  });
 
   const changeInterval = (
     nextInterval: string,
