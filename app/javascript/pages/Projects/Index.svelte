@@ -306,13 +306,111 @@
     </div>
   {/if}
 
-  <div class="sm:max-w-3xs">
-    <IntervalSelect
-      from={from || ""}
-      selected={interval || ""}
-      to={to || ""}
-      onchange={changeInterval}
-    />
+  <div class="mt-6 flex flex-wrap items-end gap-3">
+    <div class="sm:max-w-3xs">
+      <IntervalSelect
+        from={from || ""}
+        selected={interval || ""}
+        to={to || ""}
+        onchange={changeInterval}
+      />
+    </div>
+
+    {#if projects_data}
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-end gap-3">
+          <div class="min-w-0 flex-[0_1_16rem]">
+            <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80">
+              Search Projects
+            </span>
+            <input
+              id="project-search"
+              type="text"
+              placeholder="Search by name or URL..."
+              bind:value={searchQuery}
+              class="w-full rounded-md border border-surface-200 bg-darker px-3 py-2 text-left text-sm text-surface-content transition-all duration-200 hover:border-surface-300 focus-visible:border-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-surface placeholder-surface-content/60"
+            />
+          </div>
+
+          <div class="min-w-0 flex-[0_1_12rem]">
+            <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80">
+              Archival Status
+            </span>
+            <Select
+              id="archival-status"
+              bind:value={archivalStatus}
+              items={[
+                { value: "active", label: "Active" },
+                { value: "archived", label: "Archived" },
+              ]}
+              class="bg-surface-100"
+            />
+          </div>
+
+          {#if projects_data.projects && projects_data.projects.length > 0}
+            <div class="min-w-0 flex-[0_1_18rem]">
+              <div class="flex min-w-0 items-end gap-3">
+                <div class="min-w-0 flex-[0_1_12rem]">
+                  <div class="mb-1.5 flex items-end gap-3">
+                    <span class="block text-xs font-medium uppercase tracking-wider text-secondary/80">
+                      Sort
+                    </span>
+                  </div>
+                  <Select
+                    id="project-sort"
+                    bind:value={sortBy}
+                    items={[
+                      { value: "most_time", label: "Most time" },
+                      { value: "least_time", label: "Least time" },
+                      { value: "name_az", label: "Name (A-Z)" },
+                      { value: "name_za", label: "Name (Z-A)" },
+                    ]}
+                    class="bg-surface-100"
+                  />
+                </div>
+                <div class="shrink-0 flex flex-col items-start">
+                  <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80">
+                    View
+                  </span>
+                  <div class="inline-flex shrink-0 gap-1 rounded-lg border border-surface-200 bg-surface-content/5 p-1">
+                    <Button
+                      type="button"
+                      unstyled
+                      class={`inline-flex h-8 w-8 items-center justify-center rounded transition-colors ${
+                        viewMode === "grid"
+                          ? "bg-primary text-on-primary"
+                          : "text-surface-content/70 hover:bg-surface-content/10"
+                      }`}
+                      title="Grid view"
+                      onclick={() => (viewMode = "grid")}
+                    >
+                      <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z" />
+                      </svg>
+                    </Button>
+                    <Button
+                      type="button"
+                      unstyled
+                      class={`inline-flex h-8 w-8 items-center justify-center rounded transition-colors ${
+                        viewMode === "list"
+                          ? "bg-primary text-on-primary"
+                          : "text-surface-content/70 hover:bg-surface-content/10"
+                      }`}
+                      title="List view"
+                      onclick={() => (viewMode = "list")}
+                    >
+                      <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z" />
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
   </div>
 
   <Deferred data="projects_data">
@@ -320,7 +418,7 @@
       <section class="mt-6 animate-pulse">
         <div class="h-7 w-80 rounded bg-darkless"></div>
         <div
-          class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
+          class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6"
         >
           {#each Array.from( { length: skeletonCount }, ) as _unused, index (index)}
             <div
@@ -365,16 +463,24 @@
                   : "No active projects match this filter."}
               </p>
             </div>
+          {:else if filteredAndSortedProjects.length == 0}
+            <div
+              class="mt-4 rounded-xl border border-surface-200 bg-dark p-8 text-center"
+            >
+              <p class="text-muted">No projects match your search query.</p>
+            </div>
           {:else}
             <div
-              class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
+              class={viewMode === "grid"
+                ? "mt-6 grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6"
+                : "mt-6 space-y-4"}
             >
-              {#each projects_data.projects as project (project.id)}
+              {#each filteredAndSortedProjects as project (project.id)}
                 {@const projectHref = project.show_path
                   ? withIntervalParams(project.show_path)
                   : null}
                 <article
-                  class="group relative flex min-h-36 overflow-hidden rounded-2xl {projectHref
+                  class="group relative flex {viewMode === 'list' ? 'flex-row items-start sm:items-center sm:justify-between' : ''} min-h-36 overflow-hidden rounded-2xl {projectHref
                     ? 'cursor-pointer'
                     : ''}"
                 >
@@ -386,11 +492,11 @@
                     ></Link>
                   {/if}
                   <div
-                    class="relative flex min-w-0 flex-1 flex-col rounded-2xl border border-surface-200 bg-dark p-5 transition-colors duration-300 ease-out group-hover:border-surface-300"
+                    class="relative flex min-w-0 {viewMode === 'list' ? 'flex-1' : ''} flex-col rounded-2xl border border-surface-200 bg-dark p-5 transition-colors duration-300 ease-out group-hover:border-surface-300"
                   >
                     <div class="grid gap-3">
                       <div
-                        class="flex min-w-0 items-start justify-between gap-3"
+                        class="flex min-w-0 {viewMode === 'list' ? 'flex-1' : ''} items-start justify-between gap-3"
                       >
                         <div class="min-w-0 flex-1">
                           <h3
@@ -400,14 +506,16 @@
                             {project.name}
                           </h3>
                         </div>
-                        <p
-                          class="shrink-0 text-lg font-semibold tabular-nums text-primary/80"
-                        >
-                          {project.duration_label}
-                        </p>
+                        {#if viewMode === "grid"}
+                          <p
+                            class="shrink-0 text-lg font-semibold tabular-nums text-primary/80"
+                          >
+                            {project.duration_label}
+                          </p>
+                        {/if}
                       </div>
 
-                      {#if project.repository?.description}
+                      {#if project.repository?.description && viewMode === "grid"}
                         <p
                           class="line-clamp-2 text-sm leading-relaxed text-surface-content/70 text-pretty"
                         >
@@ -479,26 +587,9 @@
                     </div>
 
                     <div
-                      class="mt-auto flex flex-wrap items-center gap-2 pt-5 text-sm text-surface-content/55"
+                      class="mt-auto flex flex-wrap items-center gap-2 {viewMode === 'grid' ? 'pt-5' : viewMode === 'list' ? 'pt-0' : ''} text-sm text-surface-content/55"
                     >
-                      <!-- {#if project.repository?.stars}
-                    <p
-                      class="inline-flex items-center gap-1.5 rounded-full bg-yellow/10 px-3 py-1.5 font-semibold tabular-nums text-yellow"
-                    >
-                      <svg
-                        class="h-4 w-4 fill-current"
-                        viewBox="0 0 20 20"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-                        />
-                      </svg>
-                      {project.repository.stars}
-                    </p>
-                  {/if} -->
-
-                      {#if project.repository?.formatted_languages}
+                      {#if project.repository?.formatted_languages && viewMode === "grid"}
                         <p
                           class="flex min-w-0 items-center gap-1.5 rounded-full bg-surface-content/5 px-3 py-1.5"
                         >
@@ -520,7 +611,7 @@
                         </p>
                       {/if}
 
-                      {#if project.repository?.last_commit_ago}
+                      {#if project.repository?.last_commit_ago && viewMode === "grid"}
                         <p
                           class="flex items-center gap-1.5 rounded-full bg-surface-content/5 px-3 py-1.5"
                         >
@@ -537,14 +628,13 @@
                             />
                           </svg>
                           <span class="text-surface-content/50"
-                            >Last commit {project.repository
-                              .last_commit_ago}</span
+                            >Last commit {project.repository.last_commit_ago}</span
                           >
                         </p>
                       {/if}
                     </div>
 
-                    {#if project.broken_name}
+                    {#if project.broken_name && viewMode === "grid"}
                       <div
                         class="mt-4 rounded-2xl border border-yellow/30 bg-yellow/10 p-3"
                       >
@@ -596,6 +686,13 @@
                       </div>
                     {/if}
                   </div>
+                  {#if viewMode === "list"}
+                    <div
+                      class="shrink-0 sm:ml-4 text-lg font-semibold tabular-nums text-primary/80"
+                    >
+                      {project.duration_label}
+                    </div>
+                  {/if}
                 </article>
               {/each}
             </div>
