@@ -153,7 +153,7 @@ GEM
       reline (>= 0.3.8)
     diff-lcs (1.6.2)
     domain_name (0.6.20240107)
-    doorkeeper (5.9.0)
+    doorkeeper (5.9.1)
       railties (>= 5)
     dotenv (3.2.0)
     dotenv-rails (3.2.0)
@@ -643,7 +643,7 @@ GEM
     websocket-extensions (0.1.5)
     xpath (3.2.0)
       nokogiri (~> 1.8)
-    zeitwerk (2.7.5)
+    zeitwerk (2.8.1)
 
 PLATFORMS
   aarch64-linux
@@ -669,7 +669,7 @@ DEPENDENCIES
   cloudflare-rails
   countries
   debug
-  doorkeeper (~> 5.8)
+  doorkeeper (~> 5.9)
   dotenv-rails
   erb_lint
   faker
