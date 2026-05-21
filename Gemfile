@@ -67,6 +67,7 @@ gem "rack-attack"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.2"
+gem "ruby-vips", "~> 2.3", require: false
 
 # Use dotenv for environment variables
 gem "dotenv-rails"
@@ -110,6 +111,9 @@ gem "ruby_identicon"
 gem "flipper"
 gem "flipper-active_record"
 gem "flipper-ui"
+
+# Generate path helpers and API methods from Rails routes [https://js-from-routes.netlify.app]
+gem "js_from_routes"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -170,11 +174,11 @@ gem "tailwindcss-ruby", "~> 4.1"
 
 gem "tailwindcss-rails", "~> 4.2"
 
-gem "inertia_rails", "~> 3.17"
+gem "inertia_rails", "~> 3.21"
 
-gem "vite_rails", "~> 3.10"
+gem "vite_rails", "~> 3.11"
 
-gem "rubyzip", "~> 3.2"
+gem "rubyzip", "~> 3.3"
 
 gem "aws-sdk-s3", require: false
 

@@ -1641,6 +1641,96 @@ paths:
                           description: Primary email or "no email"
         '401':
           description: unauthorized
+  "/api/admin/v1/heartbeats/ip_machine_pairs":
+    get:
+      summary: List users sharing the same machine + IP combination
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results (default: 1000, max: 10000)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: returns empty pairs when no shared machine+IP exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_a_id:
+                          type: integer
+                        user_b_id:
+                          type: integer
+                        machine:
+                          type: string
+                        ip_address:
+                          type: string
+                        user_a_first_seen:
+                          type: integer
+                        user_a_last_seen:
+                          type: integer
+                        user_b_first_seen:
+                          type: integer
+                        user_b_last_seen:
+                          type: integer
+  "/api/admin/v1/heartbeats/shared_machines":
+    get:
+      summary: List machines used by multiple users
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results (default: 1000, max: 10000)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: excludes machines used by only one user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  machines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        machine:
+                          type: string
+                        machine_frequency:
+                          type: integer
+                        user_ids:
+                          type: array
+                          items:
+                            type: integer
   "/api/admin/v1/permissions":
     get:
       summary: List Permissions
@@ -1840,7 +1930,7 @@ paths:
                             example: 7200.0
                           text:
                             type: string
-                            example: 2h 30m / 4h today
+                            example: 2h 30m / 4h goal
                       goal:
                         type: object
                         nullable: true
@@ -3506,35 +3596,6 @@ paths:
       tags:
       - Slack
       description: Handle incoming Slack slash commands for Sailor's Log (/sailorslog).
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  response_type:
-                    type: string
-                  text:
-                    type: string
-                    nullable: true
-                  blocks:
-                    type: array
-                    items:
-                      type: object
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: string
-  "/timedump/slack/commands":
-    post:
-      summary: Handle Timedump Command
-      tags:
-      - Slack
-      description: Handle incoming Slack slash commands for Timedump (/timedump).
       parameters: []
       responses:
         '200':

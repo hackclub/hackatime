@@ -2,7 +2,6 @@
   import { Deferred, router } from "@inertiajs/svelte";
   import type {
     ActivityGraphData,
-    SocialProofUser,
     FilterableDashboardData,
     TodayStats,
     ProgrammingGoalProgress,
@@ -21,23 +20,13 @@
     flavor_text,
     trust_level_red,
     show_wakatime_setup_notice,
-    ssp_message,
-    ssp_users_recent,
-    ssp_users_size,
     github_uid_blank,
-    github_auth_path,
-    wakatime_setup_path,
     dashboard_stats,
   }: {
     flavor_text: string;
     trust_level_red: boolean;
     show_wakatime_setup_notice: boolean;
-    ssp_message?: string | null;
-    ssp_users_recent: SocialProofUser[];
-    ssp_users_size: number;
     github_uid_blank: boolean;
-    github_auth_path: string;
-    wakatime_setup_path: string;
     dashboard_stats?: {
       filterable_dashboard_data: FilterableDashboardData;
       activity_graph: ActivityGraphData;
@@ -63,14 +52,16 @@
 
 <div>
   <!-- Header Section -->
-  <div class="mb-8">
+  <div class="mb-6 sm:mb-8">
     <div class="flex items-center space-x-2">
-      <p class="italic text-muted m-0">
+      <p class="italic text-sm sm:text-base text-muted m-0">
         {@html flavor_text}
       </p>
     </div>
 
-    <h1 class="font-bold mt-2 mb-4 text-3xl md:text-4xl">
+    <h1
+      class="font-bold mt-1 sm:mt-2 mb-3 sm:mb-4 text-2xl sm:text-3xl md:text-4xl"
+    >
       Keep Track of <span class="text-primary">Your</span> Coding Time
     </h1>
   </div>
@@ -80,14 +71,9 @@
   {/if}
 
   {#if show_wakatime_setup_notice}
-    <SetupNotice
-      {wakatime_setup_path}
-      {ssp_message}
-      {ssp_users_recent}
-      {ssp_users_size}
-    />
+    <SetupNotice />
   {:else if github_uid_blank}
-    <GitHubLinkBanner {github_auth_path} />
+    <GitHubLinkBanner />
   {/if}
 
   {#snippet dashboardContent(reloading: boolean)}

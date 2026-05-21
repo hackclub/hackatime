@@ -176,7 +176,7 @@ module ApplicationHelper
     case editor.downcase
     when "vscode", "vs code" then "VSCode"
     when "pycharm" then "PyCharm"
-    when "intellij", "intellijidea" then "IntelliJ IDEA"
+    when "intellij", "intellijidea", "intellij idea" then "IntelliJ IDEA"
     when "webstorm" then "WebStorm"
     when "phpstorm" then "PhpStorm"
     when "datagrip" then "DataGrip"
@@ -186,6 +186,12 @@ module ApplicationHelper
     when "sublime text" then "Sublime Text"
     when "iterm2" then "iTerm2"
     when "rubymine" then "RubyMine"
+    when "opencode" then "OpenCode"
+    when "claudecode", "claude code" then "Claude Code"
+    when "zoom.us" then "Zoom"
+    when "windowspowershell" then "PowerShell"
+    when "goland" then "GoLand"
+    when "rustrover" then "RustRover"
     else editor.capitalize
     end
   end
@@ -194,10 +200,10 @@ module ApplicationHelper
     return "Unknown" if os.blank?
 
     case os.downcase
-    when "darwin" then "macOS"
-    when "macos" then "macOS"
+    when "darwin", "macos", "mac" then "macOS"
     when "wsl" then "WSL"
     when "mozilla" then "Firefox"
+    when "vscode" then "VSCode" # I think this is a Codespaces thing?
     else os.capitalize
     end
   end

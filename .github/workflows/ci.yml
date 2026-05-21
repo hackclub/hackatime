@@ -72,11 +72,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
 
       - name: Install JavaScript dependencies
         run: bun install --frozen-lockfile
+
+      - name: Generate js_from_routes path helpers
+        env:
+          JS_FROM_ROUTES_FORCE: "true"
+        run: bin/rake js_from_routes:generate
 
       - name: Run Svelte type checks
         run: bun run check:svelte
@@ -100,8 +111,30 @@ jobs:
       - name: Run Rails Zeitwerk check
         run: bin/rails zeitwerk:check
 
+  docker_build:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile: [Dockerfile, Dockerfile.dev]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - name: Build ${{ matrix.dockerfile }}
+        uses: useblacksmith/build-push-action@v2
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          load: false
+
   test:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     services:
       postgres:
@@ -148,7 +181,7 @@ jobs:
           git diff --exit-code swagger/v1/swagger.yaml
 
   test_system:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     services:
       postgres:
@@ -182,6 +215,11 @@ jobs:
 
       - name: Install JavaScript dependencies
         run: bun install --frozen-lockfile
+
+      - name: Generate js_from_routes path helpers
+        env:
+          JS_FROM_ROUTES_FORCE: "true"
+        run: bin/rake js_from_routes:generate
 
       - name: Pre-build Vite assets for test
         run: bin/vite build

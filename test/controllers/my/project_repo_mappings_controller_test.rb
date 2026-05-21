@@ -8,10 +8,11 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "index renders projects page with deferred props" do
+  test "index renders project rollups synchronously when available" do
     user = User.create!(timezone: "UTC")
     user.project_repo_mappings.create!(project_name: "alpha")
     create_project_heartbeats(user, "alpha")
+    DashboardRollupRefreshService.new(user: user).call
 
     sign_in_as(user)
     get my_projects_path
@@ -22,6 +23,35 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     page = inertia_page
     assert_equal false, page.dig("props", "show_archived")
     assert_equal 1, page.dig("props", "total_projects")
+    assert_nil page["deferredProps"]
+    assert_equal [ "alpha" ], page.dig("props", "projects_data", "projects").map { |project| project["name"] }
+  end
+
+  test "index falls back to deferred project data when default rollups are missing" do
+    user = User.create!(timezone: "UTC")
+    user.project_repo_mappings.create!(project_name: "alpha")
+    create_project_heartbeats(user, "alpha")
+
+    sign_in_as(user)
+    get my_projects_path
+
+    assert_response :success
+
+    page = inertia_page
+    assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
+  end
+
+  test "index still defers interval-filtered project data" do
+    user = User.create!(timezone: "UTC")
+    user.project_repo_mappings.create!(project_name: "alpha")
+    create_project_heartbeats(user, "alpha")
+
+    sign_in_as(user)
+    get my_projects_path(interval: "last_7_days")
+
+    assert_response :success
+
+    page = inertia_page
     assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
   end
 
@@ -30,6 +60,7 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     mapping = user.project_repo_mappings.create!(project_name: "beta")
     mapping.archive!
     create_project_heartbeats(user, "beta")
+    DashboardRollupRefreshService.new(user: user).call
 
     sign_in_as(user)
     get my_projects_path(show_archived: true)

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @source "../../../app/javascript/**/*.{svelte,js,ts}";
+@source "../../../app/views/**/*.{erb,html}";
+@source "../../../app/helpers/**/*.rb";
+@source "../../../app/controllers/**/*.rb";
 @source "../../../node_modules/layerchart/dist/**/*.{svelte,js}";
 @import "./main.css";
 @import "./nav.css";

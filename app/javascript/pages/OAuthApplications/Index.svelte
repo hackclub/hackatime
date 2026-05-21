@@ -3,14 +3,15 @@
   import Button from "../../components/Button.svelte";
   import DestructiveActionModal from "./DestructiveActionModal.svelte";
   import type { OAuthApplicationsIndexProps } from "./types";
+  import { doorkeeperApplications } from "../../api";
 
-  let {
-    page_title,
-    heading,
-    subheading,
-    new_application_path,
-    applications,
-  }: OAuthApplicationsIndexProps = $props();
+  let { page_title, applications }: OAuthApplicationsIndexProps = $props();
+
+  const newApplicationPath = doorkeeperApplications.new.path();
+  const showPathFor = (id: number) => doorkeeperApplications.show.path({ id });
+  const editPathFor = (id: number) => doorkeeperApplications.edit.path({ id });
+  const destroyPathFor = (id: number) =>
+    doorkeeperApplications.destroy.path({ id });
 
   let deleteModalOpen = $state(false);
   let pendingDelete = $state<{ name: string; path: string } | null>(null);
@@ -25,23 +26,35 @@
   <title>{page_title}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-6xl space-y-6">
+<div class="space-y-6">
   <header class="flex flex-wrap items-start justify-between gap-3">
-    <div>
-      <h1 class="text-3xl font-bold text-surface-content">{heading}</h1>
-      <p class="mt-1 text-sm text-muted">{subheading}</p>
+    <div class="min-w-0">
+      <h1
+        class="text-2xl sm:text-3xl font-bold text-surface-content mb-1 sm:mb-2"
+      >
+        Your applications
+      </h1>
+      <p class="text-sm sm:text-base text-muted">
+        Manage your OAuth applications that integrate with Hackatime.
+      </p>
     </div>
 
-    <Button href={new_application_path} variant="primary"
-      >New application</Button
-    >
+    {#if applications.length > 0}
+      <Button href={newApplicationPath} variant="primary"
+        >New application</Button
+      >
+    {/if}
   </header>
 
   {#if applications.length > 0}
     <div class="space-y-3">
       {#each applications as application (application.id)}
-        <article class="rounded-xl border border-surface-200 bg-dark p-5">
-          <div class="flex flex-wrap items-start justify-between gap-4">
+        <article
+          class="rounded-xl border border-surface-200 bg-dark p-4 sm:p-5"
+        >
+          <div
+            class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between"
+          >
             <div class="min-w-0 flex-1 space-y-3">
               <div class="flex flex-wrap items-center gap-2">
                 <h2 class="truncate text-lg font-semibold text-surface-content">
@@ -108,16 +121,16 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <Link
-                href={application.show_path}
-                class="inline-flex items-center justify-center rounded-lg border border-surface-200 bg-surface-100 px-3 py-2 text-sm font-medium text-surface-content transition-colors hover:bg-surface-200"
+                href={showPathFor(application.id)}
+                class="inline-flex flex-1 items-center justify-center rounded-lg border border-surface-200 bg-surface-100 px-3 py-2 text-sm font-medium text-surface-content transition-colors hover:bg-surface-200 sm:flex-none"
               >
                 View
               </Link>
               <Link
-                href={application.edit_path}
-                class="inline-flex items-center justify-center rounded-lg border border-primary bg-primary px-3 py-2 text-sm font-medium text-on-primary transition-opacity hover:opacity-90"
+                href={editPathFor(application.id)}
+                class="inline-flex flex-1 items-center justify-center rounded-lg border border-primary bg-primary px-3 py-2 text-sm font-medium text-on-primary transition-opacity hover:opacity-90 sm:flex-none"
               >
                 Edit
               </Link>
@@ -125,9 +138,12 @@
               <Button
                 type="button"
                 variant="surface"
-                class="!border-red/45 !bg-red/15 !text-red hover:!bg-red/25"
+                class="!flex-1 !border-red/45 !bg-red/15 !text-red hover:!bg-red/25 sm:!flex-none"
                 onclick={() =>
-                  openDeleteModal(application.name, application.destroy_path)}
+                  openDeleteModal(
+                    application.name,
+                    destroyPathFor(application.id),
+                  )}
               >
                 Delete
               </Button>
@@ -138,7 +154,7 @@
     </div>
   {:else}
     <section
-      class="rounded-xl border border-surface-200 bg-dark p-10 text-center"
+      class="rounded-xl border border-surface-200 bg-dark p-6 text-center sm:p-10"
     >
       <h2 class="text-xl font-semibold text-surface-content">
         No applications yet
@@ -147,7 +163,7 @@
         Create your first OAuth application to start integrating with Hackatime.
       </p>
       <div class="mt-5">
-        <Button href={new_application_path} variant="primary"
+        <Button href={newApplicationPath} variant="primary"
           >New application</Button
         >
       </div>

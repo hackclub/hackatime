@@ -1,5 +1,9 @@
 class Admin::AdminApiKeysController < Admin::BaseController
   before_action :set_admin_api_key, only: [ :show, :destroy ]
+  # Viewers are read-only and must not be able to mint or revoke admin API
+  # keys (creation IS a write, and a viewer-owned key would let them call any
+  # admin-API endpoint that doesn't have its own viewer guard).
+  before_action -> { require_admin_level!(:admin, :superadmin) }, only: [ :new, :create, :destroy ]
 
   def index
     @admin_api_keys = AdminApiKey.includes(:user).active.order(created_at: :desc)

@@ -5,23 +5,25 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { BadgesPageProps } from "./types";
+  import { settingsPrivacy } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
     badge_themes,
     badges,
     allow_public_stats_lookup,
-    settings_update_path,
     errors,
   }: BadgesPageProps = $props();
 
+  // Public stats live on the Privacy controller; toggle via that endpoint.
+  const privacyUpdatePath = settingsPrivacy.update.path();
+
   function enablePublicStats() {
     router.patch(
-      settings_update_path,
+      privacyUpdatePath,
       {
         user: { allow_public_stats_lookup: true },
       },
@@ -72,14 +74,7 @@
   <title>Badges - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   {#if !allow_public_stats_lookup}
     <div
       class="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-surface-content"

@@ -9,6 +9,7 @@
   import Modal from "../../components/Modal.svelte";
   import Select from "../../components/Select.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
+  import { myProjectRepoMappings, sessions, settingsProfile } from "../../api";
 
   type RepositorySummary = {
     homepage?: string | null;
@@ -22,17 +23,14 @@
     id: string;
     name: string;
     project_key?: string | null;
+    url_safe: boolean;
     duration_seconds: number;
     duration_label: string;
     duration_percent: number;
-    show_path?: string | null;
     repo_url?: string | null;
     repository?: RepositorySummary | null;
     broken_name: boolean;
     manage_enabled: boolean;
-    update_path?: string | null;
-    archive_path?: string | null;
-    unarchive_path?: string | null;
   };
 
   type ProjectsData = {
@@ -44,12 +42,9 @@
 
   type PageProps = {
     page_title: string;
-    index_path: string;
     show_archived: boolean;
     archived_count: number;
     github_connected: boolean;
-    github_auth_path: string;
-    settings_path: string;
     interval?: string | null;
     from?: string | null;
     to?: string | null;
@@ -60,12 +55,9 @@
 
   let {
     page_title,
-    index_path,
     show_archived,
     archived_count,
     github_connected,
-    github_auth_path,
-    settings_path,
     interval = "",
     from = "",
     to = "",
@@ -74,9 +66,43 @@
     projects_data,
   }: PageProps = $props();
 
+  const indexPath = myProjectRepoMappings.index.path();
+  const githubAuthPath = sessions.githubNew.path();
+  const settingsPath = `${settingsProfile.mySettings.path()}#user_github_account`;
+
+  const showPathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.show.path({ projectName: project.project_key })
+      : null;
+
+  const editPathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.edit.path({ projectName: project.project_key })
+      : null;
+
+  const updatePathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.update.path({ projectName: project.project_key })
+      : null;
+
+  const archivePathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.archive.path({
+          projectName: project.project_key,
+        })
+      : null;
+
+  const unarchivePathFor = (project: ProjectCard): string | null =>
+    project.url_safe && project.project_key
+      ? myProjectRepoMappings.unarchive.path({
+          projectName: project.project_key,
+        })
+      : null;
+
   let editingProjectKey = $state<string | null>(null);
   let repoUrlDraft = $state("");
   let statusChangeModalOpen = $state(false);
+  let brokenNameModalOpen = $state(false);
   let pendingStatusAction = $state<{
     path: string;
     title: string;
@@ -129,7 +155,7 @@
     if (nextShowArchived) query.set("show_archived", "true");
 
     const queryString = query.toString();
-    return queryString ? `${index_path}?${queryString}` : index_path;
+    return queryString ? `${indexPath}?${queryString}` : indexPath;
   };
 
   const intervalQueryString = $derived.by(() => {
@@ -222,7 +248,9 @@
   };
 
   const openStatusChangeModal = (project: ProjectCard, restoring: boolean) => {
-    const path = restoring ? project.unarchive_path : project.archive_path;
+    const path = restoring
+      ? unarchivePathFor(project)
+      : archivePathFor(project);
     if (!path) return;
 
     pendingStatusAction = {
@@ -266,10 +294,12 @@
   <title>{page_title}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-7xl">
+<div>
   <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-4">
-      <h1 class="text-3xl font-bold text-surface-content">My Projects</h1>
+      <h1 class="text-2xl sm:text-3xl font-bold text-surface-content">
+        My Projects
+      </h1>
       {#if archived_count > 0}
         <div class="project-toggle-group">
           <Link
@@ -296,10 +326,10 @@
         account.
       </p>
       <div class="mt-3 flex flex-wrap gap-2">
-        <Button href={github_auth_path} native class="w-full sm:w-fit">
+        <Button href={githubAuthPath} native class="w-full sm:w-fit">
           Sign in with GitHub
         </Button>
-        <Button href={settings_path} variant="surface" class="w-full sm:w-fit">
+        <Button href={settingsPath} variant="surface" class="w-full sm:w-fit">
           Open settings
         </Button>
       </div>
@@ -452,6 +482,29 @@
             {/if}
           </p>
 
+          {#if !github_connected}
+            <div
+              class="mt-4 rounded-xl border border-yellow/30 bg-yellow/10 p-4"
+            >
+              <p class="text-base font-medium text-surface-content">
+                Heads up! You can't link projects to GitHub until you connect
+                your account.
+              </p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <Button href={githubAuthPath} native class="w-full sm:w-fit">
+                  Sign in with GitHub
+                </Button>
+                <Button
+                  href={settingsPath}
+                  variant="surface"
+                  class="w-full sm:w-fit"
+                >
+                  Open settings
+                </Button>
+              </div>
+            </div>
+          {/if}
+
           {#if projects_data.projects.length == 0}
             <div
               class="mt-4 rounded-xl border border-surface-200 bg-dark p-8 text-center"
@@ -475,9 +528,8 @@
                 : "mt-6 space-y-2"}
             >
               {#each filteredAndSortedProjects as project (project.id)}
-                {@const projectHref = project.show_path
-                  ? withIntervalParams(project.show_path)
-                  : null}
+                {@const showPath = showPathFor(project)}
+                {@const projectHref = showPath ? withIntervalParams(showPath) : null}
                 <article
                   class="group relative flex w-full {viewMode === 'list' ? 'flex-row items-start sm:items-center sm:justify-between' : ''} min-h-36 overflow-hidden rounded-2xl {projectHref
                     ? 'cursor-pointer'
@@ -545,7 +597,7 @@
                                   <Edit size={20} />
                                 </Button>
                               {/if}
-                              {#if show_archived && project.unarchive_path}
+                              {#if show_archived && unarchivePathFor(project)}
                                 <Button
                                   type="button"
                                   unstyled
@@ -555,7 +607,7 @@
                                 >
                                   <Reply size={20} />
                                 </Button>
-                              {:else if !show_archived && project.archive_path}
+                              {:else if !show_archived && archivePathFor(project)}
                                 <Button
                                   type="button"
                                   unstyled
@@ -622,7 +674,7 @@
                             <Edit size={20} />
                           </Button>
                         {/if}
-                        {#if show_archived && project.unarchive_path}
+                        {#if show_archived && unarchivePathFor(project)}
                           <Button
                             type="button"
                             unstyled
@@ -632,7 +684,7 @@
                           >
                             <Reply size={20} />
                           </Button>
-                        {:else if !show_archived && project.archive_path}
+                        {:else if !show_archived && archivePathFor(project)}
                           <Button
                             type="button"
                             unstyled
@@ -696,26 +748,31 @@
                       {/if}
                     </div>
 
-                    {#if project.broken_name && viewMode === "grid"}
-                      <div
-                        class="mt-4 rounded-2xl border border-yellow/30 bg-yellow/10 p-3"
+                    {#if project.broken_name}
+                      <button
+                        type="button"
+                        class="mt-4 block w-full cursor-pointer rounded-2xl border border-yellow/30 bg-yellow/10 p-3 text-left hover:bg-yellow/15"
+                        onclick={() => (brokenNameModalOpen = true)}
                       >
                         <p
                           class="text-sm leading-relaxed text-yellow/80 text-pretty"
                         >
-                          Your editor may be sending invalid project names. Time
-                          is shown here but can't be submitted to Hack Club
-                          programs.
+                          Time can't be used in Hack Club programs
+                          <span
+                            class="underline underline-offset-2 hover:text-yellow"
+                          >
+                            (why?)
+                          </span>
                         </p>
-                      </div>
+                      </button>
                     {/if}
 
-                    {#if project.manage_enabled && editingProjectKey === project.project_key && project.update_path}
+                    {#if project.manage_enabled && editingProjectKey === project.project_key && updatePathFor(project)}
                       <div
                         class="relative z-20 mt-4 border-t border-surface-200/40 pt-4"
                       >
                         <Form
-                          action={project.update_path}
+                          action={updatePathFor(project)!}
                           method="patch"
                           class="space-y-3"
                         >
@@ -790,5 +847,34 @@
         </Button>
       </div>
     {/if}
+  {/snippet}
+</Modal>
+
+<Modal
+  bind:open={brokenNameModalOpen}
+  title="Why is my project invalid?"
+  description="Your editor isn't sending a valid project name."
+  maxWidth="max-w-lg"
+  hasBody
+>
+  {#snippet body()}
+    <div class="space-y-3 text-sm leading-relaxed text-surface-content/80">
+      <p>
+        The WakaTime extension needs one of two things in order for time to
+        properly count:
+      </p>
+      <ul class="list-disc space-y-1 pl-5">
+        <li>You have a Git repo inside your project folder, or</li>
+        <li>
+          You have a <code
+            class="rounded bg-surface-content/10 px-1 py-0.5 text-xs"
+            >.wakatime-project</code
+          >
+          file in your folder's root, with the contents set to the name you want for
+          your project.
+        </li>
+      </ul>
+      <p>To get your time to properly track, do one of the above!</p>
+    </div>
   {/snippet}
 </Modal>

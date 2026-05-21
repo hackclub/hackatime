@@ -1,0 +1,26 @@
+<div class="max-w-lg mx-auto p-6 space-y-6">
+  <header class="text-center mb-8">
+    <h1 class="text-4xl font-bold text-surface-content mb-2">delete account</h1>
+    <p class="text-muted text-sm">look up a user to create a deletion request</p>
+  </header>
+
+  <% if flash[:alert] %>
+    <div class="border border-red rounded-xl p-4 bg-dark text-red text-sm"><%= flash[:alert] %></div>
+  <% end %>
+
+  <div class="border border-primary rounded-xl p-6 bg-dark">
+    <%= form_with url: confirm_admin_deletion_requests_path, method: :get do |f| %>
+      <div class="space-y-4">
+        <div>
+          <%= f.label :q, "user ID, username, email, or Slack UID", class: "block text-sm text-muted mb-1" %>
+          <%= f.text_field :q, class: "w-full bg-surface border border-surface-200 rounded-lg px-3 py-2 text-surface-content focus:outline-none focus:border-primary", autofocus: true %>
+        </div>
+        <%= f.submit "look up", class: "w-full px-4 py-2 bg-primary hover:bg-primary text-on-primary font-medium rounded-lg transition-colors cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="text-center">
+    <%= link_to "back to deletion requests", admin_deletion_requests_path, class: "text-sm text-muted hover:text-surface-content" %>
+  </div>
+</div>
