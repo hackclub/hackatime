@@ -418,7 +418,7 @@
       <section class="mt-6 animate-pulse">
         <div class="h-7 w-80 rounded bg-darkless"></div>
         <div
-          class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6"
+          class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-6"
         >
           {#each Array.from( { length: skeletonCount }, ) as _unused, index (index)}
             <div
@@ -472,7 +472,7 @@
           {:else}
             <div
               class={viewMode === "grid"
-                ? "mt-6 grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6"
+                ? "mt-6 grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] justify-items-stretch gap-6"
                 : "mt-6 space-y-4"}
             >
               {#each filteredAndSortedProjects as project (project.id)}
@@ -480,7 +480,7 @@
                   ? withIntervalParams(project.show_path)
                   : null}
                 <article
-                  class="group relative flex {viewMode === 'list' ? 'flex-row items-start sm:items-center sm:justify-between' : ''} min-h-36 overflow-hidden rounded-2xl {projectHref
+                  class="group relative flex w-full {viewMode === 'list' ? 'flex-row items-start sm:items-center sm:justify-between' : ''} min-h-36 overflow-hidden rounded-2xl {projectHref
                     ? 'cursor-pointer'
                     : ''}"
                 >
@@ -492,7 +492,7 @@
                     ></Link>
                   {/if}
                   <div
-                    class="relative flex min-w-0 {viewMode === 'list' ? 'flex-1' : ''} flex-col rounded-2xl border border-surface-200 bg-dark p-5 transition-colors duration-300 ease-out group-hover:border-surface-300"
+                    class="relative flex w-full min-w-0 {viewMode === 'list' ? 'flex-1' : ''} flex-col rounded-2xl border border-surface-200 bg-dark p-5 transition-colors duration-300 ease-out group-hover:border-surface-300"
                   >
                     <div class="grid gap-3">
                       <div
@@ -507,6 +507,12 @@
                           </h3>
                         </div>
                         {#if viewMode === "grid"}
+                          <p
+                            class="shrink-0 text-lg font-semibold tabular-nums text-primary/80"
+                          >
+                            {project.duration_label}
+                          </p>
+                        {:else}
                           <p
                             class="shrink-0 text-lg font-semibold tabular-nums text-primary/80"
                           >
@@ -686,13 +692,6 @@
                       </div>
                     {/if}
                   </div>
-                  {#if viewMode === "list"}
-                    <div
-                      class="shrink-0 sm:ml-4 text-lg font-semibold tabular-nums text-primary/80"
-                    >
-                      {project.duration_label}
-                    </div>
-                  {/if}
                 </article>
               {/each}
             </div>
