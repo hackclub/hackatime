@@ -79,6 +79,8 @@ export type LayoutProps = {
     interval: number;
   };
   csrf_token: string;
+  hide_sidebar: boolean;
+  hide_footer: boolean;
   show_stop_impersonating: boolean;
 };
 
@@ -139,8 +141,6 @@ export type ProjectStats = {
   branch_stats: [string, number][];
   activity_graph: ActivityGraphData;
 };
-
-export type SocialProofUser = { display_name: string; avatar_url: string };
 
 export type FilterableDashboardData = {
   total_time: number;

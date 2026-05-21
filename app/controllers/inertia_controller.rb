@@ -12,6 +12,8 @@ class InertiaController < ApplicationController
       theme: inertia_theme_props,
       # currently_hacking: currently_hacking_props,
       csrf_token: form_authenticity_token,
+      hide_sidebar: false,
+      hide_footer: false,
       show_stop_impersonating: session[:impersonater_user_id].present?
     }
   end

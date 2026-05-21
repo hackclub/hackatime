@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  has_one_attached :profile_og_image
+
   include TimezoneRegions
   include UserThemeConfiguration
   include ::OauthAuthentication
@@ -12,6 +14,7 @@ class User < ApplicationRecord
   has_paper_trail
 
   after_create :subscribe_to_default_lists
+  after_create_commit :schedule_onboarding_check_in_email
   before_validation :normalize_username
   encrypts :slack_access_token, :github_access_token, :hca_access_token
 
@@ -433,6 +436,10 @@ class User < ApplicationRecord
 
   def subscribe_to_default_lists
     subscribe("weekly_summary")
+  end
+
+  def schedule_onboarding_check_in_email
+    OnboardingCheckInEmailJob.set(wait: 1.week).perform_later(id)
   end
 
   def normalize_username

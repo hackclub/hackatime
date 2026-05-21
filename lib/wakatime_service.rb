@@ -1,3 +1,5 @@
+require "digest"
+
 include ApplicationHelper
 include ErrorReporting
 
@@ -25,6 +27,18 @@ class WakatimeService
   end
 
   def generate_summary
+    return cached_summary if @allow_cache
+
+    build_summary
+  end
+
+  def cached_summary
+    Rails.cache.fetch(summary_cache_key, expires_in: 1.minute) do
+      build_summary
+    end
+  end
+
+  def build_summary
     summary = {}
 
     summary[:username] = @user.display_name if @user.present?
@@ -55,6 +69,13 @@ class WakatimeService
     summary[:projects] = generate_summary_chunk(:project) if @specific_filters.include?(:projects)
 
     summary
+  end
+
+  def summary_cache_key
+    scope_digest = Digest::SHA256.hexdigest(@scope.to_sql)
+    filters = @specific_filters.map(&:to_s).sort.join(",")
+
+    [ "wakatime_service", "summary", "v1", scope_digest, filters, @limit ].join(":")
   end
 
   def generate_summary_chunk(group_by)

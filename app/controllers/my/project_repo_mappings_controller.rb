@@ -8,6 +8,7 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def index
     archived = show_archived?
+    projects_data = projects_data_for_index(archived: archived)
 
     render inertia: "Projects/Index", props: {
       page_title: "My Projects",
@@ -18,8 +19,8 @@ class My::ProjectRepoMappingsController < InertiaController
       from: params[:from],
       to: params[:to],
       interval_label: helpers.human_interval_name(selected_interval, from: params[:from], to: params[:to]),
-      total_projects: project_count(archived),
-      projects_data: InertiaRails.defer { projects_payload(archived: archived) }
+      total_projects: projects_data.is_a?(Hash) ? projects_data[:projects].size : project_count(archived),
+      projects_data: projects_data
     }
   end
 
@@ -159,32 +160,92 @@ class My::ProjectRepoMappingsController < InertiaController
       next if archived_names.key?(project_key) != archived
 
       mapping = mappings_by_name[project_key]
-      display_name = project_key.presence || "Unknown"
-      broken = broken_project_name?(project_key, display_name)
-      url_safe = !broken && project_key.present?
-
-      {
-        id: project_card_id(project_key),
-        name: display_name,
-        project_key:,
-        url_safe:,
-        duration_seconds: duration,
-        duration_label: format_duration(duration),
-        duration_percent: 0,
-        repo_url: mapping&.repo_url,
-        repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
-        broken_name: broken,
-        manage_enabled: current_user.github_uid.present? && url_safe
-      }
+      project_summary_payload(project_key, duration, mapping, latest_user_commit_at_by_repo_id)
     end.sort_by { |project| -project[:duration_seconds] }
 
+    build_projects_payload(projects)
+  end
+
+  def projects_data_for_index(archived:)
+    return empty_projects_payload unless current_user.heartbeats.exists?
+    return rollup_projects_payload(archived: archived) if rollup_projects_path?
+
+    InertiaRails.defer { projects_payload(archived: archived) }
+  end
+
+  def empty_projects_payload
+    {
+      total_time_seconds: 0,
+      total_time_label: format_duration(0),
+      has_activity: false,
+      projects: []
+    }
+  end
+
+  def rollup_projects_path?
+    selected_interval.blank? && params[:from].blank? && params[:to].blank?
+  end
+
+  def rollup_projects_payload(archived:)
+    rollups = DashboardRollup
+      .where(user_id: current_user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true)
+      .to_a
+
+    DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds) if DashboardRollup.dirty?(current_user.id) || rollups.empty?
+    return InertiaRails.defer { projects_payload(archived: archived) } if rollups.empty?
+
+    mappings = current_user.project_repo_mappings.includes(:repository)
+    scoped_mappings = archived ? mappings.archived : mappings.active
+    mappings_by_name = scoped_mappings.index_by(&:project_name)
+    archived_names = current_user.project_repo_mappings.archived.pluck(:project_name).index_with(true)
+    repository_ids = scoped_mappings.where.not(repository_id: nil).distinct.pluck(:repository_id)
+    latest_user_commit_at_by_repo_id = Commit.where(user_id: current_user.id, repository_id: repository_ids)
+                                             .group(:repository_id)
+                                             .maximum(:created_at)
+
+    projects = rollups.filter_map do |rollup|
+      project_key = rollup.bucket
+      next if project_key.blank?
+      next if archived_names.key?(project_key) != archived
+
+      duration = rollup.total_seconds.to_i
+      next if duration <= 0
+
+      mapping = mappings_by_name[project_key]
+      project_summary_payload(project_key, duration, mapping, latest_user_commit_at_by_repo_id)
+    end.sort_by { |project| -project[:duration_seconds] }
+
+    build_projects_payload(projects)
+  end
+
+  def project_summary_payload(project_key, duration, mapping, latest_user_commit_at_by_repo_id)
+    display_name = project_key.presence || "Unknown"
+    broken = broken_project_name?(project_key, display_name)
+    url_safe = !broken && project_key.present?
+
+    {
+      id: project_card_id(project_key),
+      name: display_name,
+      project_key:,
+      url_safe:,
+      duration_seconds: duration,
+      duration_label: format_duration(duration),
+      duration_percent: 0,
+      repo_url: mapping&.repo_url,
+      repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
+      broken_name: broken,
+      manage_enabled: current_user.github_uid.present? && url_safe
+    }
+  end
+
+  def build_projects_payload(projects)
     max_duration = projects.map { |project| project[:duration_seconds].to_f }.max || 1.0
 
     projects.each do |project|
       project[:duration_percent] = ((project[:duration_seconds].to_f / max_duration) * 100).round(1)
     end
 
-    total_time = projects.sum { |p| p[:duration_seconds] }
+    total_time = projects.sum { |project| project[:duration_seconds] }
 
     {
       total_time_seconds: total_time,
@@ -242,37 +303,33 @@ class My::ProjectRepoMappingsController < InertiaController
 
     total_time = hb.duration_seconds
 
-    language_stats = hb.group(:language).duration_seconds.each_with_object({}) do |(raw, dur), agg|
-      k = raw.to_s.presence || "Unknown"
-      k = k == "Unknown" ? k : k.categorize_language
+    language_stats = Heartbeat.attributed_durations_by(hb, :language).each_with_object({}) do |(raw, dur), agg|
+      k = raw.to_s.categorize_language
       agg[k] = (agg[k] || 0) + dur
     end.sort_by { |_, d| -d }.first(15).to_h
 
-    editor_stats = hb.group(:editor).duration_seconds.each_with_object({}) do |(raw, dur), agg|
-      k = raw.to_s.presence || "Unknown"
-      agg[k.downcase] = (agg[k.downcase] || 0) + dur
+    editor_stats = Heartbeat.attributed_durations_by(hb, :editor).each_with_object({}) do |(raw, dur), agg|
+      k = raw.to_s.downcase
+      agg[k] = (agg[k] || 0) + dur
     end.sort_by { |_, d| -d }.first(10).map { |k, v| [ h.display_editor_name(k), v ] }.to_h
 
-    os_stats = hb.group(:operating_system).duration_seconds.each_with_object({}) do |(raw, dur), agg|
-      k = raw.to_s.presence || "Unknown"
-      agg[k.downcase] = (agg[k.downcase] || 0) + dur
+    os_stats = Heartbeat.attributed_durations_by(hb, :operating_system).each_with_object({}) do |(raw, dur), agg|
+      k = raw.to_s.downcase
+      agg[k] = (agg[k] || 0) + dur
     end.sort_by { |_, d| -d }.first(10).map { |k, v| [ h.display_os_name(k), v ] }.to_h
 
-    all_file_stats = hb.group(:entity).duration_seconds
-      .reject { |e, dur| e.blank? || dur < 60 }
+    all_file_stats = Heartbeat.attributed_durations_by(hb, :entity)
+      .reject { |_, dur| dur < 60 }
       .sort_by { |_, d| -d }
 
     file_stats = all_file_stats.first(50)
       .map { |entity, dur| [ helpers.shorten_file_path(entity), dur ] }
 
-    branch_stats = hb.group(:branch).duration_seconds
-      .reject { |b, _| b.blank? }
+    branch_stats = Heartbeat.attributed_durations_by(hb, :branch)
       .sort_by { |_, d| -d }.first(10)
 
-    category_stats = hb.group(:category).duration_seconds.each_with_object({}) do |(raw, dur), agg|
-      k = raw.to_s.presence || "Unknown"
-      agg[k] = (agg[k] || 0) + dur
-    end.sort_by { |_, d| -d }.first(10).to_h
+    category_stats = Heartbeat.attributed_durations_by(hb, :category)
+      .sort_by { |_, d| -d }.first(10).to_h
 
     language_colors = language_stats.present? ? LanguageUtils.colors_for(language_stats.keys) : {}
 
@@ -294,27 +351,16 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def project_activity_graph(project_name)
-    tz = current_user.timezone
-    unless TZInfo::Timezone.all_identifiers.include?(tz)
-      tz = "UTC"
-    end
-    hb = current_user.heartbeats.where(project: project_name)
+    snapshot = DashboardData::Snapshots.activity_graph_snapshot(
+      user: current_user,
+      scope: current_user.heartbeats.where(project: project_name)
+    )
 
-    day_trunc = Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE #{ActiveRecord::Base.connection.quote(tz)})")
-
-    durations = hb.select(day_trunc.as("day_group"))
-      .where(time: 365.days.ago..Time.current)
-      .group(day_trunc)
-      .duration_seconds
-      .map { |date, duration| [ date.to_date.iso8601, duration ] }
-      .to_h
-
-    {
-      start_date: 365.days.ago.to_date.iso8601,
-      end_date: Time.current.to_date.iso8601,
-      duration_by_date: durations,
-      busiest_day_seconds: 8.hours.to_i,
-      timezone_label: ActiveSupport::TimeZone[tz].to_s
-    }
+    DashboardData::Snapshots.activity_graph_result(
+      start_date: snapshot[:start_date],
+      end_date: snapshot[:end_date],
+      duration_by_date: snapshot[:duration_by_date],
+      timezone: snapshot[:timezone]
+    )
   end
 end

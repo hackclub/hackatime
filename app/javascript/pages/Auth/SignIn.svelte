@@ -58,9 +58,7 @@
       <h1 class="text-2xl font-semibold tracking-tight mb-2">
         Sign in to Hackatime
       </h1>
-      <p class="text-secondary text-sm">
-        Track your hacking time. Own your metrics.
-      </p>
+      <p class="text-secondary text-sm">what's cookin'?</p>
     </div>
 
     <AuthForm

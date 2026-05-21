@@ -29,10 +29,12 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
         user.heartbeats.group(:project).duration_seconds,
         DashboardRollup.where(user: user, dimension: "project").to_h { |row| [ row.bucket, row.total_seconds ] }
       )
-      assert_equal(
-        user.heartbeats.group(:language).duration_seconds,
-        DashboardRollup.where(user: user, dimension: "language").to_h { |row| [ row.bucket, row.total_seconds ] }
-      )
+
+      language_buckets = DashboardRollup.where(user: user, dimension: "language")
+        .to_h { |row| [ row.bucket, row.total_seconds ] }
+      assert_equal Heartbeat.attributed_durations_by(user.heartbeats, :language), language_buckets
+      assert_equal user.heartbeats.duration_seconds, language_buckets.values.sum
+      assert_not_includes language_buckets.keys, "Unknown"
 
       assert_equal [ "alpha", "beta" ], filter_options_row.payload["project"]
       assert_equal [ "javascript", "ruby" ], filter_options_row.payload["language"]

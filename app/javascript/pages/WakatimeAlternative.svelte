@@ -110,31 +110,26 @@
     {
       title: "No team dashboards",
       description:
-        "WakaTime Pro offers team analytics. Hackatime is focused on individual developers. If you need team insights, WakaTime might be better suited.",
+        "WakaTime Pro has team analytics. We don't. If you need to see what your coworkers are shipping, stick with WakaTime.",
     },
     {
-      title: "Community-focused",
+      title: "Built for Hack Club",
       description:
-        "Hackatime is built for the Hack Club community. While anyone can use it, some features (like leaderboards) are community-centric.",
+        "Anyone can sign up, but the leaderboards and culture skew toward the Hack Club community. That's a feature for some people and a downside for others.",
     },
     {
-      title: "Newer platform",
+      title: "Younger project",
       description:
-        "WakaTime has been around since 2013 and has a mature ecosystem. Hackatime launched in 2024 and is actively developed.",
-    },
-    {
-      title: "No email summaries",
-      description:
-        "WakaTime sends weekly email reports. Hackatime doesn't currently offer email digests, but this is a feature we're actively working on.",
+        "WakaTime has been around since 2013. Hackatime launched in 2024. The plugin ecosystem is the same, but we're still adding things.",
     },
   ];
 
   const benefits = [
-    "100% free, forever - every feature, no exceptions",
-    "Works with all WakaTime plugins - just change your API endpoint",
-    "Open source - audit the code, contribute, or self-host",
-    "Privacy-first - only metadata tracked, never your code",
-    "Community leaderboards - see how you stack up against peers",
+    "Free, forever. No paid tier hiding behind a feature gate.",
+    "Works with every WakaTime plugin. You just point it at a different URL.",
+    "Open source, so you can read the code, send a PR, or run your own copy.",
+    "We only track metadata (file names, languages, time). Never your code.",
+    "Leaderboards if you want to see how you stack up against other people.",
   ];
 </script>
 
@@ -193,17 +188,15 @@
         WakaTime vs Hackatime
       </h1>
       <p class="text-lg md:text-xl text-secondary leading-relaxed max-w-[75ch]">
-        Looking for a WakaTime alternative? <strong class="text-surface-content"
-          >Hackatime</strong
-        >
-        is a free, open source coding time tracker that gives you all the features
-        you need, without the paywall. Built by
+        Want to track your coding time without paying $9 a month?
+        <strong class="text-surface-content">Hackatime</strong> is a free, open
+        source tracker built by
         <a
           href="https://hackclub.com"
           class="text-primary hover:underline"
           target="_blank">Hack Club</a
-        >, it's designed for developers who want powerful analytics without
-        monthly fees.
+        >. It uses the same editor plugins as WakaTime, so switching is mostly a
+        config change.
       </p>
     </div>
   </section>
@@ -215,18 +208,18 @@
         Why look for a WakaTime alternative?
       </h2>
       <p class="text-secondary leading-relaxed mb-4 max-w-[75ch]">
-        WakaTime pioneered automatic coding time tracking, and it's a great
-        product - in fact, we even use the same editor extensions! At the same
-        time though, its free tier is pretty limited. You get basic stats, but
-        advanced features like detailed project breakdowns and longer data
-        retention require a paid subscription starting at $9/month ($14/month
-        for dashboard history longer than two weeks). For students, hobbyists,
-        and open source contributors, that adds up.
+        WakaTime invented this category and the product is genuinely good. We
+        like it enough that we use their editor extensions. The catch is the
+        free tier: you get basic stats, but project breakdowns and history past
+        two weeks live behind a $9/month plan (or $14/month if you want more
+        than two weeks of dashboard history). If you're a student or just
+        tracking personal projects, paying every month for what's basically a
+        nice graph gets old.
       </p>
       <p class="text-secondary leading-relaxed max-w-[75ch]">
-        That's where Hackatime comes in. It's built from the ground up to be
-        <strong class="text-surface-content">completely free</strong> - no freemium
-        model, no premium tiers, no feature gates.
+        Hackatime is <strong class="text-surface-content">free</strong>. Not
+        free trial, not free tier - just free. We're not planning to add a paid
+        version later either.
       </p>
     </div>
   </section>
@@ -291,10 +284,9 @@
   <!-- Honest Trade-offs -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
-      <h2 class="text-2xl md:text-3xl font-semibold mb-5">Honest trade-offs</h2>
+      <h2 class="text-2xl md:text-3xl font-semibold mb-5">What you give up</h2>
       <p class="text-secondary leading-relaxed mb-6">
-        We believe in transparency. Here's what you should know before
-        switching:
+        A few things WakaTime does that we don't:
       </p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {#each tradeOffs as tradeOff}
@@ -317,12 +309,11 @@
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-5">
-        Why Hackatime might be right for you
+        Reasons you might prefer Hackatime
       </h2>
       <p class="text-secondary leading-relaxed mb-6">
-        If you're a student, open source contributor, or developer who wants
-        powerful coding analytics without paying a subscription, Hackatime might
-        be a good fit:
+        Especially if you're a student, an open source contributor, or just not
+        thrilled about another monthly subscription:
       </p>
       <ul class="space-y-3">
         {#each benefits as benefit}
@@ -354,8 +345,8 @@
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-5">Getting started</h2>
       <p class="text-secondary leading-relaxed mb-6">
-        Switching from WakaTime takes less than 5 minutes. Since Hackatime uses
-        the same plugin ecosystem, you just update your <code
+        Switching takes a couple of minutes. Same plugins, different server -
+        edit your <code
           class="bg-surface px-2 py-1 rounded text-surface-content text-sm"
           >~/.wakatime.cfg</code
         > file:
@@ -367,10 +358,10 @@ api_url = https://hackatime.hackclub.com/api/hackatime/v1
 api_key = YOUR_API_KEY_HERE</code
         ></pre>
       <p class="text-secondary leading-relaxed">
-        Or use our <Link
+        Or sign in and let our <Link
           href="/my/wakatime_setup"
-          class="text-primary hover:underline">automated setup page</Link
-        > that handles everything for you (sign in first!)
+          class="text-primary hover:underline">setup page</Link
+        > do it for you.
       </p>
     </div>
   </section>
@@ -381,10 +372,9 @@ api_key = YOUR_API_KEY_HERE</code
       <div
         class="rounded-xl border border-surface-200/60 bg-surface/30 p-8 md:p-12 text-center"
       >
-        <h2 class="text-2xl md:text-3xl font-bold mb-4">Ready to switch?</h2>
+        <h2 class="text-2xl md:text-3xl font-bold mb-4">Give it a try!</h2>
         <p class="text-secondary mb-8 max-w-[50ch] mx-auto">
-          Join thousands of developers who track their coding time for free. No
-          credit card required.
+          Install the plugin and see your hours.
         </p>
         <Link
           href="/signin"
@@ -392,7 +382,7 @@ api_key = YOUR_API_KEY_HERE</code
         >
           Start tracking for free
         </Link>
-        <p class="text-secondary text-sm mt-4">Takes 2 minutes to set up.</p>
+        <p class="text-secondary text-sm mt-4">Setup takes about 2 minutes.</p>
       </div>
     </div>
   </section>

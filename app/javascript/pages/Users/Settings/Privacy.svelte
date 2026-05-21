@@ -22,11 +22,26 @@
   const rotateApiKeyPath = settingsPrivacy.rotateApiKey.path();
   const createDeletionPath = deletionRequests.create.path();
 
+  const deletionReasons = [
+    "Switching to an alternative",
+    "Concerns about my data",
+    "Don't see the need to track my time",
+    "Couldn't figure out how to install Hackatime",
+    "Hackatime is missing stats I want to see",
+    "Something else",
+  ];
+
   let rotatingApiKey = $state(false);
   let rotatedApiKey = $derived(rotated_api_key || "");
   let rotatedApiKeyError = $state("");
   let apiKeyCopied = $state(false);
   let rotateApiKeyModalOpen = $state(false);
+  let deletionRequestModalOpen = $state(false);
+  let deletionReason = $state("");
+  let deletionReasonDetails = $state("");
+  let canSubmitDeletionRequest = $derived(
+    deletionReason.length > 0 && deletionReasonDetails.trim().length > 0,
+  );
 
   const rotateApiKey = () => {
     if (rotatingApiKey || typeof window === "undefined") return;
@@ -161,20 +176,14 @@
       hasBody={false}
     >
       {#snippet footer()}
-        <Form
-          method="post"
-          action={createDeletionPath}
-          class="m-0"
-          options={{ preserveScroll: true }}
-          onBefore={() =>
-            window.confirm(
-              "Submit account deletion request? This action starts the deletion process.",
-            )}
+        <Button
+          type="button"
+          variant="surface"
+          class="rounded-md"
+          onclick={() => (deletionRequestModalOpen = true)}
         >
-          <Button type="submit" variant="surface" class="rounded-md">
-            Request deletion
-          </Button>
-        </Form>
+          Request deletion
+        </Button>
       {/snippet}
     </SectionCard>
   {:else}
@@ -222,3 +231,92 @@
     </div>
   {/snippet}
 </Modal>
+
+<Modal
+  bind:open={deletionRequestModalOpen}
+  title="Why are you deleting your account?"
+  description="This helps us understand what to improve before your deletion request starts."
+  maxWidth="max-w-lg"
+  hasBody
+>
+  {#snippet body()}
+    <Form
+      id="account-deletion-request-form"
+      method="post"
+      action={createDeletionPath}
+      class="m-0"
+      options={{ preserveScroll: true }}
+    >
+      <fieldset class="mb-6 space-y-2.5">
+        <legend class="text-sm font-semibold text-surface-content">
+          Choose the closest reason
+        </legend>
+
+        {#each deletionReasons as reason}
+          <label class="flex items-center gap-3 text-sm text-surface-content">
+            <input
+              type="radio"
+              name="deletion_request[reason]"
+              value={reason}
+              bind:group={deletionReason}
+              required
+              class="deletion-reason-radio h-4 w-4 shrink-0 border border-surface-300 bg-darker focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            <span>{reason}</span>
+          </label>
+        {/each}
+      </fieldset>
+
+      <label
+        class="mb-2 block text-sm font-semibold text-surface-content"
+        for="deletion_reason_details"
+      >
+        Tell us more
+      </label>
+      <textarea
+        id="deletion_reason_details"
+        name="deletion_request[reason_details]"
+        rows="4"
+        bind:value={deletionReasonDetails}
+        required
+        class="block w-full rounded-lg border border-surface-300 bg-darker px-3 py-2 text-sm text-surface-content placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+        placeholder="Tell us anything else we should know."
+      ></textarea>
+
+      <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Button
+          type="button"
+          variant="dark"
+          class="h-10 w-full border border-surface-300 text-muted"
+          onclick={() => (deletionRequestModalOpen = false)}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          class="h-10 w-full text-on-primary"
+          disabled={!canSubmitDeletionRequest}
+        >
+          Submit deletion request
+        </Button>
+      </div>
+    </Form>
+  {/snippet}
+</Modal>
+
+<style>
+  .deletion-reason-radio {
+    appearance: none;
+    border-radius: 9999px;
+  }
+
+  .deletion-reason-radio:checked {
+    border-color: var(--color-primary);
+    background: radial-gradient(
+      circle,
+      var(--color-primary) 42%,
+      transparent 46%
+    );
+  }
+</style>

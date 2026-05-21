@@ -11,8 +11,8 @@ class AdminLevelConstraint
 end
 
 Rails.application.routes.draw do
-  # Redirect to localhost from 127.0.0.1 to use same IP address with Vite server
-  constraints(host: "127.0.0.1") do
+  # Redirect to localhost from 127.0.0.1 / 0.0.0.0 to use same IP address with Vite server
+  constraints(host: /\A(127\.0\.0\.1|0\.0\.0\.0)\z/) do
     get "(*path)", to: redirect { |params, req|
       path = params[:path].to_s
       query = req.query_string.presence
@@ -79,7 +79,10 @@ Rails.application.routes.draw do
 
   constraints AdminLevelConstraint.new(:superadmin, :admin, :ultraadmin) do
     namespace :admin do
-      resources :deletion_requests, only: [ :index, :show ] do
+      resources :deletion_requests, only: [ :index, :show, :new, :create ] do
+        collection do
+          get :confirm
+        end
         member do
           post :approve
           post :reject
@@ -150,6 +153,8 @@ Rails.application.routes.draw do
           to: "users#update_trust_level",
           as: :update_trust_level_user
   end
+
+  resource :api_key, only: [ :show ], path: "api-key"
 
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
   get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }
@@ -332,10 +337,12 @@ Rails.application.routes.draw do
         get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
         get "users/:id/visualization/quantized", to: "admin#visualization_quantized"
         get "alts/candidates", to: "admin#alt_candidates"
-        get "alts/shared_machines", to: "admin#shared_machines"
+        get "alts/shared_machines", to: "heartbeats#shared_machines"
         get "users/active", to: "admin#active_users"
         post "audit_logs/counts", to: "admin#audit_logs_counts"
         get "heartbeats/by_user_agent_segment", to: "admin#heartbeats_by_user_agent_segment"
+        get "heartbeats/ip_machine_pairs", to: "heartbeats#ip_machine_pairs"
+        get "heartbeats/shared_machines", to: "heartbeats#shared_machines"
       end
     end
 
@@ -358,11 +365,7 @@ Rails.application.routes.draw do
   end
 
   get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }
-  get "/@:username/time_stats", to: "profiles#time_stats", as: :profile_time_stats, constraints: { username: /[A-Za-z0-9_-]+/ }
-  get "/@:username/projects", to: "profiles#projects", as: :profile_projects, constraints: { username: /[A-Za-z0-9_-]+/ }
-  get "/@:username/languages", to: "profiles#languages", as: :profile_languages, constraints: { username: /[A-Za-z0-9_-]+/ }
-  get "/@:username/editors", to: "profiles#editors", as: :profile_editors, constraints: { username: /[A-Za-z0-9_-]+/ }
-  get "/@:username/activity", to: "profiles#activity", as: :profile_activity, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/og.png", to: "profiles#og_image", as: :profile_og_image, constraints: { username: /[A-Za-z0-9_-]+/ }
   get "/@:username/project/:project_name", to: "profiles#project", as: :profile_project, constraints: { username: /[A-Za-z0-9_-]+/, project_name: /.+/ }
 
   # SEO routes

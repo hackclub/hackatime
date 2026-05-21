@@ -21,8 +21,8 @@ class WeeklySummaryMailer < ApplicationMailer
     @daily_average_seconds = (@total_seconds / num_days).round
     @total_heartbeats = coding_heartbeats.count
     @active_days = active_days_count(coding_heartbeats)
-    @top_projects = breakdown(coding_heartbeats, :project)
-    @top_languages = breakdown(coding_heartbeats, :language)
+    @top_projects = breakdown_by_group(coding_heartbeats, :project)
+    @top_languages = breakdown_attributed(coding_heartbeats, :language)
 
     mail(
       to: recipient_email,
@@ -32,7 +32,7 @@ class WeeklySummaryMailer < ApplicationMailer
 
   private
 
-  def breakdown(scope, column, limit: 5)
+  def breakdown_by_group(scope, column, limit: 5)
     scope.group(column)
       .duration_seconds
       .sort_by { |_name, seconds| -seconds.to_i }
@@ -40,6 +40,19 @@ class WeeklySummaryMailer < ApplicationMailer
       .map do |name, seconds|
       {
         name: name.presence || "Other",
+        seconds: seconds.to_i,
+        duration_label: ApplicationController.helpers.short_time_simple(seconds)
+      }
+    end
+  end
+
+  def breakdown_attributed(scope, column, limit: 5)
+    Heartbeat.attributed_durations_by(scope, column)
+      .sort_by { |_name, seconds| -seconds.to_i }
+      .first(limit)
+      .map do |name, seconds|
+      {
+        name: name,
         seconds: seconds.to_i,
         duration_label: ApplicationController.helpers.short_time_simple(seconds)
       }

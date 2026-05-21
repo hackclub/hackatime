@@ -1,19 +1,6 @@
 <script lang="ts">
   import Button from "../../../components/Button.svelte";
-  import SocialProofUsers from "./SocialProofUsers.svelte";
   import { users } from "../../../api";
-
-  type SocialProofUser = { display_name: string; avatar_url: string };
-
-  let {
-    ssp_message,
-    ssp_users_recent,
-    ssp_users_size,
-  }: {
-    ssp_message?: string | null;
-    ssp_users_recent: SocialProofUser[];
-    ssp_users_size: number;
-  } = $props();
 
   const wakatimeSetupPath = users.wakatimeSetup.path();
 </script>
@@ -37,9 +24,4 @@
       >
     </div>
   </div>
-  <SocialProofUsers
-    users={ssp_users_recent}
-    total_size={ssp_users_size}
-    message={ssp_message}
-  />
 </div>

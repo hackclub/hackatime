@@ -164,8 +164,6 @@ module Doorkeeper
     def index_props
       {
         page_title: "OAuth Applications",
-        heading: I18n.t("doorkeeper.applications.index.title"),
-        subheading: "Manage your OAuth applications that integrate with Hackatime.",
         applications: @applications.map { |application|
           {
             id: application.id,
