@@ -354,7 +354,9 @@
             />
           </div>
           <div class="min-w-0 flex-[0_1_16rem]">
-            <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80">
+            <span
+              class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80"
+            >
               Search Projects
             </span>
             <input
@@ -367,7 +369,9 @@
           </div>
 
           <div class="min-w-0 flex-[0_1_12rem]">
-            <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80">
+            <span
+              class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80"
+            >
               Archival Status
             </span>
             <Select
@@ -386,7 +390,9 @@
               <div class="flex min-w-0 items-end gap-3">
                 <div class="min-w-0 flex-[0_1_12rem]">
                   <div class="mb-1.5 flex items-end gap-3">
-                    <span class="block text-xs font-medium uppercase tracking-wider text-secondary/80">
+                    <span
+                      class="block text-xs font-medium uppercase tracking-wider text-secondary/80"
+                    >
                       Sort
                     </span>
                   </div>
@@ -403,10 +409,14 @@
                   />
                 </div>
                 <div class="shrink-0 flex flex-col items-start">
-                  <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80">
+                  <span
+                    class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80"
+                  >
                     View
                   </span>
-                  <div class="inline-flex shrink-0 gap-1 rounded-lg border border-surface-200 bg-surface-content/5 p-1">
+                  <div
+                    class="inline-flex shrink-0 gap-1 rounded-lg border border-surface-200 bg-surface-content/5 p-1"
+                  >
                     <Button
                       type="button"
                       unstyled
@@ -418,8 +428,15 @@
                       title="Grid view"
                       onclick={() => (viewMode = "grid")}
                     >
-                      <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z" />
+                      <svg
+                        class="h-4 w-4"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"
+                        />
                       </svg>
                     </Button>
                     <Button
@@ -433,8 +450,15 @@
                       title="List view"
                       onclick={() => (viewMode = "list")}
                     >
-                      <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z" />
+                      <svg
+                        class="h-4 w-4"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"
+                        />
                       </svg>
                     </Button>
                   </div>
@@ -534,9 +558,13 @@
             >
               {#each filteredAndSortedProjects as project (project.id)}
                 {@const showPath = showPathFor(project)}
-                {@const projectHref = showPath ? withIntervalParams(showPath) : null}
+                {@const projectHref = showPath
+                  ? withIntervalParams(showPath)
+                  : null}
                 <article
-                  class="group relative flex w-full {viewMode === 'list' ? 'flex-row items-start sm:items-center sm:justify-between' : ''} min-h-36 overflow-hidden rounded-2xl {projectHref
+                  class="group relative flex w-full {viewMode === 'list'
+                    ? 'flex-row items-start sm:items-center sm:justify-between'
+                    : ''} min-h-36 overflow-hidden rounded-2xl {projectHref
                     ? 'cursor-pointer'
                     : ''}"
                 >
@@ -548,11 +576,15 @@
                     ></Link>
                   {/if}
                   <div
-                    class="relative flex w-full min-w-0 {viewMode === 'list' ? 'flex-1 p-3 sm:p-4' : 'p-5'} flex-col rounded-2xl border border-surface-200 bg-dark transition-colors duration-300 ease-out group-hover:border-surface-300"
+                    class="relative flex w-full min-w-0 {viewMode === 'list'
+                      ? 'flex-1 p-3 sm:p-4'
+                      : 'p-5'} flex-col rounded-2xl border border-surface-200 bg-dark transition-colors duration-300 ease-out group-hover:border-surface-300"
                   >
                     <div class="grid gap-3">
                       <div
-                        class="flex min-w-0 {viewMode === 'list' ? 'flex-1 items-center' : 'items-start justify-between'} gap-3"
+                        class="flex min-w-0 {viewMode === 'list'
+                          ? 'flex-1 items-center'
+                          : 'items-start justify-between'} gap-3"
                       >
                         <div class="min-w-0 flex-1">
                           <h3
@@ -562,7 +594,12 @@
                             {project.name}
                           </h3>
                         </div>
-                        <div class="flex shrink-0 items-center gap-3 {viewMode === 'list' ? 'ml-auto' : ''}">
+                        <div
+                          class="flex shrink-0 items-center gap-3 {viewMode ===
+                          'list'
+                            ? 'ml-auto'
+                            : ''}"
+                        >
                           {#if viewMode === "list"}
                             <div
                               class="relative z-20 flex flex-wrap items-center justify-end gap-2"
@@ -608,7 +645,8 @@
                                   unstyled
                                   class={cardActionClass}
                                   title="Restore project"
-                                  onclick={() => openStatusChangeModal(project, true)}
+                                  onclick={() =>
+                                    openStatusChangeModal(project, true)}
                                 >
                                   <Reply size={20} />
                                 </Button>
@@ -642,71 +680,79 @@
                         </p>
                       {/if}
 
-                      <div class="relative z-20 flex flex-wrap items-center gap-2">
+                      <div
+                        class="relative z-20 flex flex-wrap items-center gap-2"
+                      >
                         {#if viewMode === "grid"}
-                        {#if project.repository?.homepage}
-                          <a
-                            href={project.repository.homepage}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="View project website"
-                            class={cardActionClass}
-                          >
-                            <Web size={20} />
-                          </a>
-                        {/if}
-                        {#if project.repo_url}
-                          <a
-                            href={project.repo_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="View repository"
-                            class={cardActionClass}
-                          >
-                            <GithubFill size={20} />
-                          </a>
-                        {/if}
-                        {#if project.manage_enabled}
-                          <Button
-                            type="button"
-                            unstyled
-                            class={cardActionClass}
-                            title={project.repo_url
-                              ? "Edit mapping"
-                              : "Link repository"}
-                            onclick={() => openMappingEditor(project)}
-                          >
-                            <Edit size={20} />
-                          </Button>
-                        {/if}
-                        {#if show_archived && unarchivePathFor(project)}
-                          <Button
-                            type="button"
-                            unstyled
-                            class={cardActionClass}
-                            title="Restore project"
-                            onclick={() => openStatusChangeModal(project, true)}
-                          >
-                            <Reply size={20} />
-                          </Button>
-                        {:else if !show_archived && archivePathFor(project)}
-                          <Button
-                            type="button"
-                            unstyled
-                            class={cardActionClass}
-                            title="Archive project"
-                            onclick={() =>
-                              openStatusChangeModal(project, false)}
-                          >
-                            <Archive size={20} />
-                          </Button>
-                        {/if}
+                          {#if project.repository?.homepage}
+                            <a
+                              href={project.repository.homepage}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="View project website"
+                              class={cardActionClass}
+                            >
+                              <Web size={20} />
+                            </a>
+                          {/if}
+                          {#if project.repo_url}
+                            <a
+                              href={project.repo_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="View repository"
+                              class={cardActionClass}
+                            >
+                              <GithubFill size={20} />
+                            </a>
+                          {/if}
+                          {#if project.manage_enabled}
+                            <Button
+                              type="button"
+                              unstyled
+                              class={cardActionClass}
+                              title={project.repo_url
+                                ? "Edit mapping"
+                                : "Link repository"}
+                              onclick={() => openMappingEditor(project)}
+                            >
+                              <Edit size={20} />
+                            </Button>
+                          {/if}
+                          {#if show_archived && unarchivePathFor(project)}
+                            <Button
+                              type="button"
+                              unstyled
+                              class={cardActionClass}
+                              title="Restore project"
+                              onclick={() =>
+                                openStatusChangeModal(project, true)}
+                            >
+                              <Reply size={20} />
+                            </Button>
+                          {:else if !show_archived && archivePathFor(project)}
+                            <Button
+                              type="button"
+                              unstyled
+                              class={cardActionClass}
+                              title="Archive project"
+                              onclick={() =>
+                                openStatusChangeModal(project, false)}
+                            >
+                              <Archive size={20} />
+                            </Button>
+                          {/if}
                         {/if}
                       </div>
                     </div>
 
                     <div
-                      class="mt-auto flex flex-wrap items-center gap-2 {viewMode === 'grid' ? 'pt-5' : viewMode === 'list' ? 'pt-0' : ''} text-sm text-surface-content/55"
+                      class="mt-auto flex flex-wrap items-center gap-2 {viewMode ===
+                      'grid'
+                        ? 'pt-5'
+                        : viewMode === 'list'
+                          ? 'pt-0'
+                          : ''} text-sm text-surface-content/55"
                     >
                       {#if project.repository?.formatted_languages && viewMode === "grid"}
                         <p
@@ -747,14 +793,15 @@
                             />
                           </svg>
                           <span class="text-surface-content/50"
-                            >Last commit {project.repository.last_commit_ago}</span
+                            >Last commit {project.repository
+                              .last_commit_ago}</span
                           >
                         </p>
                       {/if}
                     </div>
 
                     {#if project.broken_name}
-                      {#if viewMode === 'grid'}
+                      {#if viewMode === "grid"}
                         <button
                           type="button"
                           class="mt-4 block w-full cursor-pointer rounded-2xl border border-yellow/30 bg-yellow/10 p-3 text-left hover:bg-yellow/15"
@@ -773,9 +820,23 @@
                         </button>
                       {:else}
                         <div class="mt-2 flex items-center gap-3">
-                          <span class="inline-flex items-center gap-2 rounded-full bg-yellow/10 px-3 py-1 text-sm text-yellow/80">
-                            <svg class="h-4 w-4 text-yellow/80" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zM12 16v2h0v-2h0zm0-6v4h0v-4h0z"/></svg>
-                            <button type="button" class="underline text-sm" onclick={() => (brokenNameModalOpen = true)}>
+                          <span
+                            class="inline-flex items-center gap-2 rounded-full bg-yellow/10 px-3 py-1 text-sm text-yellow/80"
+                          >
+                            <svg
+                              class="h-4 w-4 text-yellow/80"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              aria-hidden="true"
+                              ><path
+                                d="M1 21h22L12 2 1 21zM12 16v2h0v-2h0zm0-6v4h0v-4h0z"
+                              /></svg
+                            >
+                            <button
+                              type="button"
+                              class="underline text-sm"
+                              onclick={() => (brokenNameModalOpen = true)}
+                            >
                               Time can't be used for programs (why?)
                             </button>
                           </span>
