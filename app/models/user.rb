@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  has_one_attached :profile_og_image
+
   include TimezoneRegions
   include UserThemeConfiguration
   include ::OauthAuthentication
@@ -11,8 +13,8 @@ class User < ApplicationRecord
 
   has_paper_trail
 
-  after_create :track_signup
   after_create :subscribe_to_default_lists
+  after_create_commit :schedule_onboarding_check_in_email
   before_validation :normalize_username
   encrypts :slack_access_token, :github_access_token, :hca_access_token
 
@@ -29,6 +31,7 @@ class User < ApplicationRecord
 
   attribute :allow_public_stats_lookup, :boolean, default: true
   attribute :default_timezone_leaderboard, :boolean, default: true
+  attribute :show_goals_in_statusbar, :boolean, default: true
 
   def country_name
     ISO3166::Country.new(country_code).common_name
@@ -49,8 +52,20 @@ class User < ApplicationRecord
     default: 0,   # pleebs
     superadmin: 1,
     admin: 2,
-    viewer: 3
+    viewer: 3,
+    ultraadmin: 4
   }, prefix: :admin_level
+
+  # Privilege ordering. The integer ordering on the enum is historical and does
+  # NOT correspond to privilege; never compare admin_level numerically. Use this
+  # rank table (or the helpers below) for any "outranks" check.
+  ADMIN_LEVEL_RANK = {
+    "default"    => 0,
+    "viewer"     => 1, # read-only admin
+    "admin"      => 2,
+    "superadmin" => 3,
+    "ultraadmin" => 4
+  }.freeze
 
   enum :theme, {
     standard: 0,
@@ -62,15 +77,101 @@ class User < ApplicationRecord
     github_light: 6,
     nord: 7,
     rose: 8,
-    rose_pine_dawn: 9
+    rose_pine_dawn: 9,
+    amoled: 10
   }
 
-  def can_convict_users?
-    admin_level_superadmin?
+  # Look up a user by numeric ID, slack_uid, hca_id, or username
+  def self.lookup_by_identifier(id)
+    return nil if id.blank?
+
+    numeric_id = id.to_i if id.match?(/^\d+$/)
+
+    relation = where(slack_uid: id)
+      .or(where(hca_id: id))
+      .or(where(username: id))
+    relation = where(id: numeric_id).or(relation) if numeric_id
+
+    candidates = relation.to_a
+
+    if numeric_id
+      match = candidates.find { |u| u.id == numeric_id }
+      return match if match
+    end
+
+    candidates.find { |u| u.slack_uid == id } ||
+      candidates.find { |u| u.hca_id == id } ||
+      candidates.find { |u| u.username == id }
   end
 
-  def set_admin_level(level)
-    return false unless level.present? && self.class.admin_levels.key?(level)
+  def can_convict_users?
+    admin_level_superadmin? || admin_level_ultraadmin?
+  end
+
+  def admin_level_rank
+    ADMIN_LEVEL_RANK[admin_level.to_s] || 0
+  end
+
+  # True if `self` is allowed to set `target_user`'s admin_level to `new_level`.
+  #
+  # Rules (defense-in-depth — controllers should also check, but the model is
+  # the last line of defense):
+  #   * Only superadmin/ultraadmin can change anyone's admin_level at all.
+  #   * Cannot change your own level (no self-promotion).
+  #   * You must strictly outrank the target's CURRENT level (so a superadmin
+  #     cannot demote/promote a peer superadmin or any ultraadmin).
+  #   * You must be at or above the rank you're granting (so a superadmin
+  #     cannot grant ultraadmin).
+  #   * Granting `ultraadmin` requires `ultraadmin`.
+  def can_change_admin_level_of?(target_user, new_level)
+    return false unless target_user.is_a?(User)
+    return false if target_user == self
+    return false unless ADMIN_LEVEL_RANK.key?(new_level.to_s)
+    return false unless admin_level_superadmin? || admin_level_ultraadmin?
+
+    target_rank = ADMIN_LEVEL_RANK[target_user.admin_level.to_s] || 0
+    new_rank    = ADMIN_LEVEL_RANK[new_level.to_s] || 0
+    actor_rank  = admin_level_rank
+
+    return false unless actor_rank > target_rank
+    return false unless actor_rank >= new_rank
+    return false if new_level.to_s == "ultraadmin" && !admin_level_ultraadmin?
+
+    true
+  end
+
+  # True if `self` is allowed to set `target_user`'s trust_level to `new_level`.
+  #
+  # Rules:
+  #   * Only admin/superadmin/ultraadmin can change trust at all.
+  #   * Cannot change your own trust.
+  #   * You must strictly outrank the target's admin_level (so a superadmin
+  #     cannot convict another superadmin or any ultraadmin; an admin cannot
+  #     touch any superadmin/ultraadmin).
+  #   * Setting `red` (convicted) requires `can_convict_users?` (i.e.
+  #     superadmin or ultraadmin).
+  def can_change_trust_of?(target_user, new_level)
+    return false unless target_user.is_a?(User)
+    return false unless self.class.trust_levels.key?(new_level.to_s)
+    return false unless admin_level.in?(%w[admin superadmin ultraadmin])
+    return false if target_user == self
+
+    target_rank = ADMIN_LEVEL_RANK[target_user.admin_level.to_s] || 0
+    actor_rank  = admin_level_rank
+
+    return false unless actor_rank > target_rank
+    return false if new_level.to_s == "red" && !can_convict_users?
+
+    true
+  end
+
+  # Change a user's admin_level. `changed_by_user` is required and must be
+  # authorized to make the change (see `can_change_admin_level_of?`). Returns
+  # false on any authorization failure or invalid level.
+  def set_admin_level(level, changed_by_user:)
+    return false unless changed_by_user.is_a?(User)
+    return false unless level.present? && self.class.admin_levels.key?(level.to_s)
+    return false unless changed_by_user.can_change_admin_level_of?(self, level.to_s)
 
     previous_level = admin_level
 
@@ -81,32 +182,31 @@ class User < ApplicationRecord
     true
   end
 
-  def set_trust(level, changed_by_user: nil, reason: nil, notes: nil)
-    return false unless level.present?
+  # Change a user's trust_level. `changed_by_user` is required and must be
+  # authorized to make the change (see `can_change_trust_of?`). Returns false
+  # on any authorization failure or invalid level.
+  def set_trust(level, changed_by_user:, reason: nil, notes: nil)
+    return false unless changed_by_user.is_a?(User)
+    return false unless level.present? && self.class.trust_levels.key?(level.to_s)
+    return false unless changed_by_user.can_change_trust_of?(self, level.to_s)
 
     previous_level = trust_level
 
-    if changed_by_user.present? && level.to_s == "red" && !(changed_by_user.admin_level_superadmin?)
-      return false
-    end
-
     if previous_level != level.to_s
-      if changed_by_user.present?
-        trust_level_audit_logs.create!(
-          changed_by: changed_by_user,
-          previous_trust_level: previous_level,
-          new_trust_level: level.to_s,
-          reason: reason,
-          notes: notes
-        )
-      end
+      trust_level_audit_logs.create!(
+        changed_by: changed_by_user,
+        previous_trust_level: previous_level,
+        new_trust_level: level.to_s,
+        reason: reason,
+        notes: notes
+      )
 
       update!(trust_level: level)
     end
 
     true
   end
-  # ex: .set_trust(:green) or set_trust(1) setting it to red
+  # ex: .set_trust(:green, changed_by_user: admin) or set_trust(:red, changed_by_user: admin)
 
   has_many :heartbeats
   has_many :goals, dependent: :destroy
@@ -211,7 +311,8 @@ class User < ApplicationRecord
     compliment_text: 2
   }
 
-  after_save :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
+  after_update_commit :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
+  after_update_commit :schedule_dashboard_rollup_refresh, if: :saved_change_to_timezone?
 
   def flipper_id
     "User;#{id}"
@@ -219,6 +320,10 @@ class User < ApplicationRecord
 
   def active_remote_heartbeat_import_run?
     heartbeat_import_runs.remote_imports.active_imports.exists?
+  end
+
+  def activity_graph_cache_key(timezone = self.timezone)
+    "user_#{id}_daily_durations_#{timezone}"
   end
 
   def format_extension_text(duration)
@@ -229,7 +334,10 @@ class User < ApplicationRecord
     when "clock_emoji"
       ::ApplicationController.helpers.time_in_emoji(duration)
     when "compliment_text"
-      FlavorText.compliment.sample
+      compliments = FlavorText.compliment
+      bucket = Time.now.to_i / (7 * 60)
+      seed = Digest::MD5.hexdigest("#{id}-#{bucket}").to_i(16)
+      compliments[Random.new(seed).rand(compliments.length)]
     end
   end
 
@@ -315,16 +423,23 @@ class User < ApplicationRecord
   private
 
   def invalidate_activity_graph_cache
-    Rails.cache.delete("user_#{id}_daily_durations")
+    previous_timezone, current_timezone = previous_changes.fetch("timezone", [ nil, timezone ])
+
+    [ previous_timezone, current_timezone ].compact.uniq.each do |cache_timezone|
+      Rails.cache.delete(activity_graph_cache_key(cache_timezone))
+    end
   end
 
-  def track_signup
-    PosthogService.identify(self)
-    PosthogService.capture(self, "account_created", { source: "signup" })
+  def schedule_dashboard_rollup_refresh
+    DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
   end
 
   def subscribe_to_default_lists
     subscribe("weekly_summary")
+  end
+
+  def schedule_onboarding_check_in_email
+    OnboardingCheckInEmailJob.set(wait: 1.week).perform_later(id)
   end
 
   def normalize_username

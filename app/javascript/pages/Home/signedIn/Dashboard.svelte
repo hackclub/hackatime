@@ -7,25 +7,20 @@
   import IntervalSelect from "./IntervalSelect.svelte";
   import MultiSelect from "./MultiSelect.svelte";
   import GoalsProgressCard from "./GoalsProgressCard.svelte";
+  import type { ProgrammingGoalProgress } from "../../../types/index";
 
   let {
     data,
     programmingGoalsProgress = [],
     onFiltersChange,
+    showFilters = true,
+    showGoals = true,
   }: {
     data: Record<string, any>;
-    programmingGoalsProgress?: {
-      id: string;
-      period: "day" | "week" | "month";
-      target_seconds: number;
-      tracked_seconds: number;
-      completion_percent: number;
-      complete: boolean;
-      languages: string[];
-      projects: string[];
-      period_end: string;
-    }[];
+    programmingGoalsProgress?: ProgrammingGoalProgress[];
     onFiltersChange?: (search: string) => void;
+    showFilters?: boolean;
+    showGoals?: boolean;
   } = $props();
 
   const langStats = $derived(
@@ -72,56 +67,62 @@
   }
 </script>
 
-<div class="flex flex-col gap-6 w-full">
-  <!-- Filters -->
-  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-2">
-    <IntervalSelect
-      selected={data.selected_interval || ""}
-      from={data.selected_from || ""}
-      to={data.selected_to || ""}
-      onchange={onIntervalChange}
-    />
-    <MultiSelect
-      label="Project"
-      param="project"
-      values={data.project || []}
-      selected={data.selected_project || []}
-      onchange={(s) => onFilterChange("project", s)}
-    />
-    <MultiSelect
-      label="Language"
-      param="language"
-      values={data.language || []}
-      selected={data.selected_language || []}
-      onchange={(s) => onFilterChange("language", s)}
-    />
-    <MultiSelect
-      label="OS"
-      param="operating_system"
-      values={data.operating_system || []}
-      selected={data.selected_operating_system || []}
-      onchange={(s) => onFilterChange("operating_system", s)}
-    />
-    <MultiSelect
-      label="Editor"
-      param="editor"
-      values={data.editor || []}
-      selected={data.selected_editor || []}
-      onchange={(s) => onFilterChange("editor", s)}
-    />
-    <MultiSelect
-      label="Category"
-      param="category"
-      values={data.category || []}
-      selected={data.selected_category || []}
-      onchange={(s) => onFilterChange("category", s)}
-    />
-  </div>
+<div class="flex w-full min-w-0 flex-col gap-6">
+  {#if showFilters}
+    <!-- Filters -->
+    <div
+      class="mb-2 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"
+    >
+      <IntervalSelect
+        selected={data.selected_interval || ""}
+        from={data.selected_from || ""}
+        to={data.selected_to || ""}
+        onchange={onIntervalChange}
+      />
+      <MultiSelect
+        label="Project"
+        param="project"
+        values={data.project || []}
+        selected={data.selected_project || []}
+        onchange={(s) => onFilterChange("project", s)}
+      />
+      <MultiSelect
+        label="Language"
+        param="language"
+        values={data.language || []}
+        selected={data.selected_language || []}
+        onchange={(s) => onFilterChange("language", s)}
+      />
+      <MultiSelect
+        label="OS"
+        param="operating_system"
+        values={data.operating_system || []}
+        selected={data.selected_operating_system || []}
+        onchange={(s) => onFilterChange("operating_system", s)}
+      />
+      <MultiSelect
+        label="Editor"
+        param="editor"
+        values={data.editor || []}
+        selected={data.selected_editor || []}
+        onchange={(s) => onFilterChange("editor", s)}
+      />
+      <MultiSelect
+        label="Category"
+        param="category"
+        values={data.category || []}
+        selected={data.selected_category || []}
+        onchange={(s) => onFilterChange("category", s)}
+      />
+    </div>
+  {/if}
 
-  <GoalsProgressCard goals={programmingGoalsProgress} />
+  {#if showGoals}
+    <GoalsProgressCard goals={programmingGoalsProgress} />
+  {/if}
 
   <!-- Stats Grid -->
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+  <div class="grid min-w-0 grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
     <StatCard
       label="Total Time"
       value={secondsToDisplay(data.total_time)}

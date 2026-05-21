@@ -1,5 +1,5 @@
 class Admin::TrustLevelAuditLogsController < Admin::BaseController
-  before_action :require_admin
+  before_action -> { require_admin_level!(:admin, :superadmin, :viewer) }
 
   def index
     @audit_logs = TrustLevelAuditLog.includes(:user, :changed_by)
@@ -64,10 +64,4 @@ class Admin::TrustLevelAuditLogsController < Admin::BaseController
   end
 
   private
-
-  def require_admin
-    unless current_user && current_user.admin_level.in?([ "admin", "superadmin", "viewer" ])
-      redirect_to root_path, alert: "no perms lmaooo"
-    end
-  end
 end

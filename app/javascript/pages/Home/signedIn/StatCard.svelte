@@ -14,7 +14,7 @@
 
 <div
   class={`
-    flex flex-col justify-start p-4 rounded-xl border transition-all duration-200 h-full
+    flex min-w-0 flex-col justify-start p-4 rounded-xl border transition-all duration-200 h-full
     ${
       highlight
         ? "bg-primary/10 border-primary/30"

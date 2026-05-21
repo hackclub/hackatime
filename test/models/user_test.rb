@@ -1,33 +1,35 @@
 require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
+  setup do
+    clear_enqueued_jobs
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+  end
+
+  teardown do
+    clear_enqueued_jobs
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
+  end
+
   test "theme defaults to gruvbox dark" do
     user = User.new
 
-    assert_equal "gruvbox_dark", user.theme
+    assert_equal "rose", user.theme
   end
 
   test "theme options include all supported themes in order" do
     values = User.theme_options.map { |option| option[:value] }
 
-    assert_equal %w[
-      standard
-      neon
-      catppuccin_mocha
-      catppuccin_iced_latte
-      gruvbox_dark
-      github_dark
-      github_light
-      nord
-      rose
-      rose_pine_dawn
-    ], values
+    assert_equal User.themes.keys, values
   end
 
   test "theme metadata falls back to default for unknown themes" do
     metadata = User.theme_metadata("not-a-real-theme")
 
-    assert_equal "gruvbox_dark", metadata[:value]
+    assert_equal "rose", metadata[:value]
   end
 
   test "rotate_api_keys! replaces existing api key with a new one" do
@@ -82,5 +84,32 @@ class UserTest < ActiveSupport::TestCase
     )
 
     assert user.active_remote_heartbeat_import_run?
+  end
+
+  test "changing timezone invalidates activity graph caches and schedules a dashboard rollup refresh" do
+    with_memory_cache_store do
+      Rails.cache.clear
+
+      user = User.create!(timezone: "UTC")
+      Rails.cache.write(user.activity_graph_cache_key("UTC"), { "2026-04-14" => 60 })
+      Rails.cache.write(user.activity_graph_cache_key("America/New_York"), { "2026-04-14" => 60 })
+
+      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
+        user.update!(timezone: "America/New_York")
+      end
+
+      assert_not Rails.cache.exist?(user.activity_graph_cache_key("UTC"))
+      assert_not Rails.cache.exist?(user.activity_graph_cache_key("America/New_York"))
+    end
+  end
+
+  private
+
+  def with_memory_cache_store
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+    yield
+  ensure
+    Rails.cache = original_cache
   end
 end

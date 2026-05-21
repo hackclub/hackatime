@@ -1,53 +1,26 @@
 class HeartbeatImportService
   BATCH_SIZE = 50_000
 
-  def self.import_from_file(file_content, user, on_progress: nil, progress_interval: 250)
+  def self.import_from_file(file_content, user, on_progress: nil, progress_interval: 250, user_agents_by_id: {})
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    user_id = user.id
     imported_count = 0
     total_count = 0
     errors = []
-    seen_hashes = {}
+    heartbeat_batch = {}
 
     handler = HeartbeatSaxHandler.new do |hb|
       total_count += 1
       on_progress&.call(total_count) if progress_interval.positive? && (total_count % progress_interval).zero?
 
       begin
-        time_value = hb["time"].is_a?(String) ? Time.parse(hb["time"]).to_f : hb["time"].to_f
+        attrs = HeartbeatIngest.normalize_imported_heartbeat(user:, heartbeat: hb, user_agents_by_id:)
+        heartbeat_batch[attrs[:fields_hash]] = hb
 
-        attrs = {
-          user_id: user_id,
-          time: time_value,
-          entity: hb["entity"],
-          type: hb["type"],
-          category: hb["category"] || "coding",
-          project: hb["project"],
-          language: hb["language"],
-          editor: hb["editor"],
-          operating_system: hb["operating_system"],
-          machine: hb["machine"] || hb["machine_name_id"],
-          branch: hb["branch"],
-          user_agent: hb["user_agent"] || hb["user_agent_id"],
-          is_write: hb["is_write"] || false,
-          line_additions: hb["line_additions"],
-          line_deletions: hb["line_deletions"],
-          lineno: hb["lineno"],
-          lines: hb["lines"],
-          cursorpos: hb["cursorpos"],
-          dependencies: hb["dependencies"] || [],
-          project_root_count: hb["project_root_count"],
-          source_type: Heartbeat.source_types.fetch("wakapi_import")
-        }
-
-        attrs[:fields_hash] = Heartbeat.generate_fields_hash(attrs)
-
-        existing = seen_hashes[attrs[:fields_hash]]
-        seen_hashes[attrs[:fields_hash]] = attrs if existing.nil? || attrs[:time] > existing[:time]
-
-        if seen_hashes.size >= BATCH_SIZE
-          imported_count += flush_batch(seen_hashes)
-          seen_hashes.clear
+        if heartbeat_batch.size >= BATCH_SIZE
+          result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch.values, user_agents_by_id:, schedule_rollup_refresh: false)
+          imported_count += result.persisted_count
+          errors.concat(result.errors)
+          heartbeat_batch.clear
         end
       rescue => e
         errors << { heartbeat: hb, error: e.message }
@@ -60,7 +33,12 @@ class HeartbeatImportService
     if total_count.zero?
       raise StandardError, "Expected a heartbeat export JSON file."
     end
-    imported_count += flush_batch(seen_hashes) if seen_hashes.any?
+    if heartbeat_batch.any?
+      result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch.values, user_agents_by_id:, schedule_rollup_refresh: false)
+      imported_count += result.persisted_count
+      errors.concat(result.errors)
+    end
+    HeartbeatIngest.schedule_rollup_refresh(user:) if imported_count.positive?
 
     elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
@@ -95,22 +73,6 @@ class HeartbeatImportService
 
     Oj.saj_parse(handler, file_content)
     total_count
-  end
-
-  def self.flush_batch(seen_hashes)
-    return 0 if seen_hashes.empty?
-
-    records = seen_hashes.values
-    records.each do |r|
-      timestamp = Time.current
-      r[:created_at] = timestamp
-      r[:updated_at] = timestamp
-    end
-
-    ActiveRecord::Base.logger.silence do
-      result = Heartbeat.upsert_all(records, unique_by: [ :fields_hash ])
-      result.length
-    end
   end
 
   class HeartbeatSaxHandler < Oj::Saj

@@ -7,18 +7,12 @@
   import AuthForm from "../Home/signedOut/AuthForm.svelte";
 
   let {
-    hca_auth_path,
-    slack_auth_path,
-    email_auth_path,
     sign_in_email,
     show_dev_tool,
     dev_magic_link,
     csrf_token,
     continue_param,
   }: {
-    hca_auth_path: string;
-    slack_auth_path: string;
-    email_auth_path: string;
     sign_in_email: boolean;
     show_dev_tool: boolean;
     dev_magic_link?: string | null;
@@ -31,7 +25,7 @@
   $effect(() => {
     const html = document.documentElement;
     previousTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "gruvbox_dark");
+    html.setAttribute("data-theme", "rose");
 
     const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
     colorSchemeMeta?.setAttribute("content", "dark");
@@ -43,6 +37,10 @@
     };
   });
 </script>
+
+<svelte:head>
+  <title>Sign in - Hackatime</title>
+</svelte:head>
 
 <div
   class="min-h-screen w-full bg-darker text-surface-content flex flex-col items-center justify-center px-6"
@@ -60,15 +58,10 @@
       <h1 class="text-2xl font-semibold tracking-tight mb-2">
         Sign in to Hackatime
       </h1>
-      <p class="text-secondary text-sm">
-        Track your coding time. Own your metrics.
-      </p>
+      <p class="text-secondary text-sm">what's cookin'?</p>
     </div>
 
     <AuthForm
-      {hca_auth_path}
-      {slack_auth_path}
-      {email_auth_path}
       {sign_in_email}
       {show_dev_tool}
       {dev_magic_link}

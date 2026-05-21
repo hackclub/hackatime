@@ -17,9 +17,6 @@
   type FlashMessage = { message: string; class_name: string };
 
   let {
-    hca_auth_path,
-    slack_auth_path,
-    email_auth_path,
     sign_in_email,
     show_dev_tool,
     dev_magic_link,
@@ -27,9 +24,6 @@
     home_stats,
     flash = [],
   }: {
-    hca_auth_path: string;
-    slack_auth_path: string;
-    email_auth_path: string;
     sign_in_email: boolean;
     show_dev_tool: boolean;
     dev_magic_link?: string | null;
@@ -43,7 +37,7 @@
   $effect(() => {
     const html = document.documentElement;
     previousTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "gruvbox_dark");
+    html.setAttribute("data-theme", "rose");
 
     const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
     colorSchemeMeta?.setAttribute("content", "dark");
@@ -93,6 +87,10 @@
     };
   });
 </script>
+
+<svelte:head>
+  <title>Hackatime - Track your coding time</title>
+</svelte:head>
 
 <div class="landing-page min-h-screen w-full bg-darker text-surface-content">
   {#if flashVisible && flash.length > 0}

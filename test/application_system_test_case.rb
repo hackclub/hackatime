@@ -27,5 +27,32 @@ end
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   include SystemTestAuthHelper
 
+  # Chrome 134+ has an intermittent ChromeDriver bug where node ownership
+  # gets stale after Capybara visit() calls, causing "Node with given id
+  # does not belong to the document" errors. Retry once as a workaround.
+  # See: https://github.com/teamcapybara/capybara/issues/2800
+  CHROMEDRIVER_NODE_ERROR = /Node with given id does not belong to the document/i
+
   driven_by :headless_chromium
+
+  def run
+    result = super
+    return result unless chromedriver_node_error?(result)
+
+    warn "Retrying #{self.class}##{name} after chromedriver node ownership error"
+
+    self.failures = []
+    self.assertions = 0
+    super
+  end
+
+  private
+
+  def chromedriver_node_error?(result)
+    result.failures.any? do |failure|
+      [ failure.message, failure.respond_to?(:error) ? failure.error&.message : nil ].any? do |message|
+        message&.match?(CHROMEDRIVER_NODE_ERROR)
+      end
+    end
+  end
 end

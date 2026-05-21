@@ -23,13 +23,10 @@ class SessionsController < ApplicationController
 
     redirect_uri = url_for(action: :hca_create, only_path: false)
 
-    @user = User.from_hca_token(params[:code], redirect_uri)
+    @user = User.from_hca_token(params[:code], redirect_uri, client_ip)
 
     if @user&.persisted?
       session[:user_id] = @user.id
-
-      PosthogService.identify(@user)
-      PosthogService.capture(@user, "user_signed_in", { method: "hca" })
 
       if @user.previously_new_record?
         redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
@@ -80,13 +77,10 @@ class SessionsController < ApplicationController
       return
     end
 
-    @user = User.from_slack_token(params[:code], redirect_uri)
+    @user = User.from_slack_token(params[:code], redirect_uri, client_ip)
 
     if @user&.persisted?
       session[:user_id] = @user.id
-
-      PosthogService.identify(@user)
-      PosthogService.capture(@user, "user_signed_in", { method: "slack" })
 
       if slack_state&.dig("close_window")
         redirect_to close_window_path
@@ -144,7 +138,6 @@ class SessionsController < ApplicationController
     @user = User.from_github_token(params[:code], redirect_uri, current_user)
 
     if @user&.persisted?
-      PosthogService.capture(@user, "github_linked")
       redirect_to my_settings_path, notice: "Successfully linked GitHub account!"
     else
       report_message("Failed to link GitHub account")
@@ -168,9 +161,9 @@ class SessionsController < ApplicationController
     continue_param = params[:continue]
 
     if Rails.env.production?
-      HandleEmailSigninJob.perform_later(email, continue_param)
+      HandleEmailSigninJob.perform_later(email, continue_param, client_ip)
     else
-      token = HandleEmailSigninJob.perform_now(email, continue_param)
+      token = HandleEmailSigninJob.perform_now(email, continue_param, client_ip)
       session[:dev_magic_link] = auth_token_url(token)
     end
 
@@ -265,8 +258,6 @@ class SessionsController < ApplicationController
       session[:return_data] = valid_token.return_data || {}
 
       user = User.find(valid_token.user_id)
-      PosthogService.identify(user)
-      PosthogService.capture(user, "user_signed_in", { method: "email" })
 
       if valid_token.continue_param.present? && safe_return_url(valid_token.continue_param).present?
         redirect_to safe_return_url(valid_token.continue_param), notice: "Successfully signed in!"
@@ -279,7 +270,7 @@ class SessionsController < ApplicationController
   end
 
   def impersonate
-    unless current_user && current_user.admin_level.in?([ "admin", "superadmin" ])
+    unless current_user && current_user.admin_level.in?([ "admin", "superadmin", "ultraadmin" ])
       redirect_to root_path, alert: "You are not authorized to impersonate users"
       return
     end
@@ -290,11 +281,15 @@ class SessionsController < ApplicationController
       return
     end
 
-    if user.admin_level == "superadmin"
+    if user.admin_level == "ultraadmin"
       redirect_to root_path, alert: "nice try, you cant do that"
       return
     end
-    if user.admin_level == "admin" && current_user.admin_level != "superadmin"
+    if user.admin_level == "superadmin" && current_user.admin_level != "ultraadmin"
+      redirect_to root_path, alert: "nice try, you cant do that"
+      return
+    end
+    if user.admin_level == "admin" && !current_user.admin_level.in?(%w[superadmin ultraadmin])
       redirect_to root_path, alert: "nice try, you cant do that"
       return
     end
@@ -311,13 +306,16 @@ class SessionsController < ApplicationController
   end
 
   def destroy
-    PosthogService.capture(session[:user_id], "user_signed_out") if session[:user_id]
     session[:user_id] = nil
     session[:impersonater_user_id] = nil
     redirect_to root_path, notice: "Signed out!"
   end
 
   private
+
+  def client_ip
+    request.headers["CF-Connecting-IP"].presence || request.remote_ip
+  end
 
   def parse_slack_state(raw_state)
     JSON.parse(raw_state)

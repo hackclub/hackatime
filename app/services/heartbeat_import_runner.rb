@@ -182,10 +182,13 @@ class HeartbeatImportRunner < ApplicationService
     report_error(e, message: "HeartbeatImportDumpJob failed") # Track unexpected errors
   ensure
     FileUtils.rm_f(file_path) if file_path.present?
+    FileUtils.rm_f(import_context_path_for(file_path)) if file_path.present?
     ActiveRecord::Base.connection_pool.release_connection
   end
 
   def self.import_file_streaming(file_path, user, run)
+    import_context = load_import_context(file_path)
+
     File.open(file_path, "rb") do |file|
       magic_bytes = file.read(2)
       file.rewind
@@ -200,6 +203,7 @@ class HeartbeatImportRunner < ApplicationService
         result = HeartbeatImportService.import_from_file(
           io,
           user,
+          user_agents_by_id: import_context.fetch("user_agents_by_id", {}),
           progress_interval: PROGRESS_INTERVAL,
           on_progress: lambda { |processed_count|
             run.update_columns(
@@ -227,12 +231,31 @@ class HeartbeatImportRunner < ApplicationService
     file_path.to_s
   end
 
-  def self.persist_remote_download(run:, file_content:)
+  def self.persist_remote_download(run:, file_content:, import_context: nil)
     FileUtils.mkdir_p(TMP_DIR)
 
     file_path = TMP_DIR.join("#{run.id}-remote.json")
     File.binwrite(file_path, file_content) # Write raw bytes, let run_import handle decompression
+
+    if import_context.present?
+      File.write(import_context_path_for(file_path.to_s), JSON.generate(import_context))
+    end
+
     file_path.to_s
+  end
+
+  def self.import_context_path_for(file_path)
+    "#{file_path}.context.json"
+  end
+
+  def self.load_import_context(file_path)
+    context_path = import_context_path_for(file_path)
+    return {} unless File.exist?(context_path)
+
+    JSON.parse(File.read(context_path))
+  rescue JSON::ParserError => e
+    report_error(e, message: "Failed to parse heartbeat import context for #{file_path}")
+    {}
   end
 
   def self.queue_remote_download(run:, download_url:, remote_dump_status: nil, remote_percent_complete: nil)

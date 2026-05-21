@@ -12,9 +12,9 @@ class InertiaController < ApplicationController
       theme: inertia_theme_props,
       # currently_hacking: currently_hacking_props,
       csrf_token: form_authenticity_token,
-      signout_path: signout_path,
-      show_stop_impersonating: session[:impersonater_user_id].present?,
-      stop_impersonating_path: stop_impersonating_path
+      hide_sidebar: false,
+      hide_footer: false,
+      show_stop_impersonating: session[:impersonater_user_id].present?
     }
   end
 
@@ -31,12 +31,12 @@ class InertiaController < ApplicationController
       flash: inertia_flash_messages,
       user_present: current_user.present?,
       current_user: inertia_nav_current_user,
-      login_path: slack_auth_path,
       links: inertia_primary_links,
       dev_links: inertia_dev_links,
       admin_links: inertia_admin_links,
       viewer_links: inertia_viewer_links,
-      superadmin_links: inertia_superadmin_links
+      superadmin_links: inertia_superadmin_links,
+      ultraadmin_links: inertia_ultraadmin_links
     }
   end
 
@@ -92,7 +92,7 @@ class InertiaController < ApplicationController
   end
 
   def inertia_admin_links
-    return [] unless current_user&.admin_level.in?(%w[admin superadmin])
+    return [] unless current_user&.admin_level.in?(%w[admin superadmin ultraadmin])
 
     links = []
     links << inertia_link("Review Timeline", admin_timeline_path, active: helpers.current_page?(admin_timeline_path))
@@ -112,16 +112,24 @@ class InertiaController < ApplicationController
   end
 
   def inertia_superadmin_links
-    return [] unless current_user&.admin_level == "superadmin"
+    return [] unless current_user&.admin_level.in?(%w[superadmin ultraadmin])
 
     links = []
     links << inertia_link("Admin Management", admin_admin_users_path, active: helpers.current_page?(admin_admin_users_path))
     pending_count = DeletionRequest.pending.count
     links << inertia_link("Account Deletions", admin_deletion_requests_path, active: helpers.current_page?(admin_deletion_requests_path), badge: pending_count.positive? ? pending_count : nil)
-    links << inertia_link("GoodBoy", good_job_path, active: helpers.current_page?(good_job_path))
     links << inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications"))
-    links << inertia_link("Feature Flags", flipper_path, active: helpers.current_page?(flipper_path))
     links
+  end
+
+  def inertia_ultraadmin_links
+    return [] unless current_user&.admin_level == "ultraadmin"
+
+    [
+      inertia_link("GoodBoy", good_job_path, active: helpers.current_page?(good_job_path)),
+      inertia_link("Feature Flags", flipper_path, active: helpers.current_page?(flipper_path)),
+      inertia_link("Account Merger", admin_account_merger_path, active: helpers.current_page?(admin_account_merger_path) || request.path.start_with?("/admin/account_merger"), inertia: true)
+    ]
   end
 
   def inertia_link(label, href, active: false, badge: nil, inertia: false)

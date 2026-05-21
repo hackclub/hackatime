@@ -51,10 +51,10 @@
           data-settings-subnav-item
           data-active={isActive(item.id)}
           onclick={(event) => scrollToItem(event, item.id)}
-          class={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+          class={`inline-flex min-h-10 shrink-0 items-center rounded-full px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
             isActive(item.id)
-              ? "border-surface-300 bg-surface-100 text-surface-content"
-              : "border-surface-200 bg-surface/70 text-muted hover:border-surface-300 hover:text-surface-content"
+              ? "bg-surface-100 text-surface-content"
+              : "bg-surface/70 text-muted hover:text-surface-content"
           }`}
         >
           {item.label}

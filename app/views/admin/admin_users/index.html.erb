@@ -13,6 +13,51 @@
   </div>
 
   <div class="border border-primary rounded-xl p-6 bg-dark">
+    <h2 class="text-2xl font-semibold text-purple-400 mb-4">Ultraadmins (<%= @ultraadmins.count %>)</h2>
+    <% if @ultraadmins.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-surface-200">
+              <th class="py-3 px-4">User</th>
+              <th class="py-3 px-4">Slack ID</th>
+              <th class="py-3 px-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @ultraadmins.each do |user| %>
+              <tr class="border-b border-surface-200 hover:bg-surface-100/50">
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-2">
+                    <img src="<%= user.avatar_url %>" alt="Avatar" class="w-8 h-8 rounded-full">
+                    <span class="text-surface-content"><%= user.display_name %></span>
+                    <% if user.id == @current_user_id %>
+                      <span class="px-2 py-0.5 text-xs rounded-full bg-purple-400/20 text-purple-400">(you)</span>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="py-3 px-4 text-muted"><%= user.slack_uid || 'N/A' %></td>
+                <td class="py-3 px-4">
+                  <% if user.id != @current_user_id %>
+                    <div class="flex gap-2">
+                      <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red hover:bg-red text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Demote #{user.display_name} to Superadmin?" } %>
+                      <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-surface-100 hover:bg-surface-100 text-surface-content text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s admin privileges?" } %>
+                    </div>
+                  <% else %>
+                    <span class="text-muted text-sm">Cannot modify yourself</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted">No ultraadmins found</p>
+    <% end %>
+  </div>
+
+  <div class="border border-primary rounded-xl p-6 bg-dark">
     <h2 class="text-2xl font-semibold text-red mb-4">Superadmins (<%= @superadmins.count %>)</h2>
     <% if @superadmins.any? %>
       <div class="overflow-x-auto">

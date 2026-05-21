@@ -16,17 +16,12 @@ class StaticPagesController < InertiaController
 
       if !current_user.heartbeats.exists? || params[:show_wakatime_setup_notice]
         @show_wakatime_setup_notice = true
-        if (ssp = Cache::SetupSocialProofJob.perform_now)
-          @ssp_message, @ssp_users_recent, @ssp_users_size = ssp.values_at(:message, :users_recent, :users_size)
-        end
       end
 
       render inertia: "Home/SignedIn", props: signed_in_props
     else
       # Set homepage SEO content for logged-out users only
       set_homepage_seo_content
-
-      @usage_social_proof = Cache::UsageSocialProofJob.perform_now
 
       @home_stats = Cache::HomeStatsJob.perform_now
 
@@ -38,9 +33,6 @@ class StaticPagesController < InertiaController
     return redirect_to root_path if current_user
     continue_param = params[:continue].presence
     render inertia: "Auth/SignIn", props: {
-      hca_auth_path: hca_auth_path(continue: continue_param),
-      slack_auth_path: slack_auth_path(continue: continue_param),
-      email_auth_path: email_auth_path,
       sign_in_email: params[:sign_in_email].present?,
       show_dev_tool: Rails.env.development?,
       dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
@@ -128,23 +120,20 @@ class StaticPagesController < InertiaController
   private
 
   def set_homepage_seo_content
-    @page_title = @og_title = @twitter_title = "Hackatime - Track How Much You Code | Free & Open Source"
+    @page_title = @og_title = @twitter_title = "Hackatime - Track your coding time"
     @meta_description = @og_description = @twitter_description = "Free and open-source coding time tracker. Works with VS Code, JetBrains, vim, emacs, and 70+ editors. Built by Hack Club for teenage developers."
     @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
   end
 
   def signed_in_props
+    dashboard_stats = initial_dashboard_stats_prop
+
     {
       flavor_text: @flavor_text.to_s,
       trust_level_red: current_user&.trust_level == "red",
       show_wakatime_setup_notice: !!@show_wakatime_setup_notice,
-      ssp_message: @ssp_message,
-      ssp_users_recent: @ssp_users_recent || [],
-      ssp_users_size: @ssp_users_size || @ssp_users_recent&.size || 0,
       github_uid_blank: current_user&.github_uid.blank?,
-      github_auth_path: github_auth_path,
-      wakatime_setup_path: my_wakatime_setup_path,
-      dashboard_stats: InertiaRails.defer { dashboard_stats_payload }
+      dashboard_stats: dashboard_stats || InertiaRails.defer { dashboard_stats_payload }
     }
   end
 
@@ -160,9 +149,6 @@ class StaticPagesController < InertiaController
   def signed_out_props
     {
       flavor_text: @flavor_text.to_s,
-      hca_auth_path: hca_auth_path,
-      slack_auth_path: slack_auth_path,
-      email_auth_path: email_auth_path,
       sign_in_email: params[:sign_in_email].present?,
       show_dev_tool: Rails.env.development?,
       dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
@@ -184,5 +170,13 @@ class StaticPagesController < InertiaController
     Rails.cache.fetch(cache_key, expires_in: 1.minute) do
       ProgrammingGoalsProgressService.new(user: current_user, goals: goals).call
     end
+  end
+
+  def initial_dashboard_stats_prop
+    return unless dashboard_stats.rollup_eligible?
+    return unless dashboard_stats.rollups_available?
+    return unless dashboard_stats.rollup_total_row
+
+    dashboard_stats_payload
   end
 end

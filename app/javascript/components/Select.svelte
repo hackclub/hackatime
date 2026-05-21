@@ -42,7 +42,7 @@
 >
   <BitsSelect.Trigger
     {id}
-    class={`inline-flex w-full items-center justify-between rounded-md border border-surface-200 bg-darker px-3 py-2 text-left text-sm text-surface-content transition-all duration-200 hover:border-surface-300 focus-visible:border-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-surface data-[placeholder]:text-surface-content/60 ${className}`}
+    class={`inline-flex w-full items-center justify-between rounded-md border border-surface-200 bg-input px-3 py-2 text-left text-sm text-surface-content transition-all duration-200 hover:border-surface-300 focus-visible:border-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-surface data-[placeholder]:text-surface-content/60 ${className}`}
   >
     <span class="truncate">{selectedLabel}</span>
     <svg

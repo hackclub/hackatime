@@ -59,7 +59,7 @@ class ApplicationController < ActionController::Base
 
   def authenticate_user!
     unless user_signed_in?
-      redirect_to root_path, alert: "Please sign in first!"
+      redirect_to signin_path(continue: request.fullpath), alert: "Please sign in first!"
     end
   end
 

@@ -3,14 +3,16 @@
   import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
+  import { apiV1MyHeartbeats } from "../../api";
 
   interface Props {
     current_user_api_key: string;
     editor: string;
-    heartbeat_check_url: string;
   }
 
-  let { current_user_api_key, editor, heartbeat_check_url }: Props = $props();
+  let { current_user_api_key, editor }: Props = $props();
+
+  const heartbeatCheckUrl = apiV1MyHeartbeats.mostRecent.path();
 
   let hasHeartbeat = $state(false);
   let heartbeatTimeAgo = $state("");
@@ -94,7 +96,7 @@
 
   async function checkHeartbeat() {
     try {
-      const response = await fetch(heartbeat_check_url, {
+      const response = await fetch(heartbeatCheckUrl, {
         headers: {
           Authorization: `Bearer ${current_user_api_key}`,
         },

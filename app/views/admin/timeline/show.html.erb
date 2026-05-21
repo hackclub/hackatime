@@ -158,7 +158,7 @@
               <div>
                 <span class="text-sm"><%= trust_level_emoji %></span>
               </div>
-              <% if current_user && current_user.admin_level.in?(["admin", "superadmin"]) && user != current_user %>
+              <% if current_user && current_user.admin_level.in?(["admin", "superadmin", "ultraadmin"]) && user != current_user %>
                 <div>
                   <button onclick="setTrust(<%= user.id.to_json %>)" class="text-xs text-muted hover:text-surface-content" title="Set trust level">🔨</button>
                 </div>
@@ -312,8 +312,8 @@
 
   window.setTrust = function (userId) {
     const adminLevel = document.querySelector('meta[name="current-user-admin-level"]')?.content;
-    const isAdmin = adminLevel === "admin" || adminLevel === "superadmin";
-    const isSuperadmin = adminLevel === "superadmin";
+    const isAdmin = adminLevel === "admin" || adminLevel === "superadmin" || adminLevel === "ultraadmin";
+    const isSuperadmin = adminLevel === "superadmin" || adminLevel === "ultraadmin";
     // we validate this on the server, dont kill me
 
     if (!isAdmin) {

@@ -48,11 +48,11 @@
     // 2-column grid (sm): last item fills the row if total is odd
     if (total % 2 === 1) parts.push("sm:col-span-2");
 
-    // 3-column grid (lg): last item fills remaining columns
-    const lgRemainder = total % 3;
-    if (lgRemainder === 1) parts.push("lg:col-span-3");
-    else if (lgRemainder === 2) parts.push("lg:col-span-2");
-    else parts.push("lg:col-span-1"); // reset sm:col-span-2
+    // 3-column grid (xl): last item fills remaining columns
+    const xlRemainder = total % 3;
+    if (xlRemainder === 1) parts.push("xl:col-span-3");
+    else if (xlRemainder === 2) parts.push("xl:col-span-2");
+    else parts.push("xl:col-span-1"); // reset sm:col-span-2
 
     return parts.join(" ");
   }
@@ -88,18 +88,18 @@
 
 {#if goals.length > 0}
   <section
-    class="rounded-xl border border-surface-200 bg-surface-100/30 overflow-hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+    class="grid grid-cols-1 overflow-hidden rounded-xl border border-surface-200 bg-surface-100/30 sm:grid-cols-2 xl:grid-cols-3"
   >
     {#each goals as goal, i}
       <div
-        class="p-4 md:p-5 flex flex-col gap-4
+        class="flex min-w-0 flex-col gap-4 p-4 md:p-5
           border-b border-surface-200
           last:border-b-0
           {lastItemSpanClass(i, goals.length)}"
       >
         <div class="flex items-start justify-between gap-4">
           <!-- Left: Big time display -->
-          <div>
+          <div class="min-w-0">
             <p
               class="text-2xl font-bold tracking-tight {goal.complete
                 ? 'text-success'
@@ -111,7 +111,9 @@
                 / {secondsToDisplay(goal.target_seconds)}</span
               >
             </p>
-            <p class="text-xs text-muted mt-0.5">{scopeSubtitle(goal)}</p>
+            <p class="mt-0.5 truncate text-xs text-muted">
+              {scopeSubtitle(goal)}
+            </p>
           </div>
 
           <!-- Right: label + circular progress indicator -->

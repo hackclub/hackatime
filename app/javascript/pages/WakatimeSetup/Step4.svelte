@@ -32,14 +32,27 @@
           <div>
             <h3 class="font-bold mb-2">Fair Play Policy</h3>
             <p class="text-sm mb-3">
-              We have sophisticated measures to detect time manipulation.
-              Attempting to cheat the system will result in a <strong
-                >permanent ban</strong
-              > from Hackatime and all Hack Club events.
+              Hackatime tracks the time you genuinely spend writing code. Fraud
+              means trying to make it look like you're coding when you are not,
+              including using scripts, bots, manipulated heartbeats, spoofed
+              editor activity, or API abuse.
             </p>
             <p class="text-sm">
-              We are a non-profit running on donations - please respect the
-              community and play fair!
+              We have a zero-tolerance policy for fraud. Attempting to cheat the
+              system can result in a <strong>permanent ban</strong> from
+              Hackatime and all Hack Club events. Read the full policy on the
+              <a
+                href="https://fraud.hackclub.com/fairplay"
+                target="_blank"
+                rel="noreferrer"
+                class="underline font-semibold"
+              >
+                >Fraud page</a
+              >.
+            </p>
+            <p class="text-sm mt-3">
+              Hack Club is a non-profit running on donations, so please keep
+              your activity honest and respect the community.
             </p>
           </div>
         </div>

@@ -76,6 +76,14 @@ select {
   @apply rounded-md border border-[rgb(43,127,255)] border-dashed bg-[rgba(255,255,255,0.02)];
 }
 
+.ultraadmin-tool {
+  @apply rounded-md border border-[rgb(168,85,247)] border-dashed;
+}
+
+.ultraadmin-tool:not(.bg-primary) {
+  @apply bg-[rgba(255,255,255,0.02)];
+}
+
 .dev-tool {
   @apply rounded-md border border-dashed bg-[rgba(255,255,255,0.02)];
   border-color: var(--color-green);

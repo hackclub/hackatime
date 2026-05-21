@@ -1,6 +1,9 @@
 class Admin::AdminUsersController < Admin::BaseController
+  include AdminLevelChangeMessages
+
   def index
     @current_user_id = current_user.id
+    @ultraadmins = User.where(admin_level: :ultraadmin).order(:slack_username).to_a
     @superadmins = User.where(admin_level: :superadmin).order(:slack_username).to_a
     @admins = User.where(admin_level: :admin).order(:slack_username).to_a
     @viewers = User.where(admin_level: :viewer).order(:slack_username).to_a
@@ -10,15 +13,15 @@ class Admin::AdminUsersController < Admin::BaseController
     @user = User.find(params[:id])
     new_level = params[:admin_level]
 
-    if @user == current_user
-      redirect_to admin_admin_users_path, alert: "you cannot change your own admin level"
+    unless current_user.can_change_admin_level_of?(@user, new_level)
+      redirect_to admin_admin_users_path, alert: admin_level_change_denial_message(@user, new_level)
       return
     end
 
-    if @user.set_admin_level(new_level)
+    if @user.set_admin_level(new_level, changed_by_user: current_user)
       redirect_to admin_admin_users_path, notice: "#{@user.display_name}'s admin level updated to #{new_level}."
     else
-      redirect_to admin_admin_users_path, alert: "failed to update admin level."
+      redirect_to admin_admin_users_path, alert: "Failed to update admin level."
     end
   end
 

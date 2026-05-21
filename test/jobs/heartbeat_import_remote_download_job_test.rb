@@ -15,16 +15,21 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
   end
 
   test "downloads the remote dump and enqueues the import job" do
+    run = nil
     run = User.create!(timezone: "UTC").heartbeat_import_runs.create!(
-      source_kind: :wakatime_download_link,
+      source_kind: :wakatime_dump,
       state: :downloading_dump,
       remote_dump_status: "Manual download link received",
-      message: "Downloading data dump..."
+      message: "Downloading data dump...",
+      encrypted_api_key: "secret"
     )
 
     fake_client = Object.new
     fake_client.define_singleton_method(:download_dump) do |_url|
       '{"heartbeats":[]}'
+    end
+    fake_client.define_singleton_method(:list_user_agents) do
+      [ { id: "ua-123", value: "wakatime/v1.102.1 (darwin-arm64) go1.22.0 vscode/1.0.0", editor: "vscode", os: "darwin" } ]
     end
 
     with_dump_client(fake_client) do
@@ -32,6 +37,19 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
         HeartbeatImportRemoteDownloadJob.perform_now(run.id, "https://wakatime.s3.amazonaws.com/export.json")
       end
     end
+
+    context_path = HeartbeatImportRunner.import_context_path_for(
+      HeartbeatImportRunner::TMP_DIR.join("#{run.id}-remote.json").to_s
+    )
+    context = JSON.parse(File.read(context_path))
+
+    assert_equal "vscode", context.dig("user_agents_by_id", "ua-123", "editor")
+    assert_equal "darwin", context.dig("user_agents_by_id", "ua-123", "os")
+    assert_equal "wakatime/v1.102.1 (darwin-arm64) go1.22.0 vscode/1.0.0",
+      context.dig("user_agents_by_id", "ua-123", "value")
+  ensure
+    FileUtils.rm_f(HeartbeatImportRunner::TMP_DIR.join("#{run.id}-remote.json")) if run
+    FileUtils.rm_f(context_path) if defined?(context_path)
   end
 
   test "marks the run as failed when the direct download is rejected" do

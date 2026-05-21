@@ -4,7 +4,7 @@ class Api::V1::UsersController < ApplicationController
   def lookup_email
     email = params[:email]
 
-    user = EmailAddress.find_by_email(email)&.user
+    user = EmailAddress.find_by(email: email)&.user
 
     if user.present?
       render json: { user_id: user.id, email: email }

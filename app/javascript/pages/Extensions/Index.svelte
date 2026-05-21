@@ -24,10 +24,18 @@
   ];
 </script>
 
-<div class="max-w-4xl mx-auto">
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-surface-content mb-2">Extensions</h1>
-    <p class="text-muted">
+<svelte:head>
+  <title>Extensions - Hackatime</title>
+</svelte:head>
+
+<div>
+  <div class="mb-6 sm:mb-8">
+    <h1
+      class="text-2xl sm:text-3xl font-bold text-surface-content mb-1 sm:mb-2"
+    >
+      Extensions
+    </h1>
+    <p class="text-sm sm:text-base text-muted">
       Third-party tools created by the community.
       <span class="text-primary opacity-80 italic text-sm ml-1">
         * Not guaranteed to work.

@@ -14,7 +14,6 @@ class Settings::NotificationsController < Settings::BaseController
         @user.unsubscribe(list) if @user.subscribed?(list)
       end
 
-      PosthogService.capture(@user, "settings_updated", { fields: [ "weekly_summary_email_enabled" ] })
       redirect_to my_settings_notifications_path, notice: "Settings updated successfully"
     rescue => e
       report_error(e, message: "Failed to update notification settings")
@@ -28,15 +27,13 @@ class Settings::NotificationsController < Settings::BaseController
   def render_notifications(status: :ok)
     render_settings_page(
       active_section: "notifications",
-      settings_update_path: my_settings_notifications_path,
       status: status
     )
   end
 
   def section_props
     {
-      settings_update_path: my_settings_notifications_path,
-      user: user_props
+      user: user_props(keys: %i[weekly_summary_email_enabled])
     }
   end
 end

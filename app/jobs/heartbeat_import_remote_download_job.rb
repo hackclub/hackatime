@@ -29,7 +29,10 @@ class HeartbeatImportRemoteDownloadJob < ApplicationJob
     )
 
     file_content = client.download_dump(download_url)
-    file_path = HeartbeatImportRunner.persist_remote_download(run:, file_content:)
+    import_context = if run.wakatime_dump?
+      { user_agents_by_id: client.list_user_agents.index_by { |user_agent| user_agent[:id] } }
+    end
+    file_path = HeartbeatImportRunner.persist_remote_download(run:, file_content:, import_context:)
 
     HeartbeatImportJob.perform_later(run.id, file_path)
   rescue HeartbeatImportDumpClient::AuthenticationError, HeartbeatImportDumpClient::RequestError => e

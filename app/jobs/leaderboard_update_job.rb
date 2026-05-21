@@ -39,9 +39,19 @@ class LeaderboardUpdateJob < ApplicationJob
                                  .leaderboard_eligible
 
       data = heartbeat_query.group(:user_id).duration_seconds
-                            .filter { |_, seconds| seconds > 60 }
+                             .filter { |_, seconds| seconds > 60 }
 
-      streaks = Heartbeat.daily_streaks_for_users(data.keys, exclude_browser_time: true)
+      # Two-phase streak computation: query 8 days of data first (covers
+      # most users whose streaks are < 7 days), then extend to 31 days
+      # only for users whose streak maxed out the short window.
+      streaks = Heartbeat.daily_streaks_for_users(data.keys, start_date: 8.days.ago, exclude_browser_time: true)
+
+      needs_full_history = streaks.select { |_, streak| streak >= 6 }.keys
+      if needs_full_history.any?
+        needs_full_history.each { |id| Rails.cache.delete("user_streak_without_browser_v3_#{id}") }
+        full_streaks = Heartbeat.daily_streaks_for_users(needs_full_history, start_date: 31.days.ago, exclude_browser_time: true)
+        streaks.merge!(full_streaks)
+      end
 
       entries = data.map do |user_id, seconds|
         {

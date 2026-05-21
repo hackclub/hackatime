@@ -10,7 +10,7 @@ class HeartbeatExportTest < ApplicationSystemTestCase
   end
 
   test "clicking export all heartbeats enqueues job and shows notice" do
-    visit my_settings_data_path
+    visit my_settings_imports_exports_path
 
     assert_text "Export all heartbeats"
 
@@ -25,7 +25,7 @@ class HeartbeatExportTest < ApplicationSystemTestCase
   end
 
   test "submitting export date range enqueues job and shows notice" do
-    visit my_settings_data_path
+    visit my_settings_imports_exports_path
 
     assert_text "Export all heartbeats" # wait till it's loaded
 
@@ -48,7 +48,7 @@ class HeartbeatExportTest < ApplicationSystemTestCase
 
   test "export is not available for restricted users" do
     @user.update!(trust_level: :red)
-    visit my_settings_data_path
+    visit my_settings_imports_exports_path
 
     assert_text "Data export is currently restricted for this account."
   end
@@ -58,7 +58,7 @@ class HeartbeatExportTest < ApplicationSystemTestCase
     create_heartbeat(user_without_email, Time.current - 1.hour, "src/no_email.rb")
 
     sign_in_as(user_without_email)
-    visit my_settings_data_path
+    visit my_settings_imports_exports_path
 
     assert_difference -> { export_job_count }, 0 do
       click_on "Export all heartbeats"

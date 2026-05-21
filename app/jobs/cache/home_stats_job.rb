@@ -4,10 +4,14 @@ class Cache::HomeStatsJob < Cache::ActivityJob
   private
 
   def calculate
-    seconds_by_user = Heartbeat.group(:user_id).duration_seconds
+    users_tracked, seconds_tracked = DashboardRollup
+      .where(dimension: DashboardRollup::TOTAL_DIMENSION)
+      .where(total_seconds: 1..)
+      .pick(Arel.sql("COUNT(*), COALESCE(SUM(total_seconds), 0)"))
+
     {
-      users_tracked: seconds_by_user.size,
-      seconds_tracked: seconds_by_user.values.sum
+      users_tracked: users_tracked || 0,
+      seconds_tracked: seconds_tracked || 0
     }
   end
 end

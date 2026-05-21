@@ -16,7 +16,7 @@ module Api
             return
           end
 
-          email_record = EmailAddress.find_by email: email
+          email_record = EmailAddress.find_by(email: email)
           if email_record.nil?
             render json: { error: "email not found" }, status: :not_found
             return
@@ -321,7 +321,7 @@ module Api
             return render json: { error: "read the docs you idiot" }, status: :unprocessable_entity
           end
 
-          if trust_level == "red" && !current_user.can_convict_users?
+          unless current_user.can_change_trust_of?(user, trust_level)
             return render json: { error: "no perms lmaooo" }, status: :forbidden
           end
 
@@ -547,7 +547,7 @@ module Api
 
         def can_write!
           # blocks viewers
-          unless current_user.admin_level.in?([ "admin", "superadmin" ])
+          unless current_user.admin_level.in?([ "admin", "superadmin", "ultraadmin" ])
             render json: { error: "no perms lmaooo" }, status: :forbidden
           end
         end

@@ -64,11 +64,17 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         goal_progress = ProgrammingGoalsProgressService.new(user: @user, goals: [ daily_goal ]).call.first
 
         if goal_progress
-          # Append goal progress to the user's preferred text format
-          user_text = result[:data][:grand_total][:text]
-          goal_text = ApplicationController.helpers.short_time_simple(daily_goal.target_seconds)
+          # Only append the goal text to the status bar string for users who:
+          #   - have the simple_text extension display style (other styles like
+          #     clock_emoji or compliment_text aren't designed to carry the goal)
+          #   - have the show_goals_in_statusbar preference enabled
+          if @user.simple_text? && @user.show_goals_in_statusbar
+            user_text = result[:data][:grand_total][:text]
+            goal_text = ApplicationController.helpers.short_time_simple(daily_goal.target_seconds)
 
-          result[:data][:grand_total][:text] = "#{user_text} / #{goal_text} today"
+            result[:data][:grand_total][:text] = "#{user_text} / #{goal_text} goal"
+          end
+
           result[:data][:goal] = {
             target_seconds: daily_goal.target_seconds,
             tracked_seconds: goal_progress[:tracked_seconds],
@@ -229,89 +235,26 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     end || {}
   end
 
-  LAST_LANGUAGE_SENTINEL = "<<LAST_LANGUAGE>>"
-
   def handle_heartbeat(heartbeat_array)
-    results = []
-    last_language = nil
-    heartbeat_array.each do |heartbeat|
-      heartbeat = heartbeat.to_h.with_indifferent_access
-      source_type = :direct_entry
-
-      # Resolve <<LAST_LANGUAGE>> sentinel to the most recently used language.
-      # Check within the current batch first, then fall back to the DB.
-      if heartbeat[:language] == LAST_LANGUAGE_SENTINEL
-        heartbeat[:language] = last_language || @user.heartbeats
-          .where.not(language: [ nil, "", LAST_LANGUAGE_SENTINEL ])
-          .order(time: :desc)
-          .pick(:language)
-      end
-
-      # Infer language from file extension when client sends blank or Unknown
-      if heartbeat[:language].blank? || heartbeat[:language] == "Unknown"
-        inferred = LanguageUtils.detect_from_extension(heartbeat[:entity])
-        heartbeat[:language] = inferred if inferred
-      end
-
-      # Track the last known language for subsequent heartbeats in this batch.
-      last_language = heartbeat[:language] if heartbeat[:language].present?
-
-      # Fallback to :plugin if :user_agent is not set
-      fallback_value = heartbeat.delete(:plugin)
-      heartbeat[:user_agent] ||= fallback_value
-
-      parsed_ua = WakatimeService.parse_user_agent(heartbeat[:user_agent])
-
-      # if category is not set, just default to coding
-      heartbeat[:category] ||= "coding"
-
-      # special case: if the entity is "test.txt", this is a test heartbeat
-      if heartbeat[:entity] == "test.txt"
-        source_type = :test_entry
-      end
-
-      heartbeat[:project] = heartbeat[:project]&.gsub(/[[:cntrl:]]/, "")&.strip
-
-      attrs = heartbeat.merge({
-        user_id: @user.id,
-        source_type: source_type,
+    result = HeartbeatIngest.call(
+      user: @user,
+      mode: :direct,
+      heartbeats: heartbeat_array,
+      request_context: {
         ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip,
-        editor: parsed_ua[:editor],
-        operating_system: parsed_ua[:os],
         machine: request.headers["X-Machine-Name"]
-      }).slice(*Heartbeat.column_names.map(&:to_sym))
-      # ^^ They say safety laws are written in blood. Well, so is this line!
-      # Basically this filters out columns that aren't in our DB (the biggest one being raw_data)
-      begin
-        new_heartbeat = Heartbeat.find_or_create_by(attrs)
-      rescue ActiveRecord::RecordNotUnique
-        # Duplicate heartbeat (same fields_hash) exists but wasn't found because
-        # a non-indexed attribute differs (e.g., ip_address changed between requests).
-        temp = Heartbeat.new(attrs)
-        hash = Heartbeat.generate_fields_hash(temp.attributes)
-        new_heartbeat = @user.heartbeats.find_by(fields_hash: hash)
-        raise unless new_heartbeat
+      }
+    )
+
+    result.items.map do |item|
+      if item.status == :accepted
+        [ item.heartbeat.attributes, 201 ]
+      else
+        error = item.error
+        report_error(error, message: "Error creating heartbeat: #{error.class}: #{error.message}", extra: { backtrace: error.backtrace&.first(20) })
+        [ { error: error.message, type: error.class.name }, 422 ]
       end
-
-      queue_project_mapping(heartbeat[:project])
-      results << [ new_heartbeat.attributes, 201 ]
-    rescue => e
-      report_error(e, message: "Error creating heartbeat")
-      results << [ { error: e.message, type: e.class.name }, 422 ]
     end
-
-    PosthogService.capture_once_per_day(@user, "heartbeat_sent", { heartbeat_count: heartbeat_array.size })
-    results
-  end
-
-  def queue_project_mapping(project_name)
-    # only queue the job once per hour
-    Rails.cache.fetch("attempt_project_repo_mapping_job_#{@user.id}_#{project_name}", expires_in: 1.hour) do
-      AttemptProjectRepoMappingJob.perform_later(@user.id, project_name)
-    end
-  rescue => e
-    # never raise an error here because it will break the heartbeat flow
-    report_error(e, message: "Error queuing project mapping")
   end
 
   def check_lockout

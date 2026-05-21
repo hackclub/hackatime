@@ -1,6 +1,7 @@
 module Api
   class SummaryController < ApplicationController
     skip_before_action :verify_authenticity_token
+    before_action :set_user
 
     def index
       # Parse interval or date range
@@ -11,18 +12,12 @@ module Api
       start_date = date_range.begin.to_i
       end_date = date_range.end.to_i
 
-      # Get user if specified
-      if params[:user].present?
-        user = User.find_by(slack_uid: params[:user])
-        return render json: { error: "User not found" }, status: :not_found unless user
-      end
-
       # Determine which summary elements we want
       specific_filters = [ :projects, :languages, :editors, :operating_systems, :machines, :categories, :branches, :entities, :labels ]
 
       # Create service instance with filters applied
       service = WakatimeService.new(
-        user: user,
+        user: @user,
         specific_filters: specific_filters,
         allow_cache: true,
         limit: nil, # No limit for summary data
@@ -53,6 +48,18 @@ module Api
     end
 
     private
+
+    def set_user
+      identifier = params[:user_id] || params[:user]
+      return render json: { error: "Missing required parameter: user_id" }, status: :bad_request unless identifier.present?
+
+      @user = User.lookup_by_identifier(identifier)
+      return render json: { error: "User not found" }, status: :not_found unless @user
+
+      unless @user.allow_public_stats_lookup
+        render json: { error: "User has disabled public stats" }, status: :forbidden
+      end
+    end
 
     def determine_date_range(interval, range, from_date, to_date)
       timezone = "UTC"
@@ -105,8 +112,8 @@ module Api
       heartbeats = heartbeats.where(operating_system: params[:operating_system]) if params[:operating_system].present?
       heartbeats = heartbeats.where(machine: params[:machine]) if params[:machine].present?
 
-      if params[:user].present?
-        user = User.find_by(slack_uid: params[:user])
+      if (params[:user_id] || params[:user]).present?
+        user = User.lookup_by_identifier(params[:user_id] || params[:user])
         heartbeats = heartbeats.where(user_id: user.id) if user
       end
 

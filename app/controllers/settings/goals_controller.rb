@@ -7,7 +7,6 @@ class Settings::GoalsController < Settings::BaseController
     @goal = @user.goals.build(goal_params)
 
     if @goal.save
-      PosthogService.capture(@user, "settings_updated", { fields: [ "programming_goals" ] })
       redirect_to my_settings_goals_path, notice: "Goal created."
     else
       flash.now[:error] = @goal.errors.full_messages.to_sentence
@@ -19,7 +18,6 @@ class Settings::GoalsController < Settings::BaseController
     @goal = @user.goals.find(params[:goal_id])
 
     if @goal.update(goal_params)
-      PosthogService.capture(@user, "settings_updated", { fields: [ "programming_goals" ] })
       redirect_to my_settings_goals_path, notice: "Goal updated."
     else
       flash.now[:error] = @goal.errors.full_messages.to_sentence
@@ -30,7 +28,6 @@ class Settings::GoalsController < Settings::BaseController
   def destroy
     @goal = @user.goals.find(params[:goal_id])
     @goal.destroy!
-    PosthogService.capture(@user, "settings_updated", { fields: [ "programming_goals" ] })
     redirect_to my_settings_goals_path, notice: "Goal deleted."
   end
 
@@ -42,7 +39,6 @@ class Settings::GoalsController < Settings::BaseController
 
     render_settings_page(
       active_section: "goals",
-      settings_update_path: my_settings_goals_path,
       status: status,
       extra_props: extra_props
     )
@@ -50,11 +46,8 @@ class Settings::GoalsController < Settings::BaseController
 
   def section_props
     {
-      settings_update_path: my_settings_goals_path,
-      create_goal_path: my_settings_goals_create_path,
-      user: user_props,
       programming_goals: programming_goals_props,
-      options: options_props
+      options: { goals: goal_options }
     }
   end
 

@@ -12,15 +12,18 @@ RSpec.describe 'Api::Summary', type: :request do
       parameter name: :end, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
       parameter name: :interval, in: :query, type: :string, description: 'Interval (e.g. today, yesterday, week, month)'
       parameter name: :project, in: :query, type: :string, description: 'Project name (optional)'
-      parameter name: :user, in: :query, type: :string, description: 'Slack UID of the user (optional, for admin use)'
+      parameter name: :user_id, in: :query, type: :string, required: true, description: 'User identifier (slack_uid, username, hca_id, or numeric ID)'
+      parameter name: :user, in: :query, type: :string, description: 'Deprecated: use user_id instead. Kept for backwards compatibility.'
 
       response(200, 'successful') do
+        let(:test_user) { User.create!(slack_uid: "USUMMARY#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true) }
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }
         let(:start) { '2023-01-01' }
         let(:end) { '2023-01-31' }
         let(:interval) { nil }
         let(:project) { nil }
+        let(:user_id) { test_user.slack_uid }
         let(:user) { nil }
         schema type: :object,
           properties: {
@@ -58,13 +61,52 @@ RSpec.describe 'Api::Summary', type: :request do
         run_test!
       end
 
-      response(400, 'bad request') do
+      response(400, 'missing user_id') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:start) { '2023-01-01' }
+        let(:end) { '2023-01-31' }
+        let(:interval) { nil }
+        let(:project) { nil }
+        let(:user_id) { nil }
+        let(:user) { nil }
+        run_test!
+      end
+
+      response(400, 'invalid date range') do
+        let(:date_test_user) { User.create!(slack_uid: "UDATE#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true) }
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }
         let(:start) { 'invalid-date' }
         let(:end) { '2023-01-31' }
         let(:interval) { nil }
         let(:project) { nil }
+        let(:user_id) { date_test_user.slack_uid }
+        let(:user) { nil }
+        run_test!
+      end
+
+      response(404, 'user not found') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:start) { '2023-01-01' }
+        let(:end) { '2023-01-31' }
+        let(:interval) { nil }
+        let(:project) { nil }
+        let(:user_id) { 'nonexistent-user-id' }
+        let(:user) { nil }
+        run_test!
+      end
+
+      response(403, 'user has disabled public stats') do
+        let(:private_user) { User.create!(slack_uid: 'UPRIVATE', timezone: 'UTC', allow_public_stats_lookup: false) }
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:start) { '2023-01-01' }
+        let(:end) { '2023-01-31' }
+        let(:interval) { nil }
+        let(:project) { nil }
+        let(:user_id) { private_user.slack_uid }
         let(:user) { nil }
         run_test!
       end

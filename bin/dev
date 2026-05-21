@@ -1,23 +1,26 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
+set -e
 
-export PORT="${PORT:-3000}"
+# When invoked inside the docker container, just run the Procfile with foreman
+# (or whatever process manager is available). Detection: the docker entrypoint
+# sets RUNNING_INSIDE_CONTAINER, and /.dockerenv exists in every container.
+if [ -n "$RUNNING_INSIDE_CONTAINER" ] || [ -f /.dockerenv ]; then
+  export PORT="${PORT:-3000}"
 
-if command -v overmind 1> /dev/null 2>&1
-then
-  overmind start -f Procfile.dev "$@"
-  exit $?
+  if ! gem list -i --exact foreman >/dev/null; then
+    echo "Installing foreman..."
+    gem install foreman
+  fi
+
+  foreman_path="$(ruby -e 'print File.join(Gem.bindir, "foreman")')"
+  exec bash -c '"$1" start --color -f Procfile.dev "${@:2}" 2>&1 | grep --line-buffered -vE "^[0-9:]+ [a-z]+\.1[[:space:]]+\| started with pid "' bash "$foreman_path" "$@"
 fi
 
-if command -v hivemind 1> /dev/null 2>&1
-then
-  echo "Hivemind is installed. Running the application with Hivemind..."
-  exec hivemind Procfile.dev "$@"
-  exit $?
+# Bring the dev container up if it isn't already running.
+if ! docker compose ps --status running --services 2>/dev/null | grep -qx web; then
+  echo "==> Starting docker compose services..."
+  docker compose up -d
 fi
 
-if gem list --no-installed --exact --silent foreman; then
-  echo "Installing foreman..."
-  gem install foreman
-fi
-
-foreman start -f Procfile.dev "$@"
+# Hand off to the container, which will hit the in-container branch above.
+exec docker compose exec -e RUNNING_INSIDE_CONTAINER=1 web bin/dev "$@"

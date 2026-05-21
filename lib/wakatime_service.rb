@@ -1,3 +1,5 @@
+require "digest"
+
 include ApplicationHelper
 include ErrorReporting
 
@@ -25,6 +27,18 @@ class WakatimeService
   end
 
   def generate_summary
+    return cached_summary if @allow_cache
+
+    build_summary
+  end
+
+  def cached_summary
+    Rails.cache.fetch(summary_cache_key, expires_in: 1.minute) do
+      build_summary
+    end
+  end
+
+  def build_summary
     summary = {}
 
     summary[:username] = @user.display_name if @user.present?
@@ -57,6 +71,13 @@ class WakatimeService
     summary
   end
 
+  def summary_cache_key
+    scope_digest = Digest::SHA256.hexdigest(@scope.to_sql)
+    filters = @specific_filters.map(&:to_s).sort.join(",")
+
+    [ "wakatime_service", "summary", "v1", scope_digest, filters, @limit ].join(":")
+  end
+
   def generate_summary_chunk(group_by)
     result = []
     @scope.group(group_by).duration_seconds.each do |key, value|
@@ -82,6 +103,8 @@ class WakatimeService
 
     # Regex pattern to match wakatime client user agents
     user_agent_pattern = /wakatime\/[^ ]+ \(([^)]+)\)(?: [^ ]+ ([^\/]+)(?:\/([^\/]+))?)?/
+
+    return { os: "", editor: "", err: "failed to parse user agent string" } if user_agent.blank?
 
     if matches = user_agent.match(user_agent_pattern)
       os = matches[1].split("-").first

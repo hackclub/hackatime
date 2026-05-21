@@ -3,14 +3,12 @@ class Settings::ProfileController < Settings::BaseController
     render_profile
   end
 
-  def update
-    if @user.update(profile_params)
-      PosthogService.capture(@user, "settings_updated", { fields: profile_params.keys })
-      redirect_to my_settings_profile_path, notice: "Settings updated successfully"
-    else
-      flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
-      render_profile(status: :unprocessable_entity)
-    end
+  def update_region
+    update_section(region_params)
+  end
+
+  def update_username
+    update_section(username_params)
   end
 
   private
@@ -18,31 +16,42 @@ class Settings::ProfileController < Settings::BaseController
   def render_profile(status: :ok)
     render_settings_page(
       active_section: "profile",
-      settings_update_path: my_settings_profile_path,
       status: status
     )
   end
 
   def section_props
     {
-      settings_update_path: my_settings_profile_path,
       username_max_length: User::USERNAME_MAX_LENGTH,
-      user: user_props,
-      options: options_props,
-      badges: badges_props
+      user: user_props(keys: %i[country_code timezone username]),
+      options: base_options(keys: %i[countries timezones]),
+      profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
+      emails: @user.email_addresses.map { |email|
+        {
+          email: email.email,
+          source: email.source&.humanize || "Unknown",
+          can_unlink: @user.can_delete_email_address?(email)
+        }
+      }
     }
   end
 
-  def profile_params
-    permitted = params.require(:user).permit(
-      :timezone,
-      :country_code,
-      :allow_public_stats_lookup,
-      :username,
-      :theme,
-    )
+  def update_section(permitted_params)
+    if @user.update(permitted_params)
+      redirect_back(fallback_location: my_settings_profile_path, notice: "Settings updated successfully")
+    else
+      flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
+      render_profile(status: :unprocessable_entity)
+    end
+  end
 
+  def region_params
+    permitted = params.require(:user).permit(:timezone, :country_code)
     permitted[:country_code] = nil if permitted[:country_code].blank?
     permitted
+  end
+
+  def username_params
+    params.require(:user).permit(:username)
   end
 end

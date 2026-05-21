@@ -58,6 +58,11 @@ class HeartbeatImportDumpClient
     raise TransientError, e.message
   end
 
+  def list_user_agents
+    body = request_json(method: :get, path: "/users/current/user_agents")
+    Array(body["data"]).map { |user_agent| normalize_user_agent(user_agent) }
+  end
+
   def self.base_url_for(source_kind)
     BASE_URLS.fetch(source_kind.to_s)
   end
@@ -139,6 +144,17 @@ class HeartbeatImportDumpClient
       has_failed: ActiveModel::Type::Boolean.new.cast(payload[:has_failed]),
       expires: payload[:expires],
       created_at: payload[:created_at]
+    }
+  end
+
+  def normalize_user_agent(user_agent)
+    payload = user_agent.respond_to?(:with_indifferent_access) ? user_agent.with_indifferent_access : user_agent.to_h.with_indifferent_access
+
+    {
+      id: payload[:id].to_s,
+      value: payload[:value].to_s,
+      editor: payload[:editor].presence,
+      os: payload[:os].presence
     }
   end
 

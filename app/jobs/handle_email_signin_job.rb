@@ -1,10 +1,10 @@
 class HandleEmailSigninJob < ApplicationJob
   queue_as :latency_critical
 
-  def perform(email, continue_param = nil)
+  def perform(email, continue_param = nil, ip_address = nil)
     email_address = ActiveRecord::Base.transaction do
       EmailAddress.find_by(email: email) || begin
-        user = User.create!
+        user = User.create!(country_code: User.country_code_from_ip(ip_address))
         user.email_addresses.create!(email: email, source: :signing_in)
       end
     end

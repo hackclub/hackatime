@@ -135,6 +135,83 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
     assert_equal project[:last_heartbeat], project[:most_recent_heartbeat]
   end
 
+  test "project details only returns languages for selected projects" do
+    base = 5.days.ago.to_f
+    create_heartbeat(project: "alpha", language: "Ruby", time: base)
+    create_heartbeat(project: "alpha", language: "TypeScript", time: base + 60)
+    create_heartbeat(project: "alpha", language: "Visual Basic", time: base + 120)
+    create_heartbeat(project: "beta", language: "Go", time: base + 120)
+
+    query = ProjectStatsQuery.new(user: @user, params: {}, default_discovery_start: 0, default_stats_start: 0)
+
+    project = query.project_details(names: [ "alpha" ]).first
+
+    assert_equal [ "Ruby", "TypeScript", "Visual Basic" ], project[:languages].sort
+  end
+
+  test "project details uses project detail rollups for default all-time data" do
+    first_time = 5.days.ago.to_f
+    last_time = first_time + 60
+    create_project_detail_rollup(
+      project: "alpha",
+      total_seconds: 999,
+      total_heartbeats: 2,
+      first_heartbeat: first_time,
+      last_heartbeat: last_time,
+      languages: [ "Ruby" ]
+    )
+
+    query = ProjectStatsQuery.new(user: @user, params: {}, default_discovery_start: 0, default_stats_start: 0)
+
+    project = query.project_details.first
+
+    assert_equal "alpha", project[:name]
+    assert_equal 999, project[:total_seconds]
+    assert_equal 2, project[:total_heartbeats]
+    assert_equal [ "Ruby" ], project[:languages]
+    assert_equal formatted_time(first_time), project[:first_heartbeat]
+    assert_equal formatted_time(last_time), project[:most_recent_heartbeat]
+  end
+
+  test "project details does not use rollups when a date range is requested" do
+    base = 5.days.ago.to_f
+    create_heartbeat(project: "alpha", language: "Ruby", time: base)
+    create_heartbeat(project: "alpha", language: "Ruby", time: base + 60)
+    create_project_detail_rollup(project: "alpha", total_seconds: 999)
+
+    query = ProjectStatsQuery.new(
+      user: @user,
+      params: { start: 7.days.ago.iso8601, end: 1.day.ago.iso8601 },
+      default_discovery_start: 0,
+      default_stats_start: 0
+    )
+
+    project = query.project_details.first
+
+    assert_equal 60, project[:total_seconds]
+  end
+
+  test "dashboard rollup refresh writes project details payloads" do
+    base = 5.days.ago.to_f
+    create_heartbeat(project: "alpha", language: "Ruby", time: base)
+    create_heartbeat(project: "alpha", language: "TypeScript", time: base + 60)
+    create_heartbeat(project: "alpha", language: "Visual Basic", time: base + 120)
+
+    DashboardRollupRefreshService.new(user: @user).call
+
+    rollup = DashboardRollup.find_by!(
+      user: @user,
+      dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION,
+      bucket_value: "alpha"
+    )
+
+    assert_equal 120, rollup.total_seconds
+    assert_equal 3, rollup.source_heartbeats_count
+    assert_in_delta base, rollup.payload["first_heartbeat"], 0.001
+    assert_in_delta base + 120, rollup.payload["last_heartbeat"], 0.001
+    assert_equal [ "Ruby", "TypeScript", "Visual Basic" ], rollup.payload["languages"].sort
+  end
+
   test "project details sorts projects by total_seconds descending" do
     base = 4.days.ago.to_f
     create_heartbeat(project: "alpha", time: base)
@@ -276,6 +353,23 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
       project: project,
       language: language,
       time: time
+    )
+  end
+
+  def create_project_detail_rollup(project:, total_seconds:, total_heartbeats: 1, first_heartbeat: 5.days.ago.to_f, last_heartbeat: 5.days.ago.to_f, languages: [])
+    DashboardRollup.create!(
+      user: @user,
+      dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION,
+      bucket_value: project,
+      bucket_value_present: true,
+      total_seconds: total_seconds,
+      source_heartbeats_count: total_heartbeats,
+      source_max_heartbeat_time: last_heartbeat,
+      payload: {
+        first_heartbeat: first_heartbeat,
+        last_heartbeat: last_heartbeat,
+        languages: languages
+      }
     )
   end
 
