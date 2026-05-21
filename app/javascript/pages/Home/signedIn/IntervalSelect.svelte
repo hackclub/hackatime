@@ -46,7 +46,7 @@
 
   const currentUser = page.props.layout.nav.current_user!;
   const userCreatedAt = Date.parse(currentUser.created_at!);
-  // null = user hasn't been backfilled yet, so we can't trust the bitmap.
+  // null = user hasn't been backfilled yet, so we can't trust the bitmap
   const participated = currentUser.event_participation
     ? new Set(currentUser.event_participation)
     : null;
