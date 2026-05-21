@@ -554,7 +554,7 @@
             <div
               class={viewMode === "grid"
                 ? "mt-6 grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] justify-items-stretch gap-6"
-                : "mt-6 space-y-2"}
+                : "mt-6 space-y-4"}
             >
               {#each filteredAndSortedProjects as project (project.id)}
                 {@const showPath = showPathFor(project)}
@@ -564,7 +564,7 @@
                 <article
                   class="group relative flex w-full {viewMode === 'list'
                     ? 'flex-row items-start sm:items-center sm:justify-between'
-                    : ''} min-h-36 overflow-hidden rounded-2xl {projectHref
+                    : 'min-h-36'} overflow-hidden rounded-2xl {projectHref
                     ? 'cursor-pointer'
                     : ''}"
                 >
@@ -572,7 +572,7 @@
                     <Link
                       href={projectHref}
                       aria-label={`View ${project.name}`}
-                      class="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 py-0 "
+                      class="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 "
                     ></Link>
                   {/if}
                   <div
