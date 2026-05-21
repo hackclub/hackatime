@@ -40,9 +40,19 @@ module TimeRangeFilterable
 
   EVENT_DEFINITIONS = JSON.parse(File.read(EVENTS_CONFIG_PATH)).freeze
 
-  # mahad says: NEVER remove entries from the events JSON
-  # if you need to get rid of an event, add a retired flag or something
-  EVENT_KEYS = EVENT_DEFINITIONS.keys.sort.map(&:to_sym).freeze
+  EVENT_KEYS = begin
+    pairs = EVENT_DEFINITIONS.map do |key, cfg|
+      bit = cfg["bit"]
+      raise "events.json: #{key} missing 'bit'" unless bit.is_a?(Integer) && bit >= 0
+      [ bit, key.to_sym ]
+    end.sort_by(&:first)
+
+    expected = (0...pairs.length).to_a
+    actual = pairs.map(&:first)
+    raise "events.json: bits must be contiguous 0..N (got #{actual.inspect})" unless actual == expected
+
+    pairs.map(&:last).freeze
+  end
 
   EVENT_RANGES = EVENT_DEFINITIONS.each_with_object({}) do |(key, cfg), memo|
     timezone = cfg["timezone"]

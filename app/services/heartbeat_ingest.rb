@@ -197,11 +197,11 @@ class HeartbeatIngest
       record.merge(created_at: timestamp, updated_at: timestamp)
     end
 
-    inserted = ActiveRecord::Base.logger.silence do
-      Heartbeat.insert_all(records, unique_by: [ :fields_hash ]).length
+    result = ActiveRecord::Base.logger.silence do
+      Heartbeat.insert_all(records, unique_by: [ :fields_hash ], returning: [ "time" ])
     end
-    record_event_participation(records.map { |r| r[:time] })
-    inserted
+    record_event_participation(result.rows.flatten)
+    result.length
   end
 
   # OR each touched event's bit into the user's event_participation. The
