@@ -40,6 +40,10 @@ module TimeRangeFilterable
 
   EVENT_DEFINITIONS = JSON.parse(File.read(EVENTS_CONFIG_PATH)).freeze
 
+  # mahad says: NEVER remove entries from the events JSON
+  # if you need to get rid of an event, add a retired flag or something
+  EVENT_KEYS = EVENT_DEFINITIONS.keys.sort.map(&:to_sym).freeze
+
   EVENT_RANGES = EVENT_DEFINITIONS.each_with_object({}) do |(key, cfg), memo|
     timezone = cfg["timezone"]
     starts_at = cfg["starts_at"]

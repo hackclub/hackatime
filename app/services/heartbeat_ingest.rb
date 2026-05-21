@@ -120,7 +120,10 @@ class HeartbeatIngest
       @user.heartbeats.find_by!(fields_hash: fields_hash)
     end
 
-    self.class.schedule_rollup_refresh(user: @user) if result.any? && @schedule_rollup_refresh
+    if result.any?
+      record_event_participation([ attrs[:time] ])
+      self.class.schedule_rollup_refresh(user: @user) if @schedule_rollup_refresh
+    end
     [ persisted, !result.any? ]
   end
 
@@ -194,8 +197,29 @@ class HeartbeatIngest
       record.merge(created_at: timestamp, updated_at: timestamp)
     end
 
-    ActiveRecord::Base.logger.silence do
+    inserted = ActiveRecord::Base.logger.silence do
       Heartbeat.insert_all(records, unique_by: [ :fields_hash ]).length
+    end
+    record_event_participation(records.map { |r| r[:time] })
+    inserted
+  end
+
+  # OR each touched event's bit into the user's event_participation. The
+  # in-memory `unset?` check short-circuits before issuing any SQL once the
+  # bit is set, which is the common case after the first heartbeat per event.
+  def record_event_participation(times)
+    return if times.blank?
+
+    TimeRangeFilterable::EVENT_RANGES.each do |key, cfg|
+      next if @user.event_participation.set?(key)
+
+      range = cfg[:calculate].call
+      from_i = range.begin.to_i
+      to_i = range.end.to_i
+      next unless times.any? { |t| t >= from_i && t <= to_i }
+
+      User.where(id: @user.id).event_participations.set_all!(key)
+      @user.event_participation.set(key) # keep in-memory copy in sync for subsequent calls
     end
   end
 

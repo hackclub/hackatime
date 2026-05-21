@@ -149,7 +149,8 @@ class InertiaController < ApplicationController
       country_name: country&.common_name,
       streak_days: current_user.streak_days,
       admin_level: current_user.admin_level,
-      created_at: current_user.created_at&.iso8601
+      created_at: current_user.created_at&.iso8601,
+      event_participation: current_user.event_participation_backfilled? ? current_user.event_participation.to_a.map(&:to_s) : nil
     }
   end
 

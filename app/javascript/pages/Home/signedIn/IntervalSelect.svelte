@@ -44,16 +44,26 @@
     onchange: (interval: string, from: string, to: string) => void;
   } = $props();
 
-  const userCreatedAt = Date.parse(
-    page.props.layout.nav.current_user!.created_at!,
-  );
+  const currentUser = page.props.layout.nav.current_user!;
+  const userCreatedAt = Date.parse(currentUser.created_at!);
+  // null = user hasn't been backfilled yet, so we can't trust the bitmap.
+  const participated = currentUser.event_participation
+    ? new Set(currentUser.event_participation)
+    : null;
 
   const visibleIntervals = $derived(
     INTERVALS.filter((interval) => {
       const range = EVENT_RANGES[interval.key];
       if (!range) return true;
       if (interval.key === selected) return true;
-      return userCreatedAt <= Date.parse(range.ends_at);
+      const endsAt = Date.parse(range.ends_at);
+      // Ended event + backfilled: show only if the user actually participated.
+      // Otherwise (active/future event, or not-yet-backfilled user) fall back
+      // to the cheap "did the user exist before the event ended" check.
+      if (endsAt < Date.now() && participated) {
+        return participated.has(interval.key);
+      }
+      return userCreatedAt <= endsAt;
     }),
   );
 

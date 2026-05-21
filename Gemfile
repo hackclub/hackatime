@@ -41,6 +41,9 @@ gem "sentry-rails"
 
 gem "good_job"
 
+# Bitmask flag column on AR models — used for User#event_participation.
+gem "active_flag"
+
 # Slack client
 gem "slack-ruby-client"
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_21_132654) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -102,13 +102,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.datetime "cancelled_at"
     t.datetime "completed_at"
     t.datetime "created_at", null: false
-    t.text "reason"
+    t.string "reason"
     t.text "reason_details"
     t.datetime "requested_at", null: false
     t.datetime "scheduled_deletion_at"
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["reason"], name: "index_deletion_requests_on_reason"
     t.index ["status"], name: "index_deletion_requests_on_status"
     t.index ["user_id", "status"], name: "index_deletion_requests_on_user_id_and_status"
     t.index ["user_id"], name: "index_deletion_requests_on_user_id"
@@ -150,6 +151,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.datetime "updated_at", null: false
     t.text "value"
     t.index ["feature_key", "key", "value"], name: "index_flipper_gates_on_feature_key_and_key_and_value", unique: true
+  end
+
+  create_table "github_app_installations", force: :cascade do |t|
+    t.bigint "account_github_id"
+    t.string "account_login", null: false
+    t.string "account_type", null: false
+    t.datetime "created_at", null: false
+    t.bigint "installation_id", null: false
+    t.datetime "suspended_at"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["account_github_id"], name: "index_github_app_installations_on_account_github_id"
+    t.index ["installation_id"], name: "index_github_app_installations_on_installation_id", unique: true
+    t.index ["user_id"], name: "index_github_app_installations_on_user_id"
+  end
+
+  create_table "github_app_repositories", force: :cascade do |t|
+    t.boolean "archived", default: false, null: false
+    t.datetime "created_at", null: false
+    t.string "full_name", null: false
+    t.bigint "github_app_installation_id", null: false
+    t.bigint "github_repo_id", null: false
+    t.string "html_url", null: false
+    t.boolean "private", default: false, null: false
+    t.bigint "repository_id"
+    t.datetime "updated_at", null: false
+    t.index ["full_name"], name: "index_github_app_repositories_on_full_name"
+    t.index ["github_app_installation_id"], name: "index_github_app_repositories_on_github_app_installation_id"
+    t.index ["github_repo_id"], name: "index_github_app_repositories_on_github_repo_id", unique: true
+    t.index ["repository_id"], name: "index_github_app_repositories_on_repository_id"
   end
 
   create_table "goals", force: :cascade do |t|
@@ -300,6 +331,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.index ["user_id"], name: "index_heartbeat_import_sources_on_user_id", unique: true
   end
 
+  create_table "heartbeat_user_agents", primary_key: "user_agent", id: :text, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.float "first_seen_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_agent"], name: "index_heartbeat_user_agents_trgm", opclass: :gin_trgm_ops, using: :gin
+  end
+
   create_table "heartbeats", force: :cascade do |t|
     t.string "branch"
     t.string "category"
@@ -339,6 +377,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.index ["time", "user_id"], name: "idx_heartbeats_time_user_active", where: "(deleted_at IS NULL)"
     t.index ["time"], name: "index_heartbeats_on_time_active_covering", where: "(deleted_at IS NULL)", include: ["source_type"]
     t.index ["time"], name: "index_heartbeats_on_time_imported", where: "(source_type <> 0)"
+    t.index ["user_agent", "time"], name: "index_heartbeats_on_user_agent_time", order: { time: :desc }
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time_incl_editor", where: "(deleted_at IS NULL)", include: ["editor"]
@@ -346,6 +385,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
     t.index ["user_id", "language", "time"], name: "idx_heartbeats_user_language_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "operating_system", "time"], name: "idx_heartbeats_user_operating_system_time", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "project", "time", "id"], name: "idx_heartbeats_user_project_time_id_active", where: "(deleted_at IS NULL)"
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_covering", where: "(deleted_at IS NULL)", include: ["category"]
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
     t.index ["user_id", "project"], name: "index_heartbeats_on_user_id_and_project", where: "(deleted_at IS NULL)"
@@ -355,7 +395,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time"], name: "idx_heartbeats_lb_eligible_user_time", where: "((deleted_at IS NULL) AND ((category)::text = 'coding'::text) AND ((editor IS NULL) OR (lower((editor)::text) <> ALL (ARRAY['arc'::text, 'brave'::text, 'chrome'::text, 'chromium'::text, 'edge'::text, 'firefox'::text, 'floorp'::text, 'librewolf'::text, 'microsoft-edge'::text, 'opera'::text, 'opera-gx'::text, 'safari'::text, 'vivaldi'::text, 'waterfox'::text, 'zen'::text]))))"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
-    t.index ["user_id", "time"], name: "idx_heartbeats_user_time_project_language", where: "((deleted_at IS NULL) AND (project IS NOT NULL) AND ((project)::text <> ''::text))", include: ["id", "project", "language"]
+    t.index ["user_id", "time"], name: "idx_heartbeats_user_time_project_language", where: "((deleted_at IS NULL) AND (project IS NOT NULL) AND ((project)::text <> ''::text) AND (language IS NOT NULL) AND ((language)::text <> ''::text))", include: ["project", "language"]
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
 
@@ -537,9 +577,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
   end
 
   create_table "repositories", force: :cascade do |t|
+    t.boolean "archived"
     t.integer "commit_count"
     t.datetime "created_at", null: false
     t.text "description"
+    t.string "full_name"
+    t.bigint "github_repo_id"
     t.string "homepage"
     t.string "host"
     t.string "language"
@@ -548,9 +591,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.datetime "last_synced_at"
     t.string "name"
     t.string "owner"
+    t.boolean "private"
     t.integer "stars"
     t.datetime "updated_at", null: false
     t.string "url"
+    t.index ["full_name"], name: "index_repositories_on_full_name"
+    t.index ["github_repo_id"], name: "index_repositories_on_github_repo_id", unique: true
     t.index ["url"], name: "index_repositories_on_url", unique: true
   end
 
@@ -638,10 +684,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.boolean "default_timezone_leaderboard", default: true, null: false
     t.string "deprecated_name"
     t.string "display_name_override"
+    t.integer "event_participation", default: 0, null: false
+    t.boolean "event_participation_backfilled", default: true, null: false
     t.text "github_access_token"
     t.string "github_avatar_url"
     t.string "github_uid"
     t.string "github_username"
+    t.text "gitlab_access_token"
+    t.string "gitlab_avatar_url"
+    t.string "gitlab_uid"
+    t.string "gitlab_username"
     t.integer "hackatime_extension_text_type", default: 0, null: false
     t.string "hca_access_token"
     t.string "hca_id"
@@ -669,6 +721,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.boolean "weekly_summary_email_enabled", default: true, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
+    t.index ["gitlab_uid", "gitlab_access_token"], name: "index_users_on_gitlab_uid_and_access_token"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"
@@ -713,6 +766,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
+  add_foreign_key "github_app_installations", "users"
+  add_foreign_key "github_app_repositories", "github_app_installations"
+  add_foreign_key "github_app_repositories", "repositories"
   add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"

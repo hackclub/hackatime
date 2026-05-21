@@ -9,6 +9,10 @@ class User < ApplicationRecord
 
   has_subscriptions
 
+  # Tracks which Hack Club events the user has coded during. EVENT_KEYS is
+  # sorted alphabetically so bit positions don't shift with events.json edits.
+  flag :event_participation, TimeRangeFilterable::EVENT_KEYS
+
   USERNAME_MAX_LENGTH = 21 # going over 21 overflows the navbar
 
   has_paper_trail
