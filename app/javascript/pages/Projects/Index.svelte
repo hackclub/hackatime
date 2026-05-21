@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Deferred, Form, Link, router } from "@inertiajs/svelte";
+  import { onMount } from "svelte";
   import Archive from "hcicons-svelte/archive";
   import Edit from "hcicons-svelte/edit";
   import GithubFill from "hcicons-svelte/github-fill";
@@ -114,7 +115,11 @@
   let sortBy = $state<"most_time" | "least_time" | "name_az" | "name_za">(
     "most_time",
   );
-  let archivalStatus = $state(show_archived ? "archived" : "active");
+  let archivalStatus = $state("active");
+
+  onMount(() => {
+    archivalStatus = show_archived ? "archived" : "active";
+  });
 
   const skeletonCount = $derived.by(() => {
     const safeCount = Number.isFinite(total_projects) ? total_projects : 0;
@@ -749,22 +754,33 @@
                     </div>
 
                     {#if project.broken_name}
-                      <button
-                        type="button"
-                        class="mt-4 block w-full cursor-pointer rounded-2xl border border-yellow/30 bg-yellow/10 p-3 text-left hover:bg-yellow/15"
-                        onclick={() => (brokenNameModalOpen = true)}
-                      >
-                        <p
-                          class="text-sm leading-relaxed text-yellow/80 text-pretty"
+                      {#if viewMode === 'grid'}
+                        <button
+                          type="button"
+                          class="mt-4 block w-full cursor-pointer rounded-2xl border border-yellow/30 bg-yellow/10 p-3 text-left hover:bg-yellow/15"
+                          onclick={() => (brokenNameModalOpen = true)}
                         >
-                          Time can't be used in Hack Club programs
-                          <span
-                            class="underline underline-offset-2 hover:text-yellow"
+                          <p
+                            class="text-sm leading-relaxed text-yellow/80 text-pretty"
                           >
-                            (why?)
+                            Time can't be used in Hack Club programs
+                            <span
+                              class="underline underline-offset-2 hover:text-yellow"
+                            >
+                              (why?)
+                            </span>
+                          </p>
+                        </button>
+                      {:else}
+                        <div class="mt-2 flex items-center gap-3">
+                          <span class="inline-flex items-center gap-2 rounded-full bg-yellow/10 px-3 py-1 text-sm text-yellow/80">
+                            <svg class="h-4 w-4 text-yellow/80" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zM12 16v2h0v-2h0zm0-6v4h0v-4h0z"/></svg>
+                            <button type="button" class="underline text-sm" onclick={() => (brokenNameModalOpen = true)}>
+                              Time can't be used for programs (why?)
+                            </button>
                           </span>
-                        </p>
-                      </button>
+                        </div>
+                      {/if}
                     {/if}
 
                     {#if project.manage_enabled && editingProjectKey === project.project_key && updatePathFor(project)}
