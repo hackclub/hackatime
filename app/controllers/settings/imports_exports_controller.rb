@@ -22,7 +22,7 @@ class Settings::ImportsExportsController < Settings::BaseController
     {
       data_export: InertiaRails.defer {
         {
-          total_heartbeats: number_with_delimiter(@user.heartbeats.count),
+          total_heartbeats: number_with_delimiter(@user.active_heartbeats_count_or_count),
           total_coding_time: @user.heartbeats.duration_simple,
           heartbeats_last_7_days: number_with_delimiter(@user.heartbeats.where("time >= ?", 7.days.ago.to_f).count),
           is_restricted: (@user.trust_level == "red")

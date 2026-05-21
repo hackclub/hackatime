@@ -55,6 +55,10 @@ Skip running checks which aren't relevant to your changes. However, at the very 
 - **Auth**: `ensure_authenticated!` for APIs, token via `Authorization` header or `?api_key=`
 - **CSS**: Using Tailwind CSS, no inline styles, use utility classes. We define some custom classes in `config/tailwind.config.js` and `app/assets/tailwind/application.css`.
 
+## Heartbeat Counters
+
+`users.active_heartbeats_count` is a cached count of non-deleted heartbeats. Use it only through `User#active_heartbeats_count_or_count` so users that have not been backfilled still fall back to an exact count. Heartbeat bulk writes (`insert_all`, `update_all`, soft-delete/anonymization/merge paths) bypass callbacks, so update the counter explicitly when changing active heartbeat rows outside normal ActiveRecord create/update flows.
+
 ## Inertia Components
 
 On Inertia pages, use the `<Button />` component for buttons, not `<button>` tags.

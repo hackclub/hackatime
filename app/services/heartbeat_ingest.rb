@@ -121,6 +121,7 @@ class HeartbeatIngest
     end
 
     self.class.schedule_rollup_refresh(user: @user) if result.any? && @schedule_rollup_refresh
+    Heartbeat.adjust_active_count_for(@user.id, 1) if result.any?
     [ persisted, !result.any? ]
   end
 
@@ -196,7 +197,7 @@ class HeartbeatIngest
 
     ActiveRecord::Base.logger.silence do
       Heartbeat.insert_all(records, unique_by: [ :fields_hash ]).length
-    end
+    end.tap { |persisted_count| Heartbeat.adjust_active_count_for(@user.id, persisted_count) if persisted_count.positive? }
   end
 
   def parse_user_agent(user_agent)

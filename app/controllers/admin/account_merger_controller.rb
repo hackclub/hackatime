@@ -94,6 +94,8 @@ class Admin::AccountMergerController < InertiaController
     ActiveRecord::Base.transaction do
       # 1. Move heartbeats from newer to older
       heartbeat_count = Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)
+      Heartbeat.adjust_active_count_for(older_user.id, heartbeat_count) if heartbeat_count.positive?
+      Heartbeat.adjust_active_count_for(newer_user.id, -heartbeat_count) if heartbeat_count.positive?
       results << "#{heartbeat_count} heartbeats moved"
 
       # 2. Transfer API keys from newer to older

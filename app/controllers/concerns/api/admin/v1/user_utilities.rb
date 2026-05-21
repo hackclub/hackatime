@@ -454,7 +454,7 @@ module Api
           query = query.where(editor: editor) if editor.present?
           query = query.where(machine: machine) if machine.present?
 
-          total_count = query.count
+          total_count = unfiltered_heartbeats_request? ? user.active_heartbeats_count_or_count : query.count
           source_types = Heartbeat.source_types.invert
           heartbeats = query.order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS).map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type|
             {
@@ -556,6 +556,10 @@ module Api
         rescue ActiveRecord::RecordNotFound
           render json: { error: "user not found" }, status: :not_found
           nil
+        end
+
+        def unfiltered_heartbeats_request?
+          params.values_at(:start_date, :end_date, :project, :language, :entity, :editor, :machine).all?(&:blank?)
         end
 
         def parse_date_param

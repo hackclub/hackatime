@@ -56,6 +56,9 @@ gem "thruster", require: false
 # For query count tracking
 gem "query_count"
 
+# `counter_cache` on steroids
+gem "counter_culture"
+
 # Compact request logging
 gem "lograge"
 

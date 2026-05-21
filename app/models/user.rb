@@ -15,6 +15,7 @@ class User < ApplicationRecord
 
   after_create :subscribe_to_default_lists
   after_create_commit :schedule_onboarding_check_in_email
+  before_create :initialize_active_heartbeats_count
   before_validation :normalize_username
   encrypts :slack_access_token, :github_access_token, :hca_access_token
 
@@ -390,6 +391,12 @@ class User < ApplicationRecord
     heartbeats.where(source_type: :direct_entry).order(time: :desc).first
   end
 
+  def active_heartbeats_count_or_count
+    return active_heartbeats_count if active_heartbeats_count_backfilled?
+
+    heartbeats.count
+  end
+
   def create_email_signin_token(continue_param: nil)
     sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
   end
@@ -436,6 +443,11 @@ class User < ApplicationRecord
 
   def subscribe_to_default_lists
     subscribe("weekly_summary")
+  end
+
+  def initialize_active_heartbeats_count
+    self.active_heartbeats_count = 0 if active_heartbeats_count.nil?
+    self.active_heartbeats_count_backfilled = true
   end
 
   def schedule_onboarding_check_in_email

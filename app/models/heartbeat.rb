@@ -87,6 +87,7 @@ class Heartbeat < ApplicationRecord
   self.inheritance_column = nil
 
   belongs_to :user
+  counter_culture :user, column_name: proc { |heartbeat| heartbeat.deleted_at.nil? ? "active_heartbeats_count" : nil }
 
   validates :time, presence: true
 
@@ -111,13 +112,21 @@ class Heartbeat < ApplicationRecord
   end
 
   def soft_delete
+    was_active = deleted_at.nil?
     update_column(:deleted_at, Time.current)
+    self.class.adjust_active_count_for(user_id, -1) if was_active
     DashboardRollupRefreshJob.schedule_for(user_id)
   end
 
   def restore
+    was_deleted = deleted_at.present?
     update_column(:deleted_at, nil)
+    self.class.adjust_active_count_for(user_id, 1) if was_deleted
     DashboardRollupRefreshJob.schedule_for(user_id)
+  end
+
+  def self.adjust_active_count_for(user_id, amount)
+    User.where(id: user_id).update_all([ "active_heartbeats_count = COALESCE(active_heartbeats_count, 0) + ?", amount ])
   end
 
   private
