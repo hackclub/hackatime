@@ -4,6 +4,8 @@ module Api
       module UserUtilities
         extend ActiveSupport::Concern
 
+        HEARTBEAT_RESPONSE_COLUMNS = %i[id time lineno cursorpos is_write project language entity branch category editor machine user_agent ip_address lines source_type].freeze
+
         included do
           before_action :can_write!, only: [ :user_convict ]
         end
@@ -453,30 +455,17 @@ module Api
           query = query.where(machine: machine) if machine.present?
 
           total_count = query.count
-          heartbeats = query.order(time: :asc).limit(limit).offset(offset)
+          heartbeats = query.order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS).map do |values|
+            heartbeat = HEARTBEAT_RESPONSE_COLUMNS.zip(values).to_h
+            heartbeat[:lineno] ||= 0
+            heartbeat[:cursorpos] ||= 0
+            heartbeat[:source_type] = Heartbeat.source_types.key(heartbeat[:source_type]) || heartbeat[:source_type]
+            heartbeat
+          end
 
           render json: {
             user_id: user.id,
-            heartbeats: heartbeats.map do |hb|
-              {
-                id: hb.id,
-                time: hb.time,
-                lineno: hb.lineno || 0,
-                cursorpos: hb.cursorpos || 0,
-                is_write: hb.is_write,
-                project: hb.project,
-                language: hb.language,
-                entity: hb.entity,
-                branch: hb.branch,
-                category: hb.category,
-                editor: hb.editor,
-                machine: hb.machine,
-                user_agent: hb.user_agent,
-                ip_address: hb.ip_address,
-                lines: hb.lines,
-                source_type: hb.source_type
-              }
-            end,
+            heartbeats: heartbeats,
             total_count: total_count,
             has_more: (offset + limit) < total_count
           }
