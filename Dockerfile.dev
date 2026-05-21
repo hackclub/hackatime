@@ -1,4 +1,4 @@
-FROM ruby:4.0.3
+FROM ruby:4.0.5
 
 # Install system dependencies including Node.js
 RUN apt-get update -qq && \
@@ -49,7 +49,7 @@ RUN bundle install
 # with "Source locally installed gems is ignoring..." warnings.
 RUN gem pristine --extensions json erb bigdecimal rdoc
 
-# The ruby:4.0.3 base image ships rdoc 7.0.3 in the system gem path with a
+# The ruby:4.0.5 base image ships rdoc 7.0.3 in the system gem path with a
 # rubygems plugin that auto-loads it on every gem/bundler invocation. The
 # Gemfile resolves to rdoc 7.2.0 (also auto-loaded via its own plugin), so
 # both versions get required and we get "already initialized constant"
