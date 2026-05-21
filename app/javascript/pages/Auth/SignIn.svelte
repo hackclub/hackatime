@@ -43,46 +43,49 @@
 </svelte:head>
 
 <div
-  class="min-h-screen w-full bg-darker text-surface-content flex flex-col items-center justify-center px-6"
+  class="min-h-dvh w-full bg-darker text-surface-content flex flex-col px-6 py-8"
 >
-  <div class="w-full max-w-md space-y-8">
-    <div class="text-center">
-      <Link href="/" class="inline-flex items-center gap-3 mb-8">
-        <img
-          src="/images/new-icon-rounded.png"
-          class="w-12 h-12 rounded-lg"
-          alt="Hackatime"
-        />
-        <span class="font-bold text-3xl tracking-tight">Hackatime</span>
-      </Link>
-      <h1 class="text-2xl font-semibold tracking-tight mb-2">
-        Sign in to Hackatime
-      </h1>
-      <p class="text-secondary text-sm">what's cookin'?</p>
-    </div>
+  <div class="flex flex-1 items-center justify-center">
+    <div class="w-full max-w-md space-y-8">
+      <div class="text-center">
+        <Link href="/" class="inline-flex items-center gap-3 mb-8">
+          <img
+            src="/images/new-icon-rounded.png"
+            class="w-12 h-12 rounded-lg"
+            alt="Hackatime"
+          />
+          <span class="font-bold text-3xl tracking-tight">Hackatime</span>
+        </Link>
+        <h1 class="text-2xl font-semibold tracking-tight mb-2">
+          Sign in to Hackatime
+        </h1>
+        <p class="text-secondary text-sm">what's cookin'?</p>
+      </div>
 
-    <AuthForm
-      {sign_in_email}
-      {show_dev_tool}
-      {dev_magic_link}
-      {csrf_token}
-      redirect_to="signin"
-      {continue_param}
-    />
+      <AuthForm
+        {sign_in_email}
+        {show_dev_tool}
+        {dev_magic_link}
+        {csrf_token}
+        redirect_to="signin"
+        {continue_param}
+      />
 
-    <div class="text-center">
-      <Link
-        href="/"
-        class="text-sm text-secondary hover:text-primary transition-colors"
-      >
-        ← Back to home
-      </Link>
+      <div class="text-center">
+        <Link
+          href="/"
+          class="text-sm text-secondary hover:text-primary transition-colors"
+        >
+          ← Back to home
+        </Link>
+      </div>
     </div>
-    <p class="text-secondary text-sm">
-      By signing in, you agree to the Hack Club <a
-        class="text-primary"
-        href="https://hackclub.com/privacy">privacy policy and terms</a
-      >.
-    </p>
   </div>
+
+  <p class="mx-auto w-full max-w-md pt-8 text-center text-secondary text-sm">
+    By signing in, you agree to the Hack Club <a
+      class="text-primary"
+      href="https://hackclub.com/privacy">privacy policy and terms</a
+    >.
+  </p>
 </div>
