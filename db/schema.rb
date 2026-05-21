@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_21_192204) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -631,6 +631,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
   end
 
   create_table "users", force: :cascade do |t|
+    t.bigint "active_heartbeats_count"
+    t.boolean "active_heartbeats_count_backfilled", default: false, null: false
     t.integer "admin_level", default: 0, null: false
     t.boolean "allow_public_stats_lookup", default: true, null: false
     t.string "country_code"

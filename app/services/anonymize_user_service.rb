@@ -76,7 +76,8 @@ class AnonymizeUserService < ApplicationService
     user.goals.destroy_all
 
     # tombstone
-    Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)
+    tombstoned_heartbeats_count = Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)
+    Heartbeat.adjust_active_count_for(user.id, -tombstoned_heartbeats_count) if tombstoned_heartbeats_count.positive?
 
     user.access_grants.destroy_all
     user.access_tokens.destroy_all

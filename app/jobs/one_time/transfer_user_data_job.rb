@@ -41,7 +41,9 @@ class OneTime::TransferUserDataJob < ApplicationJob
   end
 
   def transfer_heartbeats
-    Heartbeat.where(user_id: @source_user_id).update_all(user_id: @target_user_id)
+    heartbeat_count = Heartbeat.where(user_id: @source_user_id).update_all(user_id: @target_user_id)
+    Heartbeat.adjust_active_count_for(@target_user_id, heartbeat_count) if heartbeat_count.positive?
+    Heartbeat.adjust_active_count_for(@source_user_id, -heartbeat_count) if heartbeat_count.positive?
   end
 
   def source_user
