@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@fontsource-variable/spline-sans": "^5.2.8",
-    "@inertiajs/core": "^3.1.1",
+    "@inertiajs/core": "^3.2.0",
     "@inertiajs/svelte": "^3.1.1",
     "@inertiajs/vite": "^3.1.1",
     "@js-from-routes/client": "^1.0.4",
