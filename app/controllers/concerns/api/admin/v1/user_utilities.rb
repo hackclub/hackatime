@@ -455,12 +455,15 @@ module Api
           query = query.where(machine: machine) if machine.present?
 
           total_count = query.count
-          heartbeats = query.order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS).map do |values|
-            heartbeat = HEARTBEAT_RESPONSE_COLUMNS.zip(values).to_h
-            heartbeat[:lineno] ||= 0
-            heartbeat[:cursorpos] ||= 0
-            heartbeat[:source_type] = Heartbeat.source_types.key(heartbeat[:source_type]) || heartbeat[:source_type]
-            heartbeat
+          source_types = Heartbeat.source_types.invert
+          heartbeats = query.order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS).map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type|
+            {
+              id: id, time: time, lineno: lineno || 0, cursorpos: cursorpos || 0,
+              is_write: is_write, project: project, language: language, entity: entity,
+              branch: branch, category: category, editor: editor, machine: machine,
+              user_agent: user_agent, ip_address: ip_address, lines: lines,
+              source_type: source_types[source_type] || source_type
+            }
           end
 
           render json: {
