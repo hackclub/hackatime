@@ -259,7 +259,7 @@
   };
 
   const cardActionClass =
-    "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-surface-200/60 bg-surface-content/5 text-surface-content/70 shadow-sm transition-colors duration-200 ease-out hover:bg-surface-content/10 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 cursor-pointer";
+    "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-surface-200/60 bg-surface-content/5 text-surface-content/70 shadow-sm transition-colors duration-200 ease-out hover:bg-surface-content/10 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 cursor-pointer";
 </script>
 
 <svelte:head>
@@ -307,18 +307,17 @@
   {/if}
 
   <div class="mt-6 flex flex-wrap items-end gap-3">
-    <div class="sm:max-w-3xs">
-      <IntervalSelect
-        from={from || ""}
-        selected={interval || ""}
-        to={to || ""}
-        onchange={changeInterval}
-      />
-    </div>
-
     {#if projects_data}
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-end gap-3">
+          <div class="min-w-0 flex-[0_1_18rem]">
+            <IntervalSelect
+              from={from || ""}
+              selected={interval || ""}
+              to={to || ""}
+              onchange={changeInterval}
+            />
+          </div>
           <div class="min-w-0 flex-[0_1_16rem]">
             <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80">
               Search Projects
@@ -473,7 +472,7 @@
             <div
               class={viewMode === "grid"
                 ? "mt-6 grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] justify-items-stretch gap-6"
-                : "mt-6 space-y-4"}
+                : "mt-6 space-y-2"}
             >
               {#each filteredAndSortedProjects as project (project.id)}
                 {@const projectHref = project.show_path
@@ -488,15 +487,15 @@
                     <Link
                       href={projectHref}
                       aria-label={`View ${project.name}`}
-                      class="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                      class="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 py-0 "
                     ></Link>
                   {/if}
                   <div
-                    class="relative flex w-full min-w-0 {viewMode === 'list' ? 'flex-1' : ''} flex-col rounded-2xl border border-surface-200 bg-dark p-5 transition-colors duration-300 ease-out group-hover:border-surface-300"
+                    class="relative flex w-full min-w-0 {viewMode === 'list' ? 'flex-1 p-3 sm:p-4' : 'p-5'} flex-col rounded-2xl border border-surface-200 bg-dark transition-colors duration-300 ease-out group-hover:border-surface-300"
                   >
                     <div class="grid gap-3">
                       <div
-                        class="flex min-w-0 {viewMode === 'list' ? 'flex-1' : ''} items-start justify-between gap-3"
+                        class="flex min-w-0 {viewMode === 'list' ? 'flex-1 items-center' : 'items-start justify-between'} gap-3"
                       >
                         <div class="min-w-0 flex-1">
                           <h3
@@ -506,19 +505,76 @@
                             {project.name}
                           </h3>
                         </div>
-                        {#if viewMode === "grid"}
+                        <div class="flex shrink-0 items-center gap-3 {viewMode === 'list' ? 'ml-auto' : ''}">
+                          {#if viewMode === "list"}
+                            <div
+                              class="relative z-20 flex flex-wrap items-center justify-end gap-2"
+                            >
+                              {#if project.repository?.homepage}
+                                <a
+                                  href={project.repository.homepage}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="View project website"
+                                  class={cardActionClass}
+                                >
+                                  <Web size={20} />
+                                </a>
+                              {/if}
+                              {#if project.repo_url}
+                                <a
+                                  href={project.repo_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="View repository"
+                                  class={cardActionClass}
+                                >
+                                  <GithubFill size={20} />
+                                </a>
+                              {/if}
+                              {#if project.manage_enabled}
+                                <Button
+                                  type="button"
+                                  unstyled
+                                  class={cardActionClass}
+                                  title={project.repo_url
+                                    ? "Edit mapping"
+                                    : "Link repository"}
+                                  onclick={() => openMappingEditor(project)}
+                                >
+                                  <Edit size={20} />
+                                </Button>
+                              {/if}
+                              {#if show_archived && project.unarchive_path}
+                                <Button
+                                  type="button"
+                                  unstyled
+                                  class={cardActionClass}
+                                  title="Restore project"
+                                  onclick={() => openStatusChangeModal(project, true)}
+                                >
+                                  <Reply size={20} />
+                                </Button>
+                              {:else if !show_archived && project.archive_path}
+                                <Button
+                                  type="button"
+                                  unstyled
+                                  class={cardActionClass}
+                                  title="Archive project"
+                                  onclick={() =>
+                                    openStatusChangeModal(project, false)}
+                                >
+                                  <Archive size={20} />
+                                </Button>
+                              {/if}
+                            </div>
+                          {/if}
                           <p
-                            class="shrink-0 text-lg font-semibold tabular-nums text-primary/80"
+                            class="text-lg font-semibold tabular-nums text-primary/80"
                           >
                             {project.duration_label}
                           </p>
-                        {:else}
-                          <p
-                            class="shrink-0 text-lg font-semibold tabular-nums text-primary/80"
-                          >
-                            {project.duration_label}
-                          </p>
-                        {/if}
+                        </div>
                       </div>
 
                       {#if project.repository?.description && viewMode === "grid"}
@@ -529,9 +585,8 @@
                         </p>
                       {/if}
 
-                      <div
-                        class="relative z-20 flex flex-wrap items-center gap-2"
-                      >
+                      <div class="relative z-20 flex flex-wrap items-center gap-2">
+                        {#if viewMode === "grid"}
                         {#if project.repository?.homepage}
                           <a
                             href={project.repository.homepage}
@@ -588,6 +643,7 @@
                           >
                             <Archive size={20} />
                           </Button>
+                        {/if}
                         {/if}
                       </div>
                     </div>
