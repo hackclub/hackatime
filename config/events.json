@@ -1,0 +1,32 @@
+{
+  "flavortown": {
+    "human_name": "Flavortown",
+    "starts_at": "2025-12-15",
+    "ends_at": "2026-04-30",
+    "timezone": "America/New_York"
+  },
+  "summer_of_making": {
+    "human_name": "Summer of Making",
+    "starts_at": "2025-06-16",
+    "ends_at": "2025-09-30",
+    "timezone": "America/New_York"
+  },
+  "high_seas": {
+    "human_name": "High Seas",
+    "starts_at": "2024-10-30",
+    "ends_at": "2025-01-31",
+    "timezone": "America/New_York"
+  },
+  "low_skies": {
+    "human_name": "Low Skies",
+    "starts_at": "2024-10-03",
+    "ends_at": "2025-01-12",
+    "timezone": "America/New_York"
+  },
+  "scrapyard": {
+    "human_name": "Scrapyard Global",
+    "starts_at": "2025-03-14",
+    "ends_at": "2025-03-17",
+    "timezone": "America/New_York"
+  }
+}

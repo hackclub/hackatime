@@ -19,7 +19,8 @@
     /* Aliases */
     "paths": {
       "@/*": ["./app/javascript/*"],
-      "~/*": ["./app/javascript/*"]
+      "~/*": ["./app/javascript/*"],
+      "$config/*": ["./config/*"]
     }
   },
 

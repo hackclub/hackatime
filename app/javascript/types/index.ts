@@ -3,7 +3,9 @@ export type FlashData = {
   alert?: string;
 };
 
-export type SharedProps = {};
+export type SharedProps = {
+  layout: LayoutProps;
+};
 
 export type NavLink = {
   label: string;
@@ -29,6 +31,7 @@ export type NavCurrentUser = {
   country_name?: string | null;
   streak_days?: number | null;
   admin_level: AdminLevel;
+  created_at?: string | null;
 };
 
 export type LayoutNav = {

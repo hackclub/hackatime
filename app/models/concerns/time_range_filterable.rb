@@ -1,7 +1,7 @@
 module TimeRangeFilterable
   extend ActiveSupport::Concern
 
-  RANGES = {
+  STANDARD_RANGES = {
     today: {
       human_name: "Today",
       calculate: -> { Time.current.beginning_of_day..Time.current.end_of_day }
@@ -33,63 +33,28 @@ module TimeRangeFilterable
     last_12_months: {
       human_name: "Last 12 Months",
       calculate: -> { (Time.current - 12.months).beginning_of_day..Time.current.end_of_day }
-    },
-    flavortown: {
-      human_name: "Flavortown",
+    }
+  }.freeze
+
+  EVENTS_CONFIG_PATH = Rails.root.join("config", "events.json").freeze
+
+  EVENT_DEFINITIONS = JSON.parse(File.read(EVENTS_CONFIG_PATH)).freeze
+
+  EVENT_RANGES = EVENT_DEFINITIONS.each_with_object({}) do |(key, cfg), memo|
+    timezone = cfg["timezone"]
+    starts_at = cfg["starts_at"]
+    ends_at = cfg["ends_at"]
+    memo[key.to_sym] = {
+      human_name: cfg["human_name"],
       calculate: -> {
-        timezone = "America/New_York"
         Time.use_zone(timezone) do
-          from = Time.parse("2025-12-15").beginning_of_day
-          to = Time.parse("2026-04-30").end_of_day
-          from.beginning_of_day..to.end_of_day
-        end
-      }
-    },
-    summer_of_making: {
-      human_name: "Summer of Making",
-      calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2025-06-16").beginning_of_day
-          to = Time.parse("2025-09-30").end_of_day
-          from.beginning_of_day..to.end_of_day
-        end
-      }
-    },
-    high_seas: {
-      human_name: "High Seas",
-      calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2024-10-30").beginning_of_day
-          to = Time.parse("2025-01-31").end_of_day
-          from.beginning_of_day..to.end_of_day
-        end
-      }
-    },
-    low_skies: {
-      human_name: "Low Skies",
-      calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2024-10-3").beginning_of_day
-          to = Time.parse("2025-01-12").end_of_day
-          from.beginning_of_day..to.end_of_day
-        end
-      }
-    },
-    scrapyard: {
-      human_name: "Scrapyard Global",
-      calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2025-03-14").beginning_of_day
-          to = Time.parse("2025-03-17").end_of_day
-          from.beginning_of_day..to.end_of_day
+          Time.zone.parse(starts_at).beginning_of_day..Time.zone.parse(ends_at).end_of_day
         end
       }
     }
-  }.freeze
+  end.freeze
+
+  RANGES = STANDARD_RANGES.merge(EVENT_RANGES).freeze
 
   class_methods do
     def time_range_filterable_field(field_name)

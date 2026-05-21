@@ -148,7 +148,8 @@ class InertiaController < ApplicationController
       country_code: current_user.country_code,
       country_name: country&.common_name,
       streak_days: current_user.streak_days,
-      admin_level: current_user.admin_level
+      admin_level: current_user.admin_level,
+      created_at: current_user.created_at&.iso8601
     }
   end
 
