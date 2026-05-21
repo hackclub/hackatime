@@ -46,7 +46,7 @@
   class="min-h-dvh w-full bg-darker text-surface-content flex flex-col px-6 py-8"
 >
   <div class="flex flex-1 items-center justify-center">
-    <div class="w-full max-w-md space-y-8">
+    <div class="w-full max-w-md">
       <div class="text-center">
         <Link href="/" class="inline-flex items-center gap-3 mb-8">
           <img
@@ -56,10 +56,6 @@
           />
           <span class="font-bold text-3xl tracking-tight">Hackatime</span>
         </Link>
-        <h1 class="text-2xl font-semibold tracking-tight mb-2">
-          Sign in to Hackatime
-        </h1>
-        <p class="text-secondary text-sm">what's cookin'?</p>
       </div>
 
       <AuthForm
@@ -71,7 +67,7 @@
         {continue_param}
       />
 
-      <div class="text-center">
+      <div class="text-center mt-4">
         <Link
           href="/"
           class="text-sm text-secondary hover:text-primary transition-colors"
@@ -82,10 +78,19 @@
     </div>
   </div>
 
-  <p class="mx-auto w-full max-w-md pt-8 text-center text-secondary text-sm">
-    By signing in, you agree to the Hack Club <a
+  <p
+    class="mx-auto w-full max-w-md pt-8 text-center text-secondary text-sm text-pretty"
+  >
+    By signing in, you agree to the <a
       class="text-primary"
-      href="https://hackclub.com/privacy">privacy policy and terms</a
+      href="https://hackclub.com/privacy-and-terms#hack-club-standard-terms-and-conditions"
+      >Terms of Service</a
+    >
+    and
+    <a
+      class="text-primary"
+      href="https://hackclub.com/privacy-and-terms#hack-club-privacy-notice"
+      >Privacy Policy</a
     >.
   </p>
 </div>
