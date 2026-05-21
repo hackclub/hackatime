@@ -1,6 +1,7 @@
 class DashboardRollup < ApplicationRecord
-  DIMENSIONS = %w[total project language editor operating_system category weekly_project activity_graph today_stats filter_options].freeze
+  DIMENSIONS = %w[total project project_details language editor operating_system category weekly_project activity_graph today_stats filter_options].freeze
   TOTAL_DIMENSION = "total".freeze
+  PROJECT_DETAILS_DIMENSION = "project_details".freeze
   ACTIVITY_GRAPH_DIMENSION = "activity_graph".freeze
   TODAY_STATS_DIMENSION = "today_stats".freeze
   FILTER_OPTIONS_DIMENSION = "filter_options".freeze

@@ -142,8 +142,6 @@ export type ProjectStats = {
   activity_graph: ActivityGraphData;
 };
 
-export type SocialProofUser = { display_name: string; avatar_url: string };
-
 export type FilterableDashboardData = {
   total_time: number;
   total_heartbeats: number;

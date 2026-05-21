@@ -2,7 +2,6 @@
   import { Deferred, router } from "@inertiajs/svelte";
   import type {
     ActivityGraphData,
-    SocialProofUser,
     FilterableDashboardData,
     TodayStats,
     ProgrammingGoalProgress,
@@ -21,18 +20,12 @@
     flavor_text,
     trust_level_red,
     show_wakatime_setup_notice,
-    ssp_message,
-    ssp_users_recent,
-    ssp_users_size,
     github_uid_blank,
     dashboard_stats,
   }: {
     flavor_text: string;
     trust_level_red: boolean;
     show_wakatime_setup_notice: boolean;
-    ssp_message?: string | null;
-    ssp_users_recent: SocialProofUser[];
-    ssp_users_size: number;
     github_uid_blank: boolean;
     dashboard_stats?: {
       filterable_dashboard_data: FilterableDashboardData;
@@ -78,7 +71,7 @@
   {/if}
 
   {#if show_wakatime_setup_notice}
-    <SetupNotice {ssp_message} {ssp_users_recent} {ssp_users_size} />
+    <SetupNotice />
   {:else if github_uid_blank}
     <GitHubLinkBanner />
   {/if}
