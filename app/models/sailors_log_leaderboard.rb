@@ -48,6 +48,7 @@ class SailorsLogLeaderboard < ApplicationRecord
     users_in_channel = User.where(slack_uid: slack_ids_in_channel)
     user_durations = Heartbeat.where(user: users_in_channel).today.group(:user_id).duration_seconds
     top_user_ids = user_durations.sort_by { |_, duration| -duration }.first(10).map(&:first)
+    users_by_id = User.where(id: top_user_ids).index_by(&:id)
 
     top_user_ids.map do |user_id|
       user_heartbeats = Heartbeat.where(user_id: user_id).today
@@ -56,7 +57,6 @@ class SailorsLogLeaderboard < ApplicationRecord
         .transform_values { |langs| langs.max_by { |_, count| count }&.first&.last }
 
       projects = user_heartbeats.group(:project).duration_seconds.map do |project, duration|
-        print "project: #{project}, duration: #{duration}, language: #{most_common_languages[project]}"
         {
           name: project, duration: duration,
           language: most_common_languages[project],
@@ -65,7 +65,7 @@ class SailorsLogLeaderboard < ApplicationRecord
       end
       projects = projects.filter { |p| p[:duration] > 1.minute }.sort_by { |p| -p[:duration] }
 
-      user = User.find(user_id)
+      user = users_by_id.fetch(user_id) { raise ActiveRecord::RecordNotFound, "Couldn't find User with 'id'=#{user_id}" }
       {
         slack_uid: user.slack_uid,
         name: SlackUsername.find_by_uid(user.slack_uid),
