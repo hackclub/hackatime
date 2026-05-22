@@ -16,7 +16,7 @@ class LeaderboardPageCache
 
     def cache_key(leaderboard, scope, country_code)
       scope_suffix = scope.to_sym == :country ? (country_code.presence || "none") : "global"
-      "leaderboard_page/#{leaderboard.cache_key_with_version}/#{scope}/#{scope_suffix}"
+      "leaderboard_page/v2/#{leaderboard.cache_key_with_version}/#{scope}/#{scope_suffix}"
     end
 
     def build_payload(leaderboard:, scope:, country_code:)
@@ -57,6 +57,7 @@ class LeaderboardPageCache
         profile_path: user.username.present? ? routes.profile_path(user.username) : nil,
         verified: user.trust_level == "green",
         red: user.red?,
+        shadowbanned: user.leaderboard_shadowbanned?,
         country_code: user.country_code
       }
     end

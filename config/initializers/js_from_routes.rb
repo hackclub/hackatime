@@ -98,6 +98,8 @@ module JsFromRoutes
     admin_admin_users
     admin_deletion_requests
     admin_oauth_applications
+    admin_leaderboard_shadowbans
+    search_users_admin_leaderboard_shadowbans
     admin_account_merger
     search_users_admin_account_merger
     merge_admin_account_merger

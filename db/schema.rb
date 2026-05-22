@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_21_215501) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -646,6 +646,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
+    t.text "leaderboard_shadowban_reason"
+    t.boolean "leaderboard_shadowbanned", default: false, null: false
     t.text "profile_bio"
     t.string "profile_bluesky_url"
     t.string "profile_discord_url"
@@ -669,6 +671,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
     t.boolean "weekly_summary_email_enabled", default: true, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
+    t.index ["leaderboard_shadowbanned"], name: "index_users_on_leaderboard_shadowbanned", where: "(leaderboard_shadowbanned = true)"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"

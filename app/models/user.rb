@@ -108,6 +108,10 @@ class User < ApplicationRecord
     admin_level_superadmin? || admin_level_ultraadmin?
   end
 
+  def can_leaderboard_shadowban_users?
+    admin_level_superadmin? || admin_level_ultraadmin?
+  end
+
   def admin_level_rank
     ADMIN_LEVEL_RANK[admin_level.to_s] || 0
   end
@@ -208,6 +212,23 @@ class User < ApplicationRecord
   end
   # ex: .set_trust(:green, changed_by_user: admin) or set_trust(:red, changed_by_user: admin)
 
+  def set_leaderboard_shadowban(banned:, changed_by_user:, reason: nil)
+    return false unless changed_by_user.is_a?(User)
+    return false unless changed_by_user.can_leaderboard_shadowban_users?
+    return false if changed_by_user == self
+    return false unless changed_by_user.admin_level_rank > admin_level_rank
+    return false if banned && reason.to_s.strip.blank?
+
+    PaperTrail.request(whodunnit: changed_by_user.id) do
+      update!(
+        leaderboard_shadowbanned: banned,
+        leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil
+      )
+    end
+
+    true
+  end
+
   has_many :heartbeats
   has_many :goals, dependent: :destroy
   has_many :email_addresses, dependent: :destroy
@@ -243,6 +264,7 @@ class User < ApplicationRecord
       )
       .distinct
   }
+  scope :leaderboard_visible, -> { where(leaderboard_shadowbanned: false) }
 
   has_many :trust_level_audit_logs, dependent: :destroy
   has_many :trust_level_changes_made, class_name: "TrustLevelAuditLog", foreign_key: "changed_by_id", dependent: :destroy

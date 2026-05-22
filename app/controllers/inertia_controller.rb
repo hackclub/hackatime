@@ -119,6 +119,7 @@ class InertiaController < ApplicationController
     pending_count = DeletionRequest.pending.count
     links << inertia_link("Account Deletions", admin_deletion_requests_path, active: helpers.current_page?(admin_deletion_requests_path), badge: pending_count.positive? ? pending_count : nil)
     links << inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications"))
+    links << inertia_link("Leaderboard Shadowbans", admin_leaderboard_shadowbans_path, active: helpers.current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?("/admin/leaderboard_shadowbans"), inertia: true)
     links
   end
 
