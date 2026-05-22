@@ -4,9 +4,12 @@ include ApplicationHelper
 include ErrorReporting
 
 class WakatimeService
-  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil)
+  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil, boundary_aware: false, valid_timestamps_only: false, exclude_categories: [])
     @scope = scope || Heartbeat.all
+    @scope = @scope.with_valid_timestamps if valid_timestamps_only
+    @scope = @scope.where.not("LOWER(category) IN (?)", exclude_categories) if exclude_categories.any?
     @user = user
+    @boundary_aware = boundary_aware
 
     @start_date = convert_to_unix_timestamp(start_date)
     @end_date = convert_to_unix_timestamp(end_date)
@@ -24,6 +27,7 @@ class WakatimeService
 
     @specific_filters = specific_filters
     @allow_cache = allow_cache
+    @raw_names = boundary_aware # test-mode parity: use raw key.presence names when boundary_aware
   end
 
   def generate_summary
@@ -56,7 +60,11 @@ class WakatimeService
     summary[:range] = "all_time"
     summary[:human_readable_range] = "All Time"
 
-    @total_seconds = @scope.duration_seconds || 0
+    @total_seconds = if @boundary_aware
+      Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date) || 0
+    else
+      @scope.duration_seconds || 0
+    end
     summary[:total_seconds] = @total_seconds
 
     @total_days = (@end_time - @start_time) / 86400
@@ -82,7 +90,7 @@ class WakatimeService
     result = []
     @scope.group(group_by).duration_seconds.each do |key, value|
       entry = {
-        name: transform_display_name(group_by, key),
+        name: @raw_names ? (key.presence || "Other") : transform_display_name(group_by, key),
         total_seconds: value,
         text: ApplicationController.helpers.short_time_simple(value),
         hours: value / 3600,

@@ -6,8 +6,7 @@ class UsersController < InertiaController
   before_action :require_admin, only: [ :update_trust_level ]
 
   def wakatime_setup
-    api_key = current_user&.api_keys&.last
-    api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
+    api_key = ensure_api_key
 
     render inertia: "WakatimeSetup/Index", props: {
       current_user_api_key: api_key.token,
@@ -23,12 +22,8 @@ class UsersController < InertiaController
   end
 
   def wakatime_setup_step_3
-    api_key = current_user&.api_keys&.last
-    api_key ||= current_user.api_keys.create!(name: "Wakatime API Key")
-
     render inertia: "WakatimeSetup/Step3", props: {
-      current_user_api_key: api_key.token,
-      editor: params[:editor]
+      current_user_api_key: ensure_api_key.token, editor: params[:editor]
     }
   end
 
@@ -42,71 +37,44 @@ class UsersController < InertiaController
 
   def update_trust_level
     @user = User.find(params[:id])
-
     trust_level = params[:trust_level]
-    reason = params[:reason]
-    notes = params[:notes]
 
-    unless @user && trust_level.present?
-      return render json: { error: "lmao no perms" }, status: :unprocessable_entity
-    end
-
-    unless User.trust_levels.key?(trust_level)
-      return render json: { error: "you fucked it up lmaooo" }, status: :unprocessable_entity
-    end
-
-    unless current_user.can_change_trust_of?(@user, trust_level)
-      return render json: { error: "no perms lmaooo" }, status: :forbidden
-    end
+    return render_error("lmao no perms") unless @user && trust_level.present?
+    return render_error("you fucked it up lmaooo") unless User.trust_levels.key?(trust_level)
+    return render_forbidden("no perms lmaooo") unless current_user.can_change_trust_of?(@user, trust_level)
 
     success = @user.set_trust(
       trust_level,
       changed_by_user: current_user,
-      reason: reason,
-      notes: notes
+      reason: params[:reason],
+      notes: params[:notes]
     )
 
     if success
-      render json: {
-        success: true,
-        message: "updated",
-        trust_level: @user.trust_level
-      }
+      render json: { success: true, message: "updated", trust_level: @user.trust_level }
     else
-      render json: { error: "402 invalid" }, status: :unprocessable_entity
+      render_error("402 invalid")
     end
   end
 
   private
+
+  def ensure_api_key
+    current_user&.api_keys&.last || current_user.api_keys.create!(name: "Wakatime API Key")
+  end
 
   def ensure_current_user_for_setup
     redirect_to signin_path(continue: request.fullpath), alert: "Please sign in to set up your editor." if current_user.nil?
   end
 
   def set_wakatime_setup_meta
-    @page_title       = "Set Up Your Editor - Hackatime"
-    @meta_description = "Connect your code editor to Hackatime in minutes. Install the WakaTime plugin and start tracking your coding time for free."
-    @og_title         = "Set Up Your Editor - Hackatime"
-    @og_description   = "Connect your code editor to Hackatime in minutes. Install the WakaTime plugin and start tracking your coding time for free."
+    @page_title = @og_title = "Set Up Your Editor - Hackatime"
+    @meta_description = @og_description = "Connect your code editor to Hackatime in minutes. Install the WakaTime plugin and start tracking your coding time for free."
   end
 
-  def require_admin
-    unless current_user && current_user.admin_level.in?(%w[admin superadmin ultraadmin])
-      redirect_to root_path, alert: "You are not authorized to access this page"
-    end
-  end
-
-  def require_current_user
-    unless @user == current_user
-      redirect_to root_path, alert: "You are not authorized to access this page"
-    end
-  end
+  def require_admin = require_admin!
 
   def detect_setup_os(user_agent)
-    ua = user_agent.to_s
-
-    return :windows if ua.match?(/windows/i)
-
-    :mac_linux
+    user_agent.to_s.match?(/windows/i) ? :windows : :mac_linux
   end
 end

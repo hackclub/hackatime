@@ -6,23 +6,14 @@ class OauthApplication < Doorkeeper::Application
 
   validate :locked_name, on: :update
 
-  # Update the application as an admin, allowing the otherwise-locked `name`
-  # validation on verified apps to pass. Use this from admin controllers
-  # instead of toggling a public `admin_bypass` attribute (which made the
-  # bypass a hidden, accidentally-settable property of the record).
-  def admin_update(attrs)
-    with_admin_override { update(attrs) }
-  end
-
-  def admin_update!(attrs)
-    with_admin_override { update!(attrs) }
-  end
+  # Update as admin, bypassing the locked-name validation on verified apps.
+  def admin_update(attrs) = with_admin_override { update(attrs) }
+  def admin_update!(attrs) = with_admin_override { update!(attrs) }
 
   private
 
   def with_admin_override
-    previous = @admin_override
-    @admin_override = true
+    previous, @admin_override = @admin_override, true
     yield
   ensure
     @admin_override = previous
@@ -31,7 +22,6 @@ class OauthApplication < Doorkeeper::Application
   def locked_name
     return if @admin_override
     return unless verified? && name_changed?
-
     errors.add(:name, "cannot be changed for verified apps")
   end
 end

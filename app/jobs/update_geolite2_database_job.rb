@@ -10,11 +10,11 @@ class UpdateGeolite2DatabaseJob < ApplicationJob
   MAX_REDIRECTS = 5
 
   def perform
-    return log_skip("MAXMIND credentials not set") unless credentials_present?
+    return log_skip("MAXMIND credentials not set") unless ENV["MAXMIND_ACCOUNT_ID"].present? && ENV["MAXMIND_LICENSE_KEY"].present?
 
     remote_mtime = head_last_modified
     return log_skip("could not determine remote Last-Modified") unless remote_mtime
-    return log_skip("database up to date") if up_to_date?(remote_mtime)
+    return log_skip("database up to date") if DB_FILE.exist? && remote_mtime <= DB_FILE.mtime
 
     install_fresh_database(remote_mtime)
   rescue => e
@@ -24,21 +24,12 @@ class UpdateGeolite2DatabaseJob < ApplicationJob
 
   private
 
-  def credentials_present?
-    ENV["MAXMIND_ACCOUNT_ID"].present? && ENV["MAXMIND_LICENSE_KEY"].present?
-  end
-
-  def up_to_date?(remote_mtime)
-    DB_FILE.exist? && remote_mtime <= DB_FILE.mtime
-  end
-
   def install_fresh_database(remote_mtime)
     FileUtils.mkdir_p(DB_FILE.dirname)
 
     Dir.mktmpdir("geolite2_update", DB_FILE.dirname) do |dir|
       tar_path = File.join(dir, "geolite2.tar.gz")
       download_archive(tar_path)
-
       system("tar", "-xzf", tar_path, "-C", dir, exception: true)
 
       mmdb = Dir.glob(File.join(dir, "GeoLite2-City_*/GeoLite2-City.mmdb")).first
@@ -89,7 +80,5 @@ class UpdateGeolite2DatabaseJob < ApplicationJob
     raise "MaxMind request failed: #{response.code} #{response.message}"
   end
 
-  def log_skip(reason)
-    Rails.logger.info "UpdateGeolite2DatabaseJob: skipping — #{reason}"
-  end
+  def log_skip(reason) = Rails.logger.info("UpdateGeolite2DatabaseJob: skipping — #{reason}")
 end

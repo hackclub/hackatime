@@ -19,8 +19,7 @@ class Goal < ApplicationRecord
 
   validates :period, inclusion: { in: PERIODS }
   validates :target_seconds, numericality: { only_integer: true, greater_than: 0 }
-  validate :languages_must_be_string_array
-  validate :projects_must_be_string_array
+  validate :string_array_fields_valid
   validate :target_must_fit_within_period
   validate :max_goals_per_user
   validate :no_duplicate_goal_for_user
@@ -43,16 +42,12 @@ class Goal < ApplicationRecord
     self.projects = Array(projects).map(&:to_s).compact_blank.uniq.sort
   end
 
-  def languages_must_be_string_array
-    return if languages.is_a?(Array) && languages.all? { |language| language.is_a?(String) }
+  def string_array_fields_valid
+    { languages: languages, projects: projects }.each do |field, value|
+      next if value.is_a?(Array) && value.all? { |v| v.is_a?(String) }
 
-    errors.add(:languages, "must be an array of strings")
-  end
-
-  def projects_must_be_string_array
-    return if projects.is_a?(Array) && projects.all? { |project| project.is_a?(String) }
-
-    errors.add(:projects, "must be an array of strings")
+      errors.add(field, "must be an array of strings")
+    end
   end
 
   def target_must_fit_within_period

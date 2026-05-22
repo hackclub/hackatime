@@ -8,7 +8,6 @@ class SlackController < ApplicationController
 
   # Handle slack commands
   def create
-    # got hackatime?
     if params_hash[:command].to_s.downcase.include?("sailorslog")
       user = User.find_by(slack_uid: params_hash[:user_id])
       unless user
@@ -23,17 +22,10 @@ class SlackController < ApplicationController
     # Acknowledge receipt
     render json: {
       response_type: "ephemeral",
-      blocks: [
-        {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: "#{params_hash[:command]} #{params_hash[:text]}"
-            }
-          ]
-        }
-      ]
+      blocks: [ {
+        type: "context",
+        elements: [ { type: "mrkdwn", text: "#{params_hash[:command]} #{params_hash[:text]}" } ]
+      } ]
     }
 
     case params_hash[:command].gsub("/", "").downcase
@@ -45,35 +37,23 @@ class SlackController < ApplicationController
   private
 
   def params_hash
-    params.permit(:command, :text, :response_url, :user_id, :team_id, :team_domain, :channel_id, :channel_name, :user_name, :trigger_word).to_h
+    @params_hash ||= params.permit(:command, :text, :response_url, :user_id, :team_id, :team_domain,
+                                   :channel_id, :channel_name, :user_name, :trigger_word).to_h
   end
 
   def verify_slack_request
+    return true if Rails.env.development?
+
     timestamp = request.headers["X-Slack-Request-Timestamp"]
     received_signature = request.headers["X-Slack-Signature"]
 
-    # Skip verification in development
-    return true if Rails.env.development?
-
     if timestamp.blank? || (Time.now.to_i - timestamp.to_i).abs > 300
-      head :unauthorized
-      return
+      return head(:unauthorized)
     end
-
-    signing_secret = ENV["SAILORS_LOG_SLACK_SIGNING_SECRET"]
 
     sig_basestring = "v0:#{timestamp}:#{request.raw_post}"
+    computed_signature = "v0=" + OpenSSL::HMAC.hexdigest("SHA256", ENV["SAILORS_LOG_SLACK_SIGNING_SECRET"], sig_basestring)
 
-    computed_signature = "v0=" + OpenSSL::HMAC.hexdigest(
-      "SHA256",
-      signing_secret,
-      sig_basestring
-    )
-
-    # Check if the request matches signature
-    unless ActiveSupport::SecurityUtils.secure_compare(received_signature, computed_signature)
-      head :unauthorized
-      nil
-    end
+    head(:unauthorized) unless ActiveSupport::SecurityUtils.secure_compare(received_signature, computed_signature)
   end
 end

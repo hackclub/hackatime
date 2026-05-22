@@ -1,23 +1,7 @@
 module Heartbeatable
   extend ActiveSupport::Concern
 
-  BROWSER_EDITORS = %w[
-    arc
-    brave
-    chrome
-    chromium
-    edge
-    firefox
-    floorp
-    librewolf
-    microsoft-edge
-    opera
-    opera-gx
-    safari
-    vivaldi
-    waterfox
-    zen
-  ].freeze
+  BROWSER_EDITORS = %w[arc brave chrome chromium edge firefox floorp librewolf microsoft-edge opera opera-gx safari vivaldi waterfox zen].freeze
 
   included do
     # Filter heartbeats to only include those with category equal to "coding"
@@ -34,11 +18,7 @@ module Heartbeatable
 
   class_methods do
     def heartbeat_timeout_duration(duration = nil)
-      if duration
-        @heartbeat_timeout_duration = duration
-      else
-        @heartbeat_timeout_duration || 2.minutes
-      end
+      duration ? (@heartbeat_timeout_duration = duration) : (@heartbeat_timeout_duration || 2.minutes)
     end
 
     def to_span(timeout_duration: nil)
@@ -93,44 +73,26 @@ module Heartbeatable
 
     def duration_formatted(scope = all)
       seconds = duration_seconds(scope)
-      hours = seconds / 3600
-      minutes = (seconds % 3600) / 60
-      remaining_seconds = seconds % 60
-
-      format("%02d:%02d:%02d", hours, minutes, remaining_seconds)
+      format("%02d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, seconds % 60)
     end
 
     def duration_simple(scope = all)
-      # 3 hours 10 min => "3 hrs"
-      # 1 hour 10 min => "1 hr"
-      # 10 min => "10 min"
+      # 3 hours 10 min => "3 hrs" / 1 hour 10 min => "1 hr" / 10 min => "10 min"
       seconds = duration_seconds(scope)
       hours = seconds / 3600
-      minutes = (seconds % 3600) / 60
-
-      if hours > 1
-        "#{hours} hrs"
-      elsif hours == 1
-        "1 hr"
-      elsif minutes > 0
-        "#{minutes} min"
-      else
-        "0 min"
-      end
+      return "#{hours} hrs" if hours > 1
+      return "1 hr" if hours == 1
+      "#{(seconds % 3600) / 60} min" # 0 min if minutes is 0
     end
 
     def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
       return {} if user_ids.empty?
       start_date = [ start_date, 31.days.ago ].max
       cache_prefix = exclude_browser_time ? "user_streak_without_browser_v3" : "user_streak_v3"
-      keys = user_ids.map { |id| "#{cache_prefix}_#{id}" }
-      streak_cache = Rails.cache.read_multi(*keys)
+      streak_cache = Rails.cache.read_multi(*user_ids.map { |id| "#{cache_prefix}_#{id}" })
 
       uncached_users = user_ids.select { |id| streak_cache["#{cache_prefix}_#{id}"].nil? }
-
-      if uncached_users.empty?
-        return user_ids.index_with { |id| streak_cache["#{cache_prefix}_#{id}"] || 0 }
-      end
+      return user_ids.index_with { |id| streak_cache["#{cache_prefix}_#{id}"] || 0 } if uncached_users.empty?
 
       timeout = heartbeat_timeout_duration.to_i
       day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone)"
@@ -217,19 +179,13 @@ module Heartbeatable
 
     def daily_durations(user_timezone:, start_date: 365.days.ago, end_date: Time.current)
       timezone = user_timezone
-
       unless TZInfo::Timezone.all_identifiers.include?(timezone)
         Rails.logger.warn "Invalid timezone provided to daily_durations: #{timezone}. Defaulting to UTC."
         timezone = "UTC"
       end
 
-      # Create the timezone-aware date truncation expression
       day_trunc = Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{timezone}')")
-
-      select(day_trunc.as("day_group"))
-        .where(time: start_date..end_date)
-        .group(day_trunc)
-        .duration_seconds
+      select(day_trunc.as("day_group")).where(time: start_date..end_date).group(day_trunc).duration_seconds
         .map { |date, duration| [ date.to_date, duration ] }
     end
 
@@ -237,26 +193,21 @@ module Heartbeatable
       scope = scope.with_valid_timestamps
       timeout = heartbeat_timeout_duration.to_i
       field_expr = connection.quote_column_name(field.to_s)
-
       base_sql = scope.unscope(:group, :select, :order).select(:id, :time, field).to_sql
 
       sql = <<~SQL.squish
         SELECT bucket, COALESCE(SUM(diff), 0)::integer AS duration
         FROM (
           SELECT #{field_expr} AS bucket,
-                 CASE
-                   WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
-                   ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout})
-                 END AS diff
+                 CASE WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
+                      ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout}) END AS diff
           FROM (#{base_sql}) heartbeats_for_attribution
         ) capped_diffs
         WHERE bucket IS NOT NULL AND bucket <> ''
         GROUP BY bucket
       SQL
 
-      connection.select_all(sql).each_with_object({}) do |row, hash|
-        hash[row["bucket"]] = row["duration"].to_i
-      end
+      connection.select_all(sql).each_with_object({}) { |row, hash| hash[row["bucket"]] = row["duration"].to_i }
     end
 
     def duration_seconds(scope = all)
@@ -264,99 +215,50 @@ module Heartbeatable
       timeout = heartbeat_timeout_duration.to_i
 
       if scope.group_values.any?
-        if scope.group_values.length > 1
-          raise NotImplementedError, "Multiple group values are not supported"
-        end
+        raise NotImplementedError, "Multiple group values are not supported" if scope.group_values.length > 1
 
         group_column = scope.group_values.first
-
         # Don't quote if it's a SQL function (contains parentheses)
         group_expr = group_column.to_s.include?("(") ? group_column : connection.quote_column_name(group_column)
 
-        capped_diffs = scope
-          .select("#{group_expr} as grouped_time, CASE
-            WHEN LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id), #{timeout})
-          END as diff")
-          .where.not(time: nil)
-          .unscope(:group)
+        capped_diffs = scope.select("#{group_expr} as grouped_time, CASE WHEN LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0 ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id), #{timeout}) END as diff")
+          .where.not(time: nil).unscope(:group)
 
         connection.select_all(
-          "SELECT grouped_time, COALESCE(SUM(diff), 0)::integer as duration
-          FROM (#{capped_diffs.to_sql}) AS diffs
-          GROUP BY grouped_time"
-        ).each_with_object({}) do |row, hash|
-          hash[row["grouped_time"]] = row["duration"].to_i
-        end
+          "SELECT grouped_time, COALESCE(SUM(diff), 0)::integer as duration FROM (#{capped_diffs.to_sql}) AS diffs GROUP BY grouped_time"
+        ).each_with_object({}) { |row, hash| hash[row["grouped_time"]] = row["duration"].to_i }
       else
         # when not grouped, return a single value
-        capped_diffs = scope
-          .select("CASE
-            WHEN LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0
-            ELSE LEAST(time - LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id), #{timeout})
-          END as diff")
-          .where.not(time: nil)
-
+        capped_diffs = scope.select("CASE WHEN LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0 ELSE LEAST(time - LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id), #{timeout}) END as diff").where.not(time: nil)
         connection.select_value("SELECT COALESCE(SUM(diff), 0)::integer FROM (#{capped_diffs.to_sql}) AS diffs").to_i
       end
     end
 
     def duration_seconds_boundary_aware(scope, start_time, end_time)
       scope = scope.with_valid_timestamps
+      base_scope = scope.model.all.with_valid_timestamps
+        .where.not("LOWER(category) IN (?)", [ "browsing", "ai coding", "meeting", "communicating" ])
 
-      model_class = scope.model
-      base_scope = model_class.all.with_valid_timestamps
-
-      excluded_categories = [ "browsing", "ai coding", "meeting", "communicating" ]
-      base_scope = base_scope.where.not("LOWER(category) IN (?)", excluded_categories)
-
-      if scope.where_values_hash["user_id"]
-        base_scope = base_scope.where(user_id: scope.where_values_hash["user_id"])
-      end
-
-      if scope.where_values_hash["category"]
-        base_scope = base_scope.where(category: scope.where_values_hash["category"])
-      end
-
-      if scope.where_values_hash["project"]
-        base_scope = base_scope.where(project: scope.where_values_hash["project"])
-      end
-
-      if scope.where_values_hash["deleted_at"]
-        base_scope = base_scope.where(deleted_at: scope.where_values_hash["deleted_at"])
+      where_values = scope.where_values_hash
+      %w[user_id category project deleted_at].each do |key|
+        base_scope = base_scope.where(key => where_values[key]) if where_values[key]
       end
 
       # get the heartbeat before the start_time
-      boundary_heartbeat = base_scope
-        .where("time < ?", start_time)
-        .order(time: :desc, id: :desc)
-        .limit(1)
-        .first
+      boundary_heartbeat = base_scope.where("time < ?", start_time).order(time: :desc, id: :desc).limit(1).first
 
       # if it's not NULL, we'll use it
-      if boundary_heartbeat
-        combined_scope = base_scope
-          .where("time >= ? OR time = ?", start_time, boundary_heartbeat.time)
-          .where("time <= ?", end_time)
-      else
-        combined_scope = base_scope
-          .where(time: start_time..end_time)
-      end
+      combined_scope = boundary_heartbeat ?
+        base_scope.where("time >= ? OR time = ?", start_time, boundary_heartbeat.time).where("time <= ?", end_time) :
+        base_scope.where(time: start_time..end_time)
 
       # we calc w/ the boundary heartbeat, but we only sum within the orignal constraint
       timeout = heartbeat_timeout_duration.to_i
       capped_diffs = combined_scope
-        .select("time, CASE
-          WHEN LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0
-          ELSE LEAST(time - LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id), #{timeout})
-        END as diff")
-        .where.not(time: nil)
-        .order(time: :asc, id: :asc)
+        .select("time, CASE WHEN LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0 ELSE LEAST(time - LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id), #{timeout}) END as diff")
+        .where.not(time: nil).order(time: :asc, id: :asc)
 
-      sql = "SELECT COALESCE(SUM(diff), 0)::integer
-             FROM (#{capped_diffs.to_sql}) AS diffs
-             WHERE time >= #{connection.quote(start_time)}"
-      connection.select_value(sql).to_i
+      connection.select_value("SELECT COALESCE(SUM(diff), 0)::integer FROM (#{capped_diffs.to_sql}) AS diffs WHERE time >= #{connection.quote(start_time)}").to_i
     end
   end
 end

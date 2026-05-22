@@ -2,6 +2,7 @@ module Api
   module Admin
     class ApplicationController < ActionController::API
       include ActionController::HttpAuthentication::Token::ControllerMethods
+      include RenderHelpers
 
       before_action :authenticate_admin_api_key!
 
@@ -35,17 +36,9 @@ module Api
         @admin_api_key
       end
 
-      def render_unauthorized
-        render json: { error: "lmao no perms" }, status: :unauthorized
-      end
-
-      def render_forbidden
-        render json: { error: "lmao no perms" }, status: :forbidden
-      end
-
       def require_superadmin
         unless current_user&.admin_level_superadmin? || current_user&.admin_level_ultraadmin?
-          render json: { error: "lmao no perms" }, status: :unauthorized
+          render_unauthorized("lmao no perms")
         end
       end
     end

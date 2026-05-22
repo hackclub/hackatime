@@ -7,14 +7,9 @@ module Api
         def check
           api_key = current_admin_api_key
           creator = User.find(api_key.user_id)
-
           render json: {
             valid: true,
-            api_key: {
-              id: api_key.id,
-              name: api_key.name,
-              created_at: api_key.created_at
-            },
+            api_key: { id: api_key.id, name: api_key.name, created_at: api_key.created_at },
             creator: {
               id: creator.id,
               username: creator.username,
@@ -31,21 +26,13 @@ module Api
           year = params[:year]&.to_i
           month = params[:month]&.to_i
 
-          if year.nil? || month.nil? || month < 1 || month > 12
-            render json: { error: "invalid parameters" }, status: :unprocessable_entity
-            return
-          end
+          return render_error("invalid parameters") if year.nil? || month.nil? || month < 1 || month > 12
 
           begin
             start_epoch = Time.utc(year, month, 1).to_i
-            end_epoch = if month == 12
-              Time.utc(year + 1, 1, 1).to_i
-            else
-              Time.utc(year, month + 1, 1).to_i
-            end
+            end_epoch = month == 12 ? Time.utc(year + 1, 1, 1).to_i : Time.utc(year, month + 1, 1).to_i
           rescue Date::Error
-            render json: { error: "invalid date" }, status: :unprocessable_entity
-            return
+            return render_error("invalid date")
           end
 
           quantized_query = <<-SQL
@@ -109,45 +96,26 @@ module Api
               FROM heartbeats
               WHERE user_id = ? AND time >= ? AND time <= ?
             )
-            SELECT
-              day,
-              SUM(LEAST(gap, 120)) as total_seconds
+            SELECT day, SUM(LEAST(gap, 120)) as total_seconds
             FROM heartbeats_with_gaps
             WHERE gap IS NOT NULL
             GROUP BY day
           SQL
 
-          quantized_result = ActiveRecord::Base.connection.execute(
-            ActiveRecord::Base.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ])
-          )
+          conn = ActiveRecord::Base.connection
+          quantized_result = conn.execute(ActiveRecord::Base.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ]))
+          daily_totals_result = conn.execute(ActiveRecord::Base.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ]))
 
-          daily_totals_result = ActiveRecord::Base.connection.execute(
-            ActiveRecord::Base.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ])
-          )
-
-          daily_totals = daily_totals_result.each_with_object({}) do |row, hash|
-            day = row["day"]
-            total_seconds = row["total_seconds"]
-            hash[day] = total_seconds
-          end
+          daily_totals = daily_totals_result.each_with_object({}) { |row, h| h[row["day"]] = row["total_seconds"] }
 
           points_by_day = quantized_result.each_with_object({}) do |row, hash|
             day = Time.at(row["time"]).to_date
-            hash[day] ||= []
-            hash[day] << {
-              time: row["time"],
-              lineno: row["lineno"],
-              cursorpos: row["cursorpos"]
-            }
+            (hash[day] ||= []) << { time: row["time"], lineno: row["lineno"], cursorpos: row["cursorpos"] }
           end
 
           days = (start_epoch...end_epoch).step(86400).map do |epoch|
             day = Time.at(epoch).to_date
-            {
-              date_timestamp_s: epoch,
-              total_seconds: daily_totals[day] || 0,
-              points: points_by_day[day] || []
-            }
+            { date_timestamp_s: epoch, total_seconds: daily_totals[day] || 0, points: points_by_day[day] || [] }
           end
 
           render json: { days: days }
@@ -214,105 +182,44 @@ module Api
 
         def active_users
           since_ts = params[:since].to_i
-          min_ts = 90.days.ago.to_i
+          return render_error("invalid since parameter") if since_ts < 0
 
-          if since_ts < 0
-            render json: { error: "invalid since parameter" }, status: :unprocessable_entity
-            return
-          end
-
-          since_ts = [ since_ts, min_ts ].max
-
-          user_ids = Heartbeat
-            .where("time >= ?", since_ts)
-            .distinct
-            .limit(50_000)
-            .pluck(:user_id)
-
-          render json: { user_ids: user_ids }
+          since_ts = [ since_ts, 90.days.ago.to_i ].max
+          render json: { user_ids: Heartbeat.where("time >= ?", since_ts).distinct.limit(50_000).pluck(:user_id) }
         end
 
         def audit_logs_counts
           user_ids_param = params[:user_ids]
-
-          if user_ids_param.blank? || !user_ids_param.is_a?(Array)
-            render json: { error: "user_ids array required" }, status: :unprocessable_entity
-            return
-          end
+          return render_error("user_ids array required") if user_ids_param.blank? || !user_ids_param.is_a?(Array)
 
           user_ids = user_ids_param.take(1000)
+          return render_error("no valid user_ids provided") if user_ids.empty?
 
-          if user_ids.empty?
-            render json: { error: "no valid user_ids provided" }, status: :unprocessable_entity
-            return
-          end
+          query = "SELECT user_id, COUNT(*) AS cnt FROM trust_level_audit_logs WHERE user_id IN (?) GROUP BY user_id"
+          result = ActiveRecord::Base.connection.execute(ActiveRecord::Base.sanitize_sql([ query, user_ids ]))
 
-          query = <<-SQL
-            SELECT
-                user_id,
-                COUNT(*) AS cnt
-            FROM trust_level_audit_logs
-            WHERE user_id IN (?)
-            GROUP BY user_id
-          SQL
-
-          result = ActiveRecord::Base.connection.execute(
-            ActiveRecord::Base.sanitize_sql([ query, user_ids ])
-          )
-
-          counts = result.each_with_object({}) do |row, hash|
-            hash[row["user_id"].to_s] = row["cnt"]
-          end
-
-          user_ids.each do |id|
-            counts[id.to_s] ||= 0
-          end
+          counts = result.each_with_object({}) { |row, h| h[row["user_id"].to_s] = row["cnt"] }
+          user_ids.each { |id| counts[id.to_s] ||= 0 }
 
           render json: { counts: counts }
         end
 
         def heartbeats_by_user_agent_segment
           segment = params[:segment].to_s.strip
-
-          if segment.blank?
-            render json: { error: "segment parameter required" }, status: :unprocessable_entity
-            return
-          end
-
-          if segment.length < 3
-            render json: { error: "segment must be at least 3 characters" }, status: :unprocessable_entity
-            return
-          end
-
-          start_timestamp = nil
-          end_timestamp = nil
-
-          if params[:start_date].present?
-            start_timestamp = parse_timestamp_param(params[:start_date], field_name: "start_date", boundary: :start)
-            return if performed?
-          end
-
-          if params[:end_date].present?
-            end_timestamp = parse_timestamp_param(params[:end_date], field_name: "end_date", boundary: :end)
-            return if performed?
-          end
+          return render_error("segment parameter required") if segment.blank?
+          return render_error("segment must be at least 3 characters") if segment.length < 3
 
           limit = (params[:limit] || 1000).to_i.clamp(1, 5_000)
           offset = (params[:offset] || 0).to_i.clamp(0, Float::INFINITY)
           user_id = params[:user_id].presence
 
-          # Escape LIKE wildcards in the segment so it's matched as a literal substring.
           escaped = segment.gsub(/[\\%_]/) { |c| "\\#{c}" }
-          pattern = "%#{escaped}%"
-
-          query = Heartbeat.where("user_agent ILIKE ?", pattern)
+          query = Heartbeat.where("user_agent ILIKE ?", "%#{escaped}%")
           query = query.where(user_id: user_id) if user_id
-          query = query.where("time >= ?", start_timestamp) if start_timestamp
-          query = query.where("time <= ?", end_timestamp) if end_timestamp
+          query = apply_time_range(query) or return
 
           if ActiveModel::Type::Boolean.new.cast(params[:count_only])
-            render json: { segment: segment, total_count: query.limit(nil).count }
-            return
+            return render json: { segment: segment, total_count: query.limit(nil).count }
           end
 
           heartbeats = query.order(time: :desc).limit(limit + 1).offset(offset).to_a
@@ -323,7 +230,7 @@ module Api
             segment: segment,
             limit: limit,
             offset: offset,
-            heartbeats: heartbeats.map do |hb|
+            heartbeats: heartbeats.map { |hb|
               {
                 id: hb.id,
                 user_id: hb.user_id,
@@ -344,7 +251,7 @@ module Api
                 lines: hb.lines,
                 source_type: hb.source_type
               }
-            end,
+            },
             has_more: has_more
           }
         end
@@ -356,16 +263,9 @@ module Api
           banned = User.where(trust_level: User.trust_levels[:red])
             .left_joins(:email_addresses)
             .select("users.id, users.username, MIN(email_addresses.email) AS email")
-            .group("users.id, users.username")
-            .order("users.id")
-            .limit(limit)
-            .offset(offset)
+            .group("users.id, users.username").order("users.id").limit(limit).offset(offset)
 
-          render json: {
-            banned_users: banned.map { |u|
-              { id: u.id, username: u.username, email: u.email || "no email" }
-            }
-          }
+          render json: { banned_users: banned.map { |u| { id: u.id, username: u.username, email: u.email || "no email" } } }
         end
       end
     end

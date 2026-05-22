@@ -140,17 +140,15 @@ module DashboardData
     end
 
     def activity_graph_snapshot(user:, scope:)
-      Time.use_zone(user.timezone) do
-        start_date, end_date = activity_graph_date_range(user.timezone)
-        durations = scope.daily_durations(user_timezone: user.timezone).to_h
+      start_date, end_date = activity_graph_date_range(user.timezone)
+      durations = Time.use_zone(user.timezone) { scope.daily_durations(user_timezone: user.timezone).to_h }
 
-        {
-          timezone: user.timezone,
-          start_date: start_date,
-          end_date: end_date,
-          duration_by_date: durations.transform_keys { |date| date.to_date.iso8601 }.transform_values(&:to_i)
-        }
-      end
+      {
+        timezone: user.timezone,
+        start_date: start_date,
+        end_date: end_date,
+        duration_by_date: durations.transform_keys { |date| date.to_date.iso8601 }.transform_values(&:to_i)
+      }
     end
 
     def activity_graph_result(start_date:, end_date:, duration_by_date:, timezone:)
@@ -176,6 +174,105 @@ module DashboardData
       Time.use_zone(timezone) do
         [ 365.days.ago.to_date.iso8601, Date.current.iso8601 ]
       end
+    end
+
+    # Live aggregate snapshot used by the filtered (non-rollup) dashboard path.
+    # Returns the same shape as the rollup-derived aggregate snapshot.
+    def aggregate_query_snapshot(user:, scope:)
+      {
+        total_time: scope.duration_seconds,
+        total_heartbeats: scope.count,
+        grouped_durations: grouped_durations_snapshot(scope),
+        weekly_project_stats: weekly_project_stats(user: user, scope: scope)
+      }
+    end
+
+    # Reject archived project entries from a `{ project => duration }` map.
+    def grouped_durations_for(grouped_durations, field, archived)
+      stats = grouped_durations.fetch(field, {})
+      return stats unless field == :project
+
+      stats.reject { |project, _| archived.include?(project) }
+    end
+
+    # Fill aggregate display fields onto `result` from a snapshot.
+    # `snapshot` must respond to fetch for: total_time, total_heartbeats, grouped_durations, weekly_project_stats.
+    def fill_aggregate_result(result:, snapshot:, archived:, helpers:)
+      grouped_durations = snapshot.fetch(:grouped_durations)
+      weekly = snapshot.fetch(:weekly_project_stats)
+
+      result[:total_time] = snapshot.fetch(:total_time)
+      result[:total_heartbeats] = snapshot.fetch(:total_heartbeats)
+
+      GROUPED_DIMENSIONS.each do |field|
+        stats = grouped_durations_for(grouped_durations, field, archived)
+        result["top_#{field}"] = stats.max_by { |_, duration| duration }&.first
+      end
+
+      result["top_editor"] &&= helpers.display_editor_name(result["top_editor"])
+      result["top_operating_system"] &&= helpers.display_os_name(result["top_operating_system"])
+      result["top_language"] &&= helpers.display_language_name(result["top_language"])
+
+      unless result["singular_project"]
+        result[:project_durations] = grouped_durations_for(grouped_durations, :project, archived)
+          .sort_by { |_, duration| -duration }.first(10).to_h
+      end
+
+      %i[language editor operating_system category].each do |field|
+        next if result["singular_#{field}"]
+
+        stats = grouped_durations.fetch(field, {}).each_with_object({}) do |(raw, duration), agg|
+          next if raw.to_s.blank?
+
+          key = if field == :language
+            raw.to_s.categorize_language
+          elsif %i[editor operating_system].include?(field)
+            raw.to_s.downcase
+          else
+            raw.to_s
+          end
+          agg[key] = (agg[key] || 0) + duration
+        end
+
+        result["#{field}_stats"] = stats.sort_by { |_, duration| -duration }.first(10).map { |key, value|
+          label = case field
+          when :editor then helpers.display_editor_name(key)
+          when :operating_system then helpers.display_os_name(key)
+          when :language then helpers.display_language_name(key)
+          else key
+          end
+          [ label, value ]
+        }.to_h
+      end
+
+      if result["language_stats"].present?
+        result[:language_colors] = LanguageUtils.colors_for(result["language_stats"].keys)
+      end
+
+      result[:weekly_project_stats] = weekly.transform_values do |stats|
+        stats.reject { |project, _| archived.include?(project) }
+      end
+    end
+
+    def today_stats_display(snapshot_or_payload, helpers:)
+      payload = snapshot_or_payload || {}
+      duration = (payload[:todays_duration_seconds] || payload["todays_duration_seconds"]).to_i
+      language_categories = payload[:todays_language_categories] || payload["todays_language_categories"]
+      editor_keys = payload[:todays_editor_keys] || payload["todays_editor_keys"]
+
+      todays_languages = Array(language_categories).filter_map do |language|
+        helpers.display_language_name(language) if language.present?
+      end
+      todays_editors = Array(editor_keys).filter_map do |editor|
+        helpers.display_editor_name(editor) if editor.present?
+      end
+
+      {
+        show_logged_time_sentence: duration > 1.minute && (todays_languages.any? || todays_editors.any?),
+        todays_duration_display: helpers.short_time_detailed(duration),
+        todays_languages: todays_languages,
+        todays_editors: todays_editors
+      }
     end
   end
 end

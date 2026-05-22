@@ -1,5 +1,7 @@
 class ApplicationController < ActionController::Base
   include ErrorReporting
+  include RenderHelpers
+  include AuthHelpers
 
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user

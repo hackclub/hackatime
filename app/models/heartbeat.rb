@@ -92,18 +92,11 @@ class Heartbeat < ApplicationRecord
 
   # after_create :mirror_to_wakatime
 
-  def self.recent_count
-    Cache::HeartbeatCountsJob.perform_now[:recent_count]
-  end
-
-  def self.recent_imported_count
-    Cache::HeartbeatCountsJob.perform_now[:recent_imported_count]
-  end
+  def self.recent_count = Cache::HeartbeatCountsJob.perform_now[:recent_count]
+  def self.recent_imported_count = Cache::HeartbeatCountsJob.perform_now[:recent_imported_count]
 
   def self.generate_fields_hash(attributes)
-    string_attributes = attributes.transform_keys(&:to_s)
-    indexed_attributes = string_attributes.slice(*self.indexed_attributes)
-    Digest::MD5.hexdigest(indexed_attributes.to_json)
+    Digest::MD5.hexdigest(attributes.transform_keys(&:to_s).slice(*self.indexed_attributes).to_json)
   end
 
   def self.indexed_attributes
@@ -124,16 +117,8 @@ class Heartbeat < ApplicationRecord
 
   def set_fields_hash!
     # only if the field exists in activerecord
-    if self.class.column_names.include?("fields_hash")
-      self.fields_hash = self.class.generate_fields_hash(self.attributes)
-    end
+    self.fields_hash = self.class.generate_fields_hash(self.attributes) if self.class.column_names.include?("fields_hash")
   end
 
-  def schedule_dashboard_rollup_refresh
-    DashboardRollupRefreshJob.schedule_for(user_id)
-  end
-
-  # def mirror_to_wakatime
-  #   WakatimeMirror.mirror_heartbeat(self)
-  # end
+  def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(user_id)
 end
