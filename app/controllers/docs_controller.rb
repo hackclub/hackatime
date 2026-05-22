@@ -1,3 +1,5 @@
+require "redcarpet"
+
 class DocsController < InertiaController
   layout "inertia"
 

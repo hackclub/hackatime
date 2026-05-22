@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "faker"
+
 namespace :seed do
   TO_COPY = %i[entity type category project project_root_count branch language dependencies
                 lines line_additions line_deletions lineno cursorpos is_write editor

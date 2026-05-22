@@ -6,7 +6,9 @@ Rails.application.configure do
 
   if Rails.env.development?
     config.good_job.execution_mode = :async # Run jobs in background threads in development
-    config.good_job.poll_interval = 5 # Poll every 5 seconds for scheduled jobs
+    # In dev, scheduled/retry-job polling is rare; back off the poll cadence to
+    # cut idle CPU and DB chatter from the in-process scheduler.
+    config.good_job.poll_interval = 30
     config.good_job.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(nil))
   else
     config.good_job.execution_mode = :external # Use external execution mode in production and staging
@@ -15,8 +17,16 @@ Rails.application.configure do
   config.good_job.enable_cron = Rails.env.production?
 
   # https://github.com/bensheldon/good_job#configuring-your-queues
-  # 12 threads total
-  config.good_job.queues = "latency_critical:2; latency_10s:3; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:4"
+  # In production we run 12 threads across four priority pools. In dev, async
+  # mode runs the same pool inside the web process, so we shrink it to 2 shared
+  # threads — that's 10 fewer Postgres connections and ActiveRecord thread
+  # locals held idle by the Rails server.
+  config.good_job.queues =
+    if Rails.env.development?
+      "*:2"
+    else
+      "latency_critical:2; latency_10s:3; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:4"
+    end
 
   config.good_job.cron = {
     # update_slack_status: {

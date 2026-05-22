@@ -34,8 +34,10 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "solid_cache"
 gem "solid_cable"
 
-# Profiling & error tracking
-gem "stackprof"
+# Profiling & error tracking. stackprof is lazily required by
+# rack-mini-profiler the first time you request ?pp=profile-gc, so we don't
+# need it loaded at boot — saves ~native ext + a couple MB.
+gem "stackprof", require: false
 gem "sentry-ruby"
 gem "sentry-rails"
 
@@ -86,11 +88,14 @@ gem "oj"
 
 # Rack Mini Profiler [https://github.com/MiniProfiler/rack-mini-profiler]
 gem "rack-mini-profiler"
-# For memory profiling via RMP
-gem "memory_profiler"
-gem "flamegraph"
+# For memory profiling via rack-mini-profiler — lazily required when you visit
+# ?pp=profile-memory / ?pp=flamegraph, no need to load at boot.
+gem "memory_profiler", require: false
+gem "flamegraph", require: false
 
-gem "skylight"
+# Skylight only reports when SKYLIGHT_AUTH_TOKEN is set (i.e. production); in
+# dev/test the autoloaded native instrumentation just adds dead weight.
+gem "skylight", require: false
 
 # Analytics
 gem "geocoder"
@@ -102,8 +107,8 @@ gem "norairrecord", "~> 0.5.1"
 # Country codes
 gem "countries"
 
-# Markdown parsing
-gem "redcarpet"
+# Markdown parsing — only used in DocsController, so don't autoload it.
+gem "redcarpet", require: false
 
 gem "ruby_identicon"
 
@@ -128,11 +133,11 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
-  gem "rspec-rails"
-  gem "rswag-specs"
+  gem "rspec-rails", require: false
+  gem "rswag-specs", require: false
 
-  # Random data generation
-  gem "faker"
+  # Random data generation — only used in seed rake tasks
+  gem "faker", require: false
 end
 
 gem "rswag-api"
@@ -148,6 +153,10 @@ group :development do
 
   # Bullet [https://github.com/flyerhzm/bullet]
   gem "bullet"
+
+  # Backend for ActiveSupport::EventedFileUpdateChecker -- moves the
+  # autoload-path scan off the request hot path and into a background thread.
+  gem "listen"
 end
 
 group :test do
@@ -164,21 +173,23 @@ end
 
 gem "premailer-rails"
 
-gem "htmlcompressor", "~> 0.4.0"
+gem "htmlcompressor", "~> 0.4.0", require: false # not used in app code
 
 gem "doorkeeper", "~> 5.8"
 
 gem "autotuner", "~> 1.0"
 
+# Tailwind v4 is compiled by the @tailwindcss/vite plugin via
+# app/javascript/entrypoints/application.css; these gems are unused but kept in
+# the Gemfile to avoid a Gemfile.lock churn. Safe to remove with `bundle remove`.
 gem "tailwindcss-ruby", "~> 4.1"
-
 gem "tailwindcss-rails", "~> 4.2"
 
 gem "inertia_rails", "~> 3.21"
 
 gem "vite_rails", "~> 3.11"
 
-gem "rubyzip", "~> 3.3"
+gem "rubyzip", "~> 3.3", require: false # only used by HeartbeatExportJob
 
 gem "aws-sdk-s3", require: false
 
