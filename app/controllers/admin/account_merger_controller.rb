@@ -164,7 +164,8 @@ class Admin::AccountMergerController < InertiaController
   def delete_rows(table_name, conditions)
     raise ArgumentError, "Table '#{table_name}' is not in the allowlist" unless DELETABLE_TABLES.include?(table_name)
 
-    sql = ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM #{table_name} WHERE user_id = ?", conditions.fetch(:user_id) ])
+    quoted = ActiveRecord::Base.connection.quote_table_name(table_name)
+    sql = ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM #{quoted} WHERE user_id = ?", conditions.fetch(:user_id) ])
     ActiveRecord::Base.connection.delete(sql)
   end
 end
