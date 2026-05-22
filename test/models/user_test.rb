@@ -88,7 +88,12 @@ class UserTest < ActiveSupport::TestCase
 
   test "leaderboard_visible excludes leaderboard shadowbanned users" do
     visible = User.create!(timezone: "UTC", username: "visible_lb_user")
-    hidden = User.create!(timezone: "UTC", username: "hidden_lb_user", leaderboard_shadowbanned: true)
+    hidden = User.create!(
+      timezone: "UTC",
+      username: "hidden_lb_user",
+      leaderboard_shadowbanned: true,
+      leaderboard_shadowban_reason: "test shadowban"
+    )
 
     assert_includes User.leaderboard_visible, visible
     assert_not_includes User.leaderboard_visible, hidden
@@ -99,6 +104,7 @@ class UserTest < ActiveSupport::TestCase
     user = User.create!(timezone: "UTC", username: "shadowban_target")
 
     assert_not user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "")
+    assert_includes user.errors[:leaderboard_shadowban_reason], "can't be blank"
     assert_not user.reload.leaderboard_shadowbanned?
 
     assert user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "fake time")
@@ -110,12 +116,14 @@ class UserTest < ActiveSupport::TestCase
     assert_nil user.leaderboard_shadowban_reason
   end
 
-  test "set_leaderboard_shadowban records PaperTrail whodunnit" do
+  test "set_leaderboard_shadowban records PaperTrail changes" do
     actor = User.create!(timezone: "UTC", admin_level: :superadmin)
     user = User.create!(timezone: "UTC", username: "pt_shadowban_target")
 
     assert_difference -> { PaperTrail::Version.where(item_type: "User", item_id: user.id).count }, 1 do
-      assert user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "leaderboard abuse")
+      PaperTrail.request(whodunnit: actor.id) do
+        assert user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "leaderboard abuse")
+      end
     end
 
     version = PaperTrail::Version.where(item_type: "User", item_id: user.id).last

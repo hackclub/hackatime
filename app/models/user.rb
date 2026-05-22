@@ -27,6 +27,7 @@ class User < ApplicationRecord
     format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
     uniqueness: { case_sensitive: false, message: "has already been taken" },
     allow_nil: true
+  validates :leaderboard_shadowban_reason, presence: true, if: :leaderboard_shadowbanned?
   validate :username_must_be_visible
 
   attribute :allow_public_stats_lookup, :boolean, default: true
@@ -217,16 +218,11 @@ class User < ApplicationRecord
     return false unless changed_by_user.can_leaderboard_shadowban_users?
     return false if changed_by_user == self
     return false unless changed_by_user.admin_level_rank > admin_level_rank
-    return false if banned && reason.to_s.strip.blank?
 
-    PaperTrail.request(whodunnit: changed_by_user.id) do
-      update!(
-        leaderboard_shadowbanned: banned,
-        leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil
-      )
-    end
-
-    true
+    update(
+      leaderboard_shadowbanned: banned,
+      leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil
+    )
   end
 
   has_many :heartbeats

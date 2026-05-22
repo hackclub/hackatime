@@ -1,7 +1,7 @@
 require "test_helper"
 
 class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTest
-  test "show requires superadmin or ultraadmin" do
+  test "index requires superadmin or ultraadmin" do
     admin = User.create!(timezone: "UTC", admin_level: :admin)
     sign_in_as(admin)
 
@@ -10,7 +10,7 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
     assert_response :not_found
   end
 
-  test "show renders current shadowbanned users" do
+  test "index renders current shadowbanned users" do
     admin = User.create!(timezone: "UTC", admin_level: :superadmin)
     user = User.create!(
       timezone: "UTC",
@@ -85,7 +85,7 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
     )
     sign_in_as(admin)
 
-    delete admin_leaderboard_shadowbans_path, params: { user_id: user.id }
+    delete admin_leaderboard_shadowban_path(user)
 
     assert_redirected_to admin_leaderboard_shadowbans_path
     assert_not user.reload.leaderboard_shadowbanned?

@@ -78,7 +78,7 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     entries_payload = JSON.parse(response.body).dig("props", "entries")
-    assert_equal 1, entries_payload["total"]
+    assert_equal 2, entries_payload["total"]
     assert_equal [ visible_user.id ], entries_payload["entries"].map { |entry| entry["user_id"] }
     assert_nil entries_payload["entries"].first.dig("user", "shadowbanned")
   end
@@ -104,7 +104,13 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_user(username:, country_code: nil, leaderboard_shadowbanned: false)
-    User.create!(username:, country_code:, timezone: "UTC", leaderboard_shadowbanned: leaderboard_shadowbanned)
+    User.create!(
+      username:,
+      country_code:,
+      timezone: "UTC",
+      leaderboard_shadowbanned: leaderboard_shadowbanned,
+      leaderboard_shadowban_reason: leaderboard_shadowbanned ? "test shadowban" : nil
+    )
   end
 
   def create_boards_for_today(period_type:)

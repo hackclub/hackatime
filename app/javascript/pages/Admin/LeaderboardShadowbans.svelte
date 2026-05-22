@@ -21,7 +21,6 @@
 
   const searchUrl = adminLeaderboardShadowbans.searchUsers.path();
   const createUrl = adminLeaderboardShadowbans.create.path();
-  const destroyUrl = adminLeaderboardShadowbans.destroy.path();
 
   let selectedUser = $state<UserPickerResult | null>(null);
   let reason = $state("");
@@ -54,14 +53,16 @@
     if (!unbanUser) return;
 
     submitting = true;
-    router.delete(destroyUrl, {
-      data: { user_id: unbanUser.id },
-      onFinish: () => {
-        submitting = false;
-        unbanUser = null;
-        unbanOpen = false;
+    router.delete(
+      adminLeaderboardShadowbans.destroy.path({ user_id: unbanUser.id }),
+      {
+        onFinish: () => {
+          submitting = false;
+          unbanUser = null;
+          unbanOpen = false;
+        },
       },
-    });
+    );
   }
 </script>
 

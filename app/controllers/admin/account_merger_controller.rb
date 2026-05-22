@@ -1,4 +1,6 @@
 class Admin::AccountMergerController < InertiaController
+  include Admin::UserSearch
+
   layout "inertia"
 
   before_action :require_ultraadmin!
@@ -11,19 +13,7 @@ class Admin::AccountMergerController < InertiaController
     query_term = params[:query].to_s.downcase.strip
     return render json: [] if query_term.blank?
 
-    users = User.search_identity(query_term)
-      .includes(:email_addresses)
-      .select(
-        "users.*, " \
-        "CASE WHEN LOWER(users.username) = #{ActiveRecord::Base.connection.quote(query_term)} " \
-        "THEN 0 ELSE 1 END AS exact_match_rank"
-      )
-      .order(Arel.sql("exact_match_rank ASC, users.username ASC"))
-      .limit(20)
-
-    results = users.map { |user| format_user(user) }
-
-    render json: results
+    render json: admin_user_search_results(query_term).map { |user| format_user(user) }
   end
 
   def merge

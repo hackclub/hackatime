@@ -50,8 +50,8 @@ Rails.application.routes.draw do
           post :rotate_secret
         end
       end
-      resource :leaderboard_shadowbans, only: [ :show, :create, :destroy ] do
-        get :search_users
+      resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
+        get :search_users, on: :collection
       end
     end
   end
