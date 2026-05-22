@@ -239,7 +239,9 @@ class SessionsController < ApplicationController
   def client_ip = request.headers["CF-Connecting-IP"].presence || request.remote_ip
 
   def parse_slack_state(raw_state)
-    JSON.parse(raw_state) rescue nil
+    JSON.parse(raw_state)
+  rescue JSON::ParserError, TypeError
+    nil
   end
 
   def valid_oauth_state?(provider:, session_key:, received_nonce:)
