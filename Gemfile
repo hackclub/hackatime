@@ -30,10 +30,6 @@ gem "rack-cors"
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 
-# Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
-gem "solid_cache"
-gem "solid_cable"
-
 # Profiling & error tracking. stackprof is lazily required by
 # rack-mini-profiler the first time you request ?pp=profile-gc, so we don't
 # need it loaded at boot — saves ~native ext + a couple MB.
@@ -48,12 +44,6 @@ gem "slack-ruby-client"
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
-
-# Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
-gem "kamal", require: false
-
-# Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
-gem "thruster", require: false
 
 # For query count tracking
 gem "query_count"
@@ -165,11 +155,14 @@ group :production do
   gem "skylight"
   gem "aws-sdk-s3"
   gem "autotuner", "~> 1.0"
+
+  gem "solid_cache"
+  gem "solid_cable"
+
+  gem "thruster"
 end
 
 gem "premailer-rails"
-
-gem "htmlcompressor", "~> 0.4.0", require: false # not used in app code
 
 gem "doorkeeper", "~> 5.8"
 
