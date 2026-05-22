@@ -2,9 +2,10 @@ class HeartbeatImportService
   BATCH_SIZE = 50_000
 
   def self.import_from_file(file_content, user, on_progress: nil, progress_interval: 250, user_agents_by_id: {})
-    start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    imported_count = total_count = 0
+    imported_count = 0
+    total_count = 0
     errors = []
+    start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     heartbeat_batch = {}
 
     flush = lambda do
