@@ -61,8 +61,6 @@ gem "query_count"
 # Compact request logging
 gem "lograge"
 
-gem "logtail-rails", group: :production
-
 # Rate limiting
 gem "rack-attack"
 
@@ -91,10 +89,6 @@ gem "rack-mini-profiler"
 # ?pp=profile-memory / ?pp=flamegraph, no need to load at boot.
 gem "memory_profiler", require: false
 gem "flamegraph", require: false
-
-# Skylight only reports when SKYLIGHT_AUTH_TOKEN is set (i.e. production); in
-# dev/test the autoloaded native instrumentation just adds dead weight.
-gem "skylight", require: false
 
 # Analytics
 gem "geocoder"
@@ -165,8 +159,12 @@ group :test do
 end
 
 group :production do
-  # fix request.remote_ip in prod [https://github.com/modosc/cloudflare-rails?tab=readme-ov-file]
+  # request.remote_ip behind Cloudflare [https://github.com/modosc/cloudflare-rails]
   gem "cloudflare-rails"
+  gem "logtail-rails"
+  gem "skylight"
+  gem "aws-sdk-s3"
+  gem "autotuner", "~> 1.0"
 end
 
 gem "premailer-rails"
@@ -175,14 +173,10 @@ gem "htmlcompressor", "~> 0.4.0", require: false # not used in app code
 
 gem "doorkeeper", "~> 5.8"
 
-gem "autotuner", "~> 1.0"
-
 gem "inertia_rails", "~> 3.21"
 
 gem "vite_rails", "~> 3.11"
 
 gem "rubyzip", "~> 3.3", require: false # only used by HeartbeatExportJob
-
-gem "aws-sdk-s3", require: false
 
 gem "mailkick"
