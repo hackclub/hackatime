@@ -72,12 +72,9 @@
 <div class="mx-auto max-w-5xl space-y-6">
   <header class="text-center">
     <h1 class="text-4xl font-bold text-surface-content">
-      Leaderboard Shadowbans
+      leaderboard shadowbans
     </h1>
-    <p class="mt-2 text-muted">
-      Hide users from public leaderboards while still letting them see their own
-      leaderboard row.
-    </p>
+    <p class="mt-2 text-muted">hide users from the leaderboards!</p>
   </header>
 
   <section class="rounded-xl border border-primary bg-dark p-6">
