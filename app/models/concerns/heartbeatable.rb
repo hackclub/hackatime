@@ -234,10 +234,10 @@ module Heartbeatable
       end
     end
 
-    def duration_seconds_boundary_aware(scope, start_time, end_time)
+    def duration_seconds_boundary_aware(scope, start_time, end_time, excluded_categories: [ "browsing", "ai coding", "meeting", "communicating" ])
       scope = scope.with_valid_timestamps
       base_scope = scope.model.all.with_valid_timestamps
-        .where.not("LOWER(category) IN (?)", [ "browsing", "ai coding", "meeting", "communicating" ])
+      base_scope = base_scope.where.not("LOWER(category) IN (?)", excluded_categories) if excluded_categories.present?
 
       where_values = scope.where_values_hash
       %w[user_id category project deleted_at].each do |key|

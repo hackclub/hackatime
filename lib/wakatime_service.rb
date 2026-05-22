@@ -8,6 +8,7 @@ class WakatimeService
     @scope = scope || Heartbeat.all
     @scope = @scope.with_valid_timestamps if valid_timestamps_only
     @scope = @scope.where.not("LOWER(category) IN (?)", exclude_categories) if exclude_categories.any?
+    @exclude_categories = exclude_categories
     @user = user
     @boundary_aware = boundary_aware
 
@@ -61,7 +62,7 @@ class WakatimeService
     summary[:human_readable_range] = "All Time"
 
     @total_seconds = if @boundary_aware
-      Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date) || 0
+      Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date, excluded_categories: @exclude_categories) || 0
     else
       @scope.duration_seconds || 0
     end
