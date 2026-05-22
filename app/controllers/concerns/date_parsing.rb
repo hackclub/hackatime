@@ -16,17 +16,17 @@ module DateParsing
     start_ts..end_ts
   end
 
-  # Returns false if the response was already rendered (parse failure); otherwise
+  # Returns nil if the response was already rendered (parse failure); otherwise
   # returns the query with start/end time filters applied (from params[:start_date], params[:end_date]).
   def apply_time_range(query)
     if params[:start_date].present?
       ts = parse_ts(params[:start_date], :start_date, :start)
-      return false if performed?
+      return nil if performed?
       query = query.where("time >= ?", ts)
     end
     if params[:end_date].present?
       ts = parse_ts(params[:end_date], :end_date, :end)
-      return false if performed?
+      return nil if performed?
       query = query.where("time <= ?", ts)
     end
     query
