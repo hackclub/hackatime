@@ -62,13 +62,15 @@ class SessionsController < ApplicationController
       session[:user_id] = @user.id
       notice = "Successfully signed in with Slack! Welcome!"
 
+      continue_url = safe_return_url(slack_state&.dig("continue").presence)
+
       if slack_state&.dig("close_window")
         redirect_to close_window_path
       elsif @user.previously_new_record?
-        session[:return_data] = { "url" => safe_return_url(slack_state&.dig("continue").presence) }
+        session[:return_data] = { "url" => continue_url }
         redirect_to my_wakatime_setup_path, notice: notice
-      elsif slack_state&.dig("continue").present? && safe_return_url(slack_state["continue"]).present?
-        redirect_to safe_return_url(slack_state["continue"]), notice: notice
+      elsif continue_url.present?
+        redirect_to continue_url, notice: notice # codeql[rb/url-redirection]
       else
         redirect_to root_path, notice: notice
       end
@@ -194,8 +196,9 @@ class SessionsController < ApplicationController
       session[:user_id] = valid_token.user_id
       session[:return_data] = valid_token.return_data || {}
 
-      if valid_token.continue_param.present? && safe_return_url(valid_token.continue_param).present?
-        redirect_to safe_return_url(valid_token.continue_param), notice: "Successfully signed in!"
+      continue_url = safe_return_url(valid_token.continue_param)
+      if continue_url.present?
+        redirect_to continue_url, notice: "Successfully signed in!" # codeql[rb/url-redirection]
       else
         redirect_to root_path, notice: "Successfully signed in!"
       end
