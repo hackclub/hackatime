@@ -10,6 +10,7 @@ class ScanRepoEventsForCommitsJob < ApplicationJob
     Rails.logger.info "[ScanRepoEventsForCommitsJob] Starting scan of RepoHostEvents for new commits."
 
     buffer = []
+    repository_id_cache = {}
     RepoHostEvent
       .where(provider: RepoHostEvent.providers[:github])
       .where("raw_event_payload->>'type' = ?", "PushEvent")
@@ -35,7 +36,8 @@ class ScanRepoEventsForCommitsJob < ApplicationJob
 
         repository_id = nil
         if api_url =~ %r{https://api\.github\.com/repos/([^/]+)/([^/]+)/commits/}
-          repository_id = Repository.find_by(url: "https://github.com/#{$1}/#{$2}")&.id
+          repo_url = "https://github.com/#{$1}/#{$2}"
+          repository_id = repository_id_cache.fetch(repo_url) { repository_id_cache[repo_url] = Repository.find_by(url: repo_url)&.id }
         end
 
         buffer << { sha:, api_url:, user_id: user.id, provider: event.provider.to_s, repository_id: }
