@@ -2,7 +2,7 @@
 
 require_relative "config/environment"
 
-use(Autotuner::RackPlugin)
+use(Autotuner::RackPlugin) if defined?(Autotuner)
 
 run Rails.application
 Rails.application.load_server

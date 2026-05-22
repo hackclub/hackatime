@@ -14,8 +14,8 @@
     <%= favicon_link_tag asset_path('favicon.png'), type: 'image/png' %>
     <% unless Rails.env.test? %>
       <%= vite_stylesheet_tag "application" %>
+      <%= vite_client_tag %>
     <% end %>
-    <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
   </head>
 
   <body class="bg-surface">
