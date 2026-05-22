@@ -79,7 +79,6 @@ gem "rack-mini-profiler"
 # ?pp=profile-memory / ?pp=flamegraph, no need to load at boot.
 gem "memory_profiler", require: false
 gem "flamegraph", require: false
-
 # Analytics
 gem "geocoder"
 gem "maxminddb"
