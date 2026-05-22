@@ -11,4 +11,10 @@ if Rails.env.development? && ENV["MINI_PROFILER"].blank?
       Rack::MiniProfiler.config.enabled = false
     end
   end
+
+  # Even with enabled=false the middleware still runs a check per request and
+  # leaves a background CacheCleanupThread in the process. Strip it from the
+  # stack entirely when MP is opted-out — `Rack::MiniProfiler.authorize_request`
+  # in ApplicationController already no-ops if MP isn't initialised.
+  Rails.application.config.middleware.delete(Rack::MiniProfiler)
 end

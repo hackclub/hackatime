@@ -13,6 +13,11 @@ Rails.application.configure do
       Bullet.rails_logger  = true
       Bullet.add_footer    = true
     end
+  else
+    # Bullet's Railtie inserts Bullet::Rack into the middleware stack
+    # unconditionally. When Bullet.enable is false the middleware still gets
+    # called per request and allocates a hash to check for notifications.
+    config.middleware.delete(Bullet::Rack) rescue nil
   end
 
   # Settings specified here will take precedence over those in config/application.rb.

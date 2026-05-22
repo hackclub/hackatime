@@ -61,8 +61,7 @@ gem "query_count"
 # Compact request logging
 gem "lograge"
 
-# Better Stack (Logtail) logging
-gem "logtail-rails"
+gem "logtail-rails", group: :production
 
 # Rate limiting
 gem "rack-attack"
