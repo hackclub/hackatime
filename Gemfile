@@ -115,8 +115,11 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
-  gem "rspec-rails", require: false
-  gem "rswag-specs", require: false
+  # rswag-specs provides the `rswag:specs:swaggerize` rake task (used by CI)
+  # via its Railtie, so let Bundler auto-require it. rspec-rails comes with it
+  # as a transitive runtime dependency.
+  gem "rspec-rails"
+  gem "rswag-specs"
 
   # Random data generation — only used in seed rake tasks
   gem "faker", require: false
