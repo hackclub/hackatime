@@ -6,8 +6,6 @@ Rails.application.configure do
 
   if Rails.env.development?
     config.good_job.execution_mode = :async # Run jobs in background threads in development
-    # In dev, scheduled/retry-job polling is rare; back off the poll cadence to
-    # cut idle CPU and DB chatter from the in-process scheduler.
     config.good_job.poll_interval = 30
     config.good_job.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(nil))
   else
@@ -17,10 +15,6 @@ Rails.application.configure do
   config.good_job.enable_cron = Rails.env.production?
 
   # https://github.com/bensheldon/good_job#configuring-your-queues
-  # In production we run 12 threads across four priority pools. In dev, async
-  # mode runs the same pool inside the web process, so we shrink it to 2 shared
-  # threads — that's 10 fewer Postgres connections and ActiveRecord thread
-  # locals held idle by the Rails server.
   config.good_job.queues =
     if Rails.env.development?
       "*:2"

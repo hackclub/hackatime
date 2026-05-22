@@ -1,9 +1,6 @@
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
-  # Bullet instruments every ActiveRecord query to detect N+1s. That overhead
-  # is only worth paying when you're actively debugging — opt in with
-  # BULLET=1 bin/dev (or set it in your shell rc).
   if ENV["BULLET"].present?
     config.after_initialize do
       Bullet.enable        = true
@@ -14,9 +11,6 @@ Rails.application.configure do
       Bullet.add_footer    = true
     end
   else
-    # Bullet's Railtie inserts Bullet::Rack into the middleware stack
-    # unconditionally. When Bullet.enable is false the middleware still gets
-    # called per request and allocates a hash to check for notifications.
     config.middleware.delete(Bullet::Rack) rescue nil
   end
 
@@ -25,11 +19,6 @@ Rails.application.configure do
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
-  # Use the evented file watcher (listen gem) so the autoload-path scan runs
-  # in a background thread instead of allocating ~90 KB per request via
-  # Dir.glob in ActiveSupport::FileUpdateChecker#updated?. Under docker the
-  # listen gem polls (inotify doesn't propagate across the bind mount), but
-  # the polling happens once per second off the request hot path.
   config.file_watcher = ActiveSupport::EventedFileUpdateChecker
 
   # Avoid stale precompiled asset manifests in public/assets during development.

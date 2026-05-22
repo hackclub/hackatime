@@ -1,6 +1,3 @@
-# Autotuner reports GC tuning suggestions to Sentry. Only useful in production
-# where we'd act on the suggestions — in dev/test the per-request GC sampling
-# is dead weight and the suggestions go nowhere.
 if Rails.env.production?
   Autotuner.enabled = true
 
