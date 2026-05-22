@@ -153,8 +153,7 @@ group :development do
   # Bullet [https://github.com/flyerhzm/bullet]
   gem "bullet"
 
-  # Backend for ActiveSupport::EventedFileUpdateChecker -- moves the
-  # autoload-path scan off the request hot path and into a background thread.
+  # Backend for ActiveSupport::EventedFileUpdateChecker
   gem "listen"
 end
 
@@ -177,12 +176,6 @@ gem "htmlcompressor", "~> 0.4.0", require: false # not used in app code
 gem "doorkeeper", "~> 5.8"
 
 gem "autotuner", "~> 1.0"
-
-# Tailwind v4 is compiled by the @tailwindcss/vite plugin via
-# app/javascript/entrypoints/application.css; these gems are unused but kept in
-# the Gemfile to avoid a Gemfile.lock churn. Safe to remove with `bundle remove`.
-gem "tailwindcss-ruby", "~> 4.1"
-gem "tailwindcss-rails", "~> 4.2"
 
 gem "inertia_rails", "~> 3.21"
 
