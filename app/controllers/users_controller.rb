@@ -29,7 +29,6 @@ class UsersController < InertiaController
 
   def wakatime_setup_step_4
     render inertia: "WakatimeSetup/Step4", props: {
-      dino_video_url: FlavorText.dino_meme_videos.sample,
       return_url: session.dig(:return_data, "url"),
       return_button_text: session.dig(:return_data, "button_text") || "Done"
     }
