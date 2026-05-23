@@ -70,5 +70,4 @@ RSpec.describe 'Api::V1::External', type: :request do
       end
     end
   end
-
 end

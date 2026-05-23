@@ -69,9 +69,11 @@ class ApplicationController < ActionController::Base
   # internal/admin-style API endpoints). Token may come from an Authorization
   # header ("Bearer <token>") or, when allowed, an `api_key` query param.
   def authenticate_legacy_stats_api_key!(allow_query_param: true, message: "Unauthorized")
+    expected = ENV["STATS_API_KEY"]
+    return render_unauthorized(message) if expected.blank?
     token = request.headers["Authorization"]&.split(" ")&.last
     token ||= params[:api_key] if allow_query_param
-    render_unauthorized(message) unless token == ENV["STATS_API_KEY"]
+    render_unauthorized(message) unless token.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
   end
 
   def enforce_lockout

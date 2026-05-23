@@ -57,6 +57,6 @@ module DateParsing
     return Date.current if params[:date].blank?
     Date.parse(params[:date])
   rescue Date::Error, ArgumentError
-    render_error("tf is that date ya dumbass")
+    render_error("Invalid date.")
   end
 end

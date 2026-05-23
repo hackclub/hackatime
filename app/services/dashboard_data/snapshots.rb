@@ -131,10 +131,12 @@ module DashboardData
         SQL
 
         language_categories = rows
-          .map { |row| [ row["language"]&.categorize_language, row["language_count"].to_i ] }
+          .map { |row| [ row["language"], row["language_count"].to_i ] }
           .reject { |language, _| language.blank? }
-          .group_by(&:first)
-          .transform_values { |pairs| pairs.sum(&:last) }
+          .uniq
+          .group_by { |language, _| language.categorize_language }
+          .transform_values { |pairs| pairs.sum { |_, count| count } }
+          .reject { |category, _| category.blank? }
           .sort_by { |_, count| -count }
           .map(&:first)
 
