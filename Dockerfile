@@ -77,11 +77,9 @@ RUN bundle exec bootsnap precompile app/ lib/
 # These files are gitignored and regenerated on every build.
 RUN SECRET_KEY_BASE_DUMMY=1 JS_FROM_ROUTES_FORCE=true ./bin/rake js_from_routes:generate
 
-# Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN --mount=type=cache,target=/rails/node_modules/.vite \
-    --mount=type=cache,target=/root/.bun/install/cache \
-    --mount=type=cache,target=/root/.cache \
-    SECRET_KEY_BASE_DUMMY=1 ./bin/rails tailwindcss:build
+# Precompiling assets for production without requiring secret RAILS_MASTER_KEY.
+# Tailwind is built via the Vite plugin (see app/javascript/entrypoints/application.css),
+# so no separate tailwindcss:build step is needed.
 RUN --mount=type=cache,target=/rails/node_modules/.vite \
     --mount=type=cache,target=/root/.bun/install/cache \
     --mount=type=cache,target=/root/.cache \

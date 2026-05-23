@@ -9,6 +9,9 @@ export default defineConfig({
     hmr: {
       host: "localhost",
     },
+    watch: {
+      usePolling: false, // uses a sh*tton of CPU
+    },
   },
   plugins: [
     inertia({
