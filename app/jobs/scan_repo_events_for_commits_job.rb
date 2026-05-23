@@ -15,6 +15,7 @@ class ScanRepoEventsForCommitsJob < ApplicationJob
       .where(provider: RepoHostEvent.providers[:github])
       .where("raw_event_payload->>'type' = ?", "PushEvent")
       .where("created_at >= ?", 90.days.ago)
+      .includes(:user)
       .order(created_at: :desc)
       .find_each(batch_size: 100) do |event|
       user = event.user

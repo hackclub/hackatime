@@ -68,7 +68,6 @@ class SailorsLogLeaderboard < ApplicationRecord
       user = users_by_id.fetch(user_id) { raise ActiveRecord::RecordNotFound, "Couldn't find User with 'id'=#{user_id}" }
       {
         slack_uid: user.slack_uid,
-        name: SlackUsername.find_by_uid(user.slack_uid),
         duration: user_durations[user_id],
         projects: projects
       }
@@ -84,7 +83,7 @@ class SailorsLogLeaderboard < ApplicationRecord
 
     stats.each_with_index do |entry, index|
       medal = medals[index] || "white_small_square"
-      msg += "\n:#{medal}: `@#{entry[:name]}`: #{short_time_simple entry[:duration]} → "
+      msg += "\n:#{medal}: <@#{entry[:slack_uid]}>: #{short_time_simple entry[:duration]} → "
       msg += entry[:projects].map do |project|
         language = project[:language_emoji] ? "#{project[:language_emoji]} #{project[:language]}" : project[:language]
         parts = [ project[:name] ]

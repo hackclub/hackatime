@@ -108,14 +108,30 @@ module DashboardData
 
     def today_stats_snapshot(user:, scope:)
       Time.use_zone(user.timezone) do
-        rows = scope.today
-          .select(:language, :editor,
-                  "COUNT(*) OVER (PARTITION BY language) as language_count",
-                  "COUNT(*) OVER (PARTITION BY editor) as editor_count")
-          .distinct.to_a
+        timeout = Heartbeat.heartbeat_timeout_duration.to_i
+        today_sql = scope.today.to_sql
+
+        rows = Heartbeat.connection.select_all(<<~SQL.squish).to_a
+          WITH today_rows AS (#{today_sql}),
+               duration_calc AS (
+                 SELECT
+                   CASE WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
+                        ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout}) END AS diff
+                 FROM today_rows
+                 WHERE time IS NOT NULL AND time >= 0 AND time <= 253402300799
+               ),
+               total_duration AS (SELECT COALESCE(SUM(diff), 0)::integer AS total FROM duration_calc)
+          SELECT DISTINCT
+            language,
+            editor,
+            COUNT(*) OVER (PARTITION BY language) AS language_count,
+            COUNT(*) OVER (PARTITION BY editor) AS editor_count,
+            (SELECT total FROM total_duration) AS total_duration
+          FROM today_rows
+        SQL
 
         language_categories = rows
-          .map { |row| [ row.language&.categorize_language, row.language_count ] }
+          .map { |row| [ row["language"]&.categorize_language, row["language_count"].to_i ] }
           .reject { |language, _| language.blank? }
           .group_by(&:first)
           .transform_values { |pairs| pairs.sum(&:last) }
@@ -123,7 +139,7 @@ module DashboardData
           .map(&:first)
 
         editor_keys = rows
-          .map { |row| [ row.editor, row.editor_count ] }
+          .map { |row| [ row["editor"], row["editor_count"].to_i ] }
           .reject { |editor, _| editor.blank? }
           .uniq
           .sort_by { |_, count| -count }
@@ -132,7 +148,7 @@ module DashboardData
         {
           timezone: user.timezone,
           today_date: Date.current.iso8601,
-          todays_duration_seconds: scope.today.duration_seconds.to_i,
+          todays_duration_seconds: rows.first&.fetch("total_duration").to_i,
           todays_language_categories: language_categories,
           todays_editor_keys: editor_keys
         }

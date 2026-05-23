@@ -25,7 +25,7 @@ class SlackCommand::SailorsLogLeaderboardJob < ApplicationJob
 
     # Send final message
     response = HTTP.post(response_url, json: {
-      response_type: "in_channel",
+      response_type: "ephemeral",
       replace_original: true,
       text: leaderboard.message
     })
