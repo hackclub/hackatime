@@ -3,14 +3,7 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import RubyPlugin from "vite-plugin-ruby";
-
-type CodeSplittingGroup = {
-  name: string;
-  test?: RegExp;
-  minShareCount?: number;
-  minSize?: number;
-  priority?: number;
-};
+import type { CodeSplittingGroup } from "rolldown";
 
 const chunkGroups: CodeSplittingGroup[] = [
   { name: "vendor-layerchart", test: /[\\/]layerchart[\\/]/, priority: 20 },
@@ -25,7 +18,7 @@ const chunkGroups: CodeSplittingGroup[] = [
     test: /[\\/]app[\\/]javascript[\\/]api[\\/]/,
     priority: 15,
   },
-  { name: "common", minShareCount: 2, minSize: 4096, priority: 5 },
+  { name: "common", minShareCount: 2, priority: 5 },
 ];
 
 export default defineConfig({
