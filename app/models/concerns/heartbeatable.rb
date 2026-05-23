@@ -234,7 +234,7 @@ module Heartbeatable
       end
     end
 
-    def duration_seconds_boundary_aware(scope, start_time, end_time, excluded_categories: [ "browsing", "ai coding", "meeting", "communicating" ])
+    def duration_seconds_boundary_aware(scope, start_time, end_time, excluded_categories: [])
       scope = scope.with_valid_timestamps
       base_scope = scope.model.all.with_valid_timestamps
       base_scope = base_scope.where.not("LOWER(category) IN (?)", excluded_categories) if excluded_categories.present?

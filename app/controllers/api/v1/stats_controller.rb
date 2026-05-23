@@ -71,7 +71,12 @@ class Api::V1::StatsController < ApplicationController
         query = query.where(category: params[:filter_by_category].split(",")) if params[:filter_by_category].present?
 
         total_seconds = if params[:boundary_aware] == "true"
-          Heartbeat.duration_seconds_boundary_aware(query, start_date.to_f, end_date.to_f) || 0
+          Heartbeat.duration_seconds_boundary_aware(
+            query,
+            start_date.to_f,
+            end_date.to_f,
+            excluded_categories: [ "browsing", "ai coding", "meeting", "communicating" ]
+          ) || 0
         else
           query.duration_seconds || 0
         end
