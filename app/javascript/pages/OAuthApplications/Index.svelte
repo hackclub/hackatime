@@ -2,22 +2,21 @@
   import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import DestructiveActionModal from "./DestructiveActionModal.svelte";
+  import Badge from "./components/Badge.svelte";
+  import ChipList from "./components/ChipList.svelte";
+  import Field from "./components/Field.svelte";
   import type { OAuthApplicationsIndexProps } from "./types";
   import { doorkeeperApplications } from "../../api";
 
   let { page_title, applications }: OAuthApplicationsIndexProps = $props();
 
   const newApplicationPath = doorkeeperApplications.new.path();
-  const showPathFor = (id: number) => doorkeeperApplications.show.path({ id });
-  const editPathFor = (id: number) => doorkeeperApplications.edit.path({ id });
-  const destroyPathFor = (id: number) =>
-    doorkeeperApplications.destroy.path({ id });
 
   let deleteModalOpen = $state(false);
   let pendingDelete = $state<{ name: string; path: string } | null>(null);
 
-  const openDeleteModal = (applicationName: string, destroyPath: string) => {
-    pendingDelete = { name: applicationName, path: destroyPath };
+  const openDeleteModal = (name: string, path: string) => {
+    pendingDelete = { name, path };
     deleteModalOpen = true;
   };
 </script>
@@ -60,81 +59,48 @@
                 <h2 class="truncate text-lg font-semibold text-surface-content">
                   {application.name}
                 </h2>
-
                 {#if application.verified}
-                  <span
-                    class="rounded-full border border-green/40 bg-green/15 px-2 py-0.5 text-xs font-semibold text-green"
-                  >
-                    Verified
-                  </span>
+                  <Badge tone="green">Verified</Badge>
                 {/if}
-
                 {#if application.confidential}
-                  <span
-                    class="rounded-full border border-primary/35 bg-primary/12 px-2 py-0.5 text-xs font-semibold text-primary"
-                  >
-                    Confidential
-                  </span>
+                  <Badge tone="primary">Confidential</Badge>
                 {/if}
               </div>
 
               <div class="space-y-2">
-                <div>
-                  <p class="text-xs uppercase tracking-wide text-muted">
-                    Callback URLs
-                  </p>
-                  {#if application.redirect_uris.length > 0}
-                    <div class="mt-1 flex flex-wrap gap-1.5">
-                      {#each application.redirect_uris as uri}
-                        <span
-                          class="max-w-full truncate rounded-md border border-surface-200 bg-darker px-2 py-1 font-mono text-xs text-surface-content"
-                        >
-                          {uri}
-                        </span>
-                      {/each}
-                    </div>
-                  {:else}
-                    <p class="mt-1 text-sm text-muted">
-                      No callback URLs configured.
-                    </p>
-                  {/if}
-                </div>
-
-                <div>
-                  <p class="text-xs uppercase tracking-wide text-muted">
-                    Scopes
-                  </p>
-                  {#if application.scopes.length > 0}
-                    <div class="mt-1 flex flex-wrap gap-1.5">
-                      {#each application.scopes as scope}
-                        <span
-                          class="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary"
-                        >
-                          {scope}
-                        </span>
-                      {/each}
-                    </div>
-                  {:else}
-                    <p class="mt-1 text-sm text-muted">No scopes configured.</p>
-                  {/if}
-                </div>
+                <Field label="Callback URLs">
+                  <div class="mt-1">
+                    <ChipList
+                      items={application.redirect_uris}
+                      empty="No callback URLs configured."
+                      variant="uri"
+                    />
+                  </div>
+                </Field>
+                <Field label="Scopes">
+                  <div class="mt-1">
+                    <ChipList
+                      items={application.scopes}
+                      empty="No scopes configured."
+                    />
+                  </div>
+                </Field>
               </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
               <Link
-                href={showPathFor(application.id)}
+                href={doorkeeperApplications.show.path({ id: application.id })}
                 class="inline-flex flex-1 items-center justify-center rounded-lg border border-surface-200 bg-surface-100 px-3 py-2 text-sm font-medium text-surface-content transition-colors hover:bg-surface-200 sm:flex-none"
               >
                 View
               </Link>
               <Link
-                href={editPathFor(application.id)}
+                href={doorkeeperApplications.edit.path({ id: application.id })}
                 class="inline-flex flex-1 items-center justify-center rounded-lg border border-primary bg-primary px-3 py-2 text-sm font-medium text-on-primary transition-opacity hover:opacity-90 sm:flex-none"
               >
                 Edit
               </Link>
-
               <Button
                 type="button"
                 variant="surface"
@@ -142,7 +108,7 @@
                 onclick={() =>
                   openDeleteModal(
                     application.name,
-                    destroyPathFor(application.id),
+                    doorkeeperApplications.destroy.path({ id: application.id }),
                   )}
               >
                 Delete

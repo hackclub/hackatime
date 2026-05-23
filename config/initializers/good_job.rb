@@ -6,7 +6,7 @@ Rails.application.configure do
 
   if Rails.env.development?
     config.good_job.execution_mode = :async # Run jobs in background threads in development
-    config.good_job.poll_interval = 30
+    config.good_job.poll_interval = 5
     config.good_job.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(nil))
   else
     config.good_job.execution_mode = :external # Use external execution mode in production and staging

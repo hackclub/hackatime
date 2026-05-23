@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { secondsToDisplay } from "../Home/signedIn/utils";
 
   let {
@@ -16,11 +17,8 @@
   const visibleEntries = $derived(
     expanded ? entries : entries.slice(0, initialVisible),
   );
-  const hasMore = $derived(entries.length > initialVisible);
   const hiddenCount = $derived(entries.length - initialVisible);
-  const unlistedCount = $derived(
-    totalFileCount > entries.length ? totalFileCount - entries.length : 0,
-  );
+  const unlistedCount = $derived(Math.max(totalFileCount - entries.length, 0));
 </script>
 
 <div class="rounded-xl border border-surface-200 bg-dark/50 p-6">
@@ -50,16 +48,17 @@
       {/each}
     </div>
 
-    {#if hasMore}
-      <button
+    {#if hiddenCount > 0}
+      <Button
         type="button"
+        unstyled
         class="mt-3 w-full rounded-lg border border-surface-200/40 py-2 text-center text-sm text-muted transition-colors hover:border-primary/40 hover:text-primary"
         onclick={() => (expanded = !expanded)}
       >
         {expanded
           ? "Show fewer"
           : `Show ${hiddenCount} more file${hiddenCount === 1 ? "" : "s"}`}
-      </button>
+      </Button>
     {/if}
 
     {#if unlistedCount > 0}

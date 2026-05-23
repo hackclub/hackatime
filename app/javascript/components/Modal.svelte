@@ -78,9 +78,7 @@
         </div>
 
         {#if hasBody}
-          <div class={bodyClass}>
-            {@render body?.()}
-          </div>
+          <div class={bodyClass}>{@render body?.()}</div>
         {/if}
 
         {#if hasActions}
@@ -92,7 +90,7 @@
 </Dialog.Root>
 
 <style>
-  /* shadcn-ui dialog animations: 200ms duration, ease-out, fade + zoom 95% */
+  /* shadcn-ui dialog animations: 200ms ease-out, fade + zoom 95% */
   :global(.bits-modal-overlay[data-state="open"]) {
     animation: shadcn-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }

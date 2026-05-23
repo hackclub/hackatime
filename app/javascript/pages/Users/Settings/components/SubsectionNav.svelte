@@ -6,29 +6,22 @@
 
   let activeHash = $state("");
 
-  const normalizedHash = (value: string) => value.replace(/^#/, "");
-
   const updateActiveHash = () => {
-    if (typeof window === "undefined") return;
-    activeHash = normalizedHash(window.location.hash);
+    if (typeof window !== "undefined")
+      activeHash = window.location.hash.replace(/^#/, "");
   };
 
+  const isActive = (id: string) =>
+    activeHash ? activeHash === id : items[0]?.id === id;
+
   const scrollToItem = (event: MouseEvent, id: string) => {
-    if (typeof window === "undefined" || typeof document === "undefined")
-      return;
-
-    const target = document.getElementById(id);
+    const target =
+      typeof document !== "undefined" ? document.getElementById(id) : null;
     if (!target) return;
-
     event.preventDefault();
     activeHash = id;
     target.scrollIntoView({ behavior: "smooth", block: "start" });
     window.history.replaceState(null, "", `#${id}`);
-  };
-
-  const isActive = (id: string) => {
-    if (!activeHash) return items[0]?.id === id;
-    return activeHash === id;
   };
 
   onMount(() => {
@@ -46,13 +39,14 @@
   >
     <div class="flex min-w-full items-center gap-2">
       {#each items as item}
+        {@const active = isActive(item.id)}
         <a
           href={`#${item.id}`}
           data-settings-subnav-item
-          data-active={isActive(item.id)}
+          data-active={active}
           onclick={(event) => scrollToItem(event, item.id)}
           class={`inline-flex min-h-10 shrink-0 items-center rounded-full px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
-            isActive(item.id)
+            active
               ? "bg-surface-100 text-surface-content"
               : "bg-surface/70 text-muted hover:text-surface-content"
           }`}

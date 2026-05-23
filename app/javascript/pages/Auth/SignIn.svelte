@@ -20,20 +20,16 @@
     continue_param?: string | null;
   } = $props();
 
-  let previousTheme = $state<string | null>(null);
-
   $effect(() => {
     const html = document.documentElement;
-    previousTheme = html.getAttribute("data-theme");
+    const previousTheme = html.getAttribute("data-theme");
     html.setAttribute("data-theme", "rose");
-
-    const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
-    colorSchemeMeta?.setAttribute("content", "dark");
+    document
+      .querySelector("meta[name='color-scheme']")
+      ?.setAttribute("content", "dark");
 
     return () => {
-      if (previousTheme) {
-        html.setAttribute("data-theme", previousTheme);
-      }
+      if (previousTheme) html.setAttribute("data-theme", previousTheme);
     };
   });
 </script>
