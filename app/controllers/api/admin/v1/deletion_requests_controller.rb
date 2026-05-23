@@ -6,10 +6,14 @@ module Api
         before_action :set_deletion_request, only: [ :show, :approve, :reject ]
 
         def index
+          pending = DeletionRequest.pending.includes(:user).order(requested_at: :asc)
+          approved = DeletionRequest.approved.includes(:user, :admin_approved_by).order(scheduled_deletion_at: :asc)
+          done = DeletionRequest.completed.includes(:user, :admin_approved_by).order(completed_at: :desc).limit(25)
+
           render json: {
-            pending: DeletionRequest.pending.includes(:user).order(requested_at: :asc).map { |dr| deletion_request_json(dr) },
-            approved: DeletionRequest.approved.includes(:user, :admin_approved_by).order(scheduled_deletion_at: :asc).map { |dr| deletion_request_json(dr) },
-            completed: DeletionRequest.completed.includes(:user, :admin_approved_by).order(completed_at: :desc).limit(25).map { |dr| deletion_request_json(dr) }
+            pending: pending.map { |dr| deletion_request_json(dr) },
+            approved: approved.map { |dr| deletion_request_json(dr) },
+            completed: done.map { |dr| deletion_request_json(dr) }
           }
         end
 

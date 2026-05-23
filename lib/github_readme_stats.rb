@@ -1,5 +1,5 @@
 class GithubReadmeStats
-  THEMES = Rails.root.join("config/themes.txt").readlines(chomp: true).reject(&:empty?).freeze
+  THEMES = Rails.root.join("config/github_readme_themes.txt").readlines(chomp: true).reject(&:empty?).freeze
 
   def initialize(user_id = nil, theme = nil)
     @user_id = user_id || "{YOUR_USER_ID}"
