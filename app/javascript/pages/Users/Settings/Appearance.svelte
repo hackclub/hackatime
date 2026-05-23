@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
+  import { untrack } from "svelte";
   import { RadioGroup } from "bits-ui";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
@@ -17,25 +18,14 @@
     errors,
   }: AppearancePageProps = $props();
 
-  const themeUpdatePath = settingsAppearance.updateTheme.path();
-
-  let selectedTheme = $state("rose");
-
-  $effect(() => {
-    selectedTheme = user.theme || "rose";
-  });
+  let selectedTheme = $state(untrack(() => user.theme || "rose"));
 
   const applySelectedTheme = () => {
     if (typeof document === "undefined") return;
-
-    const theme = options.themes.find(
-      (option) => option.value === selectedTheme,
-    );
+    const theme = options.themes.find((o) => o.value === selectedTheme);
     if (!theme) return;
-
     document.documentElement.dataset.theme = theme.value;
     document.documentElement.dataset.colorScheme = theme.color_scheme;
-
     document
       .querySelector('meta[name="color-scheme"]')
       ?.setAttribute("content", theme.color_scheme);
@@ -58,7 +48,7 @@
   >
     <Form
       id="appearance-theme-form"
-      action={themeUpdatePath}
+      action={settingsAppearance.updateTheme.path()}
       method="patch"
       class="space-y-4"
       options={{ preserveScroll: true }}
@@ -102,7 +92,6 @@
                   <span class="text-[11px] font-semibold">Dashboard</span>
                   <span class="text-[10px] opacity-80">2h 14m</span>
                 </div>
-
                 <div class="mt-2 grid grid-cols-[1fr_auto] items-center gap-2">
                   <span
                     class="h-2 rounded"
@@ -113,7 +102,6 @@
                     style={`background:${theme.preview.darkless};`}
                   ></span>
                 </div>
-
                 <div class="mt-2 flex gap-1.5">
                   <span
                     class="h-1.5 w-6 rounded"
@@ -136,9 +124,9 @@
     </Form>
 
     {#snippet footer()}
-      <Button type="submit" variant="primary" form="appearance-theme-form">
-        Save theme
-      </Button>
+      <Button type="submit" variant="primary" form="appearance-theme-form"
+        >Save theme</Button
+      >
     {/snippet}
   </SectionCard>
 </SettingsShell>

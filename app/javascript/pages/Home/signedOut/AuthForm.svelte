@@ -2,6 +2,7 @@
   import Button from "../../../components/Button.svelte";
   import HackClubLogo from "../../../components/HackClubLogo.svelte";
   import { sessions } from "../../../api";
+  import Slack from "hcicons-svelte/slack";
 
   let {
     sign_in_email,
@@ -19,15 +20,14 @@
     continue_param?: string | null;
   } = $props();
 
+  const query = $derived(
+    continue_param ? { query: { continue: continue_param } } : undefined,
+  );
   const hcaAuthPath = $derived(
-    continue_param
-      ? sessions.hcaNew.path({ query: { continue: continue_param } })
-      : sessions.hcaNew.path(),
+    query ? sessions.hcaNew.path(query) : sessions.hcaNew.path(),
   );
   const slackAuthPath = $derived(
-    continue_param
-      ? sessions.slackNew.path({ query: { continue: continue_param } })
-      : sessions.slackNew.path(),
+    query ? sessions.slackNew.path(query) : sessions.slackNew.path(),
   );
   const emailAuthPath = sessions.email.path();
 
@@ -85,11 +85,7 @@
       href={slackAuthPath}
       class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-surface border border-surface-200 text-surface-content font-medium hover:bg-surface-100 transition-all"
     >
-      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-        <path
-          d="M6 15a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2h2zm1 0a2 2 0 0 1 2-2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2a2 2 0 0 1-2-2zm2-8a2 2 0 0 1-2-2a2 2 0 0 1 2-2a2 2 0 0 1 2 2v2zm0 1a2 2 0 0 1 2 2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2a2 2 0 0 1 2-2zm8 2a2 2 0 0 1 2-2a2 2 0 0 1 2 2a2 2 0 0 1-2 2h-2zm-1 0a2 2 0 0 1-2 2a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2a2 2 0 0 1 2 2zm-2 8a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2v-2zm0-1a2 2 0 0 1-2-2a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2a2 2 0 0 1-2 2z"
-        />
-      </svg>
+      <Slack size={20} />
       <span>Sign in with Slack</span>
     </a>
 

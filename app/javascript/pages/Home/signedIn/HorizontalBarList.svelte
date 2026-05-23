@@ -14,8 +14,8 @@
   } = $props();
 
   const maxVal = $derived(Math.max(...entries.map(([_, v]) => v || 0), 1));
-  const barWidth = (seconds: number) =>
-    useLogScale ? logScale(seconds, maxVal) : percentOf(seconds, maxVal);
+  const barWidth = (s: number) =>
+    useLogScale ? logScale(s, maxVal) : percentOf(s, maxVal);
 </script>
 
 <div

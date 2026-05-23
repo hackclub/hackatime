@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import Section from "./Section.svelte";
+  import Plus from "hcicons-svelte/plus";
 
   const editors = [
     { name: "VS Code", slug: "vs-code" },
@@ -13,10 +15,13 @@
     { name: "Figma", slug: "figma" },
     { name: "Godot", slug: "godot" },
   ];
+
+  const tileBox =
+    "w-16 h-16 bg-surface border border-surface-200 rounded-xl flex items-center justify-center mb-2";
 </script>
 
-<section class="py-20 w-full bg-surface-100" id="integrations">
-  <div class="max-w-[1100px] mx-auto px-6 text-center">
+<Section id="integrations" bg="bg-surface-100">
+  <div class="text-center">
     <h2
       class="text-3xl md:text-4xl font-semibold text-surface-content tracking-tight mb-4"
     >
@@ -27,41 +32,27 @@
       has a plugin, it works with Hackatime.
     </p>
     <div class="flex flex-wrap justify-center gap-12 max-w-[800px] mx-auto">
-      {#each editors as editor}
+      {#each editors as { name, slug }}
         <Link
-          href={`/docs/editors/${editor.slug}`}
+          href={`/docs/editors/${slug}`}
           class="flex flex-col items-center w-20"
         >
-          <div
-            class="w-16 h-16 bg-surface border border-surface-200 rounded-xl flex items-center justify-center mb-2"
-          >
+          <div class={tileBox}>
             <img
-              src={`/images/editor-icons/${editor.slug}-128.png`}
-              alt={editor.name}
+              src={`/images/editor-icons/${slug}-128.png`}
+              alt={name}
               class="w-8 h-8 object-contain"
             />
           </div>
-          <span class="text-xs font-medium text-secondary">{editor.name}</span>
+          <span class="text-xs font-medium text-secondary">{name}</span>
         </Link>
       {/each}
       <a href="/docs#all-editors" class="flex flex-col items-center w-20 group">
-        <div
-          class="w-16 h-16 bg-surface border border-surface-200 rounded-xl flex items-center justify-center mb-2 group-hover:border-primary transition-colors"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-8 h-8 text-secondary group-hover:text-primary transition-colors"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 6v12m6-6H6"
-            />
-          </svg>
+        <div class="{tileBox} group-hover:border-primary transition-colors">
+          <Plus
+            size={32}
+            class="text-secondary group-hover:text-primary transition-colors"
+          />
         </div>
         <span
           class="text-xs font-medium text-secondary group-hover:text-primary transition-colors"
@@ -70,4 +61,4 @@
       </a>
     </div>
   </div>
-</section>
+</Section>

@@ -23,16 +23,19 @@
     code_challenge_method: string;
   }
 
-  interface Props {
+  let {
+    page_title,
+    client_name,
+    verified,
+    scopes,
+    form_data,
+  }: {
     page_title: string;
     client_name: string;
     verified: boolean;
     scopes: Scope[];
     form_data: FormData;
-  }
-
-  let { page_title, client_name, verified, scopes, form_data }: Props =
-    $props();
+  } = $props();
 
   const authorizePath = customDoorkeeperAuthorizations.new.path();
 
@@ -44,6 +47,18 @@
       "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
     read: "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
   };
+
+  const hiddenFields = $derived<[string, string][]>([
+    ["authenticity_token", form_data.csrf_token],
+    ["client_id", form_data.client_id],
+    ["redirect_uri", form_data.redirect_uri],
+    ["state", form_data.state],
+    ["response_type", form_data.response_type],
+    ["response_mode", form_data.response_mode],
+    ["scope", form_data.scope],
+    ["code_challenge", form_data.code_challenge],
+    ["code_challenge_method", form_data.code_challenge_method],
+  ]);
 </script>
 
 <svelte:head>
@@ -112,9 +127,7 @@
                   />
                 </svg>
               </div>
-              <p class="text-sm text-surface-content">
-                {scope.description}
-              </p>
+              <p class="text-sm text-surface-content">{scope.description}</p>
             </li>
           {/each}
         </ul>
@@ -128,39 +141,9 @@
         data-turbo="false"
         onsubmit={() => (authorizing = true)}
       >
-        <input
-          type="hidden"
-          name="authenticity_token"
-          value={form_data.csrf_token}
-        />
-        <input type="hidden" name="client_id" value={form_data.client_id} />
-        <input
-          type="hidden"
-          name="redirect_uri"
-          value={form_data.redirect_uri}
-        />
-        <input type="hidden" name="state" value={form_data.state} />
-        <input
-          type="hidden"
-          name="response_type"
-          value={form_data.response_type}
-        />
-        <input
-          type="hidden"
-          name="response_mode"
-          value={form_data.response_mode}
-        />
-        <input type="hidden" name="scope" value={form_data.scope} />
-        <input
-          type="hidden"
-          name="code_challenge"
-          value={form_data.code_challenge}
-        />
-        <input
-          type="hidden"
-          name="code_challenge_method"
-          value={form_data.code_challenge_method}
-        />
+        {#each hiddenFields as [name, value]}
+          <input type="hidden" {name} {value} />
+        {/each}
         <Button
           type="submit"
           variant="primary"
@@ -201,40 +184,10 @@
         data-turbo="false"
         onsubmit={() => (denying = true)}
       >
-        <input
-          type="hidden"
-          name="authenticity_token"
-          value={form_data.csrf_token}
-        />
+        {#each hiddenFields as [name, value]}
+          <input type="hidden" {name} {value} />
+        {/each}
         <input type="hidden" name="_method" value="delete" />
-        <input type="hidden" name="client_id" value={form_data.client_id} />
-        <input
-          type="hidden"
-          name="redirect_uri"
-          value={form_data.redirect_uri}
-        />
-        <input type="hidden" name="state" value={form_data.state} />
-        <input
-          type="hidden"
-          name="response_type"
-          value={form_data.response_type}
-        />
-        <input
-          type="hidden"
-          name="response_mode"
-          value={form_data.response_mode}
-        />
-        <input type="hidden" name="scope" value={form_data.scope} />
-        <input
-          type="hidden"
-          name="code_challenge"
-          value={form_data.code_challenge}
-        />
-        <input
-          type="hidden"
-          name="code_challenge_method"
-          value={form_data.code_challenge_method}
-        />
         <Button
           type="submit"
           variant="surface"
@@ -242,11 +195,7 @@
           class="w-full"
           disabled={authorizing || denying}
         >
-          {#if denying}
-            Denying…
-          {:else}
-            Deny
-          {/if}
+          {denying ? "Denying…" : "Deny"}
         </Button>
       </form>
     </div>

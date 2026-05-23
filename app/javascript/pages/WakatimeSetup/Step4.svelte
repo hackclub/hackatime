@@ -28,34 +28,30 @@
       </p>
 
       <div class="bg-yellow text-black rounded-xl p-6 mb-8 text-left">
-        <div class="flex items-start gap-4">
-          <div>
-            <h3 class="font-bold mb-2">Fair Play Policy</h3>
-            <p class="text-sm mb-3">
-              Hackatime tracks the time you genuinely spend writing code. Fraud
-              means trying to make it look like you're coding when you are not,
-              including using scripts, bots, manipulated heartbeats, spoofed
-              editor activity, or API abuse.
-            </p>
-            <p class="text-sm">
-              We have a zero-tolerance policy for fraud. Attempting to cheat the
-              system can result in a <strong>permanent ban</strong> from
-              Hackatime and all Hack Club events. Read the full policy on the
-              <a
-                href="https://fraud.hackclub.com/fairplay"
-                target="_blank"
-                rel="noreferrer"
-                class="underline font-semibold"
-              >
-                >Fraud page</a
-              >.
-            </p>
-            <p class="text-sm mt-3">
-              Hack Club is a non-profit running on donations, so please keep
-              your activity honest and respect the community.
-            </p>
-          </div>
-        </div>
+        <h3 class="font-bold mb-2">Fair Play Policy</h3>
+        <p class="text-sm mb-3">
+          Hackatime tracks the time you genuinely spend writing code. Fraud
+          means trying to make it look like you're coding when you are not,
+          including using scripts, bots, manipulated heartbeats, spoofed editor
+          activity, or API abuse.
+        </p>
+        <p class="text-sm">
+          We have a zero-tolerance policy for fraud. Attempting to cheat the
+          system can result in a <strong>permanent ban</strong> from Hackatime
+          and all Hack Club events. Read the full policy on the
+          <a
+            href="https://fraud.hackclub.com/fairplay"
+            target="_blank"
+            rel="noreferrer"
+            class="underline font-semibold"
+          >
+            >Fraud page</a
+          >.
+        </p>
+        <p class="text-sm mt-3">
+          Hack Club is a non-profit running on donations, so please keep your
+          activity honest and respect the community.
+        </p>
 
         <div class="mt-2 pt-6 border-t border-yellow/10 flex justify-center">
           <label
@@ -77,17 +73,15 @@
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <Button
-          href={return_url ?? "/"}
-          size="xl"
-          class="w-full sm:w-auto transition-all font-semibold transform active:scale-[0.98] text-center {agreed
-            ? ''
-            : 'opacity-50 cursor-not-allowed pointer-events-none'}"
-        >
-          {return_url ? return_button_text : "Let's get going!"}
-        </Button>
-      </div>
+      <Button
+        href={return_url ?? "/"}
+        size="xl"
+        class="w-full sm:w-auto transition-all font-semibold transform active:scale-[0.98] text-center {agreed
+          ? ''
+          : 'opacity-50 cursor-not-allowed pointer-events-none'}"
+      >
+        {return_url ? return_button_text : "Let's get going!"}
+      </Button>
     </div>
   </div>
 </div>

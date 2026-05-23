@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
+  import { untrack } from "svelte";
   import Button from "../../components/Button.svelte";
   import type { OAuthApplicationFormProps } from "./types";
   import { doorkeeperApplications } from "../../api";
@@ -15,25 +16,25 @@
     errors,
   }: OAuthApplicationFormProps = $props();
 
-  let selectedScopes = $state<string[]>([]);
-  let confidential = $state(false);
-  let redirectUri = $state("");
-
-  $effect(() => {
-    selectedScopes = [...(application.selected_scopes || [])];
-    confidential = Boolean(application.confidential);
-    redirectUri = application.redirect_uri;
-  });
+  let selectedScopes = $state<string[]>(
+    untrack(() => [...(application.selected_scopes || [])]),
+  );
+  let confidential = $state(untrack(() => Boolean(application.confidential)));
+  let redirectUri = $state(untrack(() => application.redirect_uri));
 
   const nameLocked = $derived(application.persisted && application.verified);
 
-  // `new` posts to create, `edit` patches by id.
   const submitPath = $derived(
     form_mode === "edit" && application.id != null
       ? doorkeeperApplications.update.path({ id: application.id })
       : doorkeeperApplications.create.path(),
   );
   const cancelPath = doorkeeperApplications.index.path();
+
+  const input =
+    "w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none";
+  const row =
+    "flex cursor-pointer items-start gap-3 rounded-lg border border-surface-200 bg-darker/70 p-3 hover:border-surface-300";
 </script>
 
 {#if errors.full_messages.length > 0}
@@ -86,7 +87,7 @@
             value={application.name}
             required
             placeholder="My Awesome App"
-            class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+            class={input}
           />
         {/if}
 
@@ -108,7 +109,7 @@
           rows="4"
           bind:value={redirectUri}
           placeholder="https://example.com/auth/callback"
-          class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 font-mono text-sm text-surface-content focus:border-primary focus:outline-none"
+          class="{input} font-mono"
         ></textarea>
         <p class="mt-2 text-xs text-muted">{help_text.redirect_uri}</p>
         {#if allow_blank_redirect_uri}
@@ -132,10 +133,7 @@
 
         <div class="space-y-2">
           {#each scope_options as scope}
-            <label
-              class="flex cursor-pointer items-start gap-3 rounded-lg border border-surface-200 bg-darker/70 p-3 hover:border-surface-300"
-              for={`scope_${scope.value}`}
-            >
+            <label class={row} for={`scope_${scope.value}`}>
               <input
                 id={`scope_${scope.value}`}
                 type="checkbox"
@@ -163,10 +161,7 @@
         {/if}
       </div>
 
-      <label
-        class="flex cursor-pointer items-start gap-3 rounded-lg border border-surface-200 bg-darker/70 p-3 hover:border-surface-300"
-        for="doorkeeper_application_confidential"
-      >
+      <label class={row} for="doorkeeper_application_confidential">
         <input
           type="hidden"
           name="doorkeeper_application[confidential]"
