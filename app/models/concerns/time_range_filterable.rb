@@ -43,7 +43,7 @@ module TimeRangeFilterable
 
   def self.event_range(from_date, to_date, timezone: "America/New_York")
     Time.use_zone(timezone) do
-      Time.parse(from_date).beginning_of_day..Time.parse(to_date).end_of_day
+      Time.zone.parse(from_date).beginning_of_day..Time.zone.parse(to_date).end_of_day
     end
   end
 
