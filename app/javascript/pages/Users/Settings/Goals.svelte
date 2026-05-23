@@ -113,7 +113,7 @@
   ) {
     if (submitting) return;
     submitting = true;
-    router[method](url, data as never, {
+    const options = {
       preserveScroll: true,
       onSuccess: () => {
         goalModalOpen = false;
@@ -122,7 +122,12 @@
       onFinish: () => {
         submitting = false;
       },
-    });
+    };
+    if (method === "delete") {
+      router.delete(url, options);
+    } else {
+      router[method](url, data as never, options);
+    }
   }
 
   function saveGoal() {

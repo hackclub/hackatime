@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
-  import { untrack } from "svelte";
   import { RadioGroup } from "bits-ui";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
@@ -18,7 +17,11 @@
     errors,
   }: AppearancePageProps = $props();
 
-  let selectedTheme = $state(untrack(() => user.theme || "rose"));
+  let selectedTheme = $state("rose");
+
+  $effect(() => {
+    selectedTheme = user.theme || "rose";
+  });
 
   const applySelectedTheme = () => {
     if (typeof document === "undefined") return;
