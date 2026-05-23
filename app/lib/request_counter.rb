@@ -1,7 +1,7 @@
 class RequestCounter
-  WINDOW_SIZE = 10 # seconds - shorter window for more responsive rates
-  HIGH_LOAD_THRESHOLD = 500 # req/sec to disable tracking
-  CIRCUIT_BREAKER_DURATION = 30 # seconds to stay disabled
+  WINDOW_SIZE = 10 # seconds
+  HIGH_LOAD_THRESHOLD = 500 # req/sec to disable
+  CIRCUIT_BREAKER_DURATION = 30 # seconds
   PROCESS_ID = "#{Socket.gethostname}-#{Process.pid}"
   STATS_DIR = Rails.root.join("tmp", "request_stats")
 
@@ -12,53 +12,38 @@ class RequestCounter
   class << self
     def increment
       return if disabled?
-
-      current_time = Time.current.to_i
-      @buckets[current_time] = (@buckets[current_time] || 0) + 1
-
-      # Check if we should disable due to high load
-      check_circuit_breaker(current_time)
-
-      # Periodically sync to file and cleanup (1% chance)
+      now = Time.current.to_i
+      @buckets[now] = (@buckets[now] || 0) + 1
+      check_circuit_breaker(now)
       if rand(100) == 0
-        sync_to_file(current_time)
+        sync_to_file(now)
         cleanup
       end
     end
 
     def per_second
       return :high_load if disabled?
-
-      current_time = Time.current.to_i
-      cutoff = current_time - WINDOW_SIZE
-
-      # Fast local calculation
-      local_total = @buckets.select { |timestamp, _| timestamp >= cutoff }.values.sum
+      cutoff = Time.current.to_i - WINDOW_SIZE
+      local_total = @buckets.select { |ts, _| ts >= cutoff }.values.sum
       (local_total.to_f / WINDOW_SIZE).round(2)
     end
 
     def global_per_second
       return :high_load if disabled?
-
-      current_time = Time.current.to_i
-      sync_to_file(current_time)
-
-      # Read and aggregate from all process files
-      cutoff = current_time - WINDOW_SIZE
+      now = Time.current.to_i
+      sync_to_file(now)
+      cutoff = now - WINDOW_SIZE
       total = 0
 
       Dir.glob(STATS_DIR.join("*.txt")).each do |file_path|
-        next unless File.mtime(file_path) > (cutoff - 60).seconds.ago # Skip very old files
-
+        next unless File.mtime(file_path) > (cutoff - 60).seconds.ago
         begin
           File.read(file_path).each_line do |line|
             next if line.strip.empty?
-            timestamp, count = line.strip.split(":", 2)
-            next unless timestamp && count
-            total += count.to_i if timestamp.to_i >= cutoff
+            ts, count = line.strip.split(":", 2)
+            total += count.to_i if ts && count && ts.to_i >= cutoff
           end
         rescue Errno::ENOENT
-          # Skip deleted files
         end
       end
 
@@ -67,53 +52,33 @@ class RequestCounter
 
     private
 
-    def disabled?
-      @disabled_until && Time.current.to_i < @disabled_until
+    def disabled? = @disabled_until && Time.current.to_i < @disabled_until
+
+    def check_circuit_breaker(now)
+      recent_total = @buckets.select { |ts, _| ts >= now - 5 }.values.sum
+      return unless recent_total > HIGH_LOAD_THRESHOLD * 5
+      @disabled_until = now + CIRCUIT_BREAKER_DURATION
+      @buckets.clear
     end
 
-    def check_circuit_breaker(current_time)
-      # Check last 5 seconds for high load (local only for performance)
-      recent_total = @buckets.select { |ts, _| ts >= current_time - 5 }.values.sum
-
-      if recent_total > HIGH_LOAD_THRESHOLD * 5 # 5 seconds worth
-        @disabled_until = current_time + CIRCUIT_BREAKER_DURATION
-        @buckets.clear # Clear to reduce memory
-      end
-    end
-
-    def sync_to_file(current_time)
-      return if current_time == @last_sync || @buckets.empty?
-
-      ensure_stats_dir
-      file_path = STATS_DIR.join("#{PROCESS_ID}.txt")
-
-      # Atomic write: write to temp file then rename
-      temp_path = "#{file_path}.tmp"
-      data = @buckets.map { |timestamp, count| "#{timestamp}:#{count}" }.join("\n")
-      File.write(temp_path, data)
-      File.rename(temp_path, file_path)
-
-      @last_sync = current_time
-    rescue Errno::ENOENT, Errno::EACCES
-      # Silently fail if we can't write (e.g., read-only filesystem)
-    end
-
-    def ensure_stats_dir
+    def sync_to_file(now)
+      return if now == @last_sync || @buckets.empty?
       FileUtils.mkdir_p(STATS_DIR) unless Dir.exist?(STATS_DIR)
+      file_path = STATS_DIR.join("#{PROCESS_ID}.txt")
+      temp_path = "#{file_path}.tmp"
+      File.write(temp_path, @buckets.map { |ts, count| "#{ts}:#{count}" }.join("\n"))
+      File.rename(temp_path, file_path)
+      @last_sync = now
+    rescue Errno::ENOENT, Errno::EACCES
     end
 
     def cleanup
-      current_time = Time.current.to_i
-      cutoff = current_time - WINDOW_SIZE - 10 # extra buffer
-      @buckets.reject! { |timestamp, _| timestamp < cutoff }
-
-      # Clean up old process files (10% chance)
+      cutoff = Time.current.to_i - WINDOW_SIZE - 10
+      @buckets.reject! { |ts, _| ts < cutoff }
       return unless rand(10) == 0
-
-      Dir.glob(STATS_DIR.join("*.txt")).each do |file_path|
-        File.delete(file_path) if File.mtime(file_path) < (cutoff - 60).seconds.ago
+      Dir.glob(STATS_DIR.join("*.txt")).each do |fp|
+        File.delete(fp) if File.mtime(fp) < (cutoff - 60).seconds.ago
       rescue Errno::ENOENT
-        # File already deleted
       end
     end
   end

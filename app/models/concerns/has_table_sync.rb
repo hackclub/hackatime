@@ -12,7 +12,6 @@ module HasTableSync
     def pull_from_airtable!
       record = self.class.table.find(airtable_id)
       return unless record
-
       self.airtable_fields = record.fields
       save! if changed?
     end
@@ -23,27 +22,14 @@ module HasTableSync
       @table_sync_pat = pat
       @table_sync_base = base
       @table_sync_table = table
-
       @table = Norairrecord.table(pat, base, table)
 
       def pull_all_from_airtable!
         records = @table.all.map { |record| { airtable_id: record.id, airtable_fields: record.fields } }
-
         upsert_all(records, unique_by: :airtable_id)
       end
     end
 
-    def table_sync_pat
-      @table_sync_pat
-    end
-    def table_sync_base
-      @table_sync_base
-    end
-    def table_sync_table
-      @table_sync_table
-    end
-    def table
-      @table
-    end
+    attr_reader :table_sync_pat, :table_sync_base, :table_sync_table, :table
   end
 end

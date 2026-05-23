@@ -1328,9 +1328,6 @@ paths:
                         source_type:
                           type: string
                           nullable: true
-                        ysws_program:
-                          type: string
-                          nullable: true
                         ip_address:
                           type: string
                           nullable: true
@@ -2591,91 +2588,6 @@ paths:
                   description: Slack OAuth Token
               required:
               - token
-  "/api/v1/ysws_programs":
-    get:
-      summary: List YSWS Programs
-      tags:
-      - YSWS Programs
-      description: List available YSWS (Your Ship We Ship) programs.
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
-                  example: onboard
-  "/api/v1/ysws_programs/claim":
-    post:
-      summary: Claim YSWS Program
-      tags:
-      - YSWS Programs
-      description: Claim a YSWS program reward.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Successfully claimed 100 heartbeats
-                  claimed_count:
-                    type: integer
-                    example: 100
-        '409':
-          description: conflict
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                  conflicts:
-                    type: array
-                    items:
-                      type: array
-                      minItems: 2
-                      maxItems: 2
-                      items: {}
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                program_id:
-                  type: integer
-                  description: YSWS Program ID
-                user_id:
-                  type: string
-                  description: User ID or Slack UID
-                start_time:
-                  type: string
-                  format: date_time
-                  description: Start time of the claim period
-                end_time:
-                  type: string
-                  format: date_time
-                  description: End time of the claim period
-                project:
-                  type: string
-                  description: Project name (optional)
-                  nullable: true
-              required:
-              - program_id
-              - user_id
-              - start_time
-              - end_time
   "/api/v1/leaderboard":
     get:
       summary: Get daily leaderboard (Alias)

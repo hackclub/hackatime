@@ -5,18 +5,14 @@ module My
 
     def export
       unless current_user.email_addresses.exists?
-        redirect_to my_settings_imports_exports_path, alert: "You need an email address on your account to export heartbeats."
-        return
+        return redirect_to my_settings_imports_exports_path, alert: "You need an email address on your account to export heartbeats."
       end
 
-      all_data = params[:all_data] == "true"
-
-      if all_data
+      if params[:all_data] == "true"
         HeartbeatExportJob.perform_later(current_user.id, all_data: true)
       else
         date_range = export_date_range_from_params
         return if date_range.nil?
-
         HeartbeatExportJob.perform_later(
           current_user.id,
           all_data: false,
@@ -41,16 +37,10 @@ module My
     end
 
     def export_date_range_from_params
-      start_date = parse_iso8601_date(
-        value: params[:start_date],
-        default_value: 30.days.ago.to_date
-      )
+      start_date = parse_iso8601_date(value: params[:start_date], default_value: 30.days.ago.to_date)
       return nil if start_date.nil?
 
-      end_date = parse_iso8601_date(
-        value: params[:end_date],
-        default_value: Date.current
-      )
+      end_date = parse_iso8601_date(value: params[:end_date], default_value: Date.current)
       return nil if end_date.nil?
 
       if start_date > end_date
@@ -63,7 +53,6 @@ module My
 
     def parse_iso8601_date(value:, default_value:)
       return default_value if value.blank?
-
       Date.iso8601(value)
     rescue ArgumentError
       redirect_to my_settings_imports_exports_path, alert: "Invalid date format. Please use YYYY-MM-DD."

@@ -600,7 +600,6 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
                   project_root_count: { type: :integer, nullable: true },
                   is_write: { type: :boolean, nullable: true },
                   source_type: { type: :string, nullable: true },
-                  ysws_program: { type: :string, nullable: true },
                   ip_address: { type: :string, nullable: true }
                 }
               }

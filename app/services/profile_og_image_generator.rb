@@ -38,17 +38,14 @@ class ProfileOgImageGenerator
 
   def call
     require "vips" # we do it here so that CI doesn't need to install vips
-    image = Vips::Image.svgload_buffer(svg, scale: 2).resize(0.5)
-    png = image.write_to_buffer(".png[compression=3,filter=0]")
-
+    png = Vips::Image.svgload_buffer(svg, scale: 2).resize(0.5).write_to_buffer(".png[compression=3,filter=0]")
     Result.new(png:, fingerprint:, filename: "profile-og-#{user.id}-v#{TEMPLATE_VERSION}.png")
   end
 
   def fingerprint
     @fingerprint ||= Digest::SHA256.hexdigest([
       TEMPLATE_VERSION, user.id, theme_key, display_name, username, user.avatar_url,
-      *STAT_LABEL_KEYS.map { |k| stat_label(k) },
-      heatmap_signature, @stats_status
+      *STAT_LABEL_KEYS.map { |k| stat_label(k) }, heatmap_signature, @stats_status
     ].join("|"))
   end
 
@@ -56,10 +53,7 @@ class ProfileOgImageGenerator
     attr_reader :user, :stats, :heatmap
 
     def unavailable_message
-      case @stats_status
-      when :private then "Coding time stats are private"
-      when :not_computed then "Statistics not yet computed"
-      end
+      { private: "Coding time stats are private", not_computed: "Statistics not yet computed" }[@stats_status]
     end
 
     def svg
@@ -91,35 +85,22 @@ class ProfileOgImageGenerator
     def initials
       words = display_name.scan(/[[:alnum:]]+/).first(2)
       return "HT" if words.blank?
-
       words.map { |word| word[0] }.join.upcase
     end
 
-    def stat_label(key)
-      stats&.fetch(key, nil).to_s
-    end
-
-    def theme_key
-      user.respond_to?(:theme) ? user.theme.to_s : User::DEFAULT_THEME
-    end
-
-    def theme_preview
-      @theme_preview ||= User.theme_metadata(theme_key).fetch(:preview)
-    end
+    def stat_label(key) = stats&.fetch(key, nil).to_s
+    def theme_key = user.respond_to?(:theme) ? user.theme.to_s : User::DEFAULT_THEME
+    def theme_preview = @theme_preview ||= User.theme_metadata(theme_key).fetch(:preview)
 
     def palette
       @palette ||= begin
         t = theme_preview
-        {
-          bg: t[:darker], surface: t[:dark], divider: t[:darkless],
+        { bg: t[:darker], surface: t[:dark], divider: t[:darkless],
           primary: t[:primary], text: t[:content],
           muted: hex_mix(t[:content], t[:dark], 0.55),
           dim:   hex_mix(t[:content], t[:dark], 0.35),
-          heatmap: [
-            hex_mix(t[:content], t[:dark], 0.12),
-            *[ 0.35, 0.55, 0.75, 0.95 ].map { |p| hex_mix(t[:success], t[:dark], p) }
-          ]
-        }
+          heatmap: [ hex_mix(t[:content], t[:dark], 0.12),
+                     *[ 0.35, 0.55, 0.75, 0.95 ].map { |p| hex_mix(t[:success], t[:dark], p) } ] }
       end
     end
 
@@ -129,13 +110,8 @@ class ProfileOgImageGenerator
       format("#%02x%02x%02x", *mixed)
     end
 
-    def hex_to_rgb(hex)
-      hex.to_s.delete_prefix("#").scan(/../).map { |c| c.to_i(16) }
-    end
-
-    def heatmap_cells
-      @heatmap_cells ||= compute_heatmap_cells
-    end
+    def hex_to_rgb(hex) = hex.to_s.delete_prefix("#").scan(/../).map { |c| c.to_i(16) }
+    def heatmap_cells = @heatmap_cells ||= compute_heatmap_cells
 
     def compute_heatmap_cells
       return [] if heatmap.blank?
@@ -169,7 +145,6 @@ class ProfileOgImageGenerator
 
     def heatmap_signature
       return "" if heatmap.blank?
-
       # Bucket to hour-level granularity so we don't bust cache on every heartbeat.
       Digest::SHA256.hexdigest(heatmap.sort.map { |date, secs| "#{date}:#{secs / 3600}" }.join("|"))
     end
@@ -179,9 +154,7 @@ class ProfileOgImageGenerator
       return avatar_url if avatar_url.start_with?("data:image/")
       return nil unless allowed_avatar_url?(avatar_url)
 
-      Rails.cache.fetch("profile_og_avatar:v1:#{Digest::SHA256.hexdigest(avatar_url)}", expires_in: 1.day) do
-        fetch_avatar_data_uri(avatar_url)
-      end
+      Rails.cache.fetch("profile_og_avatar:v1:#{Digest::SHA256.hexdigest(avatar_url)}", expires_in: 1.day) { fetch_avatar_data_uri(avatar_url) }
     end
 
     def fetch_avatar_data_uri(avatar_url)
@@ -192,7 +165,6 @@ class ProfileOgImageGenerator
 
       content_type = response.headers["content-type"].to_s.split(";").first
       return nil unless content_type.start_with?("image/")
-
       "data:#{content_type};base64,#{Base64.strict_encode64(body)}"
     rescue HTTP::Error, URI::InvalidURIError
       nil
@@ -201,11 +173,8 @@ class ProfileOgImageGenerator
     def allowed_avatar_url?(url)
       uri = URI.parse(url)
       return false unless uri.is_a?(URI::HTTPS)
-
       AVATAR_HOST_ALLOWLIST.any? { |pattern| pattern.match?(uri.host.to_s) }
     end
 
-    def escape(value)
-      ERB::Util.html_escape(value.to_s)
-    end
+    def escape(value) = ERB::Util.html_escape(value.to_s)
 end

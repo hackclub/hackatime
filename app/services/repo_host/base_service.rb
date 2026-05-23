@@ -17,9 +17,7 @@ module RepoHost
     attr_reader :user, :repo_url, :owner, :repo
 
     def parse_repo_url(url)
-      # Extract owner and repo from URL
-      # Example: https://github.com/owner/repo -> ["owner", "repo"]
-      # Example: https://gitlab.com/owner/repo -> ["owner", "repo"]
+      # https://github.com/owner/repo -> ["owner", "repo"]
       if url =~ %r{https?://[^/]+/([^/]+)/([^/]+)/?$}
         [ $1, $2 ]
       else
@@ -32,19 +30,13 @@ module RepoHost
     end
 
     def make_api_request(url)
-      response = HTTP.headers(api_headers)
-                     .timeout(connect: 5, read: 10)
-                     .get(url)
-
-      handle_response(response)
+      handle_response(HTTP.headers(api_headers).timeout(connect: 5, read: 10).get(url))
     end
 
     def handle_response(response)
       case response.status.code
-      when 200
-        response.parse
-      when 403
-        handle_rate_limit(response)
+      when 200 then response.parse
+      when 403 then handle_rate_limit(response)
       when 404
         Rails.logger.warn "[#{self.class.name}] Repository #{owner}/#{repo} not found (404)"
         nil
