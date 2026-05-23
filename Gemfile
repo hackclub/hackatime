@@ -83,9 +83,6 @@ gem "flamegraph", require: false
 gem "geocoder"
 gem "maxminddb"
 
-# Airtable syncing
-gem "norairrecord", "~> 0.5.1"
-
 # Country codes
 gem "countries"
 

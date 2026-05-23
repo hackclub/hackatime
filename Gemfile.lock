@@ -184,9 +184,6 @@ GEM
       multipart-post (~> 2.0)
     faraday-net_http (3.4.3)
       net-http (~> 0.5)
-    faraday-net_http_persistent (2.3.1)
-      faraday (~> 2.5)
-      net-http-persistent (>= 4.0.4, < 5)
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-aarch64-linux-musl)
     ffi (1.17.4-arm-linux-gnu)
@@ -321,8 +318,6 @@ GEM
     mutex_m (0.3.0)
     net-http (0.9.1)
       uri (>= 0.11.1)
-    net-http-persistent (4.0.8)
-      connection_pool (>= 2.2.4, < 4)
     net-imap (0.6.4)
       date
       net-protocol
@@ -347,10 +342,6 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.3-x86_64-linux-musl)
       racc (~> 1.4)
-    norairrecord (0.5.1)
-      faraday (>= 1.0, < 3.0)
-      faraday-net_http_persistent
-      net-http-persistent
     oj (3.17.1)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
@@ -665,7 +656,6 @@ DEPENDENCIES
   mailkick
   maxminddb
   memory_profiler
-  norairrecord (~> 0.5.1)
   oj
   paper_trail
   pg
