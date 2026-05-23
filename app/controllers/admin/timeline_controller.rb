@@ -43,7 +43,8 @@ class Admin::TimelineController < Admin::BaseController
       "LOWER(username) LIKE :query OR LOWER(slack_username) LIKE :query OR CAST(id AS TEXT) LIKE :query OR EXISTS (SELECT 1 FROM email_addresses WHERE email_addresses.user_id = users.id AND LOWER(email_addresses.email) LIKE :query)",
       query: "%#{query_term}%"
     ).order(Arel.sql("CASE WHEN LOWER(username) = #{ActiveRecord::Base.connection.quote(query_term)} THEN 0 ELSE 1 END, username ASC"))
-     .limit(20).select(*USER_SELECT_FIELDS)
+     .limit(20)
+     .select(*USER_SELECT_FIELDS)
 
     render json: users.map { |u| user_summary(u) }
   end
