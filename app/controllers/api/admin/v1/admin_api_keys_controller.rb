@@ -5,8 +5,10 @@ module Api
         before_action :set_admin_api_key, only: [ :show, :destroy ]
 
         def index
+          api_keys = AdminApiKey.includes(:user).active.order(created_at: :desc)
+
           render json: {
-            admin_api_keys: AdminApiKey.includes(:user).active.order(created_at: :desc).map { |k| admin_api_key_json(k) }
+            admin_api_keys: api_keys.map { |key| admin_api_key_json(key) }
           }
         end
 
@@ -29,14 +31,19 @@ module Api
               }
             }, status: :created
           else
-            render json: { error: "Failed to create admin API key", errors: admin_api_key.errors.full_messages },
-                   status: :unprocessable_entity
+            render json: {
+              error: "Failed to create admin API key",
+              errors: admin_api_key.errors.full_messages
+            }, status: :unprocessable_entity
           end
         end
 
         def destroy
           @admin_api_key.revoke!
-          render json: { success: true, message: "Admin API key has been revoked" }
+          render json: {
+            success: true,
+            message: "Admin API key has been revoked"
+          }
         end
 
         private
@@ -44,7 +51,7 @@ module Api
         def set_admin_api_key
           @admin_api_key = AdminApiKey.find(params[:id])
         rescue ActiveRecord::RecordNotFound
-          render_not_found_json("Admin API key not found")
+          render json: { error: "Admin API key not found" }, status: :not_found
         end
 
         def admin_api_key_json(key)
