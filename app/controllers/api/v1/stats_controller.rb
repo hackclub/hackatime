@@ -1,5 +1,5 @@
 class Api::V1::StatsController < ApplicationController
-  before_action :ensure_authenticated!, only: [ :show ], unless: -> { Rails.env.development? }
+  before_action :authenticate_legacy_stats_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
   before_action :set_user, only: [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ]
 
   def show
@@ -169,11 +169,6 @@ class Api::V1::StatsController < ApplicationController
     token = request.headers["Authorization"]&.split(" ")&.last
     identifier = params[:username] || params[:username_or_id] || params[:user_id]
     @user = (identifier == "my" && token.present?) ? ApiKey.find_by(token: token)&.user : User.lookup_by_identifier(identifier)
-  end
-
-  def ensure_authenticated!
-    token = request.headers["Authorization"]&.split(" ")&.last || params[:api_key]
-    render_unauthorized unless token == ENV["STATS_API_KEY"]
   end
 
   def find_by_email(email)

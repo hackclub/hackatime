@@ -1,5 +1,5 @@
 class Api::V1::UsersController < ApplicationController
-  before_action :ensure_authenticated!
+  before_action -> { authenticate_legacy_stats_api_key!(allow_query_param: false) }, unless: -> { Rails.env.development? }
 
   def lookup_email
     user = EmailAddress.find_by(email: params[:email])&.user
@@ -17,14 +17,5 @@ class Api::V1::UsersController < ApplicationController
     else
       render json: { error: "User not found", slack_uid: params[:slack_uid] }, status: :not_found
     end
-  end
-
-  private
-
-  def ensure_authenticated!
-    return if Rails.env.development?
-
-    token = request.headers["Authorization"]&.split(" ")&.last
-    render_unauthorized unless token == ENV["STATS_API_KEY"]
   end
 end

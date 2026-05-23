@@ -1,7 +1,7 @@
 module Api
   module V1
     class YswsProgramsController < ApplicationController
-      before_action :ensure_authenticated!, only: [ :claim ]
+      before_action :authenticate_legacy_stats_api_key!, only: [ :claim ]
 
       def index = render(json: Heartbeat.ysws_programs.keys)
 
@@ -24,11 +24,6 @@ module Api
       end
 
       private
-
-      def ensure_authenticated!
-        token = request.headers["Authorization"]&.split(" ")&.last || params[:api_key]
-        render_unauthorized unless token == ENV["STATS_API_KEY"]
-      end
 
       def validate_params
         missing = %i[start_time end_time user_id program_id].select { |p| params[p].blank? }

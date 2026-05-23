@@ -65,6 +65,15 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  # Authenticates requests using the shared STATS_API_KEY env var (used by
+  # internal/admin-style API endpoints). Token may come from an Authorization
+  # header ("Bearer <token>") or, when allowed, an `api_key` query param.
+  def authenticate_legacy_stats_api_key!(allow_query_param: true, message: "Unauthorized")
+    token = request.headers["Authorization"]&.split(" ")&.last
+    token ||= params[:api_key] if allow_query_param
+    render_unauthorized(message) unless token == ENV["STATS_API_KEY"]
+  end
+
   def enforce_lockout
     return unless current_user&.pending_deletion?
     return if %w[deletion_requests sessions].include?(controller_name)

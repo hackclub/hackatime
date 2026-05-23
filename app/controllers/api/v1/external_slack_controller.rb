@@ -2,7 +2,7 @@ module Api
   module V1
     class ExternalSlackController < ApplicationController
       skip_before_action :verify_authenticity_token
-      before_action :verify_stats_api_token
+      before_action -> { authenticate_legacy_stats_api_key!(allow_query_param: false, message: "Invalid API token") }
 
       def create_user
         token = params[:token]
@@ -46,13 +46,6 @@ module Api
       rescue => e
         report_error(e, message: "Error creating user from external Slack data")
         render json: { error: "Internal server error" }, status: :internal_server_error
-      end
-
-      private
-
-      def verify_stats_api_token
-        token = request.headers["Authorization"]&.split(" ")&.last
-        render_unauthorized("Invalid API token") unless token == ENV["STATS_API_KEY"]
       end
     end
   end
