@@ -210,7 +210,6 @@ module Api
                 project_root_count: hb.project_root_count,
                 is_write: hb.is_write,
                 source_type: hb.source_type,
-                ysws_program: hb.ysws_program,
                 ip_address: hb.ip_address
               }
             },

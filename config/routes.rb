@@ -252,10 +252,6 @@ Rails.application.routes.draw do
       # External service Slack OAuth integration
       post "external/slack/oauth", to: "external_slack#create_user"
 
-      resources :ysws_programs, only: [ :index ] do
-        post :claim, on: :collection
-      end
-
       namespace :my do
         get "heartbeats/most_recent", to: "heartbeats#most_recent"
         get "heartbeats", to: "heartbeats#index"
