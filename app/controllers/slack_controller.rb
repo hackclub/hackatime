@@ -19,19 +19,7 @@ class SlackController < ApplicationController
       end
     end
 
-    # Acknowledge receipt
-    render json: {
-      response_type: "ephemeral",
-      blocks: [ {
-        type: "context",
-        elements: [ { type: "mrkdwn", text: "#{params_hash[:command]} #{params_hash[:text]}" } ]
-      } ]
-    }
-
-    case params_hash[:command].gsub("/", "").downcase
-    when "sailorslog"
-      SlackCommand::SailorsLogJob.perform_later(params_hash)
-    end
+    SlackCommand::SailorsLogJob.perform_later(params_hash)
   end
 
   private
