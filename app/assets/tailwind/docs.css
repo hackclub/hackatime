@@ -83,13 +83,21 @@
 .docs-prose :where(pre) {
   background: var(--color-darkless);
   border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
   font-size: 0.875rem;
+}
+
+.docs-prose :where(pre[class*="language-json"], pre[class*="language-bash"]) {
+  border-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .docs-prose :where(blockquote) {
   background: var(--color-darkless);
   padding: 1rem 1.5rem;
   border-radius: 0 0.5rem 0.5rem 0;
+  margin: 1.5rem 0;
 }
 
 .docs-prose :where(img) {

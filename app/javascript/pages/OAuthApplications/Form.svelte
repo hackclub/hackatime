@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
-  import { untrack } from "svelte";
   import Button from "../../components/Button.svelte";
   import type { OAuthApplicationFormProps } from "./types";
   import { doorkeeperApplications } from "../../api";
@@ -16,11 +15,15 @@
     errors,
   }: OAuthApplicationFormProps = $props();
 
-  let selectedScopes = $state<string[]>(
-    untrack(() => [...(application.selected_scopes || [])]),
-  );
-  let confidential = $state(untrack(() => Boolean(application.confidential)));
-  let redirectUri = $state(untrack(() => application.redirect_uri));
+  let selectedScopes = $state<string[]>([]);
+  let confidential = $state(false);
+  let redirectUri = $state("");
+
+  $effect(() => {
+    selectedScopes = [...(application.selected_scopes || [])];
+    confidential = Boolean(application.confidential);
+    redirectUri = application.redirect_uri;
+  });
 
   const nameLocked = $derived(application.persisted && application.verified);
 
