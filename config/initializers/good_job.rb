@@ -70,10 +70,6 @@ Rails.application.configure do
     #   cron: "* * * * *",
     #   class: "CleanupExpiredEmailVerificationRequestsJob"
     # },
-    # update_airtable_user_data: {
-    #   cron: "0 13 * * *",
-    #   class: "UpdateAirtableUserDataJob"
-    # },
     cache_active_user_graph_data_job: {
       cron: "*/10 * * * *",
       class: "Cache::ActiveUsersGraphDataJob",
