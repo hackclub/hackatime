@@ -1,27 +1,23 @@
 <script lang="ts">
-  import { RadioGroup } from "bits-ui";
-  import Button from "../../../components/Button.svelte";
+  import { onMount } from "svelte";
+  import type { Component } from "svelte";
   import FilterShell from "./FilterShell.svelte";
 
-  const INTERVALS = [
-    { key: "today", label: "Today" },
-    { key: "yesterday", label: "Yesterday" },
-    { key: "this_week", label: "This Week" },
-    { key: "last_7_days", label: "Last 7 Days" },
-    { key: "this_month", label: "This Month" },
-    { key: "last_30_days", label: "Last 30 Days" },
-    { key: "this_year", label: "This Year" },
-    { key: "last_12_months", label: "Last 12 Months" },
-    { key: "flavortown", label: "Flavortown" },
-    { key: "summer_of_making", label: "Summer of Making" },
-    { key: "high_seas", label: "High Seas" },
-    { key: "low_skies", label: "Low Skies" },
-    { key: "scrapyard", label: "Scrapyard Global" },
-    { key: "", label: "All Time" },
-  ] as const;
-
-  const DATE_INPUT_CLS =
-    "ml-2 h-9 rounded-md border border-surface-content/20 bg-dark px-3 text-sm text-muted transition-colors duration-150 focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-1 focus:ring-offset-dark";
+  const INTERVAL_LABELS: Record<string, string> = {
+    today: "Today",
+    yesterday: "Yesterday",
+    this_week: "This Week",
+    last_7_days: "Last 7 Days",
+    this_month: "This Month",
+    last_30_days: "Last 30 Days",
+    this_year: "This Year",
+    last_12_months: "Last 12 Months",
+    flavortown: "Flavortown",
+    summer_of_making: "Summer of Making",
+    high_seas: "High Seas",
+    low_skies: "Low Skies",
+    scrapyard: "Scrapyard Global",
+  };
 
   let {
     selected,
@@ -35,18 +31,19 @@
     onchange: (interval: string, from: string, to: string) => void;
   } = $props();
 
-  let open = $state(false);
-  let customFrom = $state("");
-  let customTo = $state("");
+  type BodyProps = {
+    selected: string;
+    from: string;
+    to: string;
+    onapply: (interval: string, from: string, to: string) => void;
+  };
 
-  $effect(() => {
-    customFrom = from;
-    customTo = to;
-  });
+  let open = $state(false);
+  let Body = $state<Component<BodyProps> | null>(null);
 
   const displayLabel = $derived.by(() => {
     if (selected && selected !== "custom")
-      return INTERVALS.find((i) => i.key === selected)?.label ?? selected;
+      return INTERVAL_LABELS[selected] ?? selected;
     if (from && to) return `${from} to ${to}`;
     if (from) return `From ${from}`;
     if (to) return `Until ${to}`;
@@ -54,17 +51,34 @@
   });
 
   const isDefault = $derived(!selected && !from && !to);
-  const selectedIntervalValue = $derived(
-    selected && !from && !to ? selected : "",
-  );
 
-  function selectInterval(key: string) {
-    onchange(key, "", "");
-    open = false;
+  function loadBody() {
+    if (Body) return;
+    import("./IntervalSelectBody.svelte").then((m) => {
+      Body = m.default;
+    });
   }
 
-  function applyCustomRange() {
-    onchange("", customFrom, customTo);
+  onMount(() => {
+    const w = window as unknown as {
+      requestIdleCallback?: (
+        cb: () => void,
+        opts?: { timeout?: number },
+      ) => void;
+    };
+    if (typeof w.requestIdleCallback === "function") {
+      w.requestIdleCallback(loadBody, { timeout: 2000 });
+    } else {
+      setTimeout(loadBody, 300);
+    }
+  });
+
+  $effect(() => {
+    if (open) loadBody();
+  });
+
+  function handleApply(interval: string, f: string, t: string) {
+    onchange(interval, f, t);
     open = false;
   }
 
@@ -82,49 +96,14 @@
   bind:open
 >
   {#snippet content()}
-    <div class="m-0 max-h-56 overflow-y-auto">
-      <RadioGroup.Root
-        value={selectedIntervalValue}
-        onValueChange={selectInterval}
-        class="flex flex-col gap-1 overflow-hidden"
+    {#if Body}
+      <Body {selected} {from} {to} onapply={handleApply} />
+    {:else}
+      <div
+        class="flex items-center justify-center px-3 py-8 text-sm text-muted/70"
       >
-        {#each INTERVALS as interval}
-          <RadioGroup.Item
-            value={interval.key}
-            class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-muted outline-none transition-all duration-150 hover:bg-surface-100/60 hover:text-surface-content data-[highlighted]:bg-surface-100/70 data-[state=checked]:bg-primary/12 data-[state=checked]:text-surface-content"
-          >
-            {#snippet children({ checked })}
-              <span
-                class="mr-3 h-4 w-4 min-w-4 rounded-full border transition-colors {checked
-                  ? 'border-primary bg-primary shadow-[0_0_0_3px_rgba(0,0,0,0.2)]'
-                  : 'border-surface-content/35 bg-surface/40'}"
-              ></span>
-              <span>{interval.label}</span>
-            {/snippet}
-          </RadioGroup.Item>
-        {/each}
-      </RadioGroup.Root>
-    </div>
-
-    <div class="mt-2 border-t border-surface-content/15 pt-2">
-      <div class="flex flex-col gap-2">
-        <label class="flex items-center justify-between text-sm text-muted">
-          <span class="text-secondary/80">Start</span>
-          <input type="date" class={DATE_INPUT_CLS} bind:value={customFrom} />
-        </label>
-        <label class="flex items-center justify-between text-sm text-muted">
-          <span class="text-secondary/80">End</span>
-          <input type="date" class={DATE_INPUT_CLS} bind:value={customTo} />
-        </label>
+        Loading…
       </div>
-      <Button
-        type="button"
-        size="sm"
-        class="mt-2 h-9 border-0"
-        onclick={applyCustomRange}
-      >
-        Apply
-      </Button>
-    </div>
+    {/if}
   {/snippet}
 </FilterShell>
