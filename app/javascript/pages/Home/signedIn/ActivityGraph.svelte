@@ -81,7 +81,7 @@
       aria-label="Daily activity heatmap"
       onclick={onCellClick}
     >
-      {#each cells as cell (cell.date)}
+      {#each cells as cell}
         <rect
           x={cell.x}
           y={cell.y}
