@@ -10,39 +10,28 @@ module Api
       # Project can be a project name ("hackatime") or owner/repo ("hackclub/hackatime").
       def show
         user = find_user(params[:user_id])
-        return render json: { error: "User not found" }, status: :not_found unless user
-
-        unless user.allow_public_stats_lookup
-          return render json: { error: "User has disabled public stats" }, status: :forbidden
-        end
+        return render_not_found_json("User not found") unless user
+        return render_forbidden("User has disabled public stats") unless user.allow_public_stats_lookup
 
         project_name = resolve_project_name(user, params[:project])
-        return render json: { error: "Project not found" }, status: :not_found unless project_name
+        return render_not_found_json("Project not found") unless project_name
 
         seconds = user.heartbeats.where(project: project_name).duration_seconds
         return head :bad_request if seconds <= 0
 
-        label = params[:label] || "hackatime"
-        color = params[:color] || "blue"
-
-        time_text = format_duration(seconds)
-        shields_url = "https://img.shields.io/badge/#{ERB::Util.url_encode(label)}-#{ERB::Util.url_encode(time_text)}-#{ERB::Util.url_encode(color)}"
-
-        # Pass through any extra shields.io params (style, logo, etc.)
-        extra = params.to_unsafe_h.except(:controller, :action, :user_id, :project, :label, :color, :aliases, :format)
-        extra.each { |k, v| shields_url += "&#{ERB::Util.url_encode(k)}=#{ERB::Util.url_encode(v)}" }
-
         # Handle aliases (comma-separated project names to sum)
         if params[:aliases].present?
           alias_names = params[:aliases].split(",").map(&:strip) - [ project_name ]
-          alias_seconds = user.heartbeats.where(project: alias_names).duration_seconds
-          seconds += alias_seconds
-
-          # Recalculate with alias time included
-          time_text = format_duration(seconds)
-          shields_url = "https://img.shields.io/badge/#{ERB::Util.url_encode(label)}-#{ERB::Util.url_encode(time_text)}-#{ERB::Util.url_encode(color)}"
-          extra.each { |k, v| shields_url += "&#{ERB::Util.url_encode(k)}=#{ERB::Util.url_encode(v)}" }
+          seconds += user.heartbeats.where(project: alias_names).duration_seconds
         end
+
+        label = params[:label] || "hackatime"
+        color = params[:color] || "blue"
+        shields_url = "https://img.shields.io/badge/#{ERB::Util.url_encode(label)}-#{ERB::Util.url_encode(format_duration(seconds))}-#{ERB::Util.url_encode(color)}"
+
+        # Pass through any extra shields.io params (style, logo, etc.)
+        params.to_unsafe_h.except(:controller, :action, :user_id, :project, :label, :color, :aliases, :format)
+              .each { |k, v| shields_url += "&#{ERB::Util.url_encode(k)}=#{ERB::Util.url_encode(v)}" }
 
         redirect_to shields_url, allow_other_host: true, status: :temporary_redirect
       end
@@ -51,7 +40,6 @@ module Api
 
       def find_user(identifier)
         return nil if identifier.blank?
-
         User.find_by(slack_uid: identifier) ||
           User.find_by(username: identifier) ||
           (identifier.match?(/^\d+$/) && User.find_by(id: identifier))
@@ -60,18 +48,12 @@ module Api
       # Resolve owner/repo format to a project name via ProjectRepoMapping
       def resolve_project_name(user, project_param)
         return nil if project_param.blank?
+        return project_param if user.heartbeats.where(project: project_param).exists?
 
-        # Direct match by project name first
-        if user.heartbeats.where(project: project_param).exists?
-          return project_param
-        end
-
-        # Try owner/repo → project_name lookup via repository
         if project_param.include?("/")
-          mapping = user.project_repo_mappings
-                        .joins(:repository)
-                        .where(repositories: { owner: project_param.split("/", 2).first, name: project_param.split("/", 2).last })
-                        .first
+          owner, name = project_param.split("/", 2)
+          mapping = user.project_repo_mappings.joins(:repository)
+                        .where(repositories: { owner: owner, name: name }).first
           return mapping.project_name if mapping
         end
 

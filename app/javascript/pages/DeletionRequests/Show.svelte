@@ -15,8 +15,6 @@
   let { deletion_request }: { deletion_request: DeletionRequestProps } =
     $props();
 
-  const signoutPath = sessions.destroy.path();
-  const cancelDeletionPath = deletionRequests.cancel.path();
   const isPending = $derived(deletion_request.status === "pending");
   const isApproved = $derived(deletion_request.status === "approved");
 </script>
@@ -101,14 +99,18 @@
   </div>
 
   <div class="mt-5 grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto]">
-    <Form action={signoutPath} method="delete" class="w-full">
+    <Form action={sessions.destroy.path()} method="delete" class="w-full">
       <Button type="submit" variant="dark" class="w-full sm:w-auto">
         Return to login
       </Button>
     </Form>
 
     {#if deletion_request.can_be_cancelled}
-      <Form action={cancelDeletionPath} method="delete" class="w-full">
+      <Form
+        action={deletionRequests.cancel.path()}
+        method="delete"
+        class="w-full"
+      >
         <Button type="submit" variant="primary" class="w-full sm:w-auto">
           I changed my mind
         </Button>

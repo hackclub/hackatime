@@ -5,9 +5,7 @@ class Admin::AccountMergerController < InertiaController
 
   before_action :require_ultraadmin!
 
-  def show
-    render inertia: "Admin/AccountMerger"
-  end
+  def show = render(inertia: "Admin/AccountMerger")
 
   def search_users
     query_term = params[:query].to_s.downcase.strip
@@ -20,39 +18,25 @@ class Admin::AccountMergerController < InertiaController
     older_id = params[:older_id].to_i
     newer_id = params[:newer_id].to_i
 
-    if older_id == newer_id
-      redirect_to admin_account_merger_path, alert: "Cannot merge a user into themselves."
-      return
-    end
+    return merge_error("Cannot merge a user into themselves.") if older_id == newer_id
 
     older_user = User.find_by(id: older_id)
     newer_user = User.find_by(id: newer_id)
 
-    unless older_user && newer_user
-      redirect_to admin_account_merger_path, alert: "One or both users not found."
-      return
-    end
-
-    if older_user == current_user || newer_user == current_user
-      redirect_to admin_account_merger_path, alert: "You cannot merge your own account."
-      return
-    end
+    return merge_error("One or both users not found.") unless older_user && newer_user
+    return merge_error("You cannot merge your own account.") if older_user == current_user || newer_user == current_user
 
     privileged = [ older_user, newer_user ].select { |u| u.admin_level != "default" }
     if privileged.any?
       names = privileged.map { |u| "#{u.display_name} (#{u.admin_level})" }.to_sentence
-      redirect_to admin_account_merger_path,
-                  alert: "Refusing to merge accounts with elevated admin_level: #{names}. Demote them to `default` first."
-      return
+      return merge_error("Refusing to merge accounts with elevated admin_level: #{names}. Demote them to `default` first.")
     end
 
     if newer_user.created_at < older_user.created_at
-      redirect_to admin_account_merger_path, alert: "The NEWER user (right side) must have been created after the OLDER user (left side). #{newer_user.display_name} was created #{newer_user.created_at.to_date} which is before #{older_user.display_name} created #{older_user.created_at.to_date}."
-      return
+      return merge_error("The NEWER user (right side) must have been created after the OLDER user (left side). #{newer_user.display_name} was created #{newer_user.created_at.to_date} which is before #{older_user.display_name} created #{older_user.created_at.to_date}.")
     end
 
     merge_results = perform_merge(older_user, newer_user)
-
     redirect_to admin_account_merger_path, notice: "Merge complete! #{merge_results}"
   rescue => e
     Rails.logger.error("Account merge failed and was rolled back: #{e.message}")
@@ -61,11 +45,7 @@ class Admin::AccountMergerController < InertiaController
 
   private
 
-  def require_ultraadmin!
-    unless current_user&.admin_level == "ultraadmin"
-      redirect_to root_path, alert: "You are not authorized to access this page."
-    end
-  end
+  def merge_error(message) = redirect_to(admin_account_merger_path, alert: message)
 
   def format_user(user)
     {
@@ -83,23 +63,19 @@ class Admin::AccountMergerController < InertiaController
 
     ActiveRecord::Base.transaction do
       # 1. Move heartbeats from newer to older
-      heartbeat_count = Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)
-      results << "#{heartbeat_count} heartbeats moved"
+      results << "#{Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)} heartbeats moved"
 
       # 2. Transfer API keys from newer to older
-      api_key_count = transfer_api_keys(older_user:, newer_user:)
-      results << "#{api_key_count} API keys transferred"
+      results << "#{transfer_api_keys(older_user:, newer_user:)} API keys transferred"
 
       # 3. Transfer goals from newer to older
-      goal_count = newer_user.goals.update_all(user_id: older_user.id)
-      results << "#{goal_count} goals transferred"
+      results << "#{newer_user.goals.update_all(user_id: older_user.id)} goals transferred"
 
       # 4. Reconcile instance import sources before deleting the newer user.
       deleted_records = reconcile_instance_import_source(older_user:, newer_user:)
 
       # 5. Revoke newer user's sessions
-      revoked_tokens = 0
-      revoked_tokens += newer_user.sign_in_tokens.destroy_all.count
+      revoked_tokens = newer_user.sign_in_tokens.destroy_all.count
       revoked_tokens += Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
       revoked_tokens += Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
       results << "#{revoked_tokens} sessions/tokens revoked"
@@ -142,11 +118,7 @@ class Admin::AccountMergerController < InertiaController
     reserved_names = older_user.api_keys.pluck(:name).index_with(true)
 
     ApiKey.where(user_id: newer_user.id).find_each do |api_key|
-      api_key.update!(
-        user: older_user,
-        name: unique_api_key_name_for(reserved_names, api_key.name)
-      )
-
+      api_key.update!(user: older_user, name: unique_api_key_name_for(reserved_names, api_key.name))
       transferred_count += 1
     end
 
@@ -162,7 +134,6 @@ class Admin::AccountMergerController < InertiaController
     suffix = " (transferred)"
     candidate_name = "#{original_name}#{suffix}"
     counter = 2
-
     while reserved_names[candidate_name]
       candidate_name = "#{original_name}#{suffix} #{counter}"
       counter += 1
@@ -175,28 +146,18 @@ class Admin::AccountMergerController < InertiaController
   def reconcile_instance_import_source(older_user:, newer_user:)
     newer_source = InstanceImportSource.find_by(user_id: newer_user.id)
     return 0 unless newer_source
-
     if InstanceImportSource.exists?(user_id: older_user.id)
-      newer_source.destroy!
-      1
+      newer_source.destroy!; 1
     else
-      newer_source.update!(user_id: older_user.id)
-      0
+      newer_source.update!(user_id: older_user.id); 0
     end
   end
 
   def delete_rows(table_name, conditions)
-    sql = case table_name
-    when "heartbeat_import_sources"
-      ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM heartbeat_import_sources WHERE user_id = ?", conditions.fetch(:user_id) ])
-    when "wakatime_mirrors"
-      ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM wakatime_mirrors WHERE user_id = ?", conditions.fetch(:user_id) ])
-    when "project_labels"
-      ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM project_labels WHERE user_id = ?", conditions.fetch(:user_id) ])
-    else
-      raise ArgumentError, "Table '#{table_name}' is not in the allowlist"
-    end
+    raise ArgumentError, "Table '#{table_name}' is not in the allowlist" unless DELETABLE_TABLES.include?(table_name)
 
+    quoted = ActiveRecord::Base.connection.quote_table_name(table_name)
+    sql = ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM #{quoted} WHERE user_id = ?", conditions.fetch(:user_id) ])
     ActiveRecord::Base.connection.delete(sql)
   end
 end

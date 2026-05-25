@@ -15,6 +15,22 @@
   let confirmOpen = $state(false);
   let merging = $state(false);
 
+  const orderError = $derived.by<string | null>(() => {
+    if (!olderUser || !newerUser) return null;
+    if (olderUser.id === newerUser.id)
+      return "Cannot merge a user into themselves.";
+    if (
+      newerUser.created_at &&
+      olderUser.created_at &&
+      newerUser.created_at < olderUser.created_at
+    )
+      return `"${newerUser.display_name}" was created on ${newerUser.created_at}, which is before "${olderUser.display_name}" (created ${olderUser.created_at}). The "newer" account must have been created after the "older" account. Swap them or pick different accounts.`;
+    return null;
+  });
+  const canMerge = $derived(
+    olderUser !== null && newerUser !== null && !orderError,
+  );
+
   function handleMerge() {
     merging = true;
     router.post(
@@ -30,22 +46,6 @@
       },
     );
   }
-
-  let orderError = $derived.by<string | null>(() => {
-    if (!olderUser || !newerUser) return null;
-    if (olderUser.id === newerUser.id)
-      return "Cannot merge a user into themselves.";
-    if (
-      newerUser.created_at &&
-      olderUser.created_at &&
-      newerUser.created_at < olderUser.created_at
-    )
-      return `"${newerUser.display_name}" was created on ${newerUser.created_at}, which is before "${olderUser.display_name}" (created ${olderUser.created_at}). The "newer" account must have been created after the "older" account. Swap them or pick different accounts.`;
-    return null;
-  });
-  let canMerge = $derived(
-    olderUser !== null && newerUser !== null && !orderError,
-  );
 </script>
 
 <svelte:head>
@@ -124,26 +124,26 @@
     <h3 class="mb-3 text-lg font-semibold text-surface-content">
       What happens during a merge?
     </h3>
+    {#snippet newer()}
+      <span class="font-semibold text-red">NEWER</span>
+    {/snippet}
+    {#snippet older()}
+      <span class="font-semibold text-green">OLDER</span>
+    {/snippet}
     <ol class="list-inside list-decimal space-y-2 text-sm text-muted">
       <li>
-        All heartbeats from the <span class="font-semibold text-red">NEWER</span
-        >
-        account are transferred to the
-        <span class="font-semibold text-green">OLDER</span> account
+        All heartbeats from the {@render newer()} account are transferred to the
+        {@render older()} account
       </li>
       <li>
-        All sessions and API tokens for the <span class="font-semibold text-red"
-          >NEWER</span
-        > account are revoked
+        All sessions and API tokens for the {@render newer()} account are revoked
       </li>
       <li>
         All related data (email addresses, goals, API keys, imports, etc.) for
-        the <span class="font-semibold text-red">NEWER</span> account are deleted
+        the
+        {@render newer()} account are deleted
       </li>
-      <li>
-        The <span class="font-semibold text-red">NEWER</span> account is permanently
-        deleted
-      </li>
+      <li>The {@render newer()} account is permanently deleted</li>
     </ol>
   </div>
 </div>

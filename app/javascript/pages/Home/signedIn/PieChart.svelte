@@ -3,7 +3,7 @@
   // @ts-expect-error d3-shape is present via LayerChart, but this app does not ship its type declarations.
   import { arc as d3arc, pie as d3pie } from "d3-shape";
   import { PieChart } from "layerchart";
-  import { secondsToDisplay } from "./utils";
+  import { secondsToDisplay, CHART_COLORS as FALLBACK_COLORS } from "./utils";
 
   type ChartDatum = { name: string; value: number };
 
@@ -17,85 +17,46 @@
     colorMap?: Record<string, string>;
   } = $props();
 
-  const FALLBACK_COLORS = [
-    "#60a5fa",
-    "#f472b6",
-    "#fb923c",
-    "#facc15",
-    "#4ade80",
-    "#2dd4bf",
-    "#a78bfa",
-    "#f87171",
-    "#38bdf8",
-    "#e879f9",
-    "#34d399",
-    "#fbbf24",
-    "#818cf8",
-    "#fb7185",
-    "#22d3ee",
-    "#a3e635",
-    "#c084fc",
-    "#f97316",
-    "#14b8a6",
-    "#8b5cf6",
-    "#ec4899",
-    "#84cc16",
-    "#06b6d4",
-    "#d946ef",
-    "#10b981",
-  ];
-
   const data = $derived(
     Object.entries(stats).map(([name, value]) => ({ name, value })),
   );
 
   let hasMounted = $state(false);
   let interactiveReady = $state(false);
-
-  onMount(() => {
-    hasMounted = true;
-  });
+  onMount(() => (hasMounted = true));
 
   const colors = $derived.by(() => {
-    if (Object.keys(colorMap).length > 0) {
-      let fallbackIdx = 0;
-      return data.map(
-        (d) =>
-          colorMap[d.name] ||
-          FALLBACK_COLORS[fallbackIdx++ % FALLBACK_COLORS.length],
-      );
-    }
-    return FALLBACK_COLORS;
+    if (!Object.keys(colorMap).length) return FALLBACK_COLORS;
+    let idx = 0;
+    return data.map(
+      (d) =>
+        colorMap[d.name] || FALLBACK_COLORS[idx++ % FALLBACK_COLORS.length],
+    );
   });
 
-  const legendClasses = {
-    root: "w-full px-2",
-    swatches: "flex-wrap justify-center",
-    label: "text-xs text-surface-content/70",
-  };
+  const legendPadding = $derived(
+    Math.min(96, 24 + Math.max(1, Math.ceil(data.length / 4)) * 18),
+  );
 
-  const legendPadding = $derived.by(() => {
-    const rows = Math.max(1, Math.ceil(data.length / 4));
-    return Math.min(96, 24 + rows * 18);
-  });
+  const staticPlotClass = $derived(
+    legendPadding <= 42
+      ? "bottom-[42px]"
+      : legendPadding <= 60
+        ? "bottom-[60px]"
+        : legendPadding <= 78
+          ? "bottom-[78px]"
+          : "bottom-[96px]",
+  );
 
-  const staticPlotClass = $derived.by(() => {
-    if (legendPadding <= 42) return "bottom-[42px]";
-    if (legendPadding <= 60) return "bottom-[60px]";
-    if (legendPadding <= 78) return "bottom-[78px]";
-    return "bottom-[96px]";
-  });
-
-  const colorForIndex = (index: number) => colors[index % colors.length];
+  const colorForIndex = (i: number) => colors[i % colors.length];
 
   const staticArcs = $derived.by(() => {
     const arc = d3arc().innerRadius(0).outerRadius(50);
-
     return d3pie<ChartDatum>()
       .value((d: ChartDatum) => d.value)(data)
-      .map((arcDatum: { data: ChartDatum }) => ({
-        path: arc(arcDatum) || "",
-        color: colorForIndex(data.indexOf(arcDatum.data)),
+      .map((a: { data: ChartDatum }) => ({
+        path: arc(a) || "",
+        color: colorForIndex(data.indexOf(a.data)),
       }));
   });
 
@@ -107,8 +68,8 @@
     if (containerHeight > 100) interactiveReady = true;
   };
 
-  const formatDuration = (value: number | null | undefined) =>
-    secondsToDisplay(value ?? 0);
+  const formatDuration = (v: number | null | undefined) =>
+    secondsToDisplay(v ?? 0);
 </script>
 
 <div
@@ -128,7 +89,13 @@
             padding={{ bottom: legendPadding }}
             onresize={handleChartResize}
             props={{
-              legend: { classes: legendClasses },
+              legend: {
+                classes: {
+                  root: "w-full px-2",
+                  swatches: "flex-wrap justify-center",
+                  label: "text-xs text-surface-content/70",
+                },
+              },
               tooltip: { item: { format: formatDuration } },
             }}
           />
@@ -138,7 +105,7 @@
       {#if !interactiveReady}
         <div class="absolute inset-0">
           <div
-            class={`absolute inset-x-0 top-0 flex items-center justify-center ${staticPlotClass}`}
+            class="absolute inset-x-0 top-0 flex items-center justify-center {staticPlotClass}"
           >
             <svg
               class="h-full w-full overflow-visible"
@@ -159,14 +126,14 @@
             class="absolute bottom-0 left-1/2 z-[1] inline-block w-full -translate-x-1/2 px-2"
           >
             <div class="flex flex-wrap justify-center gap-x-4 gap-y-1">
-              {#each data as item, index}
+              {#each data as item, i}
                 <button class="flex cursor-auto gap-1">
                   <div
                     class="h-4 w-4 rounded-full"
-                    style:background-color={colorForIndex(index)}
+                    style:background-color={colorForIndex(i)}
                   ></div>
                   <div
-                    class="whitespace-nowrap text-xs text-surface-content text-surface-content/70"
+                    class="whitespace-nowrap text-xs text-surface-content/70"
                   >
                     {item.name}
                   </div>

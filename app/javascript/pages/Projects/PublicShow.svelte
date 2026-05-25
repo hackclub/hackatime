@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import ProjectStatsContent from "./ProjectStatsContent.svelte";
+  import ProjectHeader from "./components/ProjectHeader.svelte";
   import type { PublicProjectShowProps } from "../../types/index";
   import { profiles } from "../../api";
 
@@ -19,7 +19,9 @@
     branch_stats,
   }: PublicProjectShowProps = $props();
 
-  const profilePath = $derived(profiles.show.path({ username }));
+  const subtitle = $derived(
+    since_date ? `${total_time_label} · Since ${since_date}` : null,
+  );
 </script>
 
 <svelte:head>
@@ -27,22 +29,12 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl">
-  <div class="mb-6">
-    <Link
-      href={profilePath}
-      class="text-sm text-muted transition-colors hover:text-primary"
-    >
-      ← @{username}'s profile
-    </Link>
-    <h1 class="mt-1 text-3xl font-bold text-surface-content">
-      {project_name}
-    </h1>
-    {#if since_date}
-      <p class="mt-1 text-sm text-muted">
-        {total_time_label} · Since {since_date}
-      </p>
-    {/if}
-  </div>
+  <ProjectHeader
+    backHref={profiles.show.path({ username })}
+    backLabel={`← @${username}'s profile`}
+    projectName={project_name}
+    {subtitle}
+  />
 
   <ProjectStatsContent
     {total_time_label}

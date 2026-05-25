@@ -1,5 +1,7 @@
 class ApplicationController < ActionController::Base
   include ErrorReporting
+  include RenderHelpers
+  include AuthHelpers
 
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user
@@ -61,6 +63,17 @@ class ApplicationController < ActionController::Base
     unless user_signed_in?
       redirect_to signin_path(continue: request.fullpath), alert: "Please sign in first!"
     end
+  end
+
+  # Authenticates requests using the shared STATS_API_KEY env var (used by
+  # internal/admin-style API endpoints). Token may come from an Authorization
+  # header ("Bearer <token>") or, when allowed, an `api_key` query param.
+  def authenticate_legacy_stats_api_key!(allow_query_param: true, message: "Unauthorized")
+    expected = ENV["STATS_API_KEY"]
+    return render_unauthorized(message) if expected.blank?
+    token = request.headers["Authorization"]&.split(" ")&.last
+    token ||= params[:api_key] if allow_query_param
+    render_unauthorized(message) unless token.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
   end
 
   def enforce_lockout

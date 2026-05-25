@@ -1,7 +1,5 @@
 class Settings::AppearanceController < Settings::BaseController
-  def show
-    render_appearance
-  end
+  def show = render_appearance
 
   def update_theme
     if @user.update(theme_params)
@@ -14,21 +12,11 @@ class Settings::AppearanceController < Settings::BaseController
 
   private
 
-  def render_appearance(status: :ok)
-    render_settings_page(
-      active_section: "appearance",
-      status: status
-    )
-  end
+  def render_appearance(status: :ok) = render_settings_page(active_section: "appearance", status: status)
 
   def section_props
-    {
-      user: user_props(keys: %i[theme]),
-      options: base_options(keys: %i[themes])
-    }
+    { user: user_props(keys: %i[theme]), options: base_options(keys: %i[themes]) }
   end
 
-  def theme_params
-    params.require(:user).permit(:theme)
-  end
+  def theme_params = params.require(:user).permit(:theme)
 end

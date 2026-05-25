@@ -51,14 +51,10 @@
 </svelte:head>
 
 <div>
-  <!-- Header Section -->
   <div class="mb-6 sm:mb-8">
-    <div class="flex items-center space-x-2">
-      <p class="italic text-sm sm:text-base text-muted m-0">
-        {@html flavor_text}
-      </p>
-    </div>
-
+    <p class="italic text-sm sm:text-base text-muted m-0">
+      {@html flavor_text}
+    </p>
     <h1
       class="font-bold mt-1 sm:mt-2 mb-3 sm:mb-4 text-2xl sm:text-3xl md:text-4xl"
     >
@@ -66,9 +62,7 @@
     </h1>
   </div>
 
-  {#if trust_level_red}
-    <BanNotice />
-  {/if}
+  {#if trust_level_red}<BanNotice />{/if}
 
   {#if show_wakatime_setup_notice}
     <SetupNotice />
@@ -76,49 +70,40 @@
     <GitHubLinkBanner />
   {/if}
 
-  {#snippet dashboardContent(reloading: boolean)}
-    <div class="flex flex-col gap-8" class:opacity-60={reloading}>
-      <div>
-        {#if dashboard_stats?.today_stats}
-          <TodaySentence
-            show_logged_time_sentence={dashboard_stats.today_stats
-              .show_logged_time_sentence}
-            todays_duration_display={dashboard_stats.today_stats
-              .todays_duration_display}
-            todays_languages={dashboard_stats.today_stats.todays_languages}
-            todays_editors={dashboard_stats.today_stats.todays_editors}
-          />
-        {/if}
-      </div>
-
-      {#if dashboard_stats?.filterable_dashboard_data}
-        <Dashboard
-          data={dashboard_stats.filterable_dashboard_data}
-          programmingGoalsProgress={dashboard_stats?.programming_goals_progress ||
-            []}
-          onFiltersChange={refreshDashboardData}
-        />
-      {/if}
-
-      {#if dashboard_stats?.activity_graph}
-        <ActivityGraph data={dashboard_stats.activity_graph} />
-      {/if}
-    </div>
-  {/snippet}
-
   <Deferred data="dashboard_stats">
     {#snippet fallback()}
       <div class="flex flex-col gap-8">
-        <div>
-          <TodaySentenceSkeleton />
-        </div>
+        <TodaySentenceSkeleton />
         <DashboardSkeleton />
         <ActivityGraphSkeleton />
       </div>
     {/snippet}
 
     {#snippet children({ reloading })}
-      {@render dashboardContent(reloading)}
+      <div class="flex flex-col gap-8" class:opacity-60={reloading}>
+        {#if dashboard_stats?.today_stats}
+          {@const t = dashboard_stats.today_stats}
+          <TodaySentence
+            show_logged_time_sentence={t.show_logged_time_sentence}
+            todays_duration_display={t.todays_duration_display}
+            todays_languages={t.todays_languages}
+            todays_editors={t.todays_editors}
+          />
+        {/if}
+
+        {#if dashboard_stats?.filterable_dashboard_data}
+          <Dashboard
+            data={dashboard_stats.filterable_dashboard_data}
+            programmingGoalsProgress={dashboard_stats?.programming_goals_progress ||
+              []}
+            onFiltersChange={refreshDashboardData}
+          />
+        {/if}
+
+        {#if dashboard_stats?.activity_graph}
+          <ActivityGraph data={dashboard_stats.activity_graph} />
+        {/if}
+      </div>
     {/snippet}
   </Deferred>
 </div>

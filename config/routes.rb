@@ -1,7 +1,5 @@
 class AdminLevelConstraint
-  def initialize(*require)
-    @require = require.map(&:to_s)
-  end
+  def initialize(*require) = @require = require.map(&:to_s)
 
   def matches?(request)
     return false unless request.session[:user_id]
@@ -23,9 +21,7 @@ Rails.application.routes.draw do
 
   mount Rswag::Api::Engine => "/api-docs"
   mount Rswag::Ui::Engine => "/api-docs"
-  use_doorkeeper do
-    controllers authorizations: "custom_doorkeeper/authorizations"
-  end
+  use_doorkeeper { controllers authorizations: "custom_doorkeeper/authorizations" }
 
   post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application
   root "static_pages#index"
@@ -40,9 +36,7 @@ Rails.application.routes.draw do
   constraints AdminLevelConstraint.new(:superadmin, :ultraadmin) do
     namespace :admin do
       resources :admin_users, only: [ :index, :update ] do
-        collection do
-          get :search
-        end
+        get :search, on: :collection
       end
       resources :oauth_applications, only: [ :index, :show, :edit, :update ] do
         member do
@@ -83,9 +77,7 @@ Rails.application.routes.draw do
   constraints AdminLevelConstraint.new(:superadmin, :admin, :ultraadmin) do
     namespace :admin do
       resources :deletion_requests, only: [ :index, :show, :new, :create ] do
-        collection do
-          get :confirm
-        end
+        get :confirm, on: :collection
         member do
           post :approve
           post :reject
@@ -97,9 +89,7 @@ Rails.application.routes.draw do
 
   get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
 
-  if Rails.env.development?
-    mount LetterOpenerWeb::Engine, at: "/letter_opener"
-  end
+  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
@@ -115,7 +105,6 @@ Rails.application.routes.draw do
       get :currently_hacking
       get :currently_hacking_count
       get :streak
-      # get :timeline # Removed: Old route for timeline
     end
   end
 
@@ -152,9 +141,7 @@ Rails.application.routes.draw do
   end
 
   constraints AdminLevelConstraint.new(:admin, :superadmin, :ultraadmin) do
-    patch "users/:id/update_trust_level",
-          to: "users#update_trust_level",
-          as: :update_trust_level_user
+    patch "users/:id/update_trust_level", to: "users#update_trust_level", as: :update_trust_level_user
   end
 
   resource :api_key, only: [ :show ], path: "api-key"
@@ -213,9 +200,7 @@ Rails.application.routes.draw do
 
   namespace :my do
     resources :heartbeat_imports, only: [ :create, :show ] do
-      collection do
-        get :wakatime_download_link
-      end
+      get :wakatime_download_link, on: :collection
     end
 
     resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
@@ -225,12 +210,8 @@ Rails.application.routes.draw do
         patch :toggle_share
       end
     end
-    # resource :mailing_address, only: [ :show, :edit ]
-    # get "mailroom", to: "mailroom#index"
     resources :heartbeats, only: [] do
-      collection do
-        post :export
-      end
+      post :export, on: :collection
     end
   end
 
@@ -273,10 +254,6 @@ Rails.application.routes.draw do
 
       # External service Slack OAuth integration
       post "external/slack/oauth", to: "external_slack#create_user"
-
-      resources :ysws_programs, only: [ :index ] do
-        post :claim, on: :collection
-      end
 
       namespace :my do
         get "heartbeats/most_recent", to: "heartbeats#most_recent"
@@ -329,9 +306,7 @@ Rails.application.routes.draw do
 
         # Permissions management
         resources :permissions, only: [ :index ] do
-          collection do
-            patch ":id", to: "permissions#update", as: :update
-          end
+          patch ":id", to: "permissions#update", as: :update, on: :collection
         end
 
         # Timeline
