@@ -45,6 +45,8 @@
         return "Docs/Index";
       case "Extensions":
         return "Extensions/Index";
+      case "Settings":
+        return "Users/Settings/Profile";
       case "My OAuth Apps":
         return "OAuthApplications/Index";
       default:
