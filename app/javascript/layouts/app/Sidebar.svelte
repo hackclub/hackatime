@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import { Link, router } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import UserSummary from "./UserSummary.svelte";
   import type { LayoutNav, NavLink } from "../../types";
@@ -30,10 +30,34 @@
   const linkCls = (active?: boolean, tool = "") =>
     `group flex min-h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${active ? "nav-link-active bg-primary text-on-primary font-bold" : "text-surface-content hover:bg-darkless hover:text-primary hover:shadow-[0_1px_0_rgba(255,255,255,0.06)]"}${tool ? ` ${tool}` : ""}`;
 
-  const cacheFor = (link: NavLink): string | [string, string] =>
-    link.label === "Docs" || link.label === "Extensions"
-      ? "10m"
-      : ["0s", "30s"];
+  const cacheFor = (link: NavLink): string =>
+    link.label === "Docs" || link.label === "Extensions" ? "10m" : "30s";
+
+  const pageComponentFor = (link: NavLink): string | null => {
+    switch (link.label) {
+      case "Home":
+        return nav.user_present ? "Home/SignedIn" : "Home/SignedOut";
+      case "Leaderboards":
+        return "Leaderboards/Index";
+      case "Projects":
+        return "Projects/Index";
+      case "Docs":
+        return "Docs/Index";
+      case "Extensions":
+        return "Extensions/Index";
+      case "My OAuth Apps":
+        return "OAuthApplications/Index";
+      default:
+        return null;
+    }
+  };
+
+  function preloadPageComponent(link: NavLink) {
+    const component = pageComponentFor(link);
+    if (!component) return;
+
+    void router.resolveComponent(component);
+  }
 
   const adminSections = $derived([
     { links: nav.dev_links, tool: "dev-tool" },
@@ -67,6 +91,9 @@
       href={link.href || "#"}
       prefetch
       cacheFor={cacheFor(link)}
+      onpointerenter={() => preloadPageComponent(link)}
+      onpointerdown={() => preloadPageComponent(link)}
+      onfocus={() => preloadPageComponent(link)}
       onclick={handleNavLinkClick}
       class={linkCls(link.active, tool)}>{link.label}{@render badge(link)}</Link
     >

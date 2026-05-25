@@ -17,6 +17,7 @@
     popular_editors: [string, string][];
     all_editors: [string, string][];
   } = $props();
+  let allEditorsOpen = $state(false);
 
   const QUICK_LINKS: {
     href: string;
@@ -103,6 +104,8 @@
         <img
           src={`/images/editor-icons/${slug}-128.png`}
           alt={name}
+          loading="lazy"
+          decoding="async"
           class="w-10 h-10 mb-2"
         />
         <span class="text-sm text-surface-content">{name}</span>
@@ -110,7 +113,7 @@
     {/each}
   </div>
 
-  <details class="group">
+  <details class="group" bind:open={allEditorsOpen}>
     <summary
       class="flex items-center justify-between p-4 bg-surface border border-surface-200 rounded-lg cursor-pointer hover:border-surface-300 transition-colors select-none"
     >
@@ -123,25 +126,29 @@
         class="text-muted group-open:rotate-180 transition-transform"
       />
     </summary>
-    <div
-      class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-3 p-4 bg-surface border border-surface-200 rounded-lg select-none"
-    >
-      {#each all_editors as [name, slug]}
-        <Link
-          href={`/docs/editors/${slug}`}
-          class="flex flex-col items-center p-2 rounded hover:bg-surface-200 transition-colors"
-        >
-          <img
-            src={`/images/editor-icons/${slug}-128.png`}
-            alt={name}
-            class="w-8 h-8 mb-1"
-          />
-          <span class="text-xs text-surface-content text-center leading-tight"
-            >{name}</span
+    {#if allEditorsOpen}
+      <div
+        class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-3 p-4 bg-surface border border-surface-200 rounded-lg select-none"
+      >
+        {#each all_editors as [name, slug]}
+          <Link
+            href={`/docs/editors/${slug}`}
+            class="flex flex-col items-center p-2 rounded hover:bg-surface-200 transition-colors"
           >
-        </Link>
-      {/each}
-    </div>
+            <img
+              src={`/images/editor-icons/${slug}-128.png`}
+              alt={name}
+              loading="lazy"
+              decoding="async"
+              class="w-8 h-8 mb-1"
+            />
+            <span class="text-xs text-surface-content text-center leading-tight"
+              >{name}</span
+            >
+          </Link>
+        {/each}
+      </div>
+    {/if}
   </details>
 
   <div class="mt-8 p-4 bg-surface border border-surface-200 rounded-lg">

@@ -8,7 +8,7 @@ class InertiaController < ApplicationController
   def inertia_layout_props
     {
       nav: inertia_nav_props,
-      footer: inertia_footer_props,
+      footer: InertiaRails.once(expires_in: 30.seconds) { inertia_footer_props },
       theme: inertia_theme_props,
       csrf_token: form_authenticity_token,
       hide_sidebar: false,
@@ -177,5 +177,9 @@ class InertiaController < ApplicationController
       }
     end
     { count: users.size, users: users, interval: 30_000 }
+  end
+
+  def eager_page_payload?
+    !request.inertia?
   end
 end

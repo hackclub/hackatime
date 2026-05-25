@@ -1,4 +1,6 @@
 class My::ProjectRepoMappingsController < InertiaController
+  inertia_config ssr_enabled: false
+
   layout "inertia", only: [ :index, :show ]
 
   before_action :ensure_current_user
@@ -19,7 +21,7 @@ class My::ProjectRepoMappingsController < InertiaController
       from: params[:from],
       to: params[:to],
       interval_label: helpers.human_interval_name(selected_interval, from: params[:from], to: params[:to]),
-      total_projects: projects_data.is_a?(Hash) ? projects_data[:projects].size : project_count(archived),
+      total_projects: projects_data.is_a?(Hash) ? projects_data[:projects].size : 4,
       projects_data: projects_data
     }
   end
@@ -150,6 +152,7 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def projects_data_for_index(archived:)
     return empty_projects_payload unless current_user.heartbeats.exists?
+    return InertiaRails.defer { projects_payload(archived: archived) } unless eager_page_payload?
     return rollup_projects_payload(archived: archived) if rollup_projects_path?
 
     InertiaRails.defer { projects_payload(archived: archived) }
@@ -239,13 +242,6 @@ class My::ProjectRepoMappingsController < InertiaController
       formatted_languages: repository.formatted_languages,
       last_commit_ago: last_commit_at ? "#{helpers.time_ago_in_words(last_commit_at)} ago" : nil
     }
-  end
-
-  def project_count(archived)
-    archived_names = current_user.project_repo_mappings.archived.pluck(:project_name)
-    hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
-    projects = hb.select(:project).distinct.pluck(:project)
-    projects.count { |proj| archived_names.include?(proj) == archived }
   end
 
   def project_detail_payload(project_name)

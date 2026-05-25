@@ -18,12 +18,54 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_inertia_component "Home/SignedIn"
       assert_nil inertia_page["deferredProps"]
+      assert_equal "layout.footer", inertia_page.dig("onceProps", "layout.footer", "prop")
 
       dashboard_stats = inertia_page.dig("props", "dashboard_stats")
 
       assert_equal 240, dashboard_stats.dig("filterable_dashboard_data", "total_time")
       assert_equal "2026-04-14", dashboard_stats.dig("activity_graph", "end_date")
       assert_equal false, dashboard_stats.dig("today_stats", "show_logged_time_sentence")
+    end
+  end
+
+  test "signed in homepage defers dashboard stats on inertia navigation even when rollups exist" do
+    travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+      user = User.create!(timezone: "UTC")
+      sign_in_as(user)
+
+      create_heartbeat(user, "2026-04-13 10:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      create_heartbeat(user, "2026-04-13 10:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      DashboardRollupRefreshService.new(user: user).call
+
+      get root_path
+      version = inertia_page["version"]
+
+      get root_path, headers: {
+        "X-Inertia" => "true",
+        "X-Requested-With" => "XMLHttpRequest",
+        "X-Inertia-Version" => version,
+        "X-Inertia-Except-Once-Props" => "layout.footer"
+      }
+
+      assert_response :success
+
+      page = JSON.parse(response.body)
+      assert_equal "Home/SignedIn", page["component"]
+      assert_equal [ "dashboard_stats" ], page.dig("deferredProps", "default")
+      assert_nil page.dig("props", "dashboard_stats")
+      assert_nil page.dig("props", "layout", "footer")
+
+      get root_path, headers: {
+        "X-Inertia" => "true",
+        "X-Requested-With" => "XMLHttpRequest",
+        "X-Inertia-Version" => version,
+        "Purpose" => "prefetch",
+        "X-Inertia-Except-Once-Props" => "layout.footer"
+      }
+
+      prefetched_page = JSON.parse(response.body)
+      assert_equal [ "dashboard_stats" ], prefetched_page.dig("deferredProps", "default")
+      assert_nil prefetched_page.dig("props", "dashboard_stats")
     end
   end
 

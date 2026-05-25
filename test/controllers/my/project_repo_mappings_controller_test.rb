@@ -41,6 +41,44 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
   end
 
+  test "index defers available project rollups on inertia navigation" do
+    user = User.create!(timezone: "UTC")
+    user.project_repo_mappings.create!(project_name: "alpha")
+    create_project_heartbeats(user, "alpha")
+    DashboardRollupRefreshService.new(user: user).call
+
+    sign_in_as(user)
+    get my_projects_path
+    version = inertia_page["version"]
+
+    get my_projects_path, headers: {
+      "X-Inertia" => "true",
+      "X-Requested-With" => "XMLHttpRequest",
+      "X-Inertia-Version" => version,
+      "X-Inertia-Except-Once-Props" => "layout.footer"
+    }
+
+    assert_response :success
+
+    page = JSON.parse(response.body)
+    assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
+    assert_nil page.dig("props", "projects_data")
+    assert_equal 4, page.dig("props", "total_projects")
+    assert_nil page.dig("props", "layout", "footer")
+
+    get my_projects_path, headers: {
+      "X-Inertia" => "true",
+      "X-Requested-With" => "XMLHttpRequest",
+      "X-Inertia-Version" => version,
+      "Purpose" => "prefetch",
+      "X-Inertia-Except-Once-Props" => "layout.footer"
+    }
+
+    prefetched_page = JSON.parse(response.body)
+    assert_equal [ "projects_data" ], prefetched_page.dig("deferredProps", "default")
+    assert_nil prefetched_page.dig("props", "projects_data")
+  end
+
   test "index still defers interval-filtered project data" do
     user = User.create!(timezone: "UTC")
     user.project_repo_mappings.create!(project_name: "alpha")

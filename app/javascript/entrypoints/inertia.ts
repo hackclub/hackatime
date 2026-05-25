@@ -85,6 +85,10 @@ createInertiaApp({
     form: {
       forceIndicesArrayFormatInFormData: false,
     },
+    prefetch: {
+      cacheFor: "30s",
+      hoverDelay: 0,
+    },
   },
 });
 

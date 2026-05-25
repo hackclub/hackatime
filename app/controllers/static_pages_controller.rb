@@ -1,6 +1,8 @@
 class StaticPagesController < InertiaController
   include DashboardData
 
+  inertia_config ssr_enabled: -> { current_user.nil? }
+
   layout "inertia", only: %i[index wakatime_alternative]
 
   def index
@@ -121,7 +123,7 @@ class StaticPagesController < InertiaController
   end
 
   def signed_in_props
-    dashboard_stats = initial_dashboard_stats_prop
+    dashboard_stats = initial_dashboard_stats_prop if eager_page_payload?
     {
       flavor_text: @flavor_text.to_s,
       trust_level_red: current_user&.trust_level == "red",
