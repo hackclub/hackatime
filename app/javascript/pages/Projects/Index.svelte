@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Deferred, Link, router } from "@inertiajs/svelte";
+  import { Link, router } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
@@ -16,7 +16,6 @@
     interval = "",
     from = "",
     to = "",
-    total_projects,
     projects_data,
   }: {
     page_title: string;
@@ -27,8 +26,7 @@
     from?: string | null;
     to?: string | null;
     interval_label: string;
-    total_projects: number;
-    projects_data?: {
+    projects_data: {
       total_time_label: string;
       has_activity: boolean;
       projects: ProjectCardType[];
@@ -61,13 +59,6 @@
     confirmLabel: string;
   } | null>(null);
 
-  const skeletonCount = $derived(
-    Math.min(
-      Math.max(Number.isFinite(total_projects) ? total_projects : 0, 4),
-      10,
-    ),
-  );
-
   const changeInterval = (
     nextInterval: string,
     nextFrom: string,
@@ -77,14 +68,7 @@
     if (show_archived) q.set("show_archived", "true");
     const qs = q.toString();
     router.visit(qs ? `${indexPath}?${qs}` : indexPath, {
-      only: [
-        "projects_data",
-        "interval",
-        "from",
-        "to",
-        "interval_label",
-        "total_projects",
-      ],
+      only: ["projects_data", "interval", "from", "to", "interval_label"],
       preserveState: true,
       preserveScroll: true,
       replace: true,
@@ -179,102 +163,66 @@
     />
   </div>
 
-  <Deferred data="projects_data">
-    {#snippet fallback()}
-      <section class="mt-6 animate-pulse">
-        <div class="h-7 w-80 rounded bg-darkless"></div>
-        <div
-          class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
+  <section class="mt-6">
+    <p class="text-lg text-surface-content">
+      {#if projects_data.has_activity}
+        You've spent
+        <span class="font-semibold text-primary"
+          >{projects_data.total_time_label}</span
         >
-          {#each Array.from( { length: skeletonCount }, ) as _unused, index (index)}
-            <div
-              class="min-h-36 rounded-2xl border border-surface-200 bg-dark p-5"
-            >
-              <div class="h-6 w-28 rounded bg-darkless"></div>
-              <div class="mt-3 h-7 w-20 rounded bg-darkless"></div>
-              <div class="mt-4 h-4 w-full rounded bg-darkless"></div>
-              <div class="mt-2 h-4 w-3/4 rounded bg-darkless"></div>
-              <div class="mt-4 h-8 w-full rounded bg-darkless"></div>
-            </div>
-          {/each}
-        </div>
-      </section>
-    {/snippet}
-
-    {#snippet children({ reloading })}
-      {#if projects_data}
-        <section
-          class="mt-6 transition-opacity duration-200 ease-out"
-          class:opacity-60={reloading}
-        >
-          <p class="text-lg text-surface-content">
-            {#if projects_data.has_activity}
-              You've spent
-              <span class="font-semibold text-primary"
-                >{projects_data.total_time_label}</span
-              >
-              coding across {show_archived ? "archived" : "active"} projects.
-            {:else}
-              You haven't logged any time for this interval yet.
-            {/if}
-          </p>
-
-          {#if !github_connected}
-            <div
-              class="mt-4 rounded-xl border border-yellow/30 bg-yellow/10 p-4"
-            >
-              <p class="text-base font-medium text-surface-content">
-                Heads up! You can't link projects to GitHub until you connect
-                your account.
-              </p>
-              <div class="mt-3 flex flex-wrap gap-2">
-                <Button href={githubAuthPath} native class="w-full sm:w-fit">
-                  Sign in with GitHub
-                </Button>
-                <Button
-                  href={settingsPath}
-                  variant="surface"
-                  class="w-full sm:w-fit"
-                >
-                  Open settings
-                </Button>
-              </div>
-            </div>
-          {/if}
-
-          {#if projects_data.projects.length == 0}
-            <div
-              class="mt-4 rounded-xl border border-surface-200 bg-dark p-8 text-center"
-            >
-              <p class="text-muted">
-                {show_archived
-                  ? "No archived projects match this filter."
-                  : "No active projects match this filter."}
-              </p>
-            </div>
-          {:else}
-            <div
-              class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
-            >
-              {#each projects_data.projects as project (project.id)}
-                <ProjectCard
-                  {project}
-                  showArchived={show_archived}
-                  {intervalQueryString}
-                  onEditMapping={openMappingEditor}
-                  onArchive={openStatusChangeModal}
-                  onShowBrokenInfo={() => (brokenNameModalOpen = true)}
-                  editing={editingProjectKey === project.project_key}
-                  bind:repoUrlDraft
-                  onCancelEdit={closeMappingEditor}
-                />
-              {/each}
-            </div>
-          {/if}
-        </section>
+        coding across {show_archived ? "archived" : "active"} projects.
+      {:else}
+        You haven't logged any time for this interval yet.
       {/if}
-    {/snippet}
-  </Deferred>
+    </p>
+
+    {#if !github_connected}
+      <div class="mt-4 rounded-xl border border-yellow/30 bg-yellow/10 p-4">
+        <p class="text-base font-medium text-surface-content">
+          Heads up! You can't link projects to GitHub until you connect your
+          account.
+        </p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <Button href={githubAuthPath} native class="w-full sm:w-fit">
+            Sign in with GitHub
+          </Button>
+          <Button href={settingsPath} variant="surface" class="w-full sm:w-fit">
+            Open settings
+          </Button>
+        </div>
+      </div>
+    {/if}
+
+    {#if projects_data.projects.length == 0}
+      <div
+        class="mt-4 rounded-xl border border-surface-200 bg-dark p-8 text-center"
+      >
+        <p class="text-muted">
+          {show_archived
+            ? "No archived projects match this filter."
+            : "No active projects match this filter."}
+        </p>
+      </div>
+    {:else}
+      <div
+        class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
+      >
+        {#each projects_data.projects as project (project.id)}
+          <ProjectCard
+            {project}
+            showArchived={show_archived}
+            {intervalQueryString}
+            onEditMapping={openMappingEditor}
+            onArchive={openStatusChangeModal}
+            onShowBrokenInfo={() => (brokenNameModalOpen = true)}
+            editing={editingProjectKey === project.project_key}
+            bind:repoUrlDraft
+            onCancelEdit={closeMappingEditor}
+          />
+        {/each}
+      </div>
+    {/if}
+  </section>
 </div>
 
 <Modal

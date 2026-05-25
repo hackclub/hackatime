@@ -1,7 +1,7 @@
 require "test_helper"
 
 class StaticPagesControllerTest < ActionDispatch::IntegrationTest
-  test "signed in homepage includes dashboard stats immediately when rollups exist" do
+  test "signed in homepage includes dashboard stats inline when rollups exist" do
     travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
       user = User.create!(timezone: "UTC")
       sign_in_as(user)
@@ -28,7 +28,7 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "signed in homepage defers dashboard stats on inertia navigation even when rollups exist" do
+  test "signed in homepage includes dashboard stats inline on inertia navigation" do
     travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
       user = User.create!(timezone: "UTC")
       sign_in_as(user)
@@ -51,21 +51,9 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
 
       page = JSON.parse(response.body)
       assert_equal "Home/SignedIn", page["component"]
-      assert_equal [ "dashboard_stats" ], page.dig("deferredProps", "default")
-      assert_nil page.dig("props", "dashboard_stats")
+      assert_nil page["deferredProps"]
+      assert_equal 60, page.dig("props", "dashboard_stats", "filterable_dashboard_data", "total_time")
       assert_nil page.dig("props", "layout", "footer")
-
-      get root_path, headers: {
-        "X-Inertia" => "true",
-        "X-Requested-With" => "XMLHttpRequest",
-        "X-Inertia-Version" => version,
-        "Purpose" => "prefetch",
-        "X-Inertia-Except-Once-Props" => "layout.footer"
-      }
-
-      prefetched_page = JSON.parse(response.body)
-      assert_equal [ "dashboard_stats" ], prefetched_page.dig("deferredProps", "default")
-      assert_nil prefetched_page.dig("props", "dashboard_stats")
     end
   end
 
@@ -85,20 +73,9 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_inertia_component "Home/SignedIn"
-      assert_equal [ "dashboard_stats" ], inertia_page.dig("deferredProps", "default")
+      assert_nil inertia_page["deferredProps"]
 
-      get root_path, headers: {
-        "X-Inertia" => "true",
-        "X-Requested-With" => "XMLHttpRequest",
-        "X-Inertia-Version" => inertia_page["version"],
-        "X-Inertia-Partial-Component" => "Home/SignedIn",
-        "X-Inertia-Partial-Data" => "dashboard_stats"
-      }
-
-      assert_response :success
-
-      page = JSON.parse(response.body)
-      dashboard_stats = page.dig("props", "dashboard_stats")
+      dashboard_stats = inertia_page.dig("props", "dashboard_stats")
       stats = dashboard_stats["filterable_dashboard_data"]
       today_stats = dashboard_stats["today_stats"]
       activity_graph = dashboard_stats["activity_graph"]

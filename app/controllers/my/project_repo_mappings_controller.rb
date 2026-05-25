@@ -1,6 +1,4 @@
 class My::ProjectRepoMappingsController < InertiaController
-  inertia_config ssr_enabled: false
-
   layout "inertia", only: [ :index, :show ]
 
   before_action :ensure_current_user
@@ -10,7 +8,6 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def index
     archived = show_archived?
-    projects_data = projects_data_for_index(archived: archived)
 
     render inertia: "Projects/Index", props: {
       page_title: "My Projects",
@@ -21,8 +18,7 @@ class My::ProjectRepoMappingsController < InertiaController
       from: params[:from],
       to: params[:to],
       interval_label: helpers.human_interval_name(selected_interval, from: params[:from], to: params[:to]),
-      total_projects: projects_data.is_a?(Hash) ? projects_data[:projects].size : 4,
-      projects_data: projects_data
+      projects_data: projects_data_for_index(archived: archived)
     }
   end
 
@@ -152,10 +148,9 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def projects_data_for_index(archived:)
     return empty_projects_payload unless current_user.heartbeats.exists?
-    return InertiaRails.defer { projects_payload(archived: archived) } unless eager_page_payload?
     return rollup_projects_payload(archived: archived) if rollup_projects_path?
 
-    InertiaRails.defer { projects_payload(archived: archived) }
+    projects_payload(archived: archived)
   end
 
   def empty_projects_payload
@@ -170,7 +165,7 @@ class My::ProjectRepoMappingsController < InertiaController
       .to_a
 
     DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds) if DashboardRollup.dirty?(current_user.id) || rollups.empty?
-    return InertiaRails.defer { projects_payload(archived: archived) } if rollups.empty?
+    return projects_payload(archived: archived) if rollups.empty?
 
     mappings_by_name, archived_names, latest_user_commit_at_by_repo_id = projects_context(archived: archived)
 

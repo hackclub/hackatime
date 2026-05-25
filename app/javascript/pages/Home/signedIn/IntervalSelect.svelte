@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import type { Component } from "svelte";
   import FilterShell from "./FilterShell.svelte";
 
@@ -52,29 +51,11 @@
 
   const isDefault = $derived(!selected && !from && !to);
 
-  function loadBody() {
-    if (Body) return;
+  $effect(() => {
+    if (!open || Body) return;
     import("./IntervalSelectBody.svelte").then((m) => {
       Body = m.default;
     });
-  }
-
-  onMount(() => {
-    const w = window as unknown as {
-      requestIdleCallback?: (
-        cb: () => void,
-        opts?: { timeout?: number },
-      ) => void;
-    };
-    if (typeof w.requestIdleCallback === "function") {
-      w.requestIdleCallback(loadBody, { timeout: 2000 });
-    } else {
-      setTimeout(loadBody, 300);
-    }
-  });
-
-  $effect(() => {
-    if (open) loadBody();
   });
 
   function handleApply(interval: string, f: string, t: string) {

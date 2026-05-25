@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import type { Component, Snippet } from "svelte";
 
   let {
@@ -41,29 +40,11 @@
 
   let Inner = $state<Component<InnerProps> | null>(null);
 
-  function load() {
-    if (Inner) return;
+  $effect(() => {
+    if (!open || Inner) return;
     import("./ModalInner.svelte").then((m) => {
       Inner = m.default;
     });
-  }
-
-  $effect(() => {
-    if (open) load();
-  });
-
-  onMount(() => {
-    const w = window as unknown as {
-      requestIdleCallback?: (
-        cb: () => void,
-        opts?: { timeout?: number },
-      ) => void;
-    };
-    if (typeof w.requestIdleCallback === "function") {
-      w.requestIdleCallback(load, { timeout: 3000 });
-    } else {
-      setTimeout(load, 500);
-    }
   });
 </script>
 

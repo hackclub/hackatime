@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Deferred, router } from "@inertiajs/svelte";
-  import type { Component } from "svelte";
+  import { router } from "@inertiajs/svelte";
   import type {
     ActivityGraphData,
     FilterableDashboardData,
@@ -10,22 +9,9 @@
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
   import SetupNotice from "./signedIn/SetupNotice.svelte";
-  import TodaySentenceSkeleton from "./signedIn/TodaySentenceSkeleton.svelte";
-  import DashboardSkeleton from "./signedIn/DashboardSkeleton.svelte";
-  import ActivityGraphSkeleton from "./signedIn/ActivityGraphSkeleton.svelte";
-
-  type DashboardStats = {
-    filterable_dashboard_data: FilterableDashboardData;
-    activity_graph: ActivityGraphData;
-    today_stats: TodayStats;
-    programming_goals_progress: ProgrammingGoalProgress[];
-  };
-
-  type DashboardContentProps = {
-    dashboardStats: DashboardStats;
-    reloading: boolean;
-    onFiltersChange: (search: string) => void;
-  };
+  import TodaySentence from "./signedIn/TodaySentence.svelte";
+  import Dashboard from "./signedIn/Dashboard.svelte";
+  import ActivityGraph from "./signedIn/ActivityGraph.svelte";
 
   let {
     flavor_text,
@@ -38,20 +24,13 @@
     trust_level_red: boolean;
     show_wakatime_setup_notice: boolean;
     github_uid_blank: boolean;
-    dashboard_stats?: DashboardStats;
+    dashboard_stats: {
+      filterable_dashboard_data: FilterableDashboardData;
+      activity_graph: ActivityGraphData;
+      today_stats: TodayStats;
+      programming_goals_progress: ProgrammingGoalProgress[];
+    };
   } = $props();
-
-  let DashboardContent = $state<Component<DashboardContentProps> | null>(null);
-  let loadingDashboardContent = false;
-
-  $effect(() => {
-    if (!dashboard_stats || DashboardContent || loadingDashboardContent) return;
-
-    loadingDashboardContent = true;
-    import("./signedIn/DashboardContent.svelte").then((module) => {
-      DashboardContent = module.default;
-    });
-  });
 
   function refreshDashboardData(search: string) {
     router.visit(`${window.location.pathname}${search}`, {
@@ -63,14 +42,6 @@
     });
   }
 </script>
-
-{#snippet dashboardSkeleton()}
-  <div class="flex flex-col gap-8">
-    <TodaySentenceSkeleton />
-    <DashboardSkeleton />
-    <ActivityGraphSkeleton />
-  </div>
-{/snippet}
 
 <svelte:head>
   <title>Dashboard - Hackatime</title>
@@ -96,21 +67,28 @@
     <GitHubLinkBanner />
   {/if}
 
-  <Deferred data="dashboard_stats">
-    {#snippet fallback()}
-      {@render dashboardSkeleton()}
-    {/snippet}
+  <div class="flex flex-col gap-8">
+    {#if dashboard_stats.today_stats}
+      {@const t = dashboard_stats.today_stats}
+      <TodaySentence
+        show_logged_time_sentence={t.show_logged_time_sentence}
+        todays_duration_display={t.todays_duration_display}
+        todays_languages={t.todays_languages}
+        todays_editors={t.todays_editors}
+      />
+    {/if}
 
-    {#snippet children({ reloading })}
-      {#if DashboardContent && dashboard_stats}
-        <DashboardContent
-          dashboardStats={dashboard_stats}
-          {reloading}
-          onFiltersChange={refreshDashboardData}
-        />
-      {:else}
-        {@render dashboardSkeleton()}
-      {/if}
-    {/snippet}
-  </Deferred>
+    {#if dashboard_stats.filterable_dashboard_data}
+      <Dashboard
+        data={dashboard_stats.filterable_dashboard_data}
+        programmingGoalsProgress={dashboard_stats.programming_goals_progress ||
+          []}
+        onFiltersChange={refreshDashboardData}
+      />
+    {/if}
+
+    {#if dashboard_stats.activity_graph}
+      <ActivityGraph data={dashboard_stats.activity_graph} />
+    {/if}
+  </div>
 </div>

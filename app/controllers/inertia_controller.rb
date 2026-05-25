@@ -178,8 +178,4 @@ class InertiaController < ApplicationController
     end
     { count: users.size, users: users, interval: 30_000 }
   end
-
-  def eager_page_payload?
-    !request.inertia?
-  end
 end
