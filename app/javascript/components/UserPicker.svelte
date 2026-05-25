@@ -4,7 +4,7 @@
     display_name: string;
     avatar_url: string | null;
     created_at: string | null;
-    username: string;
+    username: string | null;
     email: string | null;
     leaderboard_shadowbanned?: boolean;
     leaderboard_shadowban_reason?: string | null;

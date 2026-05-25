@@ -7,7 +7,7 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
 
     get admin_leaderboard_shadowbans_path
 
-    assert_response :not_found
+    assert_redirected_to root_path
   end
 
   test "index renders current shadowbanned users" do

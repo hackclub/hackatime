@@ -86,19 +86,6 @@ class UserTest < ActiveSupport::TestCase
     assert user.active_remote_heartbeat_import_run?
   end
 
-  test "leaderboard_visible excludes leaderboard shadowbanned users" do
-    visible = User.create!(timezone: "UTC", username: "visible_lb_user")
-    hidden = User.create!(
-      timezone: "UTC",
-      username: "hidden_lb_user",
-      leaderboard_shadowbanned: true,
-      leaderboard_shadowban_reason: "test shadowban"
-    )
-
-    assert_includes User.leaderboard_visible, visible
-    assert_not_includes User.leaderboard_visible, hidden
-  end
-
   test "set_leaderboard_shadowban requires privileged actor and reason" do
     actor = User.create!(timezone: "UTC", admin_level: :superadmin)
     user = User.create!(timezone: "UTC", username: "shadowban_target")

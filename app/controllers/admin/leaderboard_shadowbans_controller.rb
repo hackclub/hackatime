@@ -57,6 +57,7 @@ class Admin::LeaderboardShadowbansController < InertiaController
   def require_shadowban_admin!
     unless current_user&.can_leaderboard_shadowban_users?
       redirect_to root_path, alert: "You are not authorized to access this page."
+      return
     end
   end
 

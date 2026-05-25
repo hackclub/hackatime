@@ -223,6 +223,9 @@ class User < ApplicationRecord
       leaderboard_shadowbanned: banned,
       leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil
     )
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.logger.error("set_leaderboard_shadowban failed for user #{id}: #{e.class}: #{e.message}")
+    false
   end
 
   has_many :heartbeats
@@ -260,7 +263,6 @@ class User < ApplicationRecord
       )
       .distinct
   }
-  scope :leaderboard_visible, -> { where(leaderboard_shadowbanned: false) }
 
   has_many :trust_level_audit_logs, dependent: :destroy
   has_many :trust_level_changes_made, class_name: "TrustLevelAuditLog", foreign_key: "changed_by_id", dependent: :destroy
