@@ -161,7 +161,7 @@ class ProfilesController < InertiaController
   def profile_summary_payload
     { display_name: @user.display_name_override.presence || @user.display_name,
       username: @user.username || "", avatar_url: @user.avatar_url,
-      trust_level: @user.trust_level, bio: @user.profile_bio,
+      trust_level: @user.public_trust_level, bio: @user.profile_bio,
       social_links: profile_social_links, github_profile_url: @user.github_profile_url,
       github_username: @user.github_username,
       streak_days: (@profile_visible ? @user.streak_days : nil) }

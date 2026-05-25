@@ -94,8 +94,7 @@ class Api::V1::StatsController < ApplicationController
       summary[:unique_total_seconds] = unique_heartbeat_seconds(heartbeats)
     end
 
-    trust_level = @user.trust_level
-    trust_level = "blue" if trust_level == "yellow"
+    trust_level = @user.public_trust_level
 
     summary[:streak] = @user.streak_days
     render json: {
@@ -128,9 +127,9 @@ class Api::V1::StatsController < ApplicationController
 
     query = User.where(slack_uid: id).or(User.where(username: id))
     query = query.or(User.where(id: id)) if id.match?(/^\d+$/)
-    level = query.pick(:trust_level)
-    return render_not_found_json("User not found") unless level
-    level = "blue" if level == "yellow"
+    raw_level = query.pick(:trust_level)
+    return render_not_found_json("User not found") unless raw_level
+    level = User.mask_trust_level(raw_level)
     render json: { trust_level: level, trust_value: User.trust_levels[level] }
   end
 

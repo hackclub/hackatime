@@ -43,6 +43,12 @@ class User < ApplicationRecord
     yellow: 3    # suspected (invisible to user)
   }
 
+  def self.mask_trust_level(level)
+    level.to_s == "yellow" ? "blue" : level.to_s
+  end
+
+  def public_trust_level = self.class.mask_trust_level(trust_level)
+
   enum :admin_level, {
     default: 0,   # pleebs
     superadmin: 1,
