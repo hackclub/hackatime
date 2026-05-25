@@ -53,6 +53,8 @@
   };
 
   function preloadPageComponent(link: NavLink) {
+    if (link.active) return;
+
     const component = pageComponentFor(link);
     if (!component) return;
 
@@ -89,7 +91,7 @@
   {:else if link.inertia}
     <Link
       href={link.href || "#"}
-      prefetch
+      prefetch={!link.active}
       cacheFor={cacheFor(link)}
       onpointerenter={() => preloadPageComponent(link)}
       onpointerdown={() => preloadPageComponent(link)}
