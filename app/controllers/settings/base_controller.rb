@@ -54,7 +54,7 @@ class Settings::BaseController < InertiaController
     hackatime_extension_text_type: ->(u) { u.hackatime_extension_text_type },
     show_goals_in_statusbar: ->(u) { u.show_goals_in_statusbar },
     allow_public_stats_lookup: ->(u) { u.allow_public_stats_lookup },
-    trust_level: ->(u) { u.trust_level },
+    trust_level: ->(u) { u.public_trust_level },
     can_request_deletion: ->(u) { u.can_request_deletion? },
     github_uid: ->(u) { u.github_uid },
     github_username: ->(u) { u.github_username },

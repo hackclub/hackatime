@@ -5,10 +5,11 @@ module Api
         skip_before_action :ensure_no_ban, only: :index
 
         def index
-          exposed_level = current_user.trust_level
           app = doorkeeper_token&.application
-          unless app&.verified? && app&.confidential?
-            exposed_level = "blue" if exposed_level == "yellow"
+          exposed_level = if app&.verified? && app&.confidential?
+            current_user.trust_level
+          else
+            current_user.public_trust_level
           end
 
           render json: {
