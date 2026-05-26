@@ -2,26 +2,6 @@ module UserFuzzySearch
   extend ActiveSupport::Concern
 
   class_methods do
-    # Ranked fuzzy search across id/slack_uid/username/github_username/slack_username/email.
-    # Returns a Relation with two virtual attributes per record:
-    #
-    #   * `rank_score`    — weighted match score: id/slack_uid exact = 1000,
-    #                       field exact = 100, prefix = 50, contains = 10
-    #   * `matched_email` — the email_addresses row that best matches the query
-    #                       (exact > prefix > contains; NULL if the user matched
-    #                       on a non-email field).
-    #
-    # Pass the raw user-supplied term. The method uses ILIKE for case-insensitive
-    # matching but compares `users.slack_uid` and the numeric `users.id` lookup
-    # case-sensitively, so callers must NOT pre-downcase or mixed-case Slack UIDs
-    # miss the 1000-point exact path.
-    #
-    # Implementation note: the candidate-ID lookup uses UNION over per-column
-    # index-using subqueries rather than a flat OR across joined tables, because
-    # PG can't `BitmapOr` across tables joined with OR. Each subquery hits its
-    # column's gin_trgm_ops index (users.{username,slack_username,github_username},
-    # email_addresses.email) or B-tree index (users.slack_uid, users.id) — added
-    # in 20260526120000_add_trgm_indexes_for_admin_user_search.rb.
     def fuzzy_ranked_search(term, limit: 20)
       term = term.to_s.strip
       return none if term.blank?
