@@ -10,11 +10,6 @@ module Api
 
       def authenticate_admin_api_key!
         authenticate_or_request_with_http_token do |token, _options|
-          # Indexed lookup on `admin_api_keys.token` (unique B-tree) instead of
-          # loading every active key into Ruby and iterating with secure_compare.
-          # The previous shape paid ~30-60ms per request (full-table read + N AR
-          # instantiations + N+1 on .user). The B-tree `=` comparison happens
-          # inside PG and any timing leak is well below network jitter.
           @admin_api_key = AdminApiKey.includes(:user).find_by(token: token, revoked_at: nil)
           next false unless @admin_api_key
 
