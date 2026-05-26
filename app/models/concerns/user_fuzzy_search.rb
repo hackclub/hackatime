@@ -62,7 +62,8 @@ module UserFuzzySearch
         .select(Arel.sql(
           "users.*, " \
           "(#{rank_sql}) AS rank_score, " \
-          "(#{matched_email_sql}) AS matched_email"
+          "(#{matched_email_sql}) AS matched_email, " \
+          "(MAX(email_addresses.id) IS NOT NULL) AS has_any_email"
         ))
         .where("users.id IN (#{candidates_sql})")
         .group("users.id")

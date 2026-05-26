@@ -33,12 +33,16 @@ module Api
         def search_users_fuzzy
           return render_error("bro dont have a query") if params[:query].blank?
 
+          # select_all applies AR's type map so id/rank_score come back typed
+          # (Integer/Numeric) instead of the raw strings `connection.execute`
+          # would return, matching the Swagger schema. Still cheaper than full
+          # AR object instantiation since we skip model construction overhead.
           relation = User.fuzzy_ranked_search(params[:query], limit: 10)
-          rows = User.connection.execute(relation.to_sql).to_a
+          rows = User.connection.select_all(relation.to_sql).to_a
 
           render json: {
             users: rows.filter_map { |row|
-              next unless row["matched_email"] # only users with an email
+              next unless row["has_any_email"] # gate: preserve legacy INNER JOIN behavior
               {
                 id: row["id"],
                 username: row["username"],
