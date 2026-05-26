@@ -356,10 +356,6 @@ module Api
 
         private
 
-        # Pick the email that best matches the query so the response reflects
-        # the address the rank score came from (mirrors the per-email scoring
-        # tiers in UserFuzzySearch). Falls back to the first email if none
-        # match; returns nil if the user has no emails.
         def best_matching_email(user, lower_query)
           emails = user.email_addresses.filter_map(&:email)
           return nil if emails.empty?
