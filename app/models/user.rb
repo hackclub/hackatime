@@ -166,14 +166,6 @@ class User < ApplicationRecord
 
   has_many :heartbeat_import_runs, dependent: :destroy
 
-  # Unranked, unlimited fuzzy lookup for cross-table filtering (admin endpoints
-  # that pluck the IDs to filter a different table). Use `fuzzy_ranked_search`
-  # instead when you need ranked top-N results with rank_score / matched_email.
-  #
-  # Matches: username, slack_username, github_username, email (substring), plus
-  # exact user id when the term is purely numeric. Per-column subqueries are
-  # UNION'd so each hits its own gin_trgm_ops index — a flat OR across joined
-  # tables defeats BitmapOr and forces a seq scan.
   scope :search_identity, ->(term) {
     term = term.to_s.strip
     return none if term.blank?
