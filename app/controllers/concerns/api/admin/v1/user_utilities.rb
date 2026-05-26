@@ -33,22 +33,25 @@ module Api
         def search_users_fuzzy
           return render_error("bro dont have a query") if params[:query].blank?
 
-          users = User.fuzzy_ranked_search(params[:query], limit: 10).includes(:email_addresses)
-          lower_query = params[:query].to_s.strip.downcase
+          # Execute the relation's SQL directly to skip ActiveRecord object
+          # instantiation on this per-keystroke endpoint. `matched_email` is
+          # picked in SQL by UserFuzzySearch so there's no second query for
+          # email_addresses.
+          relation = User.fuzzy_ranked_search(params[:query], limit: 10)
+          rows = User.connection.execute(relation.to_sql).to_a
 
           render json: {
-            users: users.filter_map { |user|
-              email = best_matching_email(user, lower_query)
-              next unless email # preserve historical INNER JOIN behavior (only users with an email)
+            users: rows.filter_map { |row|
+              next unless row["matched_email"] # preserve historical INNER JOIN behavior (only users with an email)
               {
-                id: user.id,
-                username: user.username,
-                slack_username: user.slack_username,
-                github_username: user.github_username,
-                slack_avatar_url: user.slack_avatar_url,
-                github_avatar_url: user.github_avatar_url,
-                email: email,
-                rank_score: user.rank_score
+                id: row["id"],
+                username: row["username"],
+                slack_username: row["slack_username"],
+                github_username: row["github_username"],
+                slack_avatar_url: row["slack_avatar_url"],
+                github_avatar_url: row["github_avatar_url"],
+                email: row["matched_email"],
+                rank_score: row["rank_score"]
               }
             }
           }
@@ -355,20 +358,6 @@ module Api
         end
 
         private
-
-        def best_matching_email(user, lower_query)
-          emails = user.email_addresses.filter_map(&:email)
-          return nil if emails.empty?
-
-          emails.max_by do |email|
-            e = email.downcase
-            if e == lower_query then 3
-            elsif e.start_with?(lower_query) then 2
-            elsif e.include?(lower_query) then 1
-            else 0
-            end
-          end
-        end
 
         def can_write!
           render_forbidden("no perms lmaooo") unless current_user.admin_level.in?(AuthHelpers::ADMIN_LEVELS)
