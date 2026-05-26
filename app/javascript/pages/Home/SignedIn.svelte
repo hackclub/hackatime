@@ -1,4 +1,11 @@
+<script module lang="ts">
+  // The server samples a new flavor text on every request, so navigating back
+  // to Home would otherwise show a different motto each time :/
+  let cachedFlavorText: string | undefined;
+</script>
+
 <script lang="ts">
+  import { untrack } from "svelte";
   import { Deferred, router } from "@inertiajs/svelte";
   import type {
     ActivityGraphData,
@@ -35,6 +42,9 @@
     };
   } = $props();
 
+  // Keep the first flavour we get
+  const displayedFlavorText = untrack(() => (cachedFlavorText ??= flavor_text));
+
   function refreshDashboardData(search: string) {
     router.visit(`${window.location.pathname}${search}`, {
       only: ["dashboard_stats"],
@@ -53,7 +63,7 @@
 <div>
   <div class="mb-6 sm:mb-8">
     <p class="italic text-sm sm:text-base text-muted m-0">
-      {@html flavor_text}
+      {@html displayedFlavorText}
     </p>
     <h1
       class="font-bold mt-1 sm:mt-2 mb-3 sm:mb-4 text-2xl sm:text-3xl md:text-4xl"
