@@ -239,26 +239,25 @@ module DashboardData
       %i[language editor operating_system category].each do |field|
         next if result["singular_#{field}"]
 
+        # For editor/operating_system, group by the display label up front!
+        bucket_key = case field
+        when :language then ->(raw) { raw.to_s.categorize_language }
+        when :editor then ->(raw) { helpers.display_editor_name(raw) }
+        when :operating_system then ->(raw) { helpers.display_os_name(raw) }
+        else ->(raw) { raw.to_s }
+        end
+
         stats = grouped_durations.fetch(field, {}).each_with_object({}) do |(raw, duration), agg|
           next if raw.to_s.blank?
 
-          key = if field == :language
-            raw.to_s.categorize_language
-          elsif %i[editor operating_system].include?(field)
-            raw.to_s.downcase
-          else
-            raw.to_s
-          end
+          key = bucket_key.call(raw)
+          next if key.to_s.blank?
+
           agg[key] = (agg[key] || 0) + duration
         end
 
         result["#{field}_stats"] = stats.sort_by { |_, duration| -duration }.first(10).map { |key, value|
-          label = case field
-          when :editor then helpers.display_editor_name(key)
-          when :operating_system then helpers.display_os_name(key)
-          when :language then helpers.display_language_name(key)
-          else key
-          end
+          label = field == :language ? helpers.display_language_name(key) : key
           [ label, value ]
         }.to_h
       end
