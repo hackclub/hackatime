@@ -247,40 +247,28 @@ select {
   animation: spin 1s linear infinite;
 }
 
-.activity-cell--0 {
-  background-color: color-mix(
+:root {
+  --activity-cell-0: color-mix(
     in oklab,
     var(--color-surface-content) 12%,
     var(--color-surface)
   );
-}
-
-.activity-cell--1 {
-  background-color: color-mix(
+  --activity-cell-1: color-mix(
     in oklab,
     var(--color-success) 35%,
     var(--color-surface)
   );
-}
-
-.activity-cell--2 {
-  background-color: color-mix(
+  --activity-cell-2: color-mix(
     in oklab,
     var(--color-success) 50%,
     var(--color-surface)
   );
-}
-
-.activity-cell--3 {
-  background-color: color-mix(
+  --activity-cell-3: color-mix(
     in oklab,
     var(--color-success) 68%,
     var(--color-surface)
   );
-}
-
-.activity-cell--4 {
-  background-color: color-mix(
+  --activity-cell-4: color-mix(
     in oklab,
     var(--color-success) 85%,
     var(--color-surface)

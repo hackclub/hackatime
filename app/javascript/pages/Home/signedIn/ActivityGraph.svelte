@@ -38,29 +38,25 @@
     return out;
   }
 
-  function intensityClass(seconds: number, busiest: number): string {
-    if (seconds < 60) return "activity-cell--0";
+  function intensityLevel(seconds: number, busiest: number): number {
+    if (seconds < 60) return 0;
     const r = seconds / busiest;
-    if (r >= 0.8) return "activity-cell--4";
-    if (r >= 0.5) return "activity-cell--3";
-    if (r >= 0.2) return "activity-cell--2";
-    return "activity-cell--1";
+    if (r >= 0.8) return 4;
+    if (r >= 0.5) return 3;
+    if (r >= 0.2) return 2;
+    return 1;
   }
 
-  function activityColors(): Record<string, string> {
-    const probe = document.createElement("div");
-    probe.style.position = "absolute";
-    probe.style.visibility = "hidden";
-    document.body.appendChild(probe);
+  function activityColors(): string[] {
+    const styles = getComputedStyle(canvas);
+    const colors: string[] = [];
 
-    const colors: Record<string, string> = {};
     for (let level = 0; level <= 4; level++) {
-      probe.className = `activity-cell--${level}`;
-      colors[`activity-cell--${level}`] =
-        getComputedStyle(probe).backgroundColor;
+      colors[level] = styles
+        .getPropertyValue(`--activity-cell-${level}`)
+        .trim();
     }
 
-    probe.remove();
     return colors;
   }
 
@@ -85,7 +81,7 @@
       const column = Math.floor(index / rows);
       const row = index % rows;
       context.fillStyle =
-        colors[intensityClass(seconds, data.busiest_day_seconds)];
+        colors[intensityLevel(seconds, data.busiest_day_seconds)];
       context.beginPath();
       context.roundRect(
         column * (cellSize + cellGap),
