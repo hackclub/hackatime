@@ -122,3 +122,7 @@ Files under `app/javascript/api/` are gitignored and regenerated on every build:
 - **CI**: regenerated in the `frontend` and `test_system` jobs before Vite/svelte-check run; the `test` job triggers regeneration via Rails boot.
 
 After adding a route to `EXPORTED_ROUTES`, just refresh the page (or run `docker compose exec web bin/rake js_from_routes:generate`) — there's nothing to commit.
+
+## Searching for users
+- Need to show users to a human (search UI, picker)? → `fuzzy_ranked_search`
+- Need to find IDs to filter something else by? → `search_identity`

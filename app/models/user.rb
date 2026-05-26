@@ -3,6 +3,7 @@ class User < ApplicationRecord
 
   include TimezoneRegions
   include UserThemeConfiguration
+  include UserFuzzySearch
   include ::OauthAuthentication
   include ::SlackIntegration
   include ::GithubIntegration
@@ -166,21 +167,22 @@ class User < ApplicationRecord
   has_many :heartbeat_import_runs, dependent: :destroy
 
   scope :search_identity, ->(term) {
-    term = term.to_s.strip.downcase
+    term = term.to_s.strip
     return none if term.blank?
 
-    pattern = "%#{sanitize_sql_like(term)}%"
+    contains = "%#{sanitize_sql_like(term)}%"
+    numeric_id = (term.match?(/\A\d+\z/) ? term.to_i : nil)
 
-    left_joins(:email_addresses)
-      .where(
-        "LOWER(users.username) LIKE :p OR " \
-        "LOWER(users.slack_username) LIKE :p OR " \
-        "LOWER(users.github_username) LIKE :p OR " \
-        "LOWER(email_addresses.email) LIKE :p OR " \
-        "CAST(users.id AS TEXT) LIKE :p",
-        p: pattern
-      )
-      .distinct
+    parts = [
+      "SELECT id FROM users WHERE username ILIKE :contains",
+      "SELECT id FROM users WHERE slack_username ILIKE :contains",
+      "SELECT id FROM users WHERE github_username ILIKE :contains",
+      "SELECT user_id AS id FROM email_addresses WHERE email ILIKE :contains"
+    ]
+    parts << "SELECT id FROM users WHERE id = #{numeric_id}" if numeric_id
+
+    candidates_sql = sanitize_sql_for_conditions([ parts.join(" UNION "), { contains: contains } ])
+    where("users.id IN (#{candidates_sql})")
   }
 
   has_many :trust_level_audit_logs, dependent: :destroy
