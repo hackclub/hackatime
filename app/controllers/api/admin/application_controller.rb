@@ -10,7 +10,7 @@ module Api
 
       def authenticate_admin_api_key!
         authenticate_or_request_with_http_token do |token, _options|
-          @admin_api_key = AdminApiKey.includes(:user).find_by(token: token, revoked_at: nil)
+          @admin_api_key = AdminApiKey.active.includes(:user).find_by(token: token)
           next false unless @admin_api_key
 
           @current_user = @admin_api_key.user
