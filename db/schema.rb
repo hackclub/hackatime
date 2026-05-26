@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_18_170142) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -121,7 +121,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["email"], name: "index_email_addresses_on_email", unique: true
-    t.index ["email"], name: "index_email_addresses_on_email_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id"], name: "index_email_addresses_on_user_id"
   end
 
@@ -151,36 +150,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
     t.datetime "updated_at", null: false
     t.text "value"
     t.index ["feature_key", "key", "value"], name: "index_flipper_gates_on_feature_key_and_key_and_value", unique: true
-  end
-
-  create_table "github_app_installations", force: :cascade do |t|
-    t.bigint "account_github_id"
-    t.string "account_login", null: false
-    t.string "account_type", null: false
-    t.datetime "created_at", null: false
-    t.bigint "installation_id", null: false
-    t.datetime "suspended_at"
-    t.datetime "updated_at", null: false
-    t.bigint "user_id"
-    t.index ["account_github_id"], name: "index_github_app_installations_on_account_github_id"
-    t.index ["installation_id"], name: "index_github_app_installations_on_installation_id", unique: true
-    t.index ["user_id"], name: "index_github_app_installations_on_user_id"
-  end
-
-  create_table "github_app_repositories", force: :cascade do |t|
-    t.boolean "archived", default: false, null: false
-    t.datetime "created_at", null: false
-    t.string "full_name", null: false
-    t.bigint "github_app_installation_id", null: false
-    t.bigint "github_repo_id", null: false
-    t.string "html_url", null: false
-    t.boolean "private", default: false, null: false
-    t.bigint "repository_id"
-    t.datetime "updated_at", null: false
-    t.index ["full_name"], name: "index_github_app_repositories_on_full_name"
-    t.index ["github_app_installation_id"], name: "index_github_app_repositories_on_github_app_installation_id"
-    t.index ["github_repo_id"], name: "index_github_app_repositories_on_github_repo_id", unique: true
-    t.index ["repository_id"], name: "index_github_app_repositories_on_repository_id"
   end
 
   create_table "goals", force: :cascade do |t|
@@ -329,13 +298,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_heartbeat_import_sources_on_user_id", unique: true
-  end
-
-  create_table "heartbeat_user_agents", primary_key: "user_agent", id: :text, force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.float "first_seen_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["user_agent"], name: "index_heartbeat_user_agents_trgm", opclass: :gin_trgm_ops, using: :gin
   end
 
   create_table "heartbeats", force: :cascade do |t|
@@ -684,8 +646,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
-    t.text "leaderboard_shadowban_reason"
-    t.boolean "leaderboard_shadowbanned", default: false, null: false
     t.text "profile_bio"
     t.string "profile_bluesky_url"
     t.string "profile_discord_url"
@@ -709,14 +669,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
     t.boolean "weekly_summary_email_enabled", default: true, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
-    t.index ["github_username"], name: "index_users_on_github_username_trgm", opclass: :gin_trgm_ops, using: :gin
-    t.index ["leaderboard_shadowbanned"], name: "index_users_on_leaderboard_shadowbanned", where: "(leaderboard_shadowbanned = true)"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
-    t.index ["slack_username"], name: "index_users_on_slack_username_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"
     t.index ["username"], name: "index_users_on_username"
-    t.index ["username"], name: "index_users_on_username_trgm", opclass: :gin_trgm_ops, using: :gin
   end
 
   create_table "versions", force: :cascade do |t|
@@ -757,7 +713,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
-  add_foreign_key "github_app_repositories", "github_app_installations"
   add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
