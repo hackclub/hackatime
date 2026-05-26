@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Checkmark from "hcicons-svelte/checkmark";
+
   interface Props {
     currentStep: number;
   }
@@ -11,6 +13,13 @@
     { number: 3, label: "Plugin" },
     { number: 4, label: "Finish" },
   ];
+
+  const circleClass = (n: number) =>
+    currentStep > n
+      ? "bg-green border-green text-darker"
+      : currentStep === n
+        ? "bg-primary border-primary text-on-primary"
+        : "bg-dark border-darkless text-secondary";
 </script>
 
 <div class="mb-10">
@@ -22,27 +31,12 @@
     {#each steps as step}
       <div class="flex flex-col items-center gap-2 z-10">
         <div
-          class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors duration-200
-          {currentStep > step.number
-            ? 'bg-green border-green text-darker'
-            : currentStep === step.number
-              ? 'bg-primary border-primary text-on-primary'
-              : 'bg-dark border-darkless text-secondary'}"
+          class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors duration-200 {circleClass(
+            step.number,
+          )}"
         >
           {#if currentStep > step.number}
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="3"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+            <Checkmark size={20} />
           {:else}
             {step.number}
           {/if}

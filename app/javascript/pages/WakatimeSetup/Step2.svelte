@@ -2,7 +2,12 @@
   import { Link } from "@inertiajs/svelte";
   import Stepper from "./Stepper.svelte";
 
-  const editors = [
+  const editors: Array<{
+    id: string;
+    name: string;
+    icon: string | null;
+    emoji?: string;
+  }> = [
     {
       id: "vscode",
       name: "VS Code",

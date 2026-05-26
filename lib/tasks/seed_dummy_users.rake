@@ -6,6 +6,11 @@ namespace :seed do
                 operating_system machine user_agent].freeze
 
   task dummy_users: :environment do
+    # Faker is in the :development, :test group, so require it inside the task
+    # body rather than at file load — otherwise any rake invocation in
+    # production (e.g. migrations) would LoadError on this file.
+    require "faker"
+
     src = User.find(ENV.fetch("FROM", 2).to_i).heartbeats.limit(500).to_a
     # most times the second user is the dev, as first place is taken up by seed file
     # if you wanna manually pick a different user, use this:

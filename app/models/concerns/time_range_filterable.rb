@@ -34,62 +34,18 @@ module TimeRangeFilterable
       human_name: "Last 12 Months",
       calculate: -> { (Time.current - 12.months).beginning_of_day..Time.current.end_of_day }
     },
-    flavortown: {
-      human_name: "Flavortown",
-      calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2025-12-15").beginning_of_day
-          to = Time.parse("2026-04-30").end_of_day
-          from.beginning_of_day..to.end_of_day
-        end
-      }
-    },
-    summer_of_making: {
-      human_name: "Summer of Making",
-      calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2025-06-16").beginning_of_day
-          to = Time.parse("2025-09-30").end_of_day
-          from.beginning_of_day..to.end_of_day
-        end
-      }
-    },
-    high_seas: {
-      human_name: "High Seas",
-      calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2024-10-30").beginning_of_day
-          to = Time.parse("2025-01-31").end_of_day
-          from.beginning_of_day..to.end_of_day
-        end
-      }
-    },
-    low_skies: {
-      human_name: "Low Skies",
-      calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2024-10-3").beginning_of_day
-          to = Time.parse("2025-01-12").end_of_day
-          from.beginning_of_day..to.end_of_day
-        end
-      }
-    },
-    scrapyard: {
-      human_name: "Scrapyard Global",
-      calculate: -> {
-        timezone = "America/New_York"
-        Time.use_zone(timezone) do
-          from = Time.parse("2025-03-14").beginning_of_day
-          to = Time.parse("2025-03-17").end_of_day
-          from.beginning_of_day..to.end_of_day
-        end
-      }
-    }
+    flavortown:       { human_name: "Flavortown",       calculate: -> { TimeRangeFilterable.event_range("2025-12-15", "2026-04-30") } },
+    summer_of_making: { human_name: "Summer of Making", calculate: -> { TimeRangeFilterable.event_range("2025-06-16", "2025-09-30") } },
+    high_seas:        { human_name: "High Seas",        calculate: -> { TimeRangeFilterable.event_range("2024-10-30", "2025-01-31") } },
+    low_skies:        { human_name: "Low Skies",        calculate: -> { TimeRangeFilterable.event_range("2024-10-3",  "2025-01-12") } },
+    scrapyard:        { human_name: "Scrapyard Global", calculate: -> { TimeRangeFilterable.event_range("2025-03-14", "2025-03-17") } }
   }.freeze
+
+  def self.event_range(from_date, to_date, timezone: "America/New_York")
+    Time.use_zone(timezone) do
+      Time.zone.parse(from_date).beginning_of_day..Time.zone.parse(to_date).end_of_day
+    end
+  end
 
   class_methods do
     def time_range_filterable_field(field_name)

@@ -1,17 +1,15 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import Section from "./Section.svelte";
 
   let {
     hoursTracked,
     usersTracked,
-  }: {
-    hoursTracked: string;
-    usersTracked: string;
-  } = $props();
+  }: { hoursTracked: string; usersTracked: string } = $props();
 </script>
 
-<section class="py-24 w-full bg-primary">
-  <div class="max-w-[1100px] mx-auto px-6 text-center">
+<Section bg="bg-primary" py="py-24">
+  <div class="text-center">
     <h2
       class="text-3xl md:text-4xl font-semibold text-on-primary tracking-tight mb-4"
     >
@@ -31,4 +29,4 @@
       Free to use, forever · Open source (MIT)
     </div>
   </div>
-</section>
+</Section>

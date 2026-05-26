@@ -13,14 +13,9 @@
 </script>
 
 <div
-  class={`
-    flex min-w-0 flex-col justify-start p-4 rounded-xl border transition-all duration-200 h-full
-    ${
-      highlight
-        ? "bg-primary/10 border-primary/30"
-        : "bg-surface-100/30 border-surface-200 hover:border-surface-300"
-    }
-  `}
+  class="flex min-w-0 flex-col justify-start p-4 rounded-xl border transition-all duration-200 h-full {highlight
+    ? 'bg-primary/10 border-primary/30'
+    : 'bg-surface-100/30 border-surface-200 hover:border-surface-300'}"
 >
   <div
     class="text-secondary/80 text-xs font-medium uppercase tracking-wider mb-2"
@@ -28,7 +23,10 @@
     {label}
   </div>
   <div
-    class={`font-bold text-surface-content wrap-break-word ${String(value).length > 15 ? "text-lg" : "text-xl"}`}
+    class="font-bold text-surface-content wrap-break-word {String(value)
+      .length > 15
+      ? 'text-lg'
+      : 'text-xl'}"
   >
     {value || "—"}
   </div>

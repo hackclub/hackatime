@@ -1,5 +1,13 @@
 <script lang="ts">
-  const EXTENSIONS = [
+  import Download from "hcicons-svelte/download";
+
+  const EXTENSIONS: {
+    name: string;
+    source: string;
+    description: string;
+    install: string;
+    buttonLabel?: string;
+  }[] = [
     {
       name: "Hackatime Desktop",
       source: "https://github.com/hackclub/hackatime-desktop",
@@ -24,9 +32,7 @@
   ];
 </script>
 
-<svelte:head>
-  <title>Extensions - Hackatime</title>
-</svelte:head>
+<svelte:head><title>Extensions - Hackatime</title></svelte:head>
 
 <div>
   <div class="mb-6 sm:mb-8">
@@ -44,46 +50,26 @@
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {#each EXTENSIONS as extension}
+    {#each EXTENSIONS as ext}
       <div
         class="flex flex-col bg-surface border border-surface-200 rounded-lg p-5 hover:border-surface-300 transition-colors"
       >
-        <div class="flex justify-between items-start mb-1">
-          <h2 class="text-xl font-bold text-surface-content">
-            {extension.name}
-          </h2>
-        </div>
-
+        <h2 class="text-xl font-bold text-surface-content mb-1">{ext.name}</h2>
         <p class="text-muted text-sm leading-relaxed mb-6 flex-1">
-          {extension.description}
+          {ext.description}
         </p>
-
         <div class="grid grid-cols-2 gap-3 mt-auto">
           <a
-            href={extension.install}
+            href={ext.install}
             target="_blank"
             rel="noopener noreferrer"
             class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-primary text-on-primary font-medium text-sm hover:opacity-90 transition-opacity"
           >
-            <span>{extension.buttonLabel ?? "Install"}</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
-                points="7 10 12 15 17 10"
-              /><line x1="12" x2="12" y1="15" y2="3" /></svg
-            >
+            <span>{ext.buttonLabel ?? "Install"}</span>
+            <Download size={16} />
           </a>
-
           <a
-            href={extension.source}
+            href={ext.source}
             target="_blank"
             rel="noopener noreferrer"
             class="flex items-center justify-center gap-2 px-4 py-2 rounded bg-surface-200 text-surface-content font-medium text-sm hover:bg-surface-300 transition-colors"

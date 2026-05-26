@@ -1,7 +1,13 @@
 class AnonymizeUserService < ApplicationService
-  def self.call(user)
-    new(user).call
-  end
+  ANONYMIZE_FIELDS = %i[
+    slack_uid slack_username slack_avatar_url slack_access_token
+    github_uid github_username github_avatar_url github_access_token
+    hca_id hca_access_token country_code deprecated_name display_name_override
+    profile_bio profile_github_url profile_twitter_url profile_bluesky_url
+    profile_linkedin_url profile_discord_url profile_website_url
+  ].freeze
+
+  def self.call(user) = new(user).call
 
   def initialize(user)
     @user = user
@@ -9,8 +15,11 @@ class AnonymizeUserService < ApplicationService
 
   def call
     ActiveRecord::Base.transaction do
-      preserve_emails_for_ban_tracking
-      anonymize_user_data
+      user.email_addresses.update_all(user_id: user.id, source: EmailAddress.sources[:preserved_for_deletion])
+      user.update!(ANONYMIZE_FIELDS.index_with { nil }.merge(
+        slack_scopes: [], hca_scopes: [],
+        username: "deleted_user_#{user.id}", uses_slack_status: false
+      ))
       destroy_associated_records
     end
   rescue StandardError => e
@@ -22,62 +31,21 @@ class AnonymizeUserService < ApplicationService
 
   attr_reader :user
 
-  def preserve_emails_for_ban_tracking
-    user.email_addresses.update_all(
-      user_id: user.id,
-      source: EmailAddress.sources[:preserved_for_deletion]
-    )
-  end
-
-  def anonymize_user_data
-    user.update!(
-      slack_uid: nil,
-      slack_username: nil,
-      slack_avatar_url: nil,
-      slack_access_token: nil,
-      slack_scopes: [],
-      github_uid: nil,
-      github_username: nil,
-      github_avatar_url: nil,
-      github_access_token: nil,
-      hca_id: nil,
-      hca_access_token: nil,
-      hca_scopes: [],
-      username: "deleted_user_#{user.id}",
-      uses_slack_status: false,
-      country_code: nil,
-      deprecated_name: nil,
-      display_name_override: nil,
-      profile_bio: nil,
-      profile_github_url: nil,
-      profile_twitter_url: nil,
-      profile_bluesky_url: nil,
-      profile_linkedin_url: nil,
-      profile_discord_url: nil,
-      profile_website_url: nil
-    )
-  end
-
   def destroy_associated_records
     user.api_keys.destroy_all
     user.admin_api_keys.destroy_all
     user.sign_in_tokens.destroy_all
     user.email_verification_requests.destroy_all
-    # (for now at least) the tables still *exist* but we just removed the model files etc
-    # so we need to delete the records ourselves.
-    ActiveRecord::Base.connection.execute(
-      ActiveRecord::Base.sanitize_sql([ "DELETE FROM wakatime_mirrors WHERE user_id = ?", user.id ])
-    )
-    ActiveRecord::Base.connection.execute(
-      ActiveRecord::Base.sanitize_sql([ "DELETE FROM heartbeat_import_sources WHERE user_id = ?", user.id ])
-    )
+    # tables still *exist* but model files were removed; delete records manually.
+    %w[wakatime_mirrors heartbeat_import_sources].each do |t|
+      ActiveRecord::Base.connection.execute(
+        ActiveRecord::Base.sanitize_sql([ "DELETE FROM #{t} WHERE user_id = ?", user.id ])
+      )
+    end
     user.heartbeat_import_runs.destroy_all
     user.project_repo_mappings.destroy_all
     user.goals.destroy_all
-
-    # tombstone
     Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)
-
     user.access_grants.destroy_all
     user.access_tokens.destroy_all
   end

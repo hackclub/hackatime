@@ -33,13 +33,8 @@ class User < ApplicationRecord
   attribute :default_timezone_leaderboard, :boolean, default: true
   attribute :show_goals_in_statusbar, :boolean, default: true
 
-  def country_name
-    ISO3166::Country.new(country_code).common_name
-  end
-
-  def country_subregion
-    ISO3166::Country.new(country_code).subregion
-  end
+  def country_name = ISO3166::Country.new(country_code).common_name
+  def country_subregion = ISO3166::Country.new(country_code).subregion
 
   enum :trust_level, {
     blue: 0,     # unscored
@@ -47,6 +42,12 @@ class User < ApplicationRecord
     green: 2,    # trusted
     yellow: 3    # suspected (invisible to user)
   }
+
+  def self.mask_trust_level(level)
+    level.to_s == "yellow" ? "blue" : level.to_s
+  end
+
+  def public_trust_level = self.class.mask_trust_level(trust_level)
 
   enum :admin_level, {
     default: 0,   # pleebs
@@ -86,125 +87,63 @@ class User < ApplicationRecord
     return nil if id.blank?
 
     numeric_id = id.to_i if id.match?(/^\d+$/)
-
-    relation = where(slack_uid: id)
-      .or(where(hca_id: id))
-      .or(where(username: id))
+    relation = where(slack_uid: id).or(where(hca_id: id)).or(where(username: id))
     relation = where(id: numeric_id).or(relation) if numeric_id
 
     candidates = relation.to_a
-
-    if numeric_id
-      match = candidates.find { |u| u.id == numeric_id }
-      return match if match
-    end
-
-    candidates.find { |u| u.slack_uid == id } ||
-      candidates.find { |u| u.hca_id == id } ||
-      candidates.find { |u| u.username == id }
+    lookup_order = [
+      numeric_id && ->(u) { u.id == numeric_id },
+      ->(u) { u.slack_uid == id },
+      ->(u) { u.hca_id == id },
+      ->(u) { u.username == id }
+    ].compact
+    lookup_order.each { |matcher| match = candidates.find(&matcher); return match if match }
+    nil
   end
 
-  def can_convict_users?
-    admin_level_superadmin? || admin_level_ultraadmin?
-  end
-
-  def admin_level_rank
-    ADMIN_LEVEL_RANK[admin_level.to_s] || 0
-  end
+  def can_convict_users? = admin_level_superadmin? || admin_level_ultraadmin?
+  def admin_level_rank = ADMIN_LEVEL_RANK[admin_level.to_s] || 0
 
   # True if `self` is allowed to set `target_user`'s admin_level to `new_level`.
-  #
-  # Rules (defense-in-depth — controllers should also check, but the model is
-  # the last line of defense):
-  #   * Only superadmin/ultraadmin can change anyone's admin_level at all.
-  #   * Cannot change your own level (no self-promotion).
-  #   * You must strictly outrank the target's CURRENT level (so a superadmin
-  #     cannot demote/promote a peer superadmin or any ultraadmin).
-  #   * You must be at or above the rank you're granting (so a superadmin
-  #     cannot grant ultraadmin).
-  #   * Granting `ultraadmin` requires `ultraadmin`.
+  # Rules: only superadmin+ can change admin_level; no self-change; actor must
+  # strictly outrank target's current level and be at/above the rank being
+  # granted; granting `ultraadmin` requires `ultraadmin`.
   def can_change_admin_level_of?(target_user, new_level)
-    return false unless target_user.is_a?(User)
-    return false if target_user == self
     return false unless ADMIN_LEVEL_RANK.key?(new_level.to_s)
     return false unless admin_level_superadmin? || admin_level_ultraadmin?
-
-    target_rank = ADMIN_LEVEL_RANK[target_user.admin_level.to_s] || 0
-    new_rank    = ADMIN_LEVEL_RANK[new_level.to_s] || 0
-    actor_rank  = admin_level_rank
-
-    return false unless actor_rank > target_rank
-    return false unless actor_rank >= new_rank
+    return false unless can_act_on?(target_user)
+    return false unless admin_level_rank >= (ADMIN_LEVEL_RANK[new_level.to_s] || 0)
     return false if new_level.to_s == "ultraadmin" && !admin_level_ultraadmin?
 
     true
   end
 
   # True if `self` is allowed to set `target_user`'s trust_level to `new_level`.
-  #
-  # Rules:
-  #   * Only admin/superadmin/ultraadmin can change trust at all.
-  #   * Cannot change your own trust.
-  #   * You must strictly outrank the target's admin_level (so a superadmin
-  #     cannot convict another superadmin or any ultraadmin; an admin cannot
-  #     touch any superadmin/ultraadmin).
-  #   * Setting `red` (convicted) requires `can_convict_users?` (i.e.
-  #     superadmin or ultraadmin).
+  # Rules: only admin+ can change trust; no self-change; actor must strictly
+  # outrank target; setting `red` requires `can_convict_users?`.
   def can_change_trust_of?(target_user, new_level)
-    return false unless target_user.is_a?(User)
     return false unless self.class.trust_levels.key?(new_level.to_s)
     return false unless admin_level.in?(%w[admin superadmin ultraadmin])
-    return false if target_user == self
-
-    target_rank = ADMIN_LEVEL_RANK[target_user.admin_level.to_s] || 0
-    actor_rank  = admin_level_rank
-
-    return false unless actor_rank > target_rank
+    return false unless can_act_on?(target_user)
     return false if new_level.to_s == "red" && !can_convict_users?
 
     true
   end
 
-  # Change a user's admin_level. `changed_by_user` is required and must be
-  # authorized to make the change (see `can_change_admin_level_of?`). Returns
-  # false on any authorization failure or invalid level.
-  def set_admin_level(level, changed_by_user:)
-    return false unless changed_by_user.is_a?(User)
-    return false unless level.present? && self.class.admin_levels.key?(level.to_s)
-    return false unless changed_by_user.can_change_admin_level_of?(self, level.to_s)
+  # Change a user's admin_level. Returns false on auth failure or invalid level.
+  def set_admin_level(level, changed_by_user:) = change_level!(:admin_level, level, changed_by_user: changed_by_user)
 
-    previous_level = admin_level
-
-    if previous_level != level.to_s
-      update!(admin_level: level.to_s)
-    end
-
-    true
-  end
-
-  # Change a user's trust_level. `changed_by_user` is required and must be
-  # authorized to make the change (see `can_change_trust_of?`). Returns false
-  # on any authorization failure or invalid level.
+  # Change a user's trust_level. Returns false on auth failure or invalid level.
   def set_trust(level, changed_by_user:, reason: nil, notes: nil)
-    return false unless changed_by_user.is_a?(User)
-    return false unless level.present? && self.class.trust_levels.key?(level.to_s)
-    return false unless changed_by_user.can_change_trust_of?(self, level.to_s)
-
-    previous_level = trust_level
-
-    if previous_level != level.to_s
+    change_level!(:trust_level, level, changed_by_user: changed_by_user) do |previous_level, new_level|
       trust_level_audit_logs.create!(
         changed_by: changed_by_user,
         previous_trust_level: previous_level,
-        new_trust_level: level.to_s,
+        new_trust_level: new_level,
         reason: reason,
         notes: notes
       )
-
-      update!(trust_level: level)
     end
-
-    true
   end
   # ex: .set_trust(:green, changed_by_user: admin) or set_trust(:red, changed_by_user: admin)
 
@@ -259,17 +198,9 @@ class User < ApplicationRecord
            foreign_key: :resource_owner_id,
            dependent: :delete_all
 
-  def streak_days
-    @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
-  end
-
-  def active_deletion_request
-    deletion_requests.active.order(created_at: :desc).first
-  end
-
-  def pending_deletion?
-    active_deletion_request.present?
-  end
+  def streak_days = @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
+  def active_deletion_request = deletion_requests.active.order(created_at: :desc).first
+  def pending_deletion? = active_deletion_request.present?
 
   def can_request_deletion?
     return false if pending_deletion?
@@ -281,28 +212,11 @@ class User < ApplicationRecord
     last_audit.created_at <= 365.days.ago
   end
 
-  def can_delete_emails?
-    email_addresses.size > 1
-  end
-
-  def can_delete_email_address?(email)
-    email.can_unlink? && can_delete_emails?
-  end
-
-  if Rails.env.development?
-    def self.slow_find_by_email(email)
-      EmailAddress.find_by(email: email)&.user
-    end
-  end
+  def can_delete_emails? = email_addresses.size > 1
+  def can_delete_email_address?(email) = email.can_unlink? && can_delete_emails?
 
   def streak_days_formatted
-    if streak_days > 30
-      "30+"
-    elsif streak_days < 1
-      nil
-    else
-      streak_days.to_s
-    end
+    streak_days > 30 ? "30+" : (streak_days < 1 ? nil : streak_days.to_s)
   end
 
   enum :hackatime_extension_text_type, {
@@ -314,17 +228,9 @@ class User < ApplicationRecord
   after_update_commit :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
   after_update_commit :schedule_dashboard_rollup_refresh, if: :saved_change_to_timezone?
 
-  def flipper_id
-    "User;#{id}"
-  end
-
-  def active_remote_heartbeat_import_run?
-    heartbeat_import_runs.remote_imports.active_imports.exists?
-  end
-
-  def activity_graph_cache_key(timezone = self.timezone)
-    "user_#{id}_daily_durations_#{timezone}"
-  end
+  def flipper_id = "User;#{id}"
+  def active_remote_heartbeat_import_run? = heartbeat_import_runs.remote_imports.active_imports.exists?
+  def activity_graph_cache_key(timezone = self.timezone) = "user_#{id}_daily_durations_#{timezone}"
 
   def format_extension_text(duration)
     case hackatime_extension_text_type
@@ -343,22 +249,14 @@ class User < ApplicationRecord
 
   def parse_and_set_timezone(timezone)
     as_tz = ActiveSupport::TimeZone[timezone]
-
     unless as_tz
       begin
         tzinfo = TZInfo::Timezone.get(timezone)
-        as_tz = ActiveSupport::TimeZone.all.find do |z|
-          z.tzinfo.identifier == tzinfo.identifier
-        end
+        as_tz = ActiveSupport::TimeZone.all.find { |z| z.tzinfo.identifier == tzinfo.identifier }
       rescue TZInfo::InvalidTimezoneIdentifier
       end
     end
-
-    if as_tz
-      self.timezone = as_tz.name
-    else
-      report_message("Invalid timezone #{timezone} for user #{id}")
-    end
+    as_tz ? (self.timezone = as_tz.name) : report_message("Invalid timezone #{timezone} for user #{id}")
   end
 
   def avatar_url
@@ -371,56 +269,64 @@ class User < ApplicationRecord
       hashed_initials = Digest::SHA256.hexdigest(initials)[0..5]
       return "https://i2.wp.com/ui-avatars.com/api/#{initials}/48/#{hashed_initials}/fff?ssl=1"
     end
-
-    base64_identicon = RubyIdenticon.create_base64(id.to_s)
-    "data:image/png;base64,#{base64_identicon}"
+    "data:image/png;base64,#{RubyIdenticon.create_base64(id.to_s)}"
   end
 
   def display_name
     name = slack_username || github_username || username
     return name if name.present?
-
     email = email_addresses&.first&.email
     return "error displaying name" unless email.present?
-
     email.split("@")&.first.truncate(10) + " (email sign-up)"
   end
 
-  def most_recent_direct_entry_heartbeat
-    heartbeats.where(source_type: :direct_entry).order(time: :desc).first
-  end
+  def most_recent_direct_entry_heartbeat = heartbeats.where(source_type: :direct_entry).order(time: :desc).first
 
-  def create_email_signin_token(continue_param: nil)
-    sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
-  end
+  def create_email_signin_token(continue_param: nil) = sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
 
   def rotate_api_keys!
-    api_keys.transaction do
-      api_keys.destroy_all
-      api_keys.create!(name: "Hackatime key")
-    end
+    api_keys.transaction { api_keys.destroy_all; api_keys.create!(name: "Hackatime key") }
   end
 
   def rotate_single_api_key!(api_key)
     raise ActiveRecord::RecordNotFound unless api_key.user_id == id
-
     api_key.update!(token: SecureRandom.uuid_v4)
     api_key
   end
 
-  def find_valid_token(token)
-    sign_in_tokens.valid.find_by(token: token)
-  end
+  def find_valid_token(token) = sign_in_tokens.valid.find_by(token: token)
 
-  def self.not_convicted
-    where.not(trust_level: User.trust_levels[:red])
-  end
-
-  def self.not_suspect
-    where(trust_level: [ User.trust_levels[:blue], User.trust_levels[:green] ])
-  end
+  def self.not_convicted = where.not(trust_level: User.trust_levels[:red])
+  def self.not_suspect = where(trust_level: [ User.trust_levels[:blue], User.trust_levels[:green] ])
 
   private
+
+  # Shared precondition for can_change_admin_level_of? / can_change_trust_of?
+  def can_act_on?(target_user)
+    return false unless target_user.is_a?(User)
+    return false if target_user == self
+
+    admin_level_rank > (ADMIN_LEVEL_RANK[target_user.admin_level.to_s] || 0)
+  end
+
+  # Shared change body for set_admin_level / set_trust. Yields (previous, new)
+  # when the value is actually changing, so callers can write audit logs.
+  def change_level!(attr, level, changed_by_user:)
+    return false unless changed_by_user.is_a?(User)
+    levels_map = self.class.public_send(attr.to_s.pluralize)
+    return false unless level.present? && levels_map.key?(level.to_s)
+
+    auth_method = attr == :admin_level ? :can_change_admin_level_of? : :can_change_trust_of?
+    return false unless changed_by_user.public_send(auth_method, self, level.to_s)
+
+    previous_level = public_send(attr)
+    if previous_level != level.to_s
+      yield(previous_level, level.to_s) if block_given?
+      update!(attr => level.to_s)
+    end
+
+    true
+  end
 
   def invalidate_activity_graph_cache
     previous_timezone, current_timezone = previous_changes.fetch("timezone", [ nil, timezone ])
@@ -430,17 +336,9 @@ class User < ApplicationRecord
     end
   end
 
-  def schedule_dashboard_rollup_refresh
-    DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
-  end
-
-  def subscribe_to_default_lists
-    subscribe("weekly_summary")
-  end
-
-  def schedule_onboarding_check_in_email
-    OnboardingCheckInEmailJob.set(wait: 1.week).perform_later(id)
-  end
+  def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
+  def subscribe_to_default_lists = subscribe("weekly_summary")
+  def schedule_onboarding_check_in_email = OnboardingCheckInEmailJob.set(wait: 1.week).perform_later(id)
 
   def normalize_username
     original = username
@@ -460,8 +358,7 @@ class User < ApplicationRecord
   end
 
   def username_must_be_visible
-    if instance_variable_defined?(:@username_cleared_for_invisible) && @username_cleared_for_invisible
-      errors.add(:username, "must include visible characters")
-    end
+    return unless instance_variable_defined?(:@username_cleared_for_invisible) && @username_cleared_for_invisible
+    errors.add(:username, "must include visible characters")
   end
 end
