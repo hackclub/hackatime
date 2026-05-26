@@ -13,11 +13,12 @@ class AddTrgmIndexesForAdminUserSearch < ActiveRecord::Migration[8.1]
 
     INDEXES.each do |table, columns|
       columns.each do |column|
-        execute <<~SQL
-          CREATE INDEX CONCURRENTLY IF NOT EXISTS index_#{table}_on_#{column}_trgm
-            ON #{table}
-            USING gin (#{column} gin_trgm_ops)
-        SQL
+        add_index table, column,
+                  name: "index_#{table}_on_#{column}_trgm",
+                  using: :gin,
+                  opclass: :gin_trgm_ops,
+                  algorithm: :concurrently,
+                  if_not_exists: true
       end
     end
   end
@@ -25,7 +26,10 @@ class AddTrgmIndexesForAdminUserSearch < ActiveRecord::Migration[8.1]
   def down
     INDEXES.each do |table, columns|
       columns.each do |column|
-        execute "DROP INDEX CONCURRENTLY IF EXISTS index_#{table}_on_#{column}_trgm"
+        remove_index table, column,
+                     name: "index_#{table}_on_#{column}_trgm",
+                     algorithm: :concurrently,
+                     if_exists: true
       end
     end
   end
