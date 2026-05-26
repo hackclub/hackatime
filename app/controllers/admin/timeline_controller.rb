@@ -33,19 +33,9 @@ class Admin::TimelineController < Admin::BaseController
   end
 
   def search_users
-    query_term = params[:query].to_s.downcase
+    return render json: [] if params[:query].blank?
 
-    if query_term.match?(/^\d+$/) && (match = User.find_by(id: query_term.to_i))
-      return render json: [ user_summary(match) ]
-    end
-
-    users = User.where(
-      "LOWER(username) LIKE :query OR LOWER(slack_username) LIKE :query OR CAST(id AS TEXT) LIKE :query OR EXISTS (SELECT 1 FROM email_addresses WHERE email_addresses.user_id = users.id AND LOWER(email_addresses.email) LIKE :query)",
-      query: "%#{query_term}%"
-    ).order(Arel.sql("CASE WHEN LOWER(username) = #{ActiveRecord::Base.connection.quote(query_term)} THEN 0 ELSE 1 END, username ASC"))
-     .limit(20)
-     .select(*USER_SELECT_FIELDS)
-
+    users = User.fuzzy_ranked_search(params[:query], limit: 20)
     render json: users.map { |u| user_summary(u) }
   end
 
