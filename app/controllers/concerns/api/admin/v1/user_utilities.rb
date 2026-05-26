@@ -33,16 +33,12 @@ module Api
         def search_users_fuzzy
           return render_error("bro dont have a query") if params[:query].blank?
 
-          # Execute the relation's SQL directly to skip ActiveRecord object
-          # instantiation on this per-keystroke endpoint. `matched_email` is
-          # picked in SQL by UserFuzzySearch so there's no second query for
-          # email_addresses.
           relation = User.fuzzy_ranked_search(params[:query], limit: 10)
           rows = User.connection.execute(relation.to_sql).to_a
 
           render json: {
             users: rows.filter_map { |row|
-              next unless row["matched_email"] # preserve historical INNER JOIN behavior (only users with an email)
+              next unless row["matched_email"] # only users with an email
               {
                 id: row["id"],
                 username: row["username"],
