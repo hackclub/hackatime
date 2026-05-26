@@ -2,11 +2,6 @@ module UserFuzzySearch
   extend ActiveSupport::Concern
 
   class_methods do
-    # Ranked fuzzy search across id/slack_uid/username/github_username/slack_username/email.
-    # Returns a Relation with a virtual `rank_score` attribute on each record. Pass the
-    # raw user-supplied term — the method downcases internally for case-insensitive LIKE
-    # matching but uses the term verbatim for case-sensitive exact comparisons against
-    # `users.slack_uid` and `users.id::text`.
     def fuzzy_ranked_search(term, limit: 20)
       term = term.to_s.strip
       return none if term.blank?
