@@ -34,10 +34,11 @@ module Api
           return render_error("bro dont have a query") if params[:query].blank?
 
           users = User.fuzzy_ranked_search(params[:query], limit: 10).includes(:email_addresses)
+          lower_query = params[:query].to_s.strip.downcase
 
           render json: {
             users: users.filter_map { |user|
-              email = user.email_addresses.first&.email
+              email = best_matching_email(user, lower_query)
               next unless email # preserve historical INNER JOIN behavior (only users with an email)
               {
                 id: user.id,
@@ -354,6 +355,24 @@ module Api
         end
 
         private
+
+        # Pick the email that best matches the query so the response reflects
+        # the address the rank score came from (mirrors the per-email scoring
+        # tiers in UserFuzzySearch). Falls back to the first email if none
+        # match; returns nil if the user has no emails.
+        def best_matching_email(user, lower_query)
+          emails = user.email_addresses.filter_map(&:email)
+          return nil if emails.empty?
+
+          emails.max_by do |email|
+            e = email.downcase
+            if e == lower_query then 3
+            elsif e.start_with?(lower_query) then 2
+            elsif e.include?(lower_query) then 1
+            else 0
+            end
+          end
+        end
 
         def can_write!
           render_forbidden("no perms lmaooo") unless current_user.admin_level.in?(AuthHelpers::ADMIN_LEVELS)
