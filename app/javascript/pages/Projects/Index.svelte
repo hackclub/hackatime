@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Deferred, Link, router } from "@inertiajs/svelte";
+  import { WindowVirtualizer } from "virtua/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
@@ -67,6 +68,48 @@
       10,
     ),
   );
+
+  const PROJECT_CARD_MIN_WIDTH = 280;
+  const PROJECT_GRID_GAP = 20;
+  const PROJECT_ROW_ESTIMATE = 208;
+
+  let projectGridContainer: HTMLDivElement | undefined = $state();
+  let projectColumnCount = $state(1);
+
+  const updateProjectColumnCount = () => {
+    if (!projectGridContainer) return;
+
+    const width = projectGridContainer.clientWidth;
+    projectColumnCount = Math.max(
+      1,
+      Math.floor(
+        (width + PROJECT_GRID_GAP) /
+          (PROJECT_CARD_MIN_WIDTH + PROJECT_GRID_GAP),
+      ),
+    );
+  };
+
+  const projectRows = $derived.by(() => {
+    const projects = projects_data?.projects || [];
+    const rows: ProjectCardType[][] = [];
+
+    for (let index = 0; index < projects.length; index += projectColumnCount) {
+      rows.push(projects.slice(index, index + projectColumnCount));
+    }
+
+    return rows;
+  });
+
+  $effect(() => {
+    updateProjectColumnCount();
+
+    if (!projectGridContainer) return;
+
+    const observer = new ResizeObserver(updateProjectColumnCount);
+    observer.observe(projectGridContainer);
+
+    return () => observer.disconnect();
+  });
 
   const changeInterval = (
     nextInterval: string,
@@ -253,22 +296,34 @@
               </p>
             </div>
           {:else}
-            <div
-              class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
-            >
-              {#each projects_data.projects as project (project.id)}
-                <ProjectCard
-                  {project}
-                  showArchived={show_archived}
-                  {intervalQueryString}
-                  onEditMapping={openMappingEditor}
-                  onArchive={openStatusChangeModal}
-                  onShowBrokenInfo={() => (brokenNameModalOpen = true)}
-                  editing={editingProjectKey === project.project_key}
-                  bind:repoUrlDraft
-                  onCancelEdit={closeMappingEditor}
-                />
-              {/each}
+            <div bind:this={projectGridContainer} class="mt-6">
+              <WindowVirtualizer
+                data={projectRows}
+                getKey={(row) => row[0]?.id || "empty-row"}
+                itemSize={PROJECT_ROW_ESTIMATE}
+                bufferSize={1_000}
+              >
+                {#snippet children(row)}
+                  <div
+                    class="grid gap-5 pb-5"
+                    style={`grid-template-columns: repeat(${projectColumnCount}, minmax(0, 1fr));`}
+                  >
+                    {#each row as project (project.id)}
+                      <ProjectCard
+                        {project}
+                        showArchived={show_archived}
+                        {intervalQueryString}
+                        onEditMapping={openMappingEditor}
+                        onArchive={openStatusChangeModal}
+                        onShowBrokenInfo={() => (brokenNameModalOpen = true)}
+                        editing={editingProjectKey === project.project_key}
+                        bind:repoUrlDraft
+                        onCancelEdit={closeMappingEditor}
+                      />
+                    {/each}
+                  </div>
+                {/snippet}
+              </WindowVirtualizer>
             </div>
           {/if}
         </section>
