@@ -6,19 +6,10 @@ class Admin::AccountMergerController < InertiaController
   def show = render(inertia: "Admin/AccountMerger")
 
   def search_users
-    query_term = params[:query].to_s.downcase.strip
+    query_term = params[:query].to_s.strip
     return render json: [] if query_term.blank?
 
-    users = User.search_identity(query_term)
-      .includes(:email_addresses)
-      .select(
-        "users.*, " \
-        "CASE WHEN LOWER(users.username) = #{ActiveRecord::Base.connection.quote(query_term)} " \
-        "THEN 0 ELSE 1 END AS exact_match_rank"
-      )
-      .order(Arel.sql("exact_match_rank ASC, users.username ASC"))
-      .limit(20)
-
+    users = User.fuzzy_ranked_search(query_term, limit: 20).includes(:email_addresses)
     render json: users.map { |user| format_user(user) }
   end
 

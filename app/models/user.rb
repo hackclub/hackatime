@@ -3,6 +3,7 @@ class User < ApplicationRecord
 
   include TimezoneRegions
   include UserThemeConfiguration
+  include UserFuzzySearch
   include ::OauthAuthentication
   include ::SlackIntegration
   include ::GithubIntegration
