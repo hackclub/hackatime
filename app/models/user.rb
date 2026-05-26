@@ -174,6 +174,7 @@ class User < ApplicationRecord
     numeric_id = (term.match?(/\A\d+\z/) ? term.to_i : nil)
 
     parts = [
+      "SELECT id FROM users WHERE slack_uid = :exact",
       "SELECT id FROM users WHERE username ILIKE :contains",
       "SELECT id FROM users WHERE slack_username ILIKE :contains",
       "SELECT id FROM users WHERE github_username ILIKE :contains",
@@ -181,7 +182,7 @@ class User < ApplicationRecord
     ]
     parts << "SELECT id FROM users WHERE id = #{numeric_id}" if numeric_id
 
-    candidates_sql = sanitize_sql_for_conditions([ parts.join(" UNION "), { contains: contains } ])
+    candidates_sql = sanitize_sql_for_conditions([ parts.join(" UNION "), { exact: term, contains: contains } ])
     where("users.id IN (#{candidates_sql})")
   }
 
