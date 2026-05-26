@@ -53,7 +53,8 @@ module UserFuzzySearch
         COALESCE(
           MAX(CASE WHEN email_addresses.email ILIKE :ilike_exact THEN email_addresses.email END),
           MAX(CASE WHEN email_addresses.email ILIKE :prefix      THEN email_addresses.email END),
-          MAX(CASE WHEN email_addresses.email ILIKE :contains    THEN email_addresses.email END)
+          MAX(CASE WHEN email_addresses.email ILIKE :contains    THEN email_addresses.email END),
+          MAX(email_addresses.email)
         )
       SQL
 
