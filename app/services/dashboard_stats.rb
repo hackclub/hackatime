@@ -118,7 +118,7 @@ class DashboardStats
     h = ApplicationController.helpers
     FILTERS.each_with_object({}) do |field, result|
       options = raw_filter_options.fetch(field, [])
-      options = options.reject { |name| archived.include?(name) } if field == :project
+      options = options.reject { |name| archived.include?(name) || ProjectNameUtils.broken?(name) } if field == :project
       result[field] = options.map { |value|
         case field
         when :language then value.categorize_language
