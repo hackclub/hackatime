@@ -34,9 +34,9 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     create_heartbeat(user:, time: Time.utc(2025, 12, 15, 10, 0, 0).to_f, project: "Galactic_war", category: "coding")
     create_heartbeat(user:, time: Time.utc(2025, 12, 15, 10, 1, 0).to_f, project: "Galactic_war", category: "coding")
 
-    sql_queries = []
-    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
-      sql_queries << payload[:sql]
+    instantiated_heartbeats = 0
+    subscriber = ActiveSupport::Notifications.subscribe("instantiation.active_record") do |*, payload|
+      instantiated_heartbeats += payload[:record_count] if payload[:class_name] == "Heartbeat"
     end
 
     get "/api/v1/users/#{user.username}/stats", params: {
@@ -47,7 +47,7 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :success
-    assert sql_queries.none? { |sql| sql.match?(/SELECT "heartbeats"\."id", "heartbeats"\."user_id"/) }
+    assert_equal 0, instantiated_heartbeats
   ensure
     ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end
