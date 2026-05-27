@@ -40,7 +40,9 @@ class Api::V1::StatsController < ApplicationController
     return if performed?
 
     # /api/v1/users/current/stats?filter_by_project=harbor,high-seas
-    scope = params[:filter_by_project].present? ? @user.heartbeats.where(project: params[:filter_by_project].split(",")) : nil
+    filter_by_projects = params[:filter_by_project].presence&.split(",")
+    filter_by_categories = params[:filter_by_category].presence&.split(",")
+    scope = filter_by_projects ? @user.heartbeats.where(project: filter_by_projects) : nil
 
     enabled_features = params[:features]&.split(",")&.map(&:to_sym) || %i[languages]
 
@@ -52,7 +54,7 @@ class Api::V1::StatsController < ApplicationController
       start_date: start_date,
       end_date: end_date
     }
-    service_params[:scope] = scope if scope.present?
+    service_params[:scope] = scope if scope
 
     if params[:test_param] == "true"
       service_params[:boundary_aware] = true # always and i mean always use boundary aware in test mode
@@ -67,8 +69,8 @@ class Api::V1::StatsController < ApplicationController
     else
       if params[:total_seconds] == "true"
         query = Heartbeat.where(user_id: @user.id).where("time >= ? AND time < ?", start_date.to_f, end_date.to_f)
-        query = query.where(project: params[:filter_by_project].split(",")) if params[:filter_by_project].present?
-        query = query.where(category: params[:filter_by_category].split(",")) if params[:filter_by_category].present?
+        query = query.where(project: filter_by_projects) if filter_by_projects
+        query = query.where(category: filter_by_categories) if filter_by_categories
 
         total_seconds = if params[:boundary_aware] == "true"
           Heartbeat.duration_seconds_boundary_aware(
@@ -88,9 +90,8 @@ class Api::V1::StatsController < ApplicationController
     end
 
     if params[:features]&.include?("projects") && params[:filter_by_project].present?
-      filter_by_project = params[:filter_by_project].split(",")
       heartbeats = @user.heartbeats.coding_only.with_valid_timestamps
-                                   .where(time: start_date..end_date, project: filter_by_project)
+                                   .where(time: start_date..end_date, project: filter_by_projects)
       summary[:unique_total_seconds] = unique_heartbeat_seconds(heartbeats)
     end
 

@@ -29,6 +29,29 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_equal summary_total, total_only
   end
 
+  test "user_stats with project filter does not load heartbeat records" do
+    user = User.create!(username: "stats_user_#{SecureRandom.hex(3)}", timezone: "UTC")
+    create_heartbeat(user:, time: Time.utc(2025, 12, 15, 10, 0, 0).to_f, project: "Galactic_war", category: "coding")
+    create_heartbeat(user:, time: Time.utc(2025, 12, 15, 10, 1, 0).to_f, project: "Galactic_war", category: "coding")
+
+    sql_queries = []
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      sql_queries << payload[:sql]
+    end
+
+    get "/api/v1/users/#{user.username}/stats", params: {
+      features: "projects",
+      filter_by_project: "Galactic_war",
+      start_date: "2025-12-15",
+      end_date: "2025-12-16"
+    }
+
+    assert_response :success
+    assert sql_queries.none? { |sql| sql.match?(/SELECT "heartbeats"\."id", "heartbeats"\."user_id"/) }
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+  end
+
   private
 
   def create_heartbeat(user:, time:, project:, category:)

@@ -120,6 +120,10 @@ group :development, :test do
 
   # Random data generation — only used in seed rake tasks
   gem "faker", require: false
+
+  # technically not used for any of the scripts in the repo, but I like
+  # to use it for scratch benchmarks
+  gem "benchmark"
 end
 
 gem "rswag-api"
