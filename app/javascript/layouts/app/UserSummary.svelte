@@ -48,10 +48,14 @@
       aria-label={`View ${user.display_name}'s profile`}
       class="group inline-grid w-fit max-w-full items-center gap-1"
     >
-      <span class="col-start-1 row-start-1 truncate transition-all duration-200 group-hover:opacity-0 group-hover:-translate-y-1">
+      <span
+        class="col-start-1 row-start-1 truncate transition-all duration-200 group-hover:opacity-0 group-hover:-translate-y-1"
+      >
         {user.display_name}
       </span>
-      <span class="col-start-1 row-start-1 truncate text-muted opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+      <span
+        class="col-start-1 row-start-1 truncate text-muted opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0"
+      >
         @{user.username}
       </span>
     </Link>
