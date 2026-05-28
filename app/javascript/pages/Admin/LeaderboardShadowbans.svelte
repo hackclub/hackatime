@@ -6,12 +6,9 @@
     type UserPickerResult,
   } from "../../components/UserPicker.svelte";
   import { adminLeaderboardShadowbans } from "../../api";
-
-  type ShadowbannedUser = UserPickerResult & {
-    leaderboard_shadowbanned: boolean;
-    leaderboard_shadowban_reason: string | null;
-    updated_at: string | null;
-  };
+  import ShadowbannedUsersTable, {
+    type ShadowbannedUser,
+  } from "./LeaderboardShadowbans/ShadowbannedUsersTable.svelte";
 
   let {
     shadowbanned_users,
@@ -21,6 +18,8 @@
 
   const searchUrl = adminLeaderboardShadowbans.searchUsers.path();
   const createUrl = adminLeaderboardShadowbans.create.path();
+  const redButtonClass =
+    "!border-red !bg-red !text-on-primary hover:!opacity-90";
 
   let selectedUser = $state<UserPickerResult | null>(null);
   let reason = $state("");
@@ -29,7 +28,27 @@
   let unbanOpen = $state(false);
   let submitting = $state(false);
 
-  let canSubmit = $derived(selectedUser !== null && reason.trim().length > 0);
+  let trimmedReason = $derived(reason.trim());
+  let canSubmit = $derived(selectedUser !== null && trimmedReason.length > 0);
+
+  function resetBanForm() {
+    selectedUser = null;
+    reason = "";
+  }
+
+  function cancelBan() {
+    confirmBanOpen = false;
+  }
+
+  function confirmUnban(user: ShadowbannedUser) {
+    unbanUser = user;
+    unbanOpen = true;
+  }
+
+  function cancelUnban() {
+    unbanUser = null;
+    unbanOpen = false;
+  }
 
   function submitShadowban() {
     if (!selectedUser) return;
@@ -37,13 +56,12 @@
     submitting = true;
     router.post(
       createUrl,
-      { user_id: selectedUser.id, reason: reason.trim() },
+      { user_id: selectedUser.id, reason: trimmedReason },
       {
         onFinish: () => {
           submitting = false;
           confirmBanOpen = false;
-          selectedUser = null;
-          reason = "";
+          resetBanForm();
         },
       },
     );
@@ -58,13 +76,33 @@
       {
         onFinish: () => {
           submitting = false;
-          unbanUser = null;
-          unbanOpen = false;
+          cancelUnban();
         },
       },
     );
   }
 </script>
+
+{#snippet modalActions(
+  cancel: () => void,
+  confirm: () => void,
+  label: string,
+  loadingLabel: string,
+  className = "",
+)}
+  <div class="flex justify-end gap-3">
+    <Button type="button" variant="surface" onclick={cancel}>Cancel</Button>
+    <Button
+      type="button"
+      variant="primary"
+      class={className}
+      disabled={submitting}
+      onclick={confirm}
+    >
+      {submitting ? loadingLabel : label}
+    </Button>
+  </div>
+{/snippet}
 
 <svelte:head>
   <title>Leaderboard Shadowbans</title>
@@ -117,7 +155,7 @@
       <Button
         type="button"
         variant="primary"
-        class="!border-red !bg-red !text-on-primary hover:!opacity-90"
+        class={redButtonClass}
         disabled={!canSubmit || selectedUser?.leaderboard_shadowbanned}
         onclick={() => (confirmBanOpen = true)}
       >
@@ -143,71 +181,10 @@
       </div>
     </div>
 
-    {#if shadowbanned_users.length === 0}
-      <div
-        class="rounded-lg border border-dashed border-surface-200 py-10 text-center text-sm text-muted"
-      >
-        No users are currently leaderboard shadowbanned.
-      </div>
-    {:else}
-      <div class="overflow-x-auto rounded-lg border border-surface-200">
-        <table class="w-full text-left text-sm">
-          <thead
-            class="border-b border-surface-200 bg-surface-100/30 text-xs uppercase text-muted"
-          >
-            <tr>
-              <th class="px-4 py-3">User</th>
-              <th class="px-4 py-3">Reason</th>
-              <th class="px-4 py-3">Updated</th>
-              <th class="px-4 py-3 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-surface-200">
-            {#each shadowbanned_users as user}
-              <tr>
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-3">
-                    {#if user.avatar_url}
-                      <img
-                        src={user.avatar_url}
-                        alt=""
-                        class="h-9 w-9 rounded-full"
-                      />
-                    {:else}
-                      <div class="h-9 w-9 rounded-full bg-surface-100"></div>
-                    {/if}
-                    <div>
-                      <div class="font-medium text-surface-content">
-                        {user.display_name}
-                      </div>
-                      <div class="text-xs text-muted">
-                        ID: {user.id}{user.email ? ` · ${user.email}` : ""}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td class="max-w-sm px-4 py-3 text-muted">
-                  {user.leaderboard_shadowban_reason}
-                </td>
-                <td class="px-4 py-3 text-muted">{user.updated_at}</td>
-                <td class="px-4 py-3 text-right">
-                  <Button
-                    type="button"
-                    variant="surface"
-                    onclick={() => {
-                      unbanUser = user;
-                      unbanOpen = true;
-                    }}
-                  >
-                    Remove
-                  </Button>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    {/if}
+    <ShadowbannedUsersTable
+      users={shadowbanned_users}
+      onRemove={confirmUnban}
+    />
   </section>
 </div>
 
@@ -228,29 +205,18 @@
         from public leaderboards?
       </p>
       <p class="rounded-lg border border-surface-200 bg-surface-100/20 p-3">
-        {reason}
+        {trimmedReason}
       </p>
     </div>
   {/snippet}
   {#snippet actions()}
-    <div class="flex justify-end gap-3">
-      <Button
-        type="button"
-        variant="surface"
-        onclick={() => (confirmBanOpen = false)}
-      >
-        Cancel
-      </Button>
-      <Button
-        type="button"
-        variant="primary"
-        class="!border-red !bg-red !text-on-primary hover:!opacity-90"
-        disabled={submitting}
-        onclick={submitShadowban}
-      >
-        {submitting ? "Saving..." : "Confirm shadowban"}
-      </Button>
-    </div>
+    {@render modalActions(
+      cancelBan,
+      submitShadowban,
+      "Confirm shadowban",
+      "Saving...",
+      redButtonClass,
+    )}
   {/snippet}
 </Modal>
 
@@ -268,25 +234,11 @@
     </p>
   {/snippet}
   {#snippet actions()}
-    <div class="flex justify-end gap-3">
-      <Button
-        type="button"
-        variant="surface"
-        onclick={() => {
-          unbanUser = null;
-          unbanOpen = false;
-        }}
-      >
-        Cancel
-      </Button>
-      <Button
-        type="button"
-        variant="primary"
-        disabled={submitting}
-        onclick={submitUnban}
-      >
-        {submitting ? "Removing..." : "Remove shadowban"}
-      </Button>
-    </div>
+    {@render modalActions(
+      cancelUnban,
+      submitUnban,
+      "Remove shadowban",
+      "Removing...",
+    )}
   {/snippet}
 </Modal>

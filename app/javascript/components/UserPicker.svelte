@@ -12,6 +12,8 @@
 </script>
 
 <script lang="ts">
+  import { Debounced } from "runed";
+
   type Accent = "primary" | "green" | "red";
 
   type Props = {
@@ -38,7 +40,7 @@
   let results = $state<UserPickerResult[]>([]);
   let open = $state(false);
   let highlight = $state(-1);
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  const debouncedQuery = new Debounced(() => query, 200);
 
   const dropdownBase = "absolute left-0 top-full z-50 mt-1";
   const dropdownPanel = "rounded-lg border border-surface-200 bg-dark";
@@ -64,7 +66,9 @@
       : undefined,
   );
 
-  $effect(() => () => clearTimeout(timer));
+  $effect(() => {
+    void doSearch(debouncedQuery.current);
+  });
 
   function resetSearch() {
     open = false;
@@ -88,11 +92,6 @@
     } catch {
       resetSearch();
     }
-  }
-
-  function onInput() {
-    clearTimeout(timer);
-    timer = setTimeout(() => void doSearch(query), 200);
   }
 
   function selectUser(user: UserPickerResult) {
@@ -160,7 +159,6 @@
       type="text"
       {placeholder}
       bind:value={query}
-      oninput={onInput}
       onkeydown={handleKeydown}
       autocomplete="off"
       role="combobox"
