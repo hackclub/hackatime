@@ -52,7 +52,8 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
       country_code: country_code,
       timezone: "UTC",
       trust_level: trust_level,
-      leaderboard_shadowbanned: leaderboard_shadowbanned
+      leaderboard_shadowbanned: leaderboard_shadowbanned,
+      leaderboard_shadowban_reason: leaderboard_shadowbanned ? "test shadowban" : nil
     )
   end
 

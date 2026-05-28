@@ -1,13 +1,13 @@
 require "test_helper"
 
 class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTest
-  test "index requires superadmin or ultraadmin" do
+  test "index is not routed for regular admins" do
     admin = User.create!(timezone: "UTC", admin_level: :admin)
     sign_in_as(admin)
 
     get admin_leaderboard_shadowbans_path
 
-    assert_redirected_to root_path
+    assert_response :not_found
   end
 
   test "index renders current shadowbanned users" do
