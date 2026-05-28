@@ -1,6 +1,4 @@
 class Admin::LeaderboardShadowbansController < InertiaController
-  include Admin::UserSearch
-
   layout "inertia"
 
   before_action :require_shadowban_admin!
@@ -12,10 +10,11 @@ class Admin::LeaderboardShadowbansController < InertiaController
   end
 
   def search_users
-    query_term = params[:query].to_s.downcase.strip
+    query_term = params[:query].to_s.strip
     return render json: [] if query_term.blank?
 
-    render json: admin_user_search_results(query_term).map { |user| format_user(user) }
+    users = User.fuzzy_ranked_search(query_term, limit: 20).includes(:email_addresses)
+    render json: users.map { |user| format_user(user) }
   end
 
   def create
