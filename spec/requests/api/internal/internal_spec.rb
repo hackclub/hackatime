@@ -39,8 +39,8 @@ RSpec.describe 'Api::Internal', type: :request do
             success: { type: :boolean },
             status: { type: :string },
             token_type: { type: :string },
-            owner_email: { type: :string, nullable: true },
-            key_name: { type: :string, nullable: true }
+            owner_email: { type: :string },
+            key_name: { type: :string }
           }
         run_test! do |response|
           body = JSON.parse(response.body)

@@ -24,7 +24,17 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
             lineno: { type: :integer },
             cursorpos: { type: :integer },
             lines: { type: :integer },
-            category: { type: :string }
+            category: { type: :string },
+            created_at: { type: :string, format: :date_time },
+            dependencies: { type: :array, items: { type: :string } },
+            editor: { type: :string },
+            line_additions: { type: :integer },
+            line_deletions: { type: :integer },
+            machine: { type: :string },
+            operating_system: { type: :string },
+            project_root_count: { type: :integer },
+            user_agent: { type: :string },
+            plugin: { type: :string }
           }
         }
       }

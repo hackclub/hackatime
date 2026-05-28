@@ -9,6 +9,9 @@ RSpec.describe 'Api::Summary', type: :request do
 
       parameter name: :start, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
       parameter name: :end, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
+      parameter name: :from, in: :query, schema: { type: :string, format: :date }, required: false, description: 'Alias for start (YYYY-MM-DD)'
+      parameter name: :to, in: :query, schema: { type: :string, format: :date }, required: false, description: 'Alias for end (YYYY-MM-DD)'
+      parameter name: :range, in: :query, type: :string, required: false, description: 'Predefined range (e.g. today, yesterday, week, month). Alias for interval.'
       parameter name: :interval, in: :query, type: :string, description: 'Interval (e.g. today, yesterday, week, month)'
       parameter name: :project, in: :query, type: :string, description: 'Project name (optional)'
       parameter name: :user_id, in: :query, type: :string, required: true, description: 'User identifier (slack_uid, username, hca_id, or numeric ID)'
@@ -21,6 +24,9 @@ RSpec.describe 'Api::Summary', type: :request do
         let(:start) { '2023-01-01' }
         let(:end) { '2023-01-31' }
         let(:interval) { nil }
+        let(:from) { nil }
+        let(:to) { nil }
+        let(:range) { nil }
         let(:project) { nil }
         let(:user_id) { test_user.slack_uid }
         let(:user) { nil }
@@ -66,6 +72,9 @@ RSpec.describe 'Api::Summary', type: :request do
         let(:start) { '2023-01-01' }
         let(:end) { '2023-01-31' }
         let(:interval) { nil }
+        let(:from) { nil }
+        let(:to) { nil }
+        let(:range) { nil }
         let(:project) { nil }
         let(:user_id) { nil }
         let(:user) { nil }
@@ -79,6 +88,9 @@ RSpec.describe 'Api::Summary', type: :request do
         let(:start) { 'invalid-date' }
         let(:end) { '2023-01-31' }
         let(:interval) { nil }
+        let(:from) { nil }
+        let(:to) { nil }
+        let(:range) { nil }
         let(:project) { nil }
         let(:user_id) { date_test_user.slack_uid }
         let(:user) { nil }
@@ -91,6 +103,9 @@ RSpec.describe 'Api::Summary', type: :request do
         let(:start) { '2023-01-01' }
         let(:end) { '2023-01-31' }
         let(:interval) { nil }
+        let(:from) { nil }
+        let(:to) { nil }
+        let(:range) { nil }
         let(:project) { nil }
         let(:user_id) { 'nonexistent-user-id' }
         let(:user) { nil }
@@ -104,6 +119,9 @@ RSpec.describe 'Api::Summary', type: :request do
         let(:start) { '2023-01-01' }
         let(:end) { '2023-01-31' }
         let(:interval) { nil }
+        let(:from) { nil }
+        let(:to) { nil }
+        let(:range) { nil }
         let(:project) { nil }
         let(:user_id) { private_user.slack_uid }
         let(:user) { nil }

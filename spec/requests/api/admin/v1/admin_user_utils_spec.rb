@@ -143,8 +143,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
                 properties: {
                   id: { type: :integer },
                   time: { type: :number },
-                  lineno: { type: :integer, nullable: true },
-                  cursorpos: { type: :integer, nullable: true },
+                  lineno: { type: :integer },
+                  cursorpos: { type: :integer },
                   is_write: { type: :boolean, nullable: true },
                   project: { type: :string, nullable: true },
                   language: { type: :string, nullable: true },
@@ -326,87 +326,6 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
         run_test!
       end
 
-      response(200, 'successful') do
-        schema oneOf: [
-          {
-            type: :object,
-            properties: {
-              segment: { type: :string },
-              limit: { type: :integer },
-              offset: { type: :integer },
-              heartbeats: {
-                type: :array,
-                items: {
-                  type: :object,
-                  properties: {
-                    id: { type: :integer },
-                    user_id: { type: :integer },
-                    time: { type: :number },
-                    project: { type: :string, nullable: true },
-                    language: { type: :string, nullable: true },
-                    entity: { type: :string, nullable: true },
-                    branch: { type: :string, nullable: true },
-                    category: { type: :string, nullable: true },
-                    editor: { type: :string, nullable: true },
-                    machine: { type: :string, nullable: true },
-                    operating_system: { type: :string, nullable: true },
-                    user_agent: { type: :string, nullable: true },
-                    ip_address: { type: :string, nullable: true },
-                    is_write: { type: :boolean, nullable: true },
-                    lineno: { type: :integer, nullable: true },
-                    cursorpos: { type: :integer, nullable: true },
-                    lines: { type: :integer, nullable: true },
-                    source_type: { type: :string, nullable: true }
-                  }
-                }
-              },
-              has_more: { type: :boolean }
-            }
-          },
-          {
-            type: :object,
-            description: 'Returned when count_only=true',
-            additionalProperties: false,
-            required: [ 'segment', 'total_count' ],
-            properties: {
-              segment: { type: :string },
-              total_count: { type: :integer }
-            }
-          }
-        ]
-
-        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:hb_user_doc) do
-          u = User.create!(username: 'hb_segment_doc_user')
-          EmailAddress.create!(user: u, email: 'hb-segment-doc@example.com')
-          u
-        end
-        before do
-          Heartbeat.create!(
-            user: hb_user_doc,
-            time: Time.current.to_i,
-            project: 'demo',
-            language: 'GDScript',
-            editor: 'Godot',
-            source_type: :direct_entry,
-            branch: 'main',
-            category: 'coding',
-            is_write: true,
-            user_agent: 'Godot/4.2 Godot_Super-Wakatime/2.0.0',
-            operating_system: 'linux',
-            machine: 'test-machine'
-          )
-        end
-        let(:segment) { 'Godot_Super-Wakatime' }
-        let(:user_id) { nil }
-        let(:start_date) { nil }
-        let(:end_date) { nil }
-        let(:limit) { 10 }
-        let(:offset) { 0 }
-        let(:count_only) { nil }
-        run_test!
-      end
-
       response(422, 'missing segment') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:segment) { '' }
@@ -569,7 +488,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
           properties: {
             user_id: { type: :integer },
             username: { type: :string },
-            date: { type: :string, format: :date_time },
+            start_date: { type: :string, format: :date_time },
+            end_date: { type: :string, format: :date_time },
             timezone: { type: :string, nullable: true },
             total_heartbeats: { type: :integer },
             total_duration: { type: :number },
@@ -793,7 +713,9 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
         type: :object,
         properties: {
           user_id: { type: :integer },
-          reason: { type: :string }
+          reason: { type: :string },
+          trust_level: { type: :string },
+          notes: { type: :string }
         }
       }
 

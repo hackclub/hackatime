@@ -777,10 +777,10 @@ paths:
                           nullable: true
   "/api/admin/v1/user/info":
     get:
-      summary: Get user info (Admin)
+      summary: Get user info
       tags:
-      - Admin
-      description: Get detailed info about a user. Requires superadmin/admin privileges.
+      - Admin Utils
+      description: Get detailed info for a single user.
       security:
       - AdminToken: []
       parameters:
@@ -859,10 +859,10 @@ paths:
                             type: integer
   "/api/admin/v1/user/heartbeats":
     get:
-      summary: Get user heartbeats (Admin)
+      summary: Get admin user heartbeats
       tags:
-      - Admin
-      description: Get raw heartbeats for a user.
+      - Admin Utils
+      description: Get heartbeats for a user (Admin view).
       security:
       - AdminToken: []
       parameters:
@@ -871,12 +871,51 @@ paths:
         description: User ID
         schema:
           type: string
-      - name: date
+      - name: start_date
         in: query
+        description: Start date (YYYY-MM-DD or timestamp)
         schema:
           type: string
-          format: date
-        description: Date (YYYY-MM-DD)
+      - name: end_date
+        in: query
+        description: End date (YYYY-MM-DD or timestamp)
+        schema:
+          type: string
+      - name: project
+        in: query
+        description: Project name
+        schema:
+          type: string
+      - name: language
+        in: query
+        description: Language
+        schema:
+          type: string
+      - name: entity
+        in: query
+        description: Entity (file path or app name)
+        schema:
+          type: string
+      - name: editor
+        in: query
+        description: Editor
+        schema:
+          type: string
+      - name: machine
+        in: query
+        description: Machine
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Limit
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        description: Offset
+        schema:
+          type: integer
       responses:
         '200':
           description: successful
@@ -898,10 +937,8 @@ paths:
                           type: number
                         lineno:
                           type: integer
-                          nullable: true
                         cursorpos:
                           type: integer
-                          nullable: true
                         is_write:
                           type: boolean
                           nullable: true
@@ -1007,88 +1044,7 @@ paths:
           type: boolean
       responses:
         '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                oneOf:
-                - type: object
-                  properties:
-                    segment:
-                      type: string
-                    limit:
-                      type: integer
-                    offset:
-                      type: integer
-                    heartbeats:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          id:
-                            type: integer
-                          user_id:
-                            type: integer
-                          time:
-                            type: number
-                          project:
-                            type: string
-                            nullable: true
-                          language:
-                            type: string
-                            nullable: true
-                          entity:
-                            type: string
-                            nullable: true
-                          branch:
-                            type: string
-                            nullable: true
-                          category:
-                            type: string
-                            nullable: true
-                          editor:
-                            type: string
-                            nullable: true
-                          machine:
-                            type: string
-                            nullable: true
-                          operating_system:
-                            type: string
-                            nullable: true
-                          user_agent:
-                            type: string
-                            nullable: true
-                          ip_address:
-                            type: string
-                            nullable: true
-                          is_write:
-                            type: boolean
-                            nullable: true
-                          lineno:
-                            type: integer
-                            nullable: true
-                          cursorpos:
-                            type: integer
-                            nullable: true
-                          lines:
-                            type: integer
-                            nullable: true
-                          source_type:
-                            type: string
-                            nullable: true
-                    has_more:
-                      type: boolean
-                - type: object
-                  description: Returned when count_only=true
-                  additionalProperties: false
-                  required:
-                  - segment
-                  - total_count
-                  properties:
-                    segment:
-                      type: string
-                    total_count:
-                      type: integer
+          description: count_only returns total only
         '422':
           description: missing segment
           content:
@@ -1249,7 +1205,10 @@ paths:
                     type: integer
                   username:
                     type: string
-                  date:
+                  start_date:
+                    type: string
+                    format: date_time
+                  end_date:
                     type: string
                     format: date_time
                   timezone:
@@ -1583,6 +1542,10 @@ paths:
                   type: integer
                 reason:
                   type: string
+                trust_level:
+                  type: string
+                notes:
+                  type: string
   "/api/admin/v1/check":
     get:
       summary: Check status
@@ -1892,6 +1855,29 @@ paths:
                     type: integer
                   category:
                     type: string
+                  created_at:
+                    type: string
+                    format: date_time
+                  dependencies:
+                    type: array
+                    items:
+                      type: string
+                  editor:
+                    type: string
+                  line_additions:
+                    type: integer
+                  line_deletions:
+                    type: integer
+                  machine:
+                    type: string
+                  operating_system:
+                    type: string
+                  project_root_count:
+                    type: integer
+                  user_agent:
+                    type: string
+                  plugin:
+                    type: string
   "/api/hackatime/v1/users/{id}/statusbar/today":
     get:
       summary: Get status bar today
@@ -2153,10 +2139,8 @@ paths:
                     type: string
                   owner_email:
                     type: string
-                    nullable: true
                   key_name:
                     type: string
-                    nullable: true
         '422':
           description: unprocessable entity
           content:
@@ -2205,6 +2189,27 @@ paths:
           type: string
           format: date
         description: End date (YYYY-MM-DD)
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date
+        required: false
+        description: Alias for start (YYYY-MM-DD)
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date
+        required: false
+        description: Alias for end (YYYY-MM-DD)
+      - name: range
+        in: query
+        required: false
+        description: Predefined range (e.g. today, yesterday, week, month). Alias
+          for interval.
+        schema:
+          type: string
       - name: interval
         in: query
         description: Interval (e.g. today, yesterday, week, month)
@@ -2890,14 +2895,13 @@ paths:
                 "$ref": "#/components/schemas/Error"
   "/api/v1/users/{username}/heartbeats/spans":
     get:
-      summary: Get heartbeat spans
+      summary: Get user heartbeat spans
       tags:
-      - Users
-      description: Get time spans of coding activity.
+      - Stats
+      description: Returns heartbeat spans for a user, useful for visualizations.
       parameters:
       - name: username
         in: path
-        description: Username
         required: true
         schema:
           type: string
@@ -2906,21 +2910,19 @@ paths:
         schema:
           type: string
           format: date
-        description: Start date (YYYY-MM-DD)
       - name: end_date
         in: query
         schema:
           type: string
           format: date
-        description: End date (YYYY-MM-DD)
       - name: project
         in: query
-        description: Filter by specific project
+        description: Filter by single project
         schema:
           type: string
       - name: filter_by_project
         in: query
-        description: Filter by multiple projects (comma-separated)
+        description: Filter by multiple projects (comma separated)
         schema:
           type: string
       responses:
@@ -2950,15 +2952,13 @@ paths:
                 "$ref": "#/components/schemas/Error"
   "/api/v1/users/{username}/trust_factor":
     get:
-      summary: Get trust factor
+      summary: Get user trust factor
       tags:
-      - Users
-      description: Get the trust level/factor for a user. Higher trust values indicate
-        more verified activity.
+      - Stats
+      description: Returns the trust level and value for a user.
       parameters:
       - name: username
         in: path
-        description: Username, Slack ID, or User ID
         required: true
         schema:
           type: string
@@ -2972,26 +2972,19 @@ paths:
                 properties:
                   trust_level:
                     type: string
-                    example: verified
+                    example: blue
                   trust_value:
                     type: integer
-                    example: 2
-        '404':
-          description: not found
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
+                    example: 3
   "/api/v1/users/{username}/projects":
     get:
-      summary: Get user projects
+      summary: Get user project names
       tags:
-      - Users
-      description: Get a list of projects a user has coded on recently (last 30 days).
+      - Stats
+      description: Returns a list of project names for a user from the last 30 days.
       parameters:
       - name: username
         in: path
-        description: Username
         required: true
         schema:
           type: string
@@ -3007,29 +3000,20 @@ paths:
                     type: array
                     items:
                       type: string
-                      example: hackatime
-        '404':
-          description: not found
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
   "/api/v1/users/{username}/project/{project_name}":
     get:
-      summary: Get specific project stats
+      summary: Get user project details
       tags:
-      - Users
-      description: Get detailed stats for a specific project.
+      - Stats
+      description: Returns details for a specific project.
       parameters:
       - name: username
         in: path
-        description: Username
         required: true
         schema:
           type: string
       - name: project_name
         in: path
-        description: Project Name
         required: true
         schema:
           type: string
@@ -3037,26 +3021,22 @@ paths:
         in: query
         schema:
           type: string
-          format: date_time
-        description: Stats start time (ISO 8601)
+          format: date
       - name: end
         in: query
         schema:
           type: string
-          format: date_time
-        description: Stats end time (ISO 8601)
+          format: date
       - name: start_date
         in: query
         schema:
           type: string
-          format: date_time
-        description: Start date (ISO 8601) for stats calculation
+          format: date
       - name: end_date
         in: query
         schema:
           type: string
-          format: date_time
-        description: End date (ISO 8601) for stats calculation
+          format: date
       responses:
         '200':
           description: successful
@@ -3088,20 +3068,20 @@ paths:
                     nullable: true
   "/api/v1/users/{username}/projects/details":
     get:
-      summary: Get detailed project stats
+      summary: Get details for multiple projects
       tags:
-      - Users
-      description: Get detailed breakdown of all user projects.
+      - Stats
+      description: Returns details for multiple projects, or all projects in a time
+        range.
       parameters:
       - name: username
         in: path
-        description: Username
         required: true
         schema:
           type: string
       - name: projects
         in: query
-        description: Comma-separated list of projects to filter
+        description: Comma-separated project names
         schema:
           type: string
       - name: since
@@ -3109,43 +3089,31 @@ paths:
         schema:
           type: string
           format: date_time
-        description: Start time (ISO 8601) for project discovery
       - name: until
         in: query
         schema:
           type: string
           format: date_time
-        description: End time (ISO 8601) for project discovery
-      - name: until_date
-        in: query
-        schema:
-          type: string
-          format: date_time
-        description: End time (ISO 8601) for project discovery
       - name: start
         in: query
         schema:
           type: string
           format: date_time
-        description: Stats start time (ISO 8601)
       - name: end
         in: query
         schema:
           type: string
           format: date_time
-        description: Stats end time (ISO 8601)
       - name: start_date
         in: query
         schema:
           type: string
-          format: date_time
-        description: Start date (ISO 8601) for stats calculation
+          format: date
       - name: end_date
         in: query
         schema:
           type: string
-          format: date_time
-        description: End date (ISO 8601) for stats calculation
+          format: date
       responses:
         '200':
           description: successful
