@@ -16,6 +16,7 @@ class User < ApplicationRecord
 
   after_create :subscribe_to_default_lists
   after_create_commit :schedule_onboarding_check_in_email
+  after_update_commit :clear_leaderboard_page_cache, if: :saved_change_to_leaderboard_shadowban_state?
   before_validation :normalize_username
   encrypts :slack_access_token, :github_access_token, :hca_access_token
 
@@ -156,10 +157,14 @@ class User < ApplicationRecord
     return false if changed_by_user == self
     return false unless changed_by_user.admin_level_rank > admin_level_rank
 
-    update(
+    updated = update(
       leaderboard_shadowbanned: banned,
-      leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil
+      leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil,
+      leaderboard_shadowbanned_by: banned ? changed_by_user : nil
     )
+
+    LeaderboardPageCache.clear! if updated
+    updated
   rescue ActiveRecord::ActiveRecordError => e
     Rails.logger.error("set_leaderboard_shadowban failed for user #{id}: #{e.class}: #{e.message}")
     false
@@ -175,6 +180,7 @@ class User < ApplicationRecord
   has_many :api_keys
   has_many :admin_api_keys, dependent: :destroy
   has_many :oauth_applications, as: :owner, dependent: :destroy
+  belongs_to :leaderboard_shadowbanned_by, class_name: "User", optional: true
 
   has_one :sailors_log,
     foreign_key: :slack_uid,
@@ -202,6 +208,16 @@ class User < ApplicationRecord
     candidates_sql = sanitize_sql_for_conditions([ parts.join(" UNION "), { exact: term, contains: contains } ])
     where("users.id IN (#{candidates_sql})")
   }
+
+  def saved_change_to_leaderboard_shadowban_state?
+    saved_change_to_leaderboard_shadowbanned? ||
+      saved_change_to_leaderboard_shadowban_reason? ||
+      saved_change_to_leaderboard_shadowbanned_by_id?
+  end
+
+  def clear_leaderboard_page_cache
+    LeaderboardPageCache.clear!
+  end
 
   has_many :trust_level_audit_logs, dependent: :destroy
   has_many :trust_level_changes_made, class_name: "TrustLevelAuditLog", foreign_key: "changed_by_id", dependent: :destroy

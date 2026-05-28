@@ -5,10 +5,9 @@ class Admin::LeaderboardShadowbansController < InertiaController
 
   def index
     users = shadowbanned_users.to_a
-    actors_by_user_id = shadowban_actors_by_user_id(users)
 
     render inertia: "Admin/LeaderboardShadowbans", props: {
-      shadowbanned_users: users.map { |user| format_user(user, shadowbanned_by: actors_by_user_id[user.id]) }
+      shadowbanned_users: users.map { |user| format_user(user, shadowbanned_by: user.leaderboard_shadowbanned_by) }
     }
   end
 
@@ -64,28 +63,9 @@ class Admin::LeaderboardShadowbansController < InertiaController
 
   def shadowbanned_users
     User.where(leaderboard_shadowbanned: true)
-      .includes(:email_addresses)
+      .includes(:email_addresses, leaderboard_shadowbanned_by: :email_addresses)
       .order(updated_at: :desc)
       .limit(100)
-  end
-
-  def shadowban_actors_by_user_id(users)
-    actor_ids_by_user_id = {}
-
-    PaperTrail::Version
-      .where(item_type: "User", item_id: users.map(&:id))
-      .where.not(whodunnit: nil)
-      .order(created_at: :desc)
-      .each do |version|
-        user_id = version.item_id
-        next if actor_ids_by_user_id.key?(user_id)
-        next unless version.object_changes.to_s.include?("leaderboard_shadowbanned:\n- false\n- true")
-
-        actor_ids_by_user_id[user_id] = version.whodunnit.to_i
-      end
-
-    actors = User.where(id: actor_ids_by_user_id.values).includes(:email_addresses).index_by(&:id)
-    actor_ids_by_user_id.transform_values { |actor_id| actors[actor_id] }.compact
   end
 
   def format_user(user, shadowbanned_by: nil)

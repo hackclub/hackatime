@@ -10,6 +10,10 @@ class LeaderboardPageCache
 
     def warm(leaderboard:) = fetch(leaderboard:, scope: :global)
 
+    def clear!
+      Rails.cache.delete_matched("leaderboard_page/v2/*")
+    end
+
     private
 
     def cache_key(leaderboard, scope, country_code)

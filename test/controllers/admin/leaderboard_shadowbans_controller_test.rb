@@ -60,6 +60,7 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
     assert_redirected_to admin_leaderboard_shadowbans_path
     assert user.reload.leaderboard_shadowbanned?
     assert_equal "fake leaderboard activity", user.leaderboard_shadowban_reason
+    assert_equal admin, user.leaderboard_shadowbanned_by
     assert_equal admin.id.to_s, PaperTrail::Version.where(item_type: "User", item_id: user.id).last.whodunnit
   end
 
@@ -89,5 +90,6 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
     assert_redirected_to admin_leaderboard_shadowbans_path
     assert_not user.reload.leaderboard_shadowbanned?
     assert_nil user.leaderboard_shadowban_reason
+    assert_nil user.leaderboard_shadowbanned_by
   end
 end

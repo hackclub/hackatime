@@ -44,6 +44,20 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
     assert_equal [ us_user.id ], payload[:user_ids]
   end
 
+  test "set_leaderboard_shadowban invalidates cached rows" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = create_user(username: "lbcache_invalidate", country_code: "US")
+    board = create_board_with_entry(user: user, total_seconds: 321)
+
+    payload = LeaderboardPageCache.fetch(leaderboard: board, scope: :global)
+    assert_equal false, payload.dig(:entries, 0, :user, :shadowbanned)
+
+    assert user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "fake time")
+
+    payload = LeaderboardPageCache.fetch(leaderboard: board, scope: :global)
+    assert_equal true, payload.dig(:entries, 0, :user, :shadowbanned)
+  end
+
   private
 
   def create_user(username:, country_code:, trust_level: :blue, leaderboard_shadowbanned: false)

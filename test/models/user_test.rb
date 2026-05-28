@@ -97,10 +97,12 @@ class UserTest < ActiveSupport::TestCase
     assert user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "fake time")
     assert user.reload.leaderboard_shadowbanned?
     assert_equal "fake time", user.leaderboard_shadowban_reason
+    assert_equal actor, user.leaderboard_shadowbanned_by
 
     assert user.set_leaderboard_shadowban(banned: false, changed_by_user: actor)
     assert_not user.reload.leaderboard_shadowbanned?
     assert_nil user.leaderboard_shadowban_reason
+    assert_nil user.leaderboard_shadowbanned_by
   end
 
   test "set_leaderboard_shadowban records PaperTrail changes" do

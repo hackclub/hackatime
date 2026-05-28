@@ -101,7 +101,7 @@ class LeaderboardsController < InertiaController
 
     {
       entries: entries,
-      total: payload[:total_entries]
+      total: visible_entries.size
     }
   end
 end

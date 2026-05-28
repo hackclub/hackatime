@@ -40,6 +40,8 @@
   let results = $state<UserPickerResult[]>([]);
   let open = $state(false);
   let highlight = $state(-1);
+  let searchAbortController: AbortController | null = null;
+  let searchSequence = 0;
   const debouncedQuery = new Debounced(() => query, 200);
 
   const dropdownBase = "absolute left-0 top-full z-50 mt-1";
@@ -77,20 +79,33 @@
   }
 
   async function doSearch(searchQuery: string) {
+    const requestSequence = ++searchSequence;
+    searchAbortController?.abort();
+
     const trimmed = searchQuery.trim();
     if (!trimmed) return resetSearch();
+
+    const controller = new AbortController();
+    searchAbortController = controller;
 
     try {
       const res = await fetch(
         `${searchUrl}?query=${encodeURIComponent(trimmed)}`,
+        { signal: controller.signal },
       );
       if (!res.ok) throw new Error(`Search failed with ${res.status}`);
 
-      results = await res.json();
+      const nextResults = await res.json();
+      if (requestSequence !== searchSequence) return;
+
+      results = nextResults;
       open = true;
       highlight = -1;
-    } catch {
-      resetSearch();
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      if (requestSequence === searchSequence) resetSearch();
+    } finally {
+      if (searchAbortController === controller) searchAbortController = null;
     }
   }
 

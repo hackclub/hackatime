@@ -78,7 +78,7 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     entries_payload = JSON.parse(response.body).dig("props", "entries")
-    assert_equal 2, entries_payload["total"]
+    assert_equal 1, entries_payload["total"]
     assert_equal [ visible_user.id ], entries_payload["entries"].map { |entry| entry["user_id"] }
     assert_nil entries_payload["entries"].first.dig("user", "shadowbanned")
   end
