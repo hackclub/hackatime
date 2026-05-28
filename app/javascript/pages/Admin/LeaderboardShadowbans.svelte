@@ -21,65 +21,43 @@
   const redButtonClass =
     "!border-red !bg-red !text-on-primary hover:!opacity-90";
 
+  type Pending =
+    | { kind: "ban" }
+    | { kind: "unban"; user: ShadowbannedUser };
+
   let selectedUser = $state<UserPickerResult | null>(null);
   let reason = $state("");
-  let confirmBanOpen = $state(false);
-  let unbanUser = $state<ShadowbannedUser | null>(null);
-  let unbanOpen = $state(false);
+  let pending = $state<Pending | null>(null);
   let submitting = $state(false);
 
   let trimmedReason = $derived(reason.trim());
   let canSubmit = $derived(selectedUser !== null && trimmedReason.length > 0);
 
-  function resetBanForm() {
-    selectedUser = null;
-    reason = "";
-  }
-
-  function cancelBan() {
-    confirmBanOpen = false;
-  }
-
-  function confirmUnban(user: ShadowbannedUser) {
-    unbanUser = user;
-    unbanOpen = true;
-  }
-
-  function cancelUnban() {
-    unbanUser = null;
-    unbanOpen = false;
-  }
-
-  function submitShadowban() {
-    if (!selectedUser) return;
-
+  function submit() {
+    if (!pending || submitting) return;
     submitting = true;
-    router.post(
-      createUrl,
-      { user_id: selectedUser.id, reason: trimmedReason },
-      {
-        onFinish: () => {
-          submitting = false;
-          confirmBanOpen = false;
-          resetBanForm();
-        },
-      },
-    );
-  }
 
-  function submitUnban() {
-    if (!unbanUser) return;
+    const onFinish = () => {
+      submitting = false;
+      if (pending?.kind === "ban") {
+        selectedUser = null;
+        reason = "";
+      }
+      pending = null;
+    };
 
-    submitting = true;
-    router.delete(
-      adminLeaderboardShadowbans.destroy.path({ user_id: unbanUser.id }),
-      {
-        onFinish: () => {
-          submitting = false;
-          cancelUnban();
-        },
-      },
-    );
+    if (pending.kind === "ban" && selectedUser) {
+      router.post(
+        createUrl,
+        { user_id: selectedUser.id, reason: trimmedReason },
+        { onFinish },
+      );
+    } else if (pending.kind === "unban") {
+      router.delete(
+        adminLeaderboardShadowbans.destroy.path({ user_id: pending.user.id }),
+        { onFinish },
+      );
+    }
   }
 </script>
 
@@ -136,7 +114,7 @@
         variant="primary"
         class={redButtonClass}
         disabled={!canSubmit || selectedUser?.leaderboard_shadowbanned}
-        onclick={() => (confirmBanOpen = true)}
+        onclick={() => (pending = { kind: "ban" })}
       >
         Shadowban from leaderboards
       </Button>
@@ -162,15 +140,21 @@
 
     <ShadowbannedUsersTable
       users={shadowbanned_users}
-      onRemove={confirmUnban}
+      onRemove={(user) => (pending = { kind: "unban", user })}
     />
   </section>
 </div>
 
 <Modal
-  bind:open={confirmBanOpen}
-  title="Confirm leaderboard shadowban"
-  description="No one else will see this user on the public leaderboards."
+  bind:open={
+    () => pending !== null, (v) => { if (!v) pending = null; }
+  }
+  title={pending?.kind === "unban"
+    ? "Remove leaderboard shadowban?"
+    : "Confirm leaderboard shadowban"}
+  description={pending?.kind === "unban"
+    ? "This user will become visible to other leaderboard viewers again."
+    : "No one else will see this user on the public leaderboards."}
   maxWidth="max-w-lg"
   hasActions
 >
@@ -180,46 +164,25 @@
         type="button"
         variant="dark"
         class="h-10 w-full border border-surface-300 text-muted"
-        onclick={cancelBan}>Go back</Button
+        onclick={() => (pending = null)}>Go back</Button
       >
 
       <Button
         type="button"
         variant="primary"
-        class="h-10 w-full text-on-primary {redButtonClass}"
+        class="h-10 w-full text-on-primary {pending?.kind === 'unban'
+          ? ''
+          : redButtonClass}"
         disabled={submitting}
-        onclick={submitShadowban}
+        onclick={submit}
       >
-        {submitting ? "Saving..." : "Confirm shadowban"}
-      </Button>
-    </div>
-  {/snippet}
-</Modal>
-
-<Modal
-  bind:open={unbanOpen}
-  title="Remove leaderboard shadowban?"
-  description="This user will become visible to other leaderboard viewers again."
-  maxWidth="max-w-lg"
-  hasActions={true}
->
-  {#snippet actions()}
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <Button
-        type="button"
-        variant="dark"
-        class="h-10 w-full border border-surface-300 text-muted"
-        onclick={cancelUnban}>Go back</Button
-      >
-
-      <Button
-        type="button"
-        variant="primary"
-        class="h-10 w-full text-on-primary"
-        disabled={submitting}
-        onclick={submitUnban}
-      >
-        {submitting ? "Removing..." : "Remove shadowban"}
+        {#if submitting}
+          {pending?.kind === "unban" ? "Removing..." : "Saving..."}
+        {:else}
+          {pending?.kind === "unban"
+            ? "Remove shadowban"
+            : "Confirm shadowban"}
+        {/if}
       </Button>
     </div>
   {/snippet}
