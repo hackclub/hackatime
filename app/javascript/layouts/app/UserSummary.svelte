@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { Link } from "@inertiajs/svelte";
   import CountryFlag from "../../components/CountryFlag.svelte";
+  import { profiles } from "../../api";
   import StreakIcon from "./StreakIcon.svelte";
   import { streakTheme, streakLabel } from "../../utils";
   import type { AdminLevel, NavCurrentUser } from "../../types";
@@ -24,6 +26,9 @@
   const streak = $derived(
     user.streak_days ? streakTheme(user.streak_days) : null,
   );
+  const profilePath = $derived(
+    user.username ? profiles.show.path({ username: user.username }) : null,
+  );
 </script>
 
 <div class="user-info flex min-h-10 items-center gap-2" title={user.title}>
@@ -37,7 +42,24 @@
       loading="lazy"
     />
   {/if}
-  <span class="inline-flex items-center gap-1">{user.display_name}</span>
+  {#if profilePath}
+    <Link
+      href={profilePath}
+      aria-label={`View ${user.display_name}'s profile`}
+      class="group inline-grid w-fit max-w-full items-center gap-1"
+    >
+      <span class="col-start-1 row-start-1 truncate transition-all duration-200 group-hover:opacity-0 group-hover:-translate-y-1">
+        {user.display_name}
+      </span>
+      <span class="col-start-1 row-start-1 truncate text-muted opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+        @{user.username}
+      </span>
+    </Link>
+  {:else}
+    <span class="inline-flex max-w-full items-center gap-1 truncate">
+      {user.display_name}
+    </span>
+  {/if}
   {#if user.country_code}
     <span
       class="flex items-center"
