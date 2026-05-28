@@ -4,8 +4,7 @@ RSpec.describe 'Api::Summary', type: :request do
   path '/api/summary' do
     get('Get WakaTime-compatible summary') do
       tags 'WakaTime Compatibility'
-      description 'Returns a summary of coding activity in a format compatible with WakaTime clients. This endpoint supports querying by date range, interval, or specific user (admin/privileged only).'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      description 'Returns a public summary of coding activity in a format compatible with WakaTime clients.'
       produces 'application/json'
 
       parameter name: :start, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'

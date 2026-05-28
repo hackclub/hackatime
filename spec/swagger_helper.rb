@@ -23,7 +23,12 @@ RSpec.configure do |config|
           Bearer: {
             type: :http,
             scheme: :bearer,
-            description: 'User API Key from settings, prefixed with "Bearer"'
+            description: 'Bearer token accepted by the endpoint'
+          },
+          BasicApiKey: {
+            type: :http,
+            scheme: :basic,
+            description: 'User API key as the Basic auth credential'
           },
           AdminToken: {
             type: :http,

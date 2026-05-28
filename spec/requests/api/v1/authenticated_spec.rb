@@ -5,7 +5,7 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
     get('Get current user info') do
       tags 'Authenticated'
       description 'Returns detailed information about the currently authenticated user.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ Bearer: [] ]
       produces 'application/json'
 
       response(200, 'successful') do
@@ -45,7 +45,7 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
     get('Get hours') do
       tags 'Authenticated'
       description 'Returns the total coding hours for the authenticated user.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ Bearer: [] ]
       produces 'application/json'
 
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
@@ -80,7 +80,7 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
     get('Get streak') do
       tags 'Authenticated'
       description 'Returns the current streak information (days coded in a row).'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ Bearer: [] ]
       produces 'application/json'
 
       response(200, 'successful') do
@@ -108,7 +108,7 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
     get('Get projects') do
       tags 'Authenticated'
       description 'Returns a list of projects associated with the authenticated user.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ Bearer: [] ]
       produces 'application/json'
 
       parameter name: :include_archived, in: :query, type: :boolean, description: 'Include archived projects (true/false)'
@@ -174,7 +174,7 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
     get('Get API keys') do
       tags 'Authenticated'
       description 'Returns the API keys for the authenticated user. Warning: This returns sensitive information.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ Bearer: [] ]
       produces 'application/json'
 
       response(200, 'successful') do
@@ -200,7 +200,7 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
     get('Get latest heartbeat') do
       tags 'Authenticated'
       description 'Returns the absolutely latest heartbeat processed for the user.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ Bearer: [] ]
       produces 'application/json'
 
       response(200, 'successful') do

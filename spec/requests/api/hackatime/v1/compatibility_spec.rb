@@ -6,7 +6,7 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
       tags 'WakaTime Compatibility'
       description 'Endpoint used by WakaTime plugins to send heartbeat data to the server. This is the core endpoint for tracking time.'
       consumes 'application/json'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ { Bearer: [] }, { ApiKeyAuth: [] } ]
 
       parameter name: :id, in: :path, type: :string, description: 'User ID or "current" (recommended)'
       parameter name: :heartbeats, in: :body, schema: {
@@ -72,7 +72,7 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
     get('Get status bar today') do
       tags 'WakaTime Compatibility'
       description 'Returns the total coding time for today. Used by editor plugins to display the status bar widget.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ { Bearer: [] }, { ApiKeyAuth: [] } ]
       produces 'application/json'
 
       parameter name: :id, in: :path, type: :string, description: 'User ID or "current"'
@@ -122,7 +122,7 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
       get('Get last 7 days stats') do
         tags 'WakaTime Compatibility'
         description 'Returns coding statistics for the last 7 days. Used by some WakaTime dashboards.'
-        security [ Bearer: [], ApiKeyAuth: [] ]
+        security [ { Bearer: [] }, { ApiKeyAuth: [] } ]
         produces 'application/json'
 
         response(200, 'successful') do

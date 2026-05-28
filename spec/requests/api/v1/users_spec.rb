@@ -5,7 +5,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
     get('Lookup user by email') do
       tags 'Users'
       description 'Find a user ID by their email address. Useful for integrations that need to map emails to Hackatime users. Requires STATS_API_KEY.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ Bearer: [] ]
       produces 'application/json'
 
       parameter name: :email, in: :path, type: :string, description: 'Email address to lookup'
@@ -47,7 +47,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
     get('Lookup user by Slack UID') do
       tags 'Users'
       description 'Find a user ID by their Slack User ID. Requires STATS_API_KEY.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ Bearer: [] ]
       produces 'application/json'
 
       parameter name: :slack_uid, in: :path, type: :string, description: 'Slack User ID (e.g. U123456)'
@@ -84,7 +84,6 @@ RSpec.describe 'Api::V1::Users', type: :request do
     get('Get trust factor') do
       tags 'Users'
       description 'Get the trust level/factor for a user. Higher trust values indicate more verified activity.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
@@ -115,7 +114,6 @@ RSpec.describe 'Api::V1::Users', type: :request do
     get('Get user projects') do
       tags 'Users'
       description 'Get a list of projects a user has coded on recently (last 30 days).'
-      security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username'
@@ -148,7 +146,6 @@ RSpec.describe 'Api::V1::Users', type: :request do
     get('Get specific project stats') do
       tags 'Users'
       description 'Get detailed stats for a specific project.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username'
@@ -176,7 +173,6 @@ RSpec.describe 'Api::V1::Users', type: :request do
     get('Get detailed project stats') do
       tags 'Users'
       description 'Get detailed breakdown of all user projects.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username'
@@ -210,7 +206,6 @@ RSpec.describe 'Api::V1::Users', type: :request do
     get('Get heartbeat spans') do
       tags 'Users'
       description 'Get time spans of coding activity.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username'

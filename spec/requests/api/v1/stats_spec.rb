@@ -5,7 +5,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
     get('Get total coding time (Admin Only)') do
       tags 'Stats'
       description 'Returns the total coding time for all users, optionally filtered by user or date range. Requires admin privileges via STATS_API_KEY.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      security [ { Bearer: [] }, { ApiKeyAuth: [] } ]
       produces 'text/plain'
 
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD), defaults to 10 years ago'
@@ -248,7 +248,6 @@ RSpec.describe 'Api::V1::Stats', type: :request do
     get('Get user stats') do
       tags 'Stats'
       description 'Returns detailed coding stats for a specific user, including languages, projects, and total time.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'

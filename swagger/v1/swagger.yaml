@@ -1849,7 +1849,7 @@ paths:
         server. This is the core endpoint for tracking time.
       security:
       - Bearer: []
-        ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
       - name: id
         in: path
@@ -1901,7 +1901,7 @@ paths:
         to display the status bar widget.
       security:
       - Bearer: []
-        ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
       - name: id
         in: path
@@ -1956,7 +1956,7 @@ paths:
         dashboards.
       security:
       - Bearer: []
-        ApiKeyAuth: []
+      - ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2190,12 +2190,8 @@ paths:
       summary: Get WakaTime-compatible summary
       tags:
       - WakaTime Compatibility
-      description: Returns a summary of coding activity in a format compatible with
-        WakaTime clients. This endpoint supports querying by date range, interval,
-        or specific user (admin/privileged only).
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+      description: Returns a public summary of coding activity in a format compatible
+        with WakaTime clients.
       parameters:
       - name: start
         in: query
@@ -2301,7 +2297,6 @@ paths:
         user.
       security:
       - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2339,7 +2334,6 @@ paths:
       description: Returns the total coding hours for the authenticated user.
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: start_date
         in: query
@@ -2382,7 +2376,6 @@ paths:
       description: Returns the current streak information (days coded in a row).
       security:
       - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2404,7 +2397,6 @@ paths:
       description: Returns a list of projects associated with the authenticated user.
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: include_archived
         in: query
@@ -2498,7 +2490,6 @@ paths:
         returns sensitive information.'
       security:
       - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2520,7 +2511,6 @@ paths:
       description: Returns the absolutely latest heartbeat processed for the user.
       security:
       - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2595,9 +2585,6 @@ paths:
       tags:
       - Leaderboard
       description: Alias for /api/v1/leaderboard/daily. Returns the daily leaderboard.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2630,9 +2617,6 @@ paths:
       tags:
       - Leaderboard
       description: Leaderboard is currently being generated
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2670,11 +2654,7 @@ paths:
       summary: Get weekly leaderboard
       tags:
       - Leaderboard
-      description: Returns the weekly leaderboard of coding time (last 7 days). Requires
-        STATS_API_KEY.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+      description: Returns the weekly leaderboard of coding time (last 7 days).
       responses:
         '200':
           description: successful
@@ -2710,7 +2690,7 @@ paths:
         for checking if the user is currently active.
       security:
       - Bearer: []
-        ApiKeyAuth: []
+      - BasicApiKey: []
       parameters:
       - name: source_type
         in: query
@@ -2736,7 +2716,7 @@ paths:
         a time range. This is the raw data stream.
       security:
       - Bearer: []
-        ApiKeyAuth: []
+      - BasicApiKey: []
       parameters:
       - name: start_time
         in: query
@@ -2755,212 +2735,106 @@ paths:
           description: successful
         '401':
           description: unauthorized
-  "/my/heartbeats/export":
-    post:
-      summary: Export Heartbeats
-      tags:
-      - My Data
-      description: Export your heartbeats as a JSON file.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters:
-      - name: all_data
-        in: query
-        description: Export all data (true/false)
-        schema:
-          type: boolean
-      - name: start_date
-        in: query
-        schema:
-          type: string
-          format: date
-        description: Start date (YYYY-MM-DD)
-      - name: end_date
-        in: query
-        schema:
-          type: string
-          format: date
-        description: End date (YYYY-MM-DD)
-      responses:
-        '302':
-          description: redirect
-  "/my/heartbeat_imports":
-    post:
-      summary: Create Heartbeat Import
-      tags:
-      - My Data
-      description: Start a development upload import or a one-time remote dump import.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters: []
-      responses:
-        '202':
-          description: accepted
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: string
-              enum:
-              - wakatime_dump
-              - hackatime_v1_dump
-        description: Remote import provider preset
-  "/my/projects":
+  "/api/v1/currently_hacking":
     get:
-      summary: List Project Repo Mappings
+      summary: List users currently hacking
       tags:
-      - My Projects
-      description: List mappings between local project names and Git repositories.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters:
-      - name: interval
-        in: query
-        description: 'Time interval (e.g., daily, weekly). Default: daily'
-        schema:
-          type: string
-      - name: from
-        in: query
-        schema:
-          type: string
-          format: date
-        description: Start date (YYYY-MM-DD)
-      - name: to
-        in: query
-        schema:
-          type: string
-          format: date
-        description: End date (YYYY-MM-DD)
+      - Public
+      description: Returns users with recent coding activity.
       responses:
         '200':
           description: successful
-  "/my/project_repo_mappings/{project_name}":
-    parameters:
-    - name: project_name
-      in: path
-      description: Project name (encoded)
-      required: true
-      schema:
-        type: string
-    patch:
-      summary: Update Project Repo Mapping
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        display_name:
+                          type: string
+                          nullable: true
+                        avatar_url:
+                          type: string
+                          nullable: true
+                        country_code:
+                          type: string
+                          nullable: true
+                        working_on:
+                          type: object
+                          nullable: true
+                          properties:
+                            project_name:
+                              type: string
+                            repo_url:
+                              type: string
+                              nullable: true
+  "/api/v1/banned_users/counts":
+    get:
+      summary: Get banned user counts
       tags:
-      - My Projects
-      description: Update the Git repository URL for a project mapping.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters: []
-      responses:
-        '302':
-          description: redirect
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                repo_url:
-                  type: string
-                  example: https://github.com/hackclub/hackatime
-              required:
-              - repo_url
-  "/my/project_repo_mappings/{project_name}/archive":
-    parameters:
-    - name: project_name
-      in: path
-      description: Project name (encoded)
-      required: true
-      schema:
-        type: string
-    patch:
-      summary: Archive Project Mapping
-      tags:
-      - My Projects
-      description: Archive a project mapping so it does not appear in active lists.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      responses:
-        '302':
-          description: redirect
-  "/my/project_repo_mappings/{project_name}/unarchive":
-    parameters:
-    - name: project_name
-      in: path
-      description: Project name (encoded)
-      required: true
-      schema:
-        type: string
-    patch:
-      summary: Unarchive Project Mapping
-      tags:
-      - My Projects
-      description: Restore an archived project mapping.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      responses:
-        '302':
-          description: redirect
-  "/my/settings/rotate_api_key":
-    post:
-      summary: Rotate API Key
-      tags:
-      - My Settings
-      description: 'Rotate your API key. Returns the new token. Warning: Old token
-        will stop working immediately.'
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+      - Stats
+      description: Returns distinct red trust-level user counts over the last day,
+        week, and month.
       responses:
         '200':
           description: successful
-  "/my/heartbeat_imports/{id}":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  day:
+                    type: integer
+                  week:
+                    type: integer
+                  month:
+                    type: integer
+  "/api/v1/badge/{user_id}/{project}":
     get:
-      summary: Get Heartbeat Import Status
+      summary: Get project coding-time badge
       tags:
-      - My Data
-      description: Fetch the latest state for a heartbeat import run.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+      - Badges
+      description: Redirects to a shields.io badge for a user project.
       parameters:
-      - name: id
+      - name: user_id
         in: path
-        description: Heartbeat import run id
+        description: Slack UID, username, or internal user ID
         required: true
         schema:
           type: string
+      - name: project
+        in: path
+        description: Project name or owner/repo
+        required: true
+        schema:
+          type: string
+      - name: label
+        in: query
+        required: false
+        description: Badge label
+        schema:
+          type: string
+      - name: color
+        in: query
+        required: false
+        description: Badge color
+        schema:
+          type: string
+      - name: aliases
+        in: query
+        required: false
+        description: Comma-separated extra project names to include
+        schema:
+          type: string
       responses:
-        '200':
-          description: successful
-  "/deletion":
-    post:
-      summary: Create Deletion Request
-      tags:
-      - My Settings
-      description: Request deletion of your account and data.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      responses:
-        '302':
-          description: redirect
-    delete:
-      summary: Cancel Deletion Request
-      tags:
-      - My Settings
-      description: Cancel a pending deletion request.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      responses:
-        '302':
-          description: redirect
+        '307':
+          description: temporary redirect
   "/api/v1/stats":
     get:
       summary: Get total coding time (Admin Only)
@@ -2970,7 +2844,7 @@ paths:
         by user or date range. Requires admin privileges via STATS_API_KEY.
       security:
       - Bearer: []
-        ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
       - name: start_date
         in: query
@@ -3074,9 +2948,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
   "/api/v1/users/{username}/trust_factor":
     get:
       summary: Get trust factor
@@ -3111,9 +2982,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
   "/api/v1/users/{username}/projects":
     get:
       summary: Get user projects
@@ -3146,9 +3014,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
   "/api/v1/users/{username}/project/{project_name}":
     get:
       summary: Get specific project stats
@@ -3221,9 +3086,6 @@ paths:
                     type: string
                     format: date_time
                     nullable: true
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
   "/api/v1/users/{username}/projects/details":
     get:
       summary: Get detailed project stats
@@ -3318,18 +3180,12 @@ paths:
                           type: string
                           format: date_time
                           nullable: true
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
   "/api/v1/users/{username}/stats":
     get:
       summary: Get user stats
       tags:
       - Stats
       description: User has disabled public stats lookup
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: username
         in: path
@@ -3425,7 +3281,6 @@ paths:
         that need to map emails to Hackatime users. Requires STATS_API_KEY.
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: email
         in: path
@@ -3468,7 +3323,6 @@ paths:
       description: Find a user ID by their Slack User ID. Requires STATS_API_KEY.
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: slack_uid
         in: path
@@ -3503,41 +3357,16 @@ paths:
                   slack_uid:
                     type: string
                     example: U000000
-  "/sailors_log/slack/commands":
-    post:
-      summary: Handle Sailor's Log Command
-      tags:
-      - Slack
-      description: Handle incoming Slack slash commands for Sailor's Log (/sailorslog).
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  response_type:
-                    type: string
-                  text:
-                    type: string
-                    nullable: true
-                  blocks:
-                    type: array
-                    items:
-                      type: object
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: string
 components:
   securitySchemes:
     Bearer:
       type: http
       scheme: bearer
-      description: User API Key from settings, prefixed with "Bearer"
+      description: Bearer token accepted by the endpoint
+    BasicApiKey:
+      type: http
+      scheme: basic
+      description: User API key as the Basic auth credential
     AdminToken:
       type: http
       scheme: bearer

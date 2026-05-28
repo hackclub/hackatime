@@ -14,7 +14,6 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
     get('Get daily leaderboard (Alias)') do
       tags 'Leaderboard'
       description 'Alias for /api/v1/leaderboard/daily. Returns the daily leaderboard.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
       response(200, 'successful') do
@@ -48,8 +47,7 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
   path '/api/v1/leaderboard/daily' do
     get('Get daily leaderboard') do
       tags 'Leaderboard'
-      description 'Returns the daily leaderboard of coding time. Requires STATS_API_KEY. The leaderboard is cached and regenerated periodically.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      description 'Returns the daily leaderboard of coding time. The leaderboard is cached and regenerated periodically.'
       produces 'application/json'
 
       response(200, 'successful') do
@@ -95,8 +93,7 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
   path '/api/v1/leaderboard/weekly' do
     get('Get weekly leaderboard') do
       tags 'Leaderboard'
-      description 'Returns the weekly leaderboard of coding time (last 7 days). Requires STATS_API_KEY.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      description 'Returns the weekly leaderboard of coding time (last 7 days).'
       produces 'application/json'
 
       response(200, 'successful') do
