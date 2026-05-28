@@ -1500,6 +1500,7 @@ paths:
                           type: integer
                         username:
                           type: string
+                          nullable: true
                         slack_username:
                           type: string
                           nullable: true

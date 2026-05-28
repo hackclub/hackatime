@@ -205,12 +205,12 @@ module DashboardData
       }
     end
 
-    # Reject archived project entries from a `{ project => duration }` map.
+    # Reject project entries that should not appear in dashboard summaries.
     def grouped_durations_for(grouped_durations, field, archived)
       stats = grouped_durations.fetch(field, {})
       return stats unless field == :project
 
-      stats.reject { |project, _| archived.include?(project) }
+      stats.reject { |project, _| archived.include?(project) || ProjectNameUtils.broken?(project) }
     end
 
     # Fill aggregate display fields onto `result` from a snapshot.
@@ -222,45 +222,37 @@ module DashboardData
       result[:total_time] = snapshot.fetch(:total_time)
       result[:total_heartbeats] = snapshot.fetch(:total_heartbeats)
 
-      GROUPED_DIMENSIONS.each do |field|
-        stats = grouped_durations_for(grouped_durations, field, archived)
-        result["top_#{field}"] = stats.max_by { |_, duration| duration }&.first
-      end
-
-      result["top_editor"] &&= helpers.display_editor_name(result["top_editor"])
-      result["top_operating_system"] &&= helpers.display_os_name(result["top_operating_system"])
-      result["top_language"] &&= helpers.display_language_name(result["top_language"])
+      project_durations = grouped_durations_for(grouped_durations, :project, archived)
+      result["top_project"] = project_durations.max_by { |_, duration| duration }&.first
 
       unless result["singular_project"]
-        result[:project_durations] = grouped_durations_for(grouped_durations, :project, archived)
-          .sort_by { |_, duration| -duration }.first(10).to_h
+        result[:project_durations] = project_durations.sort_by { |_, duration| -duration }.first(10).to_h
       end
 
       %i[language editor operating_system category].each do |field|
-        next if result["singular_#{field}"]
+        # Chart and card totals must share display buckets because raw aliases collapse to one label.
+        bucket_key = case field
+        when :language then ->(raw) { raw.to_s.categorize_language }
+        when :editor then ->(raw) { helpers.display_editor_name(raw) }
+        when :operating_system then ->(raw) { helpers.display_os_name(raw) }
+        else ->(raw) { raw.to_s }
+        end
 
         stats = grouped_durations.fetch(field, {}).each_with_object({}) do |(raw, duration), agg|
           next if raw.to_s.blank?
 
-          key = if field == :language
-            raw.to_s.categorize_language
-          elsif %i[editor operating_system].include?(field)
-            raw.to_s.downcase
-          else
-            raw.to_s
-          end
+          key = bucket_key.call(raw)
+          next if key.to_s.blank?
+
           agg[key] = (agg[key] || 0) + duration
         end
 
-        result["#{field}_stats"] = stats.sort_by { |_, duration| -duration }.first(10).map { |key, value|
-          label = case field
-          when :editor then helpers.display_editor_name(key)
-          when :operating_system then helpers.display_os_name(key)
-          when :language then helpers.display_language_name(key)
-          else key
-          end
+        display_stats = stats.sort_by { |_, duration| -duration }.first(10).map { |key, value|
+          label = field == :language ? helpers.display_language_name(key) : key
           [ label, value ]
         }.to_h
+        result["top_#{field}"] = display_stats.keys.first
+        result["#{field}_stats"] = display_stats unless result["singular_#{field}"]
       end
 
       if result["language_stats"].present?
@@ -268,7 +260,7 @@ module DashboardData
       end
 
       result[:weekly_project_stats] = weekly.transform_values do |stats|
-        stats.reject { |project, _| archived.include?(project) }
+        stats.reject { |project, _| archived.include?(project) || ProjectNameUtils.broken?(project) }
       end
     end
 
