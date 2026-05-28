@@ -4,6 +4,7 @@
   export type ShadowbannedUser = UserPickerResult & {
     leaderboard_shadowbanned: boolean;
     leaderboard_shadowban_reason: string | null;
+    shadowbanned_by: UserPickerResult | null;
     updated_at: string | null;
   };
 </script>
@@ -43,6 +44,7 @@
         <tr>
           <th class="px-4 py-3" scope="col">User</th>
           <th class="px-4 py-3" scope="col">Reason</th>
+          <th class="px-4 py-3" scope="col">Added by</th>
           <th class="px-4 py-3" scope="col">Updated</th>
           <th class="px-4 py-3 text-right" scope="col">Action</th>
         </tr>
@@ -57,14 +59,14 @@
                   <div class="font-medium text-surface-content">
                     {user.display_name}
                   </div>
-                  <div class="text-xs text-muted">
-                    ID: {user.id}{user.email ? ` · ${user.email}` : ""}
-                  </div>
                 </div>
               </div>
             </td>
             <td class="max-w-sm px-4 py-3 text-muted">
               {user.leaderboard_shadowban_reason}
+            </td>
+            <td class="px-4 py-3 text-muted">
+              {user.shadowbanned_by?.display_name || "Unknown"}
             </td>
             <td class="px-4 py-3 text-muted">{user.updated_at}</td>
             <td class="px-4 py-3 text-right">

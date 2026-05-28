@@ -83,27 +83,6 @@
   }
 </script>
 
-{#snippet modalActions(
-  cancel: () => void,
-  confirm: () => void,
-  label: string,
-  loadingLabel: string,
-  className = "",
-)}
-  <div class="flex justify-end gap-3">
-    <Button type="button" variant="surface" onclick={cancel}>Cancel</Button>
-    <Button
-      type="button"
-      variant="primary"
-      class={className}
-      disabled={submitting}
-      onclick={confirm}
-    >
-      {submitting ? loadingLabel : label}
-    </Button>
-  </div>
-{/snippet}
-
 <svelte:head>
   <title>Leaderboard Shadowbans</title>
 </svelte:head>
@@ -191,54 +170,57 @@
 <Modal
   bind:open={confirmBanOpen}
   title="Confirm leaderboard shadowban"
-  description="This user will be hidden from everyone else's leaderboard view."
-  hasBody={true}
-  hasActions={true}
+  description="No one else will see this user on the public leaderboards."
+  maxWidth="max-w-lg"
+  hasActions
 >
-  {#snippet body()}
-    <div class="space-y-3 text-sm text-muted">
-      <p>
-        Shadowban
-        <strong class="text-surface-content"
-          >{selectedUser?.display_name}</strong
-        >
-        from public leaderboards?
-      </p>
-      <p class="rounded-lg border border-surface-200 bg-surface-100/20 p-3">
-        {trimmedReason}
-      </p>
-    </div>
-  {/snippet}
   {#snippet actions()}
-    {@render modalActions(
-      cancelBan,
-      submitShadowban,
-      "Confirm shadowban",
-      "Saving...",
-      redButtonClass,
-    )}
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Button
+        type="button"
+        variant="dark"
+        class="h-10 w-full border border-surface-300 text-muted"
+        onclick={cancelBan}>Go back</Button
+      >
+
+      <Button
+        type="button"
+        variant="primary"
+        class="h-10 w-full text-on-primary {redButtonClass}"
+        disabled={submitting}
+        onclick={submitShadowban}
+      >
+        {submitting ? "Saving..." : "Confirm shadowban"}
+      </Button>
+    </div>
   {/snippet}
 </Modal>
 
 <Modal
   bind:open={unbanOpen}
-  title="Remove leaderboard shadowban"
+  title="Remove leaderboard shadowban?"
   description="This user will become visible to other leaderboard viewers again."
-  hasBody={true}
+  maxWidth="max-w-lg"
   hasActions={true}
 >
-  {#snippet body()}
-    <p class="text-sm text-muted">
-      Remove the leaderboard shadowban for
-      <strong class="text-surface-content">{unbanUser?.display_name}</strong>?
-    </p>
-  {/snippet}
   {#snippet actions()}
-    {@render modalActions(
-      cancelUnban,
-      submitUnban,
-      "Remove shadowban",
-      "Removing...",
-    )}
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Button
+        type="button"
+        variant="dark"
+        class="h-10 w-full border border-surface-300 text-muted"
+        onclick={cancelUnban}>Go back</Button
+      >
+
+      <Button
+        type="button"
+        variant="primary"
+        class="h-10 w-full text-on-primary"
+        disabled={submitting}
+        onclick={submitUnban}
+      >
+        {submitting ? "Removing..." : "Remove shadowban"}
+      </Button>
+    </div>
   {/snippet}
 </Modal>

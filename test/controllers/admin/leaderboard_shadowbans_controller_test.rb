@@ -12,12 +12,10 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
 
   test "index renders current shadowbanned users" do
     admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(
-      timezone: "UTC",
-      username: "already_shadowbanned",
-      leaderboard_shadowbanned: true,
-      leaderboard_shadowban_reason: "inflated activity"
-    )
+    user = User.create!(timezone: "UTC", username: "already_shadowbanned")
+    PaperTrail.request(whodunnit: admin.id) do
+      user.set_leaderboard_shadowban(banned: true, changed_by_user: admin, reason: "inflated activity")
+    end
     sign_in_as(admin)
 
     get admin_leaderboard_shadowbans_path
@@ -27,6 +25,7 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
     body_user = inertia_page.dig("props", "shadowbanned_users").first
     assert_equal user.id, body_user["id"]
     assert_equal "inflated activity", body_user["leaderboard_shadowban_reason"]
+    assert_equal admin.id, body_user.dig("shadowbanned_by", "id")
   end
 
   test "search_users returns shadowban metadata" do
