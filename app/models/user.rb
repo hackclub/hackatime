@@ -157,14 +157,11 @@ class User < ApplicationRecord
     return false if changed_by_user == self
     return false unless changed_by_user.admin_level_rank > admin_level_rank
 
-    updated = update(
+    update(
       leaderboard_shadowbanned: banned,
       leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil,
       leaderboard_shadowbanned_by: banned ? changed_by_user : nil
     )
-
-    LeaderboardPageCache.clear! if updated
-    updated
   rescue ActiveRecord::ActiveRecordError => e
     Rails.logger.error("set_leaderboard_shadowban failed for user #{id}: #{e.class}: #{e.message}")
     false
