@@ -14,6 +14,7 @@
     heading,
     subheading,
     username_max_length,
+    display_name_max_length,
     user,
     options,
     profile_url,
@@ -67,6 +68,41 @@
     {#snippet footer()}
       <Button type="submit" variant="primary" form="profile-region-form"
         >Save region settings</Button
+      >
+    {/snippet}
+  </SectionCard>
+
+  <SectionCard
+    id="user_display_name"
+    title="Display Name"
+    description="This name appears across Hackatime instead of your Slack, GitHub, or username."
+  >
+    <Form
+      id="profile-display-name-form"
+      action={settingsProfile.updateDisplayName.path()}
+      method="patch"
+      class="space-y-3"
+      options={{ preserveScroll: true }}
+    >
+      <Field
+        inputId="display_name_override"
+        label="Display name"
+        error={errors.display_name_override[0]}
+      >
+        <input
+          id="display_name_override"
+          name="user[display_name_override]"
+          value={user.display_name_override || ""}
+          maxlength={display_name_max_length}
+          placeholder={user.display_name}
+          class={inputClass}
+        />
+      </Field>
+    </Form>
+
+    {#snippet footer()}
+      <Button type="submit" variant="primary" form="profile-display-name-form"
+        >Save display name</Button
       >
     {/snippet}
   </SectionCard>

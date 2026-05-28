@@ -36,7 +36,9 @@ class Settings::BaseController < InertiaController
       page_title: (is_own ? "My Settings" : "Settings | #{@user.display_name}"),
       heading: (is_own ? "Settings" : "Settings for #{@user.display_name}"),
       subheading: "Manage your profile, appearance, editors, integrations, privacy, goals, and data tools.",
-      errors: { full_messages: @user.errors.full_messages, username: @user.errors[:username] } }
+      errors: { full_messages: @user.errors.full_messages,
+                display_name_override: @user.errors[:display_name_override],
+                username: @user.errors[:username] } }
   end
 
   # Subclasses override this to provide section-specific props
@@ -45,6 +47,7 @@ class Settings::BaseController < InertiaController
   USER_PROP_BUILDERS = {
     id: ->(u) { u.id },
     display_name: ->(u) { u.display_name },
+    display_name_override: ->(u) { u.display_name_override },
     timezone: ->(u) { u.timezone },
     country_code: ->(u) { u.country_code },
     username: ->(u) { u.username },

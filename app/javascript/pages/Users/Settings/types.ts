@@ -96,6 +96,7 @@ export type GoalForm = {
 export type UserProps = {
   id: number;
   display_name: string;
+  display_name_override?: string | null;
   timezone: string;
   country_code?: string | null;
   username?: string | null;
@@ -209,6 +210,7 @@ export type HeartbeatImportStatusProps = {
 
 export type ErrorsProps = {
   full_messages: string[];
+  display_name_override: string[];
   username: string[];
 };
 
@@ -222,7 +224,15 @@ export type SettingsCommonProps = {
 
 export type ProfilePageProps = SettingsCommonProps & {
   username_max_length: number;
-  user: Pick<UserProps, "country_code" | "timezone" | "username">;
+  display_name_max_length: number;
+  user: Pick<
+    UserProps,
+    | "country_code"
+    | "timezone"
+    | "display_name"
+    | "display_name_override"
+    | "username"
+  >;
   options: Pick<BaseOptionsProps, "countries" | "timezones">;
   profile_url: string | null;
   emails: EmailProps[];
@@ -238,7 +248,10 @@ export type AppearancePageProps = SettingsCommonProps & {
 };
 
 export type EditorsPageProps = SettingsCommonProps & {
-  user: Pick<UserProps, "hackatime_extension_text_type" | "show_goals_in_statusbar">;
+  user: Pick<
+    UserProps,
+    "hackatime_extension_text_type" | "show_goals_in_statusbar"
+  >;
   options: Pick<BaseOptionsProps, "extension_text_types">;
 };
 
@@ -309,6 +322,7 @@ export const buildSections = (): SettingsSection[] => [
 const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
   profile: [
     { id: "user_region", label: "Region" },
+    { id: "user_display_name", label: "Display name" },
     { id: "user_username", label: "Username" },
     { id: "user_email_addresses", label: "Email addresses" },
   ],

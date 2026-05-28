@@ -155,6 +155,7 @@ Rails.application.routes.draw do
   # Profile
   get "my/settings/profile", to: "settings/profile#show", as: :my_settings_profile
   patch "my/settings/profile/region", to: "settings/profile#update_region", as: :my_settings_profile_region
+  patch "my/settings/profile/display_name", to: "settings/profile#update_display_name", as: :my_settings_profile_display_name
   patch "my/settings/profile/username", to: "settings/profile#update_username", as: :my_settings_profile_username
 
   # Setup

@@ -46,6 +46,7 @@ module JsFromRoutes
     my_settings
     my_settings_profile
     my_settings_profile_region
+    my_settings_profile_display_name
     my_settings_profile_username
     my_settings_setup
     my_settings_appearance
