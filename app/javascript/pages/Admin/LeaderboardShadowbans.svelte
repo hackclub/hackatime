@@ -111,14 +111,14 @@
 <div class="mx-auto max-w-5xl space-y-6">
   <header class="text-center">
     <h1 class="text-4xl font-bold text-surface-content">
-      leaderboard shadowbans
+      Leaderboard Shadowbans
     </h1>
     <p class="mt-2 text-muted">hide users from the leaderboards!</p>
   </header>
 
   <section class="rounded-xl border border-primary bg-dark p-6">
     <h2 class="mb-4 text-xl font-semibold text-surface-content">
-      Add a leaderboard shadowban
+      Add a shadowban
     </h2>
 
     <UserPicker
