@@ -100,9 +100,9 @@
           />
         {/if}
 
-        {#if dashboard_stats?.activity_graph}
+        <!-- {#if dashboard_stats?.activity_graph}
           <ActivityGraph data={dashboard_stats.activity_graph} />
-        {/if}
+        {/if} -->
       </div>
     {/snippet}
   </Deferred>
