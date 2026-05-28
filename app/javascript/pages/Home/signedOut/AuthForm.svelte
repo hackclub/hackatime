@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from "../../../components/Button.svelte";
+  import HackClubLogo from "../../../components/HackClubLogo.svelte";
   import { sessions } from "../../../api";
 
   let {
@@ -75,7 +76,7 @@
           ></path>
         </svg>
       {:else}
-        <img src="/images/icon-rounded.png" class="h-5 w-5" alt="Hack Club" />
+        <HackClubLogo class="h-5 w-5" />
       {/if}
       <span>Sign in with Hack Club</span>
     </a>

@@ -8,7 +8,10 @@
     <meta name="color-scheme" content="<%= current_theme_color_scheme %>">
     <meta name="theme-color" content="<%= current_theme_color %>">
 
-    <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
+    <% unless Rails.env.test? %>
+      <%= vite_stylesheet_tag "application" %>
+      <%= vite_client_tag %>
+    <% end %>
     <%= csrf_meta_tags %>
     <%= javascript_importmap_tags %>
   </head>
