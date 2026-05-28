@@ -14,45 +14,71 @@
 <script lang="ts">
   type Accent = "primary" | "green" | "red";
 
+  type Props = {
+    searchUrl: string;
+    selected?: UserPickerResult | null;
+    placeholder?: string;
+    id?: string;
+    label?: string;
+    accent?: Accent;
+    emptyText?: string;
+  };
+
   let {
     searchUrl,
     selected = $bindable<UserPickerResult | null>(null),
     placeholder = "Search by name/email/id...",
-    testid = "user-picker",
+    id = "user-picker",
+    label = "Search users",
     accent = "primary",
     emptyText = "No user selected",
-  }: {
-    searchUrl: string;
-    selected?: UserPickerResult | null;
-    placeholder?: string;
-    testid?: string;
-    accent?: Accent;
-    emptyText?: string;
-  } = $props();
+  }: Props = $props();
 
   let query = $state("");
   let results = $state<UserPickerResult[]>([]);
   let open = $state(false);
   let highlight = $state(-1);
-  let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
-  let selectedClass = $derived.by(() => {
-    if (accent === "green") return "border-green/30 bg-green/10";
-    if (accent === "red") return "border-red/30 bg-red/10";
-    return "border-primary/30 bg-primary/10";
-  });
+  const dropdownBase = "absolute left-0 top-full z-50 mt-1";
+  const dropdownPanel = "rounded-lg border border-surface-200 bg-dark";
+  let listboxId = $derived(`${id}-results`);
+
+  let selectedClass = $derived(
+    accent === "green"
+      ? "border-green/30 bg-green/10"
+      : accent === "red"
+        ? "border-red/30 bg-red/10"
+        : "border-primary/30 bg-primary/10",
+  );
+
+  let dropdownClass = $derived(
+    results.length
+      ? `${dropdownBase} max-h-48 w-full overflow-y-auto ${dropdownPanel} shadow-lg`
+      : `${dropdownBase} w-full ${dropdownPanel} p-3 text-center text-sm text-muted shadow-lg`,
+  );
+
+  let activeDescendant = $derived(
+    open && highlight >= 0 && highlight < results.length
+      ? `${id}-result-${results[highlight].id}`
+      : undefined,
+  );
+
+  $effect(() => () => clearTimeout(timer));
+
+  function resetSearch() {
+    open = false;
+    results = [];
+    highlight = -1;
+  }
 
   async function doSearch(searchQuery: string) {
-    if (!searchQuery.trim()) {
-      open = false;
-      results = [];
-      highlight = -1;
-      return;
-    }
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return resetSearch();
 
     try {
       const res = await fetch(
-        `${searchUrl}?query=${encodeURIComponent(searchQuery.trim())}`,
+        `${searchUrl}?query=${encodeURIComponent(trimmed)}`,
       );
       if (!res.ok) throw new Error(`Search failed with ${res.status}`);
 
@@ -60,15 +86,13 @@
       open = true;
       highlight = -1;
     } catch {
-      results = [];
-      open = false;
-      highlight = -1;
+      resetSearch();
     }
   }
 
   function onInput() {
     clearTimeout(timer);
-    timer = setTimeout(() => doSearch(query), 200);
+    timer = setTimeout(() => void doSearch(query), 200);
   }
 
   function selectUser(user: UserPickerResult) {
@@ -77,23 +101,39 @@
     open = false;
   }
 
+  function handleOptionKeydown(e: KeyboardEvent, user: UserPickerResult) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+
+    e.preventDefault();
+    selectUser(user);
+  }
+
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      highlight = Math.min(highlight + 1, results.length - 1);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      highlight = Math.max(highlight - 1, 0);
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (highlight >= 0 && highlight < results.length) {
-        selectUser(results[highlight]);
-      }
-    } else if (e.key === "Escape") {
+    if (e.key === "Escape") {
       open = false;
+      return;
     }
+
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter")
+      return;
+
+    e.preventDefault();
+
+    if (e.key === "ArrowDown")
+      highlight = Math.min(highlight + 1, results.length - 1);
+    else if (e.key === "ArrowUp") highlight = Math.max(highlight - 1, 0);
+    else if (highlight >= 0 && highlight < results.length)
+      selectUser(results[highlight]);
   }
 </script>
+
+{#snippet avatar(user: UserPickerResult, className: string)}
+  {#if user.avatar_url}
+    <img src={user.avatar_url} alt="" class={className} />
+  {:else}
+    <div class="{className} bg-surface-100"></div>
+  {/if}
+{/snippet}
 
 <div class="relative">
   <div class="relative">
@@ -114,55 +154,56 @@
         ></path>
       </svg>
     </div>
+    <label for={id} class="sr-only">{label}</label>
     <input
+      {id}
       type="text"
       {placeholder}
-      data-testid={`${testid}-search`}
       bind:value={query}
       oninput={onInput}
       onkeydown={handleKeydown}
       autocomplete="off"
+      role="combobox"
+      aria-autocomplete="list"
+      aria-controls={listboxId}
+      aria-expanded={open}
+      aria-activedescendant={activeDescendant}
       class="w-full rounded-lg border border-surface-200 bg-input py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
     />
   </div>
 
-  {#if open && results.length > 0}
-    <div
-      class="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-surface-200 bg-dark shadow-lg"
-    >
-      {#each results as user, i}
-        <button
-          type="button"
-          data-testid={`${testid}-result-${user.id}`}
-          class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i ===
-          highlight
-            ? 'bg-surface-100/50'
-            : ''}"
-          onclick={() => selectUser(user)}
-        >
-          {#if user.avatar_url}
-            <img src={user.avatar_url} alt="" class="h-8 w-8 rounded-full" />
-          {:else}
-            <div class="h-8 w-8 rounded-full bg-surface-100"></div>
-          {/if}
-          <div class="text-left">
-            <div class="font-medium text-surface-content">
-              {user.display_name}
-            </div>
-            <div class="text-xs text-muted">
-              ID: {user.id}{user.created_at
-                ? ` · Created: ${user.created_at}`
-                : ""}
+  {#if open}
+    <div id={listboxId} class={dropdownClass} role="listbox" aria-label={label}>
+      {#if results.length}
+        {#each results as user, i}
+          <div
+            id={`${id}-result-${user.id}`}
+            role="option"
+            tabindex="-1"
+            aria-selected={i === highlight}
+            class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i ===
+            highlight
+              ? 'bg-surface-100/50'
+              : ''}"
+            onclick={() => selectUser(user)}
+            onkeydown={(e) => handleOptionKeydown(e, user)}
+          >
+            {@render avatar(user, "h-8 w-8 rounded-full")}
+            <div class="text-left">
+              <div class="font-medium text-surface-content">
+                {user.display_name}
+              </div>
+              <div class="text-xs text-muted">
+                ID: {user.id}{user.created_at
+                  ? ` · Created: ${user.created_at}`
+                  : ""}
+              </div>
             </div>
           </div>
-        </button>
-      {/each}
-    </div>
-  {:else if open && results.length === 0}
-    <div
-      class="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-surface-200 bg-dark p-3 text-center text-sm text-muted shadow-lg"
-    >
-      No users found
+        {/each}
+      {:else}
+        No users found
+      {/if}
     </div>
   {/if}
 </div>
@@ -172,15 +213,7 @@
     <div class="rounded-lg border p-4 {selectedClass}">
       <div class="flex items-center justify-between gap-4">
         <div class="flex min-w-0 items-center gap-3">
-          {#if selected.avatar_url}
-            <img
-              src={selected.avatar_url}
-              alt=""
-              class="h-12 w-12 rounded-full"
-            />
-          {:else}
-            <div class="h-12 w-12 rounded-full bg-surface-100"></div>
-          {/if}
+          {@render avatar(selected, "h-12 w-12 rounded-full")}
           <div class="min-w-0">
             <div class="truncate text-lg font-semibold text-surface-content">
               {selected.display_name}

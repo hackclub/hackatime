@@ -71,7 +71,8 @@
         <UserPicker
           bind:selected={olderUser}
           {searchUrl}
-          testid="older"
+          id="older-user"
+          label="Older user"
           accent="green"
         />
       </div>
@@ -85,7 +86,8 @@
         <UserPicker
           bind:selected={newerUser}
           {searchUrl}
-          testid="newer"
+          id="newer-user"
+          label="Newer user"
           accent="red"
         />
       </div>
@@ -109,7 +111,6 @@
       <Button
         type="button"
         variant="primary"
-        data-testid="open-merge-confirmation"
         size="lg"
         class="!border-red !bg-red !text-on-primary hover:!opacity-90"
         disabled={!canMerge}
@@ -180,7 +181,6 @@
       <Button
         type="button"
         variant="primary"
-        data-testid="confirm-merge"
         class="!border-red !bg-red !text-on-primary hover:!opacity-90"
         disabled={merging}
         onclick={handleMerge}

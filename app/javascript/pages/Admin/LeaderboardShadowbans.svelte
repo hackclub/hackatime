@@ -86,7 +86,8 @@
     <UserPicker
       bind:selected={selectedUser}
       {searchUrl}
-      testid="shadowban-user"
+      id="shadowban-user"
+      label="User to shadowban"
       accent="red"
     />
 
