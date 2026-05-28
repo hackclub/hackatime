@@ -765,7 +765,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
                 type: :object,
                 properties: {
                   id: { type: :integer },
-                  username: { type: :string },
+                  username: { type: :string, nullable: true },
                   slack_username: { type: :string, nullable: true },
                   github_username: { type: :string, nullable: true },
                   slack_avatar_url: { type: :string, nullable: true },

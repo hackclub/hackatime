@@ -222,9 +222,7 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def broken_project_name?(project_key, display_name)
-    key = project_key.to_s
-    name = display_name.to_s
-    key.blank? || name.downcase == "unknown" || key.match?(/<<.*>>/) || name.match?(/<<.*>>/) || key.match?(/[\r\n]/)
+    ProjectNameUtils.broken?(project_key, display_name)
   end
 
   def repository_payload(repository, latest_user_commit_at_by_repo_id = {})
