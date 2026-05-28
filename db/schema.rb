@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_26_211111) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -650,6 +650,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_211111) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
+    t.text "leaderboard_shadowban_reason"
+    t.boolean "leaderboard_shadowbanned", default: false, null: false
+    t.bigint "leaderboard_shadowbanned_by_id"
     t.text "profile_bio"
     t.string "profile_bluesky_url"
     t.string "profile_discord_url"
@@ -674,6 +677,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_211111) do
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["github_username"], name: "index_users_on_github_username_trgm", opclass: :gin_trgm_ops, using: :gin
+    t.index ["leaderboard_shadowbanned"], name: "index_users_on_leaderboard_shadowbanned", where: "(leaderboard_shadowbanned = true)"
+    t.index ["leaderboard_shadowbanned_by_id"], name: "index_users_on_leaderboard_shadowbanned_by_id"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
     t.index ["slack_username"], name: "index_users_on_slack_username_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
@@ -737,5 +742,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_211111) do
   add_foreign_key "sign_in_tokens", "users"
   add_foreign_key "trust_level_audit_logs", "users"
   add_foreign_key "trust_level_audit_logs", "users", column: "changed_by_id"
+  add_foreign_key "users", "users", column: "leaderboard_shadowbanned_by_id"
   add_foreign_key "wakatime_mirrors", "users"
 end

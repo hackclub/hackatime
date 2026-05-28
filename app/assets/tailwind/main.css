@@ -65,15 +65,27 @@ select {
 }
 
 .superadmin-tool {
-  @apply rounded-md border border-[rgb(251,44,54)] border-dashed bg-[rgba(255,255,255,0.02)];
+  @apply rounded-md border border-[rgb(251,44,54)] border-dashed;
+}
+
+.superadmin-tool:not(.bg-primary) {
+  @apply bg-[rgba(255,255,255,0.02)];
 }
 
 .admin-tool {
-  @apply rounded-md border border-[rgb(240,177,0)] border-dashed bg-[rgba(255,255,255,0.02)];
+  @apply rounded-md border border-[rgb(240,177,0)] border-dashed;
+}
+
+.admin-tool:not(.bg-primary) {
+  @apply bg-[rgba(255,255,255,0.02)];
 }
 
 .viewer-tool {
-  @apply rounded-md border border-[rgb(43,127,255)] border-dashed bg-[rgba(255,255,255,0.02)];
+  @apply rounded-md border border-[rgb(43,127,255)] border-dashed;
+}
+
+.viewer-tool:not(.bg-primary) {
+  @apply bg-[rgba(255,255,255,0.02)];
 }
 
 .ultraadmin-tool {
@@ -85,8 +97,12 @@ select {
 }
 
 .dev-tool {
-  @apply rounded-md border border-dashed bg-[rgba(255,255,255,0.02)];
+  @apply rounded-md border border-dashed;
   border-color: var(--color-green);
+}
+
+.dev-tool:not(.bg-primary) {
+  @apply bg-[rgba(255,255,255,0.02)];
 }
 
 .flash-message {

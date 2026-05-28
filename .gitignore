@@ -70,3 +70,5 @@ scratch/
 public/vite
 
 target.txt
+
+.amp/
