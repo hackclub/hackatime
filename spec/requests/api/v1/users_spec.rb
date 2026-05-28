@@ -5,7 +5,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
     get('Lookup user by email') do
       tags 'Users'
       description 'Find a user ID by their email address. Useful for integrations that need to map emails to Hackatime users. Requires STATS_API_KEY.'
-      security [ Bearer: [] ]
+      security [ { Bearer: [] }, { ApiKeyAuth: [] } ]
       produces 'application/json'
 
       parameter name: :email, in: :path, type: :string, description: 'Email address to lookup'
@@ -47,7 +47,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
     get('Lookup user by Slack UID') do
       tags 'Users'
       description 'Find a user ID by their Slack User ID. Requires STATS_API_KEY.'
-      security [ Bearer: [] ]
+      security [ { Bearer: [] }, { ApiKeyAuth: [] } ]
       produces 'application/json'
 
       parameter name: :slack_uid, in: :path, type: :string, description: 'Slack User ID (e.g. U123456)'
