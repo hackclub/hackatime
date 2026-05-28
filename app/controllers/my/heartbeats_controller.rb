@@ -1,5 +1,7 @@
 module My
   class HeartbeatsController < ApplicationController
+    EXPORT_COOLDOWN = 10.minutes
+
     before_action :ensure_current_user
     before_action :ensure_no_ban, only: [ :export ]
 
@@ -9,10 +11,14 @@ module My
       end
 
       if params[:all_data] == "true"
+        return if export_rate_limited?
+
         HeartbeatExportJob.perform_later(current_user.id, all_data: true)
       else
         date_range = export_date_range_from_params
         return if date_range.nil?
+        return if export_rate_limited?
+
         HeartbeatExportJob.perform_later(
           current_user.id,
           all_data: false,
@@ -57,6 +63,24 @@ module My
     rescue ArgumentError
       redirect_to my_settings_imports_exports_path, alert: "Invalid date format. Please use YYYY-MM-DD."
       nil
+    end
+
+    def export_rate_limited?
+      return false unless recent_export_requested?
+
+      redirect_to my_settings_imports_exports_path, alert: "Export requests are limited to once every 10 minutes."
+      true
+    end
+
+    def recent_export_requested?
+      GoodJob::Job
+        .where(job_class: "HeartbeatExportJob")
+        .where("created_at >= ?", EXPORT_COOLDOWN.ago)
+        .where(
+          "serialized_params -> 'arguments' -> 0 = to_jsonb(?::bigint)",
+          current_user.id
+        )
+        .exists?
     end
   end
 end

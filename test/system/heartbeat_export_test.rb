@@ -12,7 +12,7 @@ class HeartbeatExportTest < ApplicationSystemTestCase
   test "clicking export all heartbeats enqueues job and shows notice" do
     visit my_settings_imports_exports_path
 
-    assert_text "Export all heartbeats"
+    wait_for_export_controls
 
     assert_difference -> { export_job_count }, 1 do
       click_on "Export all heartbeats"
@@ -27,7 +27,7 @@ class HeartbeatExportTest < ApplicationSystemTestCase
   test "submitting export date range enqueues job and shows notice" do
     visit my_settings_imports_exports_path
 
-    assert_text "Export all heartbeats" # wait till it's loaded
+    wait_for_export_controls
 
     start_date = 7.days.ago.to_date.iso8601
     end_date = Date.current.iso8601
@@ -44,6 +44,22 @@ class HeartbeatExportTest < ApplicationSystemTestCase
       "start_date" => start_date,
       "end_date" => end_date
     )
+  end
+
+  test "repeated export requests are rate limited" do
+    visit my_settings_imports_exports_path
+
+    wait_for_export_controls
+
+    assert_difference -> { export_job_count }, 1 do
+      click_on "Export all heartbeats"
+      assert_text "Your export is being prepared and will be emailed to you"
+    end
+
+    assert_no_difference -> { export_job_count } do
+      click_on "Export all heartbeats"
+      assert_text "Export requests are limited to once every 10 minutes."
+    end
   end
 
   test "export is not available for restricted users" do
@@ -109,5 +125,9 @@ class HeartbeatExportTest < ApplicationSystemTestCase
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
     JS
+  end
+
+  def wait_for_export_controls
+    assert_button "Export all heartbeats", wait: 15
   end
 end

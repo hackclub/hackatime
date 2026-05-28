@@ -3,6 +3,14 @@ require "zip"
 class HeartbeatExportJob < ApplicationJob
   queue_as :default
 
+  include GoodJob::ActiveJobExtensions::Concurrency
+
+  good_job_control_concurrency_with(
+    total_limit: 1,
+    key: -> { "heartbeat_export_job_#{arguments.first}" },
+    drop: true
+  )
+
   HEARTBEAT_EXPORT_FIELDS = %i[
     id entity type category project language editor operating_system machine
     branch user_agent is_write line_additions line_deletions lineno lines
