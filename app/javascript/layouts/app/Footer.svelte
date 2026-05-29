@@ -33,7 +33,7 @@
   };
 
   const statsText = $derived(
-    `${footer.heartbeat_recent_count} ${plur("heartbeat", footer.heartbeat_recent_count)} (${footer.heartbeat_recent_imported_count} imported) in the past 24 hours. (DB: ${footer.query_count} ${plur("query", footer.query_count)}, ${footer.query_cache_count} cached)`,
+    `${footer.heartbeat_recent_count} ${plur("heartbeat", footer.heartbeat_recent_count)} (${footer.heartbeat_recent_imported_count} imported) in the past 24 hours.${footer.query_stats ? ` (DB: ${footer.query_stats.count} ${plur("query", footer.query_stats.count)}, ${footer.query_stats.cache_count} cached)` : ""}`,
   );
 </script>
 

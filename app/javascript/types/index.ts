@@ -49,8 +49,10 @@ export type Footer = {
   server_start_time_ago: string;
   heartbeat_recent_count: number;
   heartbeat_recent_imported_count: number;
-  query_count: number;
-  query_cache_count: number;
+  query_stats?: {
+    count: number;
+    cache_count: number;
+  };
   cache_hits: number;
   cache_misses: number;
   active_users_graph: { height: number; users: number }[];

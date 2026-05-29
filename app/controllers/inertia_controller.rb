@@ -149,16 +149,21 @@ class InertiaController < ApplicationController
     h = ApplicationController.helpers
     hours = active_users_graph_data.map { |entry| { height: entry[:height], users: entry[:users] } }
 
-    {
+    props = {
       git_version: Rails.application.config.git_version,
       commit_link: Rails.application.config.commit_link,
       server_start_time_ago: h.time_ago_in_words(Rails.application.config.server_start_time),
       heartbeat_recent_count: Heartbeat.recent_count,
       heartbeat_recent_imported_count: Heartbeat.recent_imported_count,
-      query_count: QueryCount::Counter.counter,
-      query_cache_count: QueryCount::Counter.counter_cache,
       active_users_graph: hours
     }
+
+    props[:query_stats] = {
+      count: QueryCount::Counter.counter,
+      cache_count: QueryCount::Counter.counter_cache
+    } if current_user&.can_view_query_stats?
+
+    props
   end
 
   def currently_hacking_props
