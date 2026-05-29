@@ -36,48 +36,6 @@ class StaticPagesController < InertiaController
     }
   end
 
-  def project_durations
-    return unless current_user
-
-    archived = params[:show_archived] == "true"
-    mappings = current_user.project_repo_mappings
-    @project_repo_mappings = archived ? mappings.archived.includes(:repository) : mappings.active.includes(:repository)
-    archived_names = mappings.archived.pluck(:project_name)
-
-    key = "user_#{current_user.id}_project_durations_#{params[:interval]}_v2"
-    key += "_#{params[:from]}_#{params[:to]}" if params[:interval] == "custom"
-    key += "_archived" if archived
-
-    cached = Rails.cache.fetch(key, expires_in: 1.minute) do
-      hb = current_user.heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
-      projects = hb.group(:project).duration_seconds.filter_map do |proj, dur|
-        next if dur <= 0
-        m = @project_repo_mappings.find { |p| p.project_name == proj }
-        {
-          project: proj || "Unknown",
-          project_key: proj,
-          repo_url: m&.repo_url,
-          repository: m&.repository,
-          has_mapping: m.present?,
-          duration: dur
-        }
-      end.sort_by { |p| -p[:duration] }
-      { projects: projects, total_time: hb.duration_seconds }
-    end
-
-    durations = cached[:projects].select { |p| archived_names.include?(p[:project_key]) == archived }
-    durations = durations.map do |p|
-      m = @project_repo_mappings.find { |mapping| mapping.project_name == p[:project_key] }
-      p.merge(repo_url: m&.repo_url, repository: m&.repository)
-    end
-
-    render partial: "project_durations", locals: {
-      project_durations: durations,
-      total_time: cached[:total_time],
-      show_archived: archived
-    }
-  end
-
   def currently_hacking
     data = Cache::CurrentlyHackingJob.perform_now
     respond_to do |format|

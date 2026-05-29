@@ -101,7 +101,6 @@ Rails.application.routes.draw do
 
   resources :static_pages, only: [ :index ] do
     collection do
-      get :project_durations
       get :currently_hacking
       get :currently_hacking_count
       get :streak
