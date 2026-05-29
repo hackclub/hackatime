@@ -16,7 +16,10 @@ class SessionsController < ApplicationController
     @user = User.from_hca_token(params[:code], redirect_uri, client_ip)
 
     if @user&.persisted?
+      preserved_return_data = session[:return_data]
+      reset_session
       session[:user_id] = @user.id
+      session[:return_data] = preserved_return_data if preserved_return_data
       notice = "Successfully signed in with Hack Club Auth! Welcome!"
 
       if @user.previously_new_record?
@@ -59,6 +62,7 @@ class SessionsController < ApplicationController
     @user = User.from_slack_token(params[:code], redirect_uri, client_ip)
 
     if @user&.persisted?
+      reset_session
       session[:user_id] = @user.id
       notice = "Successfully signed in with Slack! Welcome!"
 
@@ -193,6 +197,7 @@ class SessionsController < ApplicationController
 
     if valid_token
       valid_token.mark_used!
+      reset_session
       session[:user_id] = valid_token.user_id
       session[:return_data] = valid_token.return_data || {}
 
@@ -233,7 +238,7 @@ class SessionsController < ApplicationController
   end
 
   def destroy
-    session[:user_id] = session[:impersonater_user_id] = nil
+    reset_session
     redirect_to root_path, notice: "Signed out!"
   end
 

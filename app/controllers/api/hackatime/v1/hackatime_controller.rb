@@ -10,11 +10,16 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     project project_root_count time type user_agent plugin
   ].freeze
 
+  MAX_BULK_HEARTBEATS = 100
+
   def push_heartbeats
     if params["format"] == "bulk"
       # POST /api/hackatime/v1/users/:id/heartbeats.bulk
       heartbeat_array = heartbeat_bulk_params[:heartbeats]
       return render_bad_request("No data provided...") if heartbeat_array.empty?
+      if heartbeat_array.size > MAX_BULK_HEARTBEATS
+        return render_bad_request("Too many heartbeats in a single request (max #{MAX_BULK_HEARTBEATS})")
+      end
 
       render json: { responses: handle_heartbeat(heartbeat_array) }, status: :created
     else

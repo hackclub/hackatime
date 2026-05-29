@@ -5,9 +5,17 @@ class Repository < ApplicationRecord
 
   validates :url, presence: true, uniqueness: true
   validates :host, :owner, :name, presence: true
+  HOMEPAGE_FORMAT = %r{\Ahttps?://[^\s<>"]+\z}i
+
+  validates :homepage, format: { with: HOMEPAGE_FORMAT }, allow_blank: true
 
   def metadata_stale? = last_synced_at.nil? || last_synced_at < 1.day.ago
   def full_path = "#{owner}/#{name}"
+
+  def safe_homepage
+    return nil if homepage.blank?
+    homepage if homepage.match?(HOMEPAGE_FORMAT)
+  end
 
   def formatted_languages
     return nil if languages.blank?
