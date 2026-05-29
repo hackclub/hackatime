@@ -53,7 +53,6 @@ export type Footer = {
   query_cache_count: number;
   cache_hits: number;
   cache_misses: number;
-  requests_per_second: string;
   active_users_graph: { height: number; users: number }[];
 };
 

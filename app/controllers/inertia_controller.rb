@@ -147,7 +147,6 @@ class InertiaController < ApplicationController
 
   def inertia_footer_props
     h = ApplicationController.helpers
-    cache = h.cache_stats
     hours = active_users_graph_data.map { |entry| { height: entry[:height], users: entry[:users] } }
 
     {
@@ -158,9 +157,6 @@ class InertiaController < ApplicationController
       heartbeat_recent_imported_count: Heartbeat.recent_imported_count,
       query_count: QueryCount::Counter.counter,
       query_cache_count: QueryCount::Counter.counter_cache,
-      cache_hits: cache[:hits],
-      cache_misses: cache[:misses],
-      requests_per_second: h.requests_per_second,
       active_users_graph: hours
     }
   end

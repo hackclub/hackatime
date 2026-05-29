@@ -33,7 +33,7 @@
   };
 
   const statsText = $derived(
-    `${footer.heartbeat_recent_count} ${plur("heartbeat", footer.heartbeat_recent_count)} (${footer.heartbeat_recent_imported_count} imported) in the past 24 hours. (DB: ${footer.query_count} ${plur("query", footer.query_count)}, ${footer.query_cache_count} cached) (CACHE: ${footer.cache_hits} hits, ${footer.cache_misses} misses) (${footer.requests_per_second})`,
+    `${footer.heartbeat_recent_count} ${plur("heartbeat", footer.heartbeat_recent_count)} (${footer.heartbeat_recent_imported_count} imported) in the past 24 hours. (DB: ${footer.query_count} ${plur("query", footer.query_count)}, ${footer.query_cache_count} cached)`,
   );
 </script>
 
@@ -42,7 +42,7 @@
 >
   <div class="container mx-auto">
     <p class="brightness-60 hover:brightness-100 transition-all duration-200">
-      Using Inertia. Build <a
+      Build <a
         href={footer.commit_link}
         class="text-inherit underline opacity-80 hover:opacity-100 transition-opacity duration-200"
         >{footer.git_version}</a
