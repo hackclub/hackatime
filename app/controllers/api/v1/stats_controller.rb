@@ -1,6 +1,9 @@
 class Api::V1::StatsController < ApplicationController
+  USER_LOOKUP_ACTIONS = [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ].freeze
+
   before_action :authenticate_legacy_stats_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
-  before_action :set_user, only: [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ]
+  before_action :set_user, only: USER_LOOKUP_ACTIONS
+  before_action :ensure_public_stats_allowed!, only: USER_LOOKUP_ACTIONS
 
   def show
     # take either user_id with a start date & end date
@@ -28,12 +31,6 @@ class Api::V1::StatsController < ApplicationController
 
   def user_stats
     # Used by the github stats page feature
-    return render_not_found_json("User not found") unless @user.present?
-
-    if !@user.allow_public_stats_lookup && (!current_user || current_user != @user)
-      return render_forbidden("user has disabled public stats")
-    end
-
     start_date = parse_datetime_param(:start_date, default: 10.years.ago)
     return if performed?
     end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
@@ -108,8 +105,6 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_spans
-    return render_not_found_json("User not found") unless @user
-
     start_date = parse_datetime_param(:start_date, default: 10.years.ago)
     return if performed?
     end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
@@ -145,12 +140,10 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_projects
-    return render_not_found_json("User not found") unless @user
     render json: { projects: project_stats_query(include_archived: true).project_names }
   end
 
   def user_project
-    return render_not_found_json("User not found") unless @user
     return render_bad_request("whats the name?") unless params[:project_name].present?
 
     project_data = project_stats_query.project_details(names: [ params[:project_name] ]).first
@@ -159,7 +152,6 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_projects_details
-    return render_not_found_json("User not found") unless @user
     render json: { projects: project_stats_query.project_details(names: params[:projects]&.split(",")&.map(&:strip)) }
   end
 
@@ -169,6 +161,13 @@ class Api::V1::StatsController < ApplicationController
     token = request.headers["Authorization"]&.split(" ")&.last
     identifier = params[:username] || params[:username_or_id] || params[:user_id]
     @user = (identifier == "my" && token.present?) ? ApiKey.find_by(token: token)&.user : User.lookup_by_identifier(identifier)
+  end
+
+  def ensure_public_stats_allowed!
+    return render_not_found_json("User not found") unless @user
+    return if @user.allow_public_stats_lookup
+    return if current_user == @user
+    render_forbidden("user has disabled public stats")
   end
 
   def find_by_email(email)
