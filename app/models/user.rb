@@ -106,6 +106,7 @@ class User < ApplicationRecord
 
   def can_convict_users? = admin_level_superadmin? || admin_level_ultraadmin?
   def can_leaderboard_shadowban_users? = admin_level_superadmin? || admin_level_ultraadmin?
+  def can_view_query_stats? = admin_level.in?(%w[viewer admin superadmin ultraadmin])
   def admin_level_rank = ADMIN_LEVEL_RANK[admin_level.to_s] || 0
 
   # True if `self` is allowed to set `target_user`'s admin_level to `new_level`.

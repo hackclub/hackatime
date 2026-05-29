@@ -5,9 +5,7 @@ class ApplicationController < ActionController::Base
 
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user
-  before_action :initialize_cache_counters
   before_action :try_rack_mini_profiler_enable
-  before_action :track_request
   before_action :enforce_lockout
   before_action :set_cache_headers
 
@@ -33,10 +31,6 @@ class ApplicationController < ActionController::Base
       user_agent: request.user_agent,
       ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip
     )
-  end
-
-  def track_request
-    RequestCounter.increment
   end
 
   def try_rack_mini_profiler_enable
@@ -84,19 +78,6 @@ class ApplicationController < ActionController::Base
 
   def set_cache_headers
     response.headers["Cache-Control"] = "no-store"
-  end
-
-  def initialize_cache_counters
-    Thread.current[:cache_hits] = 0
-    Thread.current[:cache_misses] = 0
-  end
-
-  def increment_cache_hits
-    Thread.current[:cache_hits] += 1
-  end
-
-  def increment_cache_misses
-    Thread.current[:cache_misses] += 1
   end
 
   def active_users_graph_data

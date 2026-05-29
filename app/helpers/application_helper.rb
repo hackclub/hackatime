@@ -1,16 +1,4 @@
 module ApplicationHelper
-  def cache_stats = { hits: Thread.current[:cache_hits] || 0, misses: Thread.current[:cache_misses] || 0 }
-
-  def requests_per_second
-    rps = RequestCounter.per_second
-    rps == :high_load ? "lots of req/sec" : "#{rps} req/sec"
-  end
-
-  def global_requests_per_second
-    rps = RequestCounter.global_per_second
-    rps == :high_load ? "lots of req/sec" : "#{rps} req/sec (global)"
-  end
-
   def current_theme
     theme_name = current_user&.theme
     return User::DEFAULT_THEME if theme_name.blank?
