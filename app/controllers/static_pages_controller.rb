@@ -38,25 +38,20 @@ class StaticPagesController < InertiaController
 
   def currently_hacking
     data = Cache::CurrentlyHackingJob.perform_now
-    respond_to do |format|
-      format.html { render partial: "currently_hacking", locals: data }
-      format.json do
-        users = data[:users].map do |u|
-          proj = data[:active_projects][u.id]
-          {
-            id: u.id,
-            username: u.display_name,
-            slack_username: u.slack_username,
-            github_username: u.github_username,
-            display_name: u.display_name,
-            avatar_url: u.avatar_url,
-            slack_uid: u.slack_uid,
-            active_project: proj && { name: proj.project_name, repo_url: proj.repo_url }
-          }
-        end
-        render json: { count: users.size, users: users }
-      end
+    users = data[:users].map do |u|
+      proj = data[:active_projects][u.id]
+      {
+        id: u.id,
+        username: u.display_name,
+        slack_username: u.slack_username,
+        github_username: u.github_username,
+        display_name: u.display_name,
+        avatar_url: u.avatar_url,
+        slack_uid: u.slack_uid,
+        active_project: proj && { name: proj.project_name, repo_url: proj.repo_url }
+      }
     end
+    render json: { count: users.size, users: users }
   end
 
   def currently_hacking_count = render(json: { count: Cache::CurrentlyHackingCountJob.perform_now[:count] })
