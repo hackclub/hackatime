@@ -37,7 +37,7 @@
     "vite-plugin-ruby": "^5.2.2"
   },
   "devDependencies": {
-    "portless": "^0.13.0",
+    "portless": "^0.13.1",
     "prettier": "^3.8.3",
     "prettier-plugin-svelte": "^3.5.2"
   },
