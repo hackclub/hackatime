@@ -44,6 +44,9 @@ Rails.application.routes.draw do
           post :rotate_secret
         end
       end
+      resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
+        get :search_users, on: :collection
+      end
     end
   end
 
@@ -98,7 +101,6 @@ Rails.application.routes.draw do
 
   resources :static_pages, only: [ :index ] do
     collection do
-      get :project_durations
       get :currently_hacking
       get :currently_hacking_count
       get :streak

@@ -86,6 +86,48 @@ class UserTest < ActiveSupport::TestCase
     assert user.active_remote_heartbeat_import_run?
   end
 
+  test "set_leaderboard_shadowban requires privileged actor and reason" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = User.create!(timezone: "UTC", username: "shadowban_target")
+
+    assert_not user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "")
+    assert_includes user.errors[:leaderboard_shadowban_reason], "can't be blank"
+    assert_not user.reload.leaderboard_shadowbanned?
+
+    assert user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "fake time")
+    assert user.reload.leaderboard_shadowbanned?
+    assert_equal "fake time", user.leaderboard_shadowban_reason
+    assert_equal actor, user.leaderboard_shadowbanned_by
+
+    assert user.set_leaderboard_shadowban(banned: false, changed_by_user: actor)
+    assert_not user.reload.leaderboard_shadowbanned?
+    assert_nil user.leaderboard_shadowban_reason
+    assert_nil user.leaderboard_shadowbanned_by
+  end
+
+  test "set_leaderboard_shadowban records PaperTrail changes" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = User.create!(timezone: "UTC", username: "pt_shadowban_target")
+
+    assert_difference -> { PaperTrail::Version.where(item_type: "User", item_id: user.id).count }, 1 do
+      PaperTrail.request(whodunnit: actor.id) do
+        assert user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "leaderboard abuse")
+      end
+    end
+
+    version = PaperTrail::Version.where(item_type: "User", item_id: user.id).last
+    assert_equal actor.id.to_s, version.whodunnit
+    assert_includes version.object_changes, "leaderboard_shadowbanned"
+  end
+
+  test "set_leaderboard_shadowban cannot target self or equal rank admins" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    peer = User.create!(timezone: "UTC", admin_level: :superadmin)
+
+    assert_not actor.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "self")
+    assert_not peer.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "peer")
+  end
+
   test "changing timezone invalidates activity graph caches and schedules a dashboard rollup refresh" do
     with_memory_cache_store do
       Rails.cache.clear

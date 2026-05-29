@@ -32,15 +32,22 @@ class SlackController < ApplicationController
   def verify_slack_request
     return true if Rails.env.development?
 
+    signing_secret = ENV["SAILORS_LOG_SLACK_SIGNING_SECRET"]
+    if signing_secret.blank?
+      # we will never hit this in prod but this is good prep for `config.saas_mode`
+      Rails.logger.error "[SlackController] SAILORS_LOG_SLACK_SIGNING_SECRET is not configured"
+      return head(:unauthorized)
+    end
+
     timestamp = request.headers["X-Slack-Request-Timestamp"]
     received_signature = request.headers["X-Slack-Signature"]
 
-    if timestamp.blank? || (Time.now.to_i - timestamp.to_i).abs > 300
+    if timestamp.blank? || received_signature.blank? || (Time.now.to_i - timestamp.to_i).abs > 300
       return head(:unauthorized)
     end
 
     sig_basestring = "v0:#{timestamp}:#{request.raw_post}"
-    computed_signature = "v0=" + OpenSSL::HMAC.hexdigest("SHA256", ENV["SAILORS_LOG_SLACK_SIGNING_SECRET"], sig_basestring)
+    computed_signature = "v0=" + OpenSSL::HMAC.hexdigest("SHA256", signing_secret, sig_basestring)
 
     head(:unauthorized) unless ActiveSupport::SecurityUtils.secure_compare(received_signature, computed_signature)
   end

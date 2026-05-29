@@ -14,7 +14,12 @@ class Api::V1::LeaderboardController < ApplicationController
   end
 
   def format_leaderboard(leaderboard)
-    entries = leaderboard.entries.includes(:user).order(total_seconds: :desc).map.with_index do |entry, idx|
+    entries = leaderboard.entries
+      .joins(:user)
+      .where(users: { leaderboard_shadowbanned: false })
+      .preload(:user)
+      .order(total_seconds: :desc)
+      .map.with_index do |entry, idx|
       { rank: idx + 1,
         user: { id: entry.user.id, username: entry.user.display_name, avatar_url: entry.user.avatar_url },
         total_seconds: entry.total_seconds }

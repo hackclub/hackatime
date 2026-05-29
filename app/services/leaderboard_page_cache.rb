@@ -10,11 +10,19 @@ class LeaderboardPageCache
 
     def warm(leaderboard:) = fetch(leaderboard:, scope: :global)
 
+    def clear!
+      Rails.cache.write(version_key, SecureRandom.uuid)
+    end
+
     private
 
+    def version_key = "leaderboard_page/v2/version"
+
+    def cache_version = Rails.cache.fetch(version_key) { SecureRandom.uuid }
+
     def cache_key(leaderboard, scope, country_code)
-      suffix = scope.to_sym == :country ? (country_code.presence || "none") : "global"
-      "leaderboard_page/#{leaderboard.cache_key_with_version}/#{scope}/#{suffix}"
+      scope_suffix = scope.to_sym == :country ? (country_code.presence || "none") : "global"
+      "leaderboard_page/v2/#{cache_version}/#{leaderboard.cache_key_with_version}/#{scope}/#{scope_suffix}"
     end
 
     def build_payload(leaderboard:, scope:, country_code:)
@@ -35,7 +43,8 @@ class LeaderboardPageCache
       {
         id: user.id, display_name: user.display_name, avatar_url: user.avatar_url,
         profile_path: user.username.present? ? Rails.application.routes.url_helpers.profile_path(user.username) : nil,
-        verified: user.trust_level == "green", red: user.red?, country_code: user.country_code
+        verified: user.trust_level == "green", red: user.red?,
+        shadowbanned: user.leaderboard_shadowbanned?, country_code: user.country_code
       }
     end
   end

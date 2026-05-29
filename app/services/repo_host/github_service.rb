@@ -32,7 +32,7 @@ module RepoHost
         description: repo_data["description"],
         language: repo_data["language"],
         languages: languages_data&.keys&.join(", "),
-        homepage: repo_data["homepage"].presence,
+        homepage: repo_data["homepage"].presence&.then { |hp| hp.match?(Repository::HOMEPAGE_FORMAT) ? hp : nil },
         commit_count: commit_count,
         last_commit_at: commits_data&.first&.dig("commit", "committer", "date")&.then { |date| Time.parse(date) },
         last_synced_at: Time.current

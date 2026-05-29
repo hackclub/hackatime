@@ -2,15 +2,16 @@
   import { router } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
-  import UserSearch from "./AccountMerger/UserSearch.svelte";
-  import type { UserResult } from "./AccountMerger/types";
+  import UserPicker, {
+    type UserPickerResult,
+  } from "../../components/UserPicker.svelte";
   import { adminAccountMerger } from "../../api";
 
   const searchUrl = adminAccountMerger.searchUsers.path();
   const mergeUrl = adminAccountMerger.merge.path();
 
-  let olderUser = $state<UserResult | null>(null);
-  let newerUser = $state<UserResult | null>(null);
+  let olderUser = $state<UserPickerResult | null>(null);
+  let newerUser = $state<UserPickerResult | null>(null);
   let confirmOpen = $state(false);
   let merging = $state(false);
 
@@ -61,17 +62,18 @@
   </header>
 
   <div class="rounded-xl border border-primary bg-dark p-6">
-    <div class="grid grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
       <div>
         <h2 class="mb-4 text-xl font-semibold text-green">← OLDER (Keep)</h2>
         <p class="mb-3 text-sm text-muted">
           This account will receive the heartbeats and be kept.
         </p>
-        <UserSearch
-          side="older"
-          {searchUrl}
-          accent="green"
+        <UserPicker
           bind:selected={olderUser}
+          {searchUrl}
+          id="older-user"
+          label="Older user"
+          accent="green"
         />
       </div>
 
@@ -81,11 +83,12 @@
           This account's heartbeats will be moved, sessions revoked, then
           deleted.
         </p>
-        <UserSearch
-          side="newer"
-          {searchUrl}
-          accent="red"
+        <UserPicker
           bind:selected={newerUser}
+          {searchUrl}
+          id="newer-user"
+          label="Newer user"
+          accent="red"
         />
       </div>
     </div>
@@ -102,13 +105,12 @@
         <div
           class="mb-4 rounded-lg border border-red/30 bg-red/10 px-4 py-3 text-sm text-red"
         >
-          ⚠️ {orderError}
+          {orderError}
         </div>
       {/if}
       <Button
         type="button"
         variant="primary"
-        data-testid="open-merge-confirmation"
         size="lg"
         class="!border-red !bg-red !text-on-primary hover:!opacity-90"
         disabled={!canMerge}
@@ -179,12 +181,11 @@
       <Button
         type="button"
         variant="primary"
-        data-testid="confirm-merge"
         class="!border-red !bg-red !text-on-primary hover:!opacity-90"
         disabled={merging}
         onclick={handleMerge}
       >
-        {merging ? "Merging…" : "Merge & Delete"}
+        {merging ? "Merging..." : "Merge & Delete"}
       </Button>
     </div>
   {/snippet}
