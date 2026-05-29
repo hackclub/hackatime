@@ -65,7 +65,9 @@
     >
       {heading}
     </h1>
-    <p class="mt-1 max-w-3xl text-pretty text-sm text-muted sm:mt-2 sm:text-base">
+    <p
+      class="mt-1 max-w-3xl text-pretty text-sm text-muted sm:mt-2 sm:text-base"
+    >
       {subheading}
     </p>
   </header>

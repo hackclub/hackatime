@@ -21,9 +21,7 @@
   const redButtonClass =
     "!border-red !bg-red !text-on-primary hover:!opacity-90";
 
-  type Pending =
-    | { kind: "ban" }
-    | { kind: "unban"; user: ShadowbannedUser };
+  type Pending = { kind: "ban" } | { kind: "unban"; user: ShadowbannedUser };
 
   let selectedUser = $state<UserPickerResult | null>(null);
   let reason = $state("");
@@ -147,7 +145,10 @@
 
 <Modal
   bind:open={
-    () => pending !== null, (v) => { if (!v) pending = null; }
+    () => pending !== null,
+    (v) => {
+      if (!v) pending = null;
+    }
   }
   title={pending?.kind === "unban"
     ? "Remove leaderboard shadowban?"
@@ -179,9 +180,7 @@
         {#if submitting}
           {pending?.kind === "unban" ? "Removing..." : "Saving..."}
         {:else}
-          {pending?.kind === "unban"
-            ? "Remove shadowban"
-            : "Confirm shadowban"}
+          {pending?.kind === "unban" ? "Remove shadowban" : "Confirm shadowban"}
         {/if}
       </Button>
     </div>
