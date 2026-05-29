@@ -26,7 +26,7 @@
     "layerchart": "^1.0.13",
     "plur": "^6.0.0",
     "runed": "^0.37.1",
-    "svelte": "^5.55.9",
+    "svelte": "^5.55.10",
     "svelte-check": "^4.4.8",
     "svelte-hero-icons": "^5.2.0",
     "tailwindcss": "^4.3.0",
