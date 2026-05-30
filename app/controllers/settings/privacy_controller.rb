@@ -1,7 +1,5 @@
 class Settings::PrivacyController < Settings::BaseController
-  def show
-    render_privacy
-  end
+  def show = render_privacy
 
   def update
     if @user.update(privacy_params)
@@ -14,7 +12,6 @@ class Settings::PrivacyController < Settings::BaseController
 
   def rotate_api_key
     new_api_key = @user.rotate_api_keys!
-
     flash[:rotated_api_key] = new_api_key.token
     redirect_to my_settings_privacy_path, notice: "API key rotated successfully"
   rescue => e
@@ -24,21 +21,12 @@ class Settings::PrivacyController < Settings::BaseController
 
   private
 
-  def render_privacy(status: :ok)
-    render_settings_page(
-      active_section: "privacy",
-      status: status
-    )
-  end
+  def render_privacy(status: :ok) = render_settings_page(active_section: "privacy", status: status)
 
   def section_props
-    {
-      user: user_props(keys: %i[allow_public_stats_lookup can_request_deletion]),
-      rotated_api_key: flash[:rotated_api_key]
-    }
+    { user: user_props(keys: %i[allow_public_stats_lookup can_request_deletion]),
+      rotated_api_key: flash[:rotated_api_key] }
   end
 
-  def privacy_params
-    params.require(:user).permit(:allow_public_stats_lookup)
-  end
+  def privacy_params = params.require(:user).permit(:allow_public_stats_lookup)
 end

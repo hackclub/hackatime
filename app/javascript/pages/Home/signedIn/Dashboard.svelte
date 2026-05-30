@@ -13,21 +13,20 @@
     data,
     programmingGoalsProgress = [],
     onFiltersChange,
+    showFilters = true,
+    showGoals = true,
   }: {
     data: Record<string, any>;
     programmingGoalsProgress?: ProgrammingGoalProgress[];
     onFiltersChange?: (search: string) => void;
+    showFilters?: boolean;
+    showGoals?: boolean;
   } = $props();
 
-  const langStats = $derived(
-    (data.language_stats || {}) as Record<string, number>,
-  );
-  const editorStats = $derived(
-    (data.editor_stats || {}) as Record<string, number>,
-  );
-  const osStats = $derived(
-    (data.operating_system_stats || {}) as Record<string, number>,
-  );
+  const dict = (k: string) => (data[k] || {}) as Record<string, number>;
+  const langStats = $derived(dict("language_stats"));
+  const editorStats = $derived(dict("editor_stats"));
+  const osStats = $derived(dict("operating_system_stats"));
   const projectEntries = $derived(
     Object.entries(data.project_durations || {}) as [string, number][],
   );
@@ -41,113 +40,80 @@
   function applyFilters(overrides: Record<string, string>) {
     const current = new URL(window.location.href);
     for (const [k, v] of Object.entries(overrides)) {
-      if (v) {
-        current.searchParams.set(k, v);
-      } else {
-        current.searchParams.delete(k);
-      }
+      if (v) current.searchParams.set(k, v);
+      else current.searchParams.delete(k);
     }
     onFiltersChange?.(current.search);
   }
 
-  function onIntervalChange(interval: string, from: string, to: string) {
-    if (from || to) {
-      applyFilters({ interval: "custom", from, to });
-    } else {
-      applyFilters({ interval, from: "", to: "" });
-    }
-  }
+  const onIntervalChange = (interval: string, from: string, to: string) =>
+    from || to
+      ? applyFilters({ interval: "custom", from, to })
+      : applyFilters({ interval, from: "", to: "" });
 
-  function onFilterChange(param: string, selected: string[]) {
+  const onFilterChange = (param: string, selected: string[]) =>
     applyFilters({ [param]: selected.join(",") });
-  }
+
+  const FILTERS = [
+    { label: "Project", param: "project" },
+    { label: "Language", param: "language" },
+    { label: "OS", param: "operating_system" },
+    { label: "Editor", param: "editor" },
+    { label: "Category", param: "category" },
+  ] as const;
+
+  const STAT_KEYS = [
+    ["Top Project", "top_project", "singular_project", "None"],
+    ["Top Language", "top_language", "singular_language", "Unknown"],
+    ["Top OS", "top_operating_system", "singular_operating_system", "Unknown"],
+    ["Top Editor", "top_editor", "singular_editor", "Unknown"],
+    ["Top Category", "top_category", "singular_category", "Unknown"],
+  ] as const;
 </script>
 
 <div class="flex w-full min-w-0 flex-col gap-6">
-  <!-- Filters -->
-  <div
-    class="mb-2 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"
-  >
-    <IntervalSelect
-      selected={data.selected_interval || ""}
-      from={data.selected_from || ""}
-      to={data.selected_to || ""}
-      onchange={onIntervalChange}
-    />
-    <MultiSelect
-      label="Project"
-      param="project"
-      values={data.project || []}
-      selected={data.selected_project || []}
-      onchange={(s) => onFilterChange("project", s)}
-    />
-    <MultiSelect
-      label="Language"
-      param="language"
-      values={data.language || []}
-      selected={data.selected_language || []}
-      onchange={(s) => onFilterChange("language", s)}
-    />
-    <MultiSelect
-      label="OS"
-      param="operating_system"
-      values={data.operating_system || []}
-      selected={data.selected_operating_system || []}
-      onchange={(s) => onFilterChange("operating_system", s)}
-    />
-    <MultiSelect
-      label="Editor"
-      param="editor"
-      values={data.editor || []}
-      selected={data.selected_editor || []}
-      onchange={(s) => onFilterChange("editor", s)}
-    />
-    <MultiSelect
-      label="Category"
-      param="category"
-      values={data.category || []}
-      selected={data.selected_category || []}
-      onchange={(s) => onFilterChange("category", s)}
-    />
-  </div>
+  {#if showFilters}
+    <div
+      class="mb-2 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"
+    >
+      <IntervalSelect
+        selected={data.selected_interval || ""}
+        from={data.selected_from || ""}
+        to={data.selected_to || ""}
+        onchange={onIntervalChange}
+      />
+      {#each FILTERS as { label, param }}
+        <MultiSelect
+          {label}
+          values={data[param] || []}
+          selected={data[`selected_${param}`] || []}
+          onchange={(s) => onFilterChange(param, s)}
+        />
+      {/each}
+    </div>
+  {/if}
 
-  <GoalsProgressCard goals={programmingGoalsProgress} />
+  {#if showGoals}
+    <GoalsProgressCard goals={programmingGoalsProgress} />
+  {/if}
 
-  <!-- Stats Grid -->
   <div class="grid min-w-0 grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
     <StatCard
       label="Total Time"
       value={secondsToDisplay(data.total_time)}
       highlight
     />
-    <StatCard
-      label="Top Project"
-      value={data.top_project || "None"}
-      subtitle={data.singular_project ? "obviously" : ""}
-    />
-    <StatCard
-      label="Top Language"
-      value={data.top_language || "Unknown"}
-      subtitle={data.singular_language ? "obviously" : ""}
-    />
-    <StatCard
-      label="Top OS"
-      value={data.top_operating_system || "Unknown"}
-      subtitle={data.singular_operating_system ? "obviously" : ""}
-    />
-    <StatCard
-      label="Top Editor"
-      value={data.top_editor || "Unknown"}
-      subtitle={data.singular_editor ? "obviously" : ""}
-    />
-    <StatCard
-      label="Top Category"
-      value={capitalize(data.top_category) || "Unknown"}
-      subtitle={data.singular_category ? "obviously" : ""}
-    />
+    {#each STAT_KEYS as [label, valueKey, singularKey, fallback]}
+      <StatCard
+        {label}
+        value={(valueKey === "top_category"
+          ? capitalize(data[valueKey])
+          : data[valueKey]) || fallback}
+        subtitle={data[singularKey] ? "obviously" : ""}
+      />
+    {/each}
   </div>
 
-  <!-- Charts Layout -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
     {#if projectEntries.length > 1}
       <div class="lg:col-span-1">

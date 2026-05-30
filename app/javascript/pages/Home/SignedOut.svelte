@@ -13,14 +13,9 @@
   import MarketingFooter from "../../components/MarketingFooter.svelte";
 
   type HomeStats = { seconds_tracked?: number; users_tracked?: number };
-
   type FlashMessage = { message: string; class_name: string };
 
   let {
-    sign_in_email,
-    show_dev_tool,
-    dev_magic_link,
-    csrf_token,
     home_stats,
     flash = [],
   }: {
@@ -38,19 +33,16 @@
     const html = document.documentElement;
     previousTheme = html.getAttribute("data-theme");
     html.setAttribute("data-theme", "rose");
-
-    const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
-    colorSchemeMeta?.setAttribute("content", "dark");
-
+    document
+      .querySelector("meta[name='color-scheme']")
+      ?.setAttribute("content", "dark");
     return () => {
-      if (previousTheme) {
-        html.setAttribute("data-theme", previousTheme);
-      }
+      if (previousTheme) html.setAttribute("data-theme", previousTheme);
     };
   });
 
-  const numberFormatter = new Intl.NumberFormat("en-US");
-  const formatNumber = (value: number) => numberFormatter.format(value);
+  const fmt = new Intl.NumberFormat("en-US");
+  const formatNumber = (v: number) => fmt.format(v);
   const hoursTracked = $derived(
     home_stats?.seconds_tracked
       ? Math.floor(home_stats.seconds_tracked / 3600)
@@ -60,8 +52,6 @@
 
   let flashVisible = $state(false);
   let flashHiding = $state(false);
-  const flashHideDelay = 6000;
-  const flashExitDuration = 250;
 
   $effect(() => {
     if (!flash.length) {
@@ -69,23 +59,38 @@
       flashHiding = false;
       return;
     }
-
     flashVisible = true;
     flashHiding = false;
-    let removeTimeoutId: ReturnType<typeof setTimeout> | undefined;
-    const hideTimeoutId = setTimeout(() => {
+    let removeId: ReturnType<typeof setTimeout> | undefined;
+    const hideId = setTimeout(() => {
       flashHiding = true;
-      removeTimeoutId = setTimeout(() => {
+      removeId = setTimeout(() => {
         flashVisible = false;
         flashHiding = false;
-      }, flashExitDuration);
-    }, flashHideDelay);
-
+      }, 250);
+    }, 6000);
     return () => {
-      clearTimeout(hideTimeoutId);
-      if (removeTimeoutId) clearTimeout(removeTimeoutId);
+      clearTimeout(hideId);
+      if (removeId) clearTimeout(removeId);
     };
   });
+
+  const NAV_LINKS = [
+    { href: "#philosophy", label: "Philosophy" },
+    { href: "#features", label: "Features" },
+    { href: "#integrations", label: "Integrations" },
+    { href: "#faq", label: "FAQ" },
+    {
+      href: "https://github.com/hackclub/hackatime",
+      label: "GitHub",
+      external: true,
+    },
+  ];
+
+  const STATS = $derived([
+    { value: usersTracked, label: "users" },
+    { value: hoursTracked, label: "hours tracked" },
+  ]);
 </script>
 
 <svelte:head>
@@ -99,7 +104,9 @@
     >
       {#each flash as item}
         <div
-          class={`flash-message shadow-lg flash-message--enter ${flashHiding ? "flash-message--leaving" : ""} ${item.class_name}`}
+          class="flash-message shadow-lg flash-message--enter {flashHiding
+            ? 'flash-message--leaving'
+            : ''} {item.class_name}"
         >
           {item.message}
         </div>
@@ -107,7 +114,6 @@
     </div>
   {/if}
 
-  <!-- Fixed -->
   <header
     class="fixed top-0 w-full bg-darker/95 backdrop-blur-sm z-50 border-b border-surface-200/60"
   >
@@ -125,25 +131,13 @@
       <nav
         class="hidden md:flex gap-8 items-center text-sm font-medium text-secondary"
       >
-        <a
-          href="#philosophy"
-          class="hover:text-surface-content transition-colors">Philosophy</a
-        >
-        <a href="#features" class="hover:text-surface-content transition-colors"
-          >Features</a
-        >
-        <a
-          href="#integrations"
-          class="hover:text-surface-content transition-colors">Integrations</a
-        >
-        <a href="#faq" class="hover:text-surface-content transition-colors"
-          >FAQ</a
-        >
-        <a
-          href="https://github.com/hackclub/hackatime"
-          target="_blank"
-          class="hover:text-surface-content transition-colors">GitHub</a
-        >
+        {#each NAV_LINKS as { href, label, external }}
+          <a
+            {href}
+            target={external ? "_blank" : undefined}
+            class="hover:text-surface-content transition-colors">{label}</a
+          >
+        {/each}
         <Link
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
@@ -187,28 +181,21 @@
         <div
           class="flex items-center justify-center gap-8 mb-16 text-secondary text-sm"
         >
-          {#if usersTracked > 0}
-            <div class="flex flex-col items-center">
-              <span class="text-2xl font-bold text-surface-content"
-                >{formatNumber(usersTracked)}</span
-              >
-              <span>users</span>
-            </div>
-          {/if}
-          {#if hoursTracked > 0}
-            <div class="flex flex-col items-center">
-              <span class="text-2xl font-bold text-surface-content"
-                >{formatNumber(hoursTracked)}</span
-              >
-              <span>hours tracked</span>
-            </div>
-          {/if}
+          {#each STATS as { value, label }}
+            {#if value > 0}
+              <div class="flex flex-col items-center">
+                <span class="text-2xl font-bold text-surface-content"
+                  >{formatNumber(value)}</span
+                >
+                <span>{label}</span>
+              </div>
+            {/if}
+          {/each}
         </div>
       {:else}
         <div class="mb-16"></div>
       {/if}
 
-      <!-- Browser Mockup -->
       <div
         class="bg-surface border border-surface-200 rounded-lg shadow-lg overflow-hidden"
       >

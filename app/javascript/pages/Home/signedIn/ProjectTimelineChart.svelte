@@ -1,6 +1,7 @@
 <script lang="ts">
   import { BarChart, Tooltip } from "layerchart";
   import { secondsToDisplay, secondsToCompactDisplay } from "../../../utils";
+  import { CHART_COLORS as PIE_COLORS } from "./utils";
 
   let {
     weeklyStats,
@@ -8,52 +9,22 @@
     weeklyStats: Record<string, Record<string, number>>;
   } = $props();
 
-  const PIE_COLORS = [
-    "#60a5fa",
-    "#f472b6",
-    "#fb923c",
-    "#facc15",
-    "#4ade80",
-    "#2dd4bf",
-    "#a78bfa",
-    "#f87171",
-    "#38bdf8",
-    "#e879f9",
-    "#34d399",
-    "#fbbf24",
-    "#818cf8",
-    "#fb7185",
-    "#22d3ee",
-    "#a3e635",
-    "#c084fc",
-    "#f97316",
-    "#14b8a6",
-    "#8b5cf6",
-  ];
-
   const MAX_PROJECT_SERIES = 16;
-  const OTHER_SERIES_KEY = "__other_projects__";
-  const OTHER_SERIES_LABEL = "Other projects";
+  const OTHER_KEY = "__other_projects__";
 
   const sortedWeeks = $derived(Object.keys(weeklyStats).sort());
 
   const allProjects = $derived.by(() => {
-    const projectTotals = new Map<string, number>();
-    for (const weekData of Object.values(weeklyStats)) {
-      for (const [project, seconds] of Object.entries(weekData)) {
-        projectTotals.set(project, (projectTotals.get(project) || 0) + seconds);
-      }
-    }
-    return Array.from(projectTotals.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([name]) => name);
+    const totals = new Map<string, number>();
+    for (const week of Object.values(weeklyStats))
+      for (const [p, s] of Object.entries(week))
+        totals.set(p, (totals.get(p) || 0) + s);
+    return [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([n]) => n);
   });
 
   const chartProjects = $derived(allProjects.slice(0, MAX_PROJECT_SERIES));
-
   const otherProjects = $derived(allProjects.slice(MAX_PROJECT_SERIES));
-
-  const includeOtherSeries = $derived(otherProjects.length > 0);
+  const includeOther = $derived(otherProjects.length > 0);
 
   const data = $derived(
     sortedWeeks.map((week) => {
@@ -63,70 +34,28 @@
           day: "numeric",
         }),
       };
-
-      const weekStats = weeklyStats[week] || {};
-
-      for (const project of chartProjects) {
-        row[project] = weekStats[project] || 0;
-      }
-
-      if (includeOtherSeries) {
-        row[OTHER_SERIES_KEY] = otherProjects.reduce(
-          (total, project) => total + (weekStats[project] || 0),
-          0,
-        );
-      }
-
+      const ws = weeklyStats[week] || {};
+      for (const p of chartProjects) row[p] = ws[p] || 0;
+      if (includeOther)
+        row[OTHER_KEY] = otherProjects.reduce((t, p) => t + (ws[p] || 0), 0);
       return row;
     }),
   );
 
-  const series = $derived(
-    chartProjects.map((project, i) => ({
-      key: project,
-      label: project,
+  const chartSeries = $derived([
+    ...chartProjects.map((p, i) => ({
+      key: p,
+      label: p,
       color: PIE_COLORS[i % PIE_COLORS.length],
     })),
-  );
-
-  const chartSeries = $derived(
-    includeOtherSeries
-      ? [
-          ...series,
-          {
-            key: OTHER_SERIES_KEY,
-            label: OTHER_SERIES_LABEL,
-            color: "#9ca3af",
-          },
-        ]
-      : series,
-  );
-
-  const chartPadding = $derived.by(() => ({
-    top: 4,
-    right: 4,
-    left: 20,
-    bottom: 20,
-  }));
-
-  // the duplication here is intentional.
-  function formatYAxis(value: number): string {
-    return secondsToCompactDisplay(value);
-  }
-
-  function formatDuration(value: number): string {
-    return secondsToDisplay(value);
-  }
+    ...(includeOther
+      ? [{ key: OTHER_KEY, label: "Other projects", color: "#9ca3af" }]
+      : []),
+  ]);
 
   type TimelineDatum = Record<string, string | number>;
-
-  function getSeriesValue(
-    datum: TimelineDatum | null | undefined,
-    key: string,
-  ): number {
-    const value = datum?.[key];
-    return typeof value === "number" ? value : 0;
-  }
+  const getVal = (d: TimelineDatum | null | undefined, k: string) =>
+    typeof d?.[k] === "number" ? (d[k] as number) : 0;
 </script>
 
 <div
@@ -142,12 +71,10 @@
         x="week"
         series={chartSeries}
         seriesLayout="stack"
-        padding={chartPadding}
+        padding={{ top: 4, right: 4, left: 20, bottom: 20 }}
         props={{
-          yAxis: { format: formatYAxis },
-          tooltip: {
-            root: { motion: false },
-          },
+          yAxis: { format: secondsToCompactDisplay },
+          tooltip: { root: { motion: false } },
         }}
       >
         <svelte:fragment slot="tooltip">
@@ -155,28 +82,24 @@
             {#if data}
               <Tooltip.Header value={data.week} />
               <Tooltip.List>
-                {@const seriesItems = [...chartSeries]
+                {@const items = [...chartSeries]
                   .reverse()
-                  .filter((s) => getSeriesValue(data, s.key) > 0)}
-                {#each seriesItems as s}
-                  {@const value = getSeriesValue(data, s.key)}
+                  .filter((s) => getVal(data, s.key) > 0)}
+                {#each items as s}
                   <Tooltip.Item
                     label={s.label ?? s.key}
-                    {value}
+                    value={getVal(data, s.key)}
                     color={s.color}
-                    format={formatDuration}
+                    format={secondsToDisplay}
                     valueAlign="right"
                   />
                 {/each}
-                {#if seriesItems.length > 1}
+                {#if items.length > 1}
                   <Tooltip.Separator />
                   <Tooltip.Item
                     label="total"
-                    value={seriesItems.reduce(
-                      (total, s) => total + getSeriesValue(data, s.key),
-                      0,
-                    )}
-                    format={formatDuration}
+                    value={items.reduce((t, s) => t + getVal(data, s.key), 0)}
+                    format={secondsToDisplay}
                     valueAlign="right"
                   />
                 {/if}

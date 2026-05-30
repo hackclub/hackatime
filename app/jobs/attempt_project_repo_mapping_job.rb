@@ -4,8 +4,7 @@ class AttemptProjectRepoMappingJob < ApplicationJob
 
   good_job_control_concurrency_with(
     total_limit: 1,
-    key: -> { "attempt_project_repo_mapping_job_#{arguments.first}_#{arguments.last}" },
-    drop: true
+    key: -> { "attempt_project_repo_mapping_job_#{arguments.first}_#{arguments.last}" }
   )
 
   def perform(user_id, project_name)

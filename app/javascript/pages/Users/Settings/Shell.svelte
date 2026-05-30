@@ -11,7 +11,7 @@
     sectionFromHash,
     SECTION_PATHS,
   } from "./types";
-  import type { SectionPaths, SettingsCommonProps } from "./types";
+  import type { SettingsCommonProps } from "./types";
 
   let {
     active_section,
@@ -30,29 +30,27 @@
   const subsections = $derived(
     buildSubsections(active_section, hidden_subsections),
   );
-  const knownSectionIds = new Set(sections.map((section) => section.id));
+  const knownSectionIds = new Set(sections.map((s) => s.id));
 
-  const sectionButtonClass = (sectionId: keyof SectionPaths) =>
-    `group flex min-h-10 w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
-      active_section === sectionId
-        ? "bg-surface-100 text-surface-content shadow-[0_8px_20px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.08)]"
-        : "bg-transparent text-muted hover:bg-surface-100/60 hover:text-surface-content hover:shadow-[0_1px_0_rgba(255,255,255,0.05)]"
+  const pillClass = (active: boolean) =>
+    `inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
+      active
+        ? "bg-surface-100 text-surface-content"
+        : "bg-surface/70 text-muted hover:text-surface-content"
     }`;
 
   onMount(() => {
-    const syncSectionFromHash = () => {
+    const sync = () => {
       const section = sectionFromHash(window.location.hash);
       if (!section || !knownSectionIds.has(section)) return;
       if (section === active_section || !SECTION_PATHS[section]) return;
-
       window.location.replace(
         `${SECTION_PATHS[section]}${window.location.hash}`,
       );
     };
-
-    syncSectionFromHash();
-    window.addEventListener("hashchange", syncSectionFromHash);
-    return () => window.removeEventListener("hashchange", syncSectionFromHash);
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
   });
 </script>
 
@@ -60,14 +58,16 @@
   <title>{page_title}</title>
 </svelte:head>
 
-<div data-settings-shell class="mx-auto max-w-7xl">
-  <header class="mb-8">
+<div data-settings-shell>
+  <header class="mb-6 sm:mb-8">
     <h1
-      class="text-3xl font-bold tracking-tight text-balance text-surface-content"
+      class="text-2xl font-bold tracking-tight text-balance text-surface-content sm:text-3xl"
     >
       {heading}
     </h1>
-    <p class="mt-2 max-w-3xl text-pretty text-sm leading-6 text-muted">
+    <p
+      class="mt-1 max-w-3xl text-pretty text-sm text-muted sm:mt-2 sm:text-base"
+    >
       {subheading}
     </p>
   </header>
@@ -91,21 +91,18 @@
   >
     <div class="flex min-w-full gap-2 pb-1">
       {#each sections as section}
+        {@const active = active_section === section.id}
         <Link
           href={section.path}
           data-settings-mobile-nav-item
-          data-active={active_section === section.id}
-          class={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
-            active_section === section.id
-              ? "bg-surface-100 text-surface-content"
-              : "bg-surface/70 text-muted hover:text-surface-content"
-          }`}
+          data-active={active}
+          class={pillClass(active)}
         >
           <Icon
             src={sectionIcons[section.id]}
-            solid={active_section === section.id}
+            solid={active}
             size="16"
-            class={`shrink-0 ${active_section === section.id ? "text-primary" : ""}`}
+            class={`shrink-0 ${active ? "text-primary" : ""}`}
           />
           {section.label}
         </Link>
@@ -119,13 +116,21 @@
     <aside class="hidden h-max lg:sticky lg:top-8 lg:block">
       <div data-settings-sidebar class="rounded-[1.25rem] bg-surface/90 p-1">
         {#each sections as section}
-          <Link href={section.path} class={sectionButtonClass(section.id)}>
+          {@const active = active_section === section.id}
+          <Link
+            href={section.path}
+            class={`group flex min-h-10 w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
+              active
+                ? "bg-surface-100 text-surface-content shadow-[0_8px_20px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                : "bg-transparent text-muted hover:bg-surface-100/60 hover:text-surface-content hover:shadow-[0_1px_0_rgba(255,255,255,0.05)]"
+            }`}
+          >
             <Icon
               src={sectionIcons[section.id]}
-              solid={active_section === section.id}
+              solid={active}
               size="18"
               class={`shrink-0 transition-colors duration-150 ${
-                active_section === section.id
+                active
                   ? "text-primary"
                   : "text-muted group-hover:text-surface-content"
               }`}

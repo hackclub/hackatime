@@ -3,6 +3,7 @@
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
+  import Field from "./components/Field.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { ProfilePageProps } from "./types";
   import { settingsProfile, sessions } from "../../../api";
@@ -20,10 +21,8 @@
     errors,
   }: ProfilePageProps = $props();
 
-  const regionUpdatePath = settingsProfile.updateRegion.path();
-  const usernameUpdatePath = settingsProfile.updateUsername.path();
-  const addEmailPath = sessions.addEmail.path();
-  const unlinkEmailPath = sessions.unlinkEmail.path();
+  const inputClass =
+    "w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none";
 </script>
 
 <svelte:head>
@@ -38,18 +37,12 @@
   >
     <Form
       id="profile-region-form"
-      action={regionUpdatePath}
+      action={settingsProfile.updateRegion.path()}
       method="patch"
       class="space-y-4"
       options={{ preserveScroll: true }}
     >
-      <div>
-        <label
-          for="country_code"
-          class="mb-2 block text-sm text-surface-content"
-        >
-          Country
-        </label>
+      <Field inputId="country_code" label="Country">
         <Select
           id="country_code"
           name="user[country_code]"
@@ -59,25 +52,22 @@
             ...options.countries,
           ]}
         />
-      </div>
+      </Field>
 
-      <div id="user_timezone">
-        <label for="timezone" class="mb-2 block text-sm text-surface-content">
-          Timezone
-        </label>
+      <Field wrapperId="user_timezone" inputId="timezone" label="Timezone">
         <Select
           id="timezone"
           name="user[timezone]"
           value={user.timezone}
           items={options.timezones}
         />
-      </div>
+      </Field>
     </Form>
 
     {#snippet footer()}
-      <Button type="submit" variant="primary" form="profile-region-form">
-        Save region settings
-      </Button>
+      <Button type="submit" variant="primary" form="profile-region-form"
+        >Save region settings</Button
+      >
     {/snippet}
   </SectionCard>
 
@@ -88,27 +78,21 @@
   >
     <Form
       id="profile-username-form"
-      action={usernameUpdatePath}
+      action={settingsProfile.updateUsername.path()}
       method="patch"
       class="space-y-3"
       options={{ preserveScroll: true }}
     >
-      <div>
-        <label for="username" class="mb-2 block text-sm text-surface-content">
-          Username
-        </label>
+      <Field inputId="username" label="Username" error={errors.username[0]}>
         <input
           id="username"
           name="user[username]"
           value={user.username || ""}
           maxlength={username_max_length}
           placeholder="your-name"
-          class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+          class={inputClass}
         />
-        {#if errors.username.length > 0}
-          <p class="mt-2 text-xs text-red">{errors.username[0]}</p>
-        {/if}
-      </div>
+      </Field>
     </Form>
 
     {#if profile_url}
@@ -126,9 +110,9 @@
     {/if}
 
     {#snippet footer()}
-      <Button type="submit" variant="primary" form="profile-username-form">
-        Save username
-      </Button>
+      <Button type="submit" variant="primary" form="profile-username-form"
+        >Save username</Button
+      >
     {/snippet}
   </SectionCard>
 
@@ -149,7 +133,7 @@
             </div>
             {#if email.can_unlink}
               <Form
-                action={unlinkEmailPath}
+                action={sessions.unlinkEmail.path()}
                 method="delete"
                 options={{ preserveScroll: true }}
               >
@@ -158,10 +142,8 @@
                   type="submit"
                   variant="surface"
                   size="xs"
-                  class="rounded-md"
+                  class="rounded-md">Unlink</Button
                 >
-                  Unlink
-                </Button>
               </Form>
             {/if}
           </div>
@@ -177,7 +159,7 @@
 
     <Form
       id="profile-email-form"
-      action={addEmailPath}
+      action={sessions.addEmail.path()}
       method="post"
       class="mt-4 flex flex-col gap-3 sm:flex-row"
       options={{ preserveScroll: true }}
@@ -187,14 +169,14 @@
         name="email"
         required
         placeholder="name@example.com"
-        class="grow rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+        class={`grow ${inputClass}`}
       />
     </Form>
 
     {#snippet footer()}
-      <Button type="submit" class="rounded-md" form="profile-email-form">
-        Add email
-      </Button>
+      <Button type="submit" class="rounded-md" form="profile-email-form"
+        >Add email</Button
+      >
     {/snippet}
   </SectionCard>
 </SettingsShell>

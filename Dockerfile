@@ -8,7 +8,7 @@
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=4.0.3
+ARG RUBY_VERSION=4.0.5
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
@@ -18,6 +18,7 @@ WORKDIR /rails
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     curl \
+    fontconfig \
     libjemalloc2 \
     libvips \
     sqlite3 \
@@ -41,9 +42,10 @@ ENV RAILS_ENV="production" \
 # Throw-away build stage to reduce size of final image
 FROM base AS build
 
-# Install packages needed to build gems
+# Install packages needed to build gems and convert the bundled web font into a
+# TTF that librsvg/Pango can rasterize for generated OG images.
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs && \
+    apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs woff2 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install npm dependencies for Vite.
@@ -51,6 +53,10 @@ COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun i --frozen-lockfile
+
+RUN cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
+    woff2_decompress /tmp/spline-sans-latin-wght-normal.woff2 && \
+    install -Dm644 /tmp/spline-sans-latin-wght-normal.ttf vendor/fonts/spline-sans-latin-wght-normal.ttf
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./
@@ -71,11 +77,9 @@ RUN bundle exec bootsnap precompile app/ lib/
 # These files are gitignored and regenerated on every build.
 RUN SECRET_KEY_BASE_DUMMY=1 JS_FROM_ROUTES_FORCE=true ./bin/rake js_from_routes:generate
 
-# Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN --mount=type=cache,target=/rails/node_modules/.vite \
-    --mount=type=cache,target=/root/.bun/install/cache \
-    --mount=type=cache,target=/root/.cache \
-    SECRET_KEY_BASE_DUMMY=1 ./bin/rails tailwindcss:build
+# Precompiling assets for production without requiring secret RAILS_MASTER_KEY.
+# Tailwind is built via the Vite plugin (see app/javascript/entrypoints/application.css),
+# so no separate tailwindcss:build step is needed.
 RUN --mount=type=cache,target=/rails/node_modules/.vite \
     --mount=type=cache,target=/root/.bun/install/cache \
     --mount=type=cache,target=/root/.cache \
@@ -92,6 +96,12 @@ COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
 COPY --from=build /usr/bin/git /usr/bin/git
 COPY --from=build /usr/lib/git-core /usr/lib/git-core
+
+# Make Spline Sans available to librsvg/libvips via fontconfig. Pango does not
+# rasterize the bundled WOFF2 reliably, so production installs the converted TTF.
+RUN install -Dm644 /rails/vendor/fonts/spline-sans-latin-wght-normal.ttf \
+      /usr/local/share/fonts/spline-sans/spline-sans-latin-wght-normal.ttf && \
+    fc-cache -f /usr/local/share/fonts/spline-sans
 
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \

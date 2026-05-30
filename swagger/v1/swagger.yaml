@@ -1328,9 +1328,6 @@ paths:
                         source_type:
                           type: string
                           nullable: true
-                        ysws_program:
-                          type: string
-                          nullable: true
                         ip_address:
                           type: string
                           nullable: true
@@ -1503,6 +1500,7 @@ paths:
                           type: integer
                         username:
                           type: string
+                          nullable: true
                         slack_username:
                           type: string
                           nullable: true
@@ -1641,6 +1639,96 @@ paths:
                           description: Primary email or "no email"
         '401':
           description: unauthorized
+  "/api/admin/v1/heartbeats/ip_machine_pairs":
+    get:
+      summary: List users sharing the same machine + IP combination
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results (default: 1000, max: 10000)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: returns empty pairs when no shared machine+IP exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_a_id:
+                          type: integer
+                        user_b_id:
+                          type: integer
+                        machine:
+                          type: string
+                        ip_address:
+                          type: string
+                        user_a_first_seen:
+                          type: integer
+                        user_a_last_seen:
+                          type: integer
+                        user_b_first_seen:
+                          type: integer
+                        user_b_last_seen:
+                          type: integer
+  "/api/admin/v1/heartbeats/shared_machines":
+    get:
+      summary: List machines used by multiple users
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results (default: 1000, max: 10000)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: excludes machines used by only one user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  machines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        machine:
+                          type: string
+                        machine_frequency:
+                          type: integer
+                        user_ids:
+                          type: array
+                          items:
+                            type: integer
   "/api/admin/v1/permissions":
     get:
       summary: List Permissions
@@ -2501,91 +2589,6 @@ paths:
                   description: Slack OAuth Token
               required:
               - token
-  "/api/v1/ysws_programs":
-    get:
-      summary: List YSWS Programs
-      tags:
-      - YSWS Programs
-      description: List available YSWS (Your Ship We Ship) programs.
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
-                  example: onboard
-  "/api/v1/ysws_programs/claim":
-    post:
-      summary: Claim YSWS Program
-      tags:
-      - YSWS Programs
-      description: Claim a YSWS program reward.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Successfully claimed 100 heartbeats
-                  claimed_count:
-                    type: integer
-                    example: 100
-        '409':
-          description: conflict
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                  conflicts:
-                    type: array
-                    items:
-                      type: array
-                      minItems: 2
-                      maxItems: 2
-                      items: {}
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                program_id:
-                  type: integer
-                  description: YSWS Program ID
-                user_id:
-                  type: string
-                  description: User ID or Slack UID
-                start_time:
-                  type: string
-                  format: date_time
-                  description: Start time of the claim period
-                end_time:
-                  type: string
-                  format: date_time
-                  description: End time of the claim period
-                project:
-                  type: string
-                  description: Project name (optional)
-                  nullable: true
-              required:
-              - program_id
-              - user_id
-              - start_time
-              - end_time
   "/api/v1/leaderboard":
     get:
       summary: Get daily leaderboard (Alias)
@@ -3506,35 +3509,6 @@ paths:
       tags:
       - Slack
       description: Handle incoming Slack slash commands for Sailor's Log (/sailorslog).
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  response_type:
-                    type: string
-                  text:
-                    type: string
-                    nullable: true
-                  blocks:
-                    type: array
-                    items:
-                      type: object
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: string
-  "/timedump/slack/commands":
-    post:
-      summary: Handle Timedump Command
-      tags:
-      - Slack
-      description: Handle incoming Slack slash commands for Timedump (/timedump).
       parameters: []
       responses:
         '200':

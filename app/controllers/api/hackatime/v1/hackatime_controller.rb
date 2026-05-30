@@ -4,38 +4,28 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   skip_before_action :enforce_lockout
   before_action :check_lockout, only: [ :push_heartbeats ]
 
+  HEARTBEAT_KEYS = %i[
+    branch category created_at cursorpos dependencies editor entity is_write
+    language line_additions line_deletions lineno lines machine operating_system
+    project project_root_count time type user_agent plugin
+  ].freeze
+
+  MAX_BULK_HEARTBEATS = 100
+
   def push_heartbeats
-    # Handle both single and bulk heartbeats based on format
     if params["format"] == "bulk"
       # POST /api/hackatime/v1/users/:id/heartbeats.bulk
-      # example response:
-      # status: 201
-      # {
-      #   "responses": [
-      #     [{...heartbeat_data}, 201],
-      #     [{...heartbeat_data}, 201],
-      #     [{...heartbeat_data}, 201]
-      #   ]
-      # }
       heartbeat_array = heartbeat_bulk_params[:heartbeats]
-
-      if heartbeat_array.empty?
-        return render json: { error: "No data provided..." }, status: :bad_request
+      return render_bad_request("No data provided...") if heartbeat_array.empty?
+      if heartbeat_array.size > MAX_BULK_HEARTBEATS
+        return render_bad_request("Too many heartbeats in a single request (max #{MAX_BULK_HEARTBEATS})")
       end
 
       render json: { responses: handle_heartbeat(heartbeat_array) }, status: :created
     else
       # POST /api/hackatime/v1/users/:id/heartbeats
-      # example response:
-      # status: 202
-      # {
-      #   ...heartbeat_data
-      # }
       heartbeat_array = Array.wrap(heartbeat_params)
-
-      if heartbeat_array.empty? || heartbeat_params.blank?
-        return render json: { error: "No data provided..." }, status: :bad_request
-      end
+      return render_bad_request("No data provided...") if heartbeat_array.empty? || heartbeat_params.blank?
 
       new_heartbeat = handle_heartbeat(heartbeat_array)&.first&.first
       render json: new_heartbeat, status: :accepted
@@ -44,12 +34,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def status_bar_today
     Time.use_zone(@user.timezone) do
-      hbt = @user.heartbeats.today
-      total_seconds = hbt.duration_seconds
-
-      # Check if user has a daily goal
-      daily_goal = @user.goals.find_by(period: "day")
-
+      total_seconds = @user.heartbeats.today.duration_seconds
       result = {
         data: {
           grand_total: {
@@ -59,29 +44,20 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         }
       }
 
-      # Include goal information if daily goal exists
-      if daily_goal
-        goal_progress = ProgrammingGoalsProgressService.new(user: @user, goals: [ daily_goal ]).call.first
-
-        if goal_progress
-          # Only append the goal text to the status bar string for users who:
-          #   - have the simple_text extension display style (other styles like
-          #     clock_emoji or compliment_text aren't designed to carry the goal)
-          #   - have the show_goals_in_statusbar preference enabled
-          if @user.simple_text? && @user.show_goals_in_statusbar
-            user_text = result[:data][:grand_total][:text]
-            goal_text = ApplicationController.helpers.short_time_simple(daily_goal.target_seconds)
-
-            result[:data][:grand_total][:text] = "#{user_text} / #{goal_text} goal"
-          end
-
-          result[:data][:goal] = {
-            target_seconds: daily_goal.target_seconds,
-            tracked_seconds: goal_progress[:tracked_seconds],
-            completion_percent: goal_progress[:completion_percent],
-            complete: goal_progress[:complete]
-          }
+      daily_goal = @user.goals.find_by(period: "day")
+      if daily_goal && (goal_progress = ProgrammingGoalsProgressService.new(user: @user, goals: [ daily_goal ]).call.first)
+        # Only append the goal text for users with simple_text style AND show_goals_in_statusbar enabled.
+        if @user.simple_text? && @user.show_goals_in_statusbar
+          goal_text = ApplicationController.helpers.short_time_simple(daily_goal.target_seconds)
+          result[:data][:grand_total][:text] = "#{result[:data][:grand_total][:text]} / #{goal_text} goal"
         end
+
+        result[:data][:goal] = {
+          target_seconds: daily_goal.target_seconds,
+          tracked_seconds: goal_progress[:tracked_seconds],
+          completion_percent: goal_progress[:completion_percent],
+          complete: goal_progress[:complete]
+        }
       end
 
       render json: result
@@ -89,67 +65,29 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   end
 
   def stats_last_7_days
-      Time.use_zone(@user.timezone) do
-        # Calculate time range within the user's timezone
-        start_time = (Time.current - 7.days).beginning_of_day
-        end_time = Time.current.end_of_day
+    Time.use_zone(@user.timezone) do
+      start_time = (Time.current - 7.days).beginning_of_day
+      end_time = Time.current.end_of_day
 
-        # Convert to Unix timestamps
-        start_timestamp = start_time.to_i
-        end_timestamp = end_time.to_i
+      heartbeats = @user.heartbeats.where(time: start_time.to_i..end_time.to_i)
+      total_seconds = heartbeats.duration_seconds.to_i
+      days_covered = heartbeats.pluck(:time).map { |ts| Time.at(ts).in_time_zone(@user.timezone).to_date }.uniq.length
+      daily_average = days_covered > 0 ? (total_seconds.to_f / days_covered).round(1) : 0
+      human_readable_total = format_hr(total_seconds)
 
-        # Get heartbeats in the time range
-        heartbeats = @user.heartbeats.where(time: start_timestamp..end_timestamp)
+      hours, minutes, seconds = hms(total_seconds)
+      categories = [ {
+        name: "coding",
+        total_seconds: total_seconds,
+        percent: 100.0,
+        digital: format("%d:%02d:%02d", hours, minutes, seconds),
+        text: human_readable_total,
+        hours: hours,
+        minutes: minutes,
+        seconds: seconds
+      } ]
 
-        # Calculate total seconds
-        total_seconds = heartbeats.duration_seconds.to_i
-
-        # Get unique days
-        days = []
-        heartbeats.pluck(:time).each do |timestamp|
-          day = Time.at(timestamp).in_time_zone(@user.timezone).to_date
-          days << day unless days.include?(day)
-        end
-        days_covered = days.length
-
-        # Calculate daily average
-        daily_average = days_covered > 0 ? (total_seconds.to_f / days_covered).round(1) : 0
-
-        # Format human readable strings
-        hours = total_seconds / 3600
-        minutes = (total_seconds % 3600) / 60
-        human_readable_total = "#{hours} hrs #{minutes} mins"
-
-        avg_hours = daily_average.to_i / 3600
-        avg_minutes = (daily_average.to_i % 3600) / 60
-        human_readable_daily_average = "#{avg_hours} hrs #{avg_minutes} mins"
-
-        # Calculate statistics for different categories
-        editors_data = calculate_category_stats(heartbeats, "editor")
-        languages_data = calculate_category_stats(heartbeats, "language")
-        projects_data = calculate_category_stats(heartbeats, "project")
-        machines_data = calculate_category_stats(heartbeats, "machine")
-        os_data = calculate_category_stats(heartbeats, "operating_system")
-
-      # Categories data
-      hours = total_seconds / 3600
-      minutes = (total_seconds % 3600) / 60
-      seconds = total_seconds % 60
-
-      categories = [
-        {
-          name: "coding",
-          total_seconds: total_seconds,
-          percent: 100.0,
-          digital: format("%d:%02d:%02d", hours, minutes, seconds),
-          text: human_readable_total,
-          hours: hours,
-          minutes: minutes,
-          seconds: seconds
-        }
-      ]
-
-      result = {
+      render json: {
         data: {
           username: @user.slack_uid,
           user_id: @user.slack_uid,
@@ -162,35 +100,38 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
           range: "last_7_days",
           human_readable_range: "Last 7 Days",
           human_readable_total: human_readable_total,
-          human_readable_daily_average: human_readable_daily_average,
+          human_readable_daily_average: format_hr(daily_average.to_i),
           is_coding_activity_visible: true,
           is_other_usage_visible: true,
-          editors: editors_data,
-          languages: languages_data,
-          machines: machines_data,
-          projects: projects_data,
-          operating_systems: os_data,
+          editors: calculate_category_stats(heartbeats, "editor"),
+          languages: calculate_category_stats(heartbeats, "language"),
+          machines: calculate_category_stats(heartbeats, "machine"),
+          projects: calculate_category_stats(heartbeats, "project"),
+          operating_systems: calculate_category_stats(heartbeats, "operating_system"),
           categories: categories
         }
       }
-
-      render json: result
     end
   end
 
   private
 
+  def hms(total) = [ total / 3600, (total % 3600) / 60, total % 60 ]
+
+  def format_hr(total)
+    h, m, _ = hms(total)
+    "#{h} hrs #{m} mins"
+  end
+
   def calculate_category_stats(heartbeats, category)
     durations = heartbeats.group(category).duration_seconds
-
     total_duration = durations.values.sum.to_f
     return [] if total_duration == 0
 
     h = ApplicationController.helpers
     durations.filter_map do |name, duration|
       next if duration <= 0
-
-      display_name = (name.presence || "unknown")
+      display_name = name.presence || "unknown"
       display_name = case category
       when "editor" then h.display_editor_name(display_name)
       when "operating_system" then h.display_os_name(display_name)
@@ -198,15 +139,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       else display_name
       end
 
-      percent = ((duration / total_duration) * 100).round(2)
-      hours = duration / 3600
-      minutes = (duration % 3600) / 60
-      seconds = duration % 60
-
+      hours, minutes, seconds = hms(duration)
       {
         name: display_name,
         total_seconds: duration,
-        percent: percent,
+        percent: ((duration / total_duration) * 100).round(2),
         digital: format("%d:%02d:%02d", hours, minutes, seconds),
         text: "#{hours} hrs #{minutes} mins",
         hours: hours,
@@ -214,25 +151,6 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
         seconds: seconds
       }
     end.sort_by { |item| -item[:total_seconds] }
-  end
-
-  def headers_to_json
-    request.headers
-           .env
-           .select { |key| key.to_s.starts_with?("HTTP_") }
-           .map { |key, value| [ key.sub(/^HTTP_/, ""), value ] }
-           .to_h.to_json
-  end
-
-  def body_to_json
-    return params.to_unsafe_h["_json"] if params.to_unsafe_h["_json"].present?
-
-    # Handle text/plain content-type by manually parsing JSON body
-    begin
-      JSON.parse(request.raw_post) if request.raw_post.present?
-    rescue JSON::ParserError
-      {}
-    end || {}
   end
 
   def handle_heartbeat(heartbeat_array)
@@ -247,102 +165,62 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     )
 
     result.items.map do |item|
-      if item.status == :accepted
-        [ item.heartbeat.attributes, 201 ]
-      else
-        error = item.error
-        report_error(error, message: "Error creating heartbeat: #{error.class}: #{error.message}", extra: { backtrace: error.backtrace&.first(20) })
-        [ { error: error.message, type: error.class.name }, 422 ]
-      end
+      next [ item.heartbeat.attributes, 201 ] if item.status == :accepted
+      error = item.error
+      report_error(
+        error,
+        message: "Error creating heartbeat: #{error.class}: #{error.message}",
+        extra: { backtrace: error.backtrace&.first(20) }
+      )
+      [ { error: error.message, type: error.class.name }, 422 ]
     end
   end
 
-  def check_lockout
-    return unless @user&.pending_deletion?
-    render json: { error: "Account pending deletion" }, status: :forbidden
-  end
+  def check_lockout = (render_forbidden("Account pending deletion") if @user&.pending_deletion?)
 
   def set_user
     api_header = request.headers["Authorization"]
     raw_token = api_header&.split(" ")&.last
-    header_type = api_header&.split(" ")&.first
-    if header_type == "Bearer"
-      api_token = raw_token
-    elsif header_type == "Basic"
-      api_token = Base64.decode64(raw_token)
+    api_token = case api_header&.split(" ")&.first
+    when "Bearer" then raw_token
+    when "Basic" then Base64.decode64(raw_token)
     end
-    if params[:api_key].present?
-      api_token ||= params[:api_key]
-    end
-    return render json: { error: "Unauthorized" }, status: :unauthorized unless api_token.present?
+    api_token ||= params[:api_key] if params[:api_key].present?
+    return render_unauthorized unless api_token.present?
 
     # Sanitize api_token to handle invalid UTF-8 sequences
     api_token = api_token.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
 
     valid_key = ApiKey.find_by(token: api_token)
-    return render json: { error: "Unauthorized" }, status: :unauthorized unless valid_key.present?
+    return render_unauthorized unless valid_key.present?
 
     @user = valid_key.user
-    render json: { error: "Unauthorized" }, status: :unauthorized unless @user
-  end
-
-  def heartbeat_keys
-    [
-      :branch,
-      :category,
-      :created_at,
-      :cursorpos,
-      :dependencies,
-      :editor,
-      :entity,
-      :is_write,
-      :language,
-      :line_additions,
-      :line_deletions,
-      :lineno,
-      :lines,
-      :machine,
-      :operating_system,
-      :project,
-      :project_root_count,
-      :time,
-      :type,
-      :user_agent,
-      :plugin
-    ]
+    render_unauthorized unless @user
   end
 
   # allow either heartbeat or heartbeats
   def heartbeat_bulk_params
     if params[:_json].present?
-      { heartbeats: params.permit(_json: [ *heartbeat_keys ])[:_json] }
+      { heartbeats: params.permit(_json: [ *HEARTBEAT_KEYS ])[:_json] }
     elsif request.content_type&.include?("text/plain") && request.raw_post.present?
-      # Handle text/plain requests by parsing JSON directly
       parsed_json = JSON.parse(request.raw_post, symbolize_names: true) rescue []
-      filtered_json = parsed_json.map { |hb| hb.slice(*heartbeat_keys) }
-      { heartbeats: filtered_json }
+      { heartbeats: parsed_json.map { |hb| hb.slice(*HEARTBEAT_KEYS) } }
     else
-      params.require(:hackatime).permit(
-        heartbeats: [
-          *heartbeat_keys
-        ]
-      )
+      params.require(:hackatime).permit(heartbeats: [ *HEARTBEAT_KEYS ])
     end
   end
 
   def heartbeat_params
-    # Handle both direct params and _json format from WakaTime
     if params[:_json].present?
-      params[:_json].first.permit(*heartbeat_keys)
+      params[:_json].first.permit(*HEARTBEAT_KEYS)
     elsif request.content_type&.include?("text/plain") && request.raw_post.present?
-      # Handle text/plain requests by parsing JSON directly
-      parsed_json = JSON.parse(request.raw_post, symbolize_names: true) rescue {}
-      parsed_json = [ parsed_json ] unless parsed_json.is_a?(Array)
-      parsed_json.first&.with_indifferent_access&.slice(*heartbeat_keys) || {}
+      parsed = JSON.parse(request.raw_post, symbolize_names: true) rescue {}
+      parsed = [ parsed ] unless parsed.is_a?(Array)
+      parsed.first&.with_indifferent_access&.slice(*HEARTBEAT_KEYS) || {}
     elsif params[:hackatime].present?
-      params.require(:hackatime).permit(*heartbeat_keys)
+      params.require(:hackatime).permit(*HEARTBEAT_KEYS)
     else
-      params.permit(*heartbeat_keys)
+      params.permit(*HEARTBEAT_KEYS)
     end
   end
 end

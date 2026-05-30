@@ -17,6 +17,7 @@ CI.run do
 
   step "Frontend: Typecheck", "bun run check:svelte"
   step "Frontend: Lint", "bun run format:svelte:check"
+  step "Frontend: Knip", "bun run knip"
 
   if success?
     heading "Signoff: All systems go. Ready for merge and deploy.", type: :success

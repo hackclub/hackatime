@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -102,6 +102,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
     t.datetime "cancelled_at"
     t.datetime "completed_at"
     t.datetime "created_at", null: false
+    t.text "reason"
+    t.text "reason_details"
     t.datetime "requested_at", null: false
     t.datetime "scheduled_deletion_at"
     t.integer "status", default: 0, null: false
@@ -119,6 +121,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["email"], name: "index_email_addresses_on_email", unique: true
+    t.index ["email"], name: "index_email_addresses_on_email_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id"], name: "index_email_addresses_on_user_id"
   end
 
@@ -342,17 +345,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time_incl_editor", where: "(deleted_at IS NULL)", include: ["editor"]
     t.index ["user_id", "editor", "time"], name: "idx_heartbeats_user_editor_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "id"], name: "index_heartbeats_on_user_id_with_ip", order: { id: :desc }, where: "((ip_address IS NOT NULL) AND (deleted_at IS NULL))"
+    t.index ["user_id", "language", "time", "id"], name: "idx_heartbeats_user_language_time_id_active", where: "(deleted_at IS NULL)"
     t.index ["user_id", "language", "time"], name: "idx_heartbeats_user_language_time", where: "(deleted_at IS NULL)"
     t.index ["user_id", "operating_system", "time"], name: "idx_heartbeats_user_operating_system_time", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "project", "time", "id"], name: "idx_heartbeats_user_project_time_id_language_active", where: "((deleted_at IS NULL) AND (project IS NOT NULL))", include: ["language"]
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_covering", where: "(deleted_at IS NULL)", include: ["category"]
     t.index ["user_id", "project", "time"], name: "idx_heartbeats_user_project_time_stats", where: "((deleted_at IS NULL) AND (project IS NOT NULL))"
     t.index ["user_id", "project"], name: "index_heartbeats_on_user_id_and_project", where: "(deleted_at IS NULL)"
     t.index ["user_id", "source_type", "id"], name: "index_heartbeats_on_user_source_id_direct", where: "((source_type = 0) AND (deleted_at IS NULL))"
     t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
+    t.index ["user_id", "time", "id"], name: "idx_heartbeats_user_time_id_active", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "language"], name: "idx_heartbeats_user_time_language_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time"], name: "idx_heartbeats_lb_eligible_user_time", where: "((deleted_at IS NULL) AND ((category)::text = 'coding'::text) AND ((editor IS NULL) OR (lower((editor)::text) <> ALL (ARRAY['arc'::text, 'brave'::text, 'chrome'::text, 'chromium'::text, 'edge'::text, 'firefox'::text, 'floorp'::text, 'librewolf'::text, 'microsoft-edge'::text, 'opera'::text, 'opera-gx'::text, 'safari'::text, 'vivaldi'::text, 'waterfox'::text, 'zen'::text]))))"
     t.index ["user_id", "time"], name: "idx_heartbeats_user_time_active", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "time"], name: "idx_heartbeats_user_time_project_language", where: "((deleted_at IS NULL) AND (project IS NOT NULL) AND ((project)::text <> ''::text))", include: ["id", "project", "language"]
     t.index ["user_id"], name: "index_heartbeats_on_user_id"
   end
 
@@ -643,6 +650,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
+    t.text "leaderboard_shadowban_reason"
+    t.boolean "leaderboard_shadowbanned", default: false, null: false
+    t.bigint "leaderboard_shadowbanned_by_id"
     t.text "profile_bio"
     t.string "profile_bluesky_url"
     t.string "profile_discord_url"
@@ -666,10 +676,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
     t.boolean "weekly_summary_email_enabled", default: true, null: false
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
+    t.index ["github_username"], name: "index_users_on_github_username_trgm", opclass: :gin_trgm_ops, using: :gin
+    t.index ["leaderboard_shadowbanned"], name: "index_users_on_leaderboard_shadowbanned", where: "(leaderboard_shadowbanned = true)"
+    t.index ["leaderboard_shadowbanned_by_id"], name: "index_users_on_leaderboard_shadowbanned_by_id"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
+    t.index ["slack_username"], name: "index_users_on_slack_username_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"
     t.index ["timezone"], name: "index_users_on_timezone"
     t.index ["username"], name: "index_users_on_username"
+    t.index ["username"], name: "index_users_on_username_trgm", opclass: :gin_trgm_ops, using: :gin
   end
 
   create_table "versions", force: :cascade do |t|
@@ -727,5 +742,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_124227) do
   add_foreign_key "sign_in_tokens", "users"
   add_foreign_key "trust_level_audit_logs", "users"
   add_foreign_key "trust_level_audit_logs", "users", column: "changed_by_id"
+  add_foreign_key "users", "users", column: "leaderboard_shadowbanned_by_id"
   add_foreign_key "wakatime_mirrors", "users"
 end

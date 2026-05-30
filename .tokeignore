@@ -7,4 +7,9 @@ tsconfig.json
 tsconfig.*.json
 db/migrate/
 config/languages.yml
+config/languages_custom.yml
+config/themes.yml
+config/github_readme_themes.txt
 app/javascript/api/
+test/
+spec/

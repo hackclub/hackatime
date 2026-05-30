@@ -7,21 +7,15 @@
   import Button from "../../components/Button.svelte";
   import { myHeartbeatImports, settingsImportsExports } from "../../api";
 
-  interface Props {
-    page_title: string;
-  }
+  let { page_title }: { page_title: string } = $props();
 
-  let { page_title }: Props = $props();
-
-  const createHeartbeatImportPath = myHeartbeatImports.create.path();
+  const createPath = myHeartbeatImports.create.path();
   const dataSettingsPath = settingsImportsExports.show.path();
 
   let downloadUrl = $state("");
 </script>
 
-<svelte:head>
-  <title>{page_title}</title>
-</svelte:head>
+<svelte:head><title>{page_title}</title></svelte:head>
 
 <div class="flex min-h-screen w-screen items-center justify-center p-4">
   <div
@@ -38,24 +32,18 @@
           target="_blank"
           rel="noreferrer"
           class="text-primary underline underline-offset-2"
-        >
-          https://wakatime.com/settings/account
-        </a>, find the latest export, right click <strong>Download</strong>,
-        choose
+          >https://wakatime.com/settings/account</a
+        >, find the latest export, right click <strong>Download</strong>, choose
         <strong>Copy link</strong>, then paste that URL below.
       </p>
     </div>
 
-    <Form
-      method="post"
-      action={createHeartbeatImportPath}
-      class="mt-6 space-y-4"
-    >
+    <Form method="post" action={createPath} class="mt-6 space-y-4">
       {#snippet children({ processing })}
         <label class="block space-y-2" for="wakatime_download_url">
-          <span class="text-sm font-medium text-surface-content">
-            Download link
-          </span>
+          <span class="text-sm font-medium text-surface-content"
+            >Download link</span
+          >
           <input
             id="wakatime_download_url"
             name="heartbeat_import[download_url]"

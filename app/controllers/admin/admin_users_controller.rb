@@ -14,8 +14,7 @@ class Admin::AdminUsersController < Admin::BaseController
     new_level = params[:admin_level]
 
     unless current_user.can_change_admin_level_of?(@user, new_level)
-      redirect_to admin_admin_users_path, alert: admin_level_change_denial_message(@user, new_level)
-      return
+      return redirect_to(admin_admin_users_path, alert: admin_level_change_denial_message(@user, new_level))
     end
 
     if @user.set_admin_level(new_level, changed_by_user: current_user)
@@ -27,14 +26,7 @@ class Admin::AdminUsersController < Admin::BaseController
 
   def search
     query = params[:q].to_s.strip
-    @users = if query.present?
-      x = ActiveRecord::Base.sanitize_sql_like(query)
-      User.where("slack_username ILIKE :q OR username ILIKE :q OR slack_uid ILIKE :q", q: "%#{x}%")
-          .limit(20)
-    else
-      User.none
-    end
-
+    @users = query.present? ? User.fuzzy_ranked_search(query, limit: 20) : User.none
     render partial: "search_results", locals: { users: @users }
   end
 end

@@ -2,6 +2,7 @@
   import { Deferred, Form, usePoll } from "@inertiajs/svelte";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
+  import ImportStatusRow from "./components/ImportStatusRow.svelte";
   import SettingsShell from "./Shell.svelte";
   import type {
     ImportsExportsPageProps,
@@ -22,7 +23,6 @@
     },
   ] as const;
 
-  // Maximum time to show optimistic overlay before falling back to server state (5 minutes)
   const OVERLAY_TIMEOUT_MS = 5 * 60 * 1000;
 
   let {
@@ -39,16 +39,11 @@
   }: ImportsExportsPageProps = $props();
 
   const createHeartbeatImportPath = myHeartbeatImports.create.path();
-  const exportAllHeartbeatsPath = myHeartbeats.export.path({
-    query: { all_data: "true" },
-  });
-  const exportRangeHeartbeatsPath = myHeartbeats.export.path();
 
   let selectedFile = $state<File | null>(null);
   let remoteProvider =
     $state<(typeof PROVIDERS)[number]["value"]>("wakatime_dump");
   let remoteApiKey = $state("");
-  // overlay state: set after a successful form submit, cleared when server confirms or timeout
   let importOverlay = $state<Partial<HeartbeatImportStatusProps> | null>(null);
   let overlayStartTime = $state<number | null>(null);
 
@@ -58,41 +53,36 @@
     { autoStart: false },
   );
 
-  const serverHasImport = $derived(latest_heartbeat_import != null);
-  const serverState = $derived(latest_heartbeat_import?.state);
   const isServerTerminal = $derived(
-    serverState === "completed" || serverState === "failed",
+    latest_heartbeat_import?.state === "completed" ||
+      latest_heartbeat_import?.state === "failed",
   );
-  const isOverlayStale = $derived(() => {
-    if (!overlayStartTime) return false;
-    return Date.now() - overlayStartTime > OVERLAY_TIMEOUT_MS;
-  });
+  const isOverlayStale = $derived(
+    overlayStartTime != null &&
+      Date.now() - overlayStartTime > OVERLAY_TIMEOUT_MS,
+  );
 
-  const effectiveImport = $derived(() => {
-    if (isOverlayStale()) {
-      return latest_heartbeat_import;
-    }
-    if (isServerTerminal && importOverlay) {
-      return latest_heartbeat_import;
-    }
-    return importOverlay ?? latest_heartbeat_import;
-  });
-
-  const activeImport = $derived(effectiveImport());
+  const activeImport = $derived(
+    isOverlayStale || (isServerTerminal && importOverlay)
+      ? latest_heartbeat_import
+      : (importOverlay ?? latest_heartbeat_import),
+  );
   const importState = $derived(activeImport?.state ?? "idle");
   const importSourceKind = $derived(activeImport?.source_kind ?? "");
 
   const importInProgress = $derived(
-    importState === "queued" ||
-      importState === "requesting_dump" ||
-      importState === "waiting_for_dump" ||
-      importState === "downloading_dump" ||
-      importState === "importing",
+    [
+      "queued",
+      "requesting_dump",
+      "waiting_for_dump",
+      "downloading_dump",
+      "importing",
+    ].includes(importState),
   );
   const latestImportIsRemote = $derived(
-    importSourceKind === "wakatime_dump" ||
-      importSourceKind === "wakatime_download_link" ||
-      importSourceKind === "hackatime_v1_dump",
+    ["wakatime_dump", "wakatime_download_link", "hackatime_v1_dump"].includes(
+      importSourceKind,
+    ),
   );
   const latestImportIsDev = $derived(importSourceKind === "dev_upload");
 
@@ -110,91 +100,77 @@
   );
 
   $effect(() => {
-    if (importInProgress) {
-      startPolling();
-    } else {
-      stopPolling();
-    }
+    if (importInProgress) startPolling();
+    else stopPolling();
   });
 
   $effect(() => {
     if (!importOverlay) return;
-
-    if (isServerTerminal && serverHasImport) {
+    if (isServerTerminal && latest_heartbeat_import != null) {
       importOverlay = null;
       overlayStartTime = null;
       return;
     }
-
     if (overlayStartTime) {
-      const elapsed = Date.now() - overlayStartTime;
-      const remaining = Math.max(0, OVERLAY_TIMEOUT_MS - elapsed);
-
-      const timeoutId = setTimeout(() => {
+      const remaining = Math.max(
+        0,
+        OVERLAY_TIMEOUT_MS - (Date.now() - overlayStartTime),
+      );
+      const id = setTimeout(() => {
         importOverlay = null;
         overlayStartTime = null;
         stopPolling();
       }, remaining);
-
-      return () => clearTimeout(timeoutId);
+      return () => clearTimeout(id);
     }
   });
 
-  function formatCount(value: number | null | undefined) {
-    if (value == null) return "—";
-    return value.toLocaleString();
-  }
+  const formatCount = (v: number | null | undefined) =>
+    v == null ? "—" : v.toLocaleString();
 
   function formatRelativeTime(value: string | null) {
     if (!value) return "—";
     const diff = new Date(value).getTime() - Date.now();
     if (diff <= 0) return "now";
     const seconds = Math.ceil(diff / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    return `${Math.ceil(seconds / 60)}m`;
+    return seconds < 60 ? `${seconds}s` : `${Math.ceil(seconds / 60)}m`;
   }
 
   function providerLabel(sourceKind: string) {
-    switch (sourceKind) {
-      case "wakatime_dump":
-      case "wakatime_download_link":
-        return "WakaTime";
-      case "hackatime_v1_dump":
-        return "Hackatime v1";
-      case "dev_upload":
-        return "Development upload";
-      default:
-        return "Import";
-    }
+    if (
+      sourceKind === "wakatime_dump" ||
+      sourceKind === "wakatime_download_link"
+    )
+      return "WakaTime";
+    if (sourceKind === "hackatime_v1_dump") return "Hackatime v1";
+    if (sourceKind === "dev_upload") return "Development upload";
+    return "Import";
   }
 
-  function prettyStatus(state: string): string {
-    switch (state) {
-      case "queued":
-        return "Queued…";
-      case "requesting_dump":
-        return "Requesting heartbeats…";
-      case "waiting_for_dump":
-        return "Waiting for heartbeats…";
-      case "downloading_dump":
-        return "Downloading heartbeats…";
-      case "importing":
-        return "Importing heartbeats…";
-      case "completed":
-        return "Done!";
-      case "failed":
-        return "Failed";
-      default:
-        return state;
-    }
-  }
+  const completedSummary = $derived(
+    importState === "completed"
+      ? `${formatCount(activeImport?.imported_count)} imported, ${formatCount(activeImport?.skipped_count)} skipped`
+      : null,
+  );
 
   function onImportSuccess(data: HeartbeatImportStatusProps) {
     importOverlay = data;
     overlayStartTime = Date.now();
     startPolling();
   }
+
+  const dateInputClass =
+    "rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none";
 </script>
+
+{#snippet statTile(label: string, value: string)}
+  <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
+    <p class="text-xs uppercase tracking-wide text-muted">{label}</p>
+    <p class="mt-1 text-lg font-semibold tabular-nums text-surface-content">
+      {value}
+    </p>
+  </div>
+{/snippet}
 
 <svelte:head>
   <title>Imports & Exports - Hackatime Settings</title>
@@ -243,9 +219,9 @@
                   />
                   <span class="space-y-1">
                     <span class="block font-semibold">{provider.label}</span>
-                    <span class="block text-xs text-muted">
-                      {provider.helper}
-                    </span>
+                    <span class="block text-xs text-muted"
+                      >{provider.helper}</span
+                    >
                   </span>
                 </label>
               {/each}
@@ -273,55 +249,13 @@
             {/if}
 
             {#if importState !== "idle" && latestImportIsRemote}
-              <div
-                class="flex flex-wrap items-center gap-2 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm"
-              >
-                {#if importInProgress}
-                  <svg
-                    class="h-4 w-4 shrink-0 animate-spin text-primary"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      class="opacity-25"
-                    />
-                    <path
-                      d="M4 12a8 8 0 018-8"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                {/if}
-                <span class="text-surface-content">
-                  {providerLabel(importSourceKind)}
-                </span>
-                <span class="text-muted">·</span>
-                <span
-                  class={importState === "failed"
-                    ? "text-red-500 dark:text-red-300"
-                    : importState === "completed"
-                      ? "text-primary"
-                      : "text-muted"}
-                >
-                  {prettyStatus(importState)}
-                </span>
-                {#if activeImport?.error_message}
-                  <span class="text-red-300">{activeImport.error_message}</span>
-                {/if}
-                {#if importState === "completed"}
-                  <span class="tabular-nums text-muted">
-                    {formatCount(activeImport?.imported_count)} imported, {formatCount(
-                      activeImport?.skipped_count,
-                    )} skipped
-                  </span>
-                {/if}
-              </div>
+              <ImportStatusRow
+                label={providerLabel(importSourceKind)}
+                state={importState}
+                inProgress={importInProgress}
+                errorMessage={activeImport?.error_message}
+                {completedSummary}
+              />
             {/if}
           </div>
 
@@ -398,36 +332,9 @@
         </p>
       {:else}
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Total heartbeats
-            </p>
-            <p
-              class="mt-1 text-lg font-semibold tabular-nums text-surface-content"
-            >
-              {data_export.total_heartbeats}
-            </p>
-          </div>
-          <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Total coding time
-            </p>
-            <p
-              class="mt-1 text-lg font-semibold tabular-nums text-surface-content"
-            >
-              {data_export.total_coding_time}
-            </p>
-          </div>
-          <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Last 7 days
-            </p>
-            <p
-              class="mt-1 text-lg font-semibold tabular-nums text-surface-content"
-            >
-              {data_export.heartbeats_last_7_days}
-            </p>
-          </div>
+          {@render statTile("Total heartbeats", data_export.total_heartbeats)}
+          {@render statTile("Total coding time", data_export.total_coding_time)}
+          {@render statTile("Last 7 days", data_export.heartbeats_last_7_days)}
         </div>
 
         <p class="mt-3 text-sm text-muted">
@@ -437,7 +344,7 @@
         <div class="mt-4 space-y-3">
           <Form
             method="post"
-            action={exportAllHeartbeatsPath}
+            action={myHeartbeats.export.path({ query: { all_data: "true" } })}
             options={{ preserveScroll: true }}
           >
             {#snippet children({ processing })}
@@ -449,7 +356,7 @@
 
           <Form
             method="post"
-            action={exportRangeHeartbeatsPath}
+            action={myHeartbeats.export.path()}
             class="grid grid-cols-1 gap-3 rounded-md border border-surface-200 bg-darker p-4 sm:grid-cols-3"
             options={{ preserveScroll: true }}
           >
@@ -458,13 +365,13 @@
                 type="date"
                 name="start_date"
                 required
-                class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+                class={dateInputClass}
               />
               <input
                 type="date"
                 name="end_date"
                 required
-                class="rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+                class={dateInputClass}
               />
               <Button
                 type="submit"
@@ -504,8 +411,9 @@
                 required
                 disabled={importInProgress || processing}
                 onchange={(event) => {
-                  const target = event.currentTarget as HTMLInputElement;
-                  selectedFile = target.files?.[0] ?? null;
+                  selectedFile =
+                    (event.currentTarget as HTMLInputElement).files?.[0] ??
+                    null;
                 }}
                 class="w-full rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content disabled:cursor-not-allowed disabled:opacity-60"
               />
@@ -530,57 +438,16 @@
               </Button>
 
               {#if importState !== "idle" && latestImportIsDev}
-                <div
-                  class="mt-4 flex items-center gap-2 rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm"
-                >
-                  {#if importInProgress}
-                    <svg
-                      class="h-4 w-4 shrink-0 animate-spin text-primary"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="3"
-                        class="opacity-25"
-                      />
-                      <path
-                        d="M4 12a8 8 0 018-8"
-                        stroke="currentColor"
-                        stroke-width="3"
-                        stroke-linecap="round"
-                      />
-                    </svg>
-                  {/if}
-                  <span class="text-surface-content">
-                    {activeImport?.source_filename ||
+                <div class="mt-4">
+                  <ImportStatusRow
+                    label={activeImport?.source_filename ||
                       providerLabel(importSourceKind)}
-                  </span>
-                  <span class="text-muted">·</span>
-                  <span
-                    class={importState === "failed"
-                      ? "text-red-300"
-                      : importState === "completed"
-                        ? "text-green-300"
-                        : "text-muted"}
-                  >
-                    {prettyStatus(importState)}
-                  </span>
-                  {#if activeImport?.error_message}
-                    <span class="text-red-300"
-                      >{activeImport.error_message}</span
-                    >
-                  {/if}
-                  {#if importState === "completed"}
-                    <span class="tabular-nums text-muted">
-                      {formatCount(activeImport?.imported_count)} imported, {formatCount(
-                        activeImport?.skipped_count,
-                      )} skipped
-                    </span>
-                  {/if}
+                    state={importState}
+                    inProgress={importInProgress}
+                    errorMessage={activeImport?.error_message}
+                    {completedSummary}
+                    bgClass="bg-surface"
+                  />
                 </div>
               {/if}
             {/snippet}

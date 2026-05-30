@@ -37,14 +37,16 @@ class Admin::AccountMergerTest < ApplicationSystemTestCase
 
     visit admin_account_merger_path
 
-    find('[data-testid="older-search"]').set(older.username)
-    find("[data-testid='older-result-#{older.id}']").click
+    fill_in "Older user", with: older.username
+    find("[role='option']", text: "ID: #{older.id}").click
 
-    find('[data-testid="newer-search"]').set(newer.username)
-    find("[data-testid='newer-result-#{newer.id}']").click
+    fill_in "Newer user", with: newer.username
+    find("[role='option']", text: "ID: #{newer.id}").click
 
-    find('[data-testid="open-merge-confirmation"]').click
-    find('[data-testid="confirm-merge"]').click
+    click_on "Merge & Delete"
+    within("[role='dialog']", text: "Confirm Account Merge") do
+      click_on "Merge & Delete"
+    end
 
     assert_text "Merge complete!"
     assert_text "3 sessions/tokens revoked"

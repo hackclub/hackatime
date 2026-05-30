@@ -95,6 +95,9 @@ jobs:
       - name: Run Svelte formatting checks
         run: bun run format:svelte:check
 
+      - name: Run Knip (unused files / deps / exports)
+        run: bun run knip
+
   zeitwerk:
     runs-on: ubuntu-latest
 
@@ -111,8 +114,30 @@ jobs:
       - name: Run Rails Zeitwerk check
         run: bin/rails zeitwerk:check
 
+  docker_build:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile: [Dockerfile, Dockerfile.dev]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - name: Build ${{ matrix.dockerfile }}
+        uses: useblacksmith/build-push-action@v2
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          load: false
+
   test:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     services:
       postgres:
@@ -159,7 +184,7 @@ jobs:
           git diff --exit-code swagger/v1/swagger.yaml
 
   test_system:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     services:
       postgres:

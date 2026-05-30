@@ -600,7 +600,6 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
                   project_root_count: { type: :integer, nullable: true },
                   is_write: { type: :boolean, nullable: true },
                   source_type: { type: :string, nullable: true },
-                  ysws_program: { type: :string, nullable: true },
                   ip_address: { type: :string, nullable: true }
                 }
               }
@@ -766,7 +765,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
                 type: :object,
                 properties: {
                   id: { type: :integer },
-                  username: { type: :string },
+                  username: { type: :string, nullable: true },
                   slack_username: { type: :string, nullable: true },
                   github_username: { type: :string, nullable: true },
                   slack_avatar_url: { type: :string, nullable: true },

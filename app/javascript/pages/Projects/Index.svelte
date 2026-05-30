@@ -1,56 +1,13 @@
 <script lang="ts">
-  import { Deferred, Form, Link, router } from "@inertiajs/svelte";
-  import Archive from "hcicons-svelte/archive";
-  import Edit from "hcicons-svelte/edit";
-  import GithubFill from "hcicons-svelte/github-fill";
-  import Reply from "hcicons-svelte/reply";
-  import Web from "hcicons-svelte/web";
+  import { Deferred, Link, router } from "@inertiajs/svelte";
+  import { WindowVirtualizer } from "virtua/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
+  import ProjectCard from "./components/ProjectCard.svelte";
   import { myProjectRepoMappings, sessions, settingsProfile } from "../../api";
-
-  type RepositorySummary = {
-    homepage?: string | null;
-    stars?: number | null;
-    description?: string | null;
-    formatted_languages?: string | null;
-    last_commit_ago?: string | null;
-  };
-
-  type ProjectCard = {
-    id: string;
-    name: string;
-    project_key?: string | null;
-    url_safe: boolean;
-    duration_seconds: number;
-    duration_label: string;
-    duration_percent: number;
-    repo_url?: string | null;
-    repository?: RepositorySummary | null;
-    broken_name: boolean;
-    manage_enabled: boolean;
-  };
-
-  type ProjectsData = {
-    total_time_seconds: number;
-    total_time_label: string;
-    has_activity: boolean;
-    projects: ProjectCard[];
-  };
-
-  type PageProps = {
-    page_title: string;
-    show_archived: boolean;
-    archived_count: number;
-    github_connected: boolean;
-    interval?: string | null;
-    from?: string | null;
-    to?: string | null;
-    interval_label: string;
-    total_projects: number;
-    projects_data?: ProjectsData;
-  };
+  import { buildIntervalChange, intervalParams } from "./intervalNav";
+  import type { ProjectCard as ProjectCardType } from "./types";
 
   let {
     page_title,
@@ -60,47 +17,44 @@
     interval = "",
     from = "",
     to = "",
-    interval_label,
     total_projects,
     projects_data,
-  }: PageProps = $props();
+  }: {
+    page_title: string;
+    show_archived: boolean;
+    archived_count: number;
+    github_connected: boolean;
+    interval?: string | null;
+    from?: string | null;
+    to?: string | null;
+    interval_label: string;
+    total_projects: number;
+    projects_data?: {
+      total_time_label: string;
+      has_activity: boolean;
+      projects: ProjectCardType[];
+    };
+  } = $props();
 
   const indexPath = myProjectRepoMappings.index.path();
   const githubAuthPath = sessions.githubNew.path();
   const settingsPath = `${settingsProfile.mySettings.path()}#user_github_account`;
 
-  const showPathFor = (project: ProjectCard): string | null =>
-    project.url_safe && project.project_key
-      ? myProjectRepoMappings.show.path({ projectName: project.project_key })
-      : null;
+  const intervalQueryString = $derived(
+    intervalParams(interval, from, to).toString(),
+  );
 
-  const editPathFor = (project: ProjectCard): string | null =>
-    project.url_safe && project.project_key
-      ? myProjectRepoMappings.edit.path({ projectName: project.project_key })
-      : null;
-
-  const updatePathFor = (project: ProjectCard): string | null =>
-    project.url_safe && project.project_key
-      ? myProjectRepoMappings.update.path({ projectName: project.project_key })
-      : null;
-
-  const archivePathFor = (project: ProjectCard): string | null =>
-    project.url_safe && project.project_key
-      ? myProjectRepoMappings.archive.path({
-          projectName: project.project_key,
-        })
-      : null;
-
-  const unarchivePathFor = (project: ProjectCard): string | null =>
-    project.url_safe && project.project_key
-      ? myProjectRepoMappings.unarchive.path({
-          projectName: project.project_key,
-        })
-      : null;
+  const buildProjectsPath = (nextShowArchived: boolean) => {
+    const q = intervalParams(interval, from, to);
+    if (nextShowArchived) q.set("show_archived", "true");
+    const qs = q.toString();
+    return qs ? `${indexPath}?${qs}` : indexPath;
+  };
 
   let editingProjectKey = $state<string | null>(null);
   let repoUrlDraft = $state("");
   let statusChangeModalOpen = $state(false);
+  let brokenNameModalOpen = $state(false);
   let pendingStatusAction = $state<{
     path: string;
     title: string;
@@ -108,72 +62,64 @@
     confirmLabel: string;
   } | null>(null);
 
-  const skeletonCount = $derived.by(() => {
-    const safeCount = Number.isFinite(total_projects) ? total_projects : 0;
-    return Math.min(Math.max(safeCount, 4), 10);
+  const skeletonCount = $derived(
+    Math.min(
+      Math.max(Number.isFinite(total_projects) ? total_projects : 0, 4),
+      10,
+    ),
+  );
+
+  const PROJECT_CARD_MIN_WIDTH = 280;
+  const PROJECT_GRID_GAP = 20;
+  const PROJECT_ROW_ESTIMATE = 208;
+
+  let projectGridContainer: HTMLDivElement | undefined = $state();
+  let projectColumnCount = $state(1);
+
+  const updateProjectColumnCount = () => {
+    if (!projectGridContainer) return;
+
+    const width = projectGridContainer.clientWidth;
+    projectColumnCount = Math.max(
+      1,
+      Math.floor(
+        (width + PROJECT_GRID_GAP) /
+          (PROJECT_CARD_MIN_WIDTH + PROJECT_GRID_GAP),
+      ),
+    );
+  };
+
+  const projectRows = $derived.by(() => {
+    const projects = projects_data?.projects || [];
+    const rows: ProjectCardType[][] = [];
+
+    for (let index = 0; index < projects.length; index += projectColumnCount) {
+      rows.push(projects.slice(index, index + projectColumnCount));
+    }
+
+    return rows;
   });
 
-  const buildIntervalQuery = ({
-    nextInterval = interval || "",
-    nextFrom = from || "",
-    nextTo = to || "",
-  }: {
-    nextInterval?: string;
-    nextFrom?: string;
-    nextTo?: string;
-  } = {}) => {
-    const query = new URLSearchParams();
+  $effect(() => {
+    updateProjectColumnCount();
 
-    if (nextInterval) query.set("interval", nextInterval);
-    if (nextFrom) query.set("from", nextFrom);
-    if (nextTo) query.set("to", nextTo);
+    if (!projectGridContainer) return;
 
-    return query;
-  };
+    const observer = new ResizeObserver(updateProjectColumnCount);
+    observer.observe(projectGridContainer);
 
-  const buildProjectsPath = ({
-    nextShowArchived = show_archived,
-    nextInterval = interval || "",
-    nextFrom = from || "",
-    nextTo = to || "",
-  }: {
-    nextShowArchived?: boolean;
-    nextInterval?: string;
-    nextFrom?: string;
-    nextTo?: string;
-  } = {}) => {
-    const query = buildIntervalQuery({ nextInterval, nextFrom, nextTo });
-
-    if (nextShowArchived) query.set("show_archived", "true");
-
-    const queryString = query.toString();
-    return queryString ? `${indexPath}?${queryString}` : indexPath;
-  };
-
-  const intervalQueryString = $derived.by(() => {
-    const queryString = buildIntervalQuery().toString();
-    return queryString ? `?${queryString}` : "";
+    return () => observer.disconnect();
   });
-
-  const withIntervalParams = (path: string) => {
-    if (!intervalQueryString) return path;
-
-    const separator = path.includes("?") ? "&" : "?";
-    return `${path}${separator}${intervalQueryString.slice(1)}`;
-  };
 
   const changeInterval = (
     nextInterval: string,
     nextFrom: string,
     nextTo: string,
   ) => {
-    const isCustom = Boolean(nextFrom || nextTo);
-    const nextPath = buildProjectsPath({
-      nextInterval: isCustom ? "custom" : nextInterval,
-      nextFrom: isCustom ? nextFrom : "",
-      nextTo: isCustom ? nextTo : "",
-    });
-    router.visit(nextPath, {
+    const q = buildIntervalChange(nextInterval, nextFrom, nextTo);
+    if (show_archived) q.set("show_archived", "true");
+    const qs = q.toString();
+    router.visit(qs ? `${indexPath}?${qs}` : indexPath, {
       only: [
         "projects_data",
         "interval",
@@ -189,7 +135,7 @@
     });
   };
 
-  const openMappingEditor = (project: ProjectCard) => {
+  const openMappingEditor = (project: ProjectCardType) => {
     editingProjectKey = project.project_key || null;
     repoUrlDraft = project.repo_url || "";
   };
@@ -199,11 +145,16 @@
     repoUrlDraft = "";
   };
 
-  const openStatusChangeModal = (project: ProjectCard, restoring: boolean) => {
-    const path = restoring
-      ? unarchivePathFor(project)
-      : archivePathFor(project);
-    if (!path) return;
+  const openStatusChangeModal = (
+    project: ProjectCardType,
+    restoring: boolean,
+  ) => {
+    if (!project.url_safe || !project.project_key) return;
+    const path = (
+      restoring
+        ? myProjectRepoMappings.unarchive
+        : myProjectRepoMappings.archive
+    ).path({ projectName: project.project_key });
 
     pendingStatusAction = {
       path,
@@ -228,38 +179,31 @@
     router.patch(
       pendingStatusAction.path,
       {},
-      {
-        preserveScroll: true,
-        onSuccess: () => {
-          statusChangeModalOpen = false;
-          pendingStatusAction = null;
-        },
-      },
+      { preserveScroll: true, onSuccess: closeStatusChangeModal },
     );
   };
-
-  const cardActionClass =
-    "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-surface-200/60 bg-surface-content/5 text-surface-content/70 shadow-sm transition-colors duration-200 ease-out hover:bg-surface-content/10 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 cursor-pointer";
 </script>
 
 <svelte:head>
   <title>{page_title}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-7xl">
+<div>
   <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-4">
-      <h1 class="text-3xl font-bold text-surface-content">My Projects</h1>
+      <h1 class="text-2xl sm:text-3xl font-bold text-surface-content">
+        My Projects
+      </h1>
       {#if archived_count > 0}
         <div class="project-toggle-group">
           <Link
-            href={buildProjectsPath({ nextShowArchived: false })}
+            href={buildProjectsPath(false)}
             class={`project-toggle-btn ${!show_archived ? "active" : "inactive"}`}
           >
             Active
           </Link>
           <Link
-            href={buildProjectsPath({ nextShowArchived: true })}
+            href={buildProjectsPath(true)}
             class={`project-toggle-btn ${show_archived ? "active" : "inactive"}`}
           >
             Archived
@@ -268,23 +212,6 @@
       {/if}
     </div>
   </div>
-
-  {#if !github_connected}
-    <div class="mb-4 rounded-xl border border-yellow/30 bg-yellow/10 p-4">
-      <p class="text-base font-medium text-surface-content">
-        Heads up! You can't link projects to GitHub until you connect your
-        account.
-      </p>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <Button href={githubAuthPath} native class="w-full sm:w-fit">
-          Sign in with GitHub
-        </Button>
-        <Button href={settingsPath} variant="surface" class="w-full sm:w-fit">
-          Open settings
-        </Button>
-      </div>
-    </div>
-  {/if}
 
   <div class="sm:max-w-3xs">
     <IntervalSelect
@@ -335,6 +262,29 @@
             {/if}
           </p>
 
+          {#if !github_connected}
+            <div
+              class="mt-4 rounded-xl border border-yellow/30 bg-yellow/10 p-4"
+            >
+              <p class="text-base font-medium text-surface-content">
+                Heads up! You can't link projects to GitHub until you connect
+                your account.
+              </p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <Button href={githubAuthPath} native class="w-full sm:w-fit">
+                  Sign in with GitHub
+                </Button>
+                <Button
+                  href={settingsPath}
+                  variant="surface"
+                  class="w-full sm:w-fit"
+                >
+                  Open settings
+                </Button>
+              </div>
+            </div>
+          {/if}
+
           {#if projects_data.projects.length == 0}
             <div
               class="mt-4 rounded-xl border border-surface-200 bg-dark p-8 text-center"
@@ -346,239 +296,34 @@
               </p>
             </div>
           {:else}
-            <div
-              class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
-            >
-              {#each projects_data.projects as project (project.id)}
-                {@const showPath = showPathFor(project)}
-                {@const projectHref = showPath
-                  ? withIntervalParams(showPath)
-                  : null}
-                <article
-                  class="group relative flex min-h-36 overflow-hidden rounded-2xl {projectHref
-                    ? 'cursor-pointer'
-                    : ''}"
-                >
-                  {#if projectHref}
-                    <Link
-                      href={projectHref}
-                      aria-label={`View ${project.name}`}
-                      class="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                    ></Link>
-                  {/if}
+            <div bind:this={projectGridContainer} class="mt-6">
+              <WindowVirtualizer
+                data={projectRows}
+                getKey={(row) => row[0]?.id || "empty-row"}
+                itemSize={PROJECT_ROW_ESTIMATE}
+                bufferSize={1_000}
+              >
+                {#snippet children(row)}
                   <div
-                    class="relative flex min-w-0 flex-1 flex-col rounded-2xl border border-surface-200 bg-dark p-5 transition-colors duration-300 ease-out group-hover:border-surface-300"
+                    class="grid gap-5 pb-5"
+                    style={`grid-template-columns: repeat(${projectColumnCount}, minmax(0, 1fr));`}
                   >
-                    <div class="grid gap-3">
-                      <div
-                        class="flex min-w-0 items-start justify-between gap-3"
-                      >
-                        <div class="min-w-0 flex-1">
-                          <h3
-                            class="truncate text-xl font-bold tracking-tight text-surface-content"
-                            title={project.name}
-                          >
-                            {project.name}
-                          </h3>
-                        </div>
-                        <p
-                          class="shrink-0 text-lg font-semibold tabular-nums text-primary/80"
-                        >
-                          {project.duration_label}
-                        </p>
-                      </div>
-
-                      {#if project.repository?.description}
-                        <p
-                          class="line-clamp-2 text-sm leading-relaxed text-surface-content/70 text-pretty"
-                        >
-                          {project.repository.description}
-                        </p>
-                      {/if}
-
-                      <div
-                        class="relative z-20 flex flex-wrap items-center gap-2"
-                      >
-                        {#if project.repository?.homepage}
-                          <a
-                            href={project.repository.homepage}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="View project website"
-                            class={cardActionClass}
-                          >
-                            <Web size={20} />
-                          </a>
-                        {/if}
-                        {#if project.repo_url}
-                          <a
-                            href={project.repo_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="View repository"
-                            class={cardActionClass}
-                          >
-                            <GithubFill size={20} />
-                          </a>
-                        {/if}
-                        {#if project.manage_enabled}
-                          <Button
-                            type="button"
-                            unstyled
-                            class={cardActionClass}
-                            title={project.repo_url
-                              ? "Edit mapping"
-                              : "Link repository"}
-                            onclick={() => openMappingEditor(project)}
-                          >
-                            <Edit size={20} />
-                          </Button>
-                        {/if}
-                        {#if show_archived && unarchivePathFor(project)}
-                          <Button
-                            type="button"
-                            unstyled
-                            class={cardActionClass}
-                            title="Restore project"
-                            onclick={() => openStatusChangeModal(project, true)}
-                          >
-                            <Reply size={20} />
-                          </Button>
-                        {:else if !show_archived && archivePathFor(project)}
-                          <Button
-                            type="button"
-                            unstyled
-                            class={cardActionClass}
-                            title="Archive project"
-                            onclick={() =>
-                              openStatusChangeModal(project, false)}
-                          >
-                            <Archive size={20} />
-                          </Button>
-                        {/if}
-                      </div>
-                    </div>
-
-                    <div
-                      class="mt-auto flex flex-wrap items-center gap-2 pt-5 text-sm text-surface-content/55"
-                    >
-                      <!-- {#if project.repository?.stars}
-                    <p
-                      class="inline-flex items-center gap-1.5 rounded-full bg-yellow/10 px-3 py-1.5 font-semibold tabular-nums text-yellow"
-                    >
-                      <svg
-                        class="h-4 w-4 fill-current"
-                        viewBox="0 0 20 20"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-                        />
-                      </svg>
-                      {project.repository.stars}
-                    </p>
-                  {/if} -->
-
-                      {#if project.repository?.formatted_languages}
-                        <p
-                          class="flex min-w-0 items-center gap-1.5 rounded-full bg-surface-content/5 px-3 py-1.5"
-                        >
-                          <svg
-                            class="h-4 w-4 text-surface-content/50"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                          >
-                            <path
-                              fill="currentColor"
-                              d="M5.59 3.41L7 4.82L3.82 8L7 11.18L5.59 12.6L1 8zm5.82 0L16 8l-4.59 4.6L10 11.18L13.18 8L10 4.82zM22 6v12c0 1.11-.89 2-2 2H4a2 2 0 0 1-2-2v-4h2v4h16V6h-2.97V4H20c1.11 0 2 .89 2 2"
-                            />
-                          </svg>
-                          <span class="truncate text-surface-content/60"
-                            >{project.repository.formatted_languages}</span
-                          >
-                        </p>
-                      {/if}
-
-                      {#if project.repository?.last_commit_ago}
-                        <p
-                          class="flex items-center gap-1.5 rounded-full bg-surface-content/5 px-3 py-1.5"
-                        >
-                          <svg
-                            class="h-4 w-4 text-surface-content/50"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                          >
-                            <path
-                              fill="currentColor"
-                              d="M12 20c4.4 0 8-3.6 8-8s-3.6-8-8-8s-8 3.6-8 8s3.6 8 8 8m0-18c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12S6.5 2 12 2m.5 10.8l-4.8 2.8l-.7-1.4l4-2.3V7h1.5z"
-                            />
-                          </svg>
-                          <span class="text-surface-content/50"
-                            >Last commit {project.repository
-                              .last_commit_ago}</span
-                          >
-                        </p>
-                      {/if}
-                    </div>
-
-                    {#if project.broken_name}
-                      <div
-                        class="mt-4 rounded-2xl border border-yellow/30 bg-yellow/10 p-3"
-                      >
-                        <p
-                          class="text-sm leading-relaxed text-yellow/80 text-pretty"
-                        >
-                          Your editor may be sending invalid project names. Time
-                          is shown here but can't be submitted to Hack Club
-                          programs.
-                        </p>
-                      </div>
-                    {/if}
-
-                    {#if project.manage_enabled && editingProjectKey === project.project_key && updatePathFor(project)}
-                      <div
-                        class="relative z-20 mt-4 border-t border-surface-200/40 pt-4"
-                      >
-                        <Form
-                          action={updatePathFor(project)!}
-                          method="patch"
-                          class="space-y-3"
-                        >
-                          <input
-                            type="url"
-                            name="project_repo_mapping[repo_url]"
-                            bind:value={repoUrlDraft}
-                            placeholder="https://github.com/owner/repo"
-                            class="w-full rounded-lg border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
-                          />
-
-                          <div class="flex gap-2">
-                            <Button
-                              type="submit"
-                              variant="primary"
-                              size="sm"
-                              class="flex-1">Save</Button
-                            >
-                            <Button
-                              type="button"
-                              variant="dark"
-                              size="sm"
-                              class="flex-1"
-                              onclick={closeMappingEditor}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </Form>
-                      </div>
-                    {/if}
+                    {#each row as project (project.id)}
+                      <ProjectCard
+                        {project}
+                        showArchived={show_archived}
+                        {intervalQueryString}
+                        onEditMapping={openMappingEditor}
+                        onArchive={openStatusChangeModal}
+                        onShowBrokenInfo={() => (brokenNameModalOpen = true)}
+                        editing={editingProjectKey === project.project_key}
+                        bind:repoUrlDraft
+                        onCancelEdit={closeMappingEditor}
+                      />
+                    {/each}
                   </div>
-                </article>
-              {/each}
+                {/snippet}
+              </WindowVirtualizer>
             </div>
           {/if}
         </section>
@@ -589,12 +334,9 @@
 
 <Modal
   bind:open={statusChangeModalOpen}
-  title={pendingStatusAction
-    ? pendingStatusAction.title
-    : "Confirm project change"}
-  description={pendingStatusAction
-    ? pendingStatusAction.description
-    : "Confirm this project status change."}
+  title={pendingStatusAction?.title ?? "Confirm project change"}
+  description={pendingStatusAction?.description ??
+    "Confirm this project status change."}
   maxWidth="max-w-md"
   hasActions
 >
@@ -619,5 +361,34 @@
         </Button>
       </div>
     {/if}
+  {/snippet}
+</Modal>
+
+<Modal
+  bind:open={brokenNameModalOpen}
+  title="Why is my project invalid?"
+  description="Your editor isn't sending a valid project name."
+  maxWidth="max-w-lg"
+  hasBody
+>
+  {#snippet body()}
+    <div class="space-y-3 text-sm leading-relaxed text-surface-content/80">
+      <p>
+        The WakaTime extension needs one of two things in order for time to
+        properly count:
+      </p>
+      <ul class="list-disc space-y-1 pl-5">
+        <li>You have a Git repo inside your project folder, or</li>
+        <li>
+          You have a <code
+            class="rounded bg-surface-content/10 px-1 py-0.5 text-xs"
+            >.wakatime-project</code
+          >
+          file in your folder's root, with the contents set to the name you want for
+          your project.
+        </li>
+      </ul>
+      <p>To get your time to properly track, do one of the above!</p>
+    </div>
   {/snippet}
 </Modal>
