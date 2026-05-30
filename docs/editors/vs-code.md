@@ -27,6 +27,8 @@ Click this link to the [setup page](https://hackatime.hackclub.com/my/wakatime_s
 4. Click the **Install** button next to Hackatime Time Tracker
 5. VS Code might ask you to reload your extensions to get it working - click **Reload Extensions** if it does
 
+**Note:** Do not install the "Hackatime" extension as it is unofficial and will not work.
+
 That's it! The plugin will use your settings from Step 2.
 
 ## If Something Goes Wrong
