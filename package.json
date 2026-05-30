@@ -37,7 +37,7 @@
     "@types/node": "^25.9.1",
     "knip": "^6.14.2",
     "prettier": "^3.8.3",
-    "prettier-plugin-svelte": "^3.5.2"
+    "prettier-plugin-svelte": "^4.0.1"
   },
   "patchedDependencies": {
     "layercake@8.4.3": "patches/layercake@8.4.3.patch"
