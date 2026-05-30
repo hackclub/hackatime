@@ -5,8 +5,7 @@ class ScanGithubReposJob < ApplicationJob
 
   good_job_control_concurrency_with(
     total_limit: 1,
-    key: -> { "scan_github_repos_job_#{arguments.first.presence || 'all'}" },
-    drop: true
+    key: -> { "scan_github_repos_job_#{arguments.first.presence || 'all'}" }
   )
 
   def perform(user_id = nil)

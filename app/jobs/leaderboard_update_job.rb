@@ -5,8 +5,8 @@ class LeaderboardUpdateJob < ApplicationJob
 
   # Limits concurrency to 1 job per period/date combination
   good_job_control_concurrency_with(
-    key: -> { "leaderboard_#{arguments[0] || 'daily'}_#{arguments[1] || Date.current.to_s}" },
-    total: 1, drop: true
+    total_limit: 1,
+    key: -> { "leaderboard_#{arguments[0] || 'daily'}_#{arguments[1] || Date.current.to_s}" }
   )
 
   def perform(period = :daily, date = Date.current, force_update: false)
