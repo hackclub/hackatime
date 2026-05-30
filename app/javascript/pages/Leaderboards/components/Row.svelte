@@ -2,7 +2,7 @@
   import { Link } from "@inertiajs/svelte";
   import CountryFlag from "../../../components/CountryFlag.svelte";
   import StreakIcon from "../../../layouts/app/StreakIcon.svelte";
-  import type { LeaderboardEntriesPayload } from "../../../types";
+  import type { LeaderboardEntry } from "../../../types";
   import {
     secondsToDetailedDisplay,
     rankDisplay,
@@ -10,9 +10,7 @@
     streakLabel,
   } from "../utils";
 
-  type Entry = NonNullable<LeaderboardEntriesPayload["entries"]>[number];
-
-  let { entry, rank }: { entry: Entry; rank: number } = $props();
+  let { entry, rank }: { entry: LeaderboardEntry; rank: number } = $props();
 
   const theme = $derived(streakTheme(entry.streak_count));
 </script>

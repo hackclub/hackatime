@@ -4,7 +4,7 @@ class HeartbeatImportRemoteDownloadJob < ApplicationJob
   include GoodJob::ActiveJobExtensions::Concurrency
 
   good_job_control_concurrency_with(
-    total_limit: 1, key: -> { "heartbeat_import_remote_download_job_#{arguments.first}" }, drop: true
+    total_limit: 1, key: -> { "heartbeat_import_remote_download_job_#{arguments.first}" }
   )
 
   retry_on HeartbeatImportDumpClient::TransientError,

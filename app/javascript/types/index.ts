@@ -83,7 +83,7 @@ export type LayoutProps = {
   show_stop_impersonating: boolean;
 };
 
-export type LeaderboardEntryUser = {
+type LeaderboardEntryUser = {
   display_name: string;
   avatar_url: string | null;
   profile_path: string | null;

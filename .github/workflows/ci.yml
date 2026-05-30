@@ -95,6 +95,9 @@ jobs:
       - name: Run Svelte formatting checks
         run: bun run format:svelte:check
 
+      - name: Run Knip (unused files / deps / exports)
+        run: bun run knip
+
   zeitwerk:
     runs-on: ubuntu-latest
 

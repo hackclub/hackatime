@@ -3,10 +3,9 @@ class SlackUsernameUpdateJob < ApplicationJob
 
   include GoodJob::ActiveJobExtensions::Concurrency
 
-  # Limits concurrency to 1 job per date
+  # Limits concurrency to 1 job at a time
   good_job_control_concurrency_with(
-    total: 1,
-    drop: true
+    total_limit: 1
   )
 
   def perform
