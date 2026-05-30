@@ -1,7 +1,6 @@
 class User < ApplicationRecord
   has_one_attached :profile_og_image
 
-  include TimezoneRegions
   include UserThemeConfiguration
   include UserFuzzySearch
   include ::OauthAuthentication
@@ -37,7 +36,6 @@ class User < ApplicationRecord
   attribute :show_goals_in_statusbar, :boolean, default: true
 
   def country_name = ISO3166::Country.new(country_code).common_name
-  def country_subregion = ISO3166::Country.new(country_code).subregion
 
   enum :trust_level, {
     blue: 0,     # unscored

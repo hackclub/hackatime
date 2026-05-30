@@ -39,9 +39,6 @@ gem "sentry-rails"
 
 gem "good_job"
 
-# Slack client
-gem "slack-ruby-client"
-
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
