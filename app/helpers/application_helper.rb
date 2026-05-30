@@ -37,17 +37,6 @@ module ApplicationHelper
     )
   end
 
-  # infer country from timezone
-  def timezone_to_country(timezone)
-    return null unless timezone.present?
-    tz = ActiveSupport::TimeZone[timezone]
-    tz&.tzinfo&.respond_to?(:country_code) ? (tz.tzinfo.country_code || null) : null
-  end
-
-  def visualize_git_url(url)
-    url.blank? ? "" : "https://maxwofford.com/dandelion/?url=#{CGI.escape(url)}"
-  end
-
   def digital_time(time)
     h, m, s = time.to_i.divmod(3600).then { |h, r| [ h, *r.divmod(60) ] }
     [ h, m, s ].map { |part| part.to_s.rjust(2, "0") }.join(":")
@@ -108,12 +97,6 @@ module ApplicationHelper
   end
 
   def display_language_name(language) = LanguageUtils.display_name(language)
-  def language_color(language) = LanguageUtils.color(language)
-
-  def modal_open_button(modal_id, text, **options)
-    button_tag text, { type: "button",
-      onclick: "document.getElementById('#{modal_id}')?.dispatchEvent(new CustomEvent('modal:open'))" }.merge(options)
-  end
 
   def shorten_file_path(entity)
     return entity if entity.blank?
