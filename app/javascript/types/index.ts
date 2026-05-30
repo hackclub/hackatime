@@ -50,11 +50,10 @@ export type Footer = {
   server_start_time_ago: string;
   heartbeat_recent_count: number;
   heartbeat_recent_imported_count: number;
-  query_count: number;
-  query_cache_count: number;
-  cache_hits: number;
-  cache_misses: number;
-  requests_per_second: string;
+  query_stats?: {
+    count: number;
+    cache_count: number;
+  };
   active_users_graph: { height: number; users: number }[];
 };
 
@@ -85,7 +84,7 @@ export type LayoutProps = {
   show_stop_impersonating: boolean;
 };
 
-export type LeaderboardEntryUser = {
+type LeaderboardEntryUser = {
   display_name: string;
   avatar_url: string | null;
   profile_path: string | null;

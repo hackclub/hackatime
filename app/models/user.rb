@@ -1,7 +1,6 @@
 class User < ApplicationRecord
   has_one_attached :profile_og_image
 
-  include TimezoneRegions
   include UserThemeConfiguration
   include UserFuzzySearch
   include ::OauthAuthentication
@@ -37,7 +36,6 @@ class User < ApplicationRecord
   attribute :show_goals_in_statusbar, :boolean, default: true
 
   def country_name = ISO3166::Country.new(country_code).common_name
-  def country_subregion = ISO3166::Country.new(country_code).subregion
 
   enum :trust_level, {
     blue: 0,     # unscored
@@ -106,6 +104,7 @@ class User < ApplicationRecord
 
   def can_convict_users? = admin_level_superadmin? || admin_level_ultraadmin?
   def can_leaderboard_shadowban_users? = admin_level_superadmin? || admin_level_ultraadmin?
+  def can_view_query_stats? = admin_level.in?(%w[viewer admin superadmin ultraadmin])
   def admin_level_rank = ADMIN_LEVEL_RANK[admin_level.to_s] || 0
 
   # True if `self` is allowed to set `target_user`'s admin_level to `new_level`.

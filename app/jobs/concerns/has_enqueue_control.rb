@@ -6,8 +6,7 @@ module HasEnqueueControl
     def enqueue_limit(limit = 1)
       good_job_control_concurrency_with(
         total_limit: limit,
-        key: "enqueue_control_#{self.name.underscore}",
-        drop: true
+        key: "enqueue_control_#{self.name.underscore}"
       )
     end
   end
