@@ -20,6 +20,7 @@
   }: Partial<ProjectStats> & {
     total_time_label: string;
     file_count: number;
+    activity_graph?: ProjectStats["activity_graph"];
   } = $props();
 
   const topKey = (
