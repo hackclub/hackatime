@@ -34,6 +34,7 @@ module TimeRangeFilterable
       human_name: "Last 12 Months",
       calculate: -> { (Time.current - 12.months).beginning_of_day..Time.current.end_of_day }
     },
+    stardance:        { human_name: "Stardance",        calculate: -> { TimeRangeFilterable.datetime_range("2026-05-30 09:00:00", "2026-08-30 23:59:59") } },
     flavortown:       { human_name: "Flavortown",       calculate: -> { TimeRangeFilterable.event_range("2025-12-15", "2026-04-30") } },
     summer_of_making: { human_name: "Summer of Making", calculate: -> { TimeRangeFilterable.event_range("2025-06-16", "2025-09-30") } },
     high_seas:        { human_name: "High Seas",        calculate: -> { TimeRangeFilterable.event_range("2024-10-30", "2025-01-31") } },
@@ -44,6 +45,12 @@ module TimeRangeFilterable
   def self.event_range(from_date, to_date, timezone: "America/New_York")
     Time.use_zone(timezone) do
       Time.zone.parse(from_date).beginning_of_day..Time.zone.parse(to_date).end_of_day
+    end
+  end
+
+  def self.datetime_range(from_datetime, to_datetime, timezone: "America/New_York")
+    Time.use_zone(timezone) do
+      Time.zone.parse(from_datetime)..Time.zone.parse(to_datetime)
     end
   end
 

@@ -11,6 +11,7 @@
     { key: "last_30_days", label: "Last 30 Days" },
     { key: "this_year", label: "This Year" },
     { key: "last_12_months", label: "Last 12 Months" },
+    { key: "stardance", label: "Stardance" },
     { key: "flavortown", label: "Flavortown" },
     { key: "summer_of_making", label: "Summer of Making" },
     { key: "high_seas", label: "High Seas" },
