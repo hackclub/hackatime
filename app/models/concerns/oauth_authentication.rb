@@ -52,12 +52,14 @@ module OauthAuthentication
         attrs[:country_code] = country_code_from_ip(ip_address) if @user.country_code.blank?
         @user.update(attrs)
       else
-        @user = User.create!(
-          hca_id: identity["id"], slack_uid: identity["slack_id"],
-          hca_scopes: hca_data["scopes"], hca_access_token: access_token,
-          country_code: country_code_from_ip(ip_address)
-        )
-        EmailAddress.create!(email: identity["primary_email"], user: @user) if identity["primary_email"].present?
+        ActiveRecord::Base.transaction do
+          @user = User.create!(
+            hca_id: identity["id"], slack_uid: identity["slack_id"],
+            hca_scopes: hca_data["scopes"], hca_access_token: access_token,
+            country_code: country_code_from_ip(ip_address)
+          )
+          EmailAddress.create!(email: identity["primary_email"], user: @user) if identity["primary_email"].present?
+        end
       end
       @user
     end

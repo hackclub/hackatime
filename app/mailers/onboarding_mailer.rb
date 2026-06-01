@@ -1,6 +1,14 @@
 class OnboardingMailer < ApplicationMailer
   layout false
 
+  def welcome(user, recipient_email:)
+    @user = user
+    mail(
+      to: recipient_email,
+      subject: "Welcome to Hackatime!"
+    )
+  end
+
   def check_in(user, recipient_email:)
     @user = user
     from_email = ENV.fetch("ONBOARDING_CHECK_IN_FROM_EMAIL", "Mahad from Hackatime <mahad@hackclub.com>")
