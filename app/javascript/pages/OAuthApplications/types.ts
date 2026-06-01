@@ -1,4 +1,4 @@
-export type OAuthApplicationSummary = {
+type OAuthApplicationSummary = {
   id: number;
   name: string;
   verified: boolean;
@@ -12,13 +12,13 @@ export type OAuthApplicationsIndexProps = {
   applications: OAuthApplicationSummary[];
 };
 
-export type OAuthScopeOption = {
+type OAuthScopeOption = {
   value: string;
   description: string;
   default: boolean;
 };
 
-export type OAuthApplicationFormApplication = {
+type OAuthApplicationFormApplication = {
   id: number | null;
   persisted: boolean;
   name: string;
@@ -28,7 +28,7 @@ export type OAuthApplicationFormApplication = {
   selected_scopes: string[];
 };
 
-export type OAuthApplicationFormErrors = {
+type OAuthApplicationFormErrors = {
   full_messages: string[];
   name: string[];
   redirect_uri: string[];
@@ -57,7 +57,7 @@ export type OAuthApplicationFormProps = {
   errors: OAuthApplicationFormErrors;
 };
 
-export type OAuthApplicationShowApplication = {
+type OAuthApplicationShowApplication = {
   id: number;
   name: string;
   uid: string;

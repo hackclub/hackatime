@@ -2,6 +2,7 @@ require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
+  include ActionMailer::TestHelper
 
   setup do
     clear_enqueued_jobs
@@ -60,6 +61,17 @@ class UserTest < ActiveSupport::TestCase
     user = User.create!(timezone: "UTC")
 
     assert_equal "User;#{user.id}", user.flipper_id
+  end
+
+  test "creating a user with an email address queues a welcome email" do
+    email = "welcome-#{SecureRandom.hex(4)}@example.com"
+
+    assert_enqueued_email_with OnboardingMailer, :welcome, args: ->(args) { args.second[:recipient_email] == email } do
+      User.transaction do
+        user = User.create!(timezone: "UTC")
+        user.email_addresses.create!(email: email, source: :signing_in)
+      end
+    end
   end
 
   test "active remote heartbeat import run only counts remote imports" do

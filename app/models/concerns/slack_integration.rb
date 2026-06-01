@@ -13,23 +13,6 @@ module SlackIntegration
   ].freeze
   STATUS_EMOJI_OVERFLOW = %w[areyousure time-to-stop].freeze
 
-  def set_timezone_from_slack
-    return unless slack_uid.present?
-
-    user_response = HTTP.auth("Bearer #{slack_access_token}")
-      .get("https://slack.com/api/users.info?user=#{slack_uid}")
-
-    user_data = JSON.parse(user_response.body.to_s)
-
-    return unless user_data["ok"]
-
-    timezone_string = user_data.dig("user", "tz")
-
-    return unless timezone_string.present?
-
-    parse_and_set_timezone(timezone_string)
-  end
-
   def raw_slack_user_info
     return nil unless slack_uid.present?
     return nil unless slack_access_token.present?

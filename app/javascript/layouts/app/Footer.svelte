@@ -1,13 +1,13 @@
 <script lang="ts">
   import plur from "plur";
-  import type { LayoutProps } from "../../types";
+  import type { Footer } from "../../types";
   import { sessions } from "../../api";
 
   let {
     footer,
     showStopImpersonating,
   }: {
-    footer: LayoutProps["footer"];
+    footer: Footer;
     showStopImpersonating: boolean;
   } = $props();
 

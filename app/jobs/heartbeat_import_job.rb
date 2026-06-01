@@ -5,8 +5,7 @@ class HeartbeatImportJob < ApplicationJob
 
   good_job_control_concurrency_with(
     total_limit: 1,
-    key: -> { "heartbeat_import_job_#{arguments.first}" },
-    drop: true
+    key: -> { "heartbeat_import_job_#{arguments.first}" }
   )
 
   def perform(import_run_id, file_path)

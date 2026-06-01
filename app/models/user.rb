@@ -1,7 +1,6 @@
 class User < ApplicationRecord
   has_one_attached :profile_og_image
 
-  include TimezoneRegions
   include UserThemeConfiguration
   include UserFuzzySearch
   include ::OauthAuthentication
@@ -15,6 +14,7 @@ class User < ApplicationRecord
   has_paper_trail
 
   after_create :subscribe_to_default_lists
+  after_create_commit :schedule_welcome_email
   after_create_commit :schedule_onboarding_check_in_email
   after_update_commit :clear_leaderboard_page_cache, if: :saved_change_to_leaderboard_shadowban_state?
   before_validation :normalize_username
@@ -37,7 +37,6 @@ class User < ApplicationRecord
   attribute :show_goals_in_statusbar, :boolean, default: true
 
   def country_name = ISO3166::Country.new(country_code).common_name
-  def country_subregion = ISO3166::Country.new(country_code).subregion
 
   enum :trust_level, {
     blue: 0,     # unscored
@@ -372,6 +371,13 @@ class User < ApplicationRecord
 
   def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
   def subscribe_to_default_lists = subscribe("weekly_summary")
+  def schedule_welcome_email
+    recipient_email = email_addresses.order(:id).pick(:email)
+    return if recipient_email.blank?
+
+    OnboardingMailer.welcome(self, recipient_email: recipient_email).deliver_later
+  end
+
   def schedule_onboarding_check_in_email = OnboardingCheckInEmailJob.set(wait: 1.week).perform_later(id)
 
   def normalize_username
