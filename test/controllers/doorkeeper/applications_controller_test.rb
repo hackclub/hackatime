@@ -69,6 +69,18 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert flash[:application_secret].present?
   end
 
+  test "create can persist HCA login redirect preference" do
+    user = User.create!(timezone: "UTC")
+
+    sign_in_as(user)
+    post oauth_applications_path, params: {
+      doorkeeper_application: valid_application_params(name: "HCA Login App").merge(redirect_to_hca_login: "1")
+    }
+
+    created_application = OauthApplication.order(:created_at).last
+    assert created_application.redirect_to_hca_login?
+  end
+
   test "create invalid re-renders inertia new with validation errors" do
     user = User.create!(timezone: "UTC")
 
@@ -108,6 +120,19 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to oauth_application_url(application)
     assert_equal "After", application.reload.name
+  end
+
+  test "update can persist HCA login redirect preference" do
+    user = User.create!(timezone: "UTC")
+    application = create_application_for(user, name: "Before")
+
+    sign_in_as(user)
+    patch oauth_application_path(application), params: {
+      doorkeeper_application: { redirect_to_hca_login: "1" }
+    }
+
+    assert_redirected_to oauth_application_url(application)
+    assert application.reload.redirect_to_hca_login?
   end
 
   test "update invalid re-renders inertia edit with validation errors" do

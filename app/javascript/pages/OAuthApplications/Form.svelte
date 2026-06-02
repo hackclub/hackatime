@@ -17,11 +17,13 @@
 
   let selectedScopes = $state<string[]>([]);
   let confidential = $state(false);
+  let redirectToHcaLogin = $state(false);
   let redirectUri = $state("");
 
   $effect(() => {
     selectedScopes = [...(application.selected_scopes || [])];
     confidential = Boolean(application.confidential);
+    redirectToHcaLogin = Boolean(application.redirect_to_hca_login);
     redirectUri = application.redirect_uri;
   });
 
@@ -184,6 +186,31 @@
           >
           <span class="mt-1 block text-xs text-muted"
             >{help_text.confidential}</span
+          >
+        </span>
+      </label>
+
+      <label class={row} for="doorkeeper_application_redirect_to_hca_login">
+        <input
+          type="hidden"
+          name="doorkeeper_application[redirect_to_hca_login]"
+          value="0"
+        />
+        <input
+          id="doorkeeper_application_redirect_to_hca_login"
+          type="checkbox"
+          name="doorkeeper_application[redirect_to_hca_login]"
+          value="1"
+          bind:checked={redirectToHcaLogin}
+          class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
+        />
+        <span>
+          <span class="text-sm font-medium text-surface-content"
+            >Use Hack Club Auth for login</span
+          >
+          <span class="mt-1 block text-xs text-muted"
+            >Send unauthenticated users directly to Hack Club Auth before this
+            app's OAuth consent screen.</span
           >
         </span>
       </label>

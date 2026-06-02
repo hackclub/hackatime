@@ -115,6 +115,15 @@
           </div>
 
           <div>
+            <label class="block text-sm font-medium text-secondary mb-2">Login Redirect</label>
+            <% if @application.redirect_to_hca_login? %>
+              <span class="inline-flex items-center gap-1.5 px-2 py-1 bg-green/20 text-green border border-green/30 rounded text-sm">Hack Club Auth</span>
+            <% else %>
+              <span class="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow/20 text-yellow border border-yellow/30 rounded text-sm">Hackatime sign in</span>
+            <% end %>
+          </div>
+
+          <div>
             <label class="block text-sm font-medium text-secondary mb-2">Created</label>
             <span class="text-surface-content"><%= @application.created_at.strftime("%B %d, %Y at %I:%M %p") %></span>
           </div>

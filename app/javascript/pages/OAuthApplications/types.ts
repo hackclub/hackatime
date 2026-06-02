@@ -24,6 +24,7 @@ type OAuthApplicationFormApplication = {
   name: string;
   redirect_uri: string;
   confidential: boolean;
+  redirect_to_hca_login: boolean;
   verified: boolean;
   selected_scopes: string[];
 };
@@ -63,6 +64,7 @@ type OAuthApplicationShowApplication = {
   uid: string;
   verified: boolean;
   confidential: boolean;
+  redirect_to_hca_login: boolean;
   scopes: string[];
   redirect_uris: string[];
   can_toggle_verified: boolean;
