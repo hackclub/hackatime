@@ -15,19 +15,8 @@
     errors,
   }: OAuthApplicationFormProps = $props();
 
-  let selectedScopes = $state<string[]>([]);
-  let confidential = $state(false);
-  let redirectToHcaLogin = $state(false);
-  let redirectUri = $state("");
-
-  $effect(() => {
-    selectedScopes = [...(application.selected_scopes || [])];
-    confidential = Boolean(application.confidential);
-    redirectToHcaLogin = Boolean(application.redirect_to_hca_login);
-    redirectUri = application.redirect_uri;
-  });
-
   const nameLocked = $derived(application.persisted && application.verified);
+  const selectedScopes = $derived(application.selected_scopes || []);
 
   const submitPath = $derived(
     form_mode === "edit" && application.id != null
@@ -112,7 +101,7 @@
           id="doorkeeper_application_redirect_uri"
           name="doorkeeper_application[redirect_uri]"
           rows="4"
-          bind:value={redirectUri}
+          value={application.redirect_uri}
           placeholder="https://example.com/auth/callback"
           class="{input} font-mono"
         ></textarea>
@@ -130,11 +119,7 @@
         <p class="mb-2 block text-sm font-medium text-surface-content">
           Scopes
         </p>
-        <input
-          type="hidden"
-          name="doorkeeper_application[scopes]"
-          value={selectedScopes.join(" ")}
-        />
+        <input type="hidden" name="doorkeeper_application[scopes][]" value="" />
 
         <div class="space-y-2">
           {#each scope_options as scope}
@@ -142,8 +127,9 @@
               <input
                 id={`scope_${scope.value}`}
                 type="checkbox"
+                name="doorkeeper_application[scopes][]"
                 value={scope.value}
-                bind:group={selectedScopes}
+                checked={selectedScopes.includes(scope.value)}
                 class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
               />
               <span>
@@ -177,7 +163,7 @@
           type="checkbox"
           name="doorkeeper_application[confidential]"
           value="1"
-          bind:checked={confidential}
+          checked={application.confidential}
           class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
         />
         <span>
@@ -201,7 +187,7 @@
           type="checkbox"
           name="doorkeeper_application[redirect_to_hca_login]"
           value="1"
-          bind:checked={redirectToHcaLogin}
+          checked={application.redirect_to_hca_login}
           class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
         />
         <span>

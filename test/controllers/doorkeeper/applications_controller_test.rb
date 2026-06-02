@@ -59,7 +59,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(user)
     assert_difference -> { OauthApplication.count }, 1 do
       post oauth_applications_path, params: {
-        doorkeeper_application: valid_application_params(name: "Created App")
+        doorkeeper_application: valid_application_form_params(name: "Created App")
       }
     end
 
@@ -74,7 +74,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in_as(user)
     post oauth_applications_path, params: {
-      doorkeeper_application: valid_application_params(name: "HCA Login App").merge(redirect_to_hca_login: "1")
+      doorkeeper_application: valid_application_form_params(name: "HCA Login App").merge(redirect_to_hca_login: "1")
     }
 
     created_application = OauthApplication.order(:created_at).last
@@ -86,7 +86,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in_as(user)
     post oauth_applications_path, params: {
-      doorkeeper_application: valid_application_params(name: "")
+      doorkeeper_application: valid_application_form_params(name: "")
     }
 
     assert_response :unprocessable_entity
@@ -101,7 +101,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in_as(user)
     post oauth_applications_path(format: :json), params: {
-      doorkeeper_application: valid_application_params(name: "")
+      doorkeeper_application: valid_application_form_params(name: "")
     }
 
     assert_response :unprocessable_entity
@@ -115,7 +115,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in_as(user)
     patch oauth_application_path(application), params: {
-      doorkeeper_application: { name: "After" }
+      doorkeeper_application: valid_application_form_params(name: "After")
     }
 
     assert_redirected_to oauth_application_url(application)
@@ -128,7 +128,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in_as(user)
     patch oauth_application_path(application), params: {
-      doorkeeper_application: { redirect_to_hca_login: "1" }
+      doorkeeper_application: valid_application_form_params(name: application.name).merge(redirect_to_hca_login: "1")
     }
 
     assert_redirected_to oauth_application_url(application)
@@ -141,7 +141,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in_as(user)
     patch oauth_application_path(application), params: {
-      doorkeeper_application: { name: "" }
+      doorkeeper_application: valid_application_form_params(name: "")
     }
 
     assert_response :unprocessable_entity
@@ -200,6 +200,10 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
       scopes: configured_scopes,
       confidential: "1"
     }
+  end
+
+  def valid_application_form_params(name:)
+    valid_application_params(name: name).merge(scopes: configured_scopes.split)
   end
 
   def create_application_for(user, name:)

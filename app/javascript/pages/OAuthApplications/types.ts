@@ -35,6 +35,7 @@ type OAuthApplicationFormErrors = {
   redirect_uri: string[];
   scopes: string[];
   confidential: string[];
+  redirect_to_hca_login: boolean;
 };
 
 export type OAuthApplicationFormProps = {

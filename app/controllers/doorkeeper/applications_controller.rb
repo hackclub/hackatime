@@ -118,7 +118,10 @@ module Doorkeeper
     end
 
     def application_params
-      params.require(:doorkeeper_application).permit(:name, :redirect_uri, :scopes, :confidential, :redirect_to_hca_login)
+      permitted = params.require(:doorkeeper_application)
+        .permit(:name, :redirect_uri, :confidential, :redirect_to_hca_login, scopes: [])
+      permitted[:scopes] = permitted[:scopes].compact_blank.join(" ")
+      permitted
     end
 
     def i18n_scope(action) = %i[doorkeeper flash applications] << action
