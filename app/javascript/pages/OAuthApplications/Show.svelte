@@ -135,7 +135,9 @@
           </Field>
 
           <Field label="Login redirect">
-            <Badge tone={application.redirect_to_hca_login ? "green" : "yellow"}>
+            <Badge
+              tone={application.redirect_to_hca_login ? "green" : "yellow"}
+            >
               {application.redirect_to_hca_login
                 ? "Hack Club Auth"
                 : "Hackatime sign in"}
