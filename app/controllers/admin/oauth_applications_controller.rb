@@ -42,6 +42,6 @@ class Admin::OauthApplicationsController < Admin::BaseController
   end
 
   def application_params
-    params.require(:oauth_application).permit(:name, :redirect_uri, :scopes, :confidential)
+    params.require(:oauth_application).permit(:name, :redirect_uri, :scopes, :confidential, :redirect_to_hca_login)
   end
 end
