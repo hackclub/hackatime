@@ -18,6 +18,10 @@ Follow the detailed plugin installation instructions on the [WakaTime Neovim pag
 
 The WakaTime plugin will automatically use your Hackatime configuration after running the setup script.
 
+## Step 4:Initialize the project
+
+Hackatime only works when there is a git repo initialized or cloned make sure in your project folder .git folder is present
+
 ## Troubleshooting
 
 - **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) first
