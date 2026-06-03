@@ -30,7 +30,7 @@
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "virtua": "^0.49.1",
-    "vite": "^8.0.14",
+    "vite": "^8.0.16",
     "vite-plugin-ruby": "^5.2.2"
   },
   "devDependencies": {
