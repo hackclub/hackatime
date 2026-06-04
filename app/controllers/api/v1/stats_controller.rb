@@ -53,10 +53,14 @@ class Api::V1::StatsController < ApplicationController
     }
     service_params[:scope] = scope if scope
 
+    no_ai_coding = params[:no_ai_coding] == "true"
+
     if params[:test_param] == "true"
       service_params[:boundary_aware] = true # always and i mean always use boundary aware in test mode
       service_params[:valid_timestamps_only] = true
-      service_params[:exclude_categories] = [ "browsing", "ai coding", "meeting", "communicating" ]
+      excluded = [ "browsing", "meeting", "communicating" ]
+      excluded << "ai coding" if no_ai_coding
+      service_params[:exclude_categories] = excluded
 
       if params[:total_seconds] == "true"
         return render json: { total_seconds: WakatimeService.new(**service_params).generate_summary[:total_seconds] }
@@ -70,19 +74,23 @@ class Api::V1::StatsController < ApplicationController
         query = query.where(category: filter_by_categories) if filter_by_categories
 
         total_seconds = if params[:boundary_aware] == "true"
+          excluded = [ "browsing", "meeting", "communicating" ]
+          excluded << "ai coding" if no_ai_coding
           Heartbeat.duration_seconds_boundary_aware(
             query,
             start_date.to_f,
             end_date.to_f,
-            excluded_categories: [ "browsing", "ai coding", "meeting", "communicating" ]
+            excluded_categories: excluded
           ) || 0
         else
+          query = query.where.not(category: "ai coding") if no_ai_coding
           query.duration_seconds || 0
         end
 
         return render json: { total_seconds: total_seconds }
       end
 
+      service_params[:exclude_categories] = [ "ai coding" ] if no_ai_coding
       summary = WakatimeService.new(**service_params).generate_summary
     end
 
