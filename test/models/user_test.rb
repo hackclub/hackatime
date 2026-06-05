@@ -175,7 +175,7 @@ class UserTest < ActiveSupport::TestCase
     )
 
     travel_to 2.minutes.from_now do
-      assert user.update(username: "shadowban_expired_updated"), user.errors.full_messages.to_sentence
+      assert user.update(username: "sb_exp_update"), user.errors.full_messages.to_sentence
     end
   end
 
