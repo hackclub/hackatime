@@ -4,19 +4,19 @@
   const faqs = [
     {
       q: "Is this really free?",
-      a: "Yes. Hackatime is a free service by Hack Club. No paid tiers, no premium features, no hidden subscriptions.",
+      a: "Yep. Hackatime is a free service by Hack Club. We made it for ourselves and our events, and it's good marketing :)",
     },
     {
       q: "How do I migrate from WakaTime?",
-      a: "Point your existing WakaTime plugin at Hackatime's API URL and enter your Hackatime API key. Both use compatible data formats.",
+      a: "Point your existing WakaTime plugin at Hackatime's API URL and enter your Hackatime API key! You can even import your WakaTime data into Hackatime.",
     },
     {
       q: "Is my code private?",
-      a: "Hackatime only receives metadata — file names, project names, timestamps, language. We never see your actual source code.",
+      a: "Hackatime only receives metadata (e.g. file names, project names, timestamps, language). We never see your actual source code.",
     },
     {
       q: "Can I self-host this?",
-      a: "Yes. The entire codebase is open source on GitHub. Spin up your own instance for complete data sovereignty.",
+      a: "Yep! The entire codebase is open source on GitHub. Spin up your own instance for complete data sovereignty.",
     },
   ];
 </script>

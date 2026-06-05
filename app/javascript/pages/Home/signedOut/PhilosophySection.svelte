@@ -19,16 +19,11 @@
       <h2
         class="text-3xl md:text-4xl font-semibold text-primary tracking-tight mb-6"
       >
-        Your coding data should belong to you.
+        Your coding data should belong to you
       </h2>
       <p class="text-secondary text-lg leading-relaxed mb-4">
-        Every keystroke and file save tells a story about how you work. Most
-        platforms lock your history behind paywalls and opaque privacy policies.
-      </p>
-      <p class="text-secondary text-lg leading-relaxed">
-        <strong class="text-surface-content">Hackatime is different.</strong> We provide
-        transparent, community-run infrastructure for tracking your development workflow.
-        Your metrics stay accessible, exportable, and free.
+        We have an extensive API you can play around with, and you can export
+        your data to any tool you like, anytime.
       </p>
     </div>
     <div class="space-y-6">
