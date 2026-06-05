@@ -22,14 +22,12 @@ module Api
           user = find_user
           return unless user
 
-          PaperTrail.request(whodunnit: current_user.id) do
-            unless user.set_leaderboard_shadowban(
-              banned: true,
-              changed_by_user: current_user,
-              reason: params[:reason]
-            )
-              return render_shadowban_failure(user)
-            end
+          unless user.set_leaderboard_shadowban(
+            banned: true,
+            changed_by_user: current_user,
+            reason: params[:reason]
+          )
+            return render_shadowban_failure(user)
           end
 
           render json: {
@@ -43,9 +41,7 @@ module Api
           user = find_user
           return unless user
 
-          PaperTrail.request(whodunnit: current_user.id) do
-            return render_shadowban_failure(user) unless user.set_leaderboard_shadowban(banned: false, changed_by_user: current_user)
-          end
+          return render_shadowban_failure(user) unless user.set_leaderboard_shadowban(banned: false, changed_by_user: current_user)
 
           render json: {
             success: true,
