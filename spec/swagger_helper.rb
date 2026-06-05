@@ -176,7 +176,8 @@ RSpec.configure do |config|
                   id: { type: :integer, example: 1 },
                   display_name: { type: :string, nullable: true, example: 'Admin' },
                   username: { type: :string, nullable: true, example: 'admin' },
-                  email: { type: :string, nullable: true, example: 'admin@example.com' }
+                  avatar_url: { type: :string, nullable: true, example: 'https://...' },
+                  admin_level: { type: :string, nullable: true, example: 'superadmin' }
                 }
               },
               updated_at: { type: :string, format: 'date-time' }

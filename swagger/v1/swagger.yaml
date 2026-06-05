@@ -3929,10 +3929,14 @@ components:
               type: string
               nullable: true
               example: admin
-            email:
+            avatar_url:
               type: string
               nullable: true
-              example: admin@example.com
+              example: https://...
+            admin_level:
+              type: string
+              nullable: true
+              example: superadmin
         updated_at:
           type: string
           format: date-time
