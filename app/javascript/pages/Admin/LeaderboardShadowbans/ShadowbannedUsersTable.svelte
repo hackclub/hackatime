@@ -1,6 +1,8 @@
 <script lang="ts" module>
   import type { UserPickerResult } from "../../../components/UserPicker.svelte";
 
+  type AvatarUser = Pick<UserPickerResult, "avatar_url">;
+
   type ShadowbannedBy = Pick<
     UserPickerResult,
     "id" | "display_name" | "avatar_url" | "username"
@@ -28,7 +30,7 @@
   } = $props();
 </script>
 
-{#snippet avatar(user: ShadowbannedUser)}
+{#snippet avatar(user: AvatarUser)}
   {#if user.avatar_url}
     <img src={user.avatar_url} alt="" class="h-9 w-9 rounded-full" />
   {:else}
@@ -73,7 +75,14 @@
               {user.leaderboard_shadowban_reason}
             </td>
             <td class="px-4 py-3 text-muted">
-              {user.shadowbanned_by?.display_name || "Unknown"}
+              {#if user.shadowbanned_by}
+                <div class="flex items-center gap-3">
+                  {@render avatar(user.shadowbanned_by)}
+                  <span>{user.shadowbanned_by.display_name}</span>
+                </div>
+              {:else}
+                Unknown
+              {/if}
             </td>
             <td class="px-4 py-3 text-muted">{user.updated_at}</td>
             <td class="px-4 py-3 text-right">
