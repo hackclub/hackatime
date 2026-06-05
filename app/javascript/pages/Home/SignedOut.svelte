@@ -151,7 +151,7 @@
   <section class="pt-40 pb-20">
     <div class="max-w-[900px] mx-auto px-6 text-center">
       <h1
-        class="text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6"
+        class="text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6 text-pretty"
       >
         The open-source coding time tracker
       </h1>

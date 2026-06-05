@@ -49,15 +49,15 @@
 </script>
 
 <Section id="features">
-  <div class="text-center max-w-[700px] mx-auto mb-12">
+  <div class="text-center max-w-175 mx-auto mb-12">
     <h2
       class="text-3xl md:text-4xl font-semibold text-surface-content tracking-tight mb-4"
     >
       Everything you need, nothing you don't.
     </h2>
     <p class="text-secondary text-lg text-pretty">
-      Granular telemetry for your development environment, delivered via a clean
-      dashboard.
+      Granular telemetry for your development environment that helps you stay
+      productive.
     </p>
   </div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
