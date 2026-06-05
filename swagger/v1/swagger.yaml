@@ -1729,6 +1729,127 @@ paths:
                           type: array
                           items:
                             type: integer
+  "/api/admin/v1/leaderboard_shadowbans":
+    get:
+      summary: List Leaderboard Shadowbans
+      tags:
+      - Admin Resources
+      description: List users hidden from public leaderboards. Requires superadmin
+        privileges.
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leaderboard_shadowbans:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/LeaderboardShadowbanUser"
+    post:
+      summary: Create Leaderboard Shadowban
+      tags:
+      - Admin Resources
+      description: Hide a user from public leaderboards. Requires superadmin privileges
+        and a reason.
+      security:
+      - AdminToken: []
+      parameters: []
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    "$ref": "#/components/schemas/LeaderboardShadowbanUser"
+        '422':
+          description: validation error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                reason:
+                  type: string
+                leaderboard_shadowban_expires_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+              required:
+              - user_id
+              - reason
+  "/api/admin/v1/leaderboard_shadowbans/search_users":
+    get:
+      summary: Search Users for Leaderboard Shadowbans
+      tags:
+      - Admin Resources
+      description: Search users and include their current leaderboard shadowban metadata.
+        Requires superadmin privileges.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: query
+        in: query
+        description: Search query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/LeaderboardShadowbanUser"
+  "/api/admin/v1/leaderboard_shadowbans/{user_id}":
+    delete:
+      summary: Delete Leaderboard Shadowban
+      tags:
+      - Admin Resources
+      description: Remove a user from the leaderboard shadowban list. Requires superadmin
+        privileges.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    "$ref": "#/components/schemas/LeaderboardShadowbanUser"
+        '404':
+          description: not found
   "/api/admin/v1/permissions":
     get:
       summary: List Permissions
@@ -3755,6 +3876,68 @@ components:
           format: date-time
           nullable: true
         created_at:
+          type: string
+          format: date-time
+    LeaderboardShadowbanUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        display_name:
+          type: string
+          nullable: true
+          example: Orpheus
+        avatar_url:
+          type: string
+          nullable: true
+          example: https://...
+        created_at:
+          type: string
+          format: date-time
+        username:
+          type: string
+          nullable: true
+          example: orpheus
+        email:
+          type: string
+          nullable: true
+          example: orpheus@example.com
+        leaderboard_shadowbanned:
+          type: boolean
+          example: true
+        leaderboard_shadowban_reason:
+          type: string
+          nullable: true
+          example: fake leaderboard activity
+        leaderboard_shadowban_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        shadowbanned_by:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              example: 1
+            display_name:
+              type: string
+              nullable: true
+              example: Admin
+            username:
+              type: string
+              nullable: true
+              example: admin
+            avatar_url:
+              type: string
+              nullable: true
+              example: https://...
+            admin_level:
+              type: string
+              nullable: true
+              example: superadmin
+        updated_at:
           type: string
           format: date-time
     DeletionRequest:
