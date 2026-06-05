@@ -14,6 +14,7 @@
 <script lang="ts">
   import { Debounced } from "runed";
   import Search from "hcicons-svelte/search";
+  import { formatUtcDate } from "../utils";
 
   type Accent = "primary" | "green" | "red";
 
@@ -197,7 +198,7 @@
               </div>
               <div class="text-xs text-muted">
                 ID: {user.id}{user.created_at
-                  ? ` · Created: ${user.created_at}`
+                  ? ` · Created: ${formatUtcDate(user.created_at) ?? user.created_at}`
                   : ""}
               </div>
             </div>
@@ -223,7 +224,8 @@
             <div class="text-sm text-muted">ID: {selected.id}</div>
             {#if selected.created_at}
               <div class="text-xs text-muted">
-                Created: {selected.created_at}
+                Created: {formatUtcDate(selected.created_at) ??
+                  selected.created_at}
               </div>
             {/if}
             {#if selected.email}

@@ -110,3 +110,38 @@ export const rankDisplay = (index: number) => {
   if (index === 2) return "🥉";
   return `${index + 1}`;
 };
+
+const utcDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
+const utcDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZoneName: "short",
+});
+
+const formatWith = (
+  formatter: Intl.DateTimeFormat,
+  value: string | null,
+): string | null => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : formatter.format(date);
+};
+
+// "Jun 5, 2026"
+export const formatUtcDate = (value: string | null) =>
+  formatWith(utcDateFormatter, value);
+
+// "Jun 5, 2026, 14:30 UTC"
+export const formatUtcDateTime = (value: string | null) =>
+  formatWith(utcDateTimeFormatter, value);

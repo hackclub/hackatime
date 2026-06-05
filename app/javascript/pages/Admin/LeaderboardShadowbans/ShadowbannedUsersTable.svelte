@@ -14,7 +14,6 @@
     leaderboard_shadowbanned: boolean;
     leaderboard_shadowban_reason: string | null;
     leaderboard_shadowban_expires_at: string | null;
-    leaderboard_shadowban_expires_at_formatted: string | null;
     shadowbanned_by: ShadowbannedBy | null;
     updated_at: string | null;
   };
@@ -22,6 +21,7 @@
 
 <script lang="ts">
   import Button from "../../../components/Button.svelte";
+  import { formatUtcDateTime } from "../../../utils";
 
   let {
     users,
@@ -83,7 +83,8 @@
               Auto-remove
             </dt>
             <dd class="mt-1 text-surface-content tabular-nums">
-              {user.leaderboard_shadowban_expires_at_formatted ?? "Never"}
+              {formatUtcDateTime(user.leaderboard_shadowban_expires_at) ??
+                "Never"}
             </dd>
           </div>
 
@@ -119,7 +120,7 @@
               Updated
             </dt>
             <dd class="mt-1 text-surface-content tabular-nums">
-              {user.updated_at ?? "Unknown"}
+              {formatUtcDateTime(user.updated_at) ?? "Unknown"}
             </dd>
           </div>
         </dl>

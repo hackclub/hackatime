@@ -159,6 +159,14 @@ class User < ApplicationRecord
     return false if changed_by_user == self
     return false unless changed_by_user.admin_level_rank > admin_level_rank
 
+    if banned
+      expires_at, expiry_valid = coerce_shadowban_expiration(expires_at)
+      unless expiry_valid
+        errors.add(:leaderboard_shadowban_expires_at, "is invalid")
+        return false
+      end
+    end
+
     saved = update(
       leaderboard_shadowbanned: banned,
       leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil,
@@ -210,6 +218,8 @@ class User < ApplicationRecord
     candidates_sql = sanitize_sql_for_conditions([ parts.join(" UNION "), { exact: term, contains: contains } ])
     where("users.id IN (#{candidates_sql})")
   }
+
+  scope :leaderboard_shadowbanned, -> { where(leaderboard_shadowbanned: true) }
 
   def saved_change_to_leaderboard_shadowban_state?
     saved_change_to_leaderboard_shadowbanned? ||
@@ -418,5 +428,17 @@ class User < ApplicationRecord
     return if leaderboard_shadowban_expires_at.future?
 
     errors.add(:leaderboard_shadowban_expires_at, "must be in the future")
+  end
+
+  # returns [time_or_nil, valid?]. accepts a blank value (no expiration),
+  # an already-parsed time, or a string to parse.
+  def coerce_shadowban_expiration(value)
+    return [ nil, true ] if value.blank?
+    return [ value, true ] unless value.is_a?(String)
+
+    parsed = Time.zone.parse(value)
+    [ parsed, parsed.present? ]
+  rescue ArgumentError
+    [ nil, false ]
   end
 end
