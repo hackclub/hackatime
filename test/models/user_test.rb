@@ -33,6 +33,18 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "rose", metadata[:value]
   end
 
+  test "updating admin level does not validate existing duplicate usernames" do
+    first_user = User.create!(timezone: "UTC", username: "duplicate_name")
+    User.create!(timezone: "UTC", username: "other_name")
+      .update_column(:username, "DUPLICATE_NAME")
+
+    assert_nothing_raised do
+      first_user.update!(admin_level: :ultraadmin)
+    end
+
+    assert_equal "ultraadmin", first_user.reload.admin_level
+  end
+
   test "rotate_api_keys! replaces existing api key with a new one" do
     user = User.create!(timezone: "UTC", slack_uid: "U#{SecureRandom.hex(8)}")
     user.api_keys.create!(name: "Original key")

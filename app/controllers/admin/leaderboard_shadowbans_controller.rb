@@ -85,7 +85,7 @@ class Admin::LeaderboardShadowbansController < InertiaController
       leaderboard_shadowbanned: user.leaderboard_shadowbanned?,
       leaderboard_shadowban_reason: user.leaderboard_shadowban_reason,
       leaderboard_shadowban_expires_at: user.leaderboard_shadowban_expires_at&.iso8601,
-      leaderboard_shadowban_expires_at_formatted: user.leaderboard_shadowban_expires_at&.strftime("%Y-%m-%d %H:%M UTC"),
+      leaderboard_shadowban_expires_at_formatted: user.leaderboard_shadowban_expires_at&.strftime("%b %-d, %Y at %H:%M UTC"),
       shadowbanned_by: shadowbanned_by && {
         id: shadowbanned_by.id,
         display_name: shadowbanned_by.display_name,
@@ -93,7 +93,7 @@ class Admin::LeaderboardShadowbansController < InertiaController
         avatar_url: shadowbanned_by.avatar_url,
         admin_level: shadowbanned_by.admin_level
       },
-      updated_at: user.updated_at&.strftime("%Y-%m-%d %H:%M UTC")
+      updated_at: user.updated_at&.strftime("%b %-d, %Y at %H:%M UTC")
     }
   end
 

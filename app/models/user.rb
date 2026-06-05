@@ -28,6 +28,7 @@ class User < ApplicationRecord
     length: { maximum: USERNAME_MAX_LENGTH },
     format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
     uniqueness: { case_sensitive: false, message: "has already been taken" },
+    if: :will_save_change_to_username?,
     allow_nil: true
   validates :leaderboard_shadowban_reason, presence: true, if: :leaderboard_shadowbanned?
   validate :leaderboard_shadowban_expiration_must_be_in_the_future
