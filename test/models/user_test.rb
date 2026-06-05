@@ -162,6 +162,23 @@ class UserTest < ActiveSupport::TestCase
     assert_not user.reload.leaderboard_shadowbanned?
   end
 
+  test "expired leaderboard shadowban does not block unrelated user updates" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = User.create!(timezone: "UTC", username: "shadowban_expired_update")
+    expires_at = 1.minute.from_now
+
+    assert user.set_leaderboard_shadowban(
+      banned: true,
+      changed_by_user: actor,
+      reason: "temporary fake time",
+      expires_at: expires_at
+    )
+
+    travel_to 2.minutes.from_now do
+      assert user.update(username: "shadowban_expired_updated"), user.errors.full_messages.to_sentence
+    end
+  end
+
   test "set_leaderboard_shadowban records PaperTrail changes" do
     actor = User.create!(timezone: "UTC", admin_level: :superadmin)
     user = User.create!(timezone: "UTC", username: "pt_shadowban_target")

@@ -423,6 +423,7 @@ class User < ApplicationRecord
   end
 
   def leaderboard_shadowban_expiration_must_be_in_the_future
+    return unless will_save_change_to_leaderboard_shadowban_expires_at?
     return unless leaderboard_shadowbanned?
     return if leaderboard_shadowban_expires_at.blank?
     return if leaderboard_shadowban_expires_at.future?
