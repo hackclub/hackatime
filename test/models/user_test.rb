@@ -164,7 +164,7 @@ class UserTest < ActiveSupport::TestCase
 
   test "expired leaderboard shadowban does not block unrelated user updates" do
     actor = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "shadowban_exp_update")
+    user = User.create!(timezone: "UTC", username: "sb_exp_update")
     expires_at = 1.minute.from_now
 
     assert user.set_leaderboard_shadowban(
