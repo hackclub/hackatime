@@ -1,5 +1,6 @@
 <script module lang="ts">
-  export const layout = false;
+  import MarketingLayout from "../../layouts/MarketingLayout.svelte";
+  export const layout = MarketingLayout;
 </script>
 
 <script lang="ts">
@@ -26,20 +27,6 @@
     home_stats: HomeStats;
     flash?: FlashMessage[];
   } = $props();
-
-  let previousTheme = $state<string | null>(null);
-
-  $effect(() => {
-    const html = document.documentElement;
-    previousTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "rose");
-    document
-      .querySelector("meta[name='color-scheme']")
-      ?.setAttribute("content", "dark");
-    return () => {
-      if (previousTheme) html.setAttribute("data-theme", previousTheme);
-    };
-  });
 
   const fmt = new Intl.NumberFormat("en-US");
   const formatNumber = (v: number) => fmt.format(v);

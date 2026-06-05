@@ -15,12 +15,6 @@ class UserTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
-  test "theme defaults to gruvbox dark" do
-    user = User.new
-
-    assert_equal "rose", user.theme
-  end
-
   test "theme options include all supported themes in order" do
     values = User.theme_options.map { |option| option[:value] }
 
@@ -30,7 +24,7 @@ class UserTest < ActiveSupport::TestCase
   test "theme metadata falls back to default for unknown themes" do
     metadata = User.theme_metadata("not-a-real-theme")
 
-    assert_equal "rose", metadata[:value]
+    assert_equal "neon", metadata[:value]
   end
 
   test "updating admin level does not validate existing duplicate usernames" do

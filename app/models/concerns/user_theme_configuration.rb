@@ -1,7 +1,7 @@
 module UserThemeConfiguration
   extend ActiveSupport::Concern
 
-  DEFAULT_THEME = "rose".freeze
+  DEFAULT_THEME = "neon".freeze
   THEME_OPTIONS = YAML.safe_load_file(Rails.root.join("config/themes.yml"))
                       .map { |t| t.deep_symbolize_keys }
                       .freeze
