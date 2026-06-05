@@ -153,7 +153,7 @@
       <h1
         class="text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6"
       >
-        Track your coding time, for free.
+        The open-source coding time tracker
       </h1>
       <p
         class="text-lg md:text-xl text-secondary max-w-[70ch] mx-auto leading-relaxed mb-8"

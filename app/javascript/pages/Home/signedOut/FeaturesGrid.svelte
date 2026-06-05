@@ -15,37 +15,34 @@
     {
       title: "Time tracking",
       description:
-        "Automatic tracking that starts when you type and stops when you take a break. Down to the second.",
+        "Automatic tracking that starts when you type and stops when you take a break.",
       icon: Clock,
     },
     {
       title: "Language stats",
       description:
-        "See your actual tech stack. How much Rust vs. how much time debugging config files.",
+        "See your actual tech stack - how much time do you spend writing React vs Svelte?",
       icon: CodeBracketSquare,
     },
     {
       title: "File-level insights",
       description:
-        "Drill into specific files. Find the ones consuming all your time.",
+        "Drill into specific files and find the ones consuming all your time.",
       icon: DocumentText,
     },
     {
       title: "Zero lock-in",
-      description:
-        "Your data is yours. Export your entire history to JSON or CSV via the REST API.",
+      description: "Your data is yours. Export your entire history as JSON.",
       icon: ArrowDownTray,
     },
     {
       title: "Leaderboards (coming soon)",
-      description:
-        "Create private leaderboards for your team or hackathon. Compete on consistency.",
+      description: "Create private leaderboards for your team or hackathon.",
       icon: UserGroup,
     },
     {
       title: "Privacy-first",
-      description:
-        "We don't sell your data. We don't use it for AI training. Just heartbeats and charts.",
+      description: "We never see your code, so your projects stay private.",
       icon: LockClosed,
     },
   ];
