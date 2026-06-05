@@ -14,8 +14,8 @@ module Api
           query_term = params[:query].to_s.strip
           return render json: { users: [] } if query_term.blank?
 
-          users = User.fuzzy_ranked_search(query_term, limit: 20).includes(:email_addresses)
-          render json: { users: users.map { |user| user_json(user) } }
+          users = User.fuzzy_ranked_search(query_term, limit: 20).includes(:email_addresses, leaderboard_shadowbanned_by: :email_addresses)
+          render json: { users: users.map { |user| user_json(user, shadowbanned_by: user.leaderboard_shadowbanned_by) } }
         end
 
         def create
@@ -35,7 +35,7 @@ module Api
           render json: {
             success: true,
             message: "#{user.display_name} is now hidden from leaderboards.",
-            user: user_json(user.reload, shadowbanned_by: user.leaderboard_shadowbanned_by)
+            user: user_json(user, shadowbanned_by: user.leaderboard_shadowbanned_by)
           }, status: :created
         end
 
@@ -50,7 +50,7 @@ module Api
           render json: {
             success: true,
             message: "#{user.display_name} is visible on leaderboards again.",
-            user: user_json(user.reload)
+            user: user_json(user)
           }
         end
 
@@ -64,7 +64,6 @@ module Api
           User.where(leaderboard_shadowbanned: true)
             .includes(:email_addresses, leaderboard_shadowbanned_by: :email_addresses)
             .order(updated_at: :desc)
-            .limit(100)
         end
 
         def find_user
