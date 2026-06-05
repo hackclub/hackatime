@@ -11,7 +11,7 @@
   "dependencies": {
     "@fontsource-variable/spline-sans": "^5.2.8",
     "@inertiajs/svelte": "^3.3.0",
-    "@inertiajs/vite": "^3.3.0",
+    "@inertiajs/vite": "^3.3.1",
     "@js-from-routes/client": "^1.0.4",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tailwindcss/forms": "^0.5.11",
