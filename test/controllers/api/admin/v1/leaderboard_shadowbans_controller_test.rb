@@ -47,6 +47,8 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
     assert_equal user.id, body_user["id"]
     assert_equal "inflated activity", body_user["leaderboard_shadowban_reason"]
     assert_equal admin.id, body_user.dig("shadowbanned_by", "id")
+    assert_equal "superadmin", body_user.dig("shadowbanned_by", "admin_level")
+    assert_not body_user.fetch("shadowbanned_by").key?("email")
   end
 
   test "search_users returns shadowban metadata" do
@@ -66,6 +68,8 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
     assert_equal true, body_user["leaderboard_shadowbanned"]
     assert_equal "fake data", body_user["leaderboard_shadowban_reason"]
     assert_equal admin.id, body_user.dig("shadowbanned_by", "id")
+    assert_equal "superadmin", body_user.dig("shadowbanned_by", "admin_level")
+    assert_not body_user.fetch("shadowbanned_by").key?("email")
   end
 
   test "create leaderboard shadowbans a user with PaperTrail whodunnit" do
@@ -82,6 +86,8 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
     assert_equal "fake leaderboard activity", user.leaderboard_shadowban_reason
     assert_equal admin, user.leaderboard_shadowbanned_by
     assert_equal admin.id.to_s, PaperTrail::Version.where(item_type: "User", item_id: user.id).last.whodunnit
+    assert_equal "superadmin", response.parsed_body.dig("user", "shadowbanned_by", "admin_level")
+    assert_not response.parsed_body.dig("user", "shadowbanned_by").key?("email")
     assert_equal true, response.parsed_body.fetch("success")
   end
 

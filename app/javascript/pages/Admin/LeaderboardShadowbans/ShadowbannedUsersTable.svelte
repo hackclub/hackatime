@@ -1,10 +1,17 @@
 <script lang="ts" module>
   import type { UserPickerResult } from "../../../components/UserPicker.svelte";
 
+  type ShadowbannedBy = Pick<
+    UserPickerResult,
+    "id" | "display_name" | "avatar_url" | "username"
+  > & {
+    admin_level: string;
+  };
+
   export type ShadowbannedUser = UserPickerResult & {
     leaderboard_shadowbanned: boolean;
     leaderboard_shadowban_reason: string | null;
-    shadowbanned_by: UserPickerResult | null;
+    shadowbanned_by: ShadowbannedBy | null;
     updated_at: string | null;
   };
 </script>

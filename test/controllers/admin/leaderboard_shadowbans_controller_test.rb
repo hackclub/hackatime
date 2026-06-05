@@ -26,6 +26,8 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
     assert_equal user.id, body_user["id"]
     assert_equal "inflated activity", body_user["leaderboard_shadowban_reason"]
     assert_equal admin.id, body_user.dig("shadowbanned_by", "id")
+    assert_equal "superadmin", body_user.dig("shadowbanned_by", "admin_level")
+    assert_not body_user.fetch("shadowbanned_by").key?("email")
   end
 
   test "search_users returns shadowban metadata" do

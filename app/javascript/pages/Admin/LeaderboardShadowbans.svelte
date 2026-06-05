@@ -125,9 +125,6 @@
         <h2 class="text-xl font-semibold text-surface-content">
           Currently shadowbanned
         </h2>
-        <p class="text-sm text-muted">
-          Latest 100 users hidden from public leaderboards.
-        </p>
       </div>
       <div
         class="rounded-full border border-surface-200 px-3 py-1 text-sm text-muted"

@@ -63,9 +63,8 @@ class Admin::LeaderboardShadowbansController < InertiaController
 
   def shadowbanned_users
     User.where(leaderboard_shadowbanned: true)
-      .includes(:email_addresses, leaderboard_shadowbanned_by: :email_addresses)
+      .includes(:email_addresses, :leaderboard_shadowbanned_by)
       .order(updated_at: :desc)
-      .limit(100)
   end
 
   def format_user(user, shadowbanned_by: nil)
@@ -82,7 +81,8 @@ class Admin::LeaderboardShadowbansController < InertiaController
         id: shadowbanned_by.id,
         display_name: shadowbanned_by.display_name,
         username: shadowbanned_by.username,
-        email: shadowbanned_by.email_addresses.first&.email
+        avatar_url: shadowbanned_by.avatar_url,
+        admin_level: shadowbanned_by.admin_level
       },
       updated_at: user.updated_at&.strftime("%Y-%m-%d %H:%M UTC")
     }

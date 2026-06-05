@@ -14,7 +14,7 @@ module Api
           query_term = params[:query].to_s.strip
           return render json: { users: [] } if query_term.blank?
 
-          users = User.fuzzy_ranked_search(query_term, limit: 20).includes(:email_addresses, leaderboard_shadowbanned_by: :email_addresses)
+          users = User.fuzzy_ranked_search(query_term, limit: 20).includes(:email_addresses, :leaderboard_shadowbanned_by)
           render json: { users: users.map { |user| user_json(user, shadowbanned_by: user.leaderboard_shadowbanned_by) } }
         end
 
@@ -58,12 +58,12 @@ module Api
 
         def shadowbanned_users
           User.where(leaderboard_shadowbanned: true)
-            .includes(:email_addresses, leaderboard_shadowbanned_by: :email_addresses)
+            .includes(:email_addresses, :leaderboard_shadowbanned_by)
             .order(updated_at: :desc)
         end
 
         def find_user
-          User.includes(:email_addresses, leaderboard_shadowbanned_by: :email_addresses).find_by(id: params[:user_id]).tap do |user|
+          User.includes(:email_addresses, :leaderboard_shadowbanned_by).find_by(id: params[:user_id]).tap do |user|
             render_not_found_json("User not found") unless user
           end
         end
@@ -101,7 +101,8 @@ module Api
             id: user.id,
             display_name: user.display_name,
             username: user.username,
-            email: user.email_addresses.first&.email
+            avatar_url: user.avatar_url,
+            admin_level: user.admin_level
           }
         end
       end
