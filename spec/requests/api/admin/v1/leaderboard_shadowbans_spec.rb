@@ -40,7 +40,8 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request do
         type: :object,
         properties: {
           user_id: { type: :integer },
-          reason: { type: :string }
+          reason: { type: :string },
+          leaderboard_shadowban_expires_at: { type: :string, format: 'date-time', nullable: true }
         },
         required: [ 'user_id', 'reason' ]
       }
@@ -48,7 +49,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request do
       response(201, 'created') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:target) { User.create!(username: 'rswag_lb_create', timezone: 'UTC') }
-        let(:payload) { { user_id: target.id, reason: 'fake leaderboard activity' } }
+        let(:payload) { { user_id: target.id, reason: 'fake leaderboard activity', leaderboard_shadowban_expires_at: 1.week.from_now.iso8601 } }
 
         schema type: :object,
           properties: {

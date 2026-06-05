@@ -168,6 +168,7 @@ RSpec.configure do |config|
               email: { type: :string, nullable: true, example: 'orpheus@example.com' },
               leaderboard_shadowbanned: { type: :boolean, example: true },
               leaderboard_shadowban_reason: { type: :string, nullable: true, example: 'fake leaderboard activity' },
+              leaderboard_shadowban_expires_at: { type: :string, format: 'date-time', nullable: true },
               shadowbanned_by: {
                 type: :object,
                 nullable: true,

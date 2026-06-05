@@ -1785,6 +1785,10 @@ paths:
                   type: integer
                 reason:
                   type: string
+                leaderboard_shadowban_expires_at:
+                  type: string
+                  format: date-time
+                  nullable: true
               required:
               - user_id
               - reason
@@ -3906,6 +3910,10 @@ components:
           type: string
           nullable: true
           example: fake leaderboard activity
+        leaderboard_shadowban_expires_at:
+          type: string
+          format: date-time
+          nullable: true
         shadowbanned_by:
           type: object
           nullable: true

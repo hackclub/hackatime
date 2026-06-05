@@ -13,6 +13,8 @@
   export type ShadowbannedUser = UserPickerResult & {
     leaderboard_shadowbanned: boolean;
     leaderboard_shadowban_reason: string | null;
+    leaderboard_shadowban_expires_at: string | null;
+    leaderboard_shadowban_expires_at_formatted: string | null;
     shadowbanned_by: ShadowbannedBy | null;
     updated_at: string | null;
   };
@@ -53,6 +55,7 @@
         <tr>
           <th class="px-4 py-3" scope="col">User</th>
           <th class="px-4 py-3" scope="col">Reason</th>
+          <th class="px-4 py-3" scope="col">Auto-remove</th>
           <th class="px-4 py-3" scope="col">Added by</th>
           <th class="px-4 py-3" scope="col">Updated</th>
           <th class="px-4 py-3 text-right" scope="col">Action</th>
@@ -73,6 +76,9 @@
             </td>
             <td class="max-w-sm px-4 py-3 text-muted">
               {user.leaderboard_shadowban_reason}
+            </td>
+            <td class="px-4 py-3 text-muted">
+              {user.leaderboard_shadowban_expires_at_formatted ?? "Never"}
             </td>
             <td class="px-4 py-3 text-muted">
               {#if user.shadowbanned_by}

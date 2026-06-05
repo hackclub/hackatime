@@ -110,11 +110,44 @@ class UserTest < ActiveSupport::TestCase
     assert user.reload.leaderboard_shadowbanned?
     assert_equal "fake time", user.leaderboard_shadowban_reason
     assert_equal actor, user.leaderboard_shadowbanned_by
+    assert_nil user.leaderboard_shadowban_expires_at
 
     assert user.set_leaderboard_shadowban(banned: false, changed_by_user: actor)
     assert_not user.reload.leaderboard_shadowbanned?
     assert_nil user.leaderboard_shadowban_reason
     assert_nil user.leaderboard_shadowbanned_by
+    assert_nil user.leaderboard_shadowban_expires_at
+  end
+
+  test "set_leaderboard_shadowban can schedule an automatic expiration" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = User.create!(timezone: "UTC", username: "shadowban_expiring")
+    expires_at = 2.days.from_now
+
+    assert_enqueued_with(job: LeaderboardShadowbanExpirationJob, args: [ user.id ], at: expires_at) do
+      assert user.set_leaderboard_shadowban(
+        banned: true,
+        changed_by_user: actor,
+        reason: "temporary fake time",
+        expires_at: expires_at
+      )
+    end
+
+    assert_equal expires_at.to_i, user.reload.leaderboard_shadowban_expires_at.to_i
+  end
+
+  test "set_leaderboard_shadowban requires future automatic expiration" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = User.create!(timezone: "UTC", username: "shadowban_past_exp")
+
+    assert_not user.set_leaderboard_shadowban(
+      banned: true,
+      changed_by_user: actor,
+      reason: "temporary fake time",
+      expires_at: 1.minute.ago
+    )
+    assert_includes user.errors[:leaderboard_shadowban_expires_at], "must be in the future"
+    assert_not user.reload.leaderboard_shadowbanned?
   end
 
   test "set_leaderboard_shadowban records PaperTrail changes" do

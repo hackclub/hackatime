@@ -30,6 +30,7 @@ class User < ApplicationRecord
     uniqueness: { case_sensitive: false, message: "has already been taken" },
     allow_nil: true
   validates :leaderboard_shadowban_reason, presence: true, if: :leaderboard_shadowbanned?
+  validate :leaderboard_shadowban_expiration_must_be_in_the_future
   validate :username_must_be_visible
 
   attribute :allow_public_stats_lookup, :boolean, default: true
@@ -151,17 +152,20 @@ class User < ApplicationRecord
   end
   # ex: .set_trust(:green, changed_by_user: admin) or set_trust(:red, changed_by_user: admin)
 
-  def set_leaderboard_shadowban(banned:, changed_by_user:, reason: nil)
+  def set_leaderboard_shadowban(banned:, changed_by_user:, reason: nil, expires_at: nil)
     return false unless changed_by_user.is_a?(User)
     return false unless changed_by_user.can_leaderboard_shadowban_users?
     return false if changed_by_user == self
     return false unless changed_by_user.admin_level_rank > admin_level_rank
 
-    update(
+    saved = update(
       leaderboard_shadowbanned: banned,
       leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil,
-      leaderboard_shadowbanned_by: banned ? changed_by_user : nil
+      leaderboard_shadowbanned_by: banned ? changed_by_user : nil,
+      leaderboard_shadowban_expires_at: banned ? expires_at : nil
     )
+    schedule_leaderboard_shadowban_expiration if saved && banned && leaderboard_shadowban_expires_at.present?
+    saved
   rescue ActiveRecord::ActiveRecordError => e
     Rails.logger.error("set_leaderboard_shadowban failed for user #{id}: #{e.class}: #{e.message}")
     false
@@ -209,11 +213,16 @@ class User < ApplicationRecord
   def saved_change_to_leaderboard_shadowban_state?
     saved_change_to_leaderboard_shadowbanned? ||
       saved_change_to_leaderboard_shadowban_reason? ||
-      saved_change_to_leaderboard_shadowbanned_by_id?
+      saved_change_to_leaderboard_shadowbanned_by_id? ||
+      saved_change_to_leaderboard_shadowban_expires_at?
   end
 
   def clear_leaderboard_page_cache
     LeaderboardPageCache.clear!
+  end
+
+  def schedule_leaderboard_shadowban_expiration
+    LeaderboardShadowbanExpirationJob.set(wait_until: leaderboard_shadowban_expires_at).perform_later(id)
   end
 
   has_many :trust_level_audit_logs, dependent: :destroy
@@ -400,5 +409,13 @@ class User < ApplicationRecord
   def username_must_be_visible
     return unless instance_variable_defined?(:@username_cleared_for_invisible) && @username_cleared_for_invisible
     errors.add(:username, "must include visible characters")
+  end
+
+  def leaderboard_shadowban_expiration_must_be_in_the_future
+    return unless leaderboard_shadowbanned?
+    return if leaderboard_shadowban_expires_at.blank?
+    return if leaderboard_shadowban_expires_at.future?
+
+    errors.add(:leaderboard_shadowban_expires_at, "must be in the future")
   end
 end

@@ -22,10 +22,19 @@ module Api
           user = find_user
           return unless user
 
+          expires_at = parsed_expiration
+          if invalid_expiration?
+            return render json: {
+              error: "Could not update leaderboard shadowban.",
+              errors: [ "Leaderboard shadowban expires at is invalid" ]
+            }, status: :unprocessable_entity
+          end
+
           unless user.set_leaderboard_shadowban(
             banned: true,
             changed_by_user: current_user,
-            reason: params[:reason]
+            reason: params[:reason],
+            expires_at: expires_at
           )
             return render_shadowban_failure(user)
           end
@@ -89,6 +98,7 @@ module Api
             email: user.email_addresses.first&.email,
             leaderboard_shadowbanned: user.leaderboard_shadowbanned?,
             leaderboard_shadowban_reason: user.leaderboard_shadowban_reason,
+            leaderboard_shadowban_expires_at: user.leaderboard_shadowban_expires_at&.iso8601,
             shadowbanned_by: shadowbanned_by_json(shadowbanned_by),
             updated_at: user.updated_at&.iso8601
           }
@@ -104,6 +114,20 @@ module Api
             avatar_url: user.avatar_url,
             admin_level: user.admin_level
           }
+        end
+
+        def parsed_expiration
+          value = params[:leaderboard_shadowban_expires_at].to_s.strip
+          return nil if value.blank?
+
+          Time.zone.parse(value).tap { |parsed| @invalid_expiration = true unless parsed }
+        rescue ArgumentError
+          @invalid_expiration = true
+          nil
+        end
+
+        def invalid_expiration?
+          @invalid_expiration
         end
       end
     end
