@@ -292,6 +292,10 @@ Rails.application.routes.draw do
         # Admin API Keys management
         resources :admin_api_keys, only: [ :index, :show, :create, :destroy ]
 
+        resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
+          get :search_users, on: :collection
+        end
+
         # Trust level audit logs
         resources :trust_level_audit_logs, only: [ :index, :show ]
 

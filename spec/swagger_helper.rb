@@ -157,6 +157,30 @@ RSpec.configure do |config|
               created_at: { type: :string, format: 'date-time' }
             }
           },
+          LeaderboardShadowbanUser: {
+            type: :object,
+            properties: {
+              id: { type: :integer, example: 42 },
+              display_name: { type: :string, nullable: true, example: 'Orpheus' },
+              avatar_url: { type: :string, nullable: true, example: 'https://...' },
+              created_at: { type: :string, format: 'date-time' },
+              username: { type: :string, nullable: true, example: 'orpheus' },
+              email: { type: :string, nullable: true, example: 'orpheus@example.com' },
+              leaderboard_shadowbanned: { type: :boolean, example: true },
+              leaderboard_shadowban_reason: { type: :string, nullable: true, example: 'fake leaderboard activity' },
+              shadowbanned_by: {
+                type: :object,
+                nullable: true,
+                properties: {
+                  id: { type: :integer, example: 1 },
+                  display_name: { type: :string, nullable: true, example: 'Admin' },
+                  username: { type: :string, nullable: true, example: 'admin' },
+                  email: { type: :string, nullable: true, example: 'admin@example.com' }
+                }
+              },
+              updated_at: { type: :string, format: 'date-time' }
+            }
+          },
           DeletionRequest: {
             type: :object,
             properties: {
