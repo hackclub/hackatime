@@ -18,11 +18,7 @@
     errors,
   }: AppearancePageProps = $props();
 
-  let selectedTheme = $state(DEFAULT_THEME);
-
-  $effect(() => {
-    selectedTheme = user.theme || DEFAULT_THEME;
-  });
+  let selectedTheme = $state(user.theme || DEFAULT_THEME);
 
   const applySelectedTheme = () => {
     if (typeof document === "undefined") return;
