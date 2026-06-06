@@ -84,7 +84,9 @@ class Settings::BaseController < InertiaController
 
   BASE_OPTION_BUILDERS = {
     countries: -> { ISO3166::Country.all.map { |c| { label: c.common_name, value: c.alpha2 } }.sort_by { |c| c[:label] } },
-    timezones: -> { TZInfo::Timezone.all_identifiers.sort.map { |tz| { label: tz, value: tz } } },
+    # a user's current zone, if outside this list, is pinned in
+    # ProfileController#section_props so their selection never disappears.
+    timezones: -> { ActiveSupport::TimeZone.all.map { |z| { label: z.to_s, value: z.tzinfo.identifier } } },
     extension_text_types: -> { User.hackatime_extension_text_types.keys.map { |k| { label: k.humanize, value: k } } },
     themes: -> { User.theme_options },
     badge_themes: -> { GithubReadmeStats.themes }
