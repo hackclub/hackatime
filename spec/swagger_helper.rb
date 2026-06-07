@@ -52,7 +52,7 @@ RSpec.configure do |config|
       properties: {
         id: { type: :integer, example: 1024 },
         entity: { type: :string, nullable: true, example: '/Users/orpheus/hackatime/app/services/chaos_monkey_service.rb', description: 'File path or app name being accessed' },
-        type: { type: :string, nullable: true, example: 'file', enum: [ 'file', 'app', nil ] },
+        type: { type: :string, nullable: true, example: 'file', enum: [ 'file', 'app' ] },
         category: {
           type: :string,
           nullable: true,
@@ -61,8 +61,7 @@ RSpec.configure do |config|
             'advising', 'ai coding', 'animating', 'browsing', 'building', 'code reviewing',
             'coding', 'communicating', 'configuring', 'debugging', 'designing', 'indexing',
             'learning', 'manual testing', 'meeting', 'notes', 'planning', 'researching',
-            'running tests', 'supporting', 'translating', 'writing docs', 'writing tests',
-            nil
+            'running tests', 'supporting', 'translating', 'writing docs', 'writing tests'
           ]
         },
         time: { type: :number, format: :float, example: 1709251200.0, description: 'Unix timestamp of the activity' },

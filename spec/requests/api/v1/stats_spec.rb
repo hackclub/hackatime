@@ -28,8 +28,16 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         end
       end
 
-      response(401, 'unauthorized — Returned when STATS_API_KEY is unset/blank or the supplied token is missing or incorrect. (Auth is bypassed in the development environment, so this branch is only reachable in production.)') do
+      response(401, 'unauthorized — Returned when STATS_API_KEY is unset/blank or the supplied token is missing or incorrect. (Auth is bypassed in the development environment.)') do
+        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
+        let(:Authorization) { "Bearer wrong-token" }
+        let(:api_key) { nil }
+        let(:start_date) { '2023-01-01' }
+        let(:end_date) { '2023-12-31' }
+        let(:username) { nil }
+        let(:user_email) { nil }
         schema '$ref' => '#/components/schemas/Error'
+        run_test!
       end
 
       response(404, 'user not found') do

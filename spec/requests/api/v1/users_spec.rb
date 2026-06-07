@@ -27,8 +27,12 @@ RSpec.describe 'Api::V1::Users', type: :request do
         end
       end
 
-      response(401, 'unauthorized — Returned when STATS_API_KEY is unset/blank or the Authorization Bearer token is missing or incorrect. (Auth is bypassed in the development environment, so this branch is only reachable in production.)') do
+      response(401, 'unauthorized — Returned when STATS_API_KEY is unset/blank or the Authorization Bearer token is missing or incorrect. (Auth is bypassed in the development environment.)') do
+        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
+        let(:Authorization) { "Bearer wrong-token" }
+        let(:email) { 'orpheus@hackclub.com' }
         schema '$ref' => '#/components/schemas/Error'
+        run_test!
       end
 
       response(404, 'not found') do
@@ -66,8 +70,12 @@ RSpec.describe 'Api::V1::Users', type: :request do
         run_test!
       end
 
-      response(401, 'unauthorized — Returned when STATS_API_KEY is unset/blank or the Authorization Bearer token is missing or incorrect. (Auth is bypassed in the development environment, so this branch is only reachable in production.)') do
+      response(401, 'unauthorized — Returned when STATS_API_KEY is unset/blank or the Authorization Bearer token is missing or incorrect. (Auth is bypassed in the development environment.)') do
+        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
+        let(:Authorization) { "Bearer wrong-token" }
+        let(:slack_uid) { 'TEST123456' }
         schema '$ref' => '#/components/schemas/Error'
+        run_test!
       end
 
       response(404, 'not found') do

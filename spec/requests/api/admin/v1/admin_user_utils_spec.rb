@@ -942,7 +942,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
         run_test!
       end
 
-      response(422, 'invalid request — Returned with "you cant punish a mortal and not justify your actions" when reason is blank, "read the docs you idiot" when trust_level is not a valid trust level, or "no perms lmaooo" when the trust level change fails.') do
+      response(422, 'invalid request — Returned when reason is blank, when trust_level is not a valid trust level, or when the change fails to apply.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
           u = User.create!(username: 'convict_invalid')
@@ -950,6 +950,17 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
           u
         end
         let(:payload) { { user_id: user.id, reason: 'spam', trust_level: 'not_a_level' } }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(403, 'forbidden — Returned when the authenticated admin lacks write access (e.g. a viewer-level key) or is not permitted to change the target user\'s trust level.') do
+        let(:Authorization) { "Bearer viewer-admin-api-key-convict" }
+        let(:payload) { { user_id: 0, reason: 'spam', trust_level: 'red' } }
+        before do
+          u = User.create!(username: 'rswag_convict_viewer', timezone: 'UTC', admin_level: :viewer)
+          AdminApiKey.create!(user: u, name: 'Viewer Key', token: 'viewer-admin-api-key-convict')
+        end
         schema '$ref' => '#/components/schemas/Error'
         run_test!
       end

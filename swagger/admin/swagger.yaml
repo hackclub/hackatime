@@ -2728,10 +2728,16 @@ paths:
         '404':
           description: user not found
         '422':
-          description: invalid request — Returned with "you cant punish a mortal and
-            not justify your actions" when reason is blank, "read the docs you idiot"
-            when trust_level is not a valid trust level, or "no perms lmaooo" when
-            the trust level change fails.
+          description: invalid request — Returned when reason is blank, when trust_level
+            is not a valid trust level, or when the change fails to apply.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: forbidden — Returned when the authenticated admin lacks write
+            access (e.g. a viewer-level key) or is not permitted to change the target
+            user's trust level.
           content:
             application/json:
               schema:

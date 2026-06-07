@@ -35,6 +35,30 @@ paths:
           description: unauthorized
         '403':
           description: account pending deletion
+        '429':
+          description: rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: string
+                example: '30'
+              description: Seconds until the rate limit resets
+            X-RateLimit-Limit:
+              schema:
+                type: string
+                example: '360'
+            X-RateLimit-Remaining:
+              schema:
+                type: string
+                example: '0'
+            X-RateLimit-Reset:
+              schema:
+                type: string
+                example: '30'
+            X-RateLimit-Reset-At:
+              schema:
+                type: string
+                example: '2024-03-20T15:30:30Z'
       requestBody:
         content:
           application/json:
@@ -1310,6 +1334,14 @@ paths:
               schema:
                 type: integer
                 example: 123456
+        '401':
+          description: unauthorized — Returned when STATS_API_KEY is unset/blank or
+            the supplied token is missing or incorrect. (Auth is bypassed in the development
+            environment.)
+          content:
+            text/plain:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '404':
           description: user not found
           content:
@@ -1916,6 +1948,14 @@ paths:
                   email:
                     type: string
                     example: orpheus@hackclub.com
+        '401':
+          description: unauthorized — Returned when STATS_API_KEY is unset/blank or
+            the Authorization Bearer token is missing or incorrect. (Auth is bypassed
+            in the development environment.)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '404':
           description: not found
           content:
@@ -1960,6 +2000,14 @@ paths:
                   slack_uid:
                     type: string
                     example: U0266FRGP
+        '401':
+          description: unauthorized — Returned when STATS_API_KEY is unset/blank or
+            the Authorization Bearer token is missing or incorrect. (Auth is bypassed
+            in the development environment.)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '404':
           description: not found
           content:
@@ -2031,7 +2079,6 @@ components:
           enum:
           - file
           - app
-          -
         category:
           type: string
           nullable: true
@@ -2060,7 +2107,6 @@ components:
           - translating
           - writing docs
           - writing tests
-          -
         time:
           type: number
           format: float
