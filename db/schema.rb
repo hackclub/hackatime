@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_05_084738) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -473,6 +473,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.string "name", null: false
     t.bigint "owner_id"
     t.string "owner_type"
+    t.boolean "redirect_to_hca_login", default: false, null: false
     t.text "redirect_uri", null: false
     t.string "scopes", default: "", null: false
     t.string "secret", null: false
@@ -650,6 +651,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
+    t.datetime "leaderboard_shadowban_expires_at"
     t.text "leaderboard_shadowban_reason"
     t.boolean "leaderboard_shadowbanned", default: false, null: false
     t.bigint "leaderboard_shadowbanned_by_id"

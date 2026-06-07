@@ -118,7 +118,10 @@ module Doorkeeper
     end
 
     def application_params
-      params.require(:doorkeeper_application).permit(:name, :redirect_uri, :scopes, :confidential)
+      permitted = params.require(:doorkeeper_application)
+        .permit(:name, :redirect_uri, :confidential, :redirect_to_hca_login, scopes: [])
+      permitted[:scopes] = permitted[:scopes].compact_blank.join(" ")
+      permitted
     end
 
     def i18n_scope(action) = %i[doorkeeper flash applications] << action
@@ -149,6 +152,7 @@ module Doorkeeper
           uid: @application.uid,
           verified: @application.verified?,
           confidential: @application.confidential?,
+          redirect_to_hca_login: @application.redirect_to_hca_login?,
           scopes: @application.scopes.to_a.map(&:to_s),
           redirect_uris: redirect_uris_for(@application),
           can_toggle_verified: current_user&.admin_level_superadmin? || current_user&.admin_level_ultraadmin? || false
@@ -189,6 +193,7 @@ module Doorkeeper
           name: @application.name.to_s,
           redirect_uri: @application.redirect_uri.to_s,
           confidential: @application.confidential?,
+          redirect_to_hca_login: @application.redirect_to_hca_login?,
           verified: @application.verified?,
           selected_scopes: selected_scopes_for(@application)
         },

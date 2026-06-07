@@ -64,8 +64,7 @@
           <span class="font-bold text-xl tracking-tight">Hackatime</span>
         </a>
         <p class="text-sm text-secondary max-w-[35ch] leading-relaxed">
-          A project by Hack Club. We build tools, community, and events for the
-          next generation of hackers.
+          A project by Hack Club. Made with 💖 in 🇬🇧🇺🇸
         </p>
       </div>
       {#each sections as section}

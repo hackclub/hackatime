@@ -9,3 +9,6 @@ ignored_endpoints:
   - Rails::HealthController#show
   - ActionDispatch::Routing::RouteSet#*
   - ActionDispatch::Static
+  - Api::Hackatime::V1::HackatimeController#push_heartbeats
+  - Api::Hackatime::V1::HackatimeController#status_bar_today
+  - Api::V1::StatsController#user_stats

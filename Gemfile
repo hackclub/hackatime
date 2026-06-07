@@ -124,7 +124,6 @@ group :development, :test do
 end
 
 gem "rswag-api"
-gem "rswag-ui"
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]

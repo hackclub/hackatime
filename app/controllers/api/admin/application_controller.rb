@@ -5,6 +5,7 @@ module Api
       include RenderHelpers
 
       before_action :authenticate_admin_api_key!
+      before_action :set_paper_trail_whodunnit
 
       private
 
@@ -29,6 +30,10 @@ module Api
 
       def current_admin_api_key
         @admin_api_key
+      end
+
+      def set_paper_trail_whodunnit
+        PaperTrail.request.whodunnit = current_user&.id
       end
 
       def require_superadmin

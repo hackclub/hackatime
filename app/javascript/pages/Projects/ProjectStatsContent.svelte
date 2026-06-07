@@ -45,7 +45,10 @@
     <StatCard label="Top Language" value={topKey(language_stats)} />
     <StatCard label="Top Branch" value={topKey(branch_stats)} />
     <StatCard label="Top File" value={topKey(file_stats)} />
-    <StatCard label="Top Category" value={topKey(category_stats)} />
+    <StatCard
+      label="Top Category"
+      value={topKey(category_stats).replace(/^Ai coding$/, "AI Coding")}
+    />
     <StatCard label="Days Active" value={`${daysActive} days active`} />
   </div>
 
