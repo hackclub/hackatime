@@ -36,7 +36,7 @@ class LeaderboardPageCache
     end
 
     def entries_scope(leaderboard:, scope:, country_code:)
-      q = leaderboard.entries.order(total_seconds: :desc)
+      q = leaderboard.entries.order(total_seconds: :desc, user_id: :asc)
       q = q.joins(:user).where(users: { country_code: }) if scope.to_sym == :country && country_code.present?
       q.preload(user: :email_addresses)
     end

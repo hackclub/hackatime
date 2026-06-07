@@ -45,7 +45,7 @@ class LeaderboardEntries
       .joins(:user)
       .where(users: { leaderboard_shadowbanned: false })
       .preload(:user)
-      .order(total_seconds: :desc)
+      .order(total_seconds: :desc, user_id: :asc)
       .map.with_index(1) do |row, rank|
         public_entry_payload(row, rank:)
       end

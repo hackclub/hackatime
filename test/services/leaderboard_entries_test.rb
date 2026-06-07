@@ -82,6 +82,10 @@ class LeaderboardEntriesTest < ActiveSupport::TestCase
   end
 
   test "fetch_public cache follows leaderboard page cache version" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+    Rails.cache.clear
+
     user = create_user(username: "public_cache_visible")
     board = create_board
     board.entries.create!(user: user, total_seconds: 300, streak_count: 1)
@@ -95,6 +99,9 @@ class LeaderboardEntriesTest < ActiveSupport::TestCase
     )
 
     assert_equal 0, LeaderboardEntries.fetch_public(leaderboard: board)[:total]
+  ensure
+    Rails.cache.clear
+    Rails.cache = original_cache
   end
 
   private
