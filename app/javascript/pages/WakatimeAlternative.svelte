@@ -1,23 +1,12 @@
 <script module lang="ts">
-  export const layout = false;
+  import MarketingLayout from "../layouts/MarketingLayout.svelte";
+  export const layout = MarketingLayout;
 </script>
 
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
   import MarketingFooter from "../components/MarketingFooter.svelte";
   import Checkmark from "hcicons-svelte/checkmark";
-
-  $effect(() => {
-    const html = document.documentElement;
-    const previousTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "rose");
-    document
-      .querySelector("meta[name='color-scheme']")
-      ?.setAttribute("content", "dark");
-    return () => {
-      if (previousTheme) html.setAttribute("data-theme", previousTheme);
-    };
-  });
 
   type Feature = {
     name: string;

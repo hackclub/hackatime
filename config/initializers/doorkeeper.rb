@@ -10,7 +10,16 @@ Doorkeeper.configure do
 
   resource_owner_authenticator do
     if respond_to?(:current_user, true)
-      send(:current_user) || redirect_to(signin_path(continue: request.fullpath))
+      user = send(:current_user)
+      client_id = request.params[:client_id]
+
+      if user
+        user
+      elsif client_id.present? && OauthApplication.find_by(uid: client_id)&.redirect_to_hca_login?
+        redirect_to(hca_auth_path(continue: request.fullpath))
+      else
+        redirect_to(signin_path(continue: request.fullpath))
+      end
     end
   end
 

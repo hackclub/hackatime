@@ -71,6 +71,7 @@ class PrivacySettingsTest < ApplicationSystemTestCase
     end
 
     assert_text(/New API key/i)
+    assert_no_text "Unable to rotate API key"
 
     new_token = @user.reload.api_keys.order(:id).last.token
     refute_equal old_token, new_token

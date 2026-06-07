@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "app/javascript/entrypoints/**/*.{ts,js,css}",
+    "app/javascript/ssr/ssr.ts",
+    "app/javascript/pages/**/*.svelte",
+    "app/javascript/layouts/AppLayout.svelte",
+    "app/assets/stylesheets/**/*.css",
+    "app/assets/tailwind/**/*.css"
+  ],
+  "project": [
+    "app/javascript/**/*.{ts,js,svelte,css}",
+    "!app/javascript/application.js",
+    "!app/javascript/controllers/**",
+    "app/assets/**/*.css"
+  ],
+  "ignoreDependencies": [
+    "@js-from-routes/client"
+  ],
+  "tags": [
+    "-lintignore"
+  ]
+}

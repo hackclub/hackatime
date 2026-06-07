@@ -19,8 +19,9 @@ Rails.application.routes.draw do
     }
   end
 
+  get "api-docs", to: "api_docs#show", as: :api_docs
+  get "api-docs/admin", to: "api_docs#admin", as: :admin_api_docs
   mount Rswag::Api::Engine => "/api-docs"
-  mount Rswag::Ui::Engine => "/api-docs"
   use_doorkeeper { controllers authorizations: "custom_doorkeeper/authorizations" }
 
   post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application
@@ -43,9 +44,6 @@ Rails.application.routes.draw do
           post :toggle_verified
           post :rotate_secret
         end
-      end
-      resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
-        get :search_users, on: :collection
       end
     end
   end
@@ -83,6 +81,9 @@ Rails.application.routes.draw do
           post :reject
         end
       end
+      resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
+        get :search_users, on: :collection
+      end
     end
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
   end
@@ -101,7 +102,6 @@ Rails.application.routes.draw do
 
   resources :static_pages, only: [ :index ] do
     collection do
-      get :project_durations
       get :currently_hacking
       get :currently_hacking_count
       get :streak
@@ -292,6 +292,10 @@ Rails.application.routes.draw do
 
         # Admin API Keys management
         resources :admin_api_keys, only: [ :index, :show, :create, :destroy ]
+
+        resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
+          get :search_users, on: :collection
+        end
 
         # Trust level audit logs
         resources :trust_level_audit_logs, only: [ :index, :show ]

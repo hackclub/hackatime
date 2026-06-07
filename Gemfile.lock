@@ -82,8 +82,8 @@ GEM
     ast (2.4.3)
     autotuner (1.1.0)
     aws-eventstream (1.4.0)
-    aws-partitions (1.1253.0)
-    aws-sdk-core (3.249.0)
+    aws-partitions (1.1257.0)
+    aws-sdk-core (3.251.0)
       aws-eventstream (~> 1, >= 1.3.0)
       aws-partitions (~> 1, >= 1.992.0)
       aws-sigv4 (~> 1.9)
@@ -91,10 +91,10 @@ GEM
       bigdecimal
       jmespath (~> 1, >= 1.6.1)
       logger
-    aws-sdk-kms (1.128.0)
+    aws-sdk-kms (1.129.0)
       aws-sdk-core (~> 3, >= 3.248.0)
       aws-sigv4 (~> 1.5)
-    aws-sdk-s3 (1.224.0)
+    aws-sdk-s3 (1.225.0)
       aws-sdk-core (~> 3, >= 3.248.0)
       aws-sdk-kms (~> 1)
       aws-sigv4 (~> 1.5)
@@ -111,12 +111,12 @@ GEM
       smart_properties
     bigdecimal (4.1.2)
     bindex (0.8.1)
-    bootsnap (1.24.5)
+    bootsnap (1.24.6)
       msgpack (~> 1.2)
     brakeman (8.0.4)
       racc
     builder (3.3.0)
-    bullet (8.1.2)
+    bullet (8.1.3)
       activesupport (>= 3.0.0)
       uniform_notifier (~> 1.11)
     capybara (3.40.0)
@@ -144,8 +144,9 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    css_parser (2.2.0)
+    css_parser (3.0.0)
       addressable
+      ssrf_filter (~> 1.5)
     csv (3.3.5)
     date (3.5.1)
     debug (1.11.1)
@@ -153,7 +154,7 @@ GEM
       reline (>= 0.3.8)
     diff-lcs (1.6.2)
     domain_name (0.6.20240107)
-    doorkeeper (5.9.1)
+    doorkeeper (5.9.2)
       railties (>= 5)
     dotenv (3.2.0)
     dotenv-rails (3.2.0)
@@ -174,17 +175,6 @@ GEM
       tzinfo
     faker (3.8.0)
       i18n (>= 1.8.11, < 2)
-    faraday (2.14.2)
-      faraday-net_http (>= 2.0, < 3.5)
-      json
-      logger
-    faraday-mashify (1.0.2)
-      faraday (~> 2.0)
-      hashie
-    faraday-multipart (1.2.0)
-      multipart-post (~> 2.0)
-    faraday-net_http (3.4.3)
-      net-http (~> 0.5)
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-aarch64-linux-musl)
     ffi (1.17.4-arm-linux-gnu)
@@ -205,17 +195,15 @@ GEM
       rack-protection (>= 1.5.3, < 5.0.0)
       rack-session (>= 1.0.2, < 3.0.0)
       sanitize (< 8)
-    fugit (1.12.1)
+    fugit (1.12.2)
       et-orbi (~> 1.4)
       raabro (~> 1.4)
     geocoder (1.8.6)
       base64 (>= 0.1.0)
       csv (>= 3.0.0)
-    gli (2.22.2)
-      ostruct
     globalid (1.3.0)
       activesupport (>= 6.1)
-    good_job (4.18.2)
+    good_job (4.19.0)
       activejob (>= 6.1.0)
       activerecord (>= 6.1.0)
       concurrent-ruby (>= 1.3.1)
@@ -223,8 +211,6 @@ GEM
       railties (>= 6.1.0)
       thor (>= 1.0.0)
     hashdiff (1.2.1)
-    hashie (5.1.0)
-      logger
     htmlentities (4.4.2)
     http (6.0.3)
       http-cookie (~> 1.0)
@@ -248,13 +234,13 @@ GEM
       prism (>= 1.3.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    jbuilder (2.15.0)
+    jbuilder (2.15.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
     jmespath (1.6.2)
     js_from_routes (4.0.2)
       railties (>= 5.1, < 9)
-    json (2.19.5)
+    json (2.19.8)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
@@ -314,11 +300,8 @@ GEM
     minitest (6.0.6)
       drb (~> 2.0)
       prism (~> 1.5)
-    msgpack (1.8.0)
-    multipart-post (2.4.1)
+    msgpack (1.8.1)
     mutex_m (0.3.0)
-    net-http (0.9.1)
-      uri (>= 0.11.1)
     net-imap (0.6.4)
       date
       net-protocol
@@ -343,7 +326,7 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.3-x86_64-linux-musl)
       racc (~> 1.4)
-    oj (3.17.1)
+    oj (3.17.3)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
     ostruct (0.6.3)
@@ -376,11 +359,11 @@ GEM
       actionpack (>= 7.0.0)
       activesupport (>= 7.0.0)
       rack
-    psych (5.3.1)
+    psych (5.4.0)
       date
       stringio
     public_suffix (7.0.5)
-    puma (8.0.1)
+    puma (8.0.2)
       nio4r (~> 2.0)
     query_count (1.1.1)
       activerecord (>= 4.2)
@@ -479,10 +462,7 @@ GEM
       json-schema (>= 2.2, < 7.0)
       railties (>= 5.2, < 8.2)
       rspec-core (>= 2.14)
-    rswag-ui (2.17.0)
-      actionpack (>= 5.2, < 8.2)
-      railties (>= 5.2, < 8.2)
-    rubocop (1.86.2)
+    rubocop (1.87.0)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
@@ -500,7 +480,7 @@ GEM
       lint_roller (~> 1.1)
       rubocop (>= 1.75.0, < 2.0)
       rubocop-ast (>= 1.47.1, < 2.0)
-    rubocop-rails (2.35.2)
+    rubocop-rails (2.35.3)
       activesupport (>= 4.2.0)
       lint_roller (~> 1.1)
       rack (>= 1.1)
@@ -516,7 +496,7 @@ GEM
       logger
     ruby_identicon (0.0.6)
       chunky_png (~> 1.4.0)
-    rubyzip (3.3.0)
+    rubyzip (3.3.1)
     sanitize (7.0.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.16.8)
@@ -527,22 +507,15 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
-    sentry-rails (6.5.0)
+    sentry-rails (6.6.0)
       railties (>= 5.2.0)
-      sentry-ruby (~> 6.5.0)
-    sentry-ruby (6.5.0)
+      sentry-ruby (~> 6.6.0)
+    sentry-ruby (6.6.0)
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
       logger
     skylight (7.1.1)
       activesupport (>= 7.2.0)
-    slack-ruby-client (3.1.0)
-      faraday (>= 2.0.1)
-      faraday-mashify
-      faraday-multipart
-      gli
-      hashie
-      logger
     smart_properties (1.17.0)
     solid_cable (4.0.0)
       actioncable (>= 7.2)
@@ -560,6 +533,7 @@ GEM
     sqlite3 (2.9.4-arm64-darwin)
     sqlite3 (2.9.4-x86_64-linux-gnu)
     sqlite3 (2.9.4-x86_64-linux-musl)
+    ssrf_filter (1.5.0)
     stackprof (0.2.28)
     stimulus-rails (1.3.4)
       railties (>= 6.0.0)
@@ -601,7 +575,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     websocket (1.2.11)
-    websocket-driver (0.8.0)
+    websocket-driver (0.8.1)
       base64
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
@@ -673,7 +647,6 @@ DEPENDENCIES
   rspec-rails
   rswag-api
   rswag-specs
-  rswag-ui
   rubocop-rails-omakase
   ruby-vips (~> 2.3)
   ruby_identicon
@@ -682,7 +655,6 @@ DEPENDENCIES
   sentry-rails
   sentry-ruby
   skylight
-  slack-ruby-client
   solid_cable
   solid_cache
   sqlite3 (>= 2.1)
@@ -696,4 +668,4 @@ DEPENDENCIES
   webmock
 
 BUNDLED WITH
-  4.0.4
+  4.0.13

@@ -1,16 +1,4 @@
 module ApplicationHelper
-  def cache_stats = { hits: Thread.current[:cache_hits] || 0, misses: Thread.current[:cache_misses] || 0 }
-
-  def requests_per_second
-    rps = RequestCounter.per_second
-    rps == :high_load ? "lots of req/sec" : "#{rps} req/sec"
-  end
-
-  def global_requests_per_second
-    rps = RequestCounter.global_per_second
-    rps == :high_load ? "lots of req/sec" : "#{rps} req/sec (global)"
-  end
-
   def current_theme
     theme_name = current_user&.theme
     return User::DEFAULT_THEME if theme_name.blank?
@@ -47,17 +35,6 @@ module ApplicationHelper
       "https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/#{code_path}.svg",
       alt: "#{country_code} flag", class: "inline-block w-5 h-5 align-middle", loading: "lazy"
     )
-  end
-
-  # infer country from timezone
-  def timezone_to_country(timezone)
-    return null unless timezone.present?
-    tz = ActiveSupport::TimeZone[timezone]
-    tz&.tzinfo&.respond_to?(:country_code) ? (tz.tzinfo.country_code || null) : null
-  end
-
-  def visualize_git_url(url)
-    url.blank? ? "" : "https://maxwofford.com/dandelion/?url=#{CGI.escape(url)}"
   end
 
   def digital_time(time)
@@ -120,12 +97,6 @@ module ApplicationHelper
   end
 
   def display_language_name(language) = LanguageUtils.display_name(language)
-  def language_color(language) = LanguageUtils.color(language)
-
-  def modal_open_button(modal_id, text, **options)
-    button_tag text, { type: "button",
-      onclick: "document.getElementById('#{modal_id}')?.dispatchEvent(new CustomEvent('modal:open'))" }.merge(options)
-  end
 
   def shorten_file_path(entity)
     return entity if entity.blank?

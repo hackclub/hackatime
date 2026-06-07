@@ -6,6 +6,7 @@
   import SettingsShell from "./Shell.svelte";
   import type { AppearancePageProps } from "./types";
   import { settingsAppearance } from "../../../api";
+  import { DEFAULT_THEME } from "../../../utils";
 
   let {
     active_section,
@@ -17,11 +18,7 @@
     errors,
   }: AppearancePageProps = $props();
 
-  let selectedTheme = $state("rose");
-
-  $effect(() => {
-    selectedTheme = user.theme || "rose";
-  });
+  let selectedTheme = $state(user.theme || DEFAULT_THEME);
 
   const applySelectedTheme = () => {
     if (typeof document === "undefined") return;

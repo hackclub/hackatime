@@ -2,7 +2,8 @@ module Api
   module Admin
     module V1
       class AdminApiKeysController < Api::Admin::V1::ApplicationController
-        before_action :set_admin_api_key, only: [ :show, :destroy ]
+        before_action :set_admin_api_key, only: [ :show ]
+        before_action :set_own_admin_api_key, only: [ :destroy ]
 
         def index
           api_keys = AdminApiKey.includes(:user).active.order(created_at: :desc)
@@ -52,6 +53,12 @@ module Api
           @admin_api_key = AdminApiKey.find(params[:id])
         rescue ActiveRecord::RecordNotFound
           render json: { error: "Admin API key not found" }, status: :not_found
+        end
+
+        def set_own_admin_api_key
+          @admin_api_key = current_user.admin_api_keys.find_by(id: params[:id])
+          return if @admin_api_key
+          render json: { error: "You can only revoke your own admin API keys" }, status: :forbidden
         end
 
         def admin_api_key_json(key)

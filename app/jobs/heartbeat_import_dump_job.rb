@@ -5,8 +5,7 @@ class HeartbeatImportDumpJob < ApplicationJob
 
   good_job_control_concurrency_with(
     total_limit: 1,
-    key: -> { "heartbeat_import_dump_job_#{arguments.first}" },
-    drop: true
+    key: -> { "heartbeat_import_dump_job_#{arguments.first}" }
   )
 
   POLL_INTERVAL = 3.seconds

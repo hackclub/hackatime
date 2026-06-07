@@ -12,6 +12,7 @@
     last_30_days: "Last 30 Days",
     this_year: "This Year",
     last_12_months: "Last 12 Months",
+    stardance: "Stardance",
     flavortown: "Flavortown",
     summer_of_making: "Summer of Making",
     high_seas: "High Seas",

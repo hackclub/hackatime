@@ -39,9 +39,6 @@ gem "sentry-rails"
 
 gem "good_job"
 
-# Slack client
-gem "slack-ruby-client"
-
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
@@ -127,7 +124,6 @@ group :development, :test do
 end
 
 gem "rswag-api"
-gem "rswag-ui"
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]

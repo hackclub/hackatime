@@ -15,52 +15,49 @@
     {
       title: "Time tracking",
       description:
-        "Automatic tracking that starts when you type and stops when you take a break. Down to the second.",
+        "Automatic tracking that starts when you type and stops when you take a break.",
       icon: Clock,
     },
     {
       title: "Language stats",
       description:
-        "See your actual tech stack. How much Rust vs. how much time debugging config files.",
+        "See your actual tech stack - how much time do you spend writing React vs Svelte?",
       icon: CodeBracketSquare,
     },
     {
       title: "File-level insights",
       description:
-        "Drill into specific files. Find the ones consuming all your time.",
+        "Drill into specific files and find the ones consuming all your time.",
       icon: DocumentText,
     },
     {
       title: "Zero lock-in",
-      description:
-        "Your data is yours. Export your entire history to JSON or CSV via the REST API.",
+      description: "Your data is yours. Export your entire history as JSON.",
       icon: ArrowDownTray,
     },
     {
       title: "Leaderboards (coming soon)",
-      description:
-        "Create private leaderboards for your team or hackathon. Compete on consistency.",
+      description: "Create private leaderboards for your team or hackathon.",
       icon: UserGroup,
     },
     {
       title: "Privacy-first",
-      description:
-        "We don't sell your data. We don't use it for AI training. Just heartbeats and charts.",
+      description: "We never see your code, so your projects stay private.",
       icon: LockClosed,
     },
   ];
 </script>
 
 <Section id="features">
-  <div class="text-center max-w-[700px] mx-auto mb-12">
+  <div class="text-center max-w-175 mx-auto mb-12">
     <h2
       class="text-3xl md:text-4xl font-semibold text-surface-content tracking-tight mb-4"
     >
       Everything you need, nothing you don't.
     </h2>
     <p class="text-secondary text-lg text-pretty">
-      Granular telemetry for your development environment, delivered via a clean
-      dashboard.
+      Granular telemetry for your development environment that helps you stay
+      productive.
     </p>
   </div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-8">

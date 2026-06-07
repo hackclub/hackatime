@@ -51,12 +51,12 @@ export type SettingsSubsection = {
   label: string;
 };
 
-export type Option = {
+type Option = {
   label: string;
   value: string;
 };
 
-export type ThemeOption = {
+type ThemeOption = {
   value: string;
   label: string;
   description: string;
@@ -82,7 +82,7 @@ export type ProgrammingGoal = {
   projects: string[];
 };
 
-export type GoalForm = {
+type GoalForm = {
   open: boolean;
   mode: "create" | "edit";
   goal_id: string | null;
@@ -93,7 +93,7 @@ export type GoalForm = {
   errors: string[];
 };
 
-export type UserProps = {
+type UserProps = {
   id: number;
   display_name: string;
   timezone: string;
@@ -112,7 +112,7 @@ export type UserProps = {
   slack_uid?: string | null;
 };
 
-export type BaseOptionsProps = {
+type BaseOptionsProps = {
   countries: Option[];
   timezones: Option[];
   extension_text_types: Option[];
@@ -120,7 +120,7 @@ export type BaseOptionsProps = {
   badge_themes: string[];
 };
 
-export type GoalsOptionsProps = {
+type GoalsOptionsProps = {
   goals: {
     periods: Option[];
     preset_target_seconds: number[];
@@ -129,9 +129,9 @@ export type GoalsOptionsProps = {
   };
 };
 
-export type OptionsProps = BaseOptionsProps & GoalsOptionsProps;
+type OptionsProps = BaseOptionsProps & GoalsOptionsProps;
 
-export type SlackProps = {
+type SlackProps = {
   can_enable_status: boolean;
   notification_channels: {
     id: string;
@@ -140,19 +140,19 @@ export type SlackProps = {
   }[];
 };
 
-export type GithubProps = {
+type GithubProps = {
   connected: boolean;
   username?: string | null;
   profile_url?: string | null;
 };
 
-export type EmailProps = {
+type EmailProps = {
   email: string;
   source: string;
   can_unlink: boolean;
 };
 
-export type BadgesProps = {
+type BadgesProps = {
   general_badge_url: string;
   project_badge_url?: string | null;
   project_badge_base_url?: string | null;
@@ -166,7 +166,7 @@ export type BadgesProps = {
   hackabox_preview_image_url: string;
 };
 
-export type ConfigFileProps = {
+type ConfigFileProps = {
   content?: string | null;
   has_api_key: boolean;
   empty_message: string;
@@ -174,14 +174,14 @@ export type ConfigFileProps = {
   api_url: string;
 };
 
-export type DataExportProps = {
+type DataExportProps = {
   total_heartbeats: string;
   total_coding_time: string;
   heartbeats_last_7_days: string;
   is_restricted: boolean;
 };
 
-export type UiProps = {
+type UiProps = {
   show_dev_import: boolean;
   show_imports: boolean;
 };
@@ -207,7 +207,7 @@ export type HeartbeatImportStatusProps = {
   finished_at?: string | null;
 };
 
-export type ErrorsProps = {
+type ErrorsProps = {
   full_messages: string[];
   username: string[];
 };

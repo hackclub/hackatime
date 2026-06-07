@@ -11,14 +11,18 @@ class LeaderboardPageCache
     def warm(leaderboard:) = fetch(leaderboard:, scope: :global)
 
     def clear!
-      Rails.cache.delete_matched("leaderboard_page/v2/*")
+      Rails.cache.write(version_key, SecureRandom.uuid)
     end
 
     private
 
+    def version_key = "leaderboard_page/v2/version"
+
+    def cache_version = Rails.cache.fetch(version_key) { SecureRandom.uuid }
+
     def cache_key(leaderboard, scope, country_code)
       scope_suffix = scope.to_sym == :country ? (country_code.presence || "none") : "global"
-      "leaderboard_page/v2/#{leaderboard.cache_key_with_version}/#{scope}/#{scope_suffix}"
+      "leaderboard_page/v2/#{cache_version}/#{leaderboard.cache_key_with_version}/#{scope}/#{scope_suffix}"
     end
 
     def build_payload(leaderboard:, scope:, country_code:)
