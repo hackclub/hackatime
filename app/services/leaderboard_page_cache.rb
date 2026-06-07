@@ -14,6 +14,8 @@ class LeaderboardPageCache
       Rails.cache.write(version_key, SecureRandom.uuid)
     end
 
+    def version = cache_version
+
     private
 
     def version_key = "leaderboard_page/v2/version"

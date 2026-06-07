@@ -14,15 +14,10 @@ class Api::V1::LeaderboardController < ApplicationController
   end
 
   def format_leaderboard(leaderboard)
-    entries = leaderboard.entries
-      .joins(:user)
-      .where(users: { leaderboard_shadowbanned: false })
-      .preload(:user)
-      .order(total_seconds: :desc)
-      .map.with_index do |entry, idx|
-      { rank: idx + 1,
-        user: { id: entry.user.id, username: entry.user.display_name, avatar_url: entry.user.avatar_url },
-        total_seconds: entry.total_seconds }
+    entries = LeaderboardEntries.fetch_public(leaderboard: leaderboard)[:entries].map do |entry|
+      { rank: entry[:rank],
+        user: { id: entry[:user_id], username: entry.dig(:user, :display_name), avatar_url: entry.dig(:user, :avatar_url) },
+        total_seconds: entry[:total_seconds] }
     end
 
     {
