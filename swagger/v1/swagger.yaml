@@ -1734,8 +1734,7 @@ paths:
       summary: List Leaderboard Shadowbans
       tags:
       - Admin Resources
-      description: List users hidden from public leaderboards. Requires superadmin
-        privileges.
+      description: List users hidden from public leaderboards. Requires admin privileges.
       security:
       - AdminToken: []
       responses:
@@ -1754,7 +1753,7 @@ paths:
       summary: Create Leaderboard Shadowban
       tags:
       - Admin Resources
-      description: Hide a user from public leaderboards. Requires superadmin privileges
+      description: Hide a user from public leaderboards. Requires admin privileges
         and a reason.
       security:
       - AdminToken: []
@@ -1798,7 +1797,7 @@ paths:
       tags:
       - Admin Resources
       description: Search users and include their current leaderboard shadowban metadata.
-        Requires superadmin privileges.
+        Requires admin privileges.
       security:
       - AdminToken: []
       parameters:
@@ -1824,7 +1823,7 @@ paths:
       summary: Delete Leaderboard Shadowban
       tags:
       - Admin Resources
-      description: Remove a user from the leaderboard shadowban list. Requires superadmin
+      description: Remove a user from the leaderboard shadowban list. Requires admin
         privileges.
       security:
       - AdminToken: []

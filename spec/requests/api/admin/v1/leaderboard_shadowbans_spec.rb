@@ -4,7 +4,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request do
   path '/api/admin/v1/leaderboard_shadowbans' do
     get('List Leaderboard Shadowbans') do
       tags 'Admin Resources'
-      description 'List users hidden from public leaderboards. Requires superadmin privileges.'
+      description 'List users hidden from public leaderboards. Requires admin privileges.'
       security [ AdminToken: [] ]
       produces 'application/json'
 
@@ -31,7 +31,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request do
 
     post('Create Leaderboard Shadowban') do
       tags 'Admin Resources'
-      description 'Hide a user from public leaderboards. Requires superadmin privileges and a reason.'
+      description 'Hide a user from public leaderboards. Requires admin privileges and a reason.'
       security [ AdminToken: [] ]
       consumes 'application/json'
       produces 'application/json'
@@ -74,7 +74,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request do
   path '/api/admin/v1/leaderboard_shadowbans/search_users' do
     get('Search Users for Leaderboard Shadowbans') do
       tags 'Admin Resources'
-      description 'Search users and include their current leaderboard shadowban metadata. Requires superadmin privileges.'
+      description 'Search users and include their current leaderboard shadowban metadata. Requires admin privileges.'
       security [ AdminToken: [] ]
       produces 'application/json'
 
@@ -104,7 +104,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request do
   path '/api/admin/v1/leaderboard_shadowbans/{user_id}' do
     delete('Delete Leaderboard Shadowban') do
       tags 'Admin Resources'
-      description 'Remove a user from the leaderboard shadowban list. Requires superadmin privileges.'
+      description 'Remove a user from the leaderboard shadowban list. Requires admin privileges.'
       security [ AdminToken: [] ]
       produces 'application/json'
 
