@@ -8,1958 +8,6 @@ info:
 
     We support the WakaTime spec, allowing you to use existing plugins and tools.
 paths:
-  "/api/admin/v1/admin_api_keys":
-    get:
-      summary: List Admin API Keys
-      tags:
-      - Admin Resources
-      description: List all admin API keys.
-      security:
-      - AdminToken: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  admin_api_keys:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        name:
-                          type: string
-                        token_preview:
-                          type: string
-                        user:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                            username:
-                              type: string
-                            display_name:
-                              type: string
-                            admin_level:
-                              type: string
-                        created_at:
-                          type: string
-                          format: date_time
-                        revoked_at:
-                          type: string
-                          format: date_time
-                          nullable: true
-                        active:
-                          type: boolean
-    post:
-      summary: Create Admin API Key
-      tags:
-      - Admin Resources
-      description: Create a new admin API key.
-      security:
-      - AdminToken: []
-      parameters: []
-      responses:
-        '201':
-          description: created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  admin_api_key:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      name:
-                        type: string
-                      token:
-                        type: string
-                      created_at:
-                        type: string
-                        format: date_time
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-  "/api/admin/v1/admin_api_keys/{id}":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-    get:
-      summary: Show Admin API Key
-      tags:
-      - Admin Resources
-      description: Show details of an admin API key.
-      security:
-      - AdminToken: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                  name:
-                    type: string
-                  token_preview:
-                    type: string
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      username:
-                        type: string
-                      display_name:
-                        type: string
-                      admin_level:
-                        type: string
-                  created_at:
-                    type: string
-                    format: date_time
-                  revoked_at:
-                    type: string
-                    format: date_time
-                    nullable: true
-                  active:
-                    type: boolean
-    delete:
-      summary: Revoke Admin API Key
-      tags:
-      - Admin Resources
-      description: Revoke/Delete an admin API key.
-      security:
-      - AdminToken: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-  "/api/admin/v1/trust_level_audit_logs":
-    get:
-      summary: List Trust Level Audit Logs
-      tags:
-      - Admin Resources
-      description: List audit logs for trust level changes.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: user_id
-        in: query
-        description: Filter by User ID
-        required: false
-        schema:
-          type: string
-      - name: admin_id
-        in: query
-        description: Filter by Admin ID
-        required: false
-        schema:
-          type: string
-      - name: user_search
-        in: query
-        description: Search user (fuzzy)
-        required: false
-        schema:
-          type: string
-      - name: admin_search
-        in: query
-        description: Search admin (fuzzy)
-        required: false
-        schema:
-          type: string
-      - name: trust_level_filter
-        in: query
-        schema:
-          type: string
-          enum:
-          - all
-          - to_convicted
-          - to_trusted
-          - to_suspected
-          - to_unscored
-        description: Filter by trust level change
-        required: false
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  audit_logs:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        user:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                            username:
-                              type: string
-                            display_name:
-                              type: string
-                        previous_trust_level:
-                          type: string
-                          nullable: true
-                        new_trust_level:
-                          type: string
-                          nullable: true
-                        changed_by:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                            username:
-                              type: string
-                            display_name:
-                              type: string
-                            admin_level:
-                              type: string
-                        reason:
-                          type: string
-                          nullable: true
-                        notes:
-                          type: string
-                          nullable: true
-                        created_at:
-                          type: string
-                  total_count:
-                    type: integer
-  "/api/admin/v1/trust_level_audit_logs/{id}":
-    get:
-      summary: Show Trust Level Audit Log
-      tags:
-      - Admin Resources
-      description: Show details of a trust level audit log.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      username:
-                        type: string
-                      display_name:
-                        type: string
-                      current_trust_level:
-                        type: string
-                  previous_trust_level:
-                    type: string
-                    nullable: true
-                  new_trust_level:
-                    type: string
-                    nullable: true
-                  changed_by:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      username:
-                        type: string
-                      display_name:
-                        type: string
-                      admin_level:
-                        type: string
-                  reason:
-                    type: string
-                    nullable: true
-                  notes:
-                    type: string
-                    nullable: true
-                  created_at:
-                    type: string
-                    format: date_time
-                  updated_at:
-                    type: string
-                    format: date_time
-  "/api/admin/v1/deletion_requests":
-    get:
-      summary: List Deletion Requests
-      tags:
-      - Admin Resources
-      description: List pending deletion requests.
-      security:
-      - AdminToken: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  pending:
-                    type: array
-                    items:
-                      "$ref": "#/components/schemas/DeletionRequest"
-                  approved:
-                    type: array
-                    items:
-                      "$ref": "#/components/schemas/DeletionRequest"
-                  completed:
-                    type: array
-                    items:
-                      "$ref": "#/components/schemas/DeletionRequest"
-  "/api/admin/v1/deletion_requests/{id}":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-    get:
-      summary: Show Deletion Request
-      tags:
-      - Admin Resources
-      description: Show details of a deletion request.
-      security:
-      - AdminToken: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/DeletionRequest"
-  "/api/admin/v1/deletion_requests/{id}/approve":
-    post:
-      summary: Approve Deletion Request
-      tags:
-      - Admin Resources
-      description: Approve and execute a user deletion request.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  deletion_request:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      user_id:
-                        type: integer
-                      user:
-                        type: object
-                        properties:
-                          id:
-                            type: integer
-                          username:
-                            type: string
-                          display_name:
-                            type: string
-                      status:
-                        type: string
-                        enum:
-                        - pending
-                        - approved
-                        - cancelled
-                        - completed
-                      requested_at:
-                        type: string
-                        format: date_time
-                      scheduled_deletion_at:
-                        type: string
-                        format: date_time
-                        nullable: true
-                      completed_at:
-                        type: string
-                        format: date_time
-                        nullable: true
-                      admin_approved_by:
-                        type: object
-                        nullable: true
-                      created_at:
-                        type: string
-                        format: date_time
-                      updated_at:
-                        type: string
-                        format: date_time
-  "/api/admin/v1/deletion_requests/{id}/reject":
-    post:
-      summary: Reject Deletion Request
-      tags:
-      - Admin Resources
-      description: Reject a user deletion request.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  deletion_request:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      user_id:
-                        type: integer
-                      user:
-                        type: object
-                        properties:
-                          id:
-                            type: integer
-                          username:
-                            type: string
-                          display_name:
-                            type: string
-                      status:
-                        type: string
-                        enum:
-                        - pending
-                        - approved
-                        - cancelled
-                        - completed
-                      requested_at:
-                        type: string
-                        format: date_time
-                      scheduled_deletion_at:
-                        type: string
-                        format: date_time
-                        nullable: true
-                      completed_at:
-                        type: string
-                        format: date_time
-                        nullable: true
-                      admin_approved_by:
-                        type: object
-                        nullable: true
-                      created_at:
-                        type: string
-                        format: date_time
-                      updated_at:
-                        type: string
-                        format: date_time
-  "/api/admin/v1/timeline":
-    get:
-      summary: Get timeline
-      tags:
-      - Admin Timeline
-      description: Get timeline events including coding activity and commits for selected
-        users.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: date
-        in: query
-        schema:
-          type: string
-          format: date
-        description: Date for the timeline (YYYY-MM-DD)
-      - name: user_ids
-        in: query
-        description: Comma-separated list of User IDs
-        schema:
-          type: string
-      - name: slack_uids
-        in: query
-        description: Comma-separated list of Slack User IDs
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  date:
-                    type: string
-                    format: date
-                  next_date:
-                    type: string
-                    format: date
-                  prev_date:
-                    type: string
-                    format: date
-                  users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        user:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                            username:
-                              type: string
-                            display_name:
-                              type: string
-                              nullable: true
-                            slack_username:
-                              type: string
-                              nullable: true
-                            github_username:
-                              type: string
-                              nullable: true
-                            timezone:
-                              type: string
-                              nullable: true
-                            avatar_url:
-                              type: string
-                              nullable: true
-                        spans:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              start_time:
-                                type: number
-                                format: float
-                              end_time:
-                                type: number
-                                format: float
-                              duration:
-                                type: number
-                                format: float
-                              files_edited:
-                                type: array
-                                items:
-                                  type: string
-                              projects_edited_details:
-                                type: array
-                                items:
-                                  type: object
-                                  properties:
-                                    name:
-                                      type: string
-                                    repo_url:
-                                      type: string
-                                      nullable: true
-                              editors:
-                                type: array
-                                items:
-                                  type: string
-                              languages:
-                                type: array
-                                items:
-                                  type: string
-                        total_coded_time:
-                          type: number
-                          format: float
-                  commit_markers:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        user_id:
-                          type: integer
-                        timestamp:
-                          type: number
-                          format: float
-                        additions:
-                          type: integer
-                          nullable: true
-                        deletions:
-                          type: integer
-                          nullable: true
-                        github_url:
-                          type: string
-                          nullable: true
-  "/api/admin/v1/timeline/search_users":
-    get:
-      summary: Search timeline users
-      tags:
-      - Admin Timeline
-      description: Search users specifically for the timeline view by username, slack
-        username, ID, or email.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: query
-        in: query
-        description: Search query
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        display_name:
-                          type: string
-                          nullable: true
-                        avatar_url:
-                          type: string
-                          nullable: true
-        '422':
-          description: unprocessable entity
-  "/api/admin/v1/timeline/leaderboard_users":
-    get:
-      summary: Get leaderboard users for timeline
-      tags:
-      - Admin Timeline
-      description: Get users who should appear on the timeline leaderboard based on
-        recent activity.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: period
-        in: query
-        schema:
-          type: string
-          enum:
-          - daily
-          - last_7_days
-        description: Leaderboard period
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        display_name:
-                          type: string
-                          nullable: true
-                        avatar_url:
-                          type: string
-                          nullable: true
-  "/api/admin/v1/user/info_batch":
-    get:
-      summary: Get user info batch
-      tags:
-      - Admin Utils
-      description: Get info for multiple users.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: ids
-        in: query
-        schema:
-          type: array
-          items:
-            type: integer
-        description: User IDs
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        username:
-                          type: string
-                        display_name:
-                          type: string
-                        slack_uid:
-                          type: string
-                          nullable: true
-                        slack_username:
-                          type: string
-                          nullable: true
-                        github_username:
-                          type: string
-                          nullable: true
-                        timezone:
-                          type: string
-                          nullable: true
-                        country_code:
-                          type: string
-                          nullable: true
-                        trust_level:
-                          type: string
-                        avatar_url:
-                          type: string
-                          nullable: true
-                        slack_avatar_url:
-                          type: string
-                          nullable: true
-                        github_avatar_url:
-                          type: string
-                          nullable: true
-  "/api/admin/v1/user/info":
-    get:
-      summary: Get user info (Admin)
-      tags:
-      - Admin
-      description: Get detailed info about a user. Requires superadmin/admin privileges.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: user_id
-        in: query
-        description: User ID
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      username:
-                        type: string
-                      display_name:
-                        type: string
-                      slack_uid:
-                        type: string
-                        nullable: true
-                      slack_username:
-                        type: string
-                        nullable: true
-                      github_username:
-                        type: string
-                        nullable: true
-                      timezone:
-                        type: string
-                        nullable: true
-                      country_code:
-                        type: string
-                        nullable: true
-                      admin_level:
-                        type: string
-                      trust_level:
-                        type: string
-                      suspected:
-                        type: boolean
-                      banned:
-                        type: boolean
-                      created_at:
-                        type: string
-                        format: date_time
-                      updated_at:
-                        type: string
-                        format: date_time
-                      last_heartbeat_at:
-                        type: number
-                        nullable: true
-                      email_addresses:
-                        type: array
-                        items:
-                          type: string
-                      api_keys_count:
-                        type: integer
-                      stats:
-                        type: object
-                        properties:
-                          total_heartbeats:
-                            type: integer
-                          total_coding_time:
-                            type: number
-                          languages_used:
-                            type: integer
-                          projects_worked_on:
-                            type: integer
-                          days_active:
-                            type: integer
-  "/api/admin/v1/user/heartbeats":
-    get:
-      summary: Get user heartbeats (Admin)
-      tags:
-      - Admin
-      description: Get raw heartbeats for a user.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: user_id
-        in: query
-        description: User ID
-        schema:
-          type: string
-      - name: date
-        in: query
-        schema:
-          type: string
-          format: date
-        description: Date (YYYY-MM-DD)
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user_id:
-                    type: integer
-                  heartbeats:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        time:
-                          type: number
-                        lineno:
-                          type: integer
-                          nullable: true
-                        cursorpos:
-                          type: integer
-                          nullable: true
-                        is_write:
-                          type: boolean
-                          nullable: true
-                        project:
-                          type: string
-                          nullable: true
-                        language:
-                          type: string
-                          nullable: true
-                        entity:
-                          type: string
-                          nullable: true
-                        branch:
-                          type: string
-                          nullable: true
-                        category:
-                          type: string
-                          nullable: true
-                        editor:
-                          type: string
-                          nullable: true
-                        machine:
-                          type: string
-                          nullable: true
-                        user_agent:
-                          type: string
-                          nullable: true
-                        ip_address:
-                          type: string
-                          nullable: true
-                        lines:
-                          type: integer
-                          nullable: true
-                        source_type:
-                          type: string
-                          nullable: true
-                  total_count:
-                    type: integer
-                  has_more:
-                    type: boolean
-        '404':
-          description: user not found
-        '422':
-          description: invalid date filter
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-  "/api/admin/v1/heartbeats/by_user_agent_segment":
-    get:
-      summary: Get heartbeats matching a user_agent segment
-      tags:
-      - Admin Utils
-      description: Returns heartbeats whose user_agent contains the given substring
-        (e.g. "Godot_Super-Wakatime/2.0.0"). Useful for monitoring how a specific
-        editor/plugin behaves over time. Use count_only=true to avoid streaming rows
-        when only the total is needed.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: segment
-        in: query
-        required: true
-        description: Substring of user_agent to match (case-insensitive). Min length
-          3.
-        schema:
-          type: string
-      - name: user_id
-        in: query
-        required: false
-        description: Optional user ID to scope the query to a single user.
-        schema:
-          type: string
-      - name: start_date
-        in: query
-        required: false
-        description: Start date (YYYY-MM-DD or epoch seconds)
-        schema:
-          type: string
-      - name: end_date
-        in: query
-        required: false
-        description: End date (YYYY-MM-DD or epoch seconds)
-        schema:
-          type: string
-      - name: limit
-        in: query
-        required: false
-        description: Page size (default 1000, max 5000)
-        schema:
-          type: integer
-      - name: offset
-        in: query
-        required: false
-        description: Pagination offset
-        schema:
-          type: integer
-      - name: count_only
-        in: query
-        required: false
-        description: If true, return only total_count and skip row payload
-        schema:
-          type: boolean
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                oneOf:
-                - type: object
-                  properties:
-                    segment:
-                      type: string
-                    limit:
-                      type: integer
-                    offset:
-                      type: integer
-                    heartbeats:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          id:
-                            type: integer
-                          user_id:
-                            type: integer
-                          time:
-                            type: number
-                          project:
-                            type: string
-                            nullable: true
-                          language:
-                            type: string
-                            nullable: true
-                          entity:
-                            type: string
-                            nullable: true
-                          branch:
-                            type: string
-                            nullable: true
-                          category:
-                            type: string
-                            nullable: true
-                          editor:
-                            type: string
-                            nullable: true
-                          machine:
-                            type: string
-                            nullable: true
-                          operating_system:
-                            type: string
-                            nullable: true
-                          user_agent:
-                            type: string
-                            nullable: true
-                          ip_address:
-                            type: string
-                            nullable: true
-                          is_write:
-                            type: boolean
-                            nullable: true
-                          lineno:
-                            type: integer
-                            nullable: true
-                          cursorpos:
-                            type: integer
-                            nullable: true
-                          lines:
-                            type: integer
-                            nullable: true
-                          source_type:
-                            type: string
-                            nullable: true
-                    has_more:
-                      type: boolean
-                - type: object
-                  description: Returned when count_only=true
-                  additionalProperties: false
-                  required:
-                  - segment
-                  - total_count
-                  properties:
-                    segment:
-                      type: string
-                    total_count:
-                      type: integer
-        '422':
-          description: missing segment
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-  "/api/admin/v1/user/heartbeat_values":
-    get:
-      summary: Get heartbeat values
-      tags:
-      - Admin Utils
-      description: Get specific values from heartbeats.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: user_id
-        in: query
-        description: User ID
-        schema:
-          type: string
-      - name: field
-        in: query
-        description: Field to retrieve (projects, languages, etc.)
-        schema:
-          type: string
-      - name: start_date
-        in: query
-        description: Start date (YYYY-MM-DD or timestamp)
-        schema:
-          type: string
-      - name: end_date
-        in: query
-        description: End date (YYYY-MM-DD or timestamp)
-        schema:
-          type: string
-      - name: limit
-        in: query
-        description: Limit results
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user_id:
-                    type: integer
-                  field:
-                    type: string
-                  values:
-                    type: array
-                    items:
-                      type: string
-                  count:
-                    type: integer
-        '404':
-          description: user not found
-        '422':
-          description: invalid date filter
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-  "/api/admin/v1/user/get_users_by_ip":
-    get:
-      summary: Get users by IP
-      tags:
-      - Admin Utils
-      description: Find users associated with an IP address.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: ip
-        in: query
-        description: IP Address
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        user_id:
-                          type: integer
-                        ip_address:
-                          type: string
-                        machine:
-                          type: string
-                          nullable: true
-                        user_agent:
-                          type: string
-                          nullable: true
-  "/api/admin/v1/user/get_users_by_machine":
-    get:
-      summary: Get users by machine
-      tags:
-      - Admin Utils
-      description: Find users associated with a machine ID.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: machine
-        in: query
-        description: Machine ID
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        user_id:
-                          type: integer
-                        machine:
-                          type: string
-  "/api/admin/v1/user/stats":
-    get:
-      summary: Get admin user stats
-      tags:
-      - Admin Utils
-      description: Get detailed stats for a user (Admin view).
-      security:
-      - AdminToken: []
-      parameters:
-      - name: user_id
-        in: query
-        description: User ID
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user_id:
-                    type: integer
-                  username:
-                    type: string
-                  date:
-                    type: string
-                    format: date_time
-                  timezone:
-                    type: string
-                    nullable: true
-                  total_heartbeats:
-                    type: integer
-                  total_duration:
-                    type: number
-                  heartbeats:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        time:
-                          type: string
-                        created_at:
-                          type: string
-                          format: date_time
-                        project:
-                          type: string
-                          nullable: true
-                        branch:
-                          type: string
-                          nullable: true
-                        category:
-                          type: string
-                          nullable: true
-                        dependencies:
-                          type: string
-                          nullable: true
-                        editor:
-                          type: string
-                          nullable: true
-                        entity:
-                          type: string
-                          nullable: true
-                        language:
-                          type: string
-                          nullable: true
-                        machine:
-                          type: string
-                          nullable: true
-                        operating_system:
-                          type: string
-                          nullable: true
-                        type:
-                          type: string
-                          nullable: true
-                        user_agent:
-                          type: string
-                          nullable: true
-                        line_additions:
-                          type: integer
-                          nullable: true
-                        line_deletions:
-                          type: integer
-                          nullable: true
-                        lineno:
-                          type: integer
-                          nullable: true
-                        lines:
-                          type: integer
-                          nullable: true
-                        cursorpos:
-                          type: integer
-                          nullable: true
-                        project_root_count:
-                          type: integer
-                          nullable: true
-                        is_write:
-                          type: boolean
-                          nullable: true
-                        source_type:
-                          type: string
-                          nullable: true
-                        ip_address:
-                          type: string
-                          nullable: true
-        '404':
-          description: user not found
-  "/api/admin/v1/user/projects":
-    get:
-      summary: Get admin user projects
-      tags:
-      - Admin Utils
-      description: Get projects for a user (Admin view).
-      security:
-      - AdminToken: []
-      parameters:
-      - name: user_id
-        in: query
-        description: User ID
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user_id:
-                    type: integer
-                  username:
-                    type: string
-                  total_projects:
-                    type: integer
-                  projects:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                          nullable: true
-                        total_heartbeats:
-                          type: integer
-                        total_duration:
-                          type: number
-                        first_heartbeat:
-                          type: number
-                          nullable: true
-                        last_heartbeat:
-                          type: number
-                          nullable: true
-                        languages:
-                          type: array
-                          items:
-                            type: string
-                        repo:
-                          type: string
-                          nullable: true
-                        repo_mapping_id:
-                          type: integer
-                          nullable: true
-                        archived:
-                          type: boolean
-        '404':
-          description: user not found
-  "/api/admin/v1/user/trust_logs":
-    get:
-      summary: Get user trust logs
-      tags:
-      - Admin Utils
-      description: Get trust level audit logs for a user.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: user_id
-        in: query
-        description: User ID
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  trust_logs:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        previous_trust_level:
-                          type: string
-                          nullable: true
-                        new_trust_level:
-                          type: string
-                        reason:
-                          type: string
-                          nullable: true
-                        notes:
-                          type: string
-                          nullable: true
-                        created_at:
-                          type: string
-                          format: date_time
-                        changed_by:
-                          type: object
-                          properties:
-                            id:
-                              type: integer
-                            username:
-                              type: string
-                            display_name:
-                              type: string
-                            admin_level:
-                              type: string
-  "/api/admin/v1/user/get_user_by_email":
-    post:
-      summary: Get user by email
-      tags:
-      - Admin Utils
-      description: Lookup user by email (POST).
-      security:
-      - AdminToken: []
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user_id:
-                    type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email:
-                  type: string
-  "/api/admin/v1/user/search_fuzzy":
-    post:
-      summary: Fuzzy search users
-      tags:
-      - Admin Utils
-      description: Search users by fuzzy matching.
-      security:
-      - AdminToken: []
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        username:
-                          type: string
-                          nullable: true
-                        slack_username:
-                          type: string
-                          nullable: true
-                        github_username:
-                          type: string
-                          nullable: true
-                        slack_avatar_url:
-                          type: string
-                          nullable: true
-                        github_avatar_url:
-                          type: string
-                          nullable: true
-                        email:
-                          type: string
-                        rank_score:
-                          type: number
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                query:
-                  type: string
-  "/api/admin/v1/user/convict":
-    post:
-      summary: Convict user
-      tags:
-      - Admin Utils
-      description: Mark a user as convicted/banned.
-      security:
-      - AdminToken: []
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      username:
-                        type: string
-                      trust_level:
-                        type: string
-                      updated_at:
-                        type: string
-                        format: date_time
-                  audit_log:
-                    type: object
-                    properties:
-                      changed_by:
-                        type: string
-                      reason:
-                        type: string
-                      notes:
-                        type: string
-                        nullable: true
-                      timestamp:
-                        type: string
-                        format: date_time
-        '404':
-          description: user not found
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                user_id:
-                  type: integer
-                reason:
-                  type: string
-  "/api/admin/v1/check":
-    get:
-      summary: Check status
-      tags:
-      - Admin
-      description: Check if admin API is working.
-      security:
-      - AdminToken: []
-      responses:
-        '200':
-          description: successful
-  "/api/admin/v1/banned_users":
-    get:
-      summary: Get banned users
-      tags:
-      - Admin
-      description: Get a list of banned users.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: limit
-        in: query
-        required: false
-        description: 'Max results to return (default: 200, max: 1000)'
-        schema:
-          type: integer
-      - name: offset
-        in: query
-        required: false
-        description: 'Number of results to skip for pagination (default: 0)'
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  banned_users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                          description: User ID
-                        username:
-                          type: string
-                          description: Username
-                        email:
-                          type: string
-                          description: Primary email or "no email"
-        '401':
-          description: unauthorized
-  "/api/admin/v1/heartbeats/ip_machine_pairs":
-    get:
-      summary: List users sharing the same machine + IP combination
-      tags:
-      - Admin Heartbeats
-      security:
-      - AdminToken: []
-      parameters:
-      - name: lookback_days
-        in: query
-        required: false
-        description: 'Number of days to look back (default: 30, max: 365)'
-        schema:
-          type: integer
-      - name: limit
-        in: query
-        required: false
-        description: 'Max results (default: 1000, max: 10000)'
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: returns empty pairs when no shared machine+IP exists
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  pairs:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        user_a_id:
-                          type: integer
-                        user_b_id:
-                          type: integer
-                        machine:
-                          type: string
-                        ip_address:
-                          type: string
-                        user_a_first_seen:
-                          type: integer
-                        user_a_last_seen:
-                          type: integer
-                        user_b_first_seen:
-                          type: integer
-                        user_b_last_seen:
-                          type: integer
-  "/api/admin/v1/heartbeats/shared_machines":
-    get:
-      summary: List machines used by multiple users
-      tags:
-      - Admin Heartbeats
-      security:
-      - AdminToken: []
-      parameters:
-      - name: lookback_days
-        in: query
-        required: false
-        description: 'Number of days to look back (default: 30, max: 365)'
-        schema:
-          type: integer
-      - name: limit
-        in: query
-        required: false
-        description: 'Max results (default: 1000, max: 10000)'
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: excludes machines used by only one user
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  machines:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        machine:
-                          type: string
-                        machine_frequency:
-                          type: integer
-                        user_ids:
-                          type: array
-                          items:
-                            type: integer
-  "/api/admin/v1/leaderboard_shadowbans":
-    get:
-      summary: List Leaderboard Shadowbans
-      tags:
-      - Admin Resources
-      description: List users hidden from public leaderboards. Requires admin privileges.
-      security:
-      - AdminToken: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  leaderboard_shadowbans:
-                    type: array
-                    items:
-                      "$ref": "#/components/schemas/LeaderboardShadowbanUser"
-    post:
-      summary: Create Leaderboard Shadowban
-      tags:
-      - Admin Resources
-      description: Hide a user from public leaderboards. Requires admin privileges
-        and a reason.
-      security:
-      - AdminToken: []
-      parameters: []
-      responses:
-        '201':
-          description: created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  user:
-                    "$ref": "#/components/schemas/LeaderboardShadowbanUser"
-        '422':
-          description: validation error
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                user_id:
-                  type: integer
-                reason:
-                  type: string
-                leaderboard_shadowban_expires_at:
-                  type: string
-                  format: date-time
-                  nullable: true
-              required:
-              - user_id
-              - reason
-  "/api/admin/v1/leaderboard_shadowbans/search_users":
-    get:
-      summary: Search Users for Leaderboard Shadowbans
-      tags:
-      - Admin Resources
-      description: Search users and include their current leaderboard shadowban metadata.
-        Requires admin privileges.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: query
-        in: query
-        description: Search query
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      "$ref": "#/components/schemas/LeaderboardShadowbanUser"
-  "/api/admin/v1/leaderboard_shadowbans/{user_id}":
-    delete:
-      summary: Delete Leaderboard Shadowban
-      tags:
-      - Admin Resources
-      description: Remove a user from the leaderboard shadowban list. Requires admin
-        privileges.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: user_id
-        in: path
-        required: true
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  user:
-                    "$ref": "#/components/schemas/LeaderboardShadowbanUser"
-        '404':
-          description: not found
-  "/api/admin/v1/permissions":
-    get:
-      summary: List Permissions
-      tags:
-      - Admin Resources
-      description: List system permissions. Requires superadmin privileges.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: search
-        in: query
-        description: Search query
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        username:
-                          type: string
-                        display_name:
-                          type: string
-                          nullable: true
-                        slack_username:
-                          type: string
-                          nullable: true
-                        github_username:
-                          type: string
-                          nullable: true
-                        admin_level:
-                          type: string
-                        email_addresses:
-                          type: array
-                          items:
-                            type: string
-                        created_at:
-                          type: string
-                        updated_at:
-                          type: string
-  "/api/admin/v1/permissions/{id}":
-    patch:
-      summary: Update Permission
-      tags:
-      - Admin Resources
-      description: Update a user's admin level. Requires superadmin privileges.
-      security:
-      - AdminToken: []
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      username:
-                        type: string
-                      display_name:
-                        type: string
-                        nullable: true
-                      admin_level:
-                        type: string
-                      previous_admin_level:
-                        type: string
-                      updated_at:
-                        type: string
-        '404':
-          description: not found handled
-        '422':
-          description: validation error handled
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                admin_level:
-                  type: string
-                  enum:
-                  - superadmin
-                  - admin
-                  - viewer
-                  - default
-              required:
-              - admin_level
   "/api/hackatime/v1/users/{id}/heartbeats":
     post:
       summary: Push heartbeats (WakaTime compatible)
@@ -1973,13 +21,127 @@ paths:
       parameters:
       - name: id
         in: path
-        description: User ID or "current" (recommended)
+        description: User ID or "current" (recommended). The authenticated user is
+          resolved from the API token, not this path segment.
         required: true
         schema:
           type: string
       responses:
         '202':
           description: accepted
+        '400':
+          description: no data provided
+        '401':
+          description: unauthorized
+        '403':
+          description: account pending deletion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              description: Array of heartbeats. The single (non-bulk) variant only
+                processes the first element of the array.
+              items:
+                type: object
+                properties:
+                  entity:
+                    type: string
+                    example: app/models/user.rb
+                    description: File path or entity being tracked
+                  type:
+                    type: string
+                    example: file
+                    description: Entity type, e.g. "file"
+                  time:
+                    type: number
+                    example: 1710946200.0
+                    description: Unix timestamp (seconds, float)
+                  project:
+                    type: string
+                    example: hackatime
+                  branch:
+                    type: string
+                    example: main
+                  language:
+                    type: string
+                    example: Ruby
+                  is_write:
+                    type: boolean
+                    example: true
+                  lineno:
+                    type: integer
+                    example: 42
+                  cursorpos:
+                    type: integer
+                    example: 12
+                  lines:
+                    type: integer
+                    example: 350
+                  category:
+                    type: string
+                    example: coding
+                  created_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T15:30:00Z'
+                  dependencies:
+                    type: array
+                    items:
+                      type: string
+                      example: rails
+                    description: May also be sent as a string
+                  editor:
+                    type: string
+                    example: VS Code
+                  line_additions:
+                    type: integer
+                    example: 8
+                  line_deletions:
+                    type: integer
+                    example: 3
+                  machine:
+                    type: string
+                    example: Orpheus-MacBook-Pro
+                  operating_system:
+                    type: string
+                    example: Mac
+                  project_root_count:
+                    type: integer
+                    example: 4
+                  user_agent:
+                    type: string
+                    example: wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0
+                  plugin:
+                    type: string
+                    example: vscode/1.96.0 vscode-wakatime/24.6.0
+                    description: Accepted but not persisted
+  "/api/hackatime/v1/users/{id}/heartbeats.bulk":
+    post:
+      summary: Push heartbeats in bulk (WakaTime compatible)
+      tags:
+      - WakaTime Compatibility
+      description: Bulk variant of the heartbeat ingest endpoint, used by WakaTime
+        clients via the ".bulk" format extension. Resolves to the same controller
+        action (push_heartbeats) which detects params["format"] == "bulk". Accepts
+        up to 100 heartbeats per request and returns a per-heartbeat array of [attributes_or_error,
+        status_code] pairs.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID or "current" (recommended). The authenticated user is
+          resolved from the API token, not this path segment.
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: created
+        '400':
+          description: no data or too many heartbeats
         '401':
           description: unauthorized
       requestBody:
@@ -1987,31 +149,78 @@ paths:
           application/json:
             schema:
               type: array
+              description: 'Array of heartbeats (max 100). May be sent as a top-level
+                JSON array, a text/plain JSON array, or wrapped as { hackatime: {
+                heartbeats: [...] } }.'
               items:
                 type: object
                 properties:
                   entity:
                     type: string
+                    example: app/models/user.rb
                   type:
                     type: string
+                    example: file
                   time:
                     type: number
+                    example: 1710946200.0
                   project:
                     type: string
+                    example: hackatime
                   branch:
                     type: string
+                    example: main
                   language:
                     type: string
+                    example: Ruby
                   is_write:
                     type: boolean
+                    example: true
                   lineno:
                     type: integer
+                    example: 42
                   cursorpos:
                     type: integer
+                    example: 12
                   lines:
                     type: integer
+                    example: 350
                   category:
                     type: string
+                    example: coding
+                  created_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T15:30:00Z'
+                  dependencies:
+                    type: array
+                    items:
+                      type: string
+                      example: rails
+                  editor:
+                    type: string
+                    example: VS Code
+                  line_additions:
+                    type: integer
+                    example: 8
+                  line_deletions:
+                    type: integer
+                    example: 3
+                  machine:
+                    type: string
+                    example: Orpheus-MacBook-Pro
+                  operating_system:
+                    type: string
+                    example: Mac
+                  project_root_count:
+                    type: integer
+                    example: 4
+                  user_agent:
+                    type: string
+                    example: wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0
+                  plugin:
+                    type: string
+                    example: vscode/1.96.0 vscode-wakatime/24.6.0
   "/api/hackatime/v1/users/{id}/statusbar/today":
     get:
       summary: Get status bar today
@@ -2090,34 +299,48 @@ paths:
                     properties:
                       username:
                         type: string
+                        example: U0266FRGP
                       user_id:
                         type: string
+                        example: U0266FRGP
                       start:
                         type: string
                         format: date_time
+                        example: '2024-03-13T00:00:00Z'
                       end:
                         type: string
                         format: date_time
+                        example: '2024-03-20T23:59:59Z'
                       status:
                         type: string
+                        example: ok
                       total_seconds:
                         type: number
+                        example: 25200
                       daily_average:
                         type: number
+                        example: 3600.0
                       days_including_holidays:
                         type: integer
+                        example: 7
                       range:
                         type: string
+                        example: last_7_days
                       human_readable_range:
                         type: string
+                        example: Last 7 Days
                       human_readable_total:
                         type: string
+                        example: 7 hrs 0 mins
                       human_readable_daily_average:
                         type: string
+                        example: 1 hrs 0 mins
                       is_coding_activity_visible:
                         type: boolean
+                        example: true
                       is_other_usage_visible:
                         type: boolean
+                        example: true
                       editors:
                         type: array
                         items:
@@ -2125,20 +348,28 @@ paths:
                           properties:
                             name:
                               type: string
+                              example: VS Code
                             total_seconds:
                               type: integer
+                              example: 25200
                             percent:
                               type: number
+                              example: 100.0
                             digital:
                               type: string
+                              example: '7:00:00'
                             text:
                               type: string
+                              example: 7 hrs 0 mins
                             hours:
                               type: integer
+                              example: 7
                             minutes:
                               type: integer
+                              example: 0
                             seconds:
                               type: integer
+                              example: 0
                       languages:
                         type: array
                         items:
@@ -2146,20 +377,28 @@ paths:
                           properties:
                             name:
                               type: string
+                              example: Ruby
                             total_seconds:
                               type: integer
+                              example: 18000
                             percent:
                               type: number
+                              example: 71.43
                             digital:
                               type: string
+                              example: '5:00:00'
                             text:
                               type: string
+                              example: 5 hrs 0 mins
                             hours:
                               type: integer
+                              example: 5
                             minutes:
                               type: integer
+                              example: 0
                             seconds:
                               type: integer
+                              example: 0
                       machines:
                         type: array
                         items:
@@ -2167,20 +406,28 @@ paths:
                           properties:
                             name:
                               type: string
+                              example: Orpheus-MacBook-Pro
                             total_seconds:
                               type: integer
+                              example: 25200
                             percent:
                               type: number
+                              example: 100.0
                             digital:
                               type: string
+                              example: '7:00:00'
                             text:
                               type: string
+                              example: 7 hrs 0 mins
                             hours:
                               type: integer
+                              example: 7
                             minutes:
                               type: integer
+                              example: 0
                             seconds:
                               type: integer
+                              example: 0
                       projects:
                         type: array
                         items:
@@ -2188,20 +435,28 @@ paths:
                           properties:
                             name:
                               type: string
+                              example: hackatime
                             total_seconds:
                               type: integer
+                              example: 21600
                             percent:
                               type: number
+                              example: 85.71
                             digital:
                               type: string
+                              example: '6:00:00'
                             text:
                               type: string
+                              example: 6 hrs 0 mins
                             hours:
                               type: integer
+                              example: 6
                             minutes:
                               type: integer
+                              example: 0
                             seconds:
                               type: integer
+                              example: 0
                       operating_systems:
                         type: array
                         items:
@@ -2209,20 +464,28 @@ paths:
                           properties:
                             name:
                               type: string
+                              example: Mac
                             total_seconds:
                               type: integer
+                              example: 25200
                             percent:
                               type: number
+                              example: 100.0
                             digital:
                               type: string
+                              example: '7:00:00'
                             text:
                               type: string
+                              example: 7 hrs 0 mins
                             hours:
                               type: integer
+                              example: 7
                             minutes:
                               type: integer
+                              example: 0
                             seconds:
                               type: integer
+                              example: 0
                       categories:
                         type: array
                         items:
@@ -2230,113 +493,78 @@ paths:
                           properties:
                             name:
                               type: string
+                              example: coding
                             total_seconds:
                               type: integer
+                              example: 25200
                             percent:
                               type: number
+                              example: 100.0
                             digital:
                               type: string
+                              example: '7:00:00'
                             text:
                               type: string
+                              example: 7 hrs 0 mins
                             hours:
                               type: integer
+                              example: 7
                             minutes:
                               type: integer
+                              example: 0
                             seconds:
                               type: integer
+                              example: 0
         '401':
           description: unauthorized
-  "/api/internal/revoke":
-    post:
-      summary: Revoke access
-      tags:
-      - Internal
-      description: Internal endpoint to revoke access tokens. Use with caution. Requires
-        HKA_REVOCATION_KEY environment variable authentication. This is used for Revoker
-        to allow security researchers to revoke compromised tokens.
-      security:
-      - InternalToken: []
-      parameters: []
-      responses:
-        '201':
-          description: created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  status:
-                    type: string
-                  token_type:
-                    type: string
-                  owner_email:
-                    type: string
-                    nullable: true
-                  key_name:
-                    type: string
-                    nullable: true
-        '422':
-          description: unprocessable entity
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  error:
-                    type: string
-                required:
-                - success
-                - error
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                token:
-                  type: string
-                submitter:
-                  type: string
-                comment:
-                  type: string
-              required:
-              - token
   "/api/summary":
     get:
       summary: Get WakaTime-compatible summary
       tags:
       - WakaTime Compatibility
-      description: Returns a summary of coding activity in a format compatible with
-        WakaTime clients. This endpoint supports querying by date range, interval,
-        or specific user (admin/privileged only).
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+      description: 'Returns a summary of coding activity in a format compatible with
+        WakaTime clients. This endpoint does NOT authenticate any API token: access
+        is gated solely by the target user (identified by user_id/user) having allow_public_stats_lookup
+        enabled. No caller credentials are required or verified.'
       parameters:
       - name: start
         in: query
         schema:
           type: string
           format: date
-        description: Start date (YYYY-MM-DD)
+        description: Start date (YYYY-MM-DD). Requires "end"/"to" to be set as well
+          to form an explicit range.
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Alias for "start". Used when "start" is absent.
       - name: end
         in: query
         schema:
           type: string
           format: date
-        description: End date (YYYY-MM-DD)
-      - name: interval
+        description: End date (YYYY-MM-DD). Requires "start"/"from" to be set as well
+          to form an explicit range.
+      - name: to
         in: query
-        description: Interval (e.g. today, yesterday, week, month)
         schema:
           type: string
-      - name: project
+          format: date
+        description: Alias for "end". Used when "end" is absent.
+      - name: interval
         in: query
-        description: Project name (optional)
+        description: 'Interval keyword. One of: today, yesterday, week, 7_days, last_7_days,
+          month, 30_days, last_30_days, 6_months, last_6_months, year, 12_months,
+          last_12_months, last_year, any, all_time. Defaults to all_time when neither
+          interval nor range is given; unknown values fall back to today.'
+        schema:
+          type: string
+      - name: range
+        in: query
+        description: Fallback interval keyword used when "interval" is absent. Accepts
+          the same values as "interval".
         schema:
           type: string
       - name: user_id
@@ -2361,12 +589,15 @@ paths:
                   user_id:
                     type: string
                     nullable: true
+                    example: U0266FRGP
                   from:
                     type: string
                     format: date_time
+                    example: '2023-01-01T00:00:00Z'
                   to:
                     type: string
                     format: date_time
+                    example: '2023-01-31T23:59:59Z'
                   projects:
                     type: array
                     items:
@@ -2374,8 +605,10 @@ paths:
                       properties:
                         key:
                           type: string
+                          example: hackatime
                         total:
                           type: number
+                          example: 21600.0
                   languages:
                     type: array
                     items:
@@ -2383,8 +616,10 @@ paths:
                       properties:
                         key:
                           type: string
+                          example: Ruby
                         total:
                           type: number
+                          example: 18000.0
                   editors:
                     type: object
                     nullable: true
@@ -2416,12 +651,11 @@ paths:
     get:
       summary: Get current user info
       tags:
-      - Authenticated
+      - OAuth2-specific
       description: Returns detailed information about the currently authenticated
-        user.
+        user. Requires an OAuth2 access token (Bearer header).
       security:
       - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2432,34 +666,41 @@ paths:
                 properties:
                   id:
                     type: integer
+                    example: 42
                   emails:
                     type: array
                     items:
                       type: string
+                      example: orpheus@hackclub.com
                   slack_id:
                     type: string
                     nullable: true
+                    example: U0266FRGP
                   github_username:
                     type: string
                     nullable: true
+                    example: orpheus
                   trust_factor:
                     type: object
                     properties:
                       trust_level:
                         type: string
+                        example: blue
                       trust_value:
                         type: integer
+                        example: 0
         '401':
-          description: unauthorized
+          description: unauthorized — Returned when the OAuth access token is missing
+            or invalid.
   "/api/v1/authenticated/hours":
     get:
       summary: Get hours
       tags:
-      - Authenticated
-      description: Returns the total coding hours for the authenticated user.
+      - OAuth2-specific
+      description: Returns the total coding hours for the authenticated user. Requires
+        an OAuth2 access token (Bearer header).
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: start_date
         in: query
@@ -2493,16 +734,19 @@ paths:
                     type: number
                     example: 153000.0
         '401':
-          description: unauthorized
+          description: 'unauthorized — Returned when the OAuth access token is missing
+            or invalid (empty body), or when the authenticated user is banned (`trust_level
+            == "red"`) via the `ensure_no_ban` before_action (which responds with
+            a `{ "error": "Unauthorized" }` body).'
   "/api/v1/authenticated/streak":
     get:
       summary: Get streak
       tags:
-      - Authenticated
-      description: Returns the current streak information (days coded in a row).
+      - OAuth2-specific
+      description: Returns the current streak information (days coded in a row). Requires
+        an OAuth2 access token (Bearer header).
       security:
       - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2515,16 +759,17 @@ paths:
                     type: integer
                     example: 5
         '401':
-          description: unauthorized
+          description: unauthorized — Returned when the OAuth access token is missing
+            or invalid.
   "/api/v1/authenticated/projects":
     get:
       summary: Get projects
       tags:
-      - Authenticated
+      - OAuth2-specific
       description: Returns a list of projects associated with the authenticated user.
+        Requires an OAuth2 access token (Bearer header).
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: include_archived
         in: query
@@ -2601,24 +846,27 @@ paths:
                           type: string
                           format: date_time
                           nullable: true
+                          example: '2024-03-20T15:30:00Z'
                         languages:
                           type: array
                           items:
                             type: string
+                            example: Ruby
                         archived:
                           type: boolean
+                          example: false
         '401':
-          description: unauthorized
+          description: unauthorized — Returned when the OAuth access token is missing
+            or invalid.
   "/api/v1/authenticated/api_keys":
     get:
       summary: Get API keys
       tags:
-      - Authenticated
-      description: 'Returns the API keys for the authenticated user. Warning: This
-        returns sensitive information.'
+      - OAuth2-specific
+      description: 'Returns the API keys for the authenticated user. Requires an OAuth2
+        access token (Bearer header). Warning: This returns sensitive information.'
       security:
       - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
@@ -2629,95 +877,147 @@ paths:
                 properties:
                   token:
                     type: string
-                    example: waka_...
+                    example: 550e8400-e29b-41d4-a716-446655440000
         '401':
-          description: unauthorized
+          description: unauthorized — Returned when the OAuth access token is missing
+            or invalid.
   "/api/v1/authenticated/heartbeats/latest":
     get:
       summary: Get latest heartbeat
       tags:
-      - Authenticated
-      description: Returns the absolutely latest heartbeat processed for the user.
+      - OAuth2-specific
+      description: 'Returns the absolutely latest heartbeat processed for the user.
+        Requires an OAuth2 access token (Bearer header). When the user has no non-test
+        heartbeat, the response is `{ "heartbeat": null }`.'
       security:
       - Bearer: []
-        ApiKeyAuth: []
       responses:
         '200':
           description: successful
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                  created_at:
-                    type: string
-                    format: date_time
-                  time:
-                    type: number
-                  category:
-                    type: string
-                  project:
-                    type: string
-                  language:
-                    type: string
-                  editor:
-                    type: string
-                  operating_system:
-                    type: string
-                  machine:
-                    type: string
-                  entity:
-                    type: string
+                oneOf:
+                - type: object
+                  title: Latest heartbeat
+                  properties:
+                    id:
+                      type: integer
+                      example: 987654
+                    created_at:
+                      type: string
+                      format: date_time
+                      example: '2024-03-20T15:30:00Z'
+                    time:
+                      type: number
+                      example: 1710948600.0
+                    category:
+                      type: string
+                      example: coding
+                    project:
+                      type: string
+                      example: hackatime
+                    language:
+                      type: string
+                      example: Ruby
+                    editor:
+                      type: string
+                      example: VS Code
+                    operating_system:
+                      type: string
+                      example: Mac
+                    machine:
+                      type: string
+                      example: Orpheus-MacBook-Pro
+                    entity:
+                      type: string
+                      example: app/models/user.rb
+                  required:
+                  - id
+                  - time
+                - type: object
+                  title: No heartbeats yet
+                  description: Returned when the user has no non-test heartbeat.
+                  properties:
+                    heartbeat:
+                      type: object
+                      nullable: true
+                      example:
+                  required:
+                  - heartbeat
         '401':
-          description: unauthorized
-  "/api/v1/external/slack/oauth":
-    post:
-      summary: Create user from Slack OAuth
-      tags:
-      - External Integrations
-      description: Callback endpoint for Slack OAuth to create or update a user.
-      security:
-      - Bearer: []
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user_id:
-                    type: integer
-                  username:
-                    type: string
-                  email:
-                    type: string
-                    nullable: true
-        '400':
-          description: bad request
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                token:
-                  type: string
-                  description: Slack OAuth Token
-              required:
-              - token
-  "/api/v1/leaderboard":
+          description: unauthorized — Returned when the OAuth access token is missing
+            or invalid.
+  "/api/v1/badge/{user_id}/{project}":
     get:
-      summary: Get daily leaderboard (Alias)
+      summary: Generate a shields.io coding-time badge for a project
       tags:
-      - Leaderboard
-      description: Alias for /api/v1/leaderboard/daily. Returns the daily leaderboard.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+      - Badges
+      description: |
+        Redirects (307) to an img.shields.io badge URL showing the total coding
+        time a user has logged on a project. The endpoint is public (no auth) but
+        only works for users who have not disabled public stats lookup.
+
+        `user_id` is matched, in order, against the user's Slack UID, then
+        username, then (only when the value is all digits) the internal numeric
+        ID. `project` may be a raw project name (e.g. `hackatime`) or an
+        `owner/repo` pair (e.g. `hackclub/hackatime`) which is resolved to a
+        project name via the user's repo mappings.
+
+        Any additional query parameters not consumed below (e.g. `style`, `logo`,
+        `logoColor`, `labelColor`) are passed straight through to shields.io.
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        description: 'User identifier: Slack UID, username, or numeric internal ID.'
+        schema:
+          type: string
+      - name: project
+        in: path
+        required: true
+        description: Project name (e.g. "hackatime") or "owner/repo" (e.g. "hackclub/hackatime").
+        schema:
+          type: string
+      - name: label
+        in: query
+        required: false
+        description: 'Left-hand text of the badge. Default: "hackatime".'
+        schema:
+          type: string
+      - name: color
+        in: query
+        required: false
+        description: 'Badge color passed to shields.io (any shields.io-accepted color).
+          Default: "blue".'
+        schema:
+          type: string
+      - name: aliases
+        in: query
+        required: false
+        description: Comma-separated list of additional project names whose coding
+          time is summed into the total.
+        schema:
+          type: string
+      responses:
+        '307':
+          description: redirect to the shields.io badge image
+        '404':
+          description: project not found
+        '403':
+          description: user has disabled public stats lookup
+        '400':
+          description: project has no countable coding time
+  "/api/v1/currently_hacking":
+    get:
+      summary: List users currently hacking
+      tags:
+      - Currently Hacking
+      description: |
+        Returns the set of users who have logged a direct-entry coding heartbeat
+        in the last 5 minutes, along with the project each is currently working
+        on (if its repo mapping is not archived). The endpoint is public (no
+        authentication required) and the result is cached for 5 minutes.
       responses:
         '200':
           description: successful
@@ -2726,33 +1026,55 @@ paths:
               schema:
                 type: object
                 properties:
-                  period:
-                    type: string
-                    example: daily
-                  start_date:
-                    type: string
-                    format: date
-                    example: '2024-03-20'
-                  date_range:
-                    type: string
-                    example: Wed, Mar 20, 2024
-                  generated_at:
-                    type: string
-                    format: date_time
-                    example: '2024-03-20T10:00:00Z'
-                  entries:
+                  count:
+                    type: integer
+                    description: Number of users currently hacking.
+                    example: 1
+                  users:
                     type: array
                     items:
-                      "$ref": "#/components/schemas/LeaderboardEntry"
+                      type: object
+                      properties:
+                        display_name:
+                          type: string
+                          nullable: true
+                          example: Orpheus
+                        avatar_url:
+                          type: string
+                          nullable: true
+                          example: https://hackatime.hackclub.com/images/athena.png
+                        country_code:
+                          type: string
+                          nullable: true
+                          example: US
+                        working_on:
+                          type: object
+                          nullable: true
+                          description: The project the user is currently working on,
+                            or null.
+                          properties:
+                            project_name:
+                              type: string
+                              example: hackatime
+                            repo_url:
+                              type: string
+                              nullable: true
+                              example: https://github.com/hackclub/hackatime
+                      required:
+                      - display_name
+                      - avatar_url
+                      - country_code
+                      - working_on
+                required:
+                - count
+                - users
   "/api/v1/leaderboard/daily":
     get:
       summary: Get daily leaderboard
       tags:
       - Leaderboard
-      description: Leaderboard is currently being generated
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+      description: Returns the daily leaderboard of coding time. Public, no authentication
+        required. The leaderboard is cached and regenerated periodically.
       responses:
         '200':
           description: successful
@@ -2780,7 +1102,7 @@ paths:
                     items:
                       "$ref": "#/components/schemas/LeaderboardEntry"
         '503':
-          description: service unavailable
+          description: service unavailable — Leaderboard is being generated
           content:
             application/json:
               schema:
@@ -2790,11 +1112,8 @@ paths:
       summary: Get weekly leaderboard
       tags:
       - Leaderboard
-      description: Returns the weekly leaderboard of coding time (last 7 days). Requires
-        STATS_API_KEY.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+      description: Returns the weekly leaderboard of coding time (last 7 days). Public,
+        no authentication required.
       responses:
         '200':
           description: successful
@@ -2821,273 +1140,142 @@ paths:
                     type: array
                     items:
                       "$ref": "#/components/schemas/LeaderboardEntry"
+        '503':
+          description: service unavailable — Leaderboard is being generated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/api/v1/my/heartbeats/most_recent":
     get:
       summary: Get most recent heartbeat
       tags:
       - My Data
       description: Returns the most recent heartbeat for the authenticated user. Useful
-        for checking if the user is currently active.
+        for checking if the user is currently active. Authenticate with your API key
+        as a Bearer token in the `Authorization` header (HTTP Basic auth with the
+        API key is also accepted).
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: source_type
         in: query
-        description: Filter by source type (e.g. "direct_entry")
+        description: Filter by source type (e.g. "direct_entry"). If omitted, results
+          exclude heartbeats with source_type "test_entry" by default.
         schema:
           type: string
       - name: editor
         in: query
-        description: Filter by editor name (e.g. "VSCode")
+        description: Filter by editor name (e.g. "VSCode"). Matched case-insensitively.
         schema:
           type: string
       responses:
         '200':
           description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  has_heartbeat:
+                    type: boolean
+                    description: Whether a matching heartbeat was found.
+                    example: true
+                  heartbeat:
+                    type: object
+                    nullable: true
+                    description: The most recent matching heartbeat, or null when
+                      none is found.
+                  editor:
+                    type: string
+                    nullable: true
+                    description: Editor of the matching heartbeat, or null.
+                    example: VS Code
+                  time_ago:
+                    type: string
+                    nullable: true
+                    description: Human-readable time since the heartbeat (e.g. "5
+                      minutes ago"), or null.
+                    example: 5 minutes ago
+                required:
+                - has_heartbeat
+                - heartbeat
+                - editor
+                - time_ago
         '401':
-          description: unauthorized
+          description: unauthorized — Returned when the Authorization header is missing
+            or the token does not match a known API key.
   "/api/v1/my/heartbeats":
     get:
       summary: Get heartbeats
       tags:
       - My Data
       description: Returns a list of heartbeats for the authenticated user within
-        a time range. This is the raw data stream.
+        a time range. This is the raw data stream. Authenticate with your API key
+        as a Bearer token in the `Authorization` header (HTTP Basic auth with the
+        API key is also accepted).
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: start_time
         in: query
         schema:
           type: string
           format: date_time
-        description: Start time (ISO 8601)
+        description: Start time (ISO 8601). Defaults to the beginning of the current
+          day when omitted.
       - name: end_time
         in: query
         schema:
           type: string
           format: date_time
-        description: End time (ISO 8601)
+        description: End time (ISO 8601). Defaults to the end of the current day when
+          omitted.
       responses:
         '200':
           description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  start_time:
+                    type: string
+                    format: date_time
+                    description: Effective start of the queried range.
+                    example: '2024-03-20T00:00:00Z'
+                  end_time:
+                    type: string
+                    format: date_time
+                    description: Effective end of the queried range.
+                    example: '2024-03-20T23:59:59Z'
+                  total_seconds:
+                    type: number
+                    description: Total coding duration in seconds across the returned
+                      heartbeats.
+                    example: 3600.0
+                  heartbeats:
+                    type: array
+                    description: Heartbeats in the range, ordered by time ascending.
+                    items:
+                      "$ref": "#/components/schemas/Heartbeat"
+                required:
+                - start_time
+                - end_time
+                - total_seconds
+                - heartbeats
         '401':
-          description: unauthorized
-  "/my/heartbeats/export":
-    post:
-      summary: Export Heartbeats
-      tags:
-      - My Data
-      description: Export your heartbeats as a JSON file.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters:
-      - name: all_data
-        in: query
-        description: Export all data (true/false)
-        schema:
-          type: boolean
-      - name: start_date
-        in: query
-        schema:
-          type: string
-          format: date
-        description: Start date (YYYY-MM-DD)
-      - name: end_date
-        in: query
-        schema:
-          type: string
-          format: date
-        description: End date (YYYY-MM-DD)
-      responses:
-        '302':
-          description: redirect
-  "/my/heartbeat_imports":
-    post:
-      summary: Create Heartbeat Import
-      tags:
-      - My Data
-      description: Start a development upload import or a one-time remote dump import.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters: []
-      responses:
-        '202':
-          description: accepted
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: string
-              enum:
-              - wakatime_dump
-              - hackatime_v1_dump
-        description: Remote import provider preset
-  "/my/projects":
-    get:
-      summary: List Project Repo Mappings
-      tags:
-      - My Projects
-      description: List mappings between local project names and Git repositories.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters:
-      - name: interval
-        in: query
-        description: 'Time interval (e.g., daily, weekly). Default: daily'
-        schema:
-          type: string
-      - name: from
-        in: query
-        schema:
-          type: string
-          format: date
-        description: Start date (YYYY-MM-DD)
-      - name: to
-        in: query
-        schema:
-          type: string
-          format: date
-        description: End date (YYYY-MM-DD)
-      responses:
-        '200':
-          description: successful
-  "/my/project_repo_mappings/{project_name}":
-    parameters:
-    - name: project_name
-      in: path
-      description: Project name (encoded)
-      required: true
-      schema:
-        type: string
-    patch:
-      summary: Update Project Repo Mapping
-      tags:
-      - My Projects
-      description: Update the Git repository URL for a project mapping.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters: []
-      responses:
-        '302':
-          description: redirect
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                repo_url:
-                  type: string
-                  example: https://github.com/hackclub/hackatime
-              required:
-              - repo_url
-  "/my/project_repo_mappings/{project_name}/archive":
-    parameters:
-    - name: project_name
-      in: path
-      description: Project name (encoded)
-      required: true
-      schema:
-        type: string
-    patch:
-      summary: Archive Project Mapping
-      tags:
-      - My Projects
-      description: Archive a project mapping so it does not appear in active lists.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      responses:
-        '302':
-          description: redirect
-  "/my/project_repo_mappings/{project_name}/unarchive":
-    parameters:
-    - name: project_name
-      in: path
-      description: Project name (encoded)
-      required: true
-      schema:
-        type: string
-    patch:
-      summary: Unarchive Project Mapping
-      tags:
-      - My Projects
-      description: Restore an archived project mapping.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      responses:
-        '302':
-          description: redirect
-  "/my/settings/rotate_api_key":
-    post:
-      summary: Rotate API Key
-      tags:
-      - My Settings
-      description: 'Rotate your API key. Returns the new token. Warning: Old token
-        will stop working immediately.'
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      responses:
-        '200':
-          description: successful
-  "/my/heartbeat_imports/{id}":
-    get:
-      summary: Get Heartbeat Import Status
-      tags:
-      - My Data
-      description: Fetch the latest state for a heartbeat import run.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      parameters:
-      - name: id
-        in: path
-        description: Heartbeat import run id
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: successful
-  "/deletion":
-    post:
-      summary: Create Deletion Request
-      tags:
-      - My Settings
-      description: Request deletion of your account and data.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      responses:
-        '302':
-          description: redirect
-    delete:
-      summary: Cancel Deletion Request
-      tags:
-      - My Settings
-      description: Cancel a pending deletion request.
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
-      responses:
-        '302':
-          description: redirect
+          description: unauthorized — Returned when the Authorization header is missing
+            or the token does not match a known API key.
   "/api/v1/stats":
     get:
-      summary: Get total coding time (Admin Only)
+      summary: Get total coding time
       tags:
       - Stats
       description: Returns the total coding time for all users, optionally filtered
-        by user or date range. Requires admin privileges via STATS_API_KEY.
+        by user or date range. Authenticated with the shared STATS_API_KEY token (Bearer
+        header or api_key query param) — not tied to any user or admin level. Authentication
+        is skipped entirely in development.
       security:
       - Bearer: []
         ApiKeyAuth: []
@@ -3116,12 +1304,20 @@ paths:
           type: string
       responses:
         '200':
-          description: successful with invalid credentials
+          description: successful
           content:
             text/plain:
               schema:
                 type: integer
                 example: 123456
+        '401':
+          description: unauthorized — Returned when STATS_API_KEY is unset/blank or
+            the supplied token is missing or incorrect. (Auth is bypassed in the development
+            environment.)
+          content:
+            text/plain:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '404':
           description: user not found
           content:
@@ -3134,16 +1330,47 @@ paths:
             text/plain:
               schema:
                 "$ref": "#/components/schemas/Error"
+  "/api/v1/banned_users/counts":
+    get:
+      summary: Get newly-banned user counts
+      tags:
+      - Stats
+      description: Returns the number of distinct users whose trust level was newly
+        set to "red" (banned/convicted) over the last day, week, and month.
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  day:
+                    type: integer
+                    example: 3
+                  week:
+                    type: integer
+                    example: 12
+                  month:
+                    type: integer
+                    example: 48
+                required:
+                - day
+                - week
+                - month
   "/api/v1/users/{username}/heartbeats/spans":
     get:
-      summary: Get heartbeat spans
+      summary: Get user heartbeat spans
       tags:
-      - Users
-      description: Get time spans of coding activity.
+      - Stats
+      description: Returns heartbeat spans for a user, useful for visualizations.
+        Accessible anonymously when the target user has public stats lookup enabled;
+        otherwise the requester must be the user (authenticated via the User API Key).
       parameters:
       - name: username
         in: path
-        description: Username
+        description: Username, Slack ID, or User ID. The literal value "my" resolves
+          the user from the Authorization Bearer token.
         required: true
         schema:
           type: string
@@ -3151,22 +1378,23 @@ paths:
         in: query
         schema:
           type: string
-          format: date
-        description: Start date (YYYY-MM-DD)
+          format: date_time
+        description: Start date/time (ISO 8601), defaults to 10 years ago
       - name: end_date
         in: query
         schema:
           type: string
-          format: date
-        description: End date (YYYY-MM-DD)
+          format: date_time
+        description: End date/time (ISO 8601), defaults to end of today
       - name: project
         in: query
-        description: Filter by specific project
+        description: Filter by single project
         schema:
           type: string
       - name: filter_by_project
         in: query
-        description: Filter by multiple projects (comma-separated)
+        description: Filter by multiple projects (comma separated). Ignored if project
+          is present.
         schema:
           type: string
       responses:
@@ -3182,28 +1410,46 @@ paths:
                     items:
                       type: object
                       properties:
-                        start:
+                        start_time:
                           type: number
-                        end:
+                          description: Span start time (epoch seconds)
+                          example: 1717689600.0
+                        end_time:
                           type: number
-                        project:
-                          type: string
+                          description: Span end time (epoch seconds)
+                          example: 1717691820.5
+                        duration:
+                          type: number
+                          description: Span duration (seconds)
+                          example: 2220.5
+        '403':
+          description: forbidden — The target user has disabled public stats lookup
+            and the requester is not that user.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '422':
           description: invalid date
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
   "/api/v1/users/{username}/trust_factor":
     get:
-      summary: Get trust factor
+      summary: Get user trust factor
       tags:
-      - Users
-      description: Get the trust level/factor for a user. Higher trust values indicate
-        more verified activity.
+      - Stats
+      description: 'Returns the (masked) trust level and value for a user. Only the
+        public-facing levels are ever returned: blue (0, unscored), red (1, convicted),
+        green (2, trusted). The internal "yellow" (suspected) level is masked to blue
+        and never exposed.'
       parameters:
       - name: username
         in: path
@@ -3221,29 +1467,35 @@ paths:
                 properties:
                   trust_level:
                     type: string
-                    example: verified
+                    enum:
+                    - blue
+                    - red
+                    - green
+                    example: blue
                   trust_value:
                     type: integer
-                    example: 2
+                    enum:
+                    - 0
+                    - 1
+                    - 2
+                    example: 0
         '404':
           description: not found
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
   "/api/v1/users/{username}/projects":
     get:
-      summary: Get user projects
+      summary: Get user project names
       tags:
-      - Users
-      description: Get a list of projects a user has coded on recently (last 30 days).
+      - Stats
+      description: Returns a list of project names for a user from the last 30 days.
+        Accessible anonymously when the target user has public stats lookup enabled.
       parameters:
       - name: username
         in: path
-        description: Username
+        description: Username, Slack ID, or User ID
         required: true
         schema:
           type: string
@@ -3260,31 +1512,36 @@ paths:
                     items:
                       type: string
                       example: hackatime
+        '403':
+          description: forbidden — The target user has disabled public stats lookup
+            and the requester is not that user.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '404':
           description: not found
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
   "/api/v1/users/{username}/project/{project_name}":
     get:
-      summary: Get specific project stats
+      summary: Get user project details
       tags:
-      - Users
-      description: Get detailed stats for a specific project.
+      - Stats
+      description: Returns details for a specific project. Accessible anonymously
+        when the target user has public stats lookup enabled.
       parameters:
       - name: username
         in: path
-        description: Username
+        description: Username, Slack ID, or User ID
         required: true
         schema:
           type: string
       - name: project_name
         in: path
-        description: Project Name
+        description: Project name
         required: true
         schema:
           type: string
@@ -3293,25 +1550,21 @@ paths:
         schema:
           type: string
           format: date_time
-        description: Stats start time (ISO 8601)
       - name: end
         in: query
         schema:
           type: string
           format: date_time
-        description: Stats end time (ISO 8601)
       - name: start_date
         in: query
         schema:
           type: string
           format: date_time
-        description: Start date (ISO 8601) for stats calculation
       - name: end_date
         in: query
         schema:
           type: string
           format: date_time
-        description: End date (ISO 8601) for stats calculation
       responses:
         '200':
           description: successful
@@ -3322,44 +1575,82 @@ paths:
                 properties:
                   name:
                     type: string
+                    example: hackatime
                   total_seconds:
                     type: number
+                    example: 14820.5
                   languages:
                     type: array
                     items:
                       type: string
+                      example: Ruby
+                    example:
+                    - Ruby
+                    - Svelte
+                    - TypeScript
                   repo_url:
                     type: string
                     nullable: true
+                    example: https://github.com/hackclub/hackatime
                   total_heartbeats:
                     type: integer
+                    example: 482
                   first_heartbeat:
                     type: string
                     format: date_time
                     nullable: true
+                    example: '2024-03-20T15:30:00Z'
                   last_heartbeat:
                     type: string
                     format: date_time
                     nullable: true
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+                    example: '2024-06-06T18:45:00Z'
+                  most_recent_heartbeat:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    example: '2024-06-06T18:45:00Z'
+                  archived:
+                    type: boolean
+                    example: false
+        '400':
+          description: bad request — Returned when project_name is blank/whitespace-only.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: forbidden — The target user has disabled public stats lookup
+            and the requester is not that user.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: not found — Returned when the user is not found, or no data
+            exists for the requested project.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/api/v1/users/{username}/projects/details":
     get:
-      summary: Get detailed project stats
+      summary: Get details for multiple projects
       tags:
-      - Users
-      description: Get detailed breakdown of all user projects.
+      - Stats
+      description: Returns details for multiple projects, or all projects in a time
+        range. Accessible anonymously when the target user has public stats lookup
+        enabled.
       parameters:
       - name: username
         in: path
-        description: Username
+        description: Username, Slack ID, or User ID
         required: true
         schema:
           type: string
       - name: projects
         in: query
-        description: Comma-separated list of projects to filter
+        description: Comma-separated project names
         schema:
           type: string
       - name: since
@@ -3385,25 +1676,21 @@ paths:
         schema:
           type: string
           format: date_time
-        description: Stats start time (ISO 8601)
       - name: end
         in: query
         schema:
           type: string
           format: date_time
-        description: Stats end time (ISO 8601)
       - name: start_date
         in: query
         schema:
           type: string
           format: date_time
-        description: Start date (ISO 8601) for stats calculation
       - name: end_date
         in: query
         schema:
           type: string
           format: date_time
-        description: End date (ISO 8601) for stats calculation
       responses:
         '200':
           description: successful
@@ -3419,41 +1706,77 @@ paths:
                       properties:
                         name:
                           type: string
+                          example: hackatime
                         total_seconds:
                           type: number
+                          example: 14820.5
                         languages:
                           type: array
                           items:
                             type: string
+                            example: Ruby
+                          example:
+                          - Ruby
+                          - Svelte
+                          - TypeScript
                         repo_url:
                           type: string
                           nullable: true
+                          example: https://github.com/hackclub/hackatime
                         total_heartbeats:
                           type: integer
+                          example: 482
                         first_heartbeat:
                           type: string
                           format: date_time
                           nullable: true
+                          example: '2024-03-20T15:30:00Z'
                         last_heartbeat:
                           type: string
                           format: date_time
                           nullable: true
-      security:
-      - Bearer: []
-        ApiKeyAuth: []
+                          example: '2024-06-06T18:45:00Z'
+                        most_recent_heartbeat:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-06-06T18:45:00Z'
+                        archived:
+                          type: boolean
+                          example: false
+        '403':
+          description: forbidden — The target user has disabled public stats lookup
+            and the requester is not that user.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/api/v1/users/{username}/stats":
     get:
       summary: Get user stats
       tags:
       - Stats
-      description: User has disabled public stats lookup
+      description: |-
+        Returns detailed coding stats for a specific user, including languages, projects, and total time.
+
+        Authentication is OPTIONAL: the endpoint is publicly accessible (no token) whenever the target user has public stats lookup enabled. When a User API Key is supplied it is used to resolve the special username "my" and to grant access to the caller's own private stats.
+
+        When total_seconds=true, the response shape is instead { "total_seconds": <number> }.
       security:
+      - {}
       - Bearer: []
-        ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path
-        description: Username, Slack ID, or User ID
+        description: Username, Slack ID, or User ID. The literal value "my" resolves
+          the current user from the Authorization Bearer token (User API Key).
         required: true
         schema:
           type: string
@@ -3461,14 +1784,14 @@ paths:
         in: query
         schema:
           type: string
-          format: date
-        description: Start date (YYYY-MM-DD)
+          format: date_time
+        description: Start date/time (ISO 8601), defaults to 10 years ago
       - name: end_date
         in: query
         schema:
           type: string
-          format: date
-        description: End date (YYYY-MM-DD)
+          format: date_time
+        description: End date/time (ISO 8601), defaults to end of today
       - name: limit
         in: query
         description: Limit number of results
@@ -3476,7 +1799,8 @@ paths:
           type: integer
       - name: features
         in: query
-        description: Comma-separated list of features to include (e.g., languages,projects)
+        description: Comma-separated list of features to include (e.g., languages,projects).
+          Defaults to languages.
         schema:
           type: string
       - name: filter_by_project
@@ -3491,12 +1815,28 @@ paths:
           type: string
       - name: boundary_aware
         in: query
-        description: Use boundary aware calculation
+        description: Use boundary aware calculation (only applied in the total_seconds
+          branch)
         schema:
           type: boolean
       - name: total_seconds
         in: query
-        description: Return only total seconds
+        description: 'When "true", returns only { total_seconds: <number> } instead
+          of the full stats object'
+        schema:
+          type: boolean
+      - name: no_ai_coding
+        in: query
+        description: 'When "true", excludes the "ai coding" category from totals/summary.
+          Caveat: heartbeats with no category at all (legacy data) are also excluded
+          due to SQL NULL-comparison semantics.'
+        schema:
+          type: boolean
+      - name: test_param
+        in: query
+        description: 'When "true", switches to test mode: forces boundary-aware +
+          valid-timestamps-only and excludes the browsing/meeting/communicating categories
+          (plus "ai coding" when no_ai_coding=true)'
         schema:
           type: boolean
       responses:
@@ -3508,18 +1848,34 @@ paths:
                 type: object
                 properties:
                   data:
-                    "$ref": "#/components/schemas/StatsSummary"
+                    allOf:
+                    - "$ref": "#/components/schemas/StatsSummary"
+                    - type: object
+                      properties:
+                        unique_total_seconds:
+                          type: number
+                          description: Only present when features includes "projects"
+                            AND filter_by_project is supplied.
+                          example: 12960.0
                   trust_factor:
                     type: object
                     properties:
                       trust_level:
                         type: string
+                        enum:
+                        - blue
+                        - red
+                        - green
                         example: blue
                       trust_value:
                         type: integer
-                        example: 3
+                        enum:
+                        - 0
+                        - 1
+                        - 2
+                        example: 0
         '403':
-          description: forbidden
+          description: forbidden — User has disabled public stats lookup
           content:
             application/json:
               schema:
@@ -3542,10 +1898,11 @@ paths:
       tags:
       - Users
       description: Find a user ID by their email address. Useful for integrations
-        that need to map emails to Hackatime users. Requires STATS_API_KEY.
+        that need to map emails to Hackatime users. Requires STATS_API_KEY supplied
+        via the Authorization Bearer header (the api_key query param is NOT accepted
+        for this endpoint).
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: email
         in: path
@@ -3566,7 +1923,15 @@ paths:
                     example: 42
                   email:
                     type: string
-                    example: test@example.com
+                    example: orpheus@hackclub.com
+        '401':
+          description: unauthorized — Returned when STATS_API_KEY is unset/blank or
+            the Authorization Bearer token is missing or incorrect. (Auth is bypassed
+            in the development environment.)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '404':
           description: not found
           content:
@@ -3585,10 +1950,11 @@ paths:
       summary: Lookup user by Slack UID
       tags:
       - Users
-      description: Find a user ID by their Slack User ID. Requires STATS_API_KEY.
+      description: Find a user ID by their Slack User ID. Requires STATS_API_KEY supplied
+        via the Authorization Bearer header (the api_key query param is NOT accepted
+        for this endpoint).
       security:
       - Bearer: []
-        ApiKeyAuth: []
       parameters:
       - name: slack_uid
         in: path
@@ -3609,7 +1975,15 @@ paths:
                     example: 42
                   slack_uid:
                     type: string
-                    example: TEST123456
+                    example: U0266FRGP
+        '401':
+          description: unauthorized — Returned when STATS_API_KEY is unset/blank or
+            the Authorization Bearer token is missing or incorrect. (Auth is bypassed
+            in the development environment.)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '404':
           description: not found
           content:
@@ -3623,49 +1997,12 @@ paths:
                   slack_uid:
                     type: string
                     example: U000000
-  "/sailors_log/slack/commands":
-    post:
-      summary: Handle Sailor's Log Command
-      tags:
-      - Slack
-      description: Handle incoming Slack slash commands for Sailor's Log (/sailorslog).
-      parameters: []
-      responses:
-        '200':
-          description: successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  response_type:
-                    type: string
-                  text:
-                    type: string
-                    nullable: true
-                  blocks:
-                    type: array
-                    items:
-                      type: object
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: string
 components:
   securitySchemes:
     Bearer:
       type: http
       scheme: bearer
       description: User API Key from settings, prefixed with "Bearer"
-    AdminToken:
-      type: http
-      scheme: bearer
-      description: Admin API Key, prefixed with "Bearer"
-    InternalToken:
-      type: http
-      scheme: bearer
-      description: Internal API Key from env, prefixed with "Bearer"
     ApiKeyAuth:
       type: apiKey
       name: api_key
@@ -3708,16 +2045,19 @@ components:
           example: 1024
         entity:
           type: string
+          nullable: true
           example: "/Users/orpheus/hackatime/app/services/chaos_monkey_service.rb"
           description: File path or app name being accessed
         type:
           type: string
+          nullable: true
           example: file
           enum:
           - file
           - app
         category:
           type: string
+          nullable: true
           example: coding
           enum:
           - advising
@@ -3750,39 +2090,51 @@ components:
           description: Unix timestamp of the activity
         project:
           type: string
+          nullable: true
           example: hackatime
         branch:
           type: string
+          nullable: true
           example: main
         language:
           type: string
+          nullable: true
           example: Ruby
         is_write:
           type: boolean
+          nullable: true
           example: true
         editor:
           type: string
+          nullable: true
           example: VS Code
         operating_system:
           type: string
+          nullable: true
           example: Mac
         machine:
           type: string
+          nullable: true
           example: Orpheus-MacBook-Pro
         cursorpos:
           type: integer
+          nullable: true
           example: 123
         lineno:
           type: integer
+          nullable: true
           example: 42
         lines:
           type: integer
+          nullable: true
           example: 100
         line_additions:
           type: integer
+          nullable: true
           example: 5
         line_deletions:
           type: integer
+          nullable: true
           example: 2
     LeaderboardEntry:
       type: object
@@ -3861,137 +2213,6 @@ components:
           type: integer
           example: 7
           description: Number of consecutive days the user has coded
-    AdminApiKey:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 1
-        name:
-          type: string
-          example: CI/CD Key
-        last_used_at:
-          type: string
-          format: date-time
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-    LeaderboardShadowbanUser:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 42
-        display_name:
-          type: string
-          nullable: true
-          example: Orpheus
-        avatar_url:
-          type: string
-          nullable: true
-          example: https://...
-        created_at:
-          type: string
-          format: date-time
-        username:
-          type: string
-          nullable: true
-          example: orpheus
-        email:
-          type: string
-          nullable: true
-          example: orpheus@example.com
-        leaderboard_shadowbanned:
-          type: boolean
-          example: true
-        leaderboard_shadowban_reason:
-          type: string
-          nullable: true
-          example: fake leaderboard activity
-        leaderboard_shadowban_expires_at:
-          type: string
-          format: date-time
-          nullable: true
-        shadowbanned_by:
-          type: object
-          nullable: true
-          properties:
-            id:
-              type: integer
-              example: 1
-            display_name:
-              type: string
-              nullable: true
-              example: Admin
-            username:
-              type: string
-              nullable: true
-              example: admin
-            avatar_url:
-              type: string
-              nullable: true
-              example: https://...
-            admin_level:
-              type: string
-              nullable: true
-              example: superadmin
-        updated_at:
-          type: string
-          format: date-time
-    DeletionRequest:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 101
-        user_id:
-          type: integer
-          example: 42
-        status:
-          type: string
-          example: pending
-          enum:
-          - pending
-          - approved
-          - cancelled
-          - completed
-        created_at:
-          type: string
-          format: date-time
-    TrustLevelAuditLog:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 505
-        user_id:
-          type: integer
-          example: 42
-        actor_id:
-          type: integer
-          example: 1
-        action:
-          type: string
-          example: upgraded_to_verified
-        created_at:
-          type: string
-          format: date-time
-    Permission:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 1
-        role:
-          type: string
-          example: admin
-        resource_type:
-          type: string
-          example: User
-        resource_id:
-          type: integer
-          nullable: true
     WakatimeMirror:
       type: object
       properties:
