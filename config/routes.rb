@@ -19,8 +19,9 @@ Rails.application.routes.draw do
     }
   end
 
+  get "api-docs", to: "api_docs#show", as: :api_docs
+  get "api-docs/admin", to: "api_docs#admin", as: :admin_api_docs
   mount Rswag::Api::Engine => "/api-docs"
-  mount Rswag::Ui::Engine => "/api-docs"
   use_doorkeeper { controllers authorizations: "custom_doorkeeper/authorizations" }
 
   post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application
