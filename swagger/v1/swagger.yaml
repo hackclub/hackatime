@@ -35,30 +35,6 @@ paths:
           description: unauthorized
         '403':
           description: account pending deletion
-        '429':
-          description: rate limit exceeded
-          headers:
-            Retry-After:
-              schema:
-                type: string
-                example: '30'
-              description: Seconds until the rate limit resets
-            X-RateLimit-Limit:
-              schema:
-                type: string
-                example: '360'
-            X-RateLimit-Remaining:
-              schema:
-                type: string
-                example: '0'
-            X-RateLimit-Reset:
-              schema:
-                type: string
-                example: '30'
-            X-RateLimit-Reset-At:
-              schema:
-                type: string
-                example: '2024-03-20T15:30:30Z'
       requestBody:
         content:
           application/json:
