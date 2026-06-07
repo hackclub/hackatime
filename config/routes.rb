@@ -44,9 +44,6 @@ Rails.application.routes.draw do
           post :rotate_secret
         end
       end
-      resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
-        get :search_users, on: :collection
-      end
     end
   end
 
@@ -82,6 +79,9 @@ Rails.application.routes.draw do
           post :approve
           post :reject
         end
+      end
+      resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
+        get :search_users, on: :collection
       end
     end
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user

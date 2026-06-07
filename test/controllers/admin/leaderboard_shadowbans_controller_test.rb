@@ -1,13 +1,23 @@
 require "test_helper"
 
 class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTest
-  test "index is not routed for regular admins" do
+  test "index is not routed for viewers" do
+    viewer = User.create!(timezone: "UTC", admin_level: :viewer)
+    sign_in_as(viewer)
+
+    get admin_leaderboard_shadowbans_path
+
+    assert_response :not_found
+  end
+
+  test "index renders for regular admins" do
     admin = User.create!(timezone: "UTC", admin_level: :admin)
     sign_in_as(admin)
 
     get admin_leaderboard_shadowbans_path
 
-    assert_response :not_found
+    assert_response :success
+    assert_inertia_component "Admin/LeaderboardShadowbans"
   end
 
   test "index renders current shadowbanned users" do

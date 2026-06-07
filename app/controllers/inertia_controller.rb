@@ -91,7 +91,10 @@ class InertiaController < ApplicationController
 
   def inertia_admin_links
     return [] unless current_user&.admin_level.in?(%w[admin superadmin ultraadmin])
-    build_nav_from(ADMIN_NAV_LINKS)
+    build_nav_from(ADMIN_NAV_LINKS) + [
+      # viewers can't access these!
+      inertia_link("Leaderboard Shadowbans", admin_leaderboard_shadowbans_path, active: helpers.current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?("/admin/leaderboard_shadowbans"), inertia: true)
+    ]
   end
 
   def inertia_viewer_links
@@ -106,8 +109,7 @@ class InertiaController < ApplicationController
     [
       inertia_link("Admin Management", admin_admin_users_path, active: helpers.current_page?(admin_admin_users_path)),
       inertia_link("Account Deletions", admin_deletion_requests_path, active: helpers.current_page?(admin_deletion_requests_path), badge: pending_count.positive? ? pending_count : nil),
-      inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications")),
-      inertia_link("Leaderboard Shadowbans", admin_leaderboard_shadowbans_path, active: helpers.current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?("/admin/leaderboard_shadowbans"), inertia: true)
+      inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications"))
     ]
   end
 
