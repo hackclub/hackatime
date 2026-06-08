@@ -12,35 +12,28 @@
     todays_languages: string[];
     todays_editors: string[];
   } = $props();
+
+  const langs = $derived(todays_languages);
+  const editors = $derived(todays_editors);
 </script>
 
 <p>
   {#if show_logged_time_sentence}
     Today, you've logged
     {todays_duration_display}
-    {#if todays_languages.length > 0 || todays_editors.length > 0}
+    {#if langs.length || editors.length}
       across
-      {#if todays_languages.length > 0}
-        {#if todays_languages.length >= 4}
-          {todays_languages.slice(0, 2).join(", ")}
-          <span title={todays_languages.slice(2).join(", ")}>
-            (& {todays_languages.length - 2}
-            {pluralize(
-              todays_languages.length - 2,
-              "other language",
-              "other languages",
-            )})
-          </span>
-        {:else}
-          {toSentence(todays_languages)}
-        {/if}
+      {#if langs.length >= 4}
+        {langs.slice(0, 2).join(", ")}
+        <span title={langs.slice(2).join(", ")}>
+          (& {langs.length - 2}
+          {pluralize(langs.length - 2, "other language", "other languages")})
+        </span>
+      {:else if langs.length > 0}
+        {toSentence(langs)}
       {/if}
-      {#if todays_languages.length > 0 && todays_editors.length > 0}
-        using
-      {/if}
-      {#if todays_editors.length > 0}
-        {toSentence(todays_editors)}
-      {/if}
+      {#if langs.length > 0 && editors.length > 0}using{/if}
+      {#if editors.length > 0}{toSentence(editors)}{/if}
     {/if}
   {:else}
     No time logged today... but you can change that!

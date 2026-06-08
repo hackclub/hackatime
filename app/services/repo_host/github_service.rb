@@ -2,6 +2,19 @@ require "http"
 
 module RepoHost
   class GithubService < BaseService
+    # Shared HTTP client for GitHub API. Used by services and jobs.
+    def self.api_client(access_token)
+      HTTP.headers(api_headers_for(access_token)).timeout(connect: 5, read: 10)
+    end
+
+    def self.api_headers_for(access_token)
+      {
+        "Accept" => "application/vnd.github.v3+json",
+        "Authorization" => "Bearer #{access_token}",
+        "X-GitHub-Api-Version" => "2022-11-28"
+      }
+    end
+
     def fetch_repo_metadata
       return nil unless user.github_access_token.present?
 
@@ -19,7 +32,7 @@ module RepoHost
         description: repo_data["description"],
         language: repo_data["language"],
         languages: languages_data&.keys&.join(", "),
-        homepage: repo_data["homepage"].presence,
+        homepage: repo_data["homepage"].presence&.then { |hp| hp.match?(Repository::HOMEPAGE_FORMAT) ? hp : nil },
         commit_count: commit_count,
         last_commit_at: commits_data&.first&.dig("commit", "committer", "date")&.then { |date| Time.parse(date) },
         last_synced_at: Time.current
@@ -29,54 +42,33 @@ module RepoHost
     private
 
     def api_headers
-      {
-        "Accept" => "application/vnd.github.v3+json",
-        "Authorization" => "Bearer #{user.github_access_token}",
-        "X-GitHub-Api-Version" => "2022-11-28"
-      }
+      self.class.api_headers_for(user.github_access_token)
     end
 
     def fetch_repository_info
-      url = "https://api.github.com/repos/#{owner}/#{repo}"
-      make_api_request(url)
+      make_api_request("https://api.github.com/repos/#{owner}/#{repo}")
     end
 
     def fetch_languages
-      url = "https://api.github.com/repos/#{owner}/#{repo}/languages"
-      make_api_request(url)
+      make_api_request("https://api.github.com/repos/#{owner}/#{repo}/languages")
     end
 
     def fetch_recent_commits
-      # Get just the last few commits for metadata
-      url = "https://api.github.com/repos/#{owner}/#{repo}/commits?per_page=5"
-      make_api_request(url)
+      make_api_request("https://api.github.com/repos/#{owner}/#{repo}/commits?per_page=5")
     end
 
     def fetch_commit_count(default_branch = nil)
-      # GitHub API doesn't provide commit count directly, so we need to use a workaround
-      # We'll get the commit count from the commits endpoint with minimal data
+      # GitHub API doesn't provide commit count directly. Use Link header pagination on per_page=1.
       branch_param = default_branch ? "&sha=#{default_branch}" : ""
       url = "https://api.github.com/repos/#{owner}/#{repo}/commits?per_page=1#{branch_param}"
-
-      response = HTTP.headers(api_headers)
-                     .timeout(connect: 5, read: 10)
-                     .get(url)
+      response = self.class.api_client(user.github_access_token).get(url)
 
       case response.status.code
       when 200
-        # Extract commit count from Link header pagination
         link_header = response.headers["Link"]
-        if link_header
-          # Look for the "last" page number in the Link header
-          # Format: <https://api.github.com/repos/owner/repo/commits?page=962&per_page=1>; rel="last"
-          if match = link_header.match(/.*page=(\d+)[^>]*>;\s*rel="last"/)
-            match[1].to_i
-          else
-            # If no "last" link, there's only one page of commits
-            1
-          end
+        if link_header && (match = link_header.match(/.*page=(\d+)[^>]*>;\s*rel="last"/))
+          match[1].to_i
         else
-          # No Link header means there's only one page
           1
         end
       when 404

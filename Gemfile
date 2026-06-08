@@ -30,37 +30,23 @@ gem "rack-cors"
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 
-# Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
-gem "solid_cache"
-gem "solid_cable"
-
-# Profiling & error tracking
-gem "stackprof"
+# Profiling & error tracking. stackprof is lazily required by
+# rack-mini-profiler the first time you request ?pp=profile-gc, so we don't
+# need it loaded at boot — saves ~native ext + a couple MB.
+gem "stackprof", require: false
 gem "sentry-ruby"
 gem "sentry-rails"
 
 gem "good_job"
 
-# Slack client
-gem "slack-ruby-client"
-
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
-
-# Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
-gem "kamal", require: false
-
-# Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
-gem "thruster", require: false
 
 # For query count tracking
 gem "query_count"
 
 # Compact request logging
 gem "lograge"
-
-# Better Stack (Logtail) logging
-gem "logtail-rails"
 
 # Rate limiting
 gem "rack-attack"
@@ -86,24 +72,19 @@ gem "oj"
 
 # Rack Mini Profiler [https://github.com/MiniProfiler/rack-mini-profiler]
 gem "rack-mini-profiler"
-# For memory profiling via RMP
-gem "memory_profiler"
-gem "flamegraph"
-
-gem "skylight"
-
+# For memory profiling via rack-mini-profiler — lazily required when you visit
+# ?pp=profile-memory / ?pp=flamegraph, no need to load at boot.
+gem "memory_profiler", require: false
+gem "flamegraph", require: false
 # Analytics
 gem "geocoder"
 gem "maxminddb"
 
-# Airtable syncing
-gem "norairrecord", "~> 0.5.1"
-
 # Country codes
 gem "countries"
 
-# Markdown parsing
-gem "redcarpet"
+# Markdown parsing — only used in DocsController, so don't autoload it.
+gem "redcarpet", require: false
 
 gem "ruby_identicon"
 
@@ -128,15 +109,21 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
+  # rswag-specs provides the `rswag:specs:swaggerize` rake task (used by CI)
+  # via its Railtie, so let Bundler auto-require it. rspec-rails comes with it
+  # as a transitive runtime dependency.
   gem "rspec-rails"
   gem "rswag-specs"
 
-  # Random data generation
-  gem "faker"
+  # Random data generation — only used in seed rake tasks
+  gem "faker", require: false
+
+  # technically not used for any of the scripts in the repo, but I like
+  # to use it for scratch benchmarks
+  gem "benchmark"
 end
 
 gem "rswag-api"
-gem "rswag-ui"
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
@@ -148,6 +135,9 @@ group :development do
 
   # Bullet [https://github.com/flyerhzm/bullet]
   gem "bullet"
+
+  # Backend for ActiveSupport::EventedFileUpdateChecker
+  gem "listen"
 end
 
 group :test do
@@ -158,28 +148,27 @@ group :test do
 end
 
 group :production do
-  # fix request.remote_ip in prod [https://github.com/modosc/cloudflare-rails?tab=readme-ov-file]
+  # request.remote_ip behind Cloudflare [https://github.com/modosc/cloudflare-rails]
   gem "cloudflare-rails"
+  gem "logtail-rails"
+  gem "skylight"
+  gem "aws-sdk-s3"
+  gem "autotuner", "~> 1.0"
+
+  gem "solid_cache"
+  gem "solid_cable"
+
+  gem "thruster"
 end
 
 gem "premailer-rails"
 
-gem "htmlcompressor", "~> 0.4.0"
-
 gem "doorkeeper", "~> 5.8"
-
-gem "autotuner", "~> 1.0"
-
-gem "tailwindcss-ruby", "~> 4.1"
-
-gem "tailwindcss-rails", "~> 4.2"
 
 gem "inertia_rails", "~> 3.21"
 
 gem "vite_rails", "~> 3.11"
 
-gem "rubyzip", "~> 3.3"
-
-gem "aws-sdk-s3", require: false
+gem "rubyzip", "~> 3.3", require: false # only used by HeartbeatExportJob
 
 gem "mailkick"

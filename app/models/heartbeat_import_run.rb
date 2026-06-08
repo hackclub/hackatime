@@ -34,29 +34,14 @@ class HeartbeatImportRun < ApplicationRecord
   scope :active_imports, -> { where(state: states.values_at(*ACTIVE_STATES)) }
   scope :remote_imports, -> { where(source_kind: source_kinds.values_at(*REMOTE_SOURCE_KINDS)) }
 
-  def remote?
-    REMOTE_SOURCE_KINDS.include?(source_kind)
-  end
-
-  def wakatime?
-    WAKATIME_SOURCE_KINDS.include?(source_kind)
-  end
-
-  def terminal?
-    TERMINAL_STATES.include?(state)
-  end
-
-  def active_import?
-    ACTIVE_STATES.include?(state)
-  end
-
-  def remote_dump_pollable?
-    REMOTE_DUMP_POLLABLE_STATES.include?(state)
-  end
+  def remote? = REMOTE_SOURCE_KINDS.include?(source_kind)
+  def wakatime? = WAKATIME_SOURCE_KINDS.include?(source_kind)
+  def terminal? = TERMINAL_STATES.include?(state)
+  def active_import? = ACTIVE_STATES.include?(state)
+  def remote_dump_pollable? = REMOTE_DUMP_POLLABLE_STATES.include?(state)
 
   def cooldown_until
     return nil if remote_requested_at.blank?
-
     remote_requested_at + COOLDOWN
   end
 
@@ -80,21 +65,14 @@ class HeartbeatImportRun < ApplicationRecord
     update_columns(encrypted_api_key: nil, updated_at: Time.current)
   end
 
-  def self.active_for(user)
-    where(user: user).active_imports.latest_first.first
-  end
-
-  def self.latest_for(user)
-    where(user: user).latest_first.first
-  end
+  def self.active_for(user) = where(user: user).active_imports.latest_first.first
+  def self.latest_for(user) = where(user: user).latest_first.first
 
   def self.remote_cooldown_until_for(user)
-    latest_remote_request = where(user: user)
-      .remote_imports
+    latest_remote_request = where(user: user).remote_imports
       .where.not(remote_requested_at: nil)
       .order(remote_requested_at: :desc)
       .pick(:remote_requested_at)
-
     return nil if latest_remote_request.blank?
 
     retry_at = latest_remote_request + COOLDOWN

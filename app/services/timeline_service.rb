@@ -12,48 +12,26 @@ class TimelineService
     @users_by_id ||= User.where(id: selected_user_ids).index_by(&:id)
   end
 
-  def valid_user_ids
-    @valid_user_ids ||= users_by_id.keys
-  end
-
   def timeline_data
-    users_to_process = valid_user_ids.map { |id| users_by_id[id] }.compact
-
-    users_to_process.map do |user|
+    users_by_id.values.map do |user|
       user_tz = user.timezone || "UTC"
-      user_start_of_day = date.in_time_zone(user_tz).beginning_of_day.to_f
-      user_end_of_day = date.in_time_zone(user_tz).end_of_day.to_f
+      day_start = date.in_time_zone(user_tz).beginning_of_day.to_f
+      day_end = date.in_time_zone(user_tz).end_of_day.to_f
 
       total_coded_time_seconds = Heartbeat.where(user_id: user.id, deleted_at: nil)
-                                          .where("time >= ? AND time <= ?", user_start_of_day, user_end_of_day)
+                                          .where("time >= ? AND time <= ?", day_start, day_end)
                                           .duration_seconds
 
-      user_heartbeats_for_spans = (heartbeats_by_user_id[user.id] || [])
-        .select { |hb| hb.time >= user_start_of_day && hb.time <= user_end_of_day }
+      hbs = (heartbeats_by_user_id[user.id] || []).select { |hb| hb.time >= day_start && hb.time <= day_end }
 
-      spans = calculate_spans(user, user_heartbeats_for_spans)
-
-      {
-        user: user,
-        spans: spans,
-        total_coded_time: total_coded_time_seconds
-      }
+      { user: user, spans: calculate_spans(user, hbs), total_coded_time: total_coded_time_seconds }
     end
   end
 
   def commit_markers
-    commits = Commit.where(
-      user_id: selected_user_ids,
-      created_at: date.beginning_of_day..date.end_of_day
-    )
-
-    commits.map do |commit|
+    Commit.where(user_id: selected_user_ids, created_at: date.beginning_of_day..date.end_of_day).map do |commit|
       raw = commit.github_raw || {}
-      commit_time = if raw.dig("commit", "committer", "date")
-        Time.parse(raw["commit"]["committer"]["date"])
-      else
-        commit.created_at
-      end
+      commit_time = raw.dig("commit", "committer", "date") ? Time.parse(raw["commit"]["committer"]["date"]) : commit.created_at
       {
         user_id: commit.user_id,
         timestamp: commit_time.to_f,
@@ -67,65 +45,50 @@ class TimelineService
   private
 
   def mappings_by_user_project
-    @mappings_by_user_project ||= ProjectRepoMapping.where(user_id: valid_user_ids)
+    @mappings_by_user_project ||= ProjectRepoMapping.where(user_id: users_by_id.keys)
                                                     .group_by(&:user_id)
                                                     .transform_values { |mappings| mappings.index_by(&:project_name) }
   end
 
   def heartbeats_by_user_id
-    @heartbeats_by_user_id ||= begin
-      server_start_of_day = date.beginning_of_day.to_f
-      server_end_of_day = date.end_of_day.to_f
-      expanded_start = server_start_of_day - 24.hours.to_i
-      expanded_end = server_end_of_day + 24.hours.to_i
-
-      Heartbeat
-        .where(user_id: valid_user_ids, deleted_at: nil)
-        .where("time >= ? AND time <= ?", expanded_start, expanded_end)
-        .select(:id, :user_id, :time, :entity, :project, :editor, :language)
-        .order(:user_id, :time)
-        .to_a
-        .group_by(&:user_id)
-    end
+    @heartbeats_by_user_id ||= Heartbeat
+      .where(user_id: users_by_id.keys, deleted_at: nil)
+      .where("time >= ? AND time <= ?", date.beginning_of_day.to_f - 24.hours.to_i, date.end_of_day.to_f + 24.hours.to_i)
+      .select(:id, :user_id, :time, :entity, :project, :editor, :language)
+      .order(:user_id, :time).to_a.group_by(&:user_id)
   end
 
   def calculate_spans(user, heartbeats)
     return [] if heartbeats.empty?
 
     spans = []
-    current_span_heartbeats = []
+    current = []
 
     heartbeats.each_with_index do |heartbeat, index|
-      current_span_heartbeats << heartbeat
+      current << heartbeat
       is_last = (index == heartbeats.length - 1)
       time_to_next = is_last ? Float::INFINITY : (heartbeats[index + 1].time - heartbeat.time)
 
-      if time_to_next > TIMEOUT_DURATION || is_last
-        next unless current_span_heartbeats.any?
+      next unless time_to_next > TIMEOUT_DURATION || is_last
+      next if current.empty?
 
-        start_time_numeric = current_span_heartbeats.first.time
-        last_hb_time_numeric = current_span_heartbeats.last.time
-        span_duration = [ last_hb_time_numeric - start_time_numeric, 0 ].max
+      start_time = current.first.time
+      end_time = current.last.time
 
-        files = current_span_heartbeats.map { |h| h.entity&.split("/")&.last }.compact.uniq
-        unique_projects = current_span_heartbeats.map(&:project).compact.reject(&:blank?).uniq
-
-        projects_edited_details = unique_projects.map do |p_name|
-          repo_mapping = mappings_by_user_project.dig(user.id, p_name)
-          { name: p_name, repo_url: repo_mapping&.repo_url }
-        end
-
-        spans << {
-          start_time: start_time_numeric,
-          end_time: last_hb_time_numeric,
-          duration: span_duration,
-          files_edited: files,
-          projects_edited_details: projects_edited_details,
-          editors: current_span_heartbeats.map(&:editor).compact.uniq,
-          languages: current_span_heartbeats.map(&:language).compact.uniq
-        }
-        current_span_heartbeats = []
+      projects_edited_details = current.map(&:project).compact.reject(&:blank?).uniq.map do |p_name|
+        { name: p_name, repo_url: mappings_by_user_project.dig(user.id, p_name)&.repo_url }
       end
+
+      spans << {
+        start_time: start_time,
+        end_time: end_time,
+        duration: [ end_time - start_time, 0 ].max,
+        files_edited: current.map { |h| h.entity&.split("/")&.last }.compact.uniq,
+        projects_edited_details: projects_edited_details,
+        editors: current.map(&:editor).compact.uniq,
+        languages: current.map(&:language).compact.uniq
+      }
+      current = []
     end
 
     spans

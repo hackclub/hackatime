@@ -3,6 +3,12 @@ require "zip"
 class HeartbeatExportJob < ApplicationJob
   queue_as :default
 
+  HEARTBEAT_EXPORT_FIELDS = %i[
+    id entity type category project language editor operating_system machine
+    branch user_agent is_write line_additions line_deletions lineno lines
+    cursorpos dependencies source_type
+  ].freeze
+
   def perform(user_id, all_data:, start_date: nil, end_date: nil)
     user = User.find_by(id: user_id)
     return if user.nil?
@@ -16,22 +22,17 @@ class HeartbeatExportJob < ApplicationJob
     if all_data
       heartbeats = user.heartbeats.order(time: :asc)
       first_time, last_time = user.heartbeats.pick(Arel.sql("MIN(time), MAX(time)"))
-
       if first_time && last_time
         start_date = Time.at(first_time).to_date
         end_date = Time.at(last_time).to_date
       else
-        start_date = Date.current
-        end_date = Date.current
+        start_date = end_date = Date.current
       end
     else
       start_date = Date.iso8601(start_date)
       end_date = Date.iso8601(end_date)
-      start_time = start_date.beginning_of_day.to_f
-      end_time = end_date.end_of_day.to_f
-
       heartbeats = user.heartbeats
-        .where("time >= ? AND time <= ?", start_time, end_time)
+        .where("time >= ? AND time <= ?", start_date.beginning_of_day.to_f, end_date.end_of_day.to_f)
         .order(time: :asc)
     end
 
@@ -45,27 +46,21 @@ class HeartbeatExportJob < ApplicationJob
       file.rewind
 
       Tempfile.create([ "heartbeat_export", ".zip" ]) do |zip_file|
-        Zip::File.open(zip_file.path, create: true) do |archive|
-          archive.add(json_filename, file.path)
-        end
+        Zip::File.open(zip_file.path, create: true) { |archive| archive.add(json_filename, file.path) }
 
         blob = File.open(zip_file.path, "rb") do |zip_io|
           ActiveStorage::Blob.create_and_upload!(
             io: zip_io,
             filename: zip_filename,
             content_type: "application/zip",
-            metadata: {
-              heartbeat_export: true,
-              user_id: user.id
-            }
+            metadata: { heartbeat_export: true, user_id: user.id }
           )
         end
 
         HeartbeatExportCleanupJob.set(wait: 7.days).perform_later(blob.id)
-
         HeartbeatExportMailer.export_ready(
           user,
-          recipient_email: recipient_email,
+          recipient_email:,
           blob_signed_id: blob.signed_id,
           filename: zip_filename
         ).deliver_now
@@ -81,38 +76,16 @@ class HeartbeatExportJob < ApplicationJob
     {
       export_info: {
         exported_at: Time.current.iso8601,
-        date_range: {
-          start_date: start_date.iso8601,
-          end_date: end_date.iso8601
-        },
+        date_range: { start_date: start_date.iso8601, end_date: end_date.iso8601 },
         total_heartbeats: heartbeats.count,
         total_duration_seconds: heartbeats.duration_seconds
       },
-      heartbeats: heartbeats.map do |heartbeat|
-        {
-          id: heartbeat.id,
-          time: Time.at(heartbeat.time).iso8601,
-          entity: heartbeat.entity,
-          type: heartbeat.type,
-          category: heartbeat.category,
-          project: heartbeat.project,
-          language: heartbeat.language,
-          editor: heartbeat.editor,
-          operating_system: heartbeat.operating_system,
-          machine: heartbeat.machine,
-          branch: heartbeat.branch,
-          user_agent: heartbeat.user_agent,
-          is_write: heartbeat.is_write,
-          line_additions: heartbeat.line_additions,
-          line_deletions: heartbeat.line_deletions,
-          lineno: heartbeat.lineno,
-          lines: heartbeat.lines,
-          cursorpos: heartbeat.cursorpos,
-          dependencies: heartbeat.dependencies,
-          source_type: heartbeat.source_type,
-          created_at: heartbeat.created_at.iso8601,
-          updated_at: heartbeat.updated_at.iso8601
-        }
+      heartbeats: heartbeats.map do |hb|
+        HEARTBEAT_EXPORT_FIELDS.index_with { |f| hb.public_send(f) }.merge(
+          time: Time.at(hb.time).iso8601,
+          created_at: hb.created_at.iso8601,
+          updated_at: hb.updated_at.iso8601
+        )
       end
     }
   end

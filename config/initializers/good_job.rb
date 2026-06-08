@@ -6,7 +6,7 @@ Rails.application.configure do
 
   if Rails.env.development?
     config.good_job.execution_mode = :async # Run jobs in background threads in development
-    config.good_job.poll_interval = 5 # Poll every 5 seconds for scheduled jobs
+    config.good_job.poll_interval = 5
     config.good_job.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(nil))
   else
     config.good_job.execution_mode = :external # Use external execution mode in production and staging
@@ -15,8 +15,12 @@ Rails.application.configure do
   config.good_job.enable_cron = Rails.env.production?
 
   # https://github.com/bensheldon/good_job#configuring-your-queues
-  # 12 threads total
-  config.good_job.queues = "latency_critical:2; latency_10s:3; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:4"
+  config.good_job.queues =
+    if Rails.env.development?
+      "*:2"
+    else
+      "latency_critical:2; latency_10s:3; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:4"
+    end
 
   config.good_job.cron = {
     # update_slack_status: {
@@ -65,10 +69,6 @@ Rails.application.configure do
     # cleanup_expired_email_verification_requests: {
     #   cron: "* * * * *",
     #   class: "CleanupExpiredEmailVerificationRequestsJob"
-    # },
-    # update_airtable_user_data: {
-    #   cron: "0 13 * * *",
-    #   class: "UpdateAirtableUserDataJob"
     # },
     cache_active_user_graph_data_job: {
       cron: "*/10 * * * *",

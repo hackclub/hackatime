@@ -75,7 +75,11 @@ class LeaderboardsController < InertiaController
 
     active_projects = Cache::ActiveProjectsJob.perform_now
 
-    entries = payload[:entries].map do |e|
+    visible_entries = payload[:entries].reject do |e|
+      e.dig(:user, :shadowbanned) && e[:user_id] != current_user&.id
+    end
+
+    entries = visible_entries.map do |e|
       user = e[:user]
       proj = active_projects&.dig(e[:user_id])
       {
@@ -97,7 +101,7 @@ class LeaderboardsController < InertiaController
 
     {
       entries: entries,
-      total: payload[:total_entries]
+      total: visible_entries.size
     }
   end
 end

@@ -1,9 +1,10 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
-  import { Checkbox } from "bits-ui";
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
   import SectionCard from "./components/SectionCard.svelte";
+  import CheckboxField from "./components/CheckboxField.svelte";
+  import ModalActions from "./components/ModalActions.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { SlackGithubPageProps } from "./types";
   import { sessions, settingsSlackGithub } from "../../../api";
@@ -18,11 +19,6 @@
     github,
     errors,
   }: SlackGithubPageProps = $props();
-
-  const settingsUpdatePath = settingsSlackGithub.update.path();
-  const slackAuthPath = sessions.slackNew.path();
-  const githubAuthPath = sessions.githubNew.path();
-  const githubUnlinkPath = sessions.githubUnlink.path();
 
   let unlinkGithubModalOpen = $state(false);
 </script>
@@ -40,7 +36,7 @@
     <div class="space-y-4">
       {#if !slack.can_enable_status}
         <a
-          href={slackAuthPath}
+          href={sessions.slackNew.path()}
           class="inline-flex rounded-md border border-surface-200 bg-surface-100 px-3 py-2 text-sm text-surface-content transition-colors hover:bg-surface-200"
         >
           Re-authorize with Slack
@@ -49,32 +45,23 @@
 
       <Form
         id="slack-github-slack-form"
-        action={settingsUpdatePath}
+        action={settingsSlackGithub.update.path()}
         method="patch"
         class="space-y-3"
         options={{ preserveScroll: true }}
       >
-        <label class="flex items-center gap-3 text-sm text-surface-content">
-          <input type="hidden" name="user[uses_slack_status]" value="0" />
-          <Checkbox.Root
-            bind:checked={user.uses_slack_status}
-            name="user[uses_slack_status]"
-            value="1"
-            class="inline-flex h-4 w-4 min-w-4 items-center justify-center rounded border border-surface-200 bg-darker text-on-primary transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary"
-          >
-            {#snippet children({ checked })}
-              <span class={checked ? "text-[10px]" : "hidden"}>✓</span>
-            {/snippet}
-          </Checkbox.Root>
-          Update my Slack status automatically
-        </label>
+        <CheckboxField
+          name="user[uses_slack_status]"
+          bind:checked={user.uses_slack_status}
+          label="Update my Slack status automatically"
+        />
       </Form>
     </div>
 
     {#snippet footer()}
-      <Button type="submit" form="slack-github-slack-form">
-        Save Slack settings
-      </Button>
+      <Button type="submit" form="slack-github-slack-form"
+        >Save Slack settings</Button
+      >
     {/snippet}
   </SectionCard>
 
@@ -85,9 +72,9 @@
   >
     <p class="text-sm text-muted">
       Command:
-      <code class="rounded bg-darker px-1 py-0.5 text-xs text-surface-content">
-        /sailorslog on
-      </code>
+      <code class="rounded bg-darker px-1 py-0.5 text-xs text-surface-content"
+        >/sailorslog on</code
+      >
     </p>
 
     {#if slack.notification_channels.length > 0}
@@ -122,17 +109,17 @@
         class="rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content"
       >
         Connected as
-        <a href={github.profile_url || "#"} target="_blank" class="underline">
-          @{github.username}
-        </a>
+        <a href={github.profile_url || "#"} target="_blank" class="underline"
+          >@{github.username}</a
+        >
       </div>
     {/if}
 
     {#snippet footer()}
       {#if github.connected && github.username}
-        <Button href={githubAuthPath} native class="rounded-md">
-          Reconnect GitHub
-        </Button>
+        <Button href={sessions.githubNew.path()} native class="rounded-md"
+          >Reconnect GitHub</Button
+        >
         <Button
           type="button"
           variant="surface"
@@ -142,9 +129,9 @@
           Unlink GitHub
         </Button>
       {:else}
-        <Button href={githubAuthPath} native class="rounded-md">
-          Connect GitHub
-        </Button>
+        <Button href={sessions.githubNew.path()} native class="rounded-md"
+          >Connect GitHub</Button
+        >
       {/if}
     {/snippet}
   </SectionCard>
@@ -158,29 +145,23 @@
   hasActions
 >
   {#snippet actions()}
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <Button
-        type="button"
-        variant="dark"
-        class="h-10 w-full border border-surface-300 text-muted"
-        onclick={() => (unlinkGithubModalOpen = false)}
-      >
-        Cancel
-      </Button>
-      <Form
-        action={githubUnlinkPath}
-        method="delete"
-        class="m-0"
-        options={{ preserveScroll: true }}
-      >
-        <Button
-          type="submit"
-          variant="primary"
-          class="h-10 w-full text-on-primary"
+    <ModalActions onCancel={() => (unlinkGithubModalOpen = false)}>
+      {#snippet confirm()}
+        <Form
+          action={sessions.githubUnlink.path()}
+          method="delete"
+          class="m-0"
+          options={{ preserveScroll: true }}
         >
-          Unlink GitHub
-        </Button>
-      </Form>
-    </div>
+          <Button
+            type="submit"
+            variant="primary"
+            class="h-10 w-full text-on-primary"
+          >
+            Unlink GitHub
+          </Button>
+        </Form>
+      {/snippet}
+    </ModalActions>
   {/snippet}
 </Modal>

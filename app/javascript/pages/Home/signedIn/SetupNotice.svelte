@@ -1,8 +1,6 @@
 <script lang="ts">
   import Button from "../../../components/Button.svelte";
   import { users } from "../../../api";
-
-  const wakatimeSetupPath = users.wakatimeSetup.path();
 </script>
 
 <div class="text-left mt-2 mb-4 flex flex-col">
@@ -17,11 +15,12 @@
         automatically.
       </p>
       <Button
-        href={wakatimeSetupPath}
+        href={users.wakatimeSetup.path()}
         size="lg"
         class="w-full md:w-auto shrink-0"
-        >Let&apos;s setup Hackatime! Click me :D</Button
       >
+        Let&apos;s setup Hackatime! Click me :D
+      </Button>
     </div>
   </div>
 </div>

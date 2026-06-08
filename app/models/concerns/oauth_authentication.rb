@@ -6,121 +6,82 @@ module OauthAuthentication
     include ErrorReporting
 
     def hca_authorize_url(redirect_uri)
-      params = {
+      URI.parse("#{HCAService.host}/oauth/authorize?#{{
         redirect_uri:,
         client_id: ENV["HCA_CLIENT_ID"],
         response_type: "code",
         scope: "email slack_id verification_status"
-      }
-
-      URI.parse("#{HCAService.host}/oauth/authorize?#{params.to_query}")
+      }.to_query}")
     end
 
     def slack_authorize_url(redirect_uri, state: nil, close_window: false, continue_param: nil)
-      state ||= {
-        token: SecureRandom.hex(24),
-        close_window: close_window,
-        continue: continue_param
-      }.to_json
-
-      params = {
+      state ||= { token: SecureRandom.hex(24), close_window: close_window, continue: continue_param }.to_json
+      URI.parse("https://slack.com/oauth/v2/authorize?#{{
         client_id: ENV["SLACK_CLIENT_ID"],
         redirect_uri: redirect_uri,
         state: state,
         user_scope: "users.profile:read,users.profile:write,users:read,users:read.email"
-      }
-
-      URI.parse("https://slack.com/oauth/v2/authorize?#{params.to_query}")
+      }.to_query}")
     end
 
     def github_authorize_url(redirect_uri, state: nil)
-      params = {
+      URI.parse("https://github.com/login/oauth/authorize?#{{
         client_id: ENV["GITHUB_CLIENT_ID"],
         redirect_uri: redirect_uri,
         state: state || SecureRandom.hex(24),
         scope: "user:email"
-      }
-
-      URI.parse("https://github.com/login/oauth/authorize?#{params.to_query}")
+      }.to_query}")
     end
 
     def from_hca_token(code, redirect_uri, ip_address = nil)
       response = HTTP.post("#{HCAService.host}/oauth/token", form: {
-        client_id: ENV["HCA_CLIENT_ID"],
-        client_secret: ENV["HCA_CLIENT_SECRET"],
-        redirect_uri: redirect_uri,
-        code: code,
-        grant_type: "authorization_code"
+        client_id: ENV["HCA_CLIENT_ID"], client_secret: ENV["HCA_CLIENT_SECRET"],
+        redirect_uri: redirect_uri, code: code, grant_type: "authorization_code"
       })
-
-      data = JSON.parse(response.body.to_s)
-
-      access_token = data["access_token"]
+      access_token = JSON.parse(response.body.to_s)["access_token"]
       return nil if access_token.nil?
 
       hca_data = ::HCAService.me(access_token)
       identity = hca_data["identity"]
-      @user = User.find_by_hca_id(identity["id"]) unless identity["id"].blank?
-      @user ||= User.find_by_slack_uid(identity["slack_id"]) unless identity["slack_id"].blank?
-      @user ||= begin
-                  EmailAddress.find_by(email: identity["primary_email"])&.user unless identity["primary_email"].blank?
-                end
+      @user = User.find_by_hca_id(identity["id"]) if identity["id"].present?
+      @user ||= User.find_by_slack_uid(identity["slack_id"]) if identity["slack_id"].present?
+      @user ||= EmailAddress.find_by(email: identity["primary_email"])&.user if identity["primary_email"].present?
 
       if @user
-        attrs = {
-          hca_scopes: hca_data["scopes"],
-          hca_id: identity["id"],
-          hca_access_token: access_token
-        }
+        attrs = { hca_scopes: hca_data["scopes"], hca_id: identity["id"], hca_access_token: access_token }
         attrs[:country_code] = country_code_from_ip(ip_address) if @user.country_code.blank?
         @user.update(attrs)
+      else
+        ActiveRecord::Base.transaction do
+          @user = User.create!(
+            hca_id: identity["id"], slack_uid: identity["slack_id"],
+            hca_scopes: hca_data["scopes"], hca_access_token: access_token,
+            country_code: country_code_from_ip(ip_address)
+          )
+          EmailAddress.create!(email: identity["primary_email"], user: @user) if identity["primary_email"].present?
+        end
       end
-
-      @user ||= begin
-                  country_code = country_code_from_ip(ip_address)
-                  u = User.create!(
-                    hca_id: identity["id"],
-                    slack_uid: identity["slack_id"],
-                    hca_scopes: hca_data["scopes"],
-                    hca_access_token: access_token,
-                    country_code: country_code,
-                  )
-                  EmailAddress.create!(email: identity["primary_email"], user: u) unless identity["primary_email"].blank?
-                  u
-                end
+      @user
     end
 
     def from_slack_token(code, redirect_uri, ip_address = nil)
       response = HTTP.post("https://slack.com/api/oauth.v2.access", form: {
-        client_id: ENV["SLACK_CLIENT_ID"],
-        client_secret: ENV["SLACK_CLIENT_SECRET"],
-        code: code,
-        redirect_uri: redirect_uri
+        client_id: ENV["SLACK_CLIENT_ID"], client_secret: ENV["SLACK_CLIENT_SECRET"],
+        code: code, redirect_uri: redirect_uri
       })
-
       data = JSON.parse(response.body.to_s)
-
       return nil unless data["ok"]
 
       user_response = HTTP.auth("Bearer #{data['authed_user']['access_token']}")
         .get("https://slack.com/api/users.info?user=#{data['authed_user']['id']}")
-
       user_data = JSON.parse(user_response.body.to_s)
-
       return nil unless user_data["ok"]
 
       slack_user = user_data["user"] || {}
-      profile = slack_user["profile"] || {}
-
-      email = profile["email"]&.downcase
+      email = (slack_user["profile"] || {})["email"]&.downcase
       email_address = EmailAddress.find_or_initialize_by(email: email)
-      user = email_address.user
-      user ||= begin
-        u = User.find_or_initialize_by(slack_uid: data.dig("authed_user", "id"))
-        unless u.email_addresses.include?(email_address)
-          u.email_addresses << email_address
-        end
-        u
+      user = email_address.user || User.find_or_initialize_by(slack_uid: data.dig("authed_user", "id")).tap do |u|
+        u.email_addresses << email_address unless u.email_addresses.include?(email_address)
       end
 
       user.email_addresses.source_slack.where.not(email: email).update_all(source: :signing_in)
@@ -128,17 +89,11 @@ module OauthAuthentication
       email_address.save! if email_address.persisted?
 
       user.slack_uid = data.dig("authed_user", "id")
-      user.slack_username = profile["display_name_normalized"].presence
-      user.slack_username ||= profile["real_name_normalized"].presence
-      user.slack_username ||= slack_user["name"].presence
-      user.slack_avatar_url = profile["image_192"] || profile["image_72"]
-
+      user.apply_slack_profile_attributes(slack_user)
       user.parse_and_set_timezone(slack_user["tz"])
-
       user.slack_access_token = data["authed_user"]["access_token"]
       user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
       user.country_code = country_code_from_ip(ip_address) if user.country_code.blank?
-
       user.save!
       user
     rescue => e
@@ -147,12 +102,7 @@ module OauthAuthentication
     end
 
     def country_code_from_ip(ip_address)
-      return nil if ip_address.blank?
-
-      result = Geocoder.search(ip_address).first
-      return nil unless result&.country_code.present?
-
-      result.country_code.upcase
+      Geocoder.search(ip_address).first&.country_code.presence&.upcase if ip_address.present?
     rescue => e
       report_error(e, message: "country geocode fail for signup IP")
       nil
@@ -161,26 +111,22 @@ module OauthAuthentication
     def from_github_token(code, redirect_uri, current_user)
       return nil unless current_user
 
-      response = HTTP.headers(accept: "application/json")
-        .post("https://github.com/login/oauth/access_token", form: {
+      response = HTTP.headers(accept: "application/json").post(
+        "https://github.com/login/oauth/access_token",
+        form: {
           client_id: ENV["GITHUB_CLIENT_ID"],
           client_secret: ENV["GITHUB_CLIENT_SECRET"],
           code: code,
           redirect_uri: redirect_uri
-        })
-
+        }
+      )
       data = JSON.parse(response.body.to_s)
       return nil unless data["access_token"]
 
-      user_response = HTTP.auth("Bearer #{data['access_token']}")
-        .get("https://api.github.com/user")
-
-      user_data = JSON.parse(user_response.body.to_s)
-
+      user_data = JSON.parse(HTTP.auth("Bearer #{data['access_token']}").get("https://api.github.com/user").body.to_s)
       github_uid = user_data["id"]
-      other_users = User.where(github_uid: github_uid).where.not(id: current_user.id).where.not(github_access_token: nil)
 
-      other_users.find_each do |user|
+      User.where(github_uid: github_uid).where.not(id: current_user.id).where.not(github_access_token: nil).find_each do |user|
         Rails.logger.info "Clearing GitHub token for User ##{user.id} (GitHub UID: #{github_uid}) - linking to new account"
         user.update!(github_access_token: nil, github_uid: nil, github_username: nil)
       end
@@ -189,11 +135,9 @@ module OauthAuthentication
       current_user.github_username = user_data["login"].presence || user_data["name"].presence
       current_user.github_avatar_url = user_data["avatar_url"]
       current_user.github_access_token = data["access_token"]
-
       current_user.save!
 
       ScanGithubReposJob.perform_later(current_user.id)
-
       current_user
     rescue => e
       report_error(e, message: "Error linking GitHub account: #{e.message}")

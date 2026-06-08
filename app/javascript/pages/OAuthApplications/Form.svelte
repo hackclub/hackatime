@@ -15,25 +15,20 @@
     errors,
   }: OAuthApplicationFormProps = $props();
 
-  let selectedScopes = $state<string[]>([]);
-  let confidential = $state(false);
-  let redirectUri = $state("");
-
-  $effect(() => {
-    selectedScopes = [...(application.selected_scopes || [])];
-    confidential = Boolean(application.confidential);
-    redirectUri = application.redirect_uri;
-  });
-
   const nameLocked = $derived(application.persisted && application.verified);
+  const selectedScopes = $derived(application.selected_scopes || []);
 
-  // `new` posts to create, `edit` patches by id.
   const submitPath = $derived(
     form_mode === "edit" && application.id != null
       ? doorkeeperApplications.update.path({ id: application.id })
       : doorkeeperApplications.create.path(),
   );
   const cancelPath = doorkeeperApplications.index.path();
+
+  const input =
+    "w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none";
+  const row =
+    "flex cursor-pointer items-start gap-3 rounded-lg border border-surface-200 bg-darker/70 p-3 hover:border-surface-300";
 </script>
 
 {#if errors.full_messages.length > 0}
@@ -86,7 +81,7 @@
             value={application.name}
             required
             placeholder="My Awesome App"
-            class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+            class={input}
           />
         {/if}
 
@@ -106,9 +101,9 @@
           id="doorkeeper_application_redirect_uri"
           name="doorkeeper_application[redirect_uri]"
           rows="4"
-          bind:value={redirectUri}
+          value={application.redirect_uri}
           placeholder="https://example.com/auth/callback"
-          class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 font-mono text-sm text-surface-content focus:border-primary focus:outline-none"
+          class="{input} font-mono"
         ></textarea>
         <p class="mt-2 text-xs text-muted">{help_text.redirect_uri}</p>
         {#if allow_blank_redirect_uri}
@@ -124,23 +119,17 @@
         <p class="mb-2 block text-sm font-medium text-surface-content">
           Scopes
         </p>
-        <input
-          type="hidden"
-          name="doorkeeper_application[scopes]"
-          value={selectedScopes.join(" ")}
-        />
+        <input type="hidden" name="doorkeeper_application[scopes][]" value="" />
 
         <div class="space-y-2">
           {#each scope_options as scope}
-            <label
-              class="flex cursor-pointer items-start gap-3 rounded-lg border border-surface-200 bg-darker/70 p-3 hover:border-surface-300"
-              for={`scope_${scope.value}`}
-            >
+            <label class={row} for={`scope_${scope.value}`}>
               <input
                 id={`scope_${scope.value}`}
                 type="checkbox"
+                name="doorkeeper_application[scopes][]"
                 value={scope.value}
-                bind:group={selectedScopes}
+                checked={selectedScopes.includes(scope.value)}
                 class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
               />
               <span>
@@ -163,10 +152,7 @@
         {/if}
       </div>
 
-      <label
-        class="flex cursor-pointer items-start gap-3 rounded-lg border border-surface-200 bg-darker/70 p-3 hover:border-surface-300"
-        for="doorkeeper_application_confidential"
-      >
+      <label class={row} for="doorkeeper_application_confidential">
         <input
           type="hidden"
           name="doorkeeper_application[confidential]"
@@ -177,7 +163,7 @@
           type="checkbox"
           name="doorkeeper_application[confidential]"
           value="1"
-          bind:checked={confidential}
+          checked={application.confidential}
           class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
         />
         <span>
@@ -186,6 +172,31 @@
           >
           <span class="mt-1 block text-xs text-muted"
             >{help_text.confidential}</span
+          >
+        </span>
+      </label>
+
+      <label class={row} for="doorkeeper_application_redirect_to_hca_login">
+        <input
+          type="hidden"
+          name="doorkeeper_application[redirect_to_hca_login]"
+          value="0"
+        />
+        <input
+          id="doorkeeper_application_redirect_to_hca_login"
+          type="checkbox"
+          name="doorkeeper_application[redirect_to_hca_login]"
+          value="1"
+          checked={application.redirect_to_hca_login}
+          class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
+        />
+        <span>
+          <span class="text-sm font-medium text-surface-content"
+            >Use Hack Club Auth for login</span
+          >
+          <span class="mt-1 block text-xs text-muted"
+            >Send unauthenticated users directly to Hack Club Auth before this
+            app's OAuth consent screen.</span
           >
         </span>
       </label>

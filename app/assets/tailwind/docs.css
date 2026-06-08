@@ -1,0 +1,125 @@
+.docs-prose {
+  @apply prose prose-invert max-w-none bg-dark rounded-lg p-4 sm:p-6 lg:p-8 mb-8;
+
+  --tw-prose-invert-body: var(--color-surface-content);
+  --tw-prose-invert-headings: var(--color-primary);
+  --tw-prose-invert-links: var(--color-primary);
+  --tw-prose-invert-bold: var(--color-surface-content);
+  --tw-prose-invert-code: var(--color-primary);
+  --tw-prose-invert-pre-code: var(--color-surface-content);
+  --tw-prose-invert-pre-bg: var(--color-darkless);
+  --tw-prose-invert-quotes: var(--color-secondary);
+  --tw-prose-invert-quote-borders: var(--color-primary);
+  --tw-prose-invert-bullets: var(--color-primary);
+  --tw-prose-invert-counters: var(--color-primary);
+  --tw-prose-invert-hr: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  --tw-prose-invert-th-borders: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  --tw-prose-invert-td-borders: color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.docs-prose :where(h1) {
+  font-size: 2.25rem;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.docs-prose :where(h2) {
+  font-size: 1.5rem;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-secondary);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.docs-prose :where(h3) {
+  font-size: 1.25rem;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.docs-prose :where(h4) {
+  font-size: 1.125rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--color-surface-content);
+}
+
+.docs-prose :where(p) {
+  line-height: 1.75;
+  margin-bottom: 1.25rem;
+}
+
+.docs-prose :where(a):hover { color: var(--color-red); }
+.docs-prose :where(em) { color: var(--color-secondary); }
+.docs-prose :where(p > strong:first-child) { color: var(--color-primary); }
+.docs-prose :where(p, li) { word-break: break-word; }
+
+.docs-prose :where(ul, ol) {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.docs-prose :where(li) {
+  line-height: 1.75;
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.docs-prose :where(code) {
+  background: var(--color-darkless);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  word-break: break-word;
+}
+
+.docs-prose :where(pre) {
+  background: var(--color-darkless);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+}
+
+.docs-prose :where(pre[class*="language-json"], pre[class*="language-bash"]) {
+  border-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.docs-prose :where(blockquote) {
+  background: var(--color-darkless);
+  padding: 1rem 1.5rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+  margin: 1.5rem 0;
+}
+
+.docs-prose :where(img) {
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  margin: 1rem auto;
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.docs-prose :where(img[alt*="PyCharm"], img[alt*="VS_Code"], img[alt*="IntelliJ"], img[src*="/images/editor-icons/"]) {
+  width: 4rem;
+  height: 4rem;
+}
+
+.docs-prose :where(.editor-steps) {
+  background: var(--color-darkless);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+.docs-prose :where(.editor-steps ol) { margin: 0; }
+.docs-prose :where(.editor-steps li) { margin-bottom: 0.5rem; }

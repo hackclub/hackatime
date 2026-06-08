@@ -1,4 +1,8 @@
 <% content_for :title, "Admin API Keys" %>
+<% can_create_keys = current_user.admin_level.in?(%w[admin superadmin ultraadmin]) %>
+<% create_key_button_text = "spawn in a new key" %>
+<% create_key_button_classes = "bg-red text-on-primary px-4 py-2 rounded-lg font-medium transition-colors" %>
+<% create_key_disabled_tooltip = "viewers can't make keys" %>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="mb-8">
@@ -7,7 +11,11 @@
         <h1 class="text-3xl font-bold text-surface-content mb-2">admin api keys</h1>
         <p class="text-muted">fraud team is gonna foam at the mouth for this shit</p>
       </div>
-      <%= link_to "spawn in a new key", new_admin_admin_api_key_path, class: "bg-primary hover:bg-red text-on-primary px-4 py-2 rounded-lg font-medium transition-colors" %>
+      <% if can_create_keys %>
+        <%= link_to create_key_button_text, new_admin_admin_api_key_path, class: "#{create_key_button_classes} hover:bg-red" %>
+      <% else %>
+        <%= button_tag create_key_button_text, type: "button", disabled: true, class: "#{create_key_button_classes} opacity-50 cursor-not-allowed", title: create_key_disabled_tooltip %>
+      <% end %>
     </div>
   </div>
 

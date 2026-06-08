@@ -9,29 +9,6 @@
     FilterableDashboardData,
   } from "../../types/index";
 
-  type SocialLink = {
-    key: string;
-    label: string;
-    url: string;
-  };
-
-  type ProfileData = {
-    display_name: string;
-    username: string;
-    avatar_url: string;
-    trust_level: string;
-    bio?: string | null;
-    social_links: SocialLink[];
-    github_profile_url?: string | null;
-    github_username?: string | null;
-    streak_days?: number | null;
-  };
-
-  type DashboardStats = {
-    filterable_dashboard_data: Partial<FilterableDashboardData>;
-    activity_graph: ActivityGraphData;
-  };
-
   let {
     page_title,
     profile_visible,
@@ -42,11 +19,24 @@
     page_title: string;
     profile_visible: boolean;
     is_own_profile: boolean;
-    profile: ProfileData;
-    dashboard_stats?: DashboardStats;
+    profile: {
+      display_name: string;
+      username: string;
+      avatar_url: string;
+      trust_level: string;
+      bio?: string | null;
+      social_links: { key: string; label: string; url: string }[];
+      streak_days?: number | null;
+    };
+    dashboard_stats?: {
+      filterable_dashboard_data: Partial<FilterableDashboardData>;
+      activity_graph: ActivityGraphData;
+    };
   } = $props();
 
   const editProfilePath = settingsProfile.my.path();
+  const badgeClass =
+    "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold";
 </script>
 
 <svelte:head>
@@ -72,16 +62,12 @@
               {profile.display_name}
             </h1>
             {#if profile.trust_level === "green"}
-              <span
-                class="inline-flex items-center rounded-full bg-primary/15 px-2 py-1 text-xs font-semibold text-primary"
-              >
+              <span class="{badgeClass} bg-primary/15 text-primary">
                 Verified
               </span>
             {/if}
             {#if profile.streak_days && profile.streak_days > 0}
-              <span
-                class="inline-flex items-center rounded-full bg-orange-500/15 px-2 py-1 text-xs font-semibold text-orange-300"
-              >
+              <span class="{badgeClass} bg-orange-500/15 text-orange-300">
                 Streak: {profile.streak_days} days
               </span>
             {/if}
@@ -108,7 +94,7 @@
 
     {#if profile.social_links.length > 0}
       <div class="mt-6 flex flex-wrap gap-2">
-        {#each profile.social_links as link}
+        {#each profile.social_links as link (link.key)}
           <a
             href={link.url}
             target="_blank"
@@ -122,26 +108,24 @@
     {/if}
   </section>
 
-  {#if profile_visible}
-    {#if dashboard_stats}
-      <Dashboard
-        data={dashboard_stats.filterable_dashboard_data}
-        showFilters={false}
-        showGoals={false}
-      />
+  {#if profile_visible && dashboard_stats}
+    <Dashboard
+      data={dashboard_stats.filterable_dashboard_data}
+      showFilters={false}
+      showGoals={false}
+    />
 
-      <section
-        id="profile_activity"
-        class="rounded-xl border border-surface-200 bg-surface p-6"
-      >
-        <h2 class="text-xl font-semibold text-surface-content">Activity</h2>
-        <ActivityGraph data={dashboard_stats.activity_graph} />
-      </section>
-    {:else}
-      <section class="rounded-xl border border-surface-200 bg-surface p-6">
-        <p class="text-sm text-muted">Loading profile stats...</p>
-      </section>
-    {/if}
+    <section
+      id="profile_activity"
+      class="rounded-xl border border-surface-200 bg-surface p-6"
+    >
+      <h2 class="text-xl font-semibold text-surface-content">Activity</h2>
+      <ActivityGraph data={dashboard_stats.activity_graph} />
+    </section>
+  {:else if profile_visible}
+    <section class="rounded-xl border border-surface-200 bg-surface p-6">
+      <p class="text-sm text-muted">Loading profile stats...</p>
+    </section>
   {:else}
     <section
       class="rounded-xl border border-yellow/35 bg-yellow/10 p-6 text-center"

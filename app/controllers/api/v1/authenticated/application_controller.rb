@@ -13,9 +13,7 @@ module Api
         end
 
         def ensure_no_ban
-          if current_user&.trust_level == "red"
-            render json: { error: "Unauthorized" }, status: :unauthorized
-          end
+          render json: { error: "Unauthorized" }, status: :unauthorized if current_user&.trust_level == "red"
         end
       end
     end

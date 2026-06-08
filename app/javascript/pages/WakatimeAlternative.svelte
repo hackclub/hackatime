@@ -1,27 +1,12 @@
 <script module lang="ts">
-  export const layout = false;
+  import MarketingLayout from "../layouts/MarketingLayout.svelte";
+  export const layout = MarketingLayout;
 </script>
 
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
   import MarketingFooter from "../components/MarketingFooter.svelte";
-
-  let previousTheme = $state<string | null>(null);
-
-  $effect(() => {
-    const html = document.documentElement;
-    previousTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "rose");
-
-    const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
-    colorSchemeMeta?.setAttribute("content", "dark");
-
-    return () => {
-      if (previousTheme) {
-        html.setAttribute("data-theme", previousTheme);
-      }
-    };
-  });
+  import Checkmark from "hcicons-svelte/checkmark";
 
   type Feature = {
     name: string;
@@ -41,10 +26,10 @@
     },
     {
       name: "Open Source",
-      hackatime: "\u2713",
+      hackatime: "✓",
       hackatimeHighlight: true,
-      wakatimeFree: "\u2717",
-      wakatimePro: "\u2717",
+      wakatimeFree: "✗",
+      wakatimePro: "✗",
     },
     {
       name: "Editor Support",
@@ -69,44 +54,42 @@
     },
     {
       name: "Language Breakdown",
-      hackatime: "\u2713",
+      hackatime: "✓",
       hackatimeHighlight: true,
-      wakatimeFree: "\u2713",
-      wakatimePro: "\u2713",
+      wakatimeFree: "✓",
+      wakatimePro: "✓",
     },
     {
       name: "Leaderboards",
-      hackatime: "\u2713 (Community)",
+      hackatime: "✓ (Community)",
       hackatimeHighlight: true,
-      wakatimeFree: "\u2713 (Community)",
-      wakatimePro: "\u2713",
+      wakatimeFree: "✓ (Community)",
+      wakatimePro: "✓",
     },
     {
       name: "Self-Hosting",
-      hackatime: "\u2713",
+      hackatime: "✓",
       hackatimeHighlight: true,
-      wakatimeFree: "\u2717",
-      wakatimePro: "\u2717",
+      wakatimeFree: "✗",
+      wakatimePro: "✗",
     },
     {
       name: "Team Features",
-      hackatime: "\u2717",
+      hackatime: "✗",
       hackatimeHighlight: false,
-      wakatimeFree: "\u2717",
-      wakatimePro: "\u2713",
+      wakatimeFree: "✗",
+      wakatimePro: "✓",
     },
     {
       name: "API Access",
-      hackatime: "\u2713 Full",
+      hackatime: "✓ Full",
       hackatimeHighlight: true,
       wakatimeFree: "Limited",
-      wakatimePro: "\u2713 Full",
+      wakatimePro: "✓ Full",
     },
   ];
 
-  type TradeOff = { title: string; description: string };
-
-  const tradeOffs: TradeOff[] = [
+  const tradeOffs = [
     {
       title: "No team dashboards",
       description:
@@ -131,6 +114,16 @@
     "We only track metadata (file names, languages, time). Never your code.",
     "Leaderboards if you want to see how you stack up against other people.",
   ];
+
+  const navLinks = [
+    { href: "/#philosophy", label: "Philosophy", external: false },
+    { href: "/#features", label: "Features", external: false },
+    {
+      href: "https://github.com/hackclub/hackatime",
+      label: "GitHub",
+      external: true,
+    },
+  ];
 </script>
 
 <svelte:head>
@@ -138,7 +131,6 @@
 </svelte:head>
 
 <div class="min-h-screen w-full bg-darker text-surface-content">
-  <!-- Fixed Header -->
   <header
     class="fixed top-0 w-full bg-darker/95 backdrop-blur-sm z-50 border-b border-surface-200/60"
   >
@@ -156,19 +148,13 @@
       <nav
         class="hidden md:flex gap-8 items-center text-sm font-medium text-secondary"
       >
-        <a
-          href="/#philosophy"
-          class="hover:text-surface-content transition-colors">Philosophy</a
-        >
-        <a
-          href="/#features"
-          class="hover:text-surface-content transition-colors">Features</a
-        >
-        <a
-          href="https://github.com/hackclub/hackatime"
-          target="_blank"
-          class="hover:text-surface-content transition-colors">GitHub</a
-        >
+        {#each navLinks as link}
+          <a
+            href={link.href}
+            target={link.external ? "_blank" : undefined}
+            class="hover:text-surface-content transition-colors">{link.label}</a
+          >
+        {/each}
         <Link
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
@@ -179,7 +165,6 @@
     </div>
   </header>
 
-  <!-- Hero Section -->
   <section class="pt-32 pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h1
@@ -201,7 +186,6 @@
     </div>
   </section>
 
-  <!-- Why Look Section -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-5">
@@ -224,7 +208,6 @@
     </div>
   </section>
 
-  <!-- Feature Comparison -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-6">
@@ -281,7 +264,6 @@
     </div>
   </section>
 
-  <!-- Honest Trade-offs -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-5">What you give up</h2>
@@ -305,7 +287,6 @@
     </div>
   </section>
 
-  <!-- Why Hackatime -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-5">
@@ -319,19 +300,7 @@
         {#each benefits as benefit}
           <li class="flex items-start gap-3">
             <span class="text-primary mt-0.5 flex-shrink-0">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+              <Checkmark size={18} />
             </span>
             <span class="text-secondary leading-relaxed">{benefit}</span>
           </li>
@@ -340,14 +309,13 @@
     </div>
   </section>
 
-  <!-- Getting Started -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-5">Getting started</h2>
       <p class="text-secondary leading-relaxed mb-6">
         Switching takes a couple of minutes. Same plugins, different server -
-        edit your <code
-          class="bg-surface px-2 py-1 rounded text-surface-content text-sm"
+        edit your
+        <code class="bg-surface px-2 py-1 rounded text-surface-content text-sm"
           >~/.wakatime.cfg</code
         > file:
       </p>
@@ -366,7 +334,6 @@ api_key = YOUR_API_KEY_HERE</code
     </div>
   </section>
 
-  <!-- CTA -->
   <section class="pb-20">
     <div class="max-w-[900px] mx-auto px-6">
       <div
