@@ -7,6 +7,7 @@ class Ja4 < ApplicationRecord
     normalized_fingerprint = fingerprint.to_s.strip.presence
     return if normalized_fingerprint.nil?
 
-    create_or_find_by!(fingerprint: normalized_fingerprint)
+    find_by(fingerprint: normalized_fingerprint) ||
+      create_or_find_by!(fingerprint: normalized_fingerprint)
   end
 end
