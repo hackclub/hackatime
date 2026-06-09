@@ -5,7 +5,10 @@ module Api
         extend ActiveSupport::Concern
         include DateParsing
 
-        HEARTBEAT_RESPONSE_COLUMNS = %i[id time lineno cursorpos is_write project language entity branch category editor machine user_agent ip_address lines source_type].freeze
+        HEARTBEAT_RESPONSE_COLUMNS = [
+          *%i[id time lineno cursorpos is_write project language entity branch category editor machine user_agent ip_address lines source_type],
+          "ja4s.fingerprint"
+        ].freeze
 
         HEARTBEAT_FIELD_COLUMNS = {
           "projects" => "project",
@@ -303,7 +306,7 @@ module Api
 
           total_count = query.count
           source_types = Heartbeat.source_types.invert
-          heartbeats = query.order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS).map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type|
+          heartbeats = query.left_joins(:ja4).order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS).map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type, ja4|
             {
               id: id,
               time: time,
@@ -319,6 +322,7 @@ module Api
               machine: machine,
               user_agent: user_agent,
               ip_address: ip_address,
+              ja4: ja4,
               lines: lines,
               source_type: source_types[source_type] || source_type
             }
