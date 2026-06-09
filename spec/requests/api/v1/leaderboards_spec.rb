@@ -13,13 +13,10 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
   path '/api/v1/leaderboard' do
     get('Get daily leaderboard (Alias)') do
       tags 'Leaderboard'
-      description 'Alias for /api/v1/leaderboard/daily. Returns the daily leaderboard.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      description 'Alias for /api/v1/leaderboard/daily. Returns the daily leaderboard. Public, no authentication required.'
       produces 'application/json'
 
-      response(200, 'successful') do
-        let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { "dev-api-key-12345" }
+      response(200, 'successful', document: false) do
         before do
           board = Leaderboard.create!(
             start_date: Date.current,
@@ -40,6 +37,15 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
               items: { '$ref' => '#/components/schemas/LeaderboardEntry' }
             }
           }
+        run_test!
+      end
+
+      response(503, 'service unavailable — Leaderboard is being generated', document: false) do
+        before do
+          Leaderboard.destroy_all
+          Rails.cache.clear
+        end
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
     end
@@ -48,13 +54,10 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
   path '/api/v1/leaderboard/daily' do
     get('Get daily leaderboard') do
       tags 'Leaderboard'
-      description 'Returns the daily leaderboard of coding time. Requires STATS_API_KEY. The leaderboard is cached and regenerated periodically.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      description 'Returns the daily leaderboard of coding time. Public, no authentication required. The leaderboard is cached and regenerated periodically.'
       produces 'application/json'
 
       response(200, 'successful') do
-        let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { "dev-api-key-12345" }
         before do
           board = Leaderboard.create!(
             start_date: Date.current,
@@ -78,10 +81,7 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
         run_test!
       end
 
-      response(503, 'service unavailable') do
-        let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { "dev-api-key-12345" }
-        description 'Leaderboard is currently being generated'
+      response(503, 'service unavailable — Leaderboard is being generated') do
         before do
           Leaderboard.destroy_all
           Rails.cache.clear
@@ -95,13 +95,10 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
   path '/api/v1/leaderboard/weekly' do
     get('Get weekly leaderboard') do
       tags 'Leaderboard'
-      description 'Returns the weekly leaderboard of coding time (last 7 days). Requires STATS_API_KEY.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      description 'Returns the weekly leaderboard of coding time (last 7 days). Public, no authentication required.'
       produces 'application/json'
 
       response(200, 'successful') do
-        let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { "dev-api-key-12345" }
         before do
           board = Leaderboard.create!(
             start_date: Date.current,
@@ -122,6 +119,15 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
               items: { '$ref' => '#/components/schemas/LeaderboardEntry' }
             }
           }
+        run_test!
+      end
+
+      response(503, 'service unavailable — Leaderboard is being generated') do
+        before do
+          Leaderboard.destroy_all
+          Rails.cache.clear
+        end
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
     end

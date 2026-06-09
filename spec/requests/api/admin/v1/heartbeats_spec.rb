@@ -1,6 +1,6 @@
 require 'swagger_helper'
 
-RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request do
+RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request, openapi_spec: 'admin/swagger.yaml' do
   def create_user(username, email)
     u = User.create!(username: username)
     EmailAddress.create!(user: u, email: email)
@@ -54,14 +54,14 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request do
               items: {
                 type: :object,
                 properties: {
-                  user_a_id:        { type: :integer },
-                  user_b_id:        { type: :integer },
-                  machine:          { type: :string },
-                  ip_address:       { type: :string },
-                  user_a_first_seen: { type: :integer },
-                  user_a_last_seen:  { type: :integer },
-                  user_b_first_seen: { type: :integer },
-                  user_b_last_seen:  { type: :integer }
+                  user_a_id:        { type: :integer, example: 42 },
+                  user_b_id:        { type: :integer, example: 43 },
+                  machine:          { type: :string, example: 'Orpheus-MacBook-Pro' },
+                  ip_address:       { type: :string, example: '203.0.113.7' },
+                  user_a_first_seen: { type: :number, example: 1710340200.0, description: 'Unix timestamp (may be fractional)' },
+                  user_a_last_seen:  { type: :number, example: 1710946200.0, description: 'Unix timestamp (may be fractional)' },
+                  user_b_first_seen: { type: :number, example: 1710512400.0, description: 'Unix timestamp (may be fractional)' },
+                  user_b_last_seen:  { type: :number, example: 1710859800.0, description: 'Unix timestamp (may be fractional)' }
                 }
               }
             }
@@ -100,6 +100,13 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request do
           expect(ids).not_to include(user_a.id, user_b.id)
         end
       end
+
+      response(401, 'unauthorized') do
+        let(:Authorization) { "Bearer invalid-admin-key" }
+        let(:lookback_days) { 30 }
+        let(:limit) { nil }
+        run_test!
+      end
     end
   end
 
@@ -133,9 +140,9 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request do
               items: {
                 type: :object,
                 properties: {
-                  machine:           { type: :string },
-                  machine_frequency: { type: :integer },
-                  user_ids:          { type: :array, items: { type: :integer } }
+                  machine:           { type: :string, example: 'Orpheus-MacBook-Pro' },
+                  machine_frequency: { type: :integer, example: 2 },
+                  user_ids:          { type: :string, example: '{42,43}', description: 'PostgreSQL array literal of user IDs (raw ARRAY_AGG output, not a JSON array)' }
                 }
               }
             }
@@ -147,7 +154,8 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request do
           entry = body['machines'].find { |m| m['machine'] == 'shared-machine' }
           expect(entry).not_to be_nil
           expect(entry['machine_frequency']).to eq(2)
-          expect(entry['user_ids']).to match_array([ user_a.id, user_b.id ])
+          ids = entry['user_ids'].delete('{}').split(',').map(&:to_i)
+          expect(ids).to match_array([ user_a.id, user_b.id ])
         end
       end
 
@@ -167,6 +175,13 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request do
           machines = body['machines'].map { |m| m['machine'] }
           expect(machines).not_to include('solo-machine')
         end
+      end
+
+      response(401, 'unauthorized') do
+        let(:Authorization) { "Bearer invalid-admin-key" }
+        let(:lookback_days) { 30 }
+        let(:limit) { nil }
+        run_test!
       end
     end
   end

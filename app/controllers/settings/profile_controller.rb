@@ -10,10 +10,12 @@ class Settings::ProfileController < Settings::BaseController
   end
 
   def section_props
+    options = base_options(keys: %i[countries timezones])
+    options[:timezones] = pin_current_timezone(options[:timezones])
     {
       username_max_length: User::USERNAME_MAX_LENGTH,
       user: user_props(keys: %i[country_code timezone username]),
-      options: base_options(keys: %i[countries timezones]),
+      options: options,
       profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
       emails: @user.email_addresses.map { |email|
         { email: email.email,
@@ -21,6 +23,16 @@ class Settings::ProfileController < Settings::BaseController
           can_unlink: @user.can_delete_email_address?(email) }
       }
     }
+  end
+
+  # if the user is using a legacy TZ, we don't want to delete it from the list!
+  def pin_current_timezone(timezones)
+    current = @user.timezone
+    return timezones if current.blank? || timezones.any? { |t| t[:value] == current }
+
+    offset = ActiveSupport::TimeZone[current]&.now&.formatted_offset
+    label = offset ? "#{current} (UTC#{offset})" : current
+    [ { label: label, value: current } ] + timezones
   end
 
   def update_section(permitted_params)

@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@fontsource-variable/spline-sans": "^5.2.8",
-    "@inertiajs/svelte": "^3.3.0",
-    "@inertiajs/vite": "^3.3.0",
+    "@inertiajs/svelte": "^3.3.1",
+    "@inertiajs/vite": "^3.3.1",
     "@js-from-routes/client": "^1.0.4",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tailwindcss/forms": "^0.5.11",
@@ -24,18 +24,18 @@
     "layerchart": "^1.0.13",
     "plur": "^6.0.0",
     "runed": "^0.37.1",
-    "svelte": "^5.55.10",
-    "svelte-check": "^4.4.8",
+    "svelte": "^5.56.1",
+    "svelte-check": "^4.6.0",
     "svelte-hero-icons": "^5.2.0",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "virtua": "^0.49.1",
-    "vite": "^8.0.14",
+    "vite": "^8.0.16",
     "vite-plugin-ruby": "^5.2.2"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
-    "knip": "^6.14.2",
+    "knip": "^6.15.0",
     "prettier": "^3.8.3",
     "prettier-plugin-svelte": "^3.5.2"
   },

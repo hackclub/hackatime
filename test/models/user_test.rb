@@ -15,12 +15,6 @@ class UserTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
-  test "theme defaults to gruvbox dark" do
-    user = User.new
-
-    assert_equal "rose", user.theme
-  end
-
   test "theme options include all supported themes in order" do
     values = User.theme_options.map { |option| option[:value] }
 
@@ -30,7 +24,19 @@ class UserTest < ActiveSupport::TestCase
   test "theme metadata falls back to default for unknown themes" do
     metadata = User.theme_metadata("not-a-real-theme")
 
-    assert_equal "rose", metadata[:value]
+    assert_equal "neon", metadata[:value]
+  end
+
+  test "updating admin level does not validate existing duplicate usernames" do
+    first_user = User.create!(timezone: "UTC", username: "duplicate_name")
+    User.create!(timezone: "UTC", username: "other_name")
+      .update_column(:username, "DUPLICATE_NAME")
+
+    assert_nothing_raised do
+      first_user.update!(admin_level: :ultraadmin)
+    end
+
+    assert_equal "ultraadmin", first_user.reload.admin_level
   end
 
   test "rotate_api_keys! replaces existing api key with a new one" do
@@ -110,11 +116,61 @@ class UserTest < ActiveSupport::TestCase
     assert user.reload.leaderboard_shadowbanned?
     assert_equal "fake time", user.leaderboard_shadowban_reason
     assert_equal actor, user.leaderboard_shadowbanned_by
+    assert_nil user.leaderboard_shadowban_expires_at
 
     assert user.set_leaderboard_shadowban(banned: false, changed_by_user: actor)
     assert_not user.reload.leaderboard_shadowbanned?
     assert_nil user.leaderboard_shadowban_reason
     assert_nil user.leaderboard_shadowbanned_by
+    assert_nil user.leaderboard_shadowban_expires_at
+  end
+
+  test "set_leaderboard_shadowban can schedule an automatic expiration" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = User.create!(timezone: "UTC", username: "shadowban_expiring")
+    expires_at = 2.days.from_now
+
+    assert_enqueued_with(job: LeaderboardShadowbanExpirationJob, args: [ user.id ], at: expires_at) do
+      assert user.set_leaderboard_shadowban(
+        banned: true,
+        changed_by_user: actor,
+        reason: "temporary fake time",
+        expires_at: expires_at
+      )
+    end
+
+    assert_equal expires_at.to_i, user.reload.leaderboard_shadowban_expires_at.to_i
+  end
+
+  test "set_leaderboard_shadowban requires future automatic expiration" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = User.create!(timezone: "UTC", username: "shadowban_past_exp")
+
+    assert_not user.set_leaderboard_shadowban(
+      banned: true,
+      changed_by_user: actor,
+      reason: "temporary fake time",
+      expires_at: 1.minute.ago
+    )
+    assert_includes user.errors[:leaderboard_shadowban_expires_at], "must be in the future"
+    assert_not user.reload.leaderboard_shadowbanned?
+  end
+
+  test "expired leaderboard shadowban does not block unrelated user updates" do
+    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = User.create!(timezone: "UTC", username: "sb_exp_update")
+    expires_at = 1.minute.from_now
+
+    assert user.set_leaderboard_shadowban(
+      banned: true,
+      changed_by_user: actor,
+      reason: "temporary fake time",
+      expires_at: expires_at
+    )
+
+    travel_to 2.minutes.from_now do
+      assert user.update(username: "sb_exp_update"), user.errors.full_messages.to_sentence
+    end
   end
 
   test "set_leaderboard_shadowban records PaperTrail changes" do

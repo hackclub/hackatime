@@ -13,7 +13,7 @@ CI.run do
   step "Tests: System", "env RAILS_ENV=test bin/rails test:system"
   step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
 
-  step "Docs: Swagger", "env RAILS_ENV=test bin/rails rswag:specs:swaggerize && git diff --exit-code swagger/v1/swagger.yaml"
+  step "Docs: Swagger", "env RAILS_ENV=test bin/rails rswag:specs:swaggerize && git diff --exit-code swagger/"
 
   step "Frontend: Typecheck", "bun run check:svelte"
   step "Frontend: Lint", "bun run format:svelte:check"

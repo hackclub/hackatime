@@ -115,16 +115,16 @@
           icon="/images/editor-icons/vs-code-128.png"
           iconAlt="VS Code"
           title="Install the VS Code Extension"
-          subtitle={'Search for "WakaTime" in the marketplace.'}
+          subtitle={'Search for "Hackatime Time Tracker" in the marketplace.'}
         >
           <div class="space-y-4">
             <NumberedStep n={1} title="Install the extension">
               <p class="text-sm text-secondary">
                 Open VS Code, go to Extensions (squares icon), search for <strong
-                  >WakaTime</strong
+                  >Hackatime Time Tracker</strong
                 >, and click Install.
                 <a
-                  href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime"
+                  href="https://marketplace.visualstudio.com/items?itemName=hackatime.hackatime-time-tracker"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="text-cyan hover:underline">View on Marketplace</a

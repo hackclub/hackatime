@@ -181,7 +181,7 @@ jobs:
           PGPASSWORD: postgres
         run: |
           bin/rails rswag:specs:swaggerize
-          git diff --exit-code swagger/v1/swagger.yaml
+          git diff --exit-code swagger/
 
   test_system:
     runs-on: blacksmith-4vcpu-ubuntu-2404

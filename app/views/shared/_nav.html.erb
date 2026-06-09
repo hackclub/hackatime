@@ -118,7 +118,7 @@
             <%= link_to 'All OAuth Apps', admin_oauth_applications_path, class: nav_link_class.call(current_page?(admin_oauth_applications_path) || request.path.start_with?('/admin/oauth_applications')), data: { action: "click->nav#clickLink" } %>
           <% end %>
 
-          <% superadmin_tool(nil, "div") do %>
+          <% admin_tool(nil, "div") do %>
             <%= link_to 'Leaderboard Shadowbans', admin_leaderboard_shadowbans_path, class: nav_link_class.call(current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?('/admin/leaderboard_shadowbans')), data: { action: "click->nav#clickLink" } %>
           <% end %>
 
