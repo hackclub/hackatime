@@ -226,7 +226,7 @@ GEM
       actionpack (>= 6.0.0)
       activesupport (>= 6.0.0)
       railties (>= 6.0.0)
-    inertia_rails (3.21.1)
+    inertia_rails (3.21.2)
       railties (>= 6)
     io-console (0.8.2)
     irb (1.18.0)
