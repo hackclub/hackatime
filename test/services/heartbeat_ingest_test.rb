@@ -34,7 +34,8 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
             } ],
             request_context: {
               ip_address: "203.0.113.10",
-              machine: "laptop"
+              machine: "laptop",
+              ja4: "t13d1516h2_8daaf6152771_02713d6af862"
             }
           )
 
@@ -53,7 +54,30 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "coding", heartbeat.category
     assert_equal "laptop", heartbeat.machine
     assert_equal "203.0.113.10", heartbeat.ip_address.to_s
+    assert_equal "t13d1516h2_8daaf6152771_02713d6af862", heartbeat.ja4.fingerprint
     assert_equal "direct_entry", heartbeat.source_type
+  end
+
+  test "direct heartbeat ingest reuses a JA4 record across requests" do
+    user = User.create!(timezone: "UTC")
+    ja4 = "t13d1516h2_8daaf6152771_02713d6af862"
+
+    assert_difference({ "user.heartbeats.count" => 2, "Ja4.count" => 1 }) do
+      HeartbeatIngest.call(
+        user: user,
+        mode: :direct,
+        heartbeats: [ { entity: "src/first.rb", time: Time.current.to_f, type: "file" } ],
+        request_context: { ja4: ja4 }
+      )
+      HeartbeatIngest.call(
+        user: user,
+        mode: :direct,
+        heartbeats: [ { entity: "src/second.rb", time: 1.second.from_now.to_f, type: "file" } ],
+        request_context: { ja4: ja4 }
+      )
+    end
+
+    assert_equal [ ja4 ], user.heartbeats.joins(:ja4).distinct.pluck("ja4s.fingerprint")
   end
 
   test "direct heartbeat ingest returns existing heartbeat for duplicate input" do

@@ -78,6 +78,7 @@ class HeartbeatIngest
       user_id: @user.id,
       source_type:,
       ip_address: @request_context[:ip_address],
+      ja4_id: resolved_ja4&.id,
       editor: parsed_ua[:editor],
       operating_system: parsed_ua[:os],
       machine: @request_context[:machine]
@@ -171,6 +172,12 @@ class HeartbeatIngest
     return { editor: nil, os: nil } if user_agent.blank?
     parsed = WakatimeService.parse_user_agent(user_agent)
     { editor: parsed[:editor].presence, os: parsed[:os].presence }
+  end
+
+  def resolved_ja4
+    return @resolved_ja4 if defined?(@resolved_ja4)
+
+    @resolved_ja4 = Ja4.resolve(@request_context[:ja4])
   end
 
   def queue_project_mapping(project_name)
