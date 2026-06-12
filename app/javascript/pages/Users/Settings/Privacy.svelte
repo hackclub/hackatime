@@ -29,7 +29,6 @@
   ];
 
   let rotatingApiKey = $state(false);
-  let rotatedApiKeyError = $state("");
   let apiKeyCopied = $state(false);
   let rotateApiKeyModalOpen = $state(false);
   let deletionRequestModalOpen = $state(false);
@@ -42,16 +41,12 @@
   const rotateApiKey = () => {
     if (rotatingApiKey) return;
     rotatingApiKey = true;
-    rotatedApiKeyError = "";
     apiKeyCopied = false;
     router.post(
       settingsPrivacy.rotateApiKey.path(),
       {},
       {
         preserveScroll: true,
-        onError: () => {
-          rotatedApiKeyError = "Unable to rotate API key.";
-        },
         onFinish: () => {
           rotatingApiKey = false;
         },
@@ -101,16 +96,8 @@
     id="user_api_key"
     title="API Key"
     description="Rotate your API key if you think it has been exposed."
-    hasBody={Boolean(rotatedApiKeyError || rotated_api_key)}
+    hasBody={Boolean(rotated_api_key)}
   >
-    {#if rotatedApiKeyError}
-      <p
-        class="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-red"
-      >
-        {rotatedApiKeyError}
-      </p>
-    {/if}
-
     {#if rotated_api_key}
       <div class="rounded-md border border-surface-200 bg-darker p-3">
         <p class="text-xs font-semibold uppercase tracking-wide text-muted">

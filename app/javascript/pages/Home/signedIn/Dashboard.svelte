@@ -106,9 +106,11 @@
     {#each STAT_KEYS as [label, valueKey, singularKey, fallback]}
       <StatCard
         {label}
-        value={(valueKey === "top_category"
-          ? capitalize(data[valueKey])
-          : data[valueKey]) || fallback}
+        value={(valueKey === "top_category" && data[valueKey] === "ai coding"
+          ? "AI Coding"
+          : valueKey === "top_category"
+            ? capitalize(data[valueKey])
+            : data[valueKey]) || fallback}
         subtitle={data[singularKey] ? "obviously" : ""}
       />
     {/each}

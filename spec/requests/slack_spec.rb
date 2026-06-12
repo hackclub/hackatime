@@ -13,7 +13,7 @@ RSpec.describe 'Slack Webhooks', type: :request do
       parameter name: :user_id, in: :formData, type: :string
       parameter name: :response_url, in: :formData, type: :string
 
-      response(200, 'successful') do
+      response(200, 'successful', document: false) do
         let(:command) { '/sailorslog' }
         let(:text) { 'status update' }
         let(:user_id) { 'U123456' }

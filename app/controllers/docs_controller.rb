@@ -14,7 +14,7 @@ class DocsController < InertiaController
 
   ALL_EDITORS = [
     [ "Android Studio", "android-studio" ], [ "Antigravity", "antigravity" ], [ "AppCode", "appcode" ],
-    [ "Aptana", "aptana" ], [ "Arduino IDE", "arduino-ide" ], [ "Azure Data Studio", "azure-data-studio" ],
+    [ "Aptana", "aptana" ], [ "Aseprite", "aseprite" ], [ "Arduino IDE", "arduino-ide" ], [ "Azure Data Studio", "azure-data-studio" ],
     [ "Brackets", "brackets" ], [ "C++ Builder", "c++-builder" ],
     [ "CLion", "clion" ], [ "Cloud9", "cloud9" ], [ "Coda", "coda" ],
     [ "CodeTasty", "codetasty" ], [ "Cursor", "cursor" ], [ "DataGrip", "datagrip" ],

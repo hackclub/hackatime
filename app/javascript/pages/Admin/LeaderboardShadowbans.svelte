@@ -21,17 +21,30 @@
   const redButtonClass =
     "!border-red !bg-red !text-on-primary hover:!opacity-90";
 
-  type Pending =
-    | { kind: "ban" }
-    | { kind: "unban"; user: ShadowbannedUser };
+  type Pending = { kind: "ban" } | { kind: "unban"; user: ShadowbannedUser };
 
   let selectedUser = $state<UserPickerResult | null>(null);
   let reason = $state("");
+  let autoUnbanAt = $state("");
   let pending = $state<Pending | null>(null);
   let submitting = $state(false);
 
   let trimmedReason = $derived(reason.trim());
   let canSubmit = $derived(selectedUser !== null && trimmedReason.length > 0);
+  let minimumAutoUnbanAt = $derived(formatDatetimeLocal(new Date()));
+
+  function formatDatetimeLocal(date: Date) {
+    const offsetDate = new Date(
+      date.getTime() - date.getTimezoneOffset() * 60000,
+    );
+    return offsetDate.toISOString().slice(0, 16);
+  }
+
+  function autoUnbanAtIso() {
+    if (!autoUnbanAt) return null;
+
+    return new Date(autoUnbanAt).toISOString();
+  }
 
   function submit() {
     if (!pending || submitting) return;
@@ -42,6 +55,7 @@
       if (pending?.kind === "ban") {
         selectedUser = null;
         reason = "";
+        autoUnbanAt = "";
       }
       pending = null;
     };
@@ -49,7 +63,11 @@
     if (pending.kind === "ban" && selectedUser) {
       router.post(
         createUrl,
-        { user_id: selectedUser.id, reason: trimmedReason },
+        {
+          user_id: selectedUser.id,
+          reason: trimmedReason,
+          leaderboard_shadowban_expires_at: autoUnbanAtIso(),
+        },
         { onFinish },
       );
     } else if (pending.kind === "unban") {
@@ -108,6 +126,24 @@
       class="mt-2 w-full rounded-lg border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
     ></textarea>
 
+    <label
+      class="mt-6 block text-sm font-medium text-surface-content"
+      for="shadowban-expires-at"
+    >
+      Automatically unshadowban at <span class="text-muted">(optional)</span>
+    </label>
+    <input
+      id="shadowban-expires-at"
+      type="datetime-local"
+      bind:value={autoUnbanAt}
+      min={minimumAutoUnbanAt}
+      class="mt-2 w-full rounded-lg border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none sm:max-w-xs"
+    />
+    <p class="mt-2 text-xs text-muted">
+      Leave this empty to keep the shadowban until an admin removes it (note
+      that in most cases the shadowban should be ~a month long)
+    </p>
+
     <div class="mt-4 flex justify-end">
       <Button
         type="button"
@@ -127,9 +163,6 @@
         <h2 class="text-xl font-semibold text-surface-content">
           Currently shadowbanned
         </h2>
-        <p class="text-sm text-muted">
-          Latest 100 users hidden from public leaderboards.
-        </p>
       </div>
       <div
         class="rounded-full border border-surface-200 px-3 py-1 text-sm text-muted"
@@ -147,7 +180,10 @@
 
 <Modal
   bind:open={
-    () => pending !== null, (v) => { if (!v) pending = null; }
+    () => pending !== null,
+    (v) => {
+      if (!v) pending = null;
+    }
   }
   title={pending?.kind === "unban"
     ? "Remove leaderboard shadowban?"
@@ -179,9 +215,7 @@
         {#if submitting}
           {pending?.kind === "unban" ? "Removing..." : "Saving..."}
         {:else}
-          {pending?.kind === "unban"
-            ? "Remove shadowban"
-            : "Confirm shadowban"}
+          {pending?.kind === "unban" ? "Remove shadowban" : "Confirm shadowban"}
         {/if}
       </Button>
     </div>

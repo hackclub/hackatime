@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_09_195005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -90,6 +90,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.integer "total_seconds", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["bucket_value"], name: "index_dashboard_rollups_on_bucket_value"
     t.index ["dimension"], name: "index_dashboard_rollups_on_dimension_total", where: "(((dimension)::text = 'total'::text) AND (total_seconds > 0))"
     t.index ["user_id", "dimension", "bucket_value_present", "bucket_value"], name: "idx_dashboard_rollups_user_dimension_bucket", unique: true
     t.index ["user_id", "dimension"], name: "index_dashboard_rollups_on_user_id_and_dimension"
@@ -253,6 +254,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.index ["priority", "scheduled_at"], name: "index_good_jobs_on_priority_scheduled_at_unfinished_unlocked", where: "((finished_at IS NULL) AND (locked_by_id IS NULL))"
     t.index ["queue_name", "scheduled_at"], name: "index_good_jobs_on_queue_name_and_scheduled_at", where: "(finished_at IS NULL)"
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at", where: "(finished_at IS NULL)"
+    t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at_all"
+    t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at_unfinished_unperformed", where: "((finished_at IS NULL) AND (performed_at IS NULL))"
   end
 
   create_table "heartbeat_import_runs", force: :cascade do |t|
@@ -313,6 +316,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.text "fields_hash"
     t.inet "ip_address"
     t.boolean "is_write"
+    t.integer "ja4_id"
     t.string "language"
     t.integer "line_additions"
     t.integer "line_deletions"
@@ -332,6 +336,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.index ["category", "time"], name: "index_heartbeats_on_category_and_time"
     t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
     t.index ["ip_address"], name: "index_heartbeats_on_ip_address"
+    t.index ["ja4_id"], name: "index_heartbeats_on_ja4_id", where: "(ja4_id IS NOT NULL)"
     t.index ["machine"], name: "index_heartbeats_on_machine"
     t.index ["project", "time"], name: "index_heartbeats_on_project_and_time"
     t.index ["project"], name: "index_heartbeats_on_project"
@@ -372,6 +377,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.index ["user_id"], name: "index_instance_import_sources_on_user_id", unique: true
   end
 
+  create_table "ja4s", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "fingerprint", null: false
+    t.datetime "updated_at", null: false
+    t.index ["fingerprint"], name: "index_ja4s_on_fingerprint", unique: true
+  end
+
   create_table "leaderboard_entries", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "leaderboard_id", null: false
@@ -396,6 +408,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.datetime "updated_at", null: false
     t.index ["start_date", "period_type", "timezone_offset"], name: "index_leaderboards_on_start_date_period_type_timezone_offset", where: "(deleted_at IS NULL)"
     t.index ["start_date"], name: "index_leaderboards_on_start_date", where: "(deleted_at IS NULL)"
+    t.index ["start_date"], name: "index_leaderboards_on_start_date_all"
   end
 
   create_table "mailkick_subscriptions", force: :cascade do |t|
@@ -473,6 +486,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.string "name", null: false
     t.bigint "owner_id"
     t.string "owner_type"
+    t.boolean "redirect_to_hca_login", default: false, null: false
     t.text "redirect_uri", null: false
     t.string "scopes", default: "", null: false
     t.string "secret", null: false
@@ -650,6 +664,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
+    t.datetime "leaderboard_shadowban_expires_at"
     t.text "leaderboard_shadowban_reason"
     t.boolean "leaderboard_shadowbanned", default: false, null: false
     t.bigint "leaderboard_shadowbanned_by_id"
@@ -677,6 +692,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["github_username"], name: "index_users_on_github_username_trgm", opclass: :gin_trgm_ops, using: :gin
+    t.index ["hca_id"], name: "index_users_on_hca_id"
     t.index ["leaderboard_shadowbanned"], name: "index_users_on_leaderboard_shadowbanned", where: "(leaderboard_shadowbanned = true)"
     t.index ["leaderboard_shadowbanned_by_id"], name: "index_users_on_leaderboard_shadowbanned_by_id"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
@@ -728,6 +744,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_142103) do
   add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
+  add_foreign_key "heartbeats", "ja4s", on_delete: :nullify
   add_foreign_key "heartbeats", "users"
   add_foreign_key "instance_import_sources", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"

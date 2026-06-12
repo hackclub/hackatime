@@ -52,6 +52,43 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end
 
+  test "user_spans rejects anonymous request when target user has disabled public stats" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    get "/api/v1/users/#{user.username}/heartbeats/spans"
+    assert_response :forbidden
+  end
+
+  test "user_projects rejects anonymous request when target user has disabled public stats" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    get "/api/v1/users/#{user.username}/projects"
+    assert_response :forbidden
+  end
+
+  test "user_spans allows anonymous request when target user has public stats enabled" do
+    user = User.create!(username: "public_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: true)
+    get "/api/v1/users/#{user.username}/heartbeats/spans"
+    assert_response :success
+  end
+
+  test "user_spans allows owner via API token even when public stats disabled" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    api_key = user.api_keys.create!(name: "test")
+
+    get "/api/v1/users/my/heartbeats/spans", headers: { "Authorization" => "Bearer #{api_key.token}" }
+
+    assert_response :success
+  end
+
+  test "user_stats rejects a different user's API token against a private user's stats" do
+    private_user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    other_user = User.create!(username: "other_#{SecureRandom.hex(3)}", timezone: "UTC")
+    other_key = other_user.api_keys.create!(name: "test")
+
+    get "/api/v1/users/#{private_user.username}/stats", headers: { "Authorization" => "Bearer #{other_key.token}" }
+
+    assert_response :forbidden
+  end
+
   private
 
   def create_heartbeat(user:, time:, project:, category:)

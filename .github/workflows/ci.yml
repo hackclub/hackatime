@@ -95,6 +95,9 @@ jobs:
       - name: Run Svelte formatting checks
         run: bun run format:svelte:check
 
+      - name: Run Knip (unused files / deps / exports)
+        run: bun run knip
+
   zeitwerk:
     runs-on: ubuntu-latest
 
@@ -178,7 +181,7 @@ jobs:
           PGPASSWORD: postgres
         run: |
           bin/rails rswag:specs:swaggerize
-          git diff --exit-code swagger/v1/swagger.yaml
+          git diff --exit-code swagger/
 
   test_system:
     runs-on: blacksmith-4vcpu-ubuntu-2404

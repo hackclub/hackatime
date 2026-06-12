@@ -17,7 +17,21 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
   test "new redirects unauthenticated user to sign in" do
     get "/oauth/authorize", params: authorization_params
     assert_response :redirect
-    assert_match %r{signin}, response.location
+
+    redirect_uri = URI.parse(response.location)
+    assert_equal "/signin", redirect_uri.path
+    assert_equal request.fullpath, Rack::Utils.parse_query(redirect_uri.query)["continue"]
+  end
+
+  test "new redirects unauthenticated user to HCA sign in when application requires it" do
+    @oauth_app.update!(redirect_to_hca_login: true)
+
+    get "/oauth/authorize", params: authorization_params
+    assert_response :redirect
+
+    redirect_uri = URI.parse(response.location)
+    assert_equal "/auth/hca", redirect_uri.path
+    assert_equal request.fullpath, Rack::Utils.parse_query(redirect_uri.query)["continue"]
   end
 
   test "new renders OAuthAuthorize/New for authorizable request" do

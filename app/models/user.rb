@@ -1,7 +1,6 @@
 class User < ApplicationRecord
   has_one_attached :profile_og_image
 
-  include TimezoneRegions
   include UserThemeConfiguration
   include UserFuzzySearch
   include ::OauthAuthentication
@@ -16,6 +15,7 @@ class User < ApplicationRecord
   has_paper_trail
 
   after_create :subscribe_to_default_lists
+  after_create_commit :schedule_welcome_email
   after_create_commit :schedule_onboarding_check_in_email
   after_update_commit :clear_leaderboard_page_cache, if: :saved_change_to_leaderboard_shadowban_state?
   before_validation :normalize_username
@@ -30,9 +30,11 @@ class User < ApplicationRecord
     length: { maximum: USERNAME_MAX_LENGTH },
     format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
     uniqueness: { case_sensitive: false, message: "has already been taken" },
+    if: :will_save_change_to_username?,
     allow_nil: true
   validates :display_name_override, length: { maximum: DISPLAY_NAME_MAX_LENGTH }, allow_nil: true
   validates :leaderboard_shadowban_reason, presence: true, if: :leaderboard_shadowbanned?
+  validate :leaderboard_shadowban_expiration_must_be_in_the_future
   validate :username_must_be_visible
 
   attribute :allow_public_stats_lookup, :boolean, default: true
@@ -40,7 +42,6 @@ class User < ApplicationRecord
   attribute :show_goals_in_statusbar, :boolean, default: true
 
   def country_name = ISO3166::Country.new(country_code).common_name
-  def country_subregion = ISO3166::Country.new(country_code).subregion
 
   enum :trust_level, {
     blue: 0,     # unscored
@@ -108,7 +109,8 @@ class User < ApplicationRecord
   end
 
   def can_convict_users? = admin_level_superadmin? || admin_level_ultraadmin?
-  def can_leaderboard_shadowban_users? = admin_level_superadmin? || admin_level_ultraadmin?
+  def can_leaderboard_shadowban_users? = admin_level.in?(%w[admin superadmin ultraadmin])
+  def can_view_query_stats? = admin_level.in?(%w[viewer admin superadmin ultraadmin])
   def admin_level_rank = ADMIN_LEVEL_RANK[admin_level.to_s] || 0
 
   # True if `self` is allowed to set `target_user`'s admin_level to `new_level`.
@@ -154,17 +156,28 @@ class User < ApplicationRecord
   end
   # ex: .set_trust(:green, changed_by_user: admin) or set_trust(:red, changed_by_user: admin)
 
-  def set_leaderboard_shadowban(banned:, changed_by_user:, reason: nil)
+  def set_leaderboard_shadowban(banned:, changed_by_user:, reason: nil, expires_at: nil)
     return false unless changed_by_user.is_a?(User)
     return false unless changed_by_user.can_leaderboard_shadowban_users?
     return false if changed_by_user == self
     return false unless changed_by_user.admin_level_rank > admin_level_rank
 
-    update(
+    if banned
+      expires_at, expiry_valid = coerce_shadowban_expiration(expires_at)
+      unless expiry_valid
+        errors.add(:leaderboard_shadowban_expires_at, "is invalid")
+        return false
+      end
+    end
+
+    saved = update(
       leaderboard_shadowbanned: banned,
       leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil,
-      leaderboard_shadowbanned_by: banned ? changed_by_user : nil
+      leaderboard_shadowbanned_by: banned ? changed_by_user : nil,
+      leaderboard_shadowban_expires_at: banned ? expires_at : nil
     )
+    schedule_leaderboard_shadowban_expiration if saved && banned && leaderboard_shadowban_expires_at.present?
+    saved
   rescue ActiveRecord::ActiveRecordError => e
     Rails.logger.error("set_leaderboard_shadowban failed for user #{id}: #{e.class}: #{e.message}")
     false
@@ -209,14 +222,21 @@ class User < ApplicationRecord
     where("users.id IN (#{candidates_sql})")
   }
 
+  scope :leaderboard_shadowbanned, -> { where(leaderboard_shadowbanned: true) }
+
   def saved_change_to_leaderboard_shadowban_state?
     saved_change_to_leaderboard_shadowbanned? ||
       saved_change_to_leaderboard_shadowban_reason? ||
-      saved_change_to_leaderboard_shadowbanned_by_id?
+      saved_change_to_leaderboard_shadowbanned_by_id? ||
+      saved_change_to_leaderboard_shadowban_expires_at?
   end
 
   def clear_leaderboard_page_cache
     LeaderboardPageCache.clear!
+  end
+
+  def schedule_leaderboard_shadowban_expiration
+    LeaderboardShadowbanExpirationJob.set(wait_until: leaderboard_shadowban_expires_at).perform_later(id)
   end
 
   has_many :trust_level_audit_logs, dependent: :destroy
@@ -309,8 +329,7 @@ class User < ApplicationRecord
   end
 
   def display_name
-    name = display_name_override.presence
-    return name if name.present?
+    return display_name_override if display_name_override.present?
 
     name = slack_username || github_username || username
     return name if name.present?
@@ -377,6 +396,13 @@ class User < ApplicationRecord
 
   def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
   def subscribe_to_default_lists = subscribe("weekly_summary")
+  def schedule_welcome_email
+    recipient_email = email_addresses.order(:id).pick(:email)
+    return if recipient_email.blank?
+
+    OnboardingMailer.welcome(self, recipient_email: recipient_email).deliver_later
+  end
+
   def schedule_onboarding_check_in_email = OnboardingCheckInEmailJob.set(wait: 1.week).perform_later(id)
 
   def normalize_username
@@ -405,5 +431,26 @@ class User < ApplicationRecord
     return if display_name_override.nil?
 
     self.display_name_override = display_name_override.gsub(/\p{Cf}/, "").strip.presence
+  end
+
+  def leaderboard_shadowban_expiration_must_be_in_the_future
+    return unless will_save_change_to_leaderboard_shadowban_expires_at?
+    return unless leaderboard_shadowbanned?
+    return if leaderboard_shadowban_expires_at.blank?
+    return if leaderboard_shadowban_expires_at.future?
+
+    errors.add(:leaderboard_shadowban_expires_at, "must be in the future")
+  end
+
+  # returns [time_or_nil, valid?]. accepts a blank value (no expiration),
+  # an already-parsed time, or a string to parse.
+  def coerce_shadowban_expiration(value)
+    return [ nil, true ] if value.blank?
+    return [ value, true ] unless value.is_a?(String)
+
+    parsed = Time.zone.parse(value)
+    [ parsed, parsed.present? ]
+  rescue ArgumentError
+    [ nil, false ]
   end
 end

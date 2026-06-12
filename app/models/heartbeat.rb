@@ -27,6 +27,7 @@ class Heartbeat < ApplicationRecord
   self.ignored_columns += %w[ysws_program] # unused
 
   belongs_to :user
+  belongs_to :ja4, optional: true
 
   validates :time, presence: true
 

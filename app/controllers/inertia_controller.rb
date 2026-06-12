@@ -91,7 +91,10 @@ class InertiaController < ApplicationController
 
   def inertia_admin_links
     return [] unless current_user&.admin_level.in?(%w[admin superadmin ultraadmin])
-    build_nav_from(ADMIN_NAV_LINKS)
+    build_nav_from(ADMIN_NAV_LINKS) + [
+      # viewers can't access these!
+      inertia_link("Leaderboard Shadowbans", admin_leaderboard_shadowbans_path, active: helpers.current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?("/admin/leaderboard_shadowbans"), inertia: true)
+    ]
   end
 
   def inertia_viewer_links
@@ -106,8 +109,7 @@ class InertiaController < ApplicationController
     [
       inertia_link("Admin Management", admin_admin_users_path, active: helpers.current_page?(admin_admin_users_path)),
       inertia_link("Account Deletions", admin_deletion_requests_path, active: helpers.current_page?(admin_deletion_requests_path), badge: pending_count.positive? ? pending_count : nil),
-      inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications")),
-      inertia_link("Leaderboard Shadowbans", admin_leaderboard_shadowbans_path, active: helpers.current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?("/admin/leaderboard_shadowbans"), inertia: true)
+      inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications"))
     ]
   end
 
@@ -147,22 +149,23 @@ class InertiaController < ApplicationController
 
   def inertia_footer_props
     h = ApplicationController.helpers
-    cache = h.cache_stats
     hours = active_users_graph_data.map { |entry| { height: entry[:height], users: entry[:users] } }
 
-    {
+    props = {
       git_version: Rails.application.config.git_version,
       commit_link: Rails.application.config.commit_link,
       server_start_time_ago: h.time_ago_in_words(Rails.application.config.server_start_time),
       heartbeat_recent_count: Heartbeat.recent_count,
       heartbeat_recent_imported_count: Heartbeat.recent_imported_count,
-      query_count: QueryCount::Counter.counter,
-      query_cache_count: QueryCount::Counter.counter_cache,
-      cache_hits: cache[:hits],
-      cache_misses: cache[:misses],
-      requests_per_second: h.requests_per_second,
       active_users_graph: hours
     }
+
+    props[:query_stats] = {
+      count: QueryCount::Counter.counter,
+      cache_count: QueryCount::Counter.counter_cache
+    } if current_user&.can_view_query_stats?
+
+    props
   end
 
   def currently_hacking_props

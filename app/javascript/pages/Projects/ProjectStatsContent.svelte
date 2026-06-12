@@ -4,7 +4,7 @@
   import PieChart from "../Home/signedIn/PieChart.svelte";
   import ActivityGraph from "../Home/signedIn/ActivityGraph.svelte";
   import FileList from "./FileList.svelte";
-  import type { ActivityGraphData } from "../../types/index";
+  import type { ProjectStats } from "../../types/index";
 
   let {
     total_time_label,
@@ -17,17 +17,10 @@
     file_stats = [],
     branch_stats = [],
     activity_graph,
-  }: {
+  }: Partial<ProjectStats> & {
     total_time_label: string;
     file_count: number;
-    language_stats?: Record<string, number>;
-    language_colors?: Record<string, string>;
-    editor_stats?: Record<string, number>;
-    os_stats?: Record<string, number>;
-    category_stats?: Record<string, number>;
-    file_stats?: [string, number][];
-    branch_stats?: [string, number][];
-    activity_graph?: ActivityGraphData | null;
+    activity_graph?: ProjectStats["activity_graph"];
   } = $props();
 
   const topKey = (
@@ -52,7 +45,10 @@
     <StatCard label="Top Language" value={topKey(language_stats)} />
     <StatCard label="Top Branch" value={topKey(branch_stats)} />
     <StatCard label="Top File" value={topKey(file_stats)} />
-    <StatCard label="Top Category" value={topKey(category_stats)} />
+    <StatCard
+      label="Top Category"
+      value={topKey(category_stats).replace(/^Ai coding$/, "AI Coding")}
+    />
     <StatCard label="Days Active" value={`${daysActive} days active`} />
   </div>
 

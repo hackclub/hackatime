@@ -4,10 +4,8 @@ class Admin::LeaderboardShadowbansController < InertiaController
   before_action :require_shadowban_admin!
 
   def index
-    users = shadowbanned_users.to_a
-
     render inertia: "Admin/LeaderboardShadowbans", props: {
-      shadowbanned_users: users.map { |user| format_user(user, shadowbanned_by: user.leaderboard_shadowbanned_by) }
+      shadowbanned_users: shadowbanned_users.map { |user| LeaderboardShadowbanSerializer.call(user) }
     }
   end
 
@@ -15,42 +13,30 @@ class Admin::LeaderboardShadowbansController < InertiaController
     query_term = params[:query].to_s.strip
     return render json: [] if query_term.blank?
 
-    users = User.fuzzy_ranked_search(query_term, limit: 20).includes(:email_addresses)
-    render json: users.map { |user| format_user(user) }
+    users = User.fuzzy_ranked_search(query_term, limit: 20).includes(LeaderboardShadowbanSerializer::PRELOADS)
+    render json: users.map { |user| LeaderboardShadowbanSerializer.call(user) }
   end
 
   def create
     user = User.find_by(id: params[:user_id])
-    unless user
-      redirect_to admin_leaderboard_shadowbans_path, alert: "User not found."
-      return
-    end
+    return redirect_to(admin_leaderboard_shadowbans_path, alert: "User not found.") unless user
 
-    unless user.set_leaderboard_shadowban(
-      banned: true,
-      changed_by_user: current_user,
-      reason: params[:reason]
-    )
-      redirect_to admin_leaderboard_shadowbans_path, alert: "Could not leaderboard shadowban that user."
-      return
+    if user.set_leaderboard_shadowban(banned: true, changed_by_user: current_user, reason: params[:reason], expires_at: params[:leaderboard_shadowban_expires_at])
+      redirect_to admin_leaderboard_shadowbans_path, notice: "#{user.display_name} is now hidden from leaderboards."
+    else
+      redirect_to admin_leaderboard_shadowbans_path, alert: shadowban_error(user, "Could not leaderboard shadowban that user.")
     end
-
-    redirect_to admin_leaderboard_shadowbans_path, notice: "#{user.display_name} is now hidden from leaderboards."
   end
 
   def destroy
     user = User.find_by(id: params[:user_id])
-    unless user
-      redirect_to admin_leaderboard_shadowbans_path, alert: "User not found."
-      return
-    end
+    return redirect_to(admin_leaderboard_shadowbans_path, alert: "User not found.") unless user
 
-    unless user.set_leaderboard_shadowban(banned: false, changed_by_user: current_user)
-      redirect_to admin_leaderboard_shadowbans_path, alert: "Could not remove that leaderboard shadowban."
-      return
+    if user.set_leaderboard_shadowban(banned: false, changed_by_user: current_user)
+      redirect_to admin_leaderboard_shadowbans_path, notice: "#{user.display_name} is visible on leaderboards again."
+    else
+      redirect_to admin_leaderboard_shadowbans_path, alert: shadowban_error(user, "Could not remove that leaderboard shadowban.")
     end
-
-    redirect_to admin_leaderboard_shadowbans_path, notice: "#{user.display_name} is visible on leaderboards again."
   end
 
   private
@@ -62,29 +48,12 @@ class Admin::LeaderboardShadowbansController < InertiaController
   end
 
   def shadowbanned_users
-    User.where(leaderboard_shadowbanned: true)
-      .includes(:email_addresses, leaderboard_shadowbanned_by: :email_addresses)
+    User.leaderboard_shadowbanned
+      .includes(LeaderboardShadowbanSerializer::PRELOADS)
       .order(updated_at: :desc)
-      .limit(100)
   end
 
-  def format_user(user, shadowbanned_by: nil)
-    {
-      id: user.id,
-      display_name: user.display_name,
-      avatar_url: user.avatar_url,
-      created_at: user.created_at&.strftime("%Y-%m-%d"),
-      username: user.username,
-      email: user.email_addresses.first&.email,
-      leaderboard_shadowbanned: user.leaderboard_shadowbanned?,
-      leaderboard_shadowban_reason: user.leaderboard_shadowban_reason,
-      shadowbanned_by: shadowbanned_by && {
-        id: shadowbanned_by.id,
-        display_name: shadowbanned_by.display_name,
-        username: shadowbanned_by.username,
-        email: shadowbanned_by.email_addresses.first&.email
-      },
-      updated_at: user.updated_at&.strftime("%Y-%m-%d %H:%M UTC")
-    }
+  def shadowban_error(user, fallback)
+    user.errors.any? ? user.errors.full_messages.to_sentence : fallback
   end
 end

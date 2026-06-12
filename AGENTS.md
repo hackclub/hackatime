@@ -123,6 +123,15 @@ Files under `app/javascript/api/` are gitignored and regenerated on every build:
 
 After adding a route to `EXPORTED_ROUTES`, just refresh the page (or run `docker compose exec web bin/rake js_from_routes:generate`) — there's nothing to commit.
 
+## Default theme
+
+To change the default theme, update it in **two places**:
+
+1. `app/models/concerns/user_theme_configuration.rb` — `DEFAULT_THEME` constant (controls the model default and `theme_metadata` fallback)
+2. `app/javascript/utils.ts` — `DEFAULT_THEME` export (used by `MarketingLayout.svelte` for unauthenticated pages, and `Appearance.svelte` as the pre-load fallback)
+
+Valid theme values are the keys of the `enum :theme` in `app/models/user.rb`.
+
 ## Searching for users
 - Need to show users to a human (search UI, picker)? → `fuzzy_ranked_search`
 - Need to find IDs to filter something else by? → `search_identity`

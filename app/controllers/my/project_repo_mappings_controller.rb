@@ -231,7 +231,7 @@ class My::ProjectRepoMappingsController < InertiaController
     last_commit_at = [ repository.last_commit_at, latest_user_commit_at_by_repo_id[repository.id] ].compact.max
 
     {
-      homepage: repository.homepage,
+      homepage: repository.safe_homepage,
       stars: repository.stars,
       description: repository.description,
       formatted_languages: repository.formatted_languages,

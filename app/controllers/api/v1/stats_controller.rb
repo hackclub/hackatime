@@ -1,6 +1,9 @@
 class Api::V1::StatsController < ApplicationController
+  USER_LOOKUP_ACTIONS = [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ].freeze
+
   before_action :authenticate_legacy_stats_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
-  before_action :set_user, only: [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ]
+  before_action :set_user, only: USER_LOOKUP_ACTIONS
+  before_action :ensure_public_stats_allowed!, only: USER_LOOKUP_ACTIONS
 
   def show
     # take either user_id with a start date & end date
@@ -28,12 +31,6 @@ class Api::V1::StatsController < ApplicationController
 
   def user_stats
     # Used by the github stats page feature
-    return render_not_found_json("User not found") unless @user.present?
-
-    if !@user.allow_public_stats_lookup && (!current_user || current_user != @user)
-      return render_forbidden("user has disabled public stats")
-    end
-
     start_date = parse_datetime_param(:start_date, default: 10.years.ago)
     return if performed?
     end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
@@ -56,10 +53,14 @@ class Api::V1::StatsController < ApplicationController
     }
     service_params[:scope] = scope if scope
 
+    no_ai_coding = params[:no_ai_coding] == "true"
+
     if params[:test_param] == "true"
       service_params[:boundary_aware] = true # always and i mean always use boundary aware in test mode
       service_params[:valid_timestamps_only] = true
-      service_params[:exclude_categories] = [ "browsing", "ai coding", "meeting", "communicating" ]
+      excluded = [ "browsing", "meeting", "communicating" ]
+      excluded << "ai coding" if no_ai_coding
+      service_params[:exclude_categories] = excluded
 
       if params[:total_seconds] == "true"
         return render json: { total_seconds: WakatimeService.new(**service_params).generate_summary[:total_seconds] }
@@ -73,19 +74,23 @@ class Api::V1::StatsController < ApplicationController
         query = query.where(category: filter_by_categories) if filter_by_categories
 
         total_seconds = if params[:boundary_aware] == "true"
+          excluded = [ "browsing", "meeting", "communicating" ]
+          excluded << "ai coding" if no_ai_coding
           Heartbeat.duration_seconds_boundary_aware(
             query,
             start_date.to_f,
             end_date.to_f,
-            excluded_categories: [ "browsing", "ai coding", "meeting", "communicating" ]
+            excluded_categories: excluded
           ) || 0
         else
+          query = query.where.not(category: "ai coding") if no_ai_coding
           query.duration_seconds || 0
         end
 
         return render json: { total_seconds: total_seconds }
       end
 
+      service_params[:exclude_categories] = [ "ai coding" ] if no_ai_coding
       summary = WakatimeService.new(**service_params).generate_summary
     end
 
@@ -108,8 +113,6 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_spans
-    return render_not_found_json("User not found") unless @user
-
     start_date = parse_datetime_param(:start_date, default: 10.years.ago)
     return if performed?
     end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
@@ -145,12 +148,10 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_projects
-    return render_not_found_json("User not found") unless @user
     render json: { projects: project_stats_query(include_archived: true).project_names }
   end
 
   def user_project
-    return render_not_found_json("User not found") unless @user
     return render_bad_request("whats the name?") unless params[:project_name].present?
 
     project_data = project_stats_query.project_details(names: [ params[:project_name] ]).first
@@ -159,16 +160,27 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_projects_details
-    return render_not_found_json("User not found") unless @user
     render json: { projects: project_stats_query.project_details(names: params[:projects]&.split(",")&.map(&:strip)) }
   end
 
   private
 
   def set_user
-    token = request.headers["Authorization"]&.split(" ")&.last
     identifier = params[:username] || params[:username_or_id] || params[:user_id]
-    @user = (identifier == "my" && token.present?) ? ApiKey.find_by(token: token)&.user : User.lookup_by_identifier(identifier)
+    if identifier == "my"
+      token = request.headers["Authorization"]&.split(" ")&.last
+      @api_caller_user = ApiKey.find_by(token: token)&.user if token.present?
+      @user = @api_caller_user
+    else
+      @user = User.lookup_by_identifier(identifier)
+    end
+  end
+
+  def ensure_public_stats_allowed!
+    return render_not_found_json("User not found") unless @user
+    return if @user.allow_public_stats_lookup
+    return if current_user == @user || @api_caller_user == @user
+    render_forbidden("user has disabled public stats")
   end
 
   def find_by_email(email)
