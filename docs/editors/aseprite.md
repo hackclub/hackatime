@@ -1,6 +1,6 @@
 # How to Track Time in Aseprite
 
-![Aseprite](/hackatime/public/images/editor-icons/aseprite-128.png)
+![Aseprite](/images/editor-icons/aseprite-128.png)
 
 Let's set up Aseprite to count how much time you spend making art!
 
