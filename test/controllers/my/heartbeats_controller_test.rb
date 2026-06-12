@@ -1,6 +1,17 @@
 require "test_helper"
 
 class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    @original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    Rails.cache.clear
+    GoodJob::Job.delete_all
+  end
+
+  teardown do
+    Rails.cache = @original_cache
+  end
+
   test "export rejects banned users" do
     user = User.create!(trust_level: :red)
     user.email_addresses.create!(email: "banned-export@example.com", source: :signing_in)
@@ -43,5 +54,23 @@ class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to my_settings_imports_exports_path
     assert_equal "Start date must be on or before end date.", flash[:alert]
+  end
+
+  test "export rate limits repeated requests" do
+    user = User.create!
+    user.email_addresses.create!(email: "rate-limited-export@example.com", source: :signing_in)
+    sign_in_as(user)
+
+    assert_difference -> { GoodJob::Job.where(job_class: "HeartbeatExportJob").count }, +1 do
+      post export_my_heartbeats_path, params: { all_data: "true" }
+    end
+
+    assert_no_difference -> { GoodJob::Job.where(job_class: "HeartbeatExportJob").count } do
+      post export_my_heartbeats_path, params: { all_data: "true" }
+    end
+
+    assert_response :redirect
+    assert_redirected_to my_settings_imports_exports_path
+    assert_equal "Export requests are limited to once every 10 minutes.", flash[:alert]
   end
 end

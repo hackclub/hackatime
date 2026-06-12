@@ -28,6 +28,7 @@ class Settings::ImportsExportsController < Settings::BaseController
           is_restricted: (@user.trust_level == "red")
         }
       },
+      export_cooldown_minutes: export_cooldown_minutes,
       imports_enabled: imports_enabled,
       remote_import_cooldown_until: HeartbeatImportRunner.remote_import_cooldown_until(user: @user)&.iso8601,
       latest_heartbeat_import: HeartbeatImportRunner.serialize(latest_import),
@@ -37,4 +38,6 @@ class Settings::ImportsExportsController < Settings::BaseController
       }
     }
   end
+
+  def export_cooldown_minutes = My::HeartbeatsController::EXPORT_COOLDOWN.in_minutes.to_i
 end

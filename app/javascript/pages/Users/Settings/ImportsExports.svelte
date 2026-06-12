@@ -31,6 +31,7 @@
     heading,
     subheading,
     data_export,
+    export_cooldown_minutes,
     imports_enabled,
     remote_import_cooldown_until,
     latest_heartbeat_import,
@@ -338,7 +339,8 @@
         </div>
 
         <p class="mt-3 text-sm text-muted">
-          Exports are generated in the background and emailed to you.
+          Exports are generated in the background and emailed to you. You can
+          request one export every {export_cooldown_minutes} minutes.
         </p>
 
         <div class="mt-4 space-y-3">
