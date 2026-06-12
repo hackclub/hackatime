@@ -4,55 +4,33 @@ class SailorsLogNotifyJob < ApplicationJob
   include GoodJob::ActiveJobExtensions::Concurrency
 
   good_job_control_concurrency_with(
-    total_limit: 1,
-    key: -> { "sailors_log_notify_job_#{arguments.first}" },
-    drop: true
+    total_limit: 1, key: -> { "sailors_log_notify_job_#{arguments.first}" }
   )
+
+  KUDOS = [ "Great work!", "Nice job!", "Amazing!", "Fantastic!", "Excellent!",
+            "Awesome!", "Well done!", "Wahoo!", "Way to go!" ].freeze
+  REMOVABLE_CHANNEL_ERRORS = %w[channel_not_found is_archived no_permission not_in_channel restricted_action].freeze
 
   def perform(sailors_log_slack_notification_id)
     slsn = SailorsLogSlackNotification.find(sailors_log_slack_notification_id)
-
-    slack_uid = slsn.slack_uid
-    slack_channel_id = slsn.slack_channel_id
-    project_name = slsn.project_name
-    project_duration = slsn.project_duration
-
-    kudos_message = [
-      "Great work!",
-      "Nice job!",
-      "Amazing!",
-      "Fantastic!",
-      "Excellent!",
-      "Awesome!",
-      "Well done!",
-      "Wahoo!",
-      "Way to go!"
-    ].sample
-
-    hours = project_duration / 3600
-
-    username = SlackUsername.find_by_uid(slack_uid)
-    handle = username.blank? ? "<@#{slack_uid}>" : "@#{username}"
-
-    message = ":boat: `#{handle}` just coded 1 more hour on *#{project_name}* (total: #{hours}hrs). _#{kudos_message}_"
+    hours = slsn.project_duration / 3600
+    username = SlackUsername.find_by_uid(slsn.slack_uid)
+    handle = username.blank? ? "<@#{slsn.slack_uid}>" : "@#{username}"
+    message = ":boat: `#{handle}` just coded 1 more hour on *#{slsn.project_name}* (total: #{hours}hrs). _#{KUDOS.sample}_"
 
     response = HTTP.auth("Bearer #{ENV['SAILORS_LOG_SLACK_BOT_OAUTH_TOKEN']}")
       .post("https://slack.com/api/chat.postMessage",
-            json: {
-              channel: slack_channel_id,
-              text: message
-            })
+            json: { channel: slsn.slack_channel_id, text: message })
 
-    response_data = JSON.parse(response.body)
-    if response_data["ok"]
+    data = JSON.parse(response.body)
+    if data["ok"]
       slsn.update(sent: true)
     else
-      report_message("Failed to send Slack notification: #{response_data["error"]}")
-      removable_channel_errors = %w[channel_not_found is_archived no_permission not_in_channel restricted_action]
-      if removable_channel_errors.include?(response_data["error"])
-        SailorsLogNotificationPreference.where(slack_channel_id: slack_channel_id).destroy_all
+      report_message("Failed to send Slack notification: #{data["error"]}")
+      if REMOVABLE_CHANNEL_ERRORS.include?(data["error"])
+        SailorsLogNotificationPreference.where(slack_channel_id: slsn.slack_channel_id).destroy_all
       else
-        raise "Failed to send Slack notification: #{response_data["error"]} in #{slack_channel_id}"
+        raise "Failed to send Slack notification: #{data["error"]} in #{slsn.slack_channel_id}"
       end
     end
   end

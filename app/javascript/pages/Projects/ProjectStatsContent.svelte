@@ -4,7 +4,7 @@
   import PieChart from "../Home/signedIn/PieChart.svelte";
   import ActivityGraph from "../Home/signedIn/ActivityGraph.svelte";
   import FileList from "./FileList.svelte";
-  import type { ActivityGraphData } from "../../types/index";
+  import type { ProjectStats } from "../../types/index";
 
   let {
     total_time_label,
@@ -17,26 +17,18 @@
     file_stats = [],
     branch_stats = [],
     activity_graph,
-  }: {
+  }: Partial<ProjectStats> & {
     total_time_label: string;
     file_count: number;
-    language_stats: Record<string, number>;
-    language_colors: Record<string, string>;
-    editor_stats?: Record<string, number>;
-    os_stats?: Record<string, number>;
-    category_stats?: Record<string, number>;
-    file_stats: [string, number][];
-    branch_stats: [string, number][];
-    activity_graph?: ActivityGraphData | null;
+    activity_graph?: ProjectStats["activity_graph"];
   } = $props();
 
   const topKey = (
     stats: Record<string, number> | [string, number][] | undefined,
   ): string => {
     if (!stats) return "—";
-    if (Array.isArray(stats)) return stats.length > 0 ? stats[0][0] : "—";
-    const entries = Object.entries(stats);
-    return entries.length > 0 ? entries[0][0] : "—";
+    const first = Array.isArray(stats) ? stats[0] : Object.entries(stats)[0];
+    return first ? first[0] : "—";
   };
 
   const daysActive = $derived(
@@ -53,7 +45,10 @@
     <StatCard label="Top Language" value={topKey(language_stats)} />
     <StatCard label="Top Branch" value={topKey(branch_stats)} />
     <StatCard label="Top File" value={topKey(file_stats)} />
-    <StatCard label="Top Category" value={topKey(category_stats)} />
+    <StatCard
+      label="Top Category"
+      value={topKey(category_stats).replace(/^Ai coding$/, "AI Coding")}
+    />
     <StatCard label="Days Active" value={`${daysActive} days active`} />
   </div>
 
@@ -69,15 +64,12 @@
         colorMap={language_colors}
       />
     {/if}
-
     {#if editor_stats && Object.keys(editor_stats).length > 0}
       <PieChart title="Editors" stats={editor_stats} />
     {/if}
-
     {#if os_stats && Object.keys(os_stats).length > 0}
       <PieChart title="Operating Systems" stats={os_stats} />
     {/if}
-
     {#if category_stats && Object.keys(category_stats).length > 0}
       <PieChart title="Categories" stats={category_stats} />
     {/if}

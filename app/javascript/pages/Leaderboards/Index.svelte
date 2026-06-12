@@ -1,24 +1,15 @@
 <script lang="ts">
   import { Deferred, Link } from "@inertiajs/svelte";
-  import { WindowVirtualizer } from "virtua/svelte";
   import { Icon, MagnifyingGlass } from "svelte-hero-icons";
-  import CountryFlag from "../../components/CountryFlag.svelte";
-  import Twemoji from "../../components/Twemoji.svelte";
-  import Button from "../../components/Button.svelte";
+  import Tabs from "./components/Tabs.svelte";
+  import EntriesList from "./components/EntriesList.svelte";
   import type {
     LeaderboardMeta,
     LeaderboardCountry,
     LeaderboardEntriesPayload,
   } from "../../types";
-  import {
-    secondsToDetailedDisplay,
-    timeAgo,
-    rankDisplay,
-    streakTheme,
-    streakLabel,
-    tabClass,
-  } from "./utils";
-  import { leaderboards, sessions, settingsProfile } from "../../api";
+  import { timeAgo } from "./utils";
+  import { settingsProfile } from "../../api";
 
   let {
     period_type,
@@ -38,60 +29,30 @@
     entries?: LeaderboardEntriesPayload;
   } = $props();
 
-  type LeaderboardVirtualizer = {
-    scrollToIndex: (
-      index: number,
-      opts?: { align?: "start" | "center" | "end" },
-    ) => void;
-  };
-
-  const githubAuthPath = sessions.githubNew.path();
   const settingsPath = settingsProfile.mySettings.path();
-  const leaderboardPath = (query: Record<string, string | number>) =>
-    leaderboards.index.path({ query });
-  const resetEntries = (current: Record<string, unknown>) => ({
-    ...current,
-    entries: undefined,
-  });
-  let virtualizer: LeaderboardVirtualizer | undefined = $state();
   let searchQuery = $state("");
-
-  const normalizeSearchText = (value: string) => value.trim().toLowerCase();
-
-  const entryMatches = (
-    entry: NonNullable<LeaderboardEntriesPayload["entries"]>[number],
-    normalizedQuery: string,
-  ) => {
-    const searchableText = [
-      entry.user.display_name,
-      entry.user.profile_path,
-      entry.user.country_code,
-      entry.active_project?.name,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return searchableText.includes(normalizedQuery);
-  };
 
   const filteredEntries = $derived.by(() => {
     if (!entries?.entries) return [];
-    const normalizedQuery = normalizeSearchText(searchQuery);
-    if (!normalizedQuery) return entries.entries;
-    return entries.entries.filter((entry) =>
-      entryMatches(entry, normalizedQuery),
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return entries.entries;
+    return entries.entries.filter((e) =>
+      [
+        e.user.display_name,
+        e.user.profile_path,
+        e.user.country_code,
+        e.active_project?.name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
     );
   });
 
-  // Map filtered entry back to its original rank in the full leaderboard
   const entryRank = $derived.by(() => {
     const map = new Map<number, number>();
-    if (entries?.entries) {
-      entries.entries.forEach((entry, index) => {
-        map.set(entry.user_id, index);
-      });
-    }
+    entries?.entries?.forEach((e, i) => map.set(e.user_id, i));
     return map;
   });
 
@@ -106,6 +67,10 @@
           })()
         : "Last 24 hours"),
   );
+
+  const periodLabel = $derived(
+    period_type === "last_7_days" ? "last 7 days" : "last 24 hours",
+  );
 </script>
 
 <svelte:head>
@@ -119,84 +84,7 @@
     </h1>
 
     <div class="flex flex-row items-center justify-between gap-3">
-      <!-- Scope tabs -->
-      <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
-        <Link
-          href={leaderboardPath({ period_type, scope: "global" })}
-          component="Leaderboards/Index"
-          pageProps={(current) => ({
-            ...resetEntries(current),
-            scope: "global",
-          })}
-          class={`${tabClass(scope === "global")} inline-flex items-center justify-center gap-2`}
-          preserveScroll
-        >
-          <Twemoji emoji="🌐" alt="Globe" class="inline-block w-5 h-5" />
-          <span class="hidden sm:inline">Global</span>
-        </Link>
-
-        {#if country.available}
-          <Link
-            href={leaderboardPath({ period_type, scope: "country" })}
-            component="Leaderboards/Index"
-            pageProps={(current) => ({
-              ...resetEntries(current),
-              scope: "country",
-            })}
-            class={`${tabClass(scope === "country")} inline-flex items-center justify-center gap-2`}
-            preserveScroll
-          >
-            <CountryFlag
-              countryCode={country.code}
-              class="inline-block w-5 h-5"
-            />
-            <span class="hidden sm:inline max-w-48 truncate"
-              >{country.name}</span
-            >
-          </Link>
-        {:else}
-          <span
-            class="text-center px-4 py-2 rounded-full text-sm font-medium text-muted/60 bg-darker cursor-not-allowed whitespace-nowrap inline-flex items-center justify-center gap-2"
-          >
-            <Twemoji
-              emoji="🏳️"
-              alt="No country"
-              class="inline-block w-5 h-5 opacity-60"
-            />
-            <span class="hidden sm:inline">Country</span>
-          </span>
-        {/if}
-      </div>
-
-      <!-- Period tabs -->
-      <div class="inline-flex rounded-full bg-darkless p-1 gap-1">
-        <Link
-          href={leaderboardPath({ period_type: "daily", scope })}
-          component="Leaderboards/Index"
-          pageProps={(current) => ({
-            ...resetEntries(current),
-            period_type: "daily",
-          })}
-          class={tabClass(period_type === "daily")}
-          preserveScroll
-        >
-          <span class="sm:hidden">24h</span>
-          <span class="hidden sm:inline">Last 24 Hours</span>
-        </Link>
-        <Link
-          href={leaderboardPath({ period_type: "last_7_days", scope })}
-          component="Leaderboards/Index"
-          pageProps={(current) => ({
-            ...resetEntries(current),
-            period_type: "last_7_days",
-          })}
-          class={tabClass(period_type === "last_7_days")}
-          preserveScroll
-        >
-          <span class="sm:hidden">7d</span>
-          <span class="hidden sm:inline">Last 7 Days</span>
-        </Link>
-      </div>
+      <Tabs {period_type} {scope} {country} />
     </div>
 
     {#if is_logged_in && !country.available}
@@ -263,182 +151,15 @@
         {/snippet}
 
         {#snippet children()}
-          {#if github_uid_blank}
-            <div
-              class="rounded-t-xl border border-yellow/30 bg-yellow/10 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2"
-            >
-              <p class="text-base font-medium text-surface-content">
-                Connect your GitHub to qualify for the leaderboard.
-              </p>
-              <Button
-                href={githubAuthPath}
-                native
-                class="w-full sm:w-fit shrink-0"
-              >
-                Connect GitHub
-              </Button>
-            </div>
-          {/if}
-
-          {#if entries && entries.total > 0}
-            {#if filteredEntries.length === 0}
-              <div class="py-16 text-center px-3">
-                <h3 class="text-xl font-medium text-surface-content mb-2">
-                  No matches
-                </h3>
-                <p class="text-muted">
-                  No users matching "{searchQuery}".
-                </p>
-              </div>
-            {:else}
-              <WindowVirtualizer
-                bind:this={virtualizer}
-                data={filteredEntries}
-                getKey={(entry) => entry.user_id}
-                itemSize={64}
-                bufferSize={2_000}
-              >
-                {#snippet children(entry)}
-                  {@const theme = streakTheme(entry.streak_count)}
-                  {@const i = entryRank.get(entry.user_id) ?? 0}
-                  <div
-                    role="listitem"
-                    class="group relative flex items-center p-2 sm:p-3 hover:bg-dark transition-colors duration-200 gap-2 sm:gap-0 border-b border-gray-800 {entry
-                      .user.profile_path
-                      ? 'cursor-pointer'
-                      : ''} {entry.is_current_user
-                      ? 'bg-dark border-l-4 border-l-primary'
-                      : ''} {entry.user.red
-                      ? 'opacity-40 hover:opacity-60'
-                      : ''}"
-                  >
-                    {#if entry.user.profile_path}
-                      <Link
-                        href={entry.user.profile_path}
-                        aria-label={`View ${entry.user.display_name}'s profile`}
-                        class="absolute inset-0 z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                      ></Link>
-                    {/if}
-                    <!-- Rank -->
-                    <div
-                      class="w-8 sm:w-12 shrink-0 text-center font-medium text-muted"
-                    >
-                      {#if i <= 2}
-                        <span class="text-xl sm:text-2xl">{rankDisplay(i)}</span
-                        >
-                      {:else}
-                        <span class="text-base sm:text-lg">{i + 1}</span>
-                      {/if}
-                    </div>
-
-                    <!-- User info -->
-                    <div class="flex-1 mx-1 sm:mx-4 min-w-0">
-                      <div class="flex items-center gap-2">
-                        <div class="user-info flex items-center gap-2 min-w-0">
-                          {#if entry.user.avatar_url}
-                            <img
-                              src={entry.user.avatar_url}
-                              alt="{entry.user.display_name}'s avatar"
-                              class="w-8 h-8 rounded-full aspect-square border border-surface-200 shrink-0"
-                              loading="lazy"
-                            />
-                          {/if}
-                          <span class="inline-flex items-center gap-1 min-w-0">
-                            {#if entry.user.profile_path}
-                              <Link
-                                href={entry.user.profile_path}
-                                class="relative z-20 text-blue hover:underline truncate"
-                              >
-                                {entry.user.display_name}
-                              </Link>
-                            {:else}
-                              <span class="truncate"
-                                >{entry.user.display_name}</span
-                              >
-                            {/if}
-                          </span>
-                          {#if entry.user.country_code}
-                            <CountryFlag
-                              countryCode={entry.user.country_code}
-                              class="inline-block w-5 h-5 align-middle shrink-0"
-                            />
-                          {/if}
-                        </div>
-
-                        {#if entry.streak_count > 0}
-                          <div
-                            class="inline-flex items-center gap-1 transition-all duration-200 {theme.hbg} group shrink-0"
-                            title={entry.streak_count > 30
-                              ? "30+ daily streak"
-                              : `${entry.streak_count} day streak`}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              class={theme.ic}
-                            >
-                              <path
-                                fill="currentColor"
-                                d="M10 2c0-.88 1.056-1.331 1.692-.722c1.958 1.876 3.096 5.995 1.75 9.12l-.08.174l.012.003c.625.133 1.203-.43 2.303-2.173l.14-.224a1 1 0 0 1 1.582-.153C18.733 9.46 20 12.402 20 14.295C20 18.56 16.409 22 12 22s-8-3.44-8-7.706c0-2.252 1.022-4.716 2.632-6.301l.605-.589c.241-.236.434-.43.618-.624C9.285 5.268 10 3.856 10 2"
-                              />
-                            </svg>
-                            <span
-                              class="text-md font-semibold {theme.tc} transition-colors duration-200"
-                            >
-                              {streakLabel(entry.streak_count)}
-                            </span>
-                          </div>
-                        {/if}
-                      </div>
-                      {#if entry.active_project}
-                        <div
-                          class="text-xs italic text-muted truncate mt-0.5 ml-10"
-                        >
-                          working on
-                          <a
-                            href={entry.active_project.repo_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="relative z-20 text-accent hover:text-cyan transition-colors"
-                          >
-                            {entry.active_project.name}
-                          </a>
-                        </div>
-                      {/if}
-                    </div>
-
-                    <!-- Duration -->
-                    <div
-                      class="shrink-0 font-mono text-xs sm:text-sm text-surface-content font-medium whitespace-nowrap"
-                    >
-                      {secondsToDetailedDisplay(entry.total_seconds)}
-                    </div>
-                  </div>
-                {/snippet}
-              </WindowVirtualizer>
-
-              {#if leaderboard?.finished_generating && leaderboard?.generation_duration_seconds != null}
-                <div
-                  class="px-4 py-2 text-xs italic text-muted border-t border-surface-200"
-                >
-                  Generated in {leaderboard.generation_duration_seconds} seconds
-                </div>
-              {/if}
-            {/if}
-          {:else}
-            <div class="py-16 text-center px-3">
-              <h3 class="text-xl font-medium text-surface-content mb-2">
-                No data available
-              </h3>
-              <p class="text-muted">
-                Check back later for {period_type === "last_7_days"
-                  ? "last 7 days"
-                  : "last 24 hours"} results!
-              </p>
-            </div>
-          {/if}
+          <EntriesList
+            {entries}
+            {filteredEntries}
+            {entryRank}
+            {searchQuery}
+            {leaderboard}
+            {github_uid_blank}
+            {period_type}
+          />
         {/snippet}
       </Deferred>
     {:else}
@@ -449,9 +170,7 @@
         <p class="text-muted">
           Check back in a moment for {scope === "country" && country.name
             ? `${country.name} `
-            : ""}{period_type === "last_7_days"
-            ? "last 7 days"
-            : "last 24 hours"} results!
+            : ""}{periodLabel} results!
         </p>
       </div>
     {/if}

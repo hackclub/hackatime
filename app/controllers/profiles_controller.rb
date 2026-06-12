@@ -3,15 +3,17 @@ class ProfilesController < InertiaController
 
   before_action :find_user
 
+  SOCIAL_LINKS = [
+    [ :github,   "GitHub",   :profile_github_url ],
+    [ :twitter,  "Twitter",  :profile_twitter_url ],
+    [ :bluesky,  "Bluesky",  :profile_bluesky_url ],
+    [ :linkedin, "LinkedIn", :profile_linkedin_url ],
+    [ :discord,  "Discord",  :profile_discord_url ],
+    [ :website,  "Website",  :profile_website_url ]
+  ].freeze
+
   def show
-    if @user.nil?
-      render inertia: "Errors/NotFound", props: {
-        status_code: 404,
-        title: "Page Not Found",
-        message: "The profile you were looking for doesn't exist."
-      }, status: :not_found
-      return
-    end
+    return render_profile_not_found if @user.nil?
 
     @is_own_profile = current_user.present? && current_user.id == @user.id
     @profile_visible = @user.allow_public_stats_lookup || @is_own_profile
@@ -50,7 +52,7 @@ class ProfilesController < InertiaController
 
     language_stats = hb.group(:language).duration_seconds.each_with_object({}) do |(raw, dur), agg|
       k = raw.to_s.presence || "Unknown"
-      k = k == "Unknown" ? k : k.categorize_language
+      k = k.categorize_language if k != "Unknown"
       agg[k] = (agg[k] || 0) + dur
     end.sort_by { |_, d| -d }.first(15).to_h
 
@@ -65,66 +67,56 @@ class ProfilesController < InertiaController
 
     render inertia: "Projects/PublicShow", props: {
       page_title: "#{project_name} — @#{@user.username} | Hackatime",
-      project_name: project_name,
-      username: @user.username,
-      since_date: since_date,
-      repo_url: mapping.repo_url,
+      project_name: project_name, username: @user.username,
+      since_date: since_date, repo_url: mapping.repo_url,
       total_time_label: h.short_time_detailed(total_time),
       file_count: hb.select(:entity).distinct.count,
       language_stats: language_stats,
       language_colors: language_stats.present? ? LanguageUtils.colors_for(language_stats.keys) : {},
-      file_stats: file_stats,
-      branch_stats: branch_stats
+      file_stats: file_stats, branch_stats: branch_stats
     }
   end
 
   private
 
-  def find_user
-    @user = User.find_by(username: params[:username])
+  def render_profile_not_found
+    render inertia: "Errors/NotFound", props: {
+      status_code: 404, title: "Page Not Found",
+      message: "The profile you were looking for doesn't exist."
+    }, status: :not_found
   end
 
+  def find_user = @user = User.find_by(username: params[:username])
+
   def profile_props
-    {
-      page_title: profile_page_title,
-      profile_visible: @profile_visible,
-      is_own_profile: @is_own_profile,
-      profile: profile_summary_payload,
-      dashboard_stats: (@profile_visible ? ProfileStatsService.new(@user).dashboard_stats : nil)
-    }
+    { page_title: profile_page_title, profile_visible: @profile_visible,
+      is_own_profile: @is_own_profile, profile: profile_summary_payload,
+      dashboard_stats: (@profile_visible ? ProfileStatsService.new(@user).dashboard_stats : nil) }
   end
 
   def profile_page_title
-    username = @user.username.present? ? "@#{@user.username}" : @user.display_name
-    "#{username} | Hackatime"
+    "#{@user.username.present? ? "@#{@user.username}" : @user.display_name} | Hackatime"
   end
 
   def set_profile_social_preview
     @social_preview = true
-    @page_title = profile_page_title
-    @og_title = @twitter_title = profile_page_title
+    @page_title = @og_title = @twitter_title = profile_page_title
     @og_description = @twitter_description = profile_social_description
     @og_image = @twitter_image = profile_og_image_url(username: @user.username)
   end
 
   def profile_social_description
-    display_name = @user.display_name_override.presence || @user.display_name
     return @user.profile_bio.to_s.squish.truncate(180) if @user.profile_bio.present?
-
-    "View #{display_name}'s Hackatime coding profile."
+    "View #{@user.display_name}'s Hackatime coding profile."
   end
 
   def ensure_profile_og_image!
     stats = public_profile_og_stats
     heatmap = public_profile_og_heatmap
-    stats_status =
-      if !@user.allow_public_stats_lookup
-        :private
-      elsif stats.blank?
-        :not_computed
-      else
-        :available
-      end
+    stats_status = if !@user.allow_public_stats_lookup then :private
+    elsif stats.blank? then :not_computed
+    else :available
+    end
 
     generator = ProfileOgImageGenerator.new(@user, stats: stats, heatmap: heatmap, stats_status: stats_status)
     return nil if @user.profile_og_image.attached? && @user.profile_og_image.blob.metadata["fingerprint"] == generator.fingerprint
@@ -133,8 +125,7 @@ class ProfilesController < InertiaController
     previous_attachment = @user.profile_og_image.attachment if @user.profile_og_image.attached?
     @user.profile_og_image.attach(
       io: StringIO.new(result.png),
-      filename: result.filename,
-      content_type: "image/png",
+      filename: result.filename, content_type: "image/png",
       metadata: { fingerprint: result.fingerprint }
     )
     previous_attachment&.purge_later
@@ -143,19 +134,15 @@ class ProfilesController < InertiaController
 
   def public_profile_og_stats
     return nil unless @user.allow_public_stats_lookup
-
     stats = ProfileStatsService.new(@user).og_stats
     return nil if stats.blank?
 
     h = ApplicationController.helpers
     top_language = stats[:top_language]
-
-    {
-      all_label: h.short_time_simple(stats[:total_time_all]),
+    { all_label: h.short_time_simple(stats[:total_time_all]),
       week_label: h.short_time_simple(stats[:total_time_week]),
       streak_label: "#{@user.streak_days}d",
-      top_language_label: (top_language.present? ? h.display_language_name(top_language).truncate(14) : "None")
-    }
+      top_language_label: (top_language.present? ? h.display_language_name(top_language).truncate(14) : "None") }
   end
 
   def public_profile_og_heatmap
@@ -166,35 +153,24 @@ class ProfilesController < InertiaController
     return nil if duration_by_date.blank?
 
     duration_by_date.each_with_object({}) do |(date, seconds), out|
-      key = date.is_a?(Date) ? date.iso8601 : date.to_date.iso8601 rescue date.to_s
+      key = (date.is_a?(Date) ? date.iso8601 : date.to_date.iso8601 rescue date.to_s)
       out[key] = seconds.to_i
     end
   end
 
   def profile_summary_payload
-    {
-      display_name: @user.display_name_override.presence || @user.display_name,
-      username: (@user.username || ""),
-      avatar_url: @user.avatar_url,
-      trust_level: @user.trust_level,
-      bio: @user.profile_bio,
-      social_links: profile_social_links,
-      github_profile_url: @user.github_profile_url,
+    { display_name: @user.display_name,
+      username: @user.username || "", avatar_url: @user.avatar_url,
+      trust_level: @user.public_trust_level, bio: @user.profile_bio,
+      social_links: profile_social_links, github_profile_url: @user.github_profile_url,
       github_username: @user.github_username,
-      streak_days: (@profile_visible ? @user.streak_days : nil)
-    }
+      streak_days: (@profile_visible ? @user.streak_days : nil) }
   end
 
   def profile_social_links
-    links = []
-
-    links << { key: "github", label: "GitHub", url: @user.profile_github_url } if @user.profile_github_url.present?
-    links << { key: "twitter", label: "Twitter", url: @user.profile_twitter_url } if @user.profile_twitter_url.present?
-    links << { key: "bluesky", label: "Bluesky", url: @user.profile_bluesky_url } if @user.profile_bluesky_url.present?
-    links << { key: "linkedin", label: "LinkedIn", url: @user.profile_linkedin_url } if @user.profile_linkedin_url.present?
-    links << { key: "discord", label: "Discord", url: @user.profile_discord_url } if @user.profile_discord_url.present?
-    links << { key: "website", label: "Website", url: @user.profile_website_url } if @user.profile_website_url.present?
-
-    links
+    SOCIAL_LINKS.filter_map do |key, label, url_attr|
+      url = @user.public_send(url_attr)
+      { key: key.to_s, label: label, url: url } if url.present?
+    end
   end
 end

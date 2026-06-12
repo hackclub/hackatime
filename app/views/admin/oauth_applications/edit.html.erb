@@ -89,6 +89,14 @@
             <p class="mt-1 text-xs text-secondary">Confidential clients can keep secrets. Native apps and SPAs are not confidential.</p>
           </div>
         </div>
+
+        <div class="flex items-start gap-3 p-4 bg-darkless border border-darkless rounded">
+          <%= f.check_box :redirect_to_hca_login, class: 'mt-0.5 w-4 h-4 text-primary border-darkless rounded focus:ring-primary bg-darker' %>
+          <div>
+            <%= f.label :redirect_to_hca_login, 'Use Hack Club Auth for Login', class: 'text-sm font-medium text-surface-content' %>
+            <p class="mt-1 text-xs text-secondary">Unauthenticated users authorizing this app will be sent directly to Hack Club Auth instead of the generic Hackatime sign-in page.</p>
+          </div>
+        </div>
       </div>
     </div>
 

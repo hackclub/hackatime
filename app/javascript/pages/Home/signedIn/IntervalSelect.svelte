@@ -1,36 +1,34 @@
 <script lang="ts">
-  import { Popover, RadioGroup } from "bits-ui";
-  import { page } from "@inertiajs/svelte";
-  import Button from "../../../components/Button.svelte";
-  import eventsConfig from "$config/events.json";
+  import { onMount } from "svelte";
+  import type { Component } from "svelte";
+  import FilterShell from "./FilterShell.svelte";
+  import eventsConfig from "../../../../../config/events.json";
+
+  const STANDARD_INTERVAL_LABELS: Record<string, string> = {
+    today: "Today",
+    yesterday: "Yesterday",
+    this_week: "This Week",
+    last_7_days: "Last 7 Days",
+    this_month: "This Month",
+    last_30_days: "Last 30 Days",
+    this_year: "This Year",
+    last_12_months: "Last 12 Months",
+  };
 
   type EventConfig = {
     human_name: string;
-    starts_at: string;
-    ends_at: string;
-    timezone: string;
   };
-  const EVENT_RANGES = eventsConfig as Record<string, EventConfig>;
 
-  const STANDARD_INTERVALS = [
-    { key: "today", label: "Today" },
-    { key: "yesterday", label: "Yesterday" },
-    { key: "this_week", label: "This Week" },
-    { key: "last_7_days", label: "Last 7 Days" },
-    { key: "this_month", label: "This Month" },
-    { key: "last_30_days", label: "Last 30 Days" },
-    { key: "this_year", label: "This Year" },
-    { key: "last_12_months", label: "Last 12 Months" },
-  ];
-  const EVENT_INTERVALS = Object.entries(EVENT_RANGES).map(([key, cfg]) => ({
-    key,
-    label: cfg.human_name,
-  }));
-  const INTERVALS = [
-    ...STANDARD_INTERVALS,
-    ...EVENT_INTERVALS,
-    { key: "", label: "All Time" },
-  ];
+  const EVENT_INTERVAL_LABELS = Object.fromEntries(
+    Object.entries(eventsConfig as Record<string, EventConfig>).map(
+      ([key, cfg]) => [key, cfg.human_name],
+    ),
+  );
+
+  const INTERVAL_LABELS: Record<string, string> = {
+    ...STANDARD_INTERVAL_LABELS,
+    ...EVENT_INTERVAL_LABELS,
+  };
 
   let {
     selected,
@@ -44,42 +42,19 @@
     onchange: (interval: string, from: string, to: string) => void;
   } = $props();
 
-  const currentUser = page.props.layout.nav.current_user!;
-  const userCreatedAt = Date.parse(currentUser.created_at!);
-  // null = user hasn't been backfilled yet, so we can't trust the bitmap
-  const participated = currentUser.event_participation
-    ? new Set(currentUser.event_participation)
-    : null;
-
-  const visibleIntervals = $derived(
-    INTERVALS.filter((interval) => {
-      const range = EVENT_RANGES[interval.key];
-      if (!range) return true;
-      if (interval.key === selected) return true;
-      const endsAt = Date.parse(range.ends_at);
-      // Ended event + backfilled: show only if the user actually participated.
-      // Otherwise (active/future event, or not-yet-backfilled user) fall back
-      // to the cheap "did the user exist before the event ended" check.
-      if (endsAt < Date.now() && participated) {
-        return participated.has(interval.key);
-      }
-      return userCreatedAt <= endsAt;
-    }),
-  );
+  type BodyProps = {
+    selected: string;
+    from: string;
+    to: string;
+    onapply: (interval: string, from: string, to: string) => void;
+  };
 
   let open = $state(false);
-  let customFrom = $state("");
-  let customTo = $state("");
-
-  $effect(() => {
-    customFrom = from;
-    customTo = to;
-  });
+  let Body = $state<Component<BodyProps> | null>(null);
 
   const displayLabel = $derived.by(() => {
-    if (selected && selected !== "custom") {
-      return INTERVALS.find((i) => i.key === selected)?.label ?? selected;
-    }
+    if (selected && selected !== "custom")
+      return INTERVAL_LABELS[selected] ?? selected;
     if (from && to) return `${from} to ${to}`;
     if (from) return `From ${from}`;
     if (to) return `Until ${to}`;
@@ -87,17 +62,34 @@
   });
 
   const isDefault = $derived(!selected && !from && !to);
-  const selectedIntervalValue = $derived(
-    selected && !from && !to ? selected : "",
-  );
 
-  function selectInterval(key: string) {
-    onchange(key, "", "");
-    open = false;
+  function loadBody() {
+    if (Body) return;
+    import("./IntervalSelectBody.svelte").then((m) => {
+      Body = m.default;
+    });
   }
 
-  function applyCustomRange() {
-    onchange("", customFrom, customTo);
+  onMount(() => {
+    const w = window as unknown as {
+      requestIdleCallback?: (
+        cb: () => void,
+        opts?: { timeout?: number },
+      ) => void;
+    };
+    if (typeof w.requestIdleCallback === "function") {
+      w.requestIdleCallback(loadBody, { timeout: 2000 });
+    } else {
+      setTimeout(loadBody, 300);
+    }
+  });
+
+  $effect(() => {
+    if (open) loadBody();
+  });
+
+  function handleApply(interval: string, f: string, t: string) {
+    onchange(interval, f, t);
     open = false;
   }
 
@@ -107,112 +99,22 @@
   }
 </script>
 
-<div class="filter relative min-w-0">
-  <span
-    class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider"
-  >
-    Date Range
-  </span>
-
-  <Popover.Root bind:open>
-    <div
-      class="group m-0 flex min-w-0 items-center rounded-lg border border-surface-200 bg-surface-100 p-0 transition-all duration-200 hover:border-surface-300 hover:bg-surface-200 focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-primary/35 focus-within:ring-offset-1 focus-within:ring-offset-surface"
-    >
-      <Popover.Trigger>
-        {#snippet child({ props })}
-          <Button
-            type="button"
-            unstyled
-            class="m-0 flex min-w-0 flex-1 cursor-pointer select-none items-center justify-between border-0 bg-transparent px-3 py-2.5 text-sm text-surface-content"
-            {...props}
-          >
-            <span class="truncate font-medium">{displayLabel}</span>
-            <svg
-              class={`h-4 w-4 text-secondary/60 transition-all duration-200 group-hover:text-secondary ${open ? "rotate-180 text-primary" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 9l-7 7-7-7"
-              ></path>
-            </svg>
-          </Button>
-        {/snippet}
-      </Popover.Trigger>
-
-      {#if !isDefault}
-        <Button
-          type="button"
-          unstyled
-          class="m-0 cursor-pointer border-0 border-l border-surface-200 bg-transparent px-2.5 py-2 text-sm leading-none text-secondary/60 transition-colors duration-150 hover:bg-red/10 hover:text-red"
-          onclick={clear}
-        >
-          ✕
-        </Button>
-      {/if}
-    </div>
-
-    <Popover.Portal>
-      <Popover.Content
-        sideOffset={8}
-        align="start"
-        class="dashboard-select-popover z-1000 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-surface-content/20 bg-darkless/95 p-4 shadow-xl shadow-black/50 outline-none backdrop-blur-sm"
+<FilterShell
+  label="Date Range"
+  displayText={displayLabel}
+  canClear={!isDefault}
+  onclear={clear}
+  bind:open
+>
+  {#snippet content()}
+    {#if Body}
+      <Body {selected} {from} {to} onapply={handleApply} />
+    {:else}
+      <div
+        class="flex items-center justify-center px-3 py-8 text-sm text-muted/70"
       >
-        <div class="m-0 max-h-56 overflow-y-auto">
-          <RadioGroup.Root
-            value={selectedIntervalValue}
-            onValueChange={selectInterval}
-            class="flex flex-col gap-1 overflow-hidden"
-          >
-            {#each visibleIntervals as interval (interval.key)}
-              <RadioGroup.Item
-                value={interval.key}
-                class="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-muted outline-none transition-all duration-150 hover:bg-surface-100/60 hover:text-surface-content data-[highlighted]:bg-surface-100/70 data-[state=checked]:bg-primary/12 data-[state=checked]:text-surface-content"
-              >
-                {#snippet children({ checked })}
-                  <span
-                    class={`mr-3 h-4 w-4 min-w-4 rounded-full border transition-colors ${checked ? "border-primary bg-primary shadow-[0_0_0_3px_rgba(0,0,0,0.2)]" : "border-surface-content/35 bg-surface/40"}`}
-                  ></span>
-                  <span>{interval.label}</span>
-                {/snippet}
-              </RadioGroup.Item>
-            {/each}
-          </RadioGroup.Root>
-        </div>
-
-        <div class="mt-2 border-t border-surface-content/15 pt-2">
-          <div class="flex flex-col gap-2">
-            <label class="flex items-center justify-between text-sm text-muted">
-              <span class="text-secondary/80">Start</span>
-              <input
-                type="date"
-                class="ml-2 h-9 rounded-md border border-surface-content/20 bg-dark px-3 text-sm text-muted transition-colors duration-150 focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-1 focus:ring-offset-dark"
-                bind:value={customFrom}
-              />
-            </label>
-            <label class="flex items-center justify-between text-sm text-muted">
-              <span class="text-secondary/80">End</span>
-              <input
-                type="date"
-                class="ml-2 h-9 rounded-md border border-surface-content/20 bg-dark px-3 text-sm text-muted transition-colors duration-150 focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/45 focus:ring-offset-1 focus:ring-offset-dark"
-                bind:value={customTo}
-              />
-            </label>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            class="mt-2 h-9 border-0"
-            onclick={applyCustomRange}
-          >
-            Apply
-          </Button>
-        </div>
-      </Popover.Content>
-    </Popover.Portal>
-  </Popover.Root>
-</div>
+        Loading…
+      </div>
+    {/if}
+  {/snippet}
+</FilterShell>

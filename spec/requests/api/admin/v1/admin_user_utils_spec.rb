@@ -1,6 +1,6 @@
 require 'swagger_helper'
 
-RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
+RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin/swagger.yaml' do
   path '/api/admin/v1/user/info_batch' do
     get('Get user info batch') do
       tags 'Admin Utils'
@@ -8,7 +8,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :ids, in: :query, schema: { type: :array, items: { type: :integer } }, description: 'User IDs'
+      parameter name: :ids, in: :query, type: :string, required: true, description: 'Comma-separated list of user IDs (e.g. "1,2,3"). Up to 2000 ids are honored.'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
@@ -22,7 +22,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
           EmailAddress.create!(user: u, email: 'u2@example.com')
           u
         end
-        let(:ids) { [ u1.id, u2.id ] }
+        let(:ids) { "#{u1.id},#{u2.id}" }
         schema type: :object,
           properties: {
             users: {
@@ -30,18 +30,18 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
               items: {
                 type: :object,
                 properties: {
-                  id: { type: :integer },
-                  username: { type: :string },
-                  display_name: { type: :string },
-                  slack_uid: { type: :string, nullable: true },
-                  slack_username: { type: :string, nullable: true },
-                  github_username: { type: :string, nullable: true },
-                  timezone: { type: :string, nullable: true },
-                  country_code: { type: :string, nullable: true },
-                  trust_level: { type: :string },
-                  avatar_url: { type: :string, nullable: true },
-                  slack_avatar_url: { type: :string, nullable: true },
-                  github_avatar_url: { type: :string, nullable: true }
+                  id: { type: :integer, example: 42 },
+                  username: { type: :string, example: 'orpheus' },
+                  display_name: { type: :string, example: 'orpheus' },
+                  slack_uid: { type: :string, nullable: true, example: 'U0266FRGP' },
+                  slack_username: { type: :string, nullable: true, example: 'orpheus' },
+                  github_username: { type: :string, nullable: true, example: 'orpheus' },
+                  timezone: { type: :string, nullable: true, example: 'America/New_York' },
+                  country_code: { type: :string, nullable: true, example: 'US' },
+                  trust_level: { type: :string, example: 'blue' },
+                  avatar_url: { type: :string, nullable: true, example: 'https://avatars.slack-edge.com/2024-03-20/orpheus_512.png' },
+                  slack_avatar_url: { type: :string, nullable: true, example: 'https://avatars.slack-edge.com/2024-03-20/orpheus_512.png' },
+                  github_avatar_url: { type: :string, nullable: true, example: 'https://avatars.githubusercontent.com/u/12345?v=4' }
                 }
               }
             }
@@ -54,6 +54,13 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
           expect(returned_ids & [ u1.id, u2.id ]).not_to be_empty
         end
       end
+
+      response(422, 'ids missing or no valid ids — Returned when the ids parameter is blank ("ids parameter required") or when none of the supplied ids parse to a valid integer ("no valid ids provided").') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:ids) { '' }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
     end
   end
 
@@ -64,7 +71,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :user_id, in: :query, type: :string, description: 'User ID'
+      parameter name: :user_id, in: :query, type: :string, description: 'User ID. Either user_id or id may be supplied.'
+      parameter name: :id, in: :query, type: :string, required: false, description: 'Alias for user_id. If both id and user_id are supplied, id takes precedence.'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
@@ -79,36 +87,49 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
             user: {
               type: :object,
               properties: {
-                id: { type: :integer },
-                username: { type: :string },
-                display_name: { type: :string },
-                slack_uid: { type: :string, nullable: true },
-                slack_username: { type: :string, nullable: true },
-                github_username: { type: :string, nullable: true },
-                timezone: { type: :string, nullable: true },
-                country_code: { type: :string, nullable: true },
-                admin_level: { type: :string },
-                trust_level: { type: :string },
-                suspected: { type: :boolean },
-                banned: { type: :boolean },
-                created_at: { type: :string, format: :date_time },
-                updated_at: { type: :string, format: :date_time },
-                last_heartbeat_at: { type: :number, nullable: true },
-                email_addresses: { type: :array, items: { type: :string } },
-                api_keys_count: { type: :integer },
+                id: { type: :integer, example: 42 },
+                username: { type: :string, example: 'orpheus' },
+                display_name: { type: :string, example: 'orpheus' },
+                slack_uid: { type: :string, nullable: true, example: 'U0266FRGP' },
+                slack_username: { type: :string, nullable: true, example: 'orpheus' },
+                github_username: { type: :string, nullable: true, example: 'orpheus' },
+                timezone: { type: :string, nullable: true, example: 'America/New_York' },
+                country_code: { type: :string, nullable: true, example: 'US' },
+                admin_level: { type: :string, example: 'default' },
+                trust_level: { type: :string, example: 'blue' },
+                suspected: { type: :boolean, example: false },
+                banned: { type: :boolean, example: false },
+                created_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' },
+                updated_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' },
+                last_heartbeat_at: { type: :number, nullable: true, example: 1710946200.0 },
+                email_addresses: { type: :array, items: { type: :string, example: 'orpheus@hackclub.com' } },
+                api_keys_count: { type: :integer, example: 2 },
                 stats: {
                   type: :object,
                   properties: {
-                    total_heartbeats: { type: :integer },
-                    total_coding_time: { type: :number },
-                    languages_used: { type: :integer },
-                    projects_worked_on: { type: :integer },
-                    days_active: { type: :integer }
+                    total_heartbeats: { type: :integer, example: 15234 },
+                    total_coding_time: { type: :number, example: 187200.0 },
+                    languages_used: { type: :integer, example: 8 },
+                    projects_worked_on: { type: :integer, example: 12 },
+                    days_active: { type: :integer, example: 47 }
                   }
                 }
               }
             }
           }
+        run_test!
+      end
+
+      response(404, 'user not found') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user_id) { '0' }
+        run_test!
+      end
+
+      response(422, 'missing id — Returned ("who?") when neither id nor user_id is supplied.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user_id) { '' }
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
     end
@@ -121,7 +142,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :user_id, in: :query, type: :string, description: 'User ID'
+      parameter name: :user_id, in: :query, type: :string, description: 'User ID. Either user_id or id may be supplied.'
+      parameter name: :id, in: :query, type: :string, required: false, description: 'Alias for user_id. If both id and user_id are supplied, id takes precedence.'
       parameter name: :start_date, in: :query, type: :string, description: 'Start date (YYYY-MM-DD or timestamp)'
       parameter name: :end_date, in: :query, type: :string, description: 'End date (YYYY-MM-DD or timestamp)'
       parameter name: :project, in: :query, type: :string, description: 'Project name'
@@ -135,39 +157,46 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       response(200, 'successful') do
         schema type: :object,
           properties: {
-            user_id: { type: :integer },
+            user_id: { type: :integer, example: 42 },
             heartbeats: {
               type: :array,
               items: {
                 type: :object,
                 properties: {
-                  id: { type: :integer },
-                  time: { type: :number },
-                  lineno: { type: :integer, nullable: true },
-                  cursorpos: { type: :integer, nullable: true },
-                  is_write: { type: :boolean, nullable: true },
-                  project: { type: :string, nullable: true },
-                  language: { type: :string, nullable: true },
-                  entity: { type: :string, nullable: true },
-                  branch: { type: :string, nullable: true },
-                  category: { type: :string, nullable: true },
-                  editor: { type: :string, nullable: true },
-                  machine: { type: :string, nullable: true },
-                  user_agent: { type: :string, nullable: true },
-                  ip_address: { type: :string, nullable: true },
-                  lines: { type: :integer, nullable: true },
-                  source_type: { type: :string, nullable: true }
+                  id: { type: :integer, example: 987654 },
+                  time: { type: :number, example: 1710946200.0 },
+                  lineno: { type: :integer, example: 42, description: 'Coalesced to 0 when null' },
+                  cursorpos: { type: :integer, example: 12, description: 'Coalesced to 0 when null' },
+                  is_write: { type: :boolean, nullable: true, example: true },
+                  project: { type: :string, nullable: true, example: 'hackatime' },
+                  language: { type: :string, nullable: true, example: 'Ruby' },
+                  entity: { type: :string, nullable: true, example: 'app/models/user.rb' },
+                  branch: { type: :string, nullable: true, example: 'main' },
+                  category: { type: :string, nullable: true, example: 'coding' },
+                  editor: { type: :string, nullable: true, example: 'VS Code' },
+                  machine: { type: :string, nullable: true, example: 'Orpheus-MacBook-Pro' },
+                  user_agent: { type: :string, nullable: true, example: 'wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0' },
+                  ip_address: { type: :string, nullable: true, example: '203.0.113.7' },
+                  ja4: { type: :string, nullable: true, example: 't13d1516h2_8daaf6152771_02713d6af862' },
+                  lines: { type: :integer, nullable: true, example: 350 },
+                  source_type: { type: :string, example: 'direct_entry' }
                 }
               }
             },
-            total_count: { type: :integer },
-            has_more: { type: :boolean }
+            total_count: { type: :integer, example: 15234 },
+            has_more: { type: :boolean, example: true }
           }
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
           u = User.create!(username: 'hb_user')
           EmailAddress.create!(user: u, email: 'hb@example.com')
+          u.heartbeats.create!(
+            entity: 'app/models/user.rb',
+            time: Time.current.to_f,
+            source_type: :direct_entry,
+            ja4: Ja4.create!(fingerprint: 't13d1516h2_8daaf6152771_02713d6af862')
+          )
           u
         end
         let(:user_id) { user.id }
@@ -180,7 +209,9 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
         let(:machine) { nil }
         let(:limit) { 10 }
         let(:offset) { 0 }
-        run_test!
+        run_test! do |response|
+          expect(JSON.parse(response.body).dig('heartbeats', 0, 'ja4')).to eq('t13d1516h2_8daaf6152771_02713d6af862')
+        end
       end
 
       response(404, 'user not found') do
@@ -331,36 +362,36 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
           {
             type: :object,
             properties: {
-              segment: { type: :string },
-              limit: { type: :integer },
-              offset: { type: :integer },
+              segment: { type: :string, example: 'Godot_Super-Wakatime' },
+              limit: { type: :integer, example: 10 },
+              offset: { type: :integer, example: 0 },
               heartbeats: {
                 type: :array,
                 items: {
                   type: :object,
                   properties: {
-                    id: { type: :integer },
-                    user_id: { type: :integer },
-                    time: { type: :number },
-                    project: { type: :string, nullable: true },
-                    language: { type: :string, nullable: true },
-                    entity: { type: :string, nullable: true },
-                    branch: { type: :string, nullable: true },
-                    category: { type: :string, nullable: true },
-                    editor: { type: :string, nullable: true },
-                    machine: { type: :string, nullable: true },
-                    operating_system: { type: :string, nullable: true },
-                    user_agent: { type: :string, nullable: true },
-                    ip_address: { type: :string, nullable: true },
-                    is_write: { type: :boolean, nullable: true },
-                    lineno: { type: :integer, nullable: true },
-                    cursorpos: { type: :integer, nullable: true },
-                    lines: { type: :integer, nullable: true },
-                    source_type: { type: :string, nullable: true }
+                    id: { type: :integer, example: 987654 },
+                    user_id: { type: :integer, example: 42 },
+                    time: { type: :number, example: 1710946200.0 },
+                    project: { type: :string, nullable: true, example: 'demo' },
+                    language: { type: :string, nullable: true, example: 'GDScript' },
+                    entity: { type: :string, nullable: true, example: 'res://player.gd' },
+                    branch: { type: :string, nullable: true, example: 'main' },
+                    category: { type: :string, nullable: true, example: 'coding' },
+                    editor: { type: :string, nullable: true, example: 'Godot' },
+                    machine: { type: :string, nullable: true, example: 'Orpheus-MacBook-Pro' },
+                    operating_system: { type: :string, nullable: true, example: 'Mac' },
+                    user_agent: { type: :string, nullable: true, example: 'Godot/4.2 Godot_Super-Wakatime/2.0.0' },
+                    ip_address: { type: :string, nullable: true, example: '203.0.113.7' },
+                    is_write: { type: :boolean, nullable: true, example: true },
+                    lineno: { type: :integer, nullable: true, example: 42 },
+                    cursorpos: { type: :integer, nullable: true, example: 12 },
+                    lines: { type: :integer, nullable: true, example: 350 },
+                    source_type: { type: :string, nullable: true, example: 'direct_entry' }
                   }
                 }
               },
-              has_more: { type: :boolean }
+              has_more: { type: :boolean, example: false }
             }
           },
           {
@@ -369,8 +400,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
             additionalProperties: false,
             required: [ 'segment', 'total_count' ],
             properties: {
-              segment: { type: :string },
-              total_count: { type: :integer }
+              segment: { type: :string, example: 'Godot_Super-Wakatime' },
+              total_count: { type: :integer, example: 2 }
             }
           }
         ]
@@ -429,19 +460,23 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :user_id, in: :query, type: :string, description: 'User ID'
-      parameter name: :field, in: :query, type: :string, description: 'Field to retrieve (projects, languages, etc.)'
+      parameter name: :user_id, in: :query, type: :string, description: 'User ID. Either user_id or id may be supplied.'
+      parameter name: :id, in: :query, type: :string, required: false, description: 'Alias for user_id. If both id and user_id are supplied, id takes precedence.'
+      parameter name: :field, in: :query, schema: {
+        type: :string,
+        enum: %w[projects languages entities branches categories editors machines user_agents ips]
+      }, description: 'Field to retrieve distinct values for. Must be one of the allowed values; an unknown value returns 422.'
       parameter name: :start_date, in: :query, type: :string, description: 'Start date (YYYY-MM-DD or timestamp)'
       parameter name: :end_date, in: :query, type: :string, description: 'End date (YYYY-MM-DD or timestamp)'
-      parameter name: :limit, in: :query, type: :integer, description: 'Limit results'
+      parameter name: :limit, in: :query, type: :integer, description: 'Limit results (default 5000, max 5000)'
 
       response(200, 'successful') do
         schema type: :object,
           properties: {
-            user_id: { type: :integer },
-            field: { type: :string },
-            values: { type: :array, items: { type: :string } },
-            count: { type: :integer }
+            user_id: { type: :integer, example: 42 },
+            field: { type: :string, example: 'projects' },
+            values: { type: :array, items: { type: :string, example: 'hackatime' } },
+            count: { type: :integer, example: 12 }
           }
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
@@ -468,7 +503,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
         run_test!
       end
 
-      response(422, 'invalid date filter') do
+      response(422, 'invalid date filter or invalid field — Returned with "invalid date filter" when start_date/end_date cannot be parsed, or "invalid field" when field is not one of the allowed values.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
           u = User.create!(username: 'projects_invalid')
@@ -478,6 +513,22 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
         let(:user_id) { user.id }
         let(:field) { 'projects' }
         let(:start_date) { 'not-a-date' }
+        let(:end_date) { nil }
+        let(:limit) { 5000 }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(422, 'invalid field — Returned ("invalid field") when field is not one of the allowed values.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user) do
+          u = User.create!(username: 'proj_bad_field')
+          EmailAddress.create!(user: u, email: 'projects-invalid-field@example.com')
+          u
+        end
+        let(:user_id) { user.id }
+        let(:field) { 'not_a_field' }
+        let(:start_date) { nil }
         let(:end_date) { nil }
         let(:limit) { 5000 }
         schema '$ref' => '#/components/schemas/Error'
@@ -505,14 +556,21 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
               items: {
                 type: :object,
                 properties: {
-                  user_id: { type: :integer },
-                  ip_address: { type: :string },
-                  machine: { type: :string, nullable: true },
-                  user_agent: { type: :string, nullable: true }
+                  user_id: { type: :integer, example: 42 },
+                  ip_address: { type: :string, example: '203.0.113.7' },
+                  machine: { type: :string, nullable: true, example: 'Orpheus-MacBook-Pro' },
+                  user_agent: { type: :string, nullable: true, example: 'wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0' }
                 }
               }
             }
           }
+        run_test!
+      end
+
+      response(422, 'missing ip — Returned ("bro dont got the ip") when the ip parameter is blank.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:ip) { '' }
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
     end
@@ -537,12 +595,19 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
               items: {
                 type: :object,
                 properties: {
-                  user_id: { type: :integer },
-                  machine: { type: :string }
+                  user_id: { type: :integer, example: 42 },
+                  machine: { type: :string, example: 'Orpheus-MacBook-Pro' }
                 }
               }
             }
           }
+        run_test!
+      end
+
+      response(422, 'missing machine — Returned ("bro dont got the machine") when the machine parameter is blank.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:machine) { '' }
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
     end
@@ -551,11 +616,15 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
   path '/api/admin/v1/user/stats' do
     get('Get admin user stats') do
       tags 'Admin Utils'
-      description 'Get detailed stats for a user (Admin view).'
+      description 'Get detailed stats for a user (Admin view). When start_date/end_date are provided, heartbeats are filtered to that range; otherwise the single date param (default: current date) is used.'
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :user_id, in: :query, type: :string, description: 'User ID'
+      parameter name: :user_id, in: :query, type: :string, description: 'User ID. Either user_id or id may be supplied.'
+      parameter name: :id, in: :query, type: :string, required: false, description: 'Alias for user_id. If both id and user_id are supplied, id takes precedence.'
+      parameter name: :start_date, in: :query, type: :string, required: false, description: 'Start date (YYYY-MM-DD or epoch seconds). When present (with or without end_date), defines the time range and overrides the date param. Defaults to 10 years ago.'
+      parameter name: :end_date, in: :query, type: :string, required: false, description: 'End date (YYYY-MM-DD or epoch seconds). Defaults to end of the current day.'
+      parameter name: :date, in: :query, schema: { type: :string, format: :date }, required: false, description: 'Single day (YYYY-MM-DD) to scope stats to. Only used when neither start_date nor end_date is supplied. Defaults to the current date.'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
@@ -565,43 +634,46 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
           u
         end
         let(:user_id) { user.id }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        let(:date) { nil }
         schema type: :object,
           properties: {
-            user_id: { type: :integer },
-            username: { type: :string },
-            date: { type: :string, format: :date_time },
-            timezone: { type: :string, nullable: true },
-            total_heartbeats: { type: :integer },
-            total_duration: { type: :number },
+            user_id: { type: :integer, example: 42 },
+            username: { type: :string, example: 'orpheus' },
+            start_date: { type: :string, format: :date, example: '2024-03-20' },
+            end_date: { type: :string, format: :date, example: '2024-03-20' },
+            timezone: { type: :string, nullable: true, example: 'America/New_York' },
+            total_heartbeats: { type: :integer, example: 152 },
+            total_duration: { type: :number, example: 7200.0 },
             heartbeats: {
               type: :array,
               items: {
                 type: :object,
                 properties: {
-                  id: { type: :integer },
-                  time: { type: :string },
-                  created_at: { type: :string, format: :date_time },
-                  project: { type: :string, nullable: true },
-                  branch: { type: :string, nullable: true },
-                  category: { type: :string, nullable: true },
-                  dependencies: { type: :string, nullable: true },
-                  editor: { type: :string, nullable: true },
-                  entity: { type: :string, nullable: true },
-                  language: { type: :string, nullable: true },
-                  machine: { type: :string, nullable: true },
-                  operating_system: { type: :string, nullable: true },
-                  type: { type: :string, nullable: true },
-                  user_agent: { type: :string, nullable: true },
-                  line_additions: { type: :integer, nullable: true },
-                  line_deletions: { type: :integer, nullable: true },
-                  lineno: { type: :integer, nullable: true },
-                  lines: { type: :integer, nullable: true },
-                  cursorpos: { type: :integer, nullable: true },
-                  project_root_count: { type: :integer, nullable: true },
-                  is_write: { type: :boolean, nullable: true },
-                  source_type: { type: :string, nullable: true },
-                  ysws_program: { type: :string, nullable: true },
-                  ip_address: { type: :string, nullable: true }
+                  id: { type: :integer, example: 987654 },
+                  time: { type: :string, example: '1710946200.0' },
+                  created_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' },
+                  project: { type: :string, nullable: true, example: 'hackatime' },
+                  branch: { type: :string, nullable: true, example: 'main' },
+                  category: { type: :string, nullable: true, example: 'coding' },
+                  dependencies: { type: :string, nullable: true, example: 'rails,sidekiq' },
+                  editor: { type: :string, nullable: true, example: 'VS Code' },
+                  entity: { type: :string, nullable: true, example: 'app/models/user.rb' },
+                  language: { type: :string, nullable: true, example: 'Ruby' },
+                  machine: { type: :string, nullable: true, example: 'Orpheus-MacBook-Pro' },
+                  operating_system: { type: :string, nullable: true, example: 'Mac' },
+                  type: { type: :string, nullable: true, example: 'file' },
+                  user_agent: { type: :string, nullable: true, example: 'wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0' },
+                  line_additions: { type: :integer, nullable: true, example: 8 },
+                  line_deletions: { type: :integer, nullable: true, example: 3 },
+                  lineno: { type: :integer, nullable: true, example: 42 },
+                  lines: { type: :integer, nullable: true, example: 350 },
+                  cursorpos: { type: :integer, nullable: true, example: 12 },
+                  project_root_count: { type: :integer, nullable: true, example: 4 },
+                  is_write: { type: :boolean, nullable: true, example: true },
+                  source_type: { type: :string, nullable: true, example: 'direct_entry' },
+                  ip_address: { type: :string, nullable: true, example: '203.0.113.7' }
                 }
               }
             }
@@ -612,6 +684,9 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       response(404, 'user not found') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user_id) { '0' }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        let(:date) { nil }
         run_test!
       end
     end
@@ -624,7 +699,10 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :user_id, in: :query, type: :string, description: 'User ID'
+      parameter name: :user_id, in: :query, type: :string, description: 'User ID. Either user_id or id may be supplied.'
+      parameter name: :id, in: :query, type: :string, required: false, description: 'Alias for user_id. If both id and user_id are supplied, id takes precedence.'
+      parameter name: :start_date, in: :query, type: :string, required: false, description: 'Start date (YYYY-MM-DD or epoch seconds). When start_date or end_date is present, heartbeats are filtered to that range. Defaults to 10 years ago.'
+      parameter name: :end_date, in: :query, type: :string, required: false, description: 'End date (YYYY-MM-DD or epoch seconds). Defaults to end of the current day.'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
@@ -634,26 +712,27 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
           u
         end
         let(:user_id) { user.id }
-        let(:field) { 'projects' }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
         schema type: :object,
           properties: {
-            user_id: { type: :integer },
-            username: { type: :string },
-            total_projects: { type: :integer },
+            user_id: { type: :integer, example: 42 },
+            username: { type: :string, example: 'orpheus' },
+            total_projects: { type: :integer, example: 12 },
             projects: {
               type: :array,
               items: {
                 type: :object,
                 properties: {
-                  name: { type: :string, nullable: true },
-                  total_heartbeats: { type: :integer },
-                  total_duration: { type: :number },
-                  first_heartbeat: { type: :number, nullable: true },
-                  last_heartbeat: { type: :number, nullable: true },
-                  languages: { type: :array, items: { type: :string } },
-                  repo: { type: :string, nullable: true },
-                  repo_mapping_id: { type: :integer, nullable: true },
-                  archived: { type: :boolean }
+                  name: { type: :string, nullable: true, example: 'hackatime' },
+                  total_heartbeats: { type: :integer, example: 4821 },
+                  total_duration: { type: :number, example: 86400.0 },
+                  first_heartbeat: { type: :number, nullable: true, example: 1704067200.0 },
+                  last_heartbeat: { type: :number, nullable: true, example: 1710946200.0 },
+                  languages: { type: :array, items: { type: :string, example: 'Ruby' } },
+                  repo: { type: :string, nullable: true, example: 'https://github.com/hackclub/hackatime' },
+                  repo_mapping_id: { type: :integer, nullable: true, example: 314 },
+                  archived: { type: :boolean, example: false }
                 }
               }
             }
@@ -664,7 +743,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       response(404, 'user not found') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user_id) { '0' }
-        let(:field) { 'projects' }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
         run_test!
       end
     end
@@ -677,7 +757,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       security [ AdminToken: [] ]
       produces 'application/json'
 
-      parameter name: :user_id, in: :query, type: :string, description: 'User ID'
+      parameter name: :user_id, in: :query, type: :string, description: 'User ID. Either user_id or id may be supplied.'
+      parameter name: :id, in: :query, type: :string, required: false, description: 'Alias for user_id. If both id and user_id are supplied, id takes precedence.'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
@@ -689,19 +770,19 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
               items: {
                 type: :object,
                 properties: {
-                  id: { type: :integer },
-                  previous_trust_level: { type: :string, nullable: true },
-                  new_trust_level: { type: :string },
-                  reason: { type: :string, nullable: true },
-                  notes: { type: :string, nullable: true },
-                  created_at: { type: :string, format: :date_time },
+                  id: { type: :integer, example: 5012 },
+                  previous_trust_level: { type: :string, nullable: true, example: 'blue' },
+                  new_trust_level: { type: :string, example: 'red' },
+                  reason: { type: :string, nullable: true, example: 'self-reported heartbeats' },
+                  notes: { type: :string, nullable: true, example: 'Reviewed flagged activity' },
+                  created_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' },
                   changed_by: {
                     type: :object,
                     properties: {
-                      id: { type: :integer },
-                      username: { type: :string },
-                      display_name: { type: :string },
-                      admin_level: { type: :string }
+                      id: { type: :integer, example: 1 },
+                      username: { type: :string, example: 'orpheus' },
+                      display_name: { type: :string, example: 'orpheus' },
+                      admin_level: { type: :string, example: 'superadmin' }
                     }
                   }
                 }
@@ -723,18 +804,39 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
 
       parameter name: :payload, in: :body, schema: {
         type: :object,
+        required: %w[email],
         properties: {
-          email: { type: :string }
+          email: { type: :string, example: 'orpheus@hackclub.com', description: 'Email address to look up. Required in practice; a blank email returns 422.' }
         }
       }
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:payload) { { email: 'test@example.com' } }
+        let(:user_with_email) do
+          u = User.create!(username: 'email_lookup_user')
+          EmailAddress.create!(user: u, email: 'lookup@example.com')
+          u
+        end
+        before { user_with_email }
+        let(:payload) { { email: 'lookup@example.com' } }
         schema type: :object,
           properties: {
-            user_id: { type: :integer }
+            user_id: { type: :integer, example: 42 }
           }
+        run_test!
+      end
+
+      response(422, 'missing email — Returned ("bro dont have a email") when the email is blank.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:payload) { { email: '' } }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(404, 'email not found — Returned ("email not found") when no email address matches.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:payload) { { email: 'does-not-exist@example.com' } }
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
     end
@@ -750,8 +852,9 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
 
       parameter name: :payload, in: :body, schema: {
         type: :object,
+        required: %w[query],
         properties: {
-          query: { type: :string }
+          query: { type: :string, example: 'orpheus', description: 'Search query. Required in practice; a blank query returns 422.' }
         }
       }
 
@@ -765,18 +868,25 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
               items: {
                 type: :object,
                 properties: {
-                  id: { type: :integer },
-                  username: { type: :string },
-                  slack_username: { type: :string, nullable: true },
-                  github_username: { type: :string, nullable: true },
-                  slack_avatar_url: { type: :string, nullable: true },
-                  github_avatar_url: { type: :string, nullable: true },
-                  email: { type: :string },
-                  rank_score: { type: :number }
+                  id: { type: :integer, example: 42 },
+                  username: { type: :string, nullable: true, example: 'orpheus' },
+                  slack_username: { type: :string, nullable: true, example: 'orpheus' },
+                  github_username: { type: :string, nullable: true, example: 'orpheus' },
+                  slack_avatar_url: { type: :string, nullable: true, example: 'https://avatars.slack-edge.com/2024-03-20/orpheus_512.png' },
+                  github_avatar_url: { type: :string, nullable: true, example: 'https://avatars.githubusercontent.com/u/12345?v=4' },
+                  email: { type: :string, example: 'orpheus@hackclub.com' },
+                  rank_score: { type: :number, example: 0.87 }
                 }
               }
             }
           }
+        run_test!
+      end
+
+      response(422, 'missing query — Returned ("bro dont have a query") when the query is blank.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:payload) { { query: '' } }
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
     end
@@ -785,16 +895,19 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
   path '/api/admin/v1/user/convict' do
     post('Convict user') do
       tags 'Admin Utils'
-      description 'Mark a user as convicted/banned.'
+      description 'Mark a user as convicted/banned by setting their trust level. Requires admin write permissions and authority to change the target user trust level.'
       security [ AdminToken: [] ]
       consumes 'application/json'
       produces 'application/json'
 
       parameter name: :payload, in: :body, schema: {
         type: :object,
+        required: %w[user_id reason trust_level],
         properties: {
-          user_id: { type: :integer },
-          reason: { type: :string }
+          user_id: { type: :integer, example: 42, description: 'Target user ID. id is also accepted as an alias.' },
+          reason: { type: :string, example: 'self-reported heartbeats', description: 'Required justification; a blank reason returns 422.' },
+          trust_level: { type: :string, enum: %w[blue red green yellow], example: 'red', description: 'Required. New trust level; must be a valid trust level key or a 422 is returned.' },
+          notes: { type: :string, example: 'Reviewed flagged activity', description: 'Optional notes stored on the audit log.' }
         }
       }
 
@@ -808,24 +921,24 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
         let(:payload) { { user_id: user.id, reason: 'spam', trust_level: 'red' } }
         schema type: :object,
           properties: {
-            success: { type: :boolean },
-            message: { type: :string },
+            success: { type: :boolean, example: true },
+            message: { type: :string, example: 'User convicted successfully' },
             user: {
               type: :object,
               properties: {
-                id: { type: :integer },
-                username: { type: :string },
-                trust_level: { type: :string },
-                updated_at: { type: :string, format: :date_time }
+                id: { type: :integer, example: 42 },
+                username: { type: :string, example: 'orpheus' },
+                trust_level: { type: :string, example: 'red' },
+                updated_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' }
               }
             },
             audit_log: {
               type: :object,
               properties: {
-                changed_by: { type: :string },
-                reason: { type: :string },
-                notes: { type: :string, nullable: true },
-                timestamp: { type: :string, format: :date_time }
+                changed_by: { type: :string, example: 'orpheus' },
+                reason: { type: :string, example: 'self-reported heartbeats' },
+                notes: { type: :string, nullable: true, example: 'Reviewed flagged activity' },
+                timestamp: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' }
               }
             }
           }
@@ -835,6 +948,29 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request do
       response(404, 'user not found') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:payload) { { user_id: 0, reason: 'spam', trust_level: 'red' } }
+        run_test!
+      end
+
+      response(422, 'invalid request — Returned when reason is blank, when trust_level is not a valid trust level, or when the change fails to apply.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user) do
+          u = User.create!(username: 'convict_invalid')
+          EmailAddress.create!(user: u, email: 'convict-invalid@example.com')
+          u
+        end
+        let(:payload) { { user_id: user.id, reason: 'spam', trust_level: 'not_a_level' } }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(403, 'forbidden — Returned when the authenticated admin lacks write access (e.g. a viewer-level key) or is not permitted to change the target user\'s trust level.') do
+        let(:Authorization) { "Bearer viewer-admin-api-key-convict" }
+        let(:payload) { { user_id: 0, reason: 'spam', trust_level: 'red' } }
+        before do
+          u = User.create!(username: 'rswag_convict_viewer', timezone: 'UTC', admin_level: :viewer)
+          AdminApiKey.create!(user: u, name: 'Viewer Key', token: 'viewer-admin-api-key-convict')
+        end
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
     end

@@ -1,7 +1,5 @@
 class Settings::EditorsController < Settings::BaseController
-  def show
-    render_editors
-  end
+  def show = render_editors
 
   def update
     if @user.update(editor_params)
@@ -14,21 +12,12 @@ class Settings::EditorsController < Settings::BaseController
 
   private
 
-  def render_editors(status: :ok)
-    render_settings_page(
-      active_section: "editors",
-      status: status
-    )
-  end
+  def render_editors(status: :ok) = render_settings_page(active_section: "editors", status: status)
 
   def section_props
-    {
-      user: user_props(keys: %i[hackatime_extension_text_type show_goals_in_statusbar]),
-      options: base_options(keys: %i[extension_text_types])
-    }
+    { user: user_props(keys: %i[hackatime_extension_text_type show_goals_in_statusbar]),
+      options: base_options(keys: %i[extension_text_types]) }
   end
 
-  def editor_params
-    params.require(:user).permit(:hackatime_extension_text_type, :show_goals_in_statusbar)
-  end
+  def editor_params = params.require(:user).permit(:hackatime_extension_text_type, :show_goals_in_statusbar)
 end

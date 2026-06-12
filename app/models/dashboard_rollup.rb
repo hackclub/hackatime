@@ -16,27 +16,11 @@ class DashboardRollup < ApplicationRecord
 
   scope :for_dimension, ->(dimension) { where(dimension: dimension.to_s) }
 
-  def total_dimension?
-    dimension == TOTAL_DIMENSION
-  end
+  def total_dimension? = dimension == TOTAL_DIMENSION
+  def bucket = bucket_value_present ? bucket_value : nil
 
-  def bucket
-    bucket_value_present ? bucket_value : nil
-  end
-
-  def self.dirty_cache_key(user_id)
-    "#{DIRTY_CACHE_KEY_PREFIX}_#{user_id}"
-  end
-
-  def self.mark_dirty(user_id)
-    Rails.cache.write(dirty_cache_key(user_id), true, expires_in: 1.day, unless_exist: true)
-  end
-
-  def self.clear_dirty(user_id)
-    Rails.cache.delete(dirty_cache_key(user_id))
-  end
-
-  def self.dirty?(user_id)
-    Rails.cache.exist?(dirty_cache_key(user_id))
-  end
+  def self.dirty_cache_key(user_id) = "#{DIRTY_CACHE_KEY_PREFIX}_#{user_id}"
+  def self.mark_dirty(user_id) = Rails.cache.write(dirty_cache_key(user_id), true, expires_in: 1.day, unless_exist: true)
+  def self.clear_dirty(user_id) = Rails.cache.delete(dirty_cache_key(user_id))
+  def self.dirty?(user_id) = Rails.cache.exist?(dirty_cache_key(user_id))
 end

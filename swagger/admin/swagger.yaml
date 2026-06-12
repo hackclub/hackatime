@@ -1,0 +1,3553 @@
+---
+openapi: 3.0.1
+info:
+  title: Hackatime Admin API
+  version: v1
+  description: |
+    Admin and internal endpoints for Hackatime.
+
+    These require an Admin API Key (or internal env token) and are not part of the public API.
+paths:
+  "/api/admin/v1/users/{id}/visualization/quantized":
+    get:
+      summary: Get quantized coding visualization for a user
+      tags:
+      - Admin
+      description: Returns a per-day, quantized set of heartbeat points (for the given
+        month) plus per-day total coding seconds. Used to render a compact activity
+        visualization.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: User ID
+        schema:
+          type: string
+      - name: year
+        in: query
+        required: true
+        description: Year (e.g. 2024)
+        schema:
+          type: integer
+      - name: month
+        in: query
+        required: true
+        description: Month (1-12)
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  days:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date_timestamp_s:
+                          type: integer
+                          example: 1704067200
+                          description: Start-of-day epoch (seconds, UTC)
+                        total_seconds:
+                          type: number
+                          example: 7200.0
+                          description: Total coding seconds for the day
+                        points:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              time:
+                                type: number
+                                example: 1704110400.0
+                              lineno:
+                                type: integer
+                                nullable: true
+                                example: 42
+                              cursorpos:
+                                type: integer
+                                nullable: true
+                                example: 12
+        '422':
+          description: invalid parameters — Returned ("invalid parameters") when year
+            or month is missing or month is outside 1-12.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: user not found
+  "/api/admin/v1/alts/candidates":
+    get:
+      summary: List potential alt-account candidates
+      tags:
+      - Admin
+      description: Returns pairs of users that have shared the same machine + IP address
+        within the lookback window. Capped at 5000 candidate pairs.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, clamped to 1-365)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_a_id:
+                          type: integer
+                          example: 42
+                        user_b_id:
+                          type: integer
+                          example: 43
+                        machine:
+                          type: string
+                          example: Orpheus-MacBook-Pro
+                        ip_address:
+                          type: string
+                          example: 203.0.113.7
+                        user_a_first_seen_on_combo:
+                          type: number
+                          example: 1710340200.0
+                        user_a_last_seen_on_combo:
+                          type: number
+                          example: 1710946200.0
+                        user_b_first_seen_on_combo:
+                          type: number
+                          example: 1710512400.0
+                        user_b_last_seen_on_combo:
+                          type: number
+                          example: 1710859800.0
+        '401':
+          description: unauthorized
+  "/api/admin/v1/alts/shared_machines":
+    get:
+      summary: List machines used by multiple users (alts alias)
+      tags:
+      - Admin
+      description: Alias path for the shared-machines report. Routes to the same action
+        as GET /api/admin/v1/heartbeats/shared_machines and returns identical data.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results (default: 1000, max: 10000)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: returns machines shared by multiple users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  machines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        machine:
+                          type: string
+                          example: Orpheus-MacBook-Pro
+                        machine_frequency:
+                          type: integer
+                          example: 2
+                        user_ids:
+                          type: string
+                          example: "{42,43}"
+                          description: Postgres array literal of user IDs, e.g. "{12,34}"
+        '401':
+          description: unauthorized
+  "/api/admin/v1/users/active":
+    get:
+      summary: List recently active user IDs
+      tags:
+      - Admin
+      description: Returns IDs of users with heartbeats since the given timestamp.
+        The since value is floored to at most 90 days ago, and results are capped
+        at 50,000 IDs.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: since
+        in: query
+        required: false
+        description: Unix timestamp (seconds). Values older than 90 days ago are floored
+          to 90 days ago. Negative values return 422.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_ids:
+                    type: array
+                    items:
+                      type: integer
+                      example: 42
+        '422':
+          description: invalid since parameter — Returned ("invalid since parameter")
+            when since is negative.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/audit_logs/counts":
+    post:
+      summary: Count trust-level audit logs for users
+      tags:
+      - Admin
+      description: Returns the number of trust-level audit log entries for each requested
+        user ID. Users with no audit logs are included with a count of 0. Up to 1000
+        user IDs are honored.
+      security:
+      - AdminToken: []
+      parameters: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  counts:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                      example: 3
+                    example:
+                      '42': 3
+                      '43': 0
+                    description: Map of user ID (as string) to audit log count.
+        '422':
+          description: invalid user_ids — Returned ("user_ids array required") when
+            user_ids is blank or not an array, or ("no valid user_ids provided") when
+            the array is empty.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - user_ids
+              properties:
+                user_ids:
+                  type: array
+                  items:
+                    type: integer
+                    example: 42
+                  description: Array of user IDs (up to 1000). Required; a blank or
+                    non-array value returns 422.
+  "/api/admin/v1/admin_api_keys":
+    get:
+      summary: List Admin API Keys
+      tags:
+      - Admin Resources
+      description: List all admin API keys.
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  admin_api_keys:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 12
+                        name:
+                          type: string
+                          example: Revoker admin key
+                        token_preview:
+                          type: string
+                          example: hka_3f8e...7f01
+                        user:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              example: orpheus
+                            admin_level:
+                              type: string
+                              example: superadmin
+                        created_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
+                        revoked_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-04-01T12:00:00Z'
+                        active:
+                          type: boolean
+                          example: true
+        '401':
+          description: unauthorized
+    post:
+      summary: Create Admin API Key
+      tags:
+      - Admin Resources
+      description: Create a new admin API key.
+      security:
+      - AdminToken: []
+      parameters: []
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Admin API key created successfully
+                  admin_api_key:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 12
+                      name:
+                        type: string
+                        example: Revoker admin key
+                      token:
+                        type: string
+                        example: hka_3f8e9c2a7b144d6e9a2f1c8b5d3e7f013f8e9c2a7b144d6e9a2f1c8b5d3e7f01
+                      created_at:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T15:30:00Z'
+        '422':
+          description: validation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Validation failed
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                      example: Name can't be blank
+        '401':
+          description: unauthorized
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Revoker admin key
+  "/api/admin/v1/admin_api_keys/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    get:
+      summary: Show Admin API Key
+      tags:
+      - Admin Resources
+      description: Show details of an admin API key.
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 12
+                  name:
+                    type: string
+                    example: Revoker admin key
+                  token_preview:
+                    type: string
+                    example: hka_3f8e...7f01
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      username:
+                        type: string
+                        example: orpheus
+                      display_name:
+                        type: string
+                        example: orpheus
+                      admin_level:
+                        type: string
+                        example: superadmin
+                  created_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T15:30:00Z'
+                  revoked_at:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    example: '2024-04-01T12:00:00Z'
+                  active:
+                    type: boolean
+                    example: true
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+        '401':
+          description: unauthorized
+    delete:
+      summary: Revoke Admin API Key
+      tags:
+      - Admin Resources
+      description: Revoke/Delete an admin API key. Only the owner of the key may revoke
+        it.
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Admin API key revoked successfully
+        '403':
+          description: forbidden (not your key)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+        '401':
+          description: unauthorized
+  "/api/admin/v1/trust_level_audit_logs":
+    get:
+      summary: List Trust Level Audit Logs
+      tags:
+      - Admin Resources
+      description: List audit logs for trust level changes.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: user_id
+        in: query
+        description: Filter by User ID
+        required: false
+        schema:
+          type: string
+      - name: admin_id
+        in: query
+        description: Filter by Admin ID
+        required: false
+        schema:
+          type: string
+      - name: user_search
+        in: query
+        description: Search user (fuzzy)
+        required: false
+        schema:
+          type: string
+      - name: admin_search
+        in: query
+        description: Search admin (fuzzy)
+        required: false
+        schema:
+          type: string
+      - name: trust_level_filter
+        in: query
+        schema:
+          type: string
+          enum:
+          - to_convicted
+          - to_trusted
+          - to_suspected
+          - to_unscored
+        description: Filter by trust level change. Any unrecognized value (or omitting
+          the parameter) returns all logs unfiltered.
+        required: false
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audit_logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 5012
+                        user:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 42
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              example: orpheus
+                        previous_trust_level:
+                          type: string
+                          nullable: true
+                          example: blue
+                        new_trust_level:
+                          type: string
+                          nullable: true
+                          example: red
+                        changed_by:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              example: orpheus
+                            admin_level:
+                              type: string
+                              example: superadmin
+                        reason:
+                          type: string
+                          nullable: true
+                          example: self-reported heartbeats
+                        notes:
+                          type: string
+                          nullable: true
+                          example: Reviewed flagged activity
+                        created_at:
+                          type: string
+                          example: '2024-03-20T15:30:00Z'
+                  total_count:
+                    type: integer
+                    example: 137
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+        '401':
+          description: unauthorized
+  "/api/admin/v1/trust_level_audit_logs/{id}":
+    get:
+      summary: Show Trust Level Audit Log
+      tags:
+      - Admin Resources
+      description: Show details of a trust level audit log.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 5012
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 42
+                      username:
+                        type: string
+                        example: orpheus
+                      display_name:
+                        type: string
+                        example: orpheus
+                      current_trust_level:
+                        type: string
+                        example: green
+                  previous_trust_level:
+                    type: string
+                    nullable: true
+                    example: blue
+                  new_trust_level:
+                    type: string
+                    nullable: true
+                    example: green
+                  changed_by:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      username:
+                        type: string
+                        example: orpheus
+                      display_name:
+                        type: string
+                        example: orpheus
+                      admin_level:
+                        type: string
+                        example: superadmin
+                  reason:
+                    type: string
+                    nullable: true
+                    example: Manual verification
+                  notes:
+                    type: string
+                    nullable: true
+                    example: Looks good
+                  created_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T15:30:00Z'
+                  updated_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T15:30:00Z'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+        '401':
+          description: unauthorized
+  "/api/admin/v1/deletion_requests":
+    get:
+      summary: List Deletion Requests
+      tags:
+      - Admin Resources
+      description: List pending, approved, and recently completed deletion requests.
+        Requires superadmin privileges.
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 7
+                        user_id:
+                          type: integer
+                          example: 42
+                        user:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: integer
+                              example: 42
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              nullable: true
+                              example: orpheus
+                        status:
+                          type: string
+                          enum:
+                          - pending
+                          - approved
+                          - cancelled
+                          - completed
+                          example: pending
+                        requested_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-20T15:30:00Z'
+                        scheduled_deletion_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-27T15:30:00Z'
+                        completed_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-28T09:00:00Z'
+                        admin_approved_by:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              nullable: true
+                              example: orpheus
+                        created_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
+                        updated_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
+                  approved:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 7
+                        user_id:
+                          type: integer
+                          example: 42
+                        user:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: integer
+                              example: 42
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              nullable: true
+                              example: orpheus
+                        status:
+                          type: string
+                          enum:
+                          - pending
+                          - approved
+                          - cancelled
+                          - completed
+                          example: pending
+                        requested_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-20T15:30:00Z'
+                        scheduled_deletion_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-27T15:30:00Z'
+                        completed_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-28T09:00:00Z'
+                        admin_approved_by:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              nullable: true
+                              example: orpheus
+                        created_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
+                        updated_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
+                  completed:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 7
+                        user_id:
+                          type: integer
+                          example: 42
+                        user:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: integer
+                              example: 42
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              nullable: true
+                              example: orpheus
+                        status:
+                          type: string
+                          enum:
+                          - pending
+                          - approved
+                          - cancelled
+                          - completed
+                          example: pending
+                        requested_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-20T15:30:00Z'
+                        scheduled_deletion_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-27T15:30:00Z'
+                        completed_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-28T09:00:00Z'
+                        admin_approved_by:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              nullable: true
+                              example: orpheus
+                        created_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
+                        updated_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
+        '401':
+          description: unauthorized
+  "/api/admin/v1/deletion_requests/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    get:
+      summary: Show Deletion Request
+      tags:
+      - Admin Resources
+      description: Show details of a deletion request. Requires superadmin privileges.
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 7
+                  user_id:
+                    type: integer
+                    example: 42
+                  user:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: integer
+                        example: 42
+                      username:
+                        type: string
+                        example: orpheus
+                      display_name:
+                        type: string
+                        nullable: true
+                        example: orpheus
+                  status:
+                    type: string
+                    enum:
+                    - pending
+                    - approved
+                    - cancelled
+                    - completed
+                    example: pending
+                  requested_at:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    example: '2024-03-20T15:30:00Z'
+                  scheduled_deletion_at:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    example: '2024-03-27T15:30:00Z'
+                  completed_at:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    example: '2024-03-28T09:00:00Z'
+                  admin_approved_by:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      username:
+                        type: string
+                        example: orpheus
+                      display_name:
+                        type: string
+                        nullable: true
+                        example: orpheus
+                  created_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T15:30:00Z'
+                  updated_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T15:30:00Z'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+        '401':
+          description: unauthorized
+  "/api/admin/v1/deletion_requests/{id}/approve":
+    post:
+      summary: Approve Deletion Request
+      tags:
+      - Admin Resources
+      description: Approve and execute a user deletion request. Requires superadmin
+        privileges.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Deletion request approved and processed
+                  deletion_request:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 7
+                      user_id:
+                        type: integer
+                        example: 42
+                      user:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: integer
+                            example: 42
+                          username:
+                            type: string
+                            example: orpheus
+                          display_name:
+                            type: string
+                            nullable: true
+                            example: orpheus
+                      status:
+                        type: string
+                        enum:
+                        - pending
+                        - approved
+                        - cancelled
+                        - completed
+                        example: pending
+                      requested_at:
+                        type: string
+                        format: date_time
+                        nullable: true
+                        example: '2024-03-20T15:30:00Z'
+                      scheduled_deletion_at:
+                        type: string
+                        format: date_time
+                        nullable: true
+                        example: '2024-03-27T15:30:00Z'
+                      completed_at:
+                        type: string
+                        format: date_time
+                        nullable: true
+                        example: '2024-03-28T09:00:00Z'
+                      admin_approved_by:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          username:
+                            type: string
+                            example: orpheus
+                          display_name:
+                            type: string
+                            nullable: true
+                            example: orpheus
+                      created_at:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T15:30:00Z'
+                      updated_at:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T15:30:00Z'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+        '401':
+          description: unauthorized
+  "/api/admin/v1/deletion_requests/{id}/reject":
+    post:
+      summary: Reject Deletion Request
+      tags:
+      - Admin Resources
+      description: Reject a user deletion request. Requires superadmin privileges.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Deletion request rejected
+                  deletion_request:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 7
+                      user_id:
+                        type: integer
+                        example: 42
+                      user:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: integer
+                            example: 42
+                          username:
+                            type: string
+                            example: orpheus
+                          display_name:
+                            type: string
+                            nullable: true
+                            example: orpheus
+                      status:
+                        type: string
+                        enum:
+                        - pending
+                        - approved
+                        - cancelled
+                        - completed
+                        example: pending
+                      requested_at:
+                        type: string
+                        format: date_time
+                        nullable: true
+                        example: '2024-03-20T15:30:00Z'
+                      scheduled_deletion_at:
+                        type: string
+                        format: date_time
+                        nullable: true
+                        example: '2024-03-27T15:30:00Z'
+                      completed_at:
+                        type: string
+                        format: date_time
+                        nullable: true
+                        example: '2024-03-28T09:00:00Z'
+                      admin_approved_by:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          username:
+                            type: string
+                            example: orpheus
+                          display_name:
+                            type: string
+                            nullable: true
+                            example: orpheus
+                      created_at:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T15:30:00Z'
+                      updated_at:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T15:30:00Z'
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+        '401':
+          description: unauthorized
+  "/api/admin/v1/timeline":
+    get:
+      summary: Get timeline
+      tags:
+      - Admin Timeline
+      description: Get timeline events including coding activity and commits for selected
+        users.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: date
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Date for the timeline (YYYY-MM-DD)
+      - name: user_ids
+        in: query
+        description: Comma-separated list of User IDs
+        schema:
+          type: string
+      - name: slack_uids
+        in: query
+        description: Comma-separated list of Slack User IDs
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                    example: '2024-03-20'
+                  next_date:
+                    type: string
+                    format: date
+                    example: '2024-03-21'
+                  prev_date:
+                    type: string
+                    format: date
+                    example: '2024-03-19'
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 42
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              nullable: true
+                              example: orpheus
+                            slack_username:
+                              type: string
+                              nullable: true
+                              example: orpheus
+                            github_username:
+                              type: string
+                              nullable: true
+                              example: orpheus
+                            timezone:
+                              type: string
+                              nullable: true
+                              example: America/New_York
+                            avatar_url:
+                              type: string
+                              nullable: true
+                              example: https://avatars.slack-edge.com/2024-03-20/orpheus_512.png
+                        spans:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              start_time:
+                                type: number
+                                format: float
+                                example: 1710946200.0
+                              end_time:
+                                type: number
+                                format: float
+                                example: 1710949800.0
+                              duration:
+                                type: number
+                                format: float
+                                example: 3600.0
+                              files_edited:
+                                type: array
+                                items:
+                                  type: string
+                                  example: app/models/user.rb
+                              projects_edited_details:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    name:
+                                      type: string
+                                      example: hackatime
+                                    repo_url:
+                                      type: string
+                                      nullable: true
+                                      example: https://github.com/hackclub/hackatime
+                              editors:
+                                type: array
+                                items:
+                                  type: string
+                                  example: VS Code
+                              languages:
+                                type: array
+                                items:
+                                  type: string
+                                  example: Ruby
+                        total_coded_time:
+                          type: number
+                          format: float
+                          example: 7200.0
+                  commit_markers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_id:
+                          type: integer
+                          example: 42
+                        timestamp:
+                          type: number
+                          format: float
+                          example: 1710948000.0
+                        additions:
+                          type: integer
+                          nullable: true
+                          example: 120
+                        deletions:
+                          type: integer
+                          nullable: true
+                          example: 18
+                        github_url:
+                          type: string
+                          nullable: true
+                          example: https://github.com/hackclub/hackatime/commit/a1b2c3d
+        '422':
+          description: invalid date format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid date format
+                required:
+                - error
+        '401':
+          description: unauthorized
+  "/api/admin/v1/timeline/search_users":
+    get:
+      summary: Search timeline users
+      tags:
+      - Admin Timeline
+      description: Search users specifically for the timeline view by username, slack
+        username, ID, or email.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: query
+        in: query
+        description: Search query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 42
+                        display_name:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        avatar_url:
+                          type: string
+                          nullable: true
+                          example: https://avatars.slack-edge.com/2024-03-20/orpheus_512.png
+        '422':
+          description: unprocessable entity
+        '401':
+          description: unauthorized
+  "/api/admin/v1/timeline/leaderboard_users":
+    get:
+      summary: Get leaderboard users for timeline
+      tags:
+      - Admin Timeline
+      description: Get users who should appear on the timeline leaderboard based on
+        recent activity.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: period
+        in: query
+        schema:
+          type: string
+          enum:
+          - daily
+          - last_7_days
+        description: Leaderboard period
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 42
+                        display_name:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        avatar_url:
+                          type: string
+                          nullable: true
+                          example: https://avatars.slack-edge.com/2024-03-20/orpheus_512.png
+        '401':
+          description: unauthorized
+  "/api/admin/v1/user/info_batch":
+    get:
+      summary: Get user info batch
+      tags:
+      - Admin Utils
+      description: Get info for multiple users.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: ids
+        in: query
+        required: true
+        description: Comma-separated list of user IDs (e.g. "1,2,3"). Up to 2000 ids
+          are honored.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 42
+                        username:
+                          type: string
+                          example: orpheus
+                        display_name:
+                          type: string
+                          example: orpheus
+                        slack_uid:
+                          type: string
+                          nullable: true
+                          example: U0266FRGP
+                        slack_username:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        github_username:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        timezone:
+                          type: string
+                          nullable: true
+                          example: America/New_York
+                        country_code:
+                          type: string
+                          nullable: true
+                          example: US
+                        trust_level:
+                          type: string
+                          example: blue
+                        avatar_url:
+                          type: string
+                          nullable: true
+                          example: https://avatars.slack-edge.com/2024-03-20/orpheus_512.png
+                        slack_avatar_url:
+                          type: string
+                          nullable: true
+                          example: https://avatars.slack-edge.com/2024-03-20/orpheus_512.png
+                        github_avatar_url:
+                          type: string
+                          nullable: true
+                          example: https://avatars.githubusercontent.com/u/12345?v=4
+        '422':
+          description: ids missing or no valid ids — Returned when the ids parameter
+            is blank ("ids parameter required") or when none of the supplied ids parse
+            to a valid integer ("no valid ids provided").
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/user/info":
+    get:
+      summary: Get user info
+      tags:
+      - Admin Utils
+      description: Get detailed info for a single user.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: user_id
+        in: query
+        description: User ID. Either user_id or id may be supplied.
+        schema:
+          type: string
+      - name: id
+        in: query
+        required: false
+        description: Alias for user_id. If both id and user_id are supplied, id takes
+          precedence.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 42
+                      username:
+                        type: string
+                        example: orpheus
+                      display_name:
+                        type: string
+                        example: orpheus
+                      slack_uid:
+                        type: string
+                        nullable: true
+                        example: U0266FRGP
+                      slack_username:
+                        type: string
+                        nullable: true
+                        example: orpheus
+                      github_username:
+                        type: string
+                        nullable: true
+                        example: orpheus
+                      timezone:
+                        type: string
+                        nullable: true
+                        example: America/New_York
+                      country_code:
+                        type: string
+                        nullable: true
+                        example: US
+                      admin_level:
+                        type: string
+                        example: default
+                      trust_level:
+                        type: string
+                        example: blue
+                      suspected:
+                        type: boolean
+                        example: false
+                      banned:
+                        type: boolean
+                        example: false
+                      created_at:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T15:30:00Z'
+                      updated_at:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T15:30:00Z'
+                      last_heartbeat_at:
+                        type: number
+                        nullable: true
+                        example: 1710946200.0
+                      email_addresses:
+                        type: array
+                        items:
+                          type: string
+                          example: orpheus@hackclub.com
+                      api_keys_count:
+                        type: integer
+                        example: 2
+                      stats:
+                        type: object
+                        properties:
+                          total_heartbeats:
+                            type: integer
+                            example: 15234
+                          total_coding_time:
+                            type: number
+                            example: 187200.0
+                          languages_used:
+                            type: integer
+                            example: 8
+                          projects_worked_on:
+                            type: integer
+                            example: 12
+                          days_active:
+                            type: integer
+                            example: 47
+        '404':
+          description: user not found
+        '422':
+          description: missing id — Returned ("who?") when neither id nor user_id
+            is supplied.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/user/heartbeats":
+    get:
+      summary: Get admin user heartbeats
+      tags:
+      - Admin Utils
+      description: Get heartbeats for a user (Admin view).
+      security:
+      - AdminToken: []
+      parameters:
+      - name: user_id
+        in: query
+        description: User ID. Either user_id or id may be supplied.
+        schema:
+          type: string
+      - name: id
+        in: query
+        required: false
+        description: Alias for user_id. If both id and user_id are supplied, id takes
+          precedence.
+        schema:
+          type: string
+      - name: start_date
+        in: query
+        description: Start date (YYYY-MM-DD or timestamp)
+        schema:
+          type: string
+      - name: end_date
+        in: query
+        description: End date (YYYY-MM-DD or timestamp)
+        schema:
+          type: string
+      - name: project
+        in: query
+        description: Project name
+        schema:
+          type: string
+      - name: language
+        in: query
+        description: Language
+        schema:
+          type: string
+      - name: entity
+        in: query
+        description: Entity (file path or app name)
+        schema:
+          type: string
+      - name: editor
+        in: query
+        description: Editor
+        schema:
+          type: string
+      - name: machine
+        in: query
+        description: Machine
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Limit
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        description: Offset
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 42
+                  heartbeats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 987654
+                        time:
+                          type: number
+                          example: 1710946200.0
+                        lineno:
+                          type: integer
+                          example: 42
+                          description: Coalesced to 0 when null
+                        cursorpos:
+                          type: integer
+                          example: 12
+                          description: Coalesced to 0 when null
+                        is_write:
+                          type: boolean
+                          nullable: true
+                          example: true
+                        project:
+                          type: string
+                          nullable: true
+                          example: hackatime
+                        language:
+                          type: string
+                          nullable: true
+                          example: Ruby
+                        entity:
+                          type: string
+                          nullable: true
+                          example: app/models/user.rb
+                        branch:
+                          type: string
+                          nullable: true
+                          example: main
+                        category:
+                          type: string
+                          nullable: true
+                          example: coding
+                        editor:
+                          type: string
+                          nullable: true
+                          example: VS Code
+                        machine:
+                          type: string
+                          nullable: true
+                          example: Orpheus-MacBook-Pro
+                        user_agent:
+                          type: string
+                          nullable: true
+                          example: wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0
+                        ip_address:
+                          type: string
+                          nullable: true
+                          example: 203.0.113.7
+                        ja4:
+                          type: string
+                          nullable: true
+                          example: t13d1516h2_8daaf6152771_02713d6af862
+                        lines:
+                          type: integer
+                          nullable: true
+                          example: 350
+                        source_type:
+                          type: string
+                          example: direct_entry
+                  total_count:
+                    type: integer
+                    example: 15234
+                  has_more:
+                    type: boolean
+                    example: true
+        '404':
+          description: user not found
+        '422':
+          description: invalid date filter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/heartbeats/by_user_agent_segment":
+    get:
+      summary: Get heartbeats matching a user_agent segment
+      tags:
+      - Admin Utils
+      description: Returns heartbeats whose user_agent contains the given substring
+        (e.g. "Godot_Super-Wakatime/2.0.0"). Useful for monitoring how a specific
+        editor/plugin behaves over time. Use count_only=true to avoid streaming rows
+        when only the total is needed.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: segment
+        in: query
+        required: true
+        description: Substring of user_agent to match (case-insensitive). Min length
+          3.
+        schema:
+          type: string
+      - name: user_id
+        in: query
+        required: false
+        description: Optional user ID to scope the query to a single user.
+        schema:
+          type: string
+      - name: start_date
+        in: query
+        required: false
+        description: Start date (YYYY-MM-DD or epoch seconds)
+        schema:
+          type: string
+      - name: end_date
+        in: query
+        required: false
+        description: End date (YYYY-MM-DD or epoch seconds)
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        description: Page size (default 1000, max 5000)
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        required: false
+        description: Pagination offset
+        schema:
+          type: integer
+      - name: count_only
+        in: query
+        required: false
+        description: If true, return only total_count and skip row payload
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: object
+                  properties:
+                    segment:
+                      type: string
+                      example: Godot_Super-Wakatime
+                    limit:
+                      type: integer
+                      example: 10
+                    offset:
+                      type: integer
+                      example: 0
+                    heartbeats:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 987654
+                          user_id:
+                            type: integer
+                            example: 42
+                          time:
+                            type: number
+                            example: 1710946200.0
+                          project:
+                            type: string
+                            nullable: true
+                            example: demo
+                          language:
+                            type: string
+                            nullable: true
+                            example: GDScript
+                          entity:
+                            type: string
+                            nullable: true
+                            example: res://player.gd
+                          branch:
+                            type: string
+                            nullable: true
+                            example: main
+                          category:
+                            type: string
+                            nullable: true
+                            example: coding
+                          editor:
+                            type: string
+                            nullable: true
+                            example: Godot
+                          machine:
+                            type: string
+                            nullable: true
+                            example: Orpheus-MacBook-Pro
+                          operating_system:
+                            type: string
+                            nullable: true
+                            example: Mac
+                          user_agent:
+                            type: string
+                            nullable: true
+                            example: Godot/4.2 Godot_Super-Wakatime/2.0.0
+                          ip_address:
+                            type: string
+                            nullable: true
+                            example: 203.0.113.7
+                          is_write:
+                            type: boolean
+                            nullable: true
+                            example: true
+                          lineno:
+                            type: integer
+                            nullable: true
+                            example: 42
+                          cursorpos:
+                            type: integer
+                            nullable: true
+                            example: 12
+                          lines:
+                            type: integer
+                            nullable: true
+                            example: 350
+                          source_type:
+                            type: string
+                            nullable: true
+                            example: direct_entry
+                    has_more:
+                      type: boolean
+                      example: false
+                - type: object
+                  description: Returned when count_only=true
+                  additionalProperties: false
+                  required:
+                  - segment
+                  - total_count
+                  properties:
+                    segment:
+                      type: string
+                      example: Godot_Super-Wakatime
+                    total_count:
+                      type: integer
+                      example: 2
+        '422':
+          description: missing segment
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/user/heartbeat_values":
+    get:
+      summary: Get heartbeat values
+      tags:
+      - Admin Utils
+      description: Get specific values from heartbeats.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: user_id
+        in: query
+        description: User ID. Either user_id or id may be supplied.
+        schema:
+          type: string
+      - name: id
+        in: query
+        required: false
+        description: Alias for user_id. If both id and user_id are supplied, id takes
+          precedence.
+        schema:
+          type: string
+      - name: field
+        in: query
+        schema:
+          type: string
+          enum:
+          - projects
+          - languages
+          - entities
+          - branches
+          - categories
+          - editors
+          - machines
+          - user_agents
+          - ips
+        description: Field to retrieve distinct values for. Must be one of the allowed
+          values; an unknown value returns 422.
+      - name: start_date
+        in: query
+        description: Start date (YYYY-MM-DD or timestamp)
+        schema:
+          type: string
+      - name: end_date
+        in: query
+        description: End date (YYYY-MM-DD or timestamp)
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Limit results (default 5000, max 5000)
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 42
+                  field:
+                    type: string
+                    example: projects
+                  values:
+                    type: array
+                    items:
+                      type: string
+                      example: hackatime
+                  count:
+                    type: integer
+                    example: 12
+        '404':
+          description: user not found
+        '422':
+          description: invalid field — Returned ("invalid field") when field is not
+            one of the allowed values.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/user/get_users_by_ip":
+    get:
+      summary: Get users by IP
+      tags:
+      - Admin Utils
+      description: Find users associated with an IP address.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: ip
+        in: query
+        description: IP Address
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_id:
+                          type: integer
+                          example: 42
+                        ip_address:
+                          type: string
+                          example: 203.0.113.7
+                        machine:
+                          type: string
+                          nullable: true
+                          example: Orpheus-MacBook-Pro
+                        user_agent:
+                          type: string
+                          nullable: true
+                          example: wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0
+        '422':
+          description: missing ip — Returned ("bro dont got the ip") when the ip parameter
+            is blank.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/user/get_users_by_machine":
+    get:
+      summary: Get users by machine
+      tags:
+      - Admin Utils
+      description: Find users associated with a machine ID.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: machine
+        in: query
+        description: Machine ID
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_id:
+                          type: integer
+                          example: 42
+                        machine:
+                          type: string
+                          example: Orpheus-MacBook-Pro
+        '422':
+          description: missing machine — Returned ("bro dont got the machine") when
+            the machine parameter is blank.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/admin/v1/user/stats":
+    get:
+      summary: Get admin user stats
+      tags:
+      - Admin Utils
+      description: 'Get detailed stats for a user (Admin view). When start_date/end_date
+        are provided, heartbeats are filtered to that range; otherwise the single
+        date param (default: current date) is used.'
+      security:
+      - AdminToken: []
+      parameters:
+      - name: user_id
+        in: query
+        description: User ID. Either user_id or id may be supplied.
+        schema:
+          type: string
+      - name: id
+        in: query
+        required: false
+        description: Alias for user_id. If both id and user_id are supplied, id takes
+          precedence.
+        schema:
+          type: string
+      - name: start_date
+        in: query
+        required: false
+        description: Start date (YYYY-MM-DD or epoch seconds). When present (with
+          or without end_date), defines the time range and overrides the date param.
+          Defaults to 10 years ago.
+        schema:
+          type: string
+      - name: end_date
+        in: query
+        required: false
+        description: End date (YYYY-MM-DD or epoch seconds). Defaults to end of the
+          current day.
+        schema:
+          type: string
+      - name: date
+        in: query
+        schema:
+          type: string
+          format: date
+        required: false
+        description: Single day (YYYY-MM-DD) to scope stats to. Only used when neither
+          start_date nor end_date is supplied. Defaults to the current date.
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 42
+                  username:
+                    type: string
+                    example: orpheus
+                  start_date:
+                    type: string
+                    format: date
+                    example: '2024-03-20'
+                  end_date:
+                    type: string
+                    format: date
+                    example: '2024-03-20'
+                  timezone:
+                    type: string
+                    nullable: true
+                    example: America/New_York
+                  total_heartbeats:
+                    type: integer
+                    example: 152
+                  total_duration:
+                    type: number
+                    example: 7200.0
+                  heartbeats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 987654
+                        time:
+                          type: string
+                          example: '1710946200.0'
+                        created_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
+                        project:
+                          type: string
+                          nullable: true
+                          example: hackatime
+                        branch:
+                          type: string
+                          nullable: true
+                          example: main
+                        category:
+                          type: string
+                          nullable: true
+                          example: coding
+                        dependencies:
+                          type: string
+                          nullable: true
+                          example: rails,sidekiq
+                        editor:
+                          type: string
+                          nullable: true
+                          example: VS Code
+                        entity:
+                          type: string
+                          nullable: true
+                          example: app/models/user.rb
+                        language:
+                          type: string
+                          nullable: true
+                          example: Ruby
+                        machine:
+                          type: string
+                          nullable: true
+                          example: Orpheus-MacBook-Pro
+                        operating_system:
+                          type: string
+                          nullable: true
+                          example: Mac
+                        type:
+                          type: string
+                          nullable: true
+                          example: file
+                        user_agent:
+                          type: string
+                          nullable: true
+                          example: wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0
+                        line_additions:
+                          type: integer
+                          nullable: true
+                          example: 8
+                        line_deletions:
+                          type: integer
+                          nullable: true
+                          example: 3
+                        lineno:
+                          type: integer
+                          nullable: true
+                          example: 42
+                        lines:
+                          type: integer
+                          nullable: true
+                          example: 350
+                        cursorpos:
+                          type: integer
+                          nullable: true
+                          example: 12
+                        project_root_count:
+                          type: integer
+                          nullable: true
+                          example: 4
+                        is_write:
+                          type: boolean
+                          nullable: true
+                          example: true
+                        source_type:
+                          type: string
+                          nullable: true
+                          example: direct_entry
+                        ip_address:
+                          type: string
+                          nullable: true
+                          example: 203.0.113.7
+        '404':
+          description: user not found
+  "/api/admin/v1/user/projects":
+    get:
+      summary: Get admin user projects
+      tags:
+      - Admin Utils
+      description: Get projects for a user (Admin view).
+      security:
+      - AdminToken: []
+      parameters:
+      - name: user_id
+        in: query
+        description: User ID. Either user_id or id may be supplied.
+        schema:
+          type: string
+      - name: id
+        in: query
+        required: false
+        description: Alias for user_id. If both id and user_id are supplied, id takes
+          precedence.
+        schema:
+          type: string
+      - name: start_date
+        in: query
+        required: false
+        description: Start date (YYYY-MM-DD or epoch seconds). When start_date or
+          end_date is present, heartbeats are filtered to that range. Defaults to
+          10 years ago.
+        schema:
+          type: string
+      - name: end_date
+        in: query
+        required: false
+        description: End date (YYYY-MM-DD or epoch seconds). Defaults to end of the
+          current day.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 42
+                  username:
+                    type: string
+                    example: orpheus
+                  total_projects:
+                    type: integer
+                    example: 12
+                  projects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          nullable: true
+                          example: hackatime
+                        total_heartbeats:
+                          type: integer
+                          example: 4821
+                        total_duration:
+                          type: number
+                          example: 86400.0
+                        first_heartbeat:
+                          type: number
+                          nullable: true
+                          example: 1704067200.0
+                        last_heartbeat:
+                          type: number
+                          nullable: true
+                          example: 1710946200.0
+                        languages:
+                          type: array
+                          items:
+                            type: string
+                            example: Ruby
+                        repo:
+                          type: string
+                          nullable: true
+                          example: https://github.com/hackclub/hackatime
+                        repo_mapping_id:
+                          type: integer
+                          nullable: true
+                          example: 314
+                        archived:
+                          type: boolean
+                          example: false
+        '404':
+          description: user not found
+  "/api/admin/v1/user/trust_logs":
+    get:
+      summary: Get user trust logs
+      tags:
+      - Admin Utils
+      description: Get trust level audit logs for a user.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: user_id
+        in: query
+        description: User ID. Either user_id or id may be supplied.
+        schema:
+          type: string
+      - name: id
+        in: query
+        required: false
+        description: Alias for user_id. If both id and user_id are supplied, id takes
+          precedence.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trust_logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 5012
+                        previous_trust_level:
+                          type: string
+                          nullable: true
+                          example: blue
+                        new_trust_level:
+                          type: string
+                          example: red
+                        reason:
+                          type: string
+                          nullable: true
+                          example: self-reported heartbeats
+                        notes:
+                          type: string
+                          nullable: true
+                          example: Reviewed flagged activity
+                        created_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
+                        changed_by:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 1
+                            username:
+                              type: string
+                              example: orpheus
+                            display_name:
+                              type: string
+                              example: orpheus
+                            admin_level:
+                              type: string
+                              example: superadmin
+  "/api/admin/v1/user/get_user_by_email":
+    post:
+      summary: Get user by email
+      tags:
+      - Admin Utils
+      description: Lookup user by email (POST).
+      security:
+      - AdminToken: []
+      parameters: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 42
+        '422':
+          description: missing email — Returned ("bro dont have a email") when the
+            email is blank.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: email not found — Returned ("email not found") when no email
+            address matches.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - email
+              properties:
+                email:
+                  type: string
+                  example: orpheus@hackclub.com
+                  description: Email address to look up. Required in practice; a blank
+                    email returns 422.
+  "/api/admin/v1/user/search_fuzzy":
+    post:
+      summary: Fuzzy search users
+      tags:
+      - Admin Utils
+      description: Search users by fuzzy matching.
+      security:
+      - AdminToken: []
+      parameters: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 42
+                        username:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        slack_username:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        github_username:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        slack_avatar_url:
+                          type: string
+                          nullable: true
+                          example: https://avatars.slack-edge.com/2024-03-20/orpheus_512.png
+                        github_avatar_url:
+                          type: string
+                          nullable: true
+                          example: https://avatars.githubusercontent.com/u/12345?v=4
+                        email:
+                          type: string
+                          example: orpheus@hackclub.com
+                        rank_score:
+                          type: number
+                          example: 0.87
+        '422':
+          description: missing query — Returned ("bro dont have a query") when the
+            query is blank.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - query
+              properties:
+                query:
+                  type: string
+                  example: orpheus
+                  description: Search query. Required in practice; a blank query returns
+                    422.
+  "/api/admin/v1/user/convict":
+    post:
+      summary: Convict user
+      tags:
+      - Admin Utils
+      description: Mark a user as convicted/banned by setting their trust level. Requires
+        admin write permissions and authority to change the target user trust level.
+      security:
+      - AdminToken: []
+      parameters: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User convicted successfully
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 42
+                      username:
+                        type: string
+                        example: orpheus
+                      trust_level:
+                        type: string
+                        example: red
+                      updated_at:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T15:30:00Z'
+                  audit_log:
+                    type: object
+                    properties:
+                      changed_by:
+                        type: string
+                        example: orpheus
+                      reason:
+                        type: string
+                        example: self-reported heartbeats
+                      notes:
+                        type: string
+                        nullable: true
+                        example: Reviewed flagged activity
+                      timestamp:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T15:30:00Z'
+        '404':
+          description: user not found
+        '422':
+          description: invalid request — Returned when reason is blank, when trust_level
+            is not a valid trust level, or when the change fails to apply.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: forbidden — Returned when the authenticated admin lacks write
+            access (e.g. a viewer-level key) or is not permitted to change the target
+            user's trust level.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - user_id
+              - reason
+              - trust_level
+              properties:
+                user_id:
+                  type: integer
+                  example: 42
+                  description: Target user ID. id is also accepted as an alias.
+                reason:
+                  type: string
+                  example: self-reported heartbeats
+                  description: Required justification; a blank reason returns 422.
+                trust_level:
+                  type: string
+                  enum:
+                  - blue
+                  - red
+                  - green
+                  - yellow
+                  example: red
+                  description: Required. New trust level; must be a valid trust level
+                    key or a 422 is returned.
+                notes:
+                  type: string
+                  example: Reviewed flagged activity
+                  description: Optional notes stored on the audit log.
+  "/api/admin/v1/check":
+    get:
+      summary: Check status
+      tags:
+      - Admin
+      description: Check if admin API is working. Returns metadata about the admin
+        API key and its creator.
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+        '401':
+          description: unauthorized — Returned when the bearer token is missing/invalid,
+            or when the associated user is not an admin/superadmin/viewer/ultraadmin
+            (the key is then revoked).
+  "/api/admin/v1/banned_users":
+    get:
+      summary: Get banned users
+      tags:
+      - Admin
+      description: Get a list of banned users.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results to return (default: 200, max: 1000)'
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        required: false
+        description: 'Number of results to skip for pagination (default: 0)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  banned_users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 42
+                          description: User ID
+                        username:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                          description: Username
+                        email:
+                          type: string
+                          example: orpheus@hackclub.com
+                          description: Primary email or "no email"
+        '401':
+          description: unauthorized
+  "/api/admin/v1/heartbeats/ip_machine_pairs":
+    get:
+      summary: List users sharing the same machine + IP combination
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results (default: 1000, max: 10000)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: returns empty pairs when no shared machine+IP exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_a_id:
+                          type: integer
+                          example: 42
+                        user_b_id:
+                          type: integer
+                          example: 43
+                        machine:
+                          type: string
+                          example: Orpheus-MacBook-Pro
+                        ip_address:
+                          type: string
+                          example: 203.0.113.7
+                        user_a_first_seen:
+                          type: number
+                          example: 1710340200.0
+                          description: Unix timestamp (may be fractional)
+                        user_a_last_seen:
+                          type: number
+                          example: 1710946200.0
+                          description: Unix timestamp (may be fractional)
+                        user_b_first_seen:
+                          type: number
+                          example: 1710512400.0
+                          description: Unix timestamp (may be fractional)
+                        user_b_last_seen:
+                          type: number
+                          example: 1710859800.0
+                          description: Unix timestamp (may be fractional)
+        '401':
+          description: unauthorized
+  "/api/admin/v1/heartbeats/shared_machines":
+    get:
+      summary: List machines used by multiple users
+      tags:
+      - Admin Heartbeats
+      security:
+      - AdminToken: []
+      parameters:
+      - name: lookback_days
+        in: query
+        required: false
+        description: 'Number of days to look back (default: 30, max: 365)'
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        required: false
+        description: 'Max results (default: 1000, max: 10000)'
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: excludes machines used by only one user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  machines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        machine:
+                          type: string
+                          example: Orpheus-MacBook-Pro
+                        machine_frequency:
+                          type: integer
+                          example: 2
+                        user_ids:
+                          type: string
+                          example: "{42,43}"
+                          description: PostgreSQL array literal of user IDs (raw ARRAY_AGG
+                            output, not a JSON array)
+        '401':
+          description: unauthorized
+  "/api/admin/v1/leaderboard_shadowbans":
+    get:
+      summary: List Leaderboard Shadowbans
+      tags:
+      - Admin Resources
+      description: List users hidden from public leaderboards. Requires admin privileges.
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leaderboard_shadowbans:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/LeaderboardShadowbanUser"
+        '401':
+          description: unauthorized
+        '403':
+          description: forbidden — Returned when the caller cannot manage leaderboard
+            shadowbans (e.g. a viewer-level admin).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+    post:
+      summary: Create Leaderboard Shadowban
+      tags:
+      - Admin Resources
+      description: Hide a user from public leaderboards. Requires admin privileges
+        and a reason.
+      security:
+      - AdminToken: []
+      parameters: []
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User shadowbanned from leaderboards
+                  user:
+                    "$ref": "#/components/schemas/LeaderboardShadowbanUser"
+        '422':
+          description: validation error — Returned when the shadowban could not be
+            saved (model validation errors).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Validation failed
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                      example: Leaderboard shadowban expires at is not a valid datetime
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+        '403':
+          description: forbidden (cannot manage that user) — Returned when the change
+            is rejected without validation errors (e.g. the target outranks the caller).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+        '401':
+          description: unauthorized
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                  example: 42
+                reason:
+                  type: string
+                  example: inflated activity
+                leaderboard_shadowban_expires_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                  example: '2024-03-27T15:30:00Z'
+              required:
+              - user_id
+              - reason
+  "/api/admin/v1/leaderboard_shadowbans/search_users":
+    get:
+      summary: Search Users for Leaderboard Shadowbans
+      tags:
+      - Admin Resources
+      description: Search users and include their current leaderboard shadowban metadata.
+        Requires admin privileges.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: query
+        in: query
+        description: Search query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/LeaderboardShadowbanUser"
+        '401':
+          description: unauthorized
+  "/api/admin/v1/leaderboard_shadowbans/{user_id}":
+    delete:
+      summary: Delete Leaderboard Shadowban
+      tags:
+      - Admin Resources
+      description: Remove a user from the leaderboard shadowban list. Requires admin
+        privileges.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User removed from leaderboard shadowban list
+                  user:
+                    "$ref": "#/components/schemas/LeaderboardShadowbanUser"
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+        '403':
+          description: forbidden (cannot manage that user) — Returned when the change
+            is rejected without validation errors (e.g. the target outranks the caller).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+        '401':
+          description: unauthorized
+  "/api/admin/v1/permissions":
+    get:
+      summary: List Permissions
+      tags:
+      - Admin Resources
+      description: List system permissions. Requires superadmin privileges.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: search
+        in: query
+        description: Search query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 42
+                        username:
+                          type: string
+                          example: orpheus
+                        display_name:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        slack_username:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        github_username:
+                          type: string
+                          nullable: true
+                          example: orpheus
+                        admin_level:
+                          type: string
+                          example: admin
+                        email_addresses:
+                          type: array
+                          items:
+                            type: string
+                            example: orpheus@hackclub.com
+                        created_at:
+                          type: string
+                          example: '2024-03-20T15:30:00Z'
+                        updated_at:
+                          type: string
+                          example: '2024-03-20T15:30:00Z'
+        '401':
+          description: unauthorized
+  "/api/admin/v1/permissions/{id}":
+    patch:
+      summary: Update Permission
+      tags:
+      - Admin Resources
+      description: Update a user's admin level. Requires superadmin privileges.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Admin level updated successfully
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 42
+                      username:
+                        type: string
+                        example: orpheus
+                      display_name:
+                        type: string
+                        nullable: true
+                        example: orpheus
+                      admin_level:
+                        type: string
+                        example: superadmin
+                      previous_admin_level:
+                        type: string
+                        example: default
+                      updated_at:
+                        type: string
+                        example: '2024-03-20T15:30:00Z'
+        '404':
+          description: not found handled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid admin level
+        '422':
+          description: 'validation error handled — Returned when admin_level is not
+            a valid admin level. Body is { error: "Invalid admin level" }.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid admin level
+        '403':
+          description: 'forbidden — Returned when the caller is not allowed to set
+            the target to the requested level (e.g. attempting to change your own
+            admin level). Body is { error: <denial message> }.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid admin level
+        '401':
+          description: unauthorized
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                admin_level:
+                  type: string
+                  enum:
+                  - superadmin
+                  - admin
+                  - viewer
+                  - default
+                  - ultraadmin
+                  example: admin
+              required:
+              - admin_level
+  "/api/internal/revoke":
+    post:
+      summary: Revoke access
+      tags:
+      - Internal
+      description: Internal endpoint to revoke access tokens. Use with caution. Requires
+        HKA_REVOCATION_KEY environment variable authentication. This is used for Revoker
+        to allow security researchers to revoke compromised tokens.
+      security:
+      - InternalToken: []
+      parameters: []
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: string
+                    example: complete
+                  token_type:
+                    type: string
+                    example: Desktop
+                    description: The name of the revoked key (e.g. the regular API
+                      key's name such as "Desktop" or the default "Hackatime key";
+                      for admin keys, the admin key's name). This is the key name,
+                      not a type descriptor.
+                  owner_email:
+                    type: string
+                    nullable: true
+                    example: orpheus@hackclub.com
+                  key_name:
+                    type: string
+                    nullable: true
+                    example: Revoker admin key
+                    description: Present only when revoking an admin ("hka_") key;
+                      the admin key's name.
+        '422':
+          description: unprocessable entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: Token is invalid or already revoked
+                required:
+                - success
+                - error
+        '302':
+          description: redirect on failed authentication — When the provided token
+            does not match HKA_REVOCATION_KEY (or is missing), the controller does
+            not return 401; it issues a 302 redirect to an external URL.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: 3f8e9c2a-7b14-4d6e-9a2f-1c8b5d3e7f01
+                  description: The API key token to revoke (a regular UUID-format
+                    key or an admin "hka_" key).
+              required:
+              - token
+components:
+  securitySchemes:
+    AdminToken:
+      type: http
+      scheme: bearer
+      description: Admin API Key, prefixed with "Bearer"
+    InternalToken:
+      type: http
+      scheme: bearer
+      description: Internal API Key from env, prefixed with "Bearer"
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Unauthorized
+      required:
+      - error
+    AdminApiKey:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: CI/CD Key
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    LeaderboardShadowbanUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        display_name:
+          type: string
+          nullable: true
+          example: Orpheus
+        avatar_url:
+          type: string
+          nullable: true
+          example: https://...
+        created_at:
+          type: string
+          format: date-time
+        username:
+          type: string
+          nullable: true
+          example: orpheus
+        email:
+          type: string
+          nullable: true
+          example: orpheus@example.com
+        leaderboard_shadowbanned:
+          type: boolean
+          example: true
+        leaderboard_shadowban_reason:
+          type: string
+          nullable: true
+          example: fake leaderboard activity
+        leaderboard_shadowban_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        shadowbanned_by:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              example: 1
+            display_name:
+              type: string
+              nullable: true
+              example: Admin
+            username:
+              type: string
+              nullable: true
+              example: admin
+            avatar_url:
+              type: string
+              nullable: true
+              example: https://...
+            admin_level:
+              type: string
+              nullable: true
+              example: superadmin
+        updated_at:
+          type: string
+          format: date-time
+    DeletionRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 101
+        user_id:
+          type: integer
+          example: 42
+        status:
+          type: string
+          example: pending
+          enum:
+          - pending
+          - approved
+          - cancelled
+          - completed
+        created_at:
+          type: string
+          format: date-time
+    TrustLevelAuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 505
+        user_id:
+          type: integer
+          example: 42
+        actor_id:
+          type: integer
+          example: 1
+        action:
+          type: string
+          example: upgraded_to_verified
+        created_at:
+          type: string
+          format: date-time
+    Permission:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        role:
+          type: string
+          example: admin
+        resource_type:
+          type: string
+          example: User
+        resource_id:
+          type: integer
+          nullable: true
+servers:
+- url: https://{defaultHost}
+  description: Production API
+  variables:
+    defaultHost:
+      default: hackatime.hackclub.com
+- url: http://{localHost}
+  description: Local Development API
+  variables:
+    localHost:
+      default: localhost:3000

@@ -34,7 +34,8 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
             } ],
             request_context: {
               ip_address: "203.0.113.10",
-              machine: "laptop"
+              machine: "laptop",
+              ja4: "t13d1516h2_8daaf6152771_02713d6af862"
             }
           )
 
@@ -53,7 +54,30 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "coding", heartbeat.category
     assert_equal "laptop", heartbeat.machine
     assert_equal "203.0.113.10", heartbeat.ip_address.to_s
+    assert_equal "t13d1516h2_8daaf6152771_02713d6af862", heartbeat.ja4.fingerprint
     assert_equal "direct_entry", heartbeat.source_type
+  end
+
+  test "direct heartbeat ingest reuses a JA4 record across requests" do
+    user = User.create!(timezone: "UTC")
+    ja4 = "t13d1516h2_8daaf6152771_02713d6af862"
+
+    assert_difference({ "user.heartbeats.count" => 2, "Ja4.count" => 1 }) do
+      HeartbeatIngest.call(
+        user: user,
+        mode: :direct,
+        heartbeats: [ { entity: "src/first.rb", time: Time.current.to_f, type: "file" } ],
+        request_context: { ja4: ja4 }
+      )
+      HeartbeatIngest.call(
+        user: user,
+        mode: :direct,
+        heartbeats: [ { entity: "src/second.rb", time: 1.second.from_now.to_f, type: "file" } ],
+        request_context: { ja4: ja4 }
+      )
+    end
+
+    assert_equal [ ja4 ], user.heartbeats.joins(:ja4).distinct.pluck("ja4s.fingerprint")
   end
 
   test "direct heartbeat ingest returns existing heartbeat for duplicate input" do
@@ -92,6 +116,19 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
 
     assert_no_enqueued_jobs only: DashboardRollupRefreshJob
+  end
+
+  test "direct heartbeat ingest records event participation for inserted heartbeats" do
+    user = User.create!(timezone: "UTC")
+    high_seas_time = Time.zone.parse("2024-12-15 12:00:00").to_f
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ { entity: "src/event.rb", time: high_seas_time, type: "file" } ]
+    )
+
+    assert user.reload.event_participation.set?(:high_seas)
   end
 
   test "direct heartbeat ingest resolves last language within the batch" do
@@ -163,5 +200,24 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
 
     heartbeat = user.heartbeats.order(:id).last
     assert_equal "wakapi_import", heartbeat.source_type
+  end
+
+  test "import heartbeat ingest records event participation only for inserted heartbeats" do
+    user = User.create!(timezone: "UTC")
+    high_seas_time = Time.zone.parse("2024-12-15 12:00:00").to_f
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :import,
+      heartbeats: [ {
+        entity: "/tmp/event.rb",
+        type: "file",
+        time: high_seas_time,
+        project: "hackatime",
+        language: "Ruby"
+      } ]
+    )
+
+    assert user.reload.event_participation.set?(:high_seas)
   end
 end

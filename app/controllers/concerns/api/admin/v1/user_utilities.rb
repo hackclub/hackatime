@@ -3,145 +3,80 @@ module Api
     module V1
       module UserUtilities
         extend ActiveSupport::Concern
+        include DateParsing
+
+        HEARTBEAT_RESPONSE_COLUMNS = [
+          *%i[id time lineno cursorpos is_write project language entity branch category editor machine user_agent ip_address lines source_type],
+          :ja4_id
+        ].freeze
+
+        HEARTBEAT_FIELD_COLUMNS = {
+          "projects" => "project",
+          "languages" => "language",
+          "entities" => "entity",
+          "branches" => "branch",
+          "categories" => "category",
+          "editors" => "editor",
+          "machines" => "machine",
+          "user_agents" => "user_agent",
+          "ips" => "ip_address"
+        }.freeze
 
         included do
           before_action :can_write!, only: [ :user_convict ]
         end
 
         def get_user_by_email
-          email = params[:email]
-
-          if email.blank?
-            render json: { error: "bro dont have a email" }, status: :unprocessable_entity
-            return
-          end
-
-          email_record = EmailAddress.find_by(email: email)
-          if email_record.nil?
-            render json: { error: "email not found" }, status: :not_found
-            return
-          end
-
-          render json: {
-            user_id: email_record.user_id
-          }
+          return render_error("bro dont have a email") if params[:email].blank?
+          email_record = EmailAddress.find_by(email: params[:email])
+          return render_error("email not found", status: :not_found) unless email_record
+          render json: { user_id: email_record.user_id }
         end
 
         def search_users_fuzzy
-          query = params[:query]
-          if query.blank?
-            render json: { error: "bro dont have a query" }, status: :unprocessable_entity
-            return
-          end
+          return render_error("bro dont have a query") if params[:query].blank?
 
-          query = ActiveRecord::Base.sanitize_sql_like(query)
-
-          user_search_query = <<-SQL
-            SELECT
-              id, username, slack_username, github_username,
-              slack_avatar_url, github_avatar_url, email
-            FROM (
-              SELECT
-                users.id,
-                users.username,
-                users.slack_username,
-                users.github_username,
-                users.slack_avatar_url,
-                users.github_avatar_url,
-                email_addresses.email,
-                (
-                  CASE WHEN users.id::text = :query THEN 1000 ELSE 0 END +
-                  CASE WHEN users.slack_uid = :query THEN 1000 ELSE 0 END +
-                  CASE
-                    WHEN users.username ILIKE :query THEN 100
-                    WHEN users.username ILIKE :query || '%' THEN 50
-                    WHEN users.username ILIKE '%' || :query || '%' THEN 10
-                    ELSE 0
-                  END +
-                  CASE
-                    WHEN users.github_username ILIKE :query THEN 100
-                    WHEN users.github_username ILIKE :query || '%' THEN 50
-                    WHEN users.github_username ILIKE '%' || :query || '%' THEN 10
-                    ELSE 0
-                  END +
-                  CASE
-                    WHEN users.slack_username ILIKE :query THEN 100
-                    WHEN users.slack_username ILIKE :query || '%' THEN 50
-                    WHEN users.slack_username ILIKE '%' || :query || '%' THEN 10
-                    ELSE 0
-                  END +
-                  CASE
-                    WHEN email_addresses.email ILIKE :query THEN 100
-                    WHEN email_addresses.email ILIKE :query || '%' THEN 50
-                    WHEN email_addresses.email ILIKE '%' || :query || '%' THEN 10
-                    ELSE 0
-                  END
-                ) AS rank_score
-              FROM
-                users
-                INNER JOIN email_addresses ON users.id=email_addresses.user_id
-              WHERE
-                users.id::text = :query
-                OR users.slack_uid = :query
-                OR users.username ILIKE '%' || :query || '%'
-                OR users.github_username ILIKE '%' || :query || '%'
-                OR users.slack_username ILIKE '%' || :query || '%'
-                OR email_addresses.email ILIKE '%' || :query || '%'
-            ) AS ranked_users
-            WHERE
-              rank_score > 0
-            ORDER BY
-              rank_score DESC,
-              username ASC
-            LIMIT 10
-          SQL
-
-          sanitized_query = ActiveRecord::Base.sanitize_sql([ user_search_query, query: query ])
-          result = ActiveRecord::Base.connection.execute(sanitized_query)
+          relation = User.fuzzy_ranked_search(params[:query], limit: 10)
+          rows = User.connection.select_all(relation.to_sql).to_a
 
           render json: {
-            users: result.to_a
+            users: rows.filter_map { |row|
+              next unless row["has_any_email"] # gate: preserve legacy INNER JOIN behavior
+              {
+                id: row["id"],
+                username: row["username"],
+                slack_username: row["slack_username"],
+                github_username: row["github_username"],
+                slack_avatar_url: row["slack_avatar_url"],
+                github_avatar_url: row["github_avatar_url"],
+                email: row["matched_email"],
+                rank_score: row["rank_score"]
+              }
+            }
           }
         end
 
         def get_users_by_ip
-          user_ip = params[:ip]
+          return render_error("bro dont got the ip") if params[:ip].blank?
 
-          if user_ip.blank?
-            render json: { error: "bro dont got the ip" }, status: :unprocessable_entity
-            return nil
-          end
-
-          result = Heartbeat.where(ip_address: user_ip).select(:ip_address, :user_id, :machine, :user_agent).distinct
-
+          result = Heartbeat.where(ip_address: params[:ip]).select(:ip_address, :user_id, :machine, :user_agent).distinct
           render json: {
-            users: result.map do |user| {
-              user_id: user.user_id,
-              ip_address: user.ip_address,
-              machine: user.machine,
-              user_agent: user.user_agent
+            users: result.map { |u|
+              {
+                user_id: u.user_id,
+                ip_address: u.ip_address,
+                machine: u.machine,
+                user_agent: u.user_agent
+              }
             }
-            end
           }
         end
 
         def get_users_by_machine
-          user_machine = params[:machine]
+          return render_error("bro dont got the machine") if params[:machine].blank?
 
-          if user_machine.blank?
-            render json: { error: "bro dont got the machine" }, status: :unprocessable_entity
-            return nil
-          end
-
-          result = Heartbeat.where(machine: user_machine).select(:user_id, :machine).distinct
-
-          render json: {
-            users: result.map do |user| {
-              user_id: user.user_id,
-              machine: user.machine
-            }
-            end
-          }
+          result = Heartbeat.where(machine: params[:machine]).select(:user_id, :machine).distinct
+          render json: { users: result.map { |u| { user_id: u.user_id, machine: u.machine } } }
         end
 
         def user_info
@@ -151,9 +86,7 @@ module Api
           valid = user.heartbeats.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
 
           lht = valid.maximum(:time)
-          if lht && lht > 1000000000000
-            lht = lht / 1000
-          end
+          lht /= 1000 if lht && lht > 1000000000000
 
           render json: {
             user: {
@@ -190,25 +123,17 @@ module Api
           return unless user
 
           if params[:start_date].present? || params[:end_date].present?
-            start_timestamp = parse_timestamp_param(params[:start_date], field_name: "start_date", boundary: :start, default: 10.years.ago.utc.to_i)
-            return if performed?
-
-            end_timestamp = parse_timestamp_param(params[:end_date], field_name: "end_date", boundary: :end, default: Date.current.end_of_day.utc.to_i)
-            return if performed?
-
-            start_time = Time.at(start_timestamp).utc
-            end_time = Time.at(end_timestamp).utc
+            range = parse_default_time_range or return
+            start_time = Time.at(range.begin).utc
+            end_time = Time.at(range.end).utc
           else
-            date = parse_date_param
+            date = parse_date_param_default
             return unless date
-
             start_time = date.beginning_of_day.utc
             end_time = date.end_of_day.utc
           end
 
-          heartbeats = user.heartbeats
-                           .where(time: start_time.to_i..end_time.to_i)
-                           .order(:time)
+          heartbeats = user.heartbeats.where(time: start_time.to_i..end_time.to_i).order(:time)
 
           render json: {
             user_id: user.id,
@@ -216,7 +141,7 @@ module Api
             start_date: start_time.to_date.iso8601,
             end_date: end_time.to_date.iso8601,
             timezone: user.timezone,
-            heartbeats: heartbeats.map do |hb|
+            heartbeats: heartbeats.map { |hb|
               {
                 id: hb.id,
                 time: Time.at(hb.time).utc.iso8601,
@@ -240,10 +165,9 @@ module Api
                 project_root_count: hb.project_root_count,
                 is_write: hb.is_write,
                 source_type: hb.source_type,
-                ysws_program: hb.ysws_program,
                 ip_address: hb.ip_address
               }
-            end,
+            },
             total_heartbeats: heartbeats.count,
             total_duration: heartbeats.duration_seconds || 0
           }
@@ -256,34 +180,22 @@ module Api
           base_heartbeats = user.heartbeats.where.not(project: nil)
 
           if params[:start_date].present? || params[:end_date].present?
-            start_time = parse_timestamp_param(params[:start_date], field_name: "start_date", boundary: :start, default: 10.years.ago.utc.to_i)
-            return if performed?
-
-            end_time = parse_timestamp_param(params[:end_date], field_name: "end_date", boundary: :end, default: Date.current.end_of_day.utc.to_i)
-            return if performed?
-
-            base_heartbeats = base_heartbeats.where(time: start_time..end_time)
+            range = parse_default_time_range or return
+            base_heartbeats = base_heartbeats.where(time: range)
           end
 
           project_stats = base_heartbeats
-            .select(
-              :project,
-              "COUNT(*) as heartbeat_count",
-              "MIN(time) as first_heartbeat",
-              "MAX(time) as last_heartbeat",
-              "ARRAY_AGG(DISTINCT language) FILTER (WHERE language IS NOT NULL) as languages"
-            )
-            .group(:project)
-            .order(Arel.sql("COUNT(*) DESC"))
+            .select(:project, "COUNT(*) as heartbeat_count", "MIN(time) as first_heartbeat",
+                    "MAX(time) as last_heartbeat",
+                    "ARRAY_AGG(DISTINCT language) FILTER (WHERE language IS NOT NULL) as languages")
+            .group(:project).order(Arel.sql("COUNT(*) DESC"))
 
           durations = base_heartbeats.group(:project).duration_seconds
-
           repo_mappings = user.project_repo_mappings
-            .where(project_name: project_stats.map(&:project))
-            .index_by(&:project_name)
+            .where(project_name: project_stats.map(&:project)).index_by(&:project_name)
 
           project_data = project_stats.map do |stat|
-            repo_mapping = repo_mappings[stat.project]
+            m = repo_mappings[stat.project]
             {
               name: stat.project,
               total_heartbeats: stat.heartbeat_count,
@@ -291,9 +203,9 @@ module Api
               first_heartbeat: stat.first_heartbeat,
               last_heartbeat: stat.last_heartbeat,
               languages: stat.languages || [],
-              repo: repo_mapping&.repo_url,
-              repo_mapping_id: repo_mapping&.id,
-              archived: repo_mapping&.archived? || false
+              repo: m&.repo_url,
+              repo_mapping_id: m&.id,
+              archived: m&.archived? || false
             }
           end
 
@@ -313,45 +225,30 @@ module Api
           reason = params[:reason]
           notes = params[:notes]
 
-          if reason.blank?
-            return render json: { error: "you cant punish a mortal and not justify your actions" }, status: :unprocessable_entity
-          end
+          return render_error("you cant punish a mortal and not justify your actions") if reason.blank?
+          return render_error("read the docs you idiot") unless User.trust_levels.key?(trust_level)
+          return render_error("no perms lmaooo", status: :forbidden) unless current_user.can_change_trust_of?(user, trust_level)
 
-          unless User.trust_levels.key?(trust_level)
-            return render json: { error: "read the docs you idiot" }, status: :unprocessable_entity
-          end
+          success = user.set_trust(trust_level, changed_by_user: current_user, reason: reason, notes: notes)
 
-          unless current_user.can_change_trust_of?(user, trust_level)
-            return render json: { error: "no perms lmaooo" }, status: :forbidden
-          end
+          return render_error("no perms lmaooo") unless success
 
-          success = user.set_trust(
-            trust_level,
-            changed_by_user: current_user,
-            reason: reason,
-            notes: notes
-          )
-
-          if success
-            render json: {
-              success: true,
-              message: "gotcha, updated to #{trust_level}",
-              user: {
-                id: user.id,
-                username: user.display_name,
-                trust_level: user.trust_level,
-                updated_at: user.updated_at
-              },
-              audit_log: {
-                changed_by: current_user.display_name,
-                reason: reason,
-                notes: notes,
-                timestamp: Time.current
-              }
+          render json: {
+            success: true,
+            message: "gotcha, updated to #{trust_level}",
+            user: {
+              id: user.id,
+              username: user.display_name,
+              trust_level: user.trust_level,
+              updated_at: user.updated_at
+            },
+            audit_log: {
+              changed_by: current_user.display_name,
+              reason: reason,
+              notes: notes,
+              timestamp: Time.current
             }
-          else
-            render json: { error: "no perms lmaooo" }, status: :unprocessable_entity
-          end
+          }
         end
 
         def trust_logs
@@ -360,7 +257,7 @@ module Api
 
           logs = TrustLevelAuditLog.for_user(user).recent.limit(25)
           render json: {
-            trust_logs: logs.map do |log|
+            trust_logs: logs.map { |log|
               {
                 id: log.id,
                 previous_trust_level: log.previous_trust_level,
@@ -375,44 +272,22 @@ module Api
                 notes: log.notes,
                 created_at: log.created_at
               }
-            end
+            }
           }
         end
 
         def user_info_batch
-          ids_param = params[:ids]
+          return render_error("ids parameter required") if params[:ids].blank?
 
-          if ids_param.blank?
-            render json: { error: "ids parameter required" }, status: :unprocessable_entity
-            return
-          end
-
-          user_ids = ids_param.to_s.split(",").map(&:strip).map(&:to_i).uniq.take(2000)
-
-          if user_ids.empty?
-            render json: { error: "no valid ids provided" }, status: :unprocessable_entity
-            return
-          end
+          user_ids = params[:ids].to_s.split(",").map(&:strip).map(&:to_i).uniq.take(2000)
+          return render_error("no valid ids provided") if user_ids.empty?
 
           users = User.includes(:email_addresses).where(id: user_ids)
-
           render json: {
-            users: users.map do |user|
-              {
-                id: user.id,
-                username: user.username,
-                display_name: user.display_name,
-                slack_uid: user.slack_uid,
-                slack_username: user.slack_username,
-                github_username: user.github_username,
-                timezone: user.timezone,
-                country_code: user.country_code,
-                trust_level: user.trust_level,
-                avatar_url: user.avatar_url,
-                slack_avatar_url: user.slack_avatar_url,
-                github_avatar_url: user.github_avatar_url
-              }
-            end
+            users: users.as_json(
+              only: %i[id username slack_uid slack_username github_username timezone country_code trust_level slack_avatar_url github_avatar_url],
+              methods: %i[display_name avatar_url]
+            )
           }
         end
 
@@ -420,63 +295,44 @@ module Api
           user = find_user_by_id
           return unless user
 
-          start_date = params[:start_date]
-          end_date = params[:end_date]
-          project = params[:project]
-          language = params[:language]
-          entity = params[:entity]
-          editor = params[:editor]
-          machine = params[:machine]
           limit = (params[:limit] || 1000).to_i.clamp(1, 5_000)
           offset = (params[:offset] || 0).to_i.clamp(0, Float::INFINITY)
 
           query = user.heartbeats
-
-          if start_date.present?
-            start_timestamp = parse_timestamp_param(start_date, field_name: "start_date", boundary: :start)
-            return if performed?
-
-            query = query.where("time >= ?", start_timestamp)
+          query = apply_time_range(query) or return
+          %i[project language entity editor machine].each do |f|
+            query = query.where(f => params[f]) if params[f].present?
           end
-
-          if end_date.present?
-            end_timestamp = parse_timestamp_param(end_date, field_name: "end_date", boundary: :end)
-            return if performed?
-
-            query = query.where("time <= ?", end_timestamp)
-          end
-
-          query = query.where(project: project) if project.present?
-          query = query.where(language: language) if language.present?
-          query = query.where(entity: entity) if entity.present?
-          query = query.where(editor: editor) if editor.present?
-          query = query.where(machine: machine) if machine.present?
 
           total_count = query.count
-          heartbeats = query.order(time: :asc).limit(limit).offset(offset)
+          source_types = Heartbeat.source_types.invert
+          rows = query.order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
+          ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).pluck(:id, :fingerprint).to_h
+          heartbeats = rows.map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type, ja4_id|
+            {
+              id: id,
+              time: time,
+              lineno: lineno || 0,
+              cursorpos: cursorpos || 0,
+              is_write: is_write,
+              project: project,
+              language: language,
+              entity: entity,
+              branch: branch,
+              category: category,
+              editor: editor,
+              machine: machine,
+              user_agent: user_agent,
+              ip_address: ip_address,
+              ja4: ja4s_by_id[ja4_id],
+              lines: lines,
+              source_type: source_types[source_type] || source_type
+            }
+          end
 
           render json: {
             user_id: user.id,
-            heartbeats: heartbeats.map do |hb|
-              {
-                id: hb.id,
-                time: hb.time,
-                lineno: hb.lineno || 0,
-                cursorpos: hb.cursorpos || 0,
-                is_write: hb.is_write,
-                project: hb.project,
-                language: hb.language,
-                entity: hb.entity,
-                branch: hb.branch,
-                category: hb.category,
-                editor: hb.editor,
-                machine: hb.machine,
-                user_agent: hb.user_agent,
-                ip_address: hb.ip_address,
-                lines: hb.lines,
-                source_type: hb.source_type
-              }
-            end,
+            heartbeats: heartbeats,
             total_count: total_count,
             has_more: (offset + limit) < total_count
           }
@@ -487,119 +343,34 @@ module Api
           return unless user
 
           field = params[:field]
-          start_date = params[:start_date]
-          end_date = params[:end_date]
+          column_name = HEARTBEAT_FIELD_COLUMNS[field]
+          return render_error("invalid field") unless column_name
+
           limit = (params[:limit] || 5000).to_i.clamp(1, 5000)
 
-          unless %w[projects languages entities branches categories editors machines user_agents ips].include?(field)
-            render json: { error: "invalid field" }, status: :unprocessable_entity
-            return
-          end
-
-          column_map = {
-            "projects" => "project",
-            "languages" => "language",
-            "entities" => "entity",
-            "branches" => "branch",
-            "categories" => "category",
-            "editors" => "editor",
-            "machines" => "machine",
-            "user_agents" => "user_agent",
-            "ips" => "ip_address"
-          }
-
-          column_name = column_map[field]
-
           query = user.heartbeats
-
-          if start_date.present?
-            start_timestamp = parse_timestamp_param(start_date, field_name: "start_date", boundary: :start)
-            return if performed?
-
-            query = query.where("time >= ?", start_timestamp)
-          end
-
-          if end_date.present?
-            end_timestamp = parse_timestamp_param(end_date, field_name: "end_date", boundary: :end)
-            return if performed?
-
-            query = query.where("time <= ?", end_timestamp)
-          end
+          query = apply_time_range(query) or return
 
           quoted_column = Heartbeat.connection.quote_column_name(column_name)
-          values = query
-                   .where.not(column_name => nil)
-                   .distinct
-                   .order(Arel.sql("#{quoted_column} ASC"))
-                   .limit(limit)
-                   .pluck(column_name)
-                   .reject(&:empty?)
+          values = query.where.not(column_name => nil).distinct
+                        .order(Arel.sql("#{quoted_column} ASC"))
+                        .limit(limit).pluck(column_name).reject(&:empty?)
 
-          render json: {
-            user_id: user.id,
-            field: field,
-            values: values,
-            count: values.count
-          }
+          render json: { user_id: user.id, field: field, values: values, count: values.count }
         end
 
         private
 
         def can_write!
-          # blocks viewers
-          unless current_user.admin_level.in?([ "admin", "superadmin", "ultraadmin" ])
-            render json: { error: "no perms lmaooo" }, status: :forbidden
-          end
+          render_forbidden("no perms lmaooo") unless current_user.admin_level.in?(AuthHelpers::ADMIN_LEVELS)
         end
 
         def find_user_by_id
           user_id = params[:id] || params[:user_id]
-
-          if user_id.blank?
-            render json: { error: "who?" }, status: :unprocessable_entity
-            return nil
-          end
-
+          return render_error("who?") if user_id.blank?
           User.find(user_id)
         rescue ActiveRecord::RecordNotFound
-          render json: { error: "user not found" }, status: :not_found
-          nil
-        end
-
-        def parse_date_param
-          date_param = params[:date]
-          return Date.current if date_param.blank?
-
-          Date.parse(date_param)
-        rescue Date::Error, ArgumentError
-          render json: { error: "tf is that date ya dumbass" }, status: :unprocessable_entity
-          nil
-        end
-
-        def parse_timestamp_param(date_param, field_name:, boundary:, default: nil)
-          return default if date_param.blank?
-
-          parsed = parse_timestamp(date_param, boundary: boundary)
-          return parsed if parsed
-
-          render json: { error: "invalid #{field_name}" }, status: :unprocessable_entity
-          nil
-        end
-
-        def parse_timestamp(date_param, boundary:)
-          raw_value = date_param.to_s.strip
-
-          if raw_value.match?(/\A\d+\z/)
-            timestamp = raw_value.to_i
-            timestamp /= 1000 if timestamp >= 1_000_000_000_000
-            return timestamp if timestamp.between?(0, 253_402_300_799)
-            return nil
-          end
-
-          parsed_date = Date.parse(raw_value)
-          boundary == :end ? parsed_date.end_of_day.to_i : parsed_date.beginning_of_day.to_i
-        rescue Date::Error, ArgumentError
-          nil
+          render_not_found_json("user not found")
         end
       end
     end

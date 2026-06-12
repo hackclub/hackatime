@@ -1,5 +1,54 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+
+  type FooterLink = {
+    label: string;
+    href: string;
+    inertia?: boolean;
+    external?: boolean;
+  };
+  type FooterSection = { title: string; links: FooterLink[] };
+
+  const sections: FooterSection[] = [
+    {
+      title: "Platform",
+      links: [
+        { label: "Documentation", href: "/docs", inertia: true },
+        { label: "Leaderboards", href: "/leaderboards" },
+        { label: "Editor Setup", href: "/docs/editors/vs-code", inertia: true },
+      ],
+    },
+    {
+      title: "Community",
+      links: [
+        { label: "Slack", href: "https://hackclub.com/slack", external: true },
+        {
+          label: "GitHub",
+          href: "https://github.com/hackclub/hackatime",
+          external: true,
+        },
+        { label: "Hack Club", href: "https://hackclub.com", external: true },
+      ],
+    },
+    {
+      title: "Legal",
+      links: [
+        {
+          label: "Privacy & Terms",
+          href: "https://hackclub.com/privacy-and-terms",
+          external: true,
+        },
+        {
+          label: "Code of Conduct",
+          href: "https://hackclub.com/conduct",
+          external: true,
+        },
+      ],
+    },
+  ];
+
+  const linkCls =
+    "block text-sm text-secondary hover:text-primary transition-colors";
 </script>
 
 <footer class="py-16 w-full bg-surface">
@@ -15,82 +64,31 @@
           <span class="font-bold text-xl tracking-tight">Hackatime</span>
         </a>
         <p class="text-sm text-secondary max-w-[35ch] leading-relaxed">
-          A project by Hack Club. We build tools, community, and events for the
-          next generation of hackers.
+          A project by Hack Club. Made with 💖 in 🇬🇧🇺🇸
         </p>
       </div>
-      <div>
-        <h5
-          class="text-xs uppercase tracking-wider text-muted font-semibold mb-4"
-        >
-          Platform
-        </h5>
-        <div class="space-y-3">
-          <Link
-            href="/docs"
-            class="block text-sm text-secondary hover:text-primary transition-colors"
-            >Documentation</Link
+      {#each sections as section}
+        <div>
+          <h5
+            class="text-xs uppercase tracking-wider text-muted font-semibold mb-4"
           >
-          <a
-            href="/leaderboards"
-            class="block text-sm text-secondary hover:text-primary transition-colors"
-            >Leaderboards</a
-          >
-          <Link
-            href="/docs/editors/vs-code"
-            class="block text-sm text-secondary hover:text-primary transition-colors"
-            >Editor Setup</Link
-          >
+            {section.title}
+          </h5>
+          <div class="space-y-3">
+            {#each section.links as link}
+              {#if link.inertia}
+                <Link href={link.href} class={linkCls}>{link.label}</Link>
+              {:else}
+                <a
+                  href={link.href}
+                  target={link.external ? "_blank" : undefined}
+                  class={linkCls}>{link.label}</a
+                >
+              {/if}
+            {/each}
+          </div>
         </div>
-      </div>
-      <div>
-        <h5
-          class="text-xs uppercase tracking-wider text-muted font-semibold mb-4"
-        >
-          Community
-        </h5>
-        <div class="space-y-3">
-          <a
-            href="https://hackclub.com/slack"
-            target="_blank"
-            class="block text-sm text-secondary hover:text-primary transition-colors"
-            >Slack</a
-          >
-          <a
-            href="https://github.com/hackclub/hackatime"
-            target="_blank"
-            class="block text-sm text-secondary hover:text-primary transition-colors"
-            >GitHub</a
-          >
-          <a
-            href="https://hackclub.com"
-            target="_blank"
-            class="block text-sm text-secondary hover:text-primary transition-colors"
-            >Hack Club</a
-          >
-        </div>
-      </div>
-      <div>
-        <h5
-          class="text-xs uppercase tracking-wider text-muted font-semibold mb-4"
-        >
-          Legal
-        </h5>
-        <div class="space-y-3">
-          <a
-            href="https://hackclub.com/privacy-and-terms"
-            target="_blank"
-            class="block text-sm text-secondary hover:text-primary transition-colors"
-            >Privacy & Terms</a
-          >
-          <a
-            href="https://hackclub.com/conduct"
-            target="_blank"
-            class="block text-sm text-secondary hover:text-primary transition-colors"
-            >Code of Conduct</a
-          >
-        </div>
-      </div>
+      {/each}
     </div>
   </div>
 </footer>

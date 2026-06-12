@@ -1,11 +1,11 @@
 class ApplicationController < ActionController::Base
   include ErrorReporting
+  include RenderHelpers
+  include AuthHelpers
 
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user
-  before_action :initialize_cache_counters
   before_action :try_rack_mini_profiler_enable
-  before_action :track_request
   before_action :enforce_lockout
   before_action :set_cache_headers
 
@@ -31,10 +31,6 @@ class ApplicationController < ActionController::Base
       user_agent: request.user_agent,
       ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip
     )
-  end
-
-  def track_request
-    RequestCounter.increment
   end
 
   def try_rack_mini_profiler_enable
@@ -63,6 +59,17 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  # Authenticates requests using the shared STATS_API_KEY env var (used by
+  # internal/admin-style API endpoints). Token may come from an Authorization
+  # header ("Bearer <token>") or, when allowed, an `api_key` query param.
+  def authenticate_legacy_stats_api_key!(allow_query_param: true, message: "Unauthorized")
+    expected = ENV["STATS_API_KEY"]
+    return render_unauthorized(message) if expected.blank?
+    token = request.headers["Authorization"]&.split(" ")&.last
+    token ||= params[:api_key] if allow_query_param
+    render_unauthorized(message) unless token.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
+  end
+
   def enforce_lockout
     return unless current_user&.pending_deletion?
     return if %w[deletion_requests sessions].include?(controller_name)
@@ -71,19 +78,6 @@ class ApplicationController < ActionController::Base
 
   def set_cache_headers
     response.headers["Cache-Control"] = "no-store"
-  end
-
-  def initialize_cache_counters
-    Thread.current[:cache_hits] = 0
-    Thread.current[:cache_misses] = 0
-  end
-
-  def increment_cache_hits
-    Thread.current[:cache_hits] += 1
-  end
-
-  def increment_cache_misses
-    Thread.current[:cache_misses] += 1
   end
 
   def active_users_graph_data

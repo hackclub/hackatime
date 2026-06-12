@@ -7,14 +7,8 @@ module Api
         before_action :require_superadmin
 
         def index
-          users = User.where.not(admin_level: :default)
-                     .order(admin_level: :asc, username: :asc)
-
-          if params[:search].present?
-            user_ids = User.search_identity(params[:search]).pluck(:id)
-            users = users.where(id: user_ids)
-          end
-
+          users = User.where.not(admin_level: :default).order(admin_level: :asc, username: :asc)
+          users = users.where(id: User.search_identity(params[:search]).pluck(:id)) if params[:search].present?
           users = users.includes(:email_addresses)
 
           render json: {
@@ -39,17 +33,11 @@ module Api
           previous_level = user.admin_level
           new_level = params[:admin_level]
 
-          unless User.admin_levels.key?(new_level)
-            return render json: { error: "Invalid admin level" }, status: :unprocessable_entity
-          end
-
-          unless current_user.can_change_admin_level_of?(user, new_level)
-            return render json: { error: admin_level_change_denial_message(user, new_level) }, status: :forbidden
-          end
+          return render_error("Invalid admin level") unless User.admin_levels.key?(new_level)
+          return render_error(admin_level_change_denial_message(user, new_level), status: :forbidden) unless current_user.can_change_admin_level_of?(user, new_level)
 
           if user.set_admin_level(new_level, changed_by_user: current_user)
             Rails.logger.info "Admin level changed: User #{user.id} (#{user.display_name}) from #{previous_level} to #{new_level} by #{current_user.display_name}"
-
             render json: {
               success: true,
               message: "#{user.display_name}'s admin level updated from #{previous_level} to #{new_level}",
@@ -63,10 +51,10 @@ module Api
               }
             }
           else
-            render json: { error: "Failed to update admin level" }, status: :unprocessable_entity
+            render_error("Failed to update admin level")
           end
         rescue ActiveRecord::RecordNotFound
-          render json: { error: "User not found" }, status: :not_found
+          render_not_found_json("User not found")
         end
       end
     end

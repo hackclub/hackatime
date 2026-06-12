@@ -37,13 +37,13 @@ module TimeRangeFilterable
   }.freeze
 
   EVENTS_CONFIG_PATH = Rails.root.join("config", "events.json").freeze
-
   EVENT_DEFINITIONS = JSON.parse(File.read(EVENTS_CONFIG_PATH)).freeze
 
   EVENT_KEYS = begin
     pairs = EVENT_DEFINITIONS.map do |key, cfg|
       bit = cfg["bit"]
       raise "events.json: #{key} missing 'bit'" unless bit.is_a?(Integer) && bit >= 0
+
       [ bit, key.to_sym ]
     end.sort_by(&:first)
 
@@ -55,20 +55,33 @@ module TimeRangeFilterable
   end
 
   EVENT_RANGES = EVENT_DEFINITIONS.each_with_object({}) do |(key, cfg), memo|
-    timezone = cfg["timezone"]
-    starts_at = cfg["starts_at"]
-    ends_at = cfg["ends_at"]
     memo[key.to_sym] = {
       human_name: cfg["human_name"],
-      calculate: -> {
-        Time.use_zone(timezone) do
-          Time.zone.parse(starts_at).beginning_of_day..Time.zone.parse(ends_at).end_of_day
-        end
-      }
+      calculate: -> { TimeRangeFilterable.event_range_from_config(cfg) }
     }
   end.freeze
 
   RANGES = STANDARD_RANGES.merge(EVENT_RANGES).freeze
+
+  def self.event_range(from_date, to_date, timezone: "America/New_York")
+    Time.use_zone(timezone) do
+      Time.zone.parse(from_date).beginning_of_day..Time.zone.parse(to_date).end_of_day
+    end
+  end
+
+  def self.datetime_range(from_datetime, to_datetime, timezone: "America/New_York")
+    Time.use_zone(timezone) do
+      Time.zone.parse(from_datetime)..Time.zone.parse(to_datetime)
+    end
+  end
+
+  def self.event_range_from_config(config)
+    if config["all_day"] == false
+      datetime_range(config.fetch("starts_at"), config.fetch("ends_at"), timezone: config.fetch("timezone"))
+    else
+      event_range(config.fetch("starts_at"), config.fetch("ends_at"), timezone: config.fetch("timezone"))
+    end
+  end
 
   class_methods do
     def time_range_filterable_field(field_name)

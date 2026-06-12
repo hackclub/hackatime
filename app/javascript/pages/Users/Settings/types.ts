@@ -51,12 +51,12 @@ export type SettingsSubsection = {
   label: string;
 };
 
-export type Option = {
+type Option = {
   label: string;
   value: string;
 };
 
-export type ThemeOption = {
+type ThemeOption = {
   value: string;
   label: string;
   description: string;
@@ -82,7 +82,7 @@ export type ProgrammingGoal = {
   projects: string[];
 };
 
-export type GoalForm = {
+type GoalForm = {
   open: boolean;
   mode: "create" | "edit";
   goal_id: string | null;
@@ -93,9 +93,10 @@ export type GoalForm = {
   errors: string[];
 };
 
-export type UserProps = {
+type UserProps = {
   id: number;
   display_name: string;
+  display_name_override?: string | null;
   timezone: string;
   country_code?: string | null;
   username?: string | null;
@@ -112,7 +113,7 @@ export type UserProps = {
   slack_uid?: string | null;
 };
 
-export type BaseOptionsProps = {
+type BaseOptionsProps = {
   countries: Option[];
   timezones: Option[];
   extension_text_types: Option[];
@@ -120,7 +121,7 @@ export type BaseOptionsProps = {
   badge_themes: string[];
 };
 
-export type GoalsOptionsProps = {
+type GoalsOptionsProps = {
   goals: {
     periods: Option[];
     preset_target_seconds: number[];
@@ -129,9 +130,9 @@ export type GoalsOptionsProps = {
   };
 };
 
-export type OptionsProps = BaseOptionsProps & GoalsOptionsProps;
+type OptionsProps = BaseOptionsProps & GoalsOptionsProps;
 
-export type SlackProps = {
+type SlackProps = {
   can_enable_status: boolean;
   notification_channels: {
     id: string;
@@ -140,19 +141,19 @@ export type SlackProps = {
   }[];
 };
 
-export type GithubProps = {
+type GithubProps = {
   connected: boolean;
   username?: string | null;
   profile_url?: string | null;
 };
 
-export type EmailProps = {
+type EmailProps = {
   email: string;
   source: string;
   can_unlink: boolean;
 };
 
-export type BadgesProps = {
+type BadgesProps = {
   general_badge_url: string;
   project_badge_url?: string | null;
   project_badge_base_url?: string | null;
@@ -166,7 +167,7 @@ export type BadgesProps = {
   hackabox_preview_image_url: string;
 };
 
-export type ConfigFileProps = {
+type ConfigFileProps = {
   content?: string | null;
   has_api_key: boolean;
   empty_message: string;
@@ -174,14 +175,14 @@ export type ConfigFileProps = {
   api_url: string;
 };
 
-export type DataExportProps = {
+type DataExportProps = {
   total_heartbeats: string;
   total_coding_time: string;
   heartbeats_last_7_days: string;
   is_restricted: boolean;
 };
 
-export type UiProps = {
+type UiProps = {
   show_dev_import: boolean;
   show_imports: boolean;
 };
@@ -207,8 +208,9 @@ export type HeartbeatImportStatusProps = {
   finished_at?: string | null;
 };
 
-export type ErrorsProps = {
+type ErrorsProps = {
   full_messages: string[];
+  display_name_override: string[];
   username: string[];
 };
 
@@ -222,7 +224,15 @@ export type SettingsCommonProps = {
 
 export type ProfilePageProps = SettingsCommonProps & {
   username_max_length: number;
-  user: Pick<UserProps, "country_code" | "timezone" | "username">;
+  display_name_max_length: number;
+  user: Pick<
+    UserProps,
+    | "country_code"
+    | "timezone"
+    | "display_name"
+    | "display_name_override"
+    | "username"
+  >;
   options: Pick<BaseOptionsProps, "countries" | "timezones">;
   profile_url: string | null;
   emails: EmailProps[];
@@ -238,7 +248,10 @@ export type AppearancePageProps = SettingsCommonProps & {
 };
 
 export type EditorsPageProps = SettingsCommonProps & {
-  user: Pick<UserProps, "hackatime_extension_text_type" | "show_goals_in_statusbar">;
+  user: Pick<
+    UserProps,
+    "hackatime_extension_text_type" | "show_goals_in_statusbar"
+  >;
   options: Pick<BaseOptionsProps, "extension_text_types">;
 };
 
@@ -271,6 +284,7 @@ export type BadgesPageProps = SettingsCommonProps & {
 
 export type ImportsExportsPageProps = SettingsCommonProps & {
   data_export?: DataExportProps;
+  export_cooldown_minutes: number;
   imports_enabled: boolean;
   remote_import_cooldown_until?: string | null;
   latest_heartbeat_import?: HeartbeatImportStatusProps | null;
@@ -309,6 +323,7 @@ export const buildSections = (): SettingsSection[] => [
 const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
   profile: [
     { id: "user_region", label: "Region" },
+    { id: "user_display_name", label: "Display name" },
     { id: "user_username", label: "Username" },
     { id: "user_email_addresses", label: "Email addresses" },
   ],
@@ -356,6 +371,7 @@ const hashSectionMap: Record<string, SectionId> = {
   // Profile
   user_region: "profile",
   user_timezone: "profile",
+  user_display_name: "profile",
   user_username: "profile",
   user_email_addresses: "profile",
   // Setup

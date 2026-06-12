@@ -1,4 +1,12 @@
 {
+  "stardance": {
+    "human_name": "Stardance",
+    "starts_at": "2026-05-30 09:00:00",
+    "ends_at": "2026-08-30 23:59:59",
+    "timezone": "America/New_York",
+    "all_day": false,
+    "bit": 5
+  },
   "flavortown": {
     "human_name": "Flavortown",
     "starts_at": "2025-12-15",

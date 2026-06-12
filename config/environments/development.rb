@@ -1,19 +1,25 @@
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
-  config.after_initialize do
-    Bullet.enable        = true
-    Bullet.alert         = true
-    Bullet.bullet_logger = true
-    Bullet.console       = true
-    Bullet.rails_logger  = true
-    Bullet.add_footer    = true
+  if ENV["BULLET"].present?
+    config.after_initialize do
+      Bullet.enable        = true
+      Bullet.alert         = true
+      Bullet.bullet_logger = true
+      Bullet.console       = true
+      Bullet.rails_logger  = true
+      Bullet.add_footer    = true
+    end
+  else
+    config.middleware.delete(Bullet::Rack) rescue nil
   end
 
   # Settings specified here will take precedence over those in config/application.rb.
 
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
+
+  config.file_watcher = ActiveSupport::EventedFileUpdateChecker
 
   # Avoid stale precompiled asset manifests in public/assets during development.
   # Propshaft switches to dynamic resolution when this manifest file does not exist.
@@ -57,7 +63,7 @@ Rails.application.configure do
   config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
   # Preview emails in the browser [https://github.com/ryanb/letter_opener]
-  config.action_mailer.delivery_method = :letter_opener
+  config.action_mailer.delivery_method = :letter_opener_web
   config.action_mailer.perform_deliveries = true
 
   # Print deprecation notices to the Rails logger.
