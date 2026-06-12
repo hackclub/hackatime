@@ -25,9 +25,11 @@ We will be using a community plugin to connect Aseprite to your hackatime. Thank
 After installing, you will need to grab your Hackatime API key and manually add it to your global configuration file:
 
 1. Open your global `.wakatime.cfg` file located in your user home directory.
-2. Insert your Hackatime API key into the file (grab it from your settings page: https://hackatime.hackclub.com/my/settings).
-3. Save the file.
-4. **You are done!**
+2. Structure the file with the custom Hackatime endpoint and your API key (grab your key from https://hackatime.hackclub.com/my/settings):
+   ```ini
+   [settings]
+   api_url = https://hackatime.hackclub.com/api
+   api_key = YOUR_HACKATIME_API_KEY
 
 ### Naming Your Projects
 To ensure your canvas displays correctly on the Hackatime dashboard: 
