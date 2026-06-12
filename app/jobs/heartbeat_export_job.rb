@@ -7,8 +7,7 @@ class HeartbeatExportJob < ApplicationJob
 
   good_job_control_concurrency_with(
     total_limit: 1,
-    key: -> { "heartbeat_export_job_#{arguments.first}" },
-    drop: true
+    key: -> { "heartbeat_export_job_#{arguments.first}" }
   )
 
   HEARTBEAT_EXPORT_FIELDS = %i[

@@ -2,7 +2,14 @@ require "test_helper"
 
 class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   setup do
+    @original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    Rails.cache.clear
     GoodJob::Job.delete_all
+  end
+
+  teardown do
+    Rails.cache = @original_cache
   end
 
   test "export rejects banned users" do

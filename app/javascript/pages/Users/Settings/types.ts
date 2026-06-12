@@ -284,6 +284,7 @@ export type BadgesPageProps = SettingsCommonProps & {
 
 export type ImportsExportsPageProps = SettingsCommonProps & {
   data_export?: DataExportProps;
+  export_cooldown_minutes: number;
   imports_enabled: boolean;
   remote_import_cooldown_until?: string | null;
   latest_heartbeat_import?: HeartbeatImportStatusProps | null;

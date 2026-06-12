@@ -4,9 +4,16 @@ class HeartbeatExportTest < ApplicationSystemTestCase
   fixtures :users, :email_addresses, :heartbeats, :sign_in_tokens, :api_keys, :admin_api_keys
 
   setup do
+    @original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    Rails.cache.clear
     GoodJob::Job.delete_all
     @user = users(:one)
     sign_in_as(@user)
+  end
+
+  teardown do
+    Rails.cache = @original_cache
   end
 
   test "clicking export all heartbeats enqueues job and shows notice" do

@@ -66,21 +66,22 @@ module My
     end
 
     def export_rate_limited?
-      return false unless recent_export_requested?
+      return false if reserve_export_request!
 
-      redirect_to my_settings_imports_exports_path, alert: "Export requests are limited to once every 10 minutes."
+      redirect_to my_settings_imports_exports_path,
+        alert: "Export requests are limited to once every #{EXPORT_COOLDOWN.in_minutes.to_i} minutes."
       true
     end
 
-    def recent_export_requested?
-      GoodJob::Job
-        .where(job_class: "HeartbeatExportJob")
-        .where("created_at >= ?", EXPORT_COOLDOWN.ago)
-        .where(
-          "serialized_params -> 'arguments' -> 0 = to_jsonb(?::bigint)",
-          current_user.id
-        )
-        .exists?
+    def reserve_export_request!
+      Rails.cache.write(
+        export_rate_limit_cache_key,
+        true,
+        expires_in: EXPORT_COOLDOWN,
+        unless_exist: true
+      )
     end
+
+    def export_rate_limit_cache_key = "heartbeat_export_rate_limit:user:#{current_user.id}"
   end
 end
