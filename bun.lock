@@ -5,12 +5,12 @@
     "": {
       "dependencies": {
         "@fontsource-variable/spline-sans": "^5.2.8",
-        "@inertiajs/svelte": "^3.3.1",
-        "@inertiajs/vite": "^3.3.1",
+        "@inertiajs/svelte": "^3.4.0",
+        "@inertiajs/vite": "^3.4.0",
         "@js-from-routes/client": "^1.0.4",
         "@sveltejs/vite-plugin-svelte": "^7.1.2",
         "@tailwindcss/forms": "^0.5.11",
-        "@tailwindcss/typography": "^0.5.19",
+        "@tailwindcss/typography": "^0.5.20",
         "@tailwindcss/vite": "^4.3.0",
         "@tsconfig/svelte": "^5.0.8",
         "bits-ui": "^2.18.1",
@@ -19,7 +19,7 @@
         "layerchart": "^1.0.13",
         "plur": "^6.0.0",
         "runed": "^0.37.1",
-        "svelte": "^5.56.1",
+        "svelte": "^5.56.3",
         "svelte-check": "^4.6.0",
         "svelte-hero-icons": "^5.2.0",
         "tailwindcss": "^4.3.0",
@@ -29,10 +29,10 @@
         "vite-plugin-ruby": "^5.2.2",
       },
       "devDependencies": {
-        "@types/node": "^25.9.1",
-        "knip": "^6.15.0",
-        "prettier": "^3.8.3",
-        "prettier-plugin-svelte": "^3.5.2",
+        "@types/node": "^25.9.3",
+        "knip": "^6.16.1",
+        "prettier": "^3.8.4",
+        "prettier-plugin-svelte": "^4.1.0",
       },
     },
   },
@@ -560,7 +560,7 @@
 
     "prettier": ["prettier@3.8.4", "", { "bin": { "prettier": "bin/prettier.cjs" } }, "sha512-N2MylSdi48+5N/6S5j+maeHbUSIzzZ5uOcX5Hm4QpV8Dkb1HFjfAKTKX6yNPJQD9AhcT3ifHNB66tWTTJDi11Q=="],
 
-    "prettier-plugin-svelte": ["prettier-plugin-svelte@3.5.2", "", { "peerDependencies": { "prettier": "^3.0.0", "svelte": "^3.2.0 || ^4.0.0-next.0 || ^5.0.0-next.0" } }, "sha512-ItFouLvzSFE3ulNl4DKoWM3BGcbDCNVpIyy/Y3F2gC3aNiGLxtFUdffVqO5Z5hhYG+DFT5KULWaxmeFFpdbvaQ=="],
+    "prettier-plugin-svelte": ["prettier-plugin-svelte@4.1.0", "", { "peerDependencies": { "prettier": "^3.0.0", "svelte": "^5.0.0" } }, "sha512-YZkhA2Q9oOerFFG9tq+2f98WYT7Z2JgrybJrAyrB78jpsH9i/DdgplXemehuFPgsldetFNCcR/yCcYlDjPy94Q=="],
 
     "proxy-from-env": ["proxy-from-env@2.1.0", "", {}, "sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA=="],
 
