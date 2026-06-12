@@ -32,7 +32,7 @@ After installing, you will need to grab your Hackatime API key and manually add 
 ### Naming Your Projects
 To ensure your canvas displays correctly on the Hackatime dashboard: 
 * Go to **Home > ☰ > Set Project Name** 
-* You'll need to do this each time you start a project for it to track correctly on wakatime. 
+* You'll need to do this each time you start a project for it to track correctly on Hackatime.
 
 
 ## If Something Goes Wrong
