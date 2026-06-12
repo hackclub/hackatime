@@ -53,7 +53,9 @@
   let customTo = $state(to);
 
   const currentUser = page.props.layout.nav.current_user!;
-  const userCreatedAt = Date.parse(currentUser.created_at!);
+  const userCreatedAt = currentUser.created_at
+    ? Date.parse(currentUser.created_at)
+    : 0;
   // null = user hasn't been backfilled yet, so we can't trust the bitmap
   const participated = currentUser.event_participation
     ? new Set(currentUser.event_participation)

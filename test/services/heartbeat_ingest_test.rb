@@ -205,19 +205,30 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   test "import heartbeat ingest records event participation only for inserted heartbeats" do
     user = User.create!(timezone: "UTC")
     high_seas_time = Time.zone.parse("2024-12-15 12:00:00").to_f
+    heartbeat = {
+      entity: "/tmp/event.rb",
+      type: "file",
+      time: high_seas_time,
+      project: "hackatime",
+      language: "Ruby"
+    }
 
     HeartbeatIngest.call(
       user: user,
       mode: :import,
-      heartbeats: [ {
-        entity: "/tmp/event.rb",
-        type: "file",
-        time: high_seas_time,
-        project: "hackatime",
-        language: "Ruby"
-      } ]
+      heartbeats: [ heartbeat ]
     )
 
     assert user.reload.event_participation.set?(:high_seas)
+
+    user.update_column(:event_participation, 0)
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :import,
+      heartbeats: [ heartbeat ]
+    )
+
+    assert_not user.reload.event_participation.set?(:high_seas)
   end
 end
