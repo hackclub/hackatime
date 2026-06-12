@@ -1,6 +1,7 @@
 class Settings::ProfileController < Settings::BaseController
   def show = render_profile
   def update_region = update_section(region_params)
+  def update_display_name = update_section(display_name_params)
   def update_username = update_section(username_params)
 
   private
@@ -14,7 +15,8 @@ class Settings::ProfileController < Settings::BaseController
     options[:timezones] = pin_current_timezone(options[:timezones])
     {
       username_max_length: User::USERNAME_MAX_LENGTH,
-      user: user_props(keys: %i[country_code timezone username]),
+      display_name_max_length: User::DISPLAY_NAME_MAX_LENGTH,
+      user: user_props(keys: %i[country_code timezone display_name display_name_override username]),
       options: options,
       profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
       emails: @user.email_addresses.map { |email|
@@ -50,5 +52,6 @@ class Settings::ProfileController < Settings::BaseController
     permitted
   end
 
+  def display_name_params = params.require(:user).permit(:display_name_override)
   def username_params = params.require(:user).permit(:username)
 end

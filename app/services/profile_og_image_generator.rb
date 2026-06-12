@@ -75,7 +75,7 @@ class ProfileOgImageGenerator
     end
 
     def display_name
-      @display_name ||= user.display_name_override.presence || user.display_name
+      @display_name ||= user.display_name
     end
 
     def username
