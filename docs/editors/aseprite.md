@@ -26,10 +26,12 @@ After installing, you will need to grab your Hackatime API key and manually add 
 
 1. Open your global `.wakatime.cfg` file located in your user home directory.
 2. Structure the file with the custom Hackatime endpoint and your API key (grab your key from https://hackatime.hackclub.com/my/settings):
+
    ```ini
    [settings]
    api_url = https://hackatime.hackclub.com/api
    api_key = YOUR_HACKATIME_API_KEY
+   ```
 
 ### Naming Your Projects
 To ensure your canvas displays correctly on the Hackatime dashboard: 
