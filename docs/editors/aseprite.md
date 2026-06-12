@@ -16,7 +16,7 @@ Click this link to the **[setup page](https://hackatime.hackclub.com/my/wakatime
 
 We will be using a community plugin to connect Aseprite to your hackatime. Thanks to the creator: **[espcaa](https://github.com/espcaa)** who created this plugin to work with Hackatime. Here are the instructions:
 
-1. Go to this Github page: **[Wakatime-Aseprite](https://github.com/espcaa/wakatime-aseprite#js-repo-pjax-container)**
+1. Go to this GitHub page: **[Wakatime-Aseprite](https://github.com/espcaa/wakatime-aseprite)**
 2. Download the latest release from the **releases page**
 3. Open Aseprite
 4. Open your settings menu (`Ctrl + K` on Windows/Linux or `⌘ + ,` on macOS or **Edit > Preferences**)
