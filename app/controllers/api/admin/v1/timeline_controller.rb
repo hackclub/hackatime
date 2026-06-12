@@ -66,7 +66,8 @@ module Api
           all_ids_to_fetch = ([ current_user.id ] + user_ids_from_leaderboard).uniq
 
           users_data = User.where(id: all_ids_to_fetch)
-                           .select(:id, :username, :slack_username, :github_username, :slack_avatar_url, :github_avatar_url)
+                           .select(:id, :username, :slack_username, :github_username, :slack_avatar_url, :github_avatar_url, :display_name_override)
+                           .preload(:email_addresses)
                            .index_by(&:id)
 
           final_user_objects = []
