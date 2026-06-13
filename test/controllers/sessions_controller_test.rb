@@ -294,6 +294,29 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_not_equal old_token, verification_request.reload.token
   end
 
+  test "resend_email_verification revives an expired request" do
+    user = User.create!
+    verification_request = user.email_verification_requests.create!(email: "expired-resend@example.com")
+    verification_request.update_columns(
+      created_at: 2.weeks.ago,
+      updated_at: 2.weeks.ago,
+      expires_at: 2.weeks.ago
+    )
+    sign_in_as(user)
+
+    old_token = verification_request.token
+    assert verification_request.expired?
+
+    post resend_email_verification_auth_path, params: { email: verification_request.email }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+
+    verification_request.reload
+    assert_not_equal old_token, verification_request.token
+    assert_not verification_request.expired?, "resending should extend the expiry"
+  end
+
   test "unlink_email removes secondary signing-in email" do
     user = User.create!
     removable = user.email_addresses.create!(email: "remove-me@example.com", source: :signing_in)
