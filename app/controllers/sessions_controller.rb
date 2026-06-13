@@ -150,7 +150,7 @@ class SessionsController < ApplicationController
     email = params[:email].downcase
     conflict =
       ("#{email} is already linked to an account." if EmailAddress.exists?(email: email)) ||
-      ("#{email} already has a pending verification — check your inbox, or use \"Resend\" to get a new link." if EmailVerificationRequest.where(deleted_at: nil).exists?(email: email))
+      ("#{email} already has a pending verification — check your inbox, or use \"Resend\" to get a new link." if EmailVerificationRequest.kept.exists?(email: email))
     return redirect_to(my_settings_path, alert: conflict) if conflict
 
     verification_request = current_user.email_verification_requests.create!(email: email)
@@ -166,7 +166,7 @@ class SessionsController < ApplicationController
     return unless require_signed_in!("Please sign in first to resend a verification email.")
 
     email = params[:email].to_s.downcase
-    verification_request = current_user.email_verification_requests.valid.find_by(email: email)
+    verification_request = current_user.email_verification_requests.kept.find_by(email: email)
 
     unless verification_request
       redirect_to my_settings_path, alert: "There's no pending verification for #{email}. Try adding the email again."
@@ -197,7 +197,7 @@ class SessionsController < ApplicationController
     email_record = current_user.email_addresses.find_by(email: email)
 
     unless email_record
-      pending_request = current_user.email_verification_requests.where(deleted_at: nil).find_by(email: email)
+      pending_request = current_user.email_verification_requests.kept.find_by(email: email)
       return redirect_to(my_settings_path, alert: "#{email} isn't linked to your account.") unless pending_request
 
       pending_request.soft_delete!

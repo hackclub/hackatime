@@ -4,17 +4,18 @@ class EmailVerificationRequest < ApplicationRecord
   belongs_to :user
 
   validates :email, presence: true,
-                   uniqueness: { conditions: -> { where(deleted_at: nil) } },
+                   uniqueness: { conditions: -> { kept } },
                    format: { with: URI::MailTo::EMAIL_REGEXP }
-  validates :token, presence: true, uniqueness: { conditions: -> { where(deleted_at: nil) } }
+  validates :token, presence: true, uniqueness: { conditions: -> { kept } }
   validates :expires_at, presence: true
 
   before_validation :generate_token, on: :create
   before_validation :set_expiration, on: :create
   before_validation :downcase_email
 
-  scope :valid, -> { where("expires_at > ? AND deleted_at IS NULL", Time.current) }
-  scope :expired, -> { where("expires_at <= ? AND deleted_at IS NULL", Time.current) }
+  scope :kept, -> { where(deleted_at: nil) }
+  scope :valid, -> { kept.where("expires_at > ?", Time.current) }
+  scope :expired, -> { kept.where("expires_at <= ?", Time.current) }
 
   def expired? = expires_at <= Time.current
   def soft_delete! = update!(deleted_at: Time.current)

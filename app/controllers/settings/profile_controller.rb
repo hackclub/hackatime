@@ -37,7 +37,7 @@ class Settings::ProfileController < Settings::BaseController
     }
 
     pending_emails = @user.email_verification_requests
-      .where(deleted_at: nil)
+      .kept
       .order(created_at: :desc)
       .map { |request|
         {
@@ -46,7 +46,7 @@ class Settings::ProfileController < Settings::BaseController
           can_unlink: true,
           pending: true,
           expired: request.expired?,
-          can_resend: !request.expired? && request.resend_available?,
+          can_resend: request.resend_available?,
           resend_cooldown_seconds: request.resend_cooldown_seconds
         }
       }
