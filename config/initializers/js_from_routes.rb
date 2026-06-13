@@ -34,6 +34,7 @@ module JsFromRoutes
     github_unlink
     email_auth
     add_email_auth
+    resend_email_verification_auth
     unlink_email_auth
     stop_impersonating
 
