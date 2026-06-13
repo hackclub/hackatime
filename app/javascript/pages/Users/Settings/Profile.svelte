@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
+  import { Tooltip } from "bits-ui";
   import { Icon, ArrowPath, Trash } from "svelte-hero-icons";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
@@ -192,26 +193,47 @@
               <p class="text-xs text-muted">{email.source}</p>
             </div>
             {#if email.pending}
-              <Form
-                action={sessions.resendEmailVerification.path()}
-                method="post"
-                options={{ preserveScroll: true }}
-              >
-                <input type="hidden" name="email" value={email.email} />
-                <Button
-                  type="submit"
-                  unstyled
-                  disabled={!email.can_resend}
-                  title={email.can_resend
-                    ? "Resend verification email"
-                    : formatCooldown(email.resend_cooldown_seconds) ||
-                      "Resend available soon"}
-                  aria-label="Resend verification email"
-                  class="inline-flex items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:text-surface-content disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Icon src={ArrowPath} size="20" />
-                </Button>
-              </Form>
+              <Tooltip.Provider delayDuration={150}>
+                <Tooltip.Root>
+                  <Tooltip.Trigger>
+                    {#snippet child({ props })}
+                      <span {...props} class="inline-flex">
+                        <Form
+                          action={sessions.resendEmailVerification.path()}
+                          method="post"
+                          options={{ preserveScroll: true }}
+                        >
+                          <input
+                            type="hidden"
+                            name="email"
+                            value={email.email}
+                          />
+                          <Button
+                            type="submit"
+                            unstyled
+                            disabled={!email.can_resend}
+                            aria-label="Resend verification email"
+                            class="inline-flex items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:text-surface-content disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Icon src={ArrowPath} size="20" />
+                          </Button>
+                        </Form>
+                      </span>
+                    {/snippet}
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      sideOffset={6}
+                      class="z-[11000] rounded-md border border-surface-200 bg-darkless px-2.5 py-1.5 text-xs text-surface-content shadow-lg shadow-black/30"
+                    >
+                      {email.can_resend
+                        ? "Resend verification email"
+                        : formatCooldown(email.resend_cooldown_seconds) ||
+                          "Resend available soon"}
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              </Tooltip.Provider>
             {/if}
             {#if email.can_unlink}
               <Form
