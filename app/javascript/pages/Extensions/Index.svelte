@@ -29,6 +29,12 @@
       install: "https://hackclub.enterprise.slack.com/archives/C0AJLGZ73NE",
       buttonLabel: "Try it out!",
     },
+    {
+      name: "Hackabile",
+      source: "https://github.com/nilanshsharma23/hackabile",
+      description: "Android app for Hackatime.",
+      install: "https://github.com/nilanshsharma23/hackabile/releases/tag/v1.0",
+    },
   ];
 </script>
 
