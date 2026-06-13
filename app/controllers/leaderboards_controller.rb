@@ -64,44 +64,13 @@ class LeaderboardsController < InertiaController
   end
 
   def entries_payload(leaderboard, scope, country)
-    return { entries: [], total: 0 } unless leaderboard&.persisted?
-
     country_code = (scope == :country && country[:available]) ? country[:code] : nil
-    payload = LeaderboardPageCache.fetch(
+    LeaderboardEntries.fetch(
       leaderboard: leaderboard,
       scope: scope,
-      country_code: country_code
+      country_code: country_code,
+      viewer: current_user,
+      include_active_projects: true
     )
-
-    active_projects = Cache::ActiveProjectsJob.perform_now
-
-    visible_entries = payload[:entries].reject do |e|
-      e.dig(:user, :shadowbanned) && e[:user_id] != current_user&.id
-    end
-
-    entries = visible_entries.map do |e|
-      user = e[:user]
-      proj = active_projects&.dig(e[:user_id])
-      {
-        user_id: e[:user_id],
-        total_seconds: e[:total_seconds],
-        streak_count: e[:streak_count],
-        is_current_user: e[:user_id] == current_user&.id,
-        user: {
-          display_name: user[:display_name],
-          avatar_url: user[:avatar_url],
-          profile_path: user[:profile_path],
-          verified: user[:verified],
-          country_code: user[:country_code],
-          red: user[:red]
-        },
-        active_project: proj ? { name: proj.project_name, repo_url: proj.repo_url } : nil
-      }
-    end
-
-    {
-      entries: entries,
-      total: visible_entries.size
-    }
   end
 end
