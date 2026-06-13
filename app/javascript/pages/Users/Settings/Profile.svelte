@@ -222,7 +222,8 @@
                   type="submit"
                   variant="surface"
                   size="xs"
-                  class="rounded-md">{email.pending ? "Remove" : "Unlink"}</Button
+                  class="rounded-md"
+                  >{email.pending ? "Remove" : "Unlink"}</Button
                 >
               </Form>
             {/if}
