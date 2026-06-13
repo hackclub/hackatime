@@ -19,12 +19,39 @@ class Settings::ProfileController < Settings::BaseController
       user: user_props(keys: %i[country_code timezone display_name display_name_override username]),
       options: options,
       profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
-      emails: @user.email_addresses.map { |email|
-        { email: email.email,
-          source: email.source&.humanize || "Unknown",
-          can_unlink: @user.can_delete_email_address?(email) }
+      emails: email_props
+    }
+  end
+
+  def email_props
+    verified_emails = @user.email_addresses.map { |email|
+      {
+        email: email.email,
+        source: email.source&.humanize || "Unknown",
+        can_unlink: @user.can_delete_email_address?(email),
+        pending: false,
+        expired: false,
+        can_resend: false,
+        resend_cooldown_seconds: 0
       }
     }
+
+    pending_emails = @user.email_verification_requests
+      .where(deleted_at: nil)
+      .order(created_at: :desc)
+      .map { |request|
+        {
+          email: request.email,
+          source: "Pending verification",
+          can_unlink: true,
+          pending: true,
+          expired: request.expired?,
+          can_resend: !request.expired? && request.resend_available?,
+          resend_cooldown_seconds: request.resend_cooldown_seconds
+        }
+      }
+
+    verified_emails + pending_emails
   end
 
   # if the user is using a legacy TZ, we don't want to delete it from the list!
