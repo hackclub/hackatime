@@ -1,7 +1,7 @@
 module TimeRangeFilterable
   extend ActiveSupport::Concern
 
-  RANGES = {
+  STANDARD_RANGES = {
     today: {
       human_name: "Today",
       calculate: -> { Time.current.beginning_of_day..Time.current.end_of_day }
@@ -33,14 +33,35 @@ module TimeRangeFilterable
     last_12_months: {
       human_name: "Last 12 Months",
       calculate: -> { (Time.current - 12.months).beginning_of_day..Time.current.end_of_day }
-    },
-    stardance:        { human_name: "Stardance",        calculate: -> { TimeRangeFilterable.datetime_range("2026-05-30 09:00:00", "2026-08-30 23:59:59") } },
-    flavortown:       { human_name: "Flavortown",       calculate: -> { TimeRangeFilterable.event_range("2025-12-15", "2026-04-30") } },
-    summer_of_making: { human_name: "Summer of Making", calculate: -> { TimeRangeFilterable.event_range("2025-06-16", "2025-09-30") } },
-    high_seas:        { human_name: "High Seas",        calculate: -> { TimeRangeFilterable.event_range("2024-10-30", "2025-01-31") } },
-    low_skies:        { human_name: "Low Skies",        calculate: -> { TimeRangeFilterable.event_range("2024-10-3",  "2025-01-12") } },
-    scrapyard:        { human_name: "Scrapyard Global", calculate: -> { TimeRangeFilterable.event_range("2025-03-14", "2025-03-17") } }
+    }
   }.freeze
+
+  EVENTS_CONFIG_PATH = Rails.root.join("config", "events.json").freeze
+  EVENT_DEFINITIONS = JSON.parse(File.read(EVENTS_CONFIG_PATH)).freeze
+
+  EVENT_KEYS = begin
+    pairs = EVENT_DEFINITIONS.map do |key, cfg|
+      bit = cfg["bit"]
+      raise "events.json: #{key} missing 'bit'" unless bit.is_a?(Integer) && bit >= 0
+
+      [ bit, key.to_sym ]
+    end.sort_by(&:first)
+
+    expected = (0...pairs.length).to_a
+    actual = pairs.map(&:first)
+    raise "events.json: bits must be contiguous 0..N (got #{actual.inspect})" unless actual == expected
+
+    pairs.map(&:last).freeze
+  end
+
+  EVENT_RANGES = EVENT_DEFINITIONS.each_with_object({}) do |(key, cfg), memo|
+    memo[key.to_sym] = {
+      human_name: cfg["human_name"],
+      calculate: -> { TimeRangeFilterable.event_range_from_config(cfg) }
+    }
+  end.freeze
+
+  RANGES = STANDARD_RANGES.merge(EVENT_RANGES).freeze
 
   def self.event_range(from_date, to_date, timezone: "America/New_York")
     Time.use_zone(timezone) do
@@ -51,6 +72,14 @@ module TimeRangeFilterable
   def self.datetime_range(from_datetime, to_datetime, timezone: "America/New_York")
     Time.use_zone(timezone) do
       Time.zone.parse(from_datetime)..Time.zone.parse(to_datetime)
+    end
+  end
+
+  def self.event_range_from_config(config)
+    if config["all_day"] == false
+      datetime_range(config.fetch("starts_at"), config.fetch("ends_at"), timezone: config.fetch("timezone"))
+    else
+      event_range(config.fetch("starts_at"), config.fetch("ends_at"), timezone: config.fetch("timezone"))
     end
   end
 

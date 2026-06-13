@@ -97,7 +97,10 @@ class HeartbeatIngest
     )
 
     persisted = result.any? ? Heartbeat.new(result.first) : @user.heartbeats.find_by!(fields_hash:)
-    self.class.schedule_rollup_refresh(user: @user) if result.any? && @schedule_rollup_refresh
+    if result.any?
+      record_event_participation([ attrs[:time] ])
+      self.class.schedule_rollup_refresh(user: @user) if @schedule_rollup_refresh
+    end
     [ persisted, !result.any? ]
   end
 
@@ -165,7 +168,32 @@ class HeartbeatIngest
     return 0 if seen_hashes.empty?
     timestamp = Time.current
     records = seen_hashes.values.map { |r| r.merge(created_at: timestamp, updated_at: timestamp) }
-    ActiveRecord::Base.logger.silence { Heartbeat.insert_all(records, unique_by: [ :fields_hash ]).length }
+
+    result = ActiveRecord::Base.logger.silence do
+      Heartbeat.insert_all(records, unique_by: [ :fields_hash ], returning: [ "time" ])
+    end
+    record_event_participation(result.rows.flatten)
+    result.length
+  end
+
+  # OR each touched event's bit into the user's event_participation. The
+  # in-memory `unset?` check short-circuits before issuing any SQL once the
+  # bit is set, which is the common case after the first heartbeat per event.
+  def record_event_participation(times)
+    return if times.blank?
+
+    TimeRangeFilterable::EVENT_RANGES.each do |key, cfg|
+      next if @user.event_participation.set?(key)
+
+      range = cfg[:calculate].call
+      from_i = range.begin.to_i
+      to_i = range.end.to_i
+      next unless times.any? { |t| t >= from_i && t <= to_i }
+
+      mask = User.active_flags[:event_participation].to_i(key)
+      User.where(id: @user.id).update_all("event_participation = COALESCE(event_participation, 0) | #{mask}")
+      @user.event_participation.set(key) # keep in-memory copy in sync for subsequent calls
+    end
   end
 
   def parse_user_agent(user_agent)

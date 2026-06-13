@@ -2,8 +2,9 @@
   import { onMount } from "svelte";
   import type { Component } from "svelte";
   import FilterShell from "./FilterShell.svelte";
+  import eventsConfig from "../../../../../config/events.json";
 
-  const INTERVAL_LABELS: Record<string, string> = {
+  const STANDARD_INTERVAL_LABELS: Record<string, string> = {
     today: "Today",
     yesterday: "Yesterday",
     this_week: "This Week",
@@ -12,12 +13,21 @@
     last_30_days: "Last 30 Days",
     this_year: "This Year",
     last_12_months: "Last 12 Months",
-    stardance: "Stardance",
-    flavortown: "Flavortown",
-    summer_of_making: "Summer of Making",
-    high_seas: "High Seas",
-    low_skies: "Low Skies",
-    scrapyard: "Scrapyard Global",
+  };
+
+  type EventConfig = {
+    human_name: string;
+  };
+
+  const EVENT_INTERVAL_LABELS = Object.fromEntries(
+    Object.entries(eventsConfig as Record<string, EventConfig>).map(
+      ([key, cfg]) => [key, cfg.human_name],
+    ),
+  );
+
+  const INTERVAL_LABELS: Record<string, string> = {
+    ...STANDARD_INTERVAL_LABELS,
+    ...EVENT_INTERVAL_LABELS,
   };
 
   let {

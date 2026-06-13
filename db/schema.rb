@@ -656,6 +656,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_13_154503) do
     t.boolean "default_timezone_leaderboard", default: true, null: false
     t.string "deprecated_name"
     t.string "display_name_override"
+    t.integer "event_participation", default: 0, null: false
+    t.boolean "event_participation_backfilled", default: true, null: false
     t.text "github_access_token"
     t.string "github_avatar_url"
     t.string "github_uid"
