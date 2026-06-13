@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
+  import ViewReload from "hcicons-svelte/view-reload";
+  import Delete from "hcicons-svelte/delete";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
@@ -199,15 +201,16 @@
                 <input type="hidden" name="email" value={email.email} />
                 <Button
                   type="submit"
-                  variant="surface"
-                  size="xs"
-                  class="rounded-md"
+                  unstyled
                   disabled={!email.can_resend}
-                >
-                  {email.can_resend
-                    ? "Resend"
+                  title={email.can_resend
+                    ? "Resend verification email"
                     : formatCooldown(email.resend_cooldown_seconds) ||
-                      "Resend soon"}
+                      "Resend available soon"}
+                  aria-label="Resend verification email"
+                  class="inline-flex items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:text-surface-content disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ViewReload size={16} />
                 </Button>
               </Form>
             {/if}
@@ -220,11 +223,13 @@
                 <input type="hidden" name="email" value={email.email} />
                 <Button
                   type="submit"
-                  variant="surface"
-                  size="xs"
-                  class="rounded-md"
-                  >{email.pending ? "Remove" : "Unlink"}</Button
+                  unstyled
+                  title={email.pending ? "Remove email" : "Unlink email"}
+                  aria-label={email.pending ? "Remove email" : "Unlink email"}
+                  class="inline-flex items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:text-red"
                 >
+                  <Delete size={16} />
+                </Button>
               </Form>
             {/if}
           </div>
