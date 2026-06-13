@@ -31,7 +31,7 @@
     if (seconds <= 0) return "";
 
     const minutes = Math.ceil(seconds / 60);
-    return `Resend in ${minutes}m`;
+    return `Wait ${minutes} minutes before requesting another verification email`;
   }
 </script>
 
