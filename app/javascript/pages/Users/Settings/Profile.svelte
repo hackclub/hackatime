@@ -224,7 +224,7 @@
                   <Tooltip.Portal>
                     <Tooltip.Content
                       sideOffset={6}
-                      class="z-[11000] rounded-md border border-surface-200 bg-darkless px-2.5 py-1.5 text-xs text-surface-content shadow-lg shadow-black/30"
+                      class="bits-tooltip-content z-[11000] rounded-md border border-surface-200 bg-darkless px-2.5 py-1.5 text-xs text-surface-content shadow-lg shadow-black/30"
                     >
                       {email.can_resend
                         ? "Resend verification email"
