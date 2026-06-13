@@ -1,10 +1,10 @@
 <script lang="ts">
   import Button from "../../../components/Button.svelte";
+  import HackClubLogo from "../../../components/HackClubLogo.svelte";
+  import { sessions } from "../../../api";
+  import Slack from "hcicons-svelte/slack";
 
   let {
-    hca_auth_path,
-    slack_auth_path,
-    email_auth_path,
     sign_in_email,
     show_dev_tool,
     dev_magic_link,
@@ -12,9 +12,6 @@
     redirect_to,
     continue_param,
   }: {
-    hca_auth_path: string;
-    slack_auth_path: string;
-    email_auth_path: string;
     sign_in_email: boolean;
     show_dev_tool: boolean;
     dev_magic_link?: string | null;
@@ -22,6 +19,17 @@
     redirect_to?: string;
     continue_param?: string | null;
   } = $props();
+
+  const query = $derived(
+    continue_param ? { query: { continue: continue_param } } : undefined,
+  );
+  const hcaAuthPath = $derived(
+    query ? sessions.hcaNew.path(query) : sessions.hcaNew.path(),
+  );
+  const slackAuthPath = $derived(
+    query ? sessions.slackNew.path(query) : sessions.slackNew.path(),
+  );
+  const emailAuthPath = sessions.email.path();
 
   let isSigningIn = $state(false);
 </script>
@@ -47,7 +55,7 @@
     </div>
   {:else}
     <a
-      href={hca_auth_path}
+      href={hcaAuthPath}
       onclick={() => (isSigningIn = true)}
       class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-primary text-on-primary font-medium hover:opacity-90 transition-all"
     >
@@ -68,20 +76,16 @@
           ></path>
         </svg>
       {:else}
-        <img src="/images/icon-rounded.png" class="h-5 w-5" alt="Hack Club" />
+        <HackClubLogo class="h-5 w-5" />
       {/if}
       <span>Sign in with Hack Club</span>
     </a>
 
     <a
-      href={slack_auth_path}
+      href={slackAuthPath}
       class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-surface border border-surface-200 text-surface-content font-medium hover:bg-surface-100 transition-all"
     >
-      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-        <path
-          d="M6 15a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2h2zm1 0a2 2 0 0 1 2-2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2a2 2 0 0 1-2-2zm2-8a2 2 0 0 1-2-2a2 2 0 0 1 2-2a2 2 0 0 1 2 2v2zm0 1a2 2 0 0 1 2 2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2a2 2 0 0 1 2-2zm8 2a2 2 0 0 1 2-2a2 2 0 0 1 2 2a2 2 0 0 1-2 2h-2zm-1 0a2 2 0 0 1-2 2a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2a2 2 0 0 1 2 2zm-2 8a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2v-2zm0-1a2 2 0 0 1-2-2a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2a2 2 0 0 1-2 2z"
-        />
-      </svg>
+      <Slack size={20} />
       <span>Sign in with Slack</span>
     </a>
 
@@ -91,7 +95,7 @@
       <div class="flex-1 h-px bg-surface-200"></div>
     </div>
 
-    <form method="post" action={email_auth_path} data-turbo="false">
+    <form method="post" action={emailAuthPath} data-turbo="false">
       <input type="hidden" name="authenticity_token" value={csrf_token} />
       {#if redirect_to}
         <input type="hidden" name="redirect_to" value={redirect_to} />

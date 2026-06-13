@@ -20,4 +20,13 @@ if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   fi
 fi
 
+if [ "${RAILS_ENV}" == "production" ] && [ ! -f "db/geo/GeoLite2-City.mmdb" ]; then
+  if [ -n "${MAXMIND_ACCOUNT_ID}" ] && [ -n "${MAXMIND_LICENSE_KEY}" ]; then
+    echo "GeoLite2 database missing; downloading before startup..."
+    ./bin/rails runner "UpdateGeolite2DatabaseJob.perform_now"
+  else
+    echo "GeoLite2 database missing; MAXMIND credentials not set, skipping download."
+  fi
+fi
+
 exec "${@}"

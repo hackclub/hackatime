@@ -1,4 +1,6 @@
 class Admin::AdminUsersController < Admin::BaseController
+  include AdminLevelChangeMessages
+
   def index
     @current_user_id = current_user.id
     @ultraadmins = User.where(admin_level: :ultraadmin).order(:slack_username).to_a
@@ -11,17 +13,11 @@ class Admin::AdminUsersController < Admin::BaseController
     @user = User.find(params[:id])
     new_level = params[:admin_level]
 
-    if @user == current_user
-      redirect_to admin_admin_users_path, alert: "You cannot change your own admin level."
-      return
+    unless current_user.can_change_admin_level_of?(@user, new_level)
+      return redirect_to(admin_admin_users_path, alert: admin_level_change_denial_message(@user, new_level))
     end
 
-    if new_level == "ultraadmin" && current_user.admin_level != "ultraadmin"
-      redirect_to admin_admin_users_path, alert: "Only ultraadmins can grant the ultraadmin role."
-      return
-    end
-
-    if @user.set_admin_level(new_level)
+    if @user.set_admin_level(new_level, changed_by_user: current_user)
       redirect_to admin_admin_users_path, notice: "#{@user.display_name}'s admin level updated to #{new_level}."
     else
       redirect_to admin_admin_users_path, alert: "Failed to update admin level."
@@ -30,14 +26,7 @@ class Admin::AdminUsersController < Admin::BaseController
 
   def search
     query = params[:q].to_s.strip
-    @users = if query.present?
-      x = ActiveRecord::Base.sanitize_sql_like(query)
-      User.where("slack_username ILIKE :q OR username ILIKE :q OR slack_uid ILIKE :q", q: "%#{x}%")
-          .limit(20)
-    else
-      User.none
-    end
-
+    @users = query.present? ? User.fuzzy_ranked_search(query, limit: 20) : User.none
     render partial: "search_results", locals: { users: @users }
   end
 end

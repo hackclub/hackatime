@@ -1,26 +1,23 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
+  import HeartbeatPanel from "./components/HeartbeatPanel.svelte";
+  import EditorCard from "./components/EditorCard.svelte";
+  import CodeBlock from "./components/CodeBlock.svelte";
+  import NumberedStep from "./components/NumberedStep.svelte";
+  import HowDoIKnow from "./components/HowDoIKnow.svelte";
+  import Checkmark from "hcicons-svelte/checkmark";
+  import YoutubeFill from "hcicons-svelte/youtube-fill";
 
   interface Props {
     current_user_api_key: string;
     editor: string;
-    heartbeat_check_url: string;
   }
 
-  let { current_user_api_key, editor, heartbeat_check_url }: Props = $props();
+  let { current_user_api_key, editor }: Props = $props();
 
-  let hasHeartbeat = $state(false);
-  let heartbeatTimeAgo = $state("");
-  let detectedEditor = $state("");
-  let checkCount = $state(0);
-  let statusMessage = $state("Open a file in VS Code and start typing!");
-  let statusPanelClass = $state("border-darkless");
-  let copiedCode = $state("");
-
-  const messages = [
+  const vscodeMessages = [
     "Open any code file and start typing!",
     "Try editing some code in VS Code...",
     "Type a few characters in your editor!",
@@ -28,13 +25,10 @@
     "Make any edit in VS Code to continue!",
   ];
 
+  type Method = { name: string; code: string; note?: string };
   const editorData: Record<
     string,
-    {
-      name: string;
-      icon: string;
-      methods: Array<{ name: string; code: string; note?: string }>;
-    }
+    { name: string; icon: string; methods: Method[] }
   > = {
     vim: {
       name: "Vim",
@@ -85,55 +79,26 @@
     },
   };
 
-  function showSuccess(timeAgo: string, editorName: string) {
-    hasHeartbeat = true;
-    heartbeatTimeAgo = timeAgo;
-    detectedEditor = editorName;
-    statusPanelClass = "border-green bg-green/5";
-  }
-
-  async function checkHeartbeat() {
-    try {
-      const response = await fetch(heartbeat_check_url, {
-        headers: {
-          Authorization: `Bearer ${current_user_api_key}`,
-        },
-      });
-      const data = await response.json();
-
-      if (data.has_heartbeat) {
-        const heartbeatTime = new Date(data.heartbeat.created_at);
-        const now = new Date();
-        const secondsAgo = (now.getTime() - heartbeatTime.getTime()) / 1000;
-        const recentThreshold = 86400;
-
-        if (secondsAgo <= recentThreshold) {
-          showSuccess(data.time_ago, data.editor);
-          return;
-        }
-      }
-      throw new Error("No recent heartbeats");
-    } catch (error) {
-      checkCount++;
-
-      if (checkCount % 3 === 0) {
-        const msgIndex = Math.floor(checkCount / 3) % messages.length;
-        statusMessage = messages[msgIndex];
-      }
-    }
-  }
-
-  onMount(() => {
-    if (editor === "vscode") {
-      checkHeartbeat();
-      const interval = setInterval(() => {
-        if (!hasHeartbeat) {
-          checkHeartbeat();
-        }
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  });
+  const docLinks = [
+    {
+      href: "/docs/editors/pycharm",
+      icon: "/images/editor-icons/pycharm-128.png",
+      name: "PyCharm",
+      external: false,
+    },
+    {
+      href: "/docs/editors/sublime-text",
+      icon: "/images/editor-icons/sublime-text-128.png",
+      name: "Sublime Text",
+      external: false,
+    },
+    {
+      href: "/docs/editors/unity",
+      icon: "/images/editor-icons/unity-128.png",
+      name: "Unity",
+      external: false,
+    },
+  ];
 </script>
 
 <svelte:head>
@@ -146,141 +111,64 @@
 
     {#if editor === "vscode"}
       <div class="space-y-6">
-        <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm">
-          <div class="flex items-center gap-4 mb-6">
-            <img
-              src="/images/editor-icons/vs-code-128.png"
-              alt="VS Code"
-              class="w-12 h-12 object-contain"
-            />
-            <div>
-              <h3 class="text-xl font-semibold">
-                Install the VS Code Extension
-              </h3>
-              <p class="text-secondary text-sm">
-                Search for "WakaTime" in the marketplace.
-              </p>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div class="flex items-start gap-4">
-              <div
-                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
-              >
-                1
-              </div>
-              <div>
-                <p class="font-medium mb-1">Install the extension</p>
-                <p class="text-sm text-secondary">
-                  Open VS Code, go to Extensions (squares icon), search for <strong
-                    >WakaTime</strong
-                  >, and click Install.
-                  <a
-                    href="https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-cyan hover:underline">View on Marketplace</a
-                  >
-                </p>
-              </div>
-            </div>
-
-            <div class="flex items-start gap-4">
-              <div
-                class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
-              >
-                2
-              </div>
-              <div>
-                <p class="font-medium mb-1">Restart & Code</p>
-                <p class="text-sm text-secondary">
-                  Restart VS Code if prompted. Then, open any file and start
-                  typing to send your first heartbeat.
-                </p>
-              </div>
-            </div>
-
-            <div class="pt-4 border-t border-darkless">
-              <details class="group">
-                <summary
-                  class="cursor-pointer text-sm text-secondary hover:text-surface-content flex items-center gap-2 transition-colors"
-                >
-                  <svg
-                    class="w-4 h-4 transition-transform group-open:rotate-90"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                  How do I know it's working?
-                </summary>
-                <div class="mt-4 pl-6">
-                  <p class="text-sm mb-3 text-secondary">
-                    You'll see a clock icon and time spent coding in your status
-                    bar:
-                  </p>
-                  <img
-                    src="/images/editor-toolbars/vs-code.png"
-                    alt="WakaTime status bar"
-                    class="rounded-lg border border-darkless"
-                  />
-                </div>
-              </details>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="border border-darkless rounded-xl p-6 bg-dark transition-all duration-300 {statusPanelClass}"
+        <EditorCard
+          icon="/images/editor-icons/vs-code-128.png"
+          iconAlt="VS Code"
+          title="Install the VS Code Extension"
+          subtitle={'Search for "Hackatime Time Tracker" in the marketplace.'}
         >
-          {#if !hasHeartbeat}
-            <div
-              class="flex flex-col items-center justify-center text-center py-2"
-            >
-              <h4 class="text-lg font-semibold text-surface-content mb-1">
-                Waiting for you to code...
-              </h4>
-              <p class="text-sm text-secondary mb-4 max-w-sm">
-                {statusMessage}
+          <div class="space-y-4">
+            <NumberedStep n={1} title="Install the extension">
+              <p class="text-sm text-secondary">
+                Open VS Code, go to Extensions (squares icon), search for <strong
+                  >Hackatime Time Tracker</strong
+                >, and click Install.
+                <a
+                  href="https://marketplace.visualstudio.com/items?itemName=hackatime.hackatime-time-tracker"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-cyan hover:underline">View on Marketplace</a
+                >
               </p>
-            </div>
-          {:else}
+            </NumberedStep>
+
+            <NumberedStep n={2} title="Restart & Code">
+              <p class="text-sm text-secondary">
+                Restart VS Code if prompted. Then, open any file and start
+                typing to send your first heartbeat.
+              </p>
+            </NumberedStep>
+
+            <HowDoIKnow
+              image="/images/editor-toolbars/vs-code.png"
+              description="You'll see a clock icon and time spent coding in your status bar:"
+            />
+          </div>
+        </EditorCard>
+
+        <HeartbeatPanel
+          apiKey={current_user_api_key}
+          waitingTitle="Waiting for you to code..."
+          messages={vscodeMessages}
+          recentThresholdSeconds={86400}
+        >
+          {#snippet success({ timeAgo, editor: detected })}
             <div class="text-center py-2">
               <div
                 class="w-16 h-16 mx-auto mb-4 rounded-full bg-green/10 flex items-center justify-center"
               >
-                <svg
-                  class="w-8 h-8 text-green"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="3"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
+                <Checkmark size={32} class="text-green" />
               </div>
               <h4 class="text-xl font-bold text-surface-content mb-2">
                 Heartbeat detected!
               </h4>
               <p class="text-secondary text-sm mb-6">
-                Received {heartbeatTimeAgo} from {detectedEditor &&
-                detectedEditor.toLowerCase() !== "vscode" &&
-                detectedEditor.toLowerCase() !== "vs code"
-                  ? detectedEditor
+                Received {timeAgo} from {detected &&
+                detected.toLowerCase() !== "vscode" &&
+                detected.toLowerCase() !== "vs code"
+                  ? detected
                   : "VS Code"}.
               </p>
-
               <Button
                 href="/my/wakatime_setup/step-4"
                 size="xl"
@@ -289,8 +177,8 @@
                 Continue →
               </Button>
             </div>
-          {/if}
-        </div>
+          {/snippet}
+        </HeartbeatPanel>
 
         <div class="text-center">
           <Link
@@ -301,107 +189,66 @@
         </div>
       </div>
     {:else if editor === "godot"}
-      <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
-        <div class="flex items-center gap-4 mb-6">
-          <img
-            src="/images/editor-icons/godot-128.png"
-            alt="Godot"
-            class="w-12 h-12 object-contain"
-          />
-          <div>
-            <h3 class="text-xl font-semibold">Godot Setup</h3>
-            <p class="text-secondary text-sm">
-              Install the plugin with your preferred package manager.
+      <div class="mb-8">
+        <EditorCard
+          icon="/images/editor-icons/godot-128.png"
+          title="Godot Setup"
+          subtitle="Install the plugin with your preferred package manager."
+        >
+          <div class="space-y-4">
+            <p class="text-sm">
+              Godot requires a plugin installed for each project separately.
             </p>
-          </div>
-        </div>
-
-        <div class="space-y-4">
-          <p class="text-sm">
-            Godot requires a plugin installed for each project separately.
-          </p>
-
-          <div class="bg-darkless/50 rounded-lg p-4">
-            <ol class="list-decimal list-inside space-y-2 text-sm">
-              <li>Open your Godot project</li>
-              <li>Go to <strong>AssetLib</strong> tab</li>
-              <li>Search for <strong>"Godot Super Wakatime"</strong></li>
-              <li>Download and Install</li>
-              <li>
-                Enable in <strong>Project → Project Settings → Plugins</strong>
-              </li>
-            </ol>
-          </div>
-
-          <div class="pt-2">
-            <a
-              href="https://www.youtube.com/watch?v=a938RgsBzNg&t=29s"
-              target="_blank"
-              class="inline-flex items-center gap-2 text-cyan hover:underline text-sm font-medium"
-            >
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"
-                ><path
-                  d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"
-                /></svg
-              >
-              Watch setup tutorial
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
-        Next Step
-      </Button>
-    {:else if editor === "jetbrains"}
-      <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
-        <div class="flex items-center gap-4 mb-6">
-          <img
-            src="/images/editor-icons/jetbrains-128.png"
-            alt="JetBrains"
-            class="w-12 h-12 object-contain"
-          />
-          <div>
-            <h3 class="text-xl font-semibold">Set Up JetBrains IDEs</h3>
-            <p class="text-secondary text-sm">
-              Install the WakaTime extension for JetBrains IDEs (like IntelliJ
-              and PyCharm).
-            </p>
-          </div>
-        </div>
-
-        <div class="space-y-4">
-          <p class="text-sm">
-            JetBrains IDEs require a plugin installed for each IDE separately.
-          </p>
-
-          <div class="flex items-start gap-4">
-            <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
-            >
-              1
+            <div class="bg-darkless/50 rounded-lg p-4">
+              <ol class="list-decimal list-inside space-y-2 text-sm">
+                <li>Open your Godot project</li>
+                <li>Go to <strong>AssetLib</strong> tab</li>
+                <li>Search for <strong>"Godot Super Wakatime"</strong></li>
+                <li>Download and Install</li>
+                <li>
+                  Enable in <strong>Project → Project Settings → Plugins</strong
+                  >
+                </li>
+              </ol>
             </div>
-            <div>
-              <p class="font-medium mb-1">Open Settings</p>
+            <div class="pt-2">
+              <a
+                href="https://www.youtube.com/watch?v=a938RgsBzNg&t=29s"
+                target="_blank"
+                class="inline-flex items-center gap-2 text-cyan hover:underline text-sm font-medium"
+              >
+                <YoutubeFill size={16} />
+                Watch setup tutorial
+              </a>
+            </div>
+          </div>
+        </EditorCard>
+      </div>
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full"
+        >Next Step</Button
+      >
+    {:else if editor === "jetbrains"}
+      <div class="mb-8">
+        <EditorCard
+          icon="/images/editor-icons/jetbrains-128.png"
+          title="Set Up JetBrains IDEs"
+          subtitle="Install the WakaTime extension for JetBrains IDEs (like IntelliJ and PyCharm)."
+        >
+          <div class="space-y-4">
+            <p class="text-sm">
+              JetBrains IDEs require a plugin installed for each IDE separately.
+            </p>
+
+            <NumberedStep n={1} title="Open Settings">
               <p class="text-sm text-secondary">
                 Open your IDE and go to <b>Settings</b> (Ctrl+Alt+S on
                 Windows/Linux, Command+, on macOS), <b>Plugins</b>, then
                 <b>Marketplace</b>.
               </p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-4">
-            <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
-            >
-              2
-            </div>
-            <div>
-              <p class="font-medium mb-1">Install WakaTime Plugin</p>
+            </NumberedStep>
+            <NumberedStep n={2} title="Install WakaTime Plugin">
               <p class="text-sm text-secondary">
                 Search for <b>WakaTime</b> in the marketplace and click Install.
-
                 <a
                   href="https://plugins.jetbrains.com/plugin/7425-wakatime"
                   target="_blank"
@@ -409,88 +256,30 @@
                   class="text-cyan hover:underline">View on Marketplace</a
                 >
               </p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-4">
-            <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
-            >
-              3
-            </div>
-            <div>
-              <p class="font-medium mb-1">Restart & Code</p>
+            </NumberedStep>
+            <NumberedStep n={3} title="Restart & Code">
               <p class="text-sm text-secondary">
                 Restart your IDE if prompted. Then, open any file and start
                 typing to send your first heartbeat.
               </p>
-            </div>
-          </div>
+            </NumberedStep>
 
-          <div class="pt-4 border-t border-darkless">
-            <details class="group">
-              <summary
-                class="cursor-pointer text-sm text-secondary hover:text-surface-content flex items-center gap-2 transition-colors"
-              >
-                <svg
-                  class="w-4 h-4 transition-transform group-open:rotate-90"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-                How do I know it's working?
-              </summary>
-              <div class="mt-4 pl-6">
-                <p class="text-sm mb-3 text-secondary">
-                  You'll see a WakaTime icon and time spent coding in your
-                  status bar:
-                </p>
-                <img
-                  src="/images/editor-toolbars/jetbrains.png"
-                  alt="WakaTime status bar"
-                  class="rounded-lg border border-darkless"
-                />
-              </div>
-            </details>
+            <HowDoIKnow image="/images/editor-toolbars/jetbrains.png" />
           </div>
-        </div>
+        </EditorCard>
       </div>
-
-      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
-        Next Step
-      </Button>
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full"
+        >Next Step</Button
+      >
     {:else if editor === "sublime"}
-      <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
-        <div class="flex items-center gap-4 mb-6">
-          <img
-            src="/images/editor-icons/sublime-text-128.png"
-            alt="Sublime Text"
-            class="w-12 h-12 object-contain"
-          />
-          <div>
-            <h3 class="text-xl font-semibold">Set Up Sublime Text</h3>
-            <p class="text-secondary text-sm">
-              Use Package Control to install WakaTime for Sublime Text.
-            </p>
-          </div>
-        </div>
-
-        <div class="space-y-4">
-          <div class="flex items-start gap-4">
-            <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
-            >
-              1
-            </div>
-            <div>
-              <p class="font-medium mb-1">Install Package Control</p>
+      <div class="mb-8">
+        <EditorCard
+          icon="/images/editor-icons/sublime-text-128.png"
+          title="Set Up Sublime Text"
+          subtitle="Use Package Control to install WakaTime for Sublime Text."
+        >
+          <div class="space-y-4">
+            <NumberedStep n={1} title="Install Package Control">
               <p class="text-sm text-secondary">
                 If you don't have Package Control installed, install it at
                 <a
@@ -498,19 +287,11 @@
                   target="_blank"
                   rel="noopener noreferrer"
                   class="text-cyan hover:underline">packagecontrol.io</a
-                > to set it up first.
+                >
+                to set it up first.
               </p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-4">
-            <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
-            >
-              2
-            </div>
-            <div>
-              <p class="font-medium mb-1">Install WakaTime Plugin</p>
+            </NumberedStep>
+            <NumberedStep n={2} title="Install WakaTime Plugin">
               <p class="text-sm text-secondary">
                 Open the Command Palette (Ctrl+Shift+P on Windows/Linux,
                 Command+Shift+P on macOS), type <b
@@ -524,106 +305,50 @@
                   class="text-cyan hover:underline">View on Package Control</a
                 >
               </p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-4">
-            <div
-              class="flex-shrink-0 w-6 h-6 rounded-full bg-darkless text-surface-content flex items-center justify-center text-xs font-bold mt-0.5"
-            >
-              2
-            </div>
-            <div>
-              <p class="font-medium mb-1">Start Coding</p>
+            </NumberedStep>
+            <NumberedStep n={2} title="Start Coding">
               <p class="text-sm text-secondary">
                 After installing WakaTime, open any file and start typing to
                 send your first heartbeat.
               </p>
-            </div>
-          </div>
+            </NumberedStep>
 
-          <div class="pt-4 border-t border-darkless">
-            <details class="group">
-              <summary
-                class="cursor-pointer text-sm text-secondary hover:text-surface-content flex items-center gap-2 transition-colors"
-              >
-                <svg
-                  class="w-4 h-4 transition-transform group-open:rotate-90"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-                How do I know it's working?
-              </summary>
-              <div class="mt-4 pl-6">
-                <p class="text-sm mb-3 text-secondary">
-                  You'll see your time spent coding in your status bar, which
-                  looks something like <code>Today: 1h 23m</code>.
-                </p>
-              </div>
-            </details>
+            <HowDoIKnow
+              description={"You'll see your time spent coding in your status bar, which looks something like <code>Today: 1h 23m</code>."}
+            />
           </div>
-        </div>
+        </EditorCard>
       </div>
-
-      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
-        Next Step
-      </Button>
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full"
+        >Next Step</Button
+      >
     {:else if editorData[editor]}
-      <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
-        <div class="flex items-center gap-4 mb-6">
-          <img
-            src={editorData[editor].icon}
-            alt={editorData[editor].name}
-            class="w-12 h-12 object-contain"
-          />
-          <div>
-            <h3 class="text-xl font-semibold">
-              {editorData[editor].name} Setup
-            </h3>
-            <p class="text-secondary text-sm">
-              Install the plugin with your preferred package manager.
-            </p>
-          </div>
-        </div>
-
-        <div class="space-y-6">
-          {#each editorData[editor].methods as method, index}
-            {#if index > 0}
-              <div class="pt-6 border-t border-darkless"></div>
-            {/if}
-            <div>
-              <h4 class="text-sm font-medium mb-2 text-surface-content">
-                {method.name}
-              </h4>
-              <div class="relative group">
-                <div
-                  class="bg-darker border border-darkless rounded-lg overflow-x-auto"
-                >
-                  <pre
-                    class="p-4 pr-20 text-sm font-mono text-cyan whitespace-pre"><code
-                      >{method.code}</code
-                    ></pre>
-                </div>
+      {@const data = editorData[editor]}
+      <div class="mb-8">
+        <EditorCard
+          icon={data.icon}
+          title={`${data.name} Setup`}
+          subtitle="Install the plugin with your preferred package manager."
+        >
+          <div class="space-y-6">
+            {#each data.methods as method, i}
+              {#if i > 0}<div class="pt-6 border-t border-darkless"></div>{/if}
+              <div>
+                <h4 class="text-sm font-medium mb-2 text-surface-content">
+                  {method.name}
+                </h4>
+                <CodeBlock code={method.code} whitespace="pre" />
+                {#if method.note}
+                  <p class="text-xs text-secondary mt-2">{@html method.note}</p>
+                {/if}
               </div>
-              {#if method.note}
-                <p class="text-xs text-secondary mt-2">{@html method.note}</p>
-              {/if}
-            </div>
-          {/each}
-        </div>
+            {/each}
+          </div>
+        </EditorCard>
       </div>
-
-      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
-        Next Step
-      </Button>
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full"
+        >Next Step</Button
+      >
     {:else}
       <div class="bg-dark border border-darkless rounded-xl p-8 shadow-sm mb-8">
         <div class="mb-6">
@@ -649,39 +374,15 @@
           </div>
 
           <div class="pt-4 grid grid-cols-2 gap-3">
-            <Link
-              href="/docs/editors/pycharm"
-              class="flex items-center gap-3 bg-darkless/50 rounded-lg p-3 hover:bg-darkless transition-colors"
-            >
-              <img
-                src="/images/editor-icons/pycharm-128.png"
-                alt="PyCharm"
-                class="w-6 h-6"
-              />
-              <span class="text-sm">PyCharm</span>
-            </Link>
-            <Link
-              href="/docs/editors/sublime-text"
-              class="flex items-center gap-3 bg-darkless/50 rounded-lg p-3 hover:bg-darkless transition-colors"
-            >
-              <img
-                src="/images/editor-icons/sublime-text-128.png"
-                alt="Sublime"
-                class="w-6 h-6"
-              />
-              <span class="text-sm">Sublime Text</span>
-            </Link>
-            <Link
-              href="/docs/editors/unity"
-              class="flex items-center gap-3 bg-darkless/50 rounded-lg p-3 hover:bg-darkless transition-colors"
-            >
-              <img
-                src="/images/editor-icons/unity-128.png"
-                alt="Unity"
-                class="w-6 h-6"
-              />
-              <span class="text-sm">Unity</span>
-            </Link>
+            {#each docLinks as link}
+              <Link
+                href={link.href}
+                class="flex items-center gap-3 bg-darkless/50 rounded-lg p-3 hover:bg-darkless transition-colors"
+              >
+                <img src={link.icon} alt={link.name} class="w-6 h-6" />
+                <span class="text-sm">{link.name}</span>
+              </Link>
+            {/each}
             <a
               href="https://wakatime.com/editors"
               target="_blank"
@@ -694,9 +395,9 @@
         </div>
       </div>
 
-      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full">
-        Next Step
-      </Button>
+      <Button href="/my/wakatime_setup/step-4" size="xl" class="w-full"
+        >Next Step</Button
+      >
     {/if}
   </div>
 </div>

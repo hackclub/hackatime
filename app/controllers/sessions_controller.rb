@@ -10,34 +10,24 @@ class SessionsController < ApplicationController
   end
 
   def hca_create
-    if params[:error].present?
-      if params[:error] == "access_denied"
-        redirect_to root_path, alert: "Sign in cancelled"
-        return
-      end
-
-      report_message("HCA OAuth error: #{params[:error]}")
-      redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth. Error ID: #{Sentry.last_event_id}"
-      return
-    end
+    return if handle_oauth_error("HCA", redirect_path: root_path, alert_label: "Hack Club Auth")
 
     redirect_uri = url_for(action: :hca_create, only_path: false)
-
-    @user = User.from_hca_token(params[:code], redirect_uri)
+    @user = User.from_hca_token(params[:code], redirect_uri, client_ip)
 
     if @user&.persisted?
+      preserved_return_data = session[:return_data]
+      reset_session
       session[:user_id] = @user.id
-
-      PosthogService.identify(@user)
-      PosthogService.capture(@user, "user_signed_in", { method: "hca" })
+      session[:return_data] = preserved_return_data if preserved_return_data
+      notice = "Successfully signed in with Hack Club Auth! Welcome!"
 
       if @user.previously_new_record?
-        redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+        redirect_to my_wakatime_setup_path, notice: notice
       elsif session[:return_data]&.dig("url").present?
-        return_url = session[:return_data].delete("url")
-        redirect_to return_url, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+        redirect_to session[:return_data].delete("url"), notice: notice
       else
-        redirect_to root_path, notice: "Successfully signed in with Hack Club Auth! Welcome!"
+        redirect_to root_path, notice: notice
       end
     else
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
@@ -61,42 +51,32 @@ class SessionsController < ApplicationController
   end
 
   def slack_create
+    return if handle_oauth_error("Slack", redirect_path: root_path, alert_label: "Slack")
+
     redirect_uri = url_for(action: :slack_create, only_path: false)
-
-    if params[:error].present?
-      if params[:error] == "access_denied"
-        redirect_to root_path, alert: "Sign in cancelled"
-        return
-      end
-
-      report_message("Slack OAuth error: #{params[:error]}")
-      redirect_to root_path, alert: "Failed to authenticate with Slack. Error ID: #{Sentry.last_event_id}"
-      return
-    end
-
     slack_state = parse_slack_state(params[:state])
     unless valid_oauth_state?(provider: "Slack", session_key: :slack_oauth_state_nonce, received_nonce: slack_state&.dig("token"))
-      redirect_to root_path, alert: "Failed to authenticate with Slack"
-      return
+      return redirect_to(root_path, alert: "Failed to authenticate with Slack")
     end
 
-    @user = User.from_slack_token(params[:code], redirect_uri)
+    @user = User.from_slack_token(params[:code], redirect_uri, client_ip)
 
     if @user&.persisted?
+      reset_session
       session[:user_id] = @user.id
+      notice = "Successfully signed in with Slack! Welcome!"
 
-      PosthogService.identify(@user)
-      PosthogService.capture(@user, "user_signed_in", { method: "slack" })
+      continue_url = safe_return_url(slack_state&.dig("continue").presence)
 
       if slack_state&.dig("close_window")
         redirect_to close_window_path
       elsif @user.previously_new_record?
-        session[:return_data] = { "url" => safe_return_url(slack_state&.dig("continue").presence) }
-        redirect_to my_wakatime_setup_path, notice: "Successfully signed in with Slack! Welcome!"
-      elsif slack_state&.dig("continue").present? && safe_return_url(slack_state["continue"]).present?
-        redirect_to safe_return_url(slack_state["continue"]), notice: "Successfully signed in with Slack! Welcome!"
+        session[:return_data] = { "url" => continue_url }
+        redirect_to my_wakatime_setup_path, notice: notice
+      elsif continue_url.present?
+        redirect_to continue_url, notice: notice # codeql[rb/url-redirection]
       else
-        redirect_to root_path, notice: "Successfully signed in with Slack! Welcome!"
+        redirect_to root_path, notice: notice
       end
     else
       report_message("Failed to create/update user from Slack data")
@@ -104,15 +84,10 @@ class SessionsController < ApplicationController
     end
   end
 
-  def close_window
-    render :close_window, layout: false
-  end
+  def close_window = render(:close_window, layout: false)
 
   def github_new
-    unless current_user
-      redirect_to root_path, alert: "Please sign in first to link your GitHub account"
-      return
-    end
+    return unless require_signed_in!("Please sign in first to link your GitHub account")
 
     redirect_uri = url_for(action: :github_create, only_path: false)
     oauth_nonce = SecureRandom.hex(24)
@@ -123,28 +98,22 @@ class SessionsController < ApplicationController
   end
 
   def github_create
-    unless current_user
-      redirect_to root_path, alert: "Please sign in first to link your GitHub account"
-      return
-    end
+    return unless require_signed_in!("Please sign in first to link your GitHub account")
 
     redirect_uri = url_for(action: :github_create, only_path: false)
 
     if params[:error].present?
       report_message("GitHub OAuth error: #{params[:error]}")
-      redirect_to my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{Sentry.last_event_id}"
-      return
+      return redirect_to(my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{Sentry.last_event_id}")
     end
 
     unless valid_oauth_state?(provider: "GitHub", session_key: :github_oauth_state_nonce, received_nonce: params[:state])
-      redirect_to my_settings_path, alert: "Failed to link GitHub account"
-      return
+      return redirect_to(my_settings_path, alert: "Failed to link GitHub account")
     end
 
     @user = User.from_github_token(params[:code], redirect_uri, current_user)
 
     if @user&.persisted?
-      PosthogService.capture(@user, "github_linked")
       redirect_to my_settings_path, notice: "Successfully linked GitHub account!"
     else
       report_message("Failed to link GitHub account")
@@ -153,10 +122,7 @@ class SessionsController < ApplicationController
   end
 
   def github_unlink
-    unless current_user
-      redirect_to root_path, alert: "Please sign in first"
-      return
-    end
+    return unless require_signed_in!("Please sign in first")
 
     current_user.update!(github_access_token: nil, github_uid: nil, github_username: nil)
     Rails.logger.info "GitHub account unlinked for User ##{current_user.id}"
@@ -168,9 +134,9 @@ class SessionsController < ApplicationController
     continue_param = params[:continue]
 
     if Rails.env.production?
-      HandleEmailSigninJob.perform_later(email, continue_param)
+      HandleEmailSigninJob.perform_later(email, continue_param, client_ip)
     else
-      token = HandleEmailSigninJob.perform_now(email, continue_param)
+      token = HandleEmailSigninJob.perform_now(email, continue_param, client_ip)
       session[:dev_magic_link] = auth_token_url(token)
     end
 
@@ -179,32 +145,17 @@ class SessionsController < ApplicationController
   end
 
   def add_email
-    unless current_user
-      redirect_to root_path, alert: "Please sign in first to add an email"
-      return
-    end
+    return unless require_signed_in!("Please sign in first to add an email")
 
     email = params[:email].downcase
+    conflict =
+      ("This email is already associated with an account" if EmailAddress.exists?(email: email)) ||
+      ("This email is already pending verification" if EmailVerificationRequest.where(deleted_at: nil).exists?(email: email))
+    return redirect_to(my_settings_path, alert: conflict) if conflict
 
-    if EmailAddress.exists?(email: email)
-      redirect_to my_settings_path, alert: "This email is already associated with an account"
-      return
-    end
-
-    if EmailVerificationRequest.where(deleted_at: nil).exists?(email: email)
-      redirect_to my_settings_path, alert: "This email is already pending verification"
-      return
-    end
-
-    verification_request = current_user.email_verification_requests.create!(
-      email: email
-    )
-
-    if Rails.env.production?
-      EmailVerificationMailer.verify_email(verification_request).deliver_later
-    else
-      EmailVerificationMailer.verify_email(verification_request).deliver_now
-    end
+    verification_request = current_user.email_verification_requests.create!(email: email)
+    mailer = EmailVerificationMailer.verify_email(verification_request)
+    Rails.env.production? ? mailer.deliver_later : mailer.deliver_now
 
     redirect_to my_settings_path, notice: "Check your email to verify the new address!"
   rescue ActiveRecord::RecordInvalid => e
@@ -212,10 +163,7 @@ class SessionsController < ApplicationController
   end
 
   def resend_email_verification
-    unless current_user
-      redirect_to root_path, alert: "Please sign in first"
-      return
-    end
+    return unless require_signed_in!("Please sign in first")
 
     email = params[:email].to_s.downcase
     verification_request = current_user.email_verification_requests.valid.find_by(email: email)
@@ -234,11 +182,8 @@ class SessionsController < ApplicationController
 
     verification_request.refresh_for_resend!
 
-    if Rails.env.production?
-      EmailVerificationMailer.verify_email(verification_request).deliver_later
-    else
-      EmailVerificationMailer.verify_email(verification_request).deliver_now
-    end
+    mailer = EmailVerificationMailer.verify_email(verification_request)
+    Rails.env.production? ? mailer.deliver_later : mailer.deliver_now
 
     redirect_to my_settings_path, notice: "Verification email resent!"
   rescue ActiveRecord::RecordInvalid => e
@@ -246,40 +191,24 @@ class SessionsController < ApplicationController
   end
 
   def unlink_email
-    unless current_user
-      redirect_to root_path, alert: "Please sign in first to unlink an email"
-      return
-    end
+    return unless require_signed_in!("Please sign in first to unlink an email")
 
     email = params[:email].downcase
-
-    email_record = current_user.email_addresses.find_by(
-      email: email
-    )
+    email_record = current_user.email_addresses.find_by(email: email)
 
     unless email_record
-      pending_request = current_user.email_verification_requests
-                   .where(deleted_at: nil)
-                   .find_by(email: email)
-
-      unless pending_request
-        redirect_to my_settings_path, alert: "Email must exist to be removed"
-        return
-      end
+      pending_request = current_user.email_verification_requests.where(deleted_at: nil).find_by(email: email)
+      return redirect_to(my_settings_path, alert: "Email must exist to be removed") unless pending_request
 
       pending_request.soft_delete!
-      redirect_to my_settings_path, notice: "Pending email removed!"
-      return
+      return redirect_to(my_settings_path, notice: "Pending email removed!")
     end
 
     unless current_user.can_delete_email_address?(email_record)
-      redirect_to my_settings_path, alert: "Email must be registered for signing in to unlink"
-      return
+      return redirect_to(my_settings_path, alert: "Email must be registered for signing in to unlink")
     end
 
-    email_verification_request = current_user.email_verification_requests.find_by(
-      email: email
-    )
+    email_verification_request = current_user.email_verification_requests.find_by(email: email)
 
     email_record.destroy!
     email_verification_request&.soft_delete!
@@ -298,22 +227,18 @@ class SessionsController < ApplicationController
       return
     end
 
-    # If no verification request found, try the old sign-in token system
     valid_token = SignInToken.where(token: params[:token], used_at: nil)
-                            .where("expires_at > ?", Time.current)
-                            .first
+                            .where("expires_at > ?", Time.current).first
 
     if valid_token
       valid_token.mark_used!
+      reset_session
       session[:user_id] = valid_token.user_id
       session[:return_data] = valid_token.return_data || {}
 
-      user = User.find(valid_token.user_id)
-      PosthogService.identify(user)
-      PosthogService.capture(user, "user_signed_in", { method: "email" })
-
-      if valid_token.continue_param.present? && safe_return_url(valid_token.continue_param).present?
-        redirect_to safe_return_url(valid_token.continue_param), notice: "Successfully signed in!"
+      continue_url = safe_return_url(valid_token.continue_param)
+      if continue_url.present?
+        redirect_to continue_url, notice: "Successfully signed in!" # codeql[rb/url-redirection]
       else
         redirect_to root_path, notice: "Successfully signed in!"
       end
@@ -323,25 +248,18 @@ class SessionsController < ApplicationController
   end
 
   def impersonate
-    unless current_user && current_user.admin_level.in?([ "admin", "superadmin", "ultraadmin" ])
-      redirect_to root_path, alert: "You are not authorized to impersonate users"
-      return
-    end
+    return unless require_admin!(alert: "You are not authorized to impersonate users")
 
     user = User.find_by(id: params[:id])
-    unless user
-      redirect_to root_path, alert: "who?"
-      return
-    end
+    return redirect_to(root_path, alert: "who?") unless user
 
-    if user.admin_level.in?(%w[superadmin ultraadmin])
-      redirect_to root_path, alert: "nice try, you cant do that"
-      return
-    end
-    if user.admin_level == "admin" && !current_user.admin_level.in?(%w[superadmin ultraadmin])
-      redirect_to root_path, alert: "nice try, you cant do that"
-      return
-    end
+    actor_level = current_user.admin_level
+    target_level = user.admin_level
+    blocked =
+      target_level == "ultraadmin" ||
+      (target_level == "superadmin" && actor_level != "ultraadmin") ||
+      (target_level == "admin" && !actor_level.in?(%w[superadmin ultraadmin]))
+    return redirect_to(root_path, alert: "nice try, you cant do that") if blocked
 
     session[:impersonater_user_id] ||= current_user.id
     session[:user_id] = user.id
@@ -355,13 +273,13 @@ class SessionsController < ApplicationController
   end
 
   def destroy
-    PosthogService.capture(session[:user_id], "user_signed_out") if session[:user_id]
-    session[:user_id] = nil
-    session[:impersonater_user_id] = nil
+    reset_session
     redirect_to root_path, notice: "Signed out!"
   end
 
   private
+
+  def client_ip = request.headers["CF-Connecting-IP"].presence || request.remote_ip
 
   def parse_slack_state(raw_state)
     JSON.parse(raw_state)
@@ -381,5 +299,19 @@ class SessionsController < ApplicationController
 
     report_message("#{provider} OAuth state mismatch")
     false
+  end
+
+  # Handles OAuth callback errors. Returns true if a redirect was performed.
+  def handle_oauth_error(provider, redirect_path:, alert_label:)
+    return false if params[:error].blank?
+
+    if params[:error] == "access_denied"
+      redirect_to redirect_path, alert: "Sign in cancelled"
+      return true
+    end
+
+    report_message("#{provider} OAuth error: #{params[:error]}")
+    redirect_to redirect_path, alert: "Failed to authenticate with #{alert_label}. Error ID: #{Sentry.last_event_id}"
+    true
   end
 end

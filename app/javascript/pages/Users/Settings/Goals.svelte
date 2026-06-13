@@ -8,24 +8,31 @@
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { GoalsPageProps, ProgrammingGoal } from "./types";
+  import { settingsGoals } from "../../../api";
 
   const MAX_GOALS = 5;
   const QUICK_TARGETS = [
-    { label: "15m", seconds: 15 * 60 },
-    { label: "30m", seconds: 30 * 60 },
-    { label: "1h", seconds: 60 * 60 },
-    { label: "2h", seconds: 2 * 60 * 60 },
-    { label: "4h", seconds: 4 * 60 * 60 },
+    { label: "15m", seconds: 900 },
+    { label: "30m", seconds: 1800 },
+    { label: "1h", seconds: 3600 },
+    { label: "2h", seconds: 7200 },
+    { label: "4h", seconds: 14400 },
   ];
+  const UNIT_OPTIONS = [
+    { value: "minutes", label: "Minutes" },
+    { value: "hours", label: "Hours" },
+  ];
+  const PERIOD_LABELS: Record<ProgrammingGoal["period"], string> = {
+    day: "Daily",
+    week: "Weekly",
+    month: "Monthly",
+  };
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
-    create_goal_path,
-    user,
     programming_goals,
     options,
     errors,
@@ -34,65 +41,38 @@
 
   const goals = $derived(programming_goals || []);
   const hasReachedGoalLimit = $derived(goals.length >= MAX_GOALS);
-  const activeGoalSummary = $derived(
-    `${goals.length} Active Goal${goals.length === 1 ? "" : "s"}`,
-  );
+
+  const defaultPeriod = () =>
+    (options.goals.periods[0]?.value as ProgrammingGoal["period"]) || "day";
 
   let goalModalOpen = $state(false);
   let editingGoal = $state<ProgrammingGoal | null>(null);
   let targetAmount = $state(30);
   let targetUnit = $state<"minutes" | "hours">("minutes");
-  let selectedPeriod = $state<ProgrammingGoal["period"]>("day");
+  let selectedPeriod = $state<ProgrammingGoal["period"]>(defaultPeriod());
   let selectedLanguages = $state<string[]>([]);
   let selectedProjects = $state<string[]>([]);
   let submitting = $state(false);
 
-  const currentTargetSeconds = $derived(
-    Math.round(Number(targetAmount) * (targetUnit === "hours" ? 3600 : 60)),
-  );
-
-  const modalErrors = $derived(goal_form?.errors ?? []);
-
-  const unitOptions = [
-    { value: "minutes", label: "Minutes" },
-    { value: "hours", label: "Hours" },
-  ];
-
-  function onRequestSuccess() {
-    goalModalOpen = false;
-    editingGoal = null;
-  }
-
-  // Restore modal state from server on validation error
-  $effect(() => {
-    selectedPeriod =
-      (options.goals.periods[0]?.value as ProgrammingGoal["period"]) || "day";
-  });
-
   $effect(() => {
     goalModalOpen = goal_form?.open ?? false;
     if (!goal_form?.open) return;
-
-    const seconds = goal_form.target_seconds || 1800;
-    const unit = seconds % 3600 === 0 ? "hours" : "minutes";
-    selectedPeriod = (goal_form.period as ProgrammingGoal["period"]) || "day";
-    targetUnit = unit;
-    targetAmount = unit === "hours" ? seconds / 3600 : seconds / 60;
+    selectedPeriod =
+      (goal_form.period as ProgrammingGoal["period"]) || defaultPeriod();
+    setFromSeconds(goal_form.target_seconds || 1800);
     selectedLanguages = goal_form.languages || [];
     selectedProjects = goal_form.projects || [];
-
-    if (goal_form.mode === "edit" && goal_form.goal_id) {
-      editingGoal =
-        (programming_goals || []).find((g) => g.id === goal_form.goal_id) ??
-        null;
-    }
+    editingGoal =
+      goal_form.mode === "edit" && goal_form.goal_id
+        ? ((programming_goals || []).find((g) => g.id === goal_form.goal_id) ??
+          null)
+        : null;
   });
 
-  function formatPeriod(period: ProgrammingGoal["period"]) {
-    if (period === "day") return "Daily";
-    if (period === "week") return "Weekly";
-    return "Monthly";
-  }
+  const currentTargetSeconds = $derived(
+    Math.round(Number(targetAmount) * (targetUnit === "hours" ? 3600 : 60)),
+  );
+  const modalErrors = $derived(goal_form?.errors ?? []);
 
   function scopeSubtitle(goal: ProgrammingGoal) {
     const parts = [];
@@ -103,48 +83,55 @@
     return parts.join(" AND ") || "All programming activity";
   }
 
-  function resetBuilder() {
-    const defaultSeconds = options.goals.preset_target_seconds[0] || 1800;
-    selectedPeriod =
-      (options.goals.periods[0]?.value as ProgrammingGoal["period"]) || "day";
-    targetUnit = defaultSeconds % 3600 === 0 ? "hours" : "minutes";
-    targetAmount =
-      targetUnit === "hours" ? defaultSeconds / 3600 : defaultSeconds / 60;
-    selectedLanguages = [];
-    selectedProjects = [];
+  function setFromSeconds(seconds: number) {
+    targetUnit = seconds % 3600 === 0 ? "hours" : "minutes";
+    targetAmount = targetUnit === "hours" ? seconds / 3600 : seconds / 60;
   }
 
   function openCreateModal() {
     editingGoal = null;
-    resetBuilder();
+    selectedPeriod = defaultPeriod();
+    setFromSeconds(options.goals.preset_target_seconds[0] || 1800);
+    selectedLanguages = [];
+    selectedProjects = [];
     goalModalOpen = true;
   }
 
   function openEditModal(goal: ProgrammingGoal) {
     editingGoal = goal;
     selectedPeriod = goal.period;
-    targetUnit = goal.target_seconds % 3600 === 0 ? "hours" : "minutes";
-    targetAmount =
-      targetUnit === "hours"
-        ? goal.target_seconds / 3600
-        : goal.target_seconds / 60;
+    setFromSeconds(goal.target_seconds);
     selectedLanguages = [...goal.languages];
     selectedProjects = [...goal.projects];
     goalModalOpen = true;
   }
 
-  function applyQuickTarget(seconds: number) {
-    if (seconds % 3600 === 0) {
-      targetUnit = "hours";
-      targetAmount = seconds / 3600;
+  function submit(
+    method: "patch" | "post" | "delete",
+    url: string,
+    data: Record<string, unknown> = {},
+  ) {
+    if (submitting) return;
+    submitting = true;
+    const options = {
+      preserveScroll: true,
+      onSuccess: () => {
+        goalModalOpen = false;
+        editingGoal = null;
+      },
+      onFinish: () => {
+        submitting = false;
+      },
+    };
+    if (method === "delete") {
+      router.delete(url, options);
     } else {
-      targetUnit = "minutes";
-      targetAmount = seconds / 60;
+      router[method](url, data as never, options);
     }
   }
 
-  function goalData() {
-    return {
+  function saveGoal() {
+    const data = {
       goal: {
         period: selectedPeriod,
         target_seconds: currentTargetSeconds,
@@ -152,38 +139,15 @@
         projects: selectedProjects,
       },
     };
-  }
-
-  function saveGoal() {
-    if (submitting) return;
-    submitting = true;
-
-    const callbacks = {
-      preserveScroll: true,
-      onSuccess: onRequestSuccess,
-      onFinish: () => {
-        submitting = false;
-      },
-    };
-
     if (editingGoal) {
-      router.patch(editingGoal.update_path, goalData(), callbacks);
+      submit(
+        "patch",
+        settingsGoals.update.path({ goalId: editingGoal.id }),
+        data,
+      );
     } else {
-      router.post(create_goal_path, goalData(), callbacks);
+      submit("post", settingsGoals.create.path(), data);
     }
-  }
-
-  function deleteGoal(goal: ProgrammingGoal) {
-    if (submitting) return;
-    submitting = true;
-
-    router.delete(goal.destroy_path, {
-      preserveScroll: true,
-      onSuccess: onRequestSuccess,
-      onFinish: () => {
-        submitting = false;
-      },
-    });
   }
 </script>
 
@@ -191,14 +155,7 @@
   <title>Goals - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   <SectionCard
     id="user_programming_goals"
     title="Programming Goals"
@@ -209,7 +166,7 @@
       <p
         class="text-xs font-semibold uppercase tracking-wider text-secondary/80 sm:text-sm"
       >
-        {activeGoalSummary}
+        {goals.length} Active Goal{goals.length === 1 ? "" : "s"}
       </p>
     </div>
 
@@ -231,7 +188,7 @@
           >
             <div class="min-w-0">
               <p class="text-sm font-semibold text-surface-content">
-                {formatPeriod(goal.period)}: {secondsToDisplay(
+                {PERIOD_LABELS[goal.period]}: {secondsToDisplay(
                   goal.target_seconds,
                 )}
               </p>
@@ -239,7 +196,6 @@
                 {scopeSubtitle(goal)}
               </p>
             </div>
-
             <div class="flex items-center gap-2">
               <Button
                 type="button"
@@ -256,7 +212,11 @@
                 variant="surface"
                 size="xs"
                 class="rounded-md"
-                onclick={() => deleteGoal(goal)}
+                onclick={() =>
+                  submit(
+                    "delete",
+                    settingsGoals.destroy.path({ goalId: goal.id }),
+                  )}
                 disabled={submitting}
               >
                 Delete
@@ -307,12 +267,12 @@
           min="1"
           step="1"
           bind:value={targetAmount}
-          class="w-24 rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
+          class="w-24 rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
         />
         <Select
           id="goal_target_unit"
           bind:value={targetUnit}
-          items={unitOptions}
+          items={UNIT_OPTIONS}
         />
         <div class="flex items-center gap-2">
           <span class="text-sm text-muted">per</span>
@@ -325,8 +285,8 @@
       </div>
 
       <div class="flex flex-wrap gap-2">
-        {#each QUICK_TARGETS as quickTarget}
-          {@const isActive = quickTarget.seconds === currentTargetSeconds}
+        {#each QUICK_TARGETS as q}
+          {@const isActive = q.seconds === currentTargetSeconds}
           <Button
             type="button"
             variant={isActive ? "primary" : "surface"}
@@ -334,9 +294,9 @@
             class={isActive
               ? "rounded-full ring-2 ring-primary/40 ring-offset-1 ring-offset-surface"
               : "rounded-full"}
-            onclick={() => applyQuickTarget(quickTarget.seconds)}
+            onclick={() => setFromSeconds(q.seconds)}
           >
-            {quickTarget.label}
+            {q.label}
           </Button>
         {/each}
       </div>
@@ -349,7 +309,6 @@
           options={options.goals.selectable_languages}
           bind:selected={selectedLanguages}
         />
-
         <MultiSelectCombobox
           label="Projects (optional)"
           placeholder="Filter by project..."

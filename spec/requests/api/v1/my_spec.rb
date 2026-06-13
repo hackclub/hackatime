@@ -19,25 +19,36 @@ RSpec.describe 'Api::V1::My', type: :request do
   path '/api/v1/my/heartbeats/most_recent' do
     get('Get most recent heartbeat') do
       tags 'My Data'
-      description 'Returns the most recent heartbeat for the authenticated user. Useful for checking if the user is currently active.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      description 'Returns the most recent heartbeat for the authenticated user. Useful for checking if the user is currently active. ' \
+                  'Authenticate with your API key as a Bearer token in the `Authorization` header (HTTP Basic auth with the API key is also accepted).'
+      security [ { Bearer: [] } ]
       produces 'application/json'
 
-      parameter name: :source_type, in: :query, type: :string, description: 'Filter by source type (e.g. "direct_entry")'
-      parameter name: :editor, in: :query, type: :string, description: 'Filter by editor name (e.g. "VSCode")'
+      parameter name: :source_type, in: :query, type: :string, description: 'Filter by source type (e.g. "direct_entry"). If omitted, results exclude heartbeats with source_type "test_entry" by default.'
+      parameter name: :editor, in: :query, type: :string, description: 'Filter by editor name (e.g. "VSCode"). Matched case-insensitively.'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { 'dev-api-key-12345' }
         let(:source_type) { 'direct_entry' }
         let(:editor) { 'VSCode' }
 
+        schema type: :object,
+          properties: {
+            has_heartbeat: { type: :boolean, description: 'Whether a matching heartbeat was found.', example: true },
+            heartbeat: {
+              type: :object,
+              nullable: true,
+              description: 'The most recent matching heartbeat, or null when none is found.'
+            },
+            editor: { type: :string, nullable: true, description: 'Editor of the matching heartbeat, or null.', example: 'VS Code' },
+            time_ago: { type: :string, nullable: true, description: 'Human-readable time since the heartbeat (e.g. "5 minutes ago"), or null.', example: '5 minutes ago' }
+          },
+          required: [ 'has_heartbeat', 'heartbeat', 'editor', 'time_ago' ]
         run_test!
       end
 
-      response(401, 'unauthorized') do
+      response(401, 'unauthorized — Returned when the Authorization header is missing or the token does not match a known API key.') do
         let(:Authorization) { 'Bearer invalid' }
-        let(:api_key) { 'invalid' }
         let(:source_type) { 'direct_entry' }
         let(:editor) { 'VSCode' }
         run_test!
@@ -48,25 +59,36 @@ RSpec.describe 'Api::V1::My', type: :request do
   path '/api/v1/my/heartbeats' do
     get('Get heartbeats') do
       tags 'My Data'
-      description 'Returns a list of heartbeats for the authenticated user within a time range. This is the raw data stream.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      description 'Returns a list of heartbeats for the authenticated user within a time range. This is the raw data stream. ' \
+                  'Authenticate with your API key as a Bearer token in the `Authorization` header (HTTP Basic auth with the API key is also accepted).'
+      security [ { Bearer: [] } ]
       produces 'application/json'
 
-      parameter name: :start_time, in: :query, schema: { type: :string, format: :date_time }, description: 'Start time (ISO 8601)'
-      parameter name: :end_time, in: :query, schema: { type: :string, format: :date_time }, description: 'End time (ISO 8601)'
+      parameter name: :start_time, in: :query, schema: { type: :string, format: :date_time }, description: 'Start time (ISO 8601). Defaults to the beginning of the current day when omitted.'
+      parameter name: :end_time, in: :query, schema: { type: :string, format: :date_time }, description: 'End time (ISO 8601). Defaults to the end of the current day when omitted.'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { 'dev-api-key-12345' }
         let(:start_time) { 1.day.ago.iso8601 }
         let(:end_time) { Time.now.iso8601 }
 
+        schema type: :object,
+          properties: {
+            start_time: { type: :string, format: :date_time, description: 'Effective start of the queried range.', example: '2024-03-20T00:00:00Z' },
+            end_time: { type: :string, format: :date_time, description: 'Effective end of the queried range.', example: '2024-03-20T23:59:59Z' },
+            total_seconds: { type: :number, description: 'Total coding duration in seconds across the returned heartbeats.', example: 3600.0 },
+            heartbeats: {
+              type: :array,
+              description: 'Heartbeats in the range, ordered by time ascending.',
+              items: { '$ref' => '#/components/schemas/Heartbeat' }
+            }
+          },
+          required: [ 'start_time', 'end_time', 'total_seconds', 'heartbeats' ]
         run_test!
       end
 
-      response(401, 'unauthorized') do
+      response(401, 'unauthorized — Returned when the Authorization header is missing or the token does not match a known API key.') do
         let(:Authorization) { 'Bearer invalid' }
-        let(:api_key) { 'invalid' }
         let(:start_time) { 1.day.ago.iso8601 }
         let(:end_time) { Time.now.iso8601 }
         run_test!
@@ -85,7 +107,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
       parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
 
-      response(302, 'redirect') do
+      response(302, 'redirect', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:all_data) { true }
@@ -115,7 +137,7 @@ RSpec.describe 'Api::V1::My', type: :request do
                 schema: { type: :string },
                 description: 'API key for the selected remote import provider'
 
-      response(202, 'accepted') do
+      response(302, 'redirects to the imports page (errors are carried in flash)', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:"heartbeat_import[provider]") { "wakatime_dump" }
@@ -141,7 +163,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       parameter name: :interval, in: :query, type: :string, description: 'Time interval (e.g., daily, weekly). Default: daily'
       parameter name: :from, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
       parameter name: :to, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
-      response(200, 'successful') do
+      response(200, 'successful', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:interval) { 'daily' }
@@ -172,7 +194,7 @@ RSpec.describe 'Api::V1::My', type: :request do
         required: [ 'repo_url' ]
       }
 
-      response(302, 'redirect') do
+      response(302, 'redirect', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:project_name) { 'hackatime' }
@@ -197,7 +219,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
-      response(302, 'redirect') do
+      response(302, 'redirect', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:project_name) { 'hackatime' }
@@ -220,7 +242,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'application/json'
 
-      response(302, 'redirect') do
+      response(302, 'redirect', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:project_name) { 'hackatime' }
@@ -235,14 +257,14 @@ RSpec.describe 'Api::V1::My', type: :request do
     end
   end
 
-  path '/my/settings/rotate_api_key' do
+  path '/my/settings/privacy/rotate_api_key' do
     post('Rotate API Key') do
       tags 'My Settings'
-      description 'Rotate your API key. Returns the new token. Warning: Old token will stop working immediately.'
+      description 'Rotate your API key and redirect back to the privacy settings page (the new token is shown there via flash). Warning: the old token stops working immediately.'
       security [ Bearer: [], ApiKeyAuth: [] ]
-      produces 'application/json'
+      produces 'text/html'
 
-      response(200, 'successful') do
+      response(302, 'redirect', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
 
@@ -261,7 +283,7 @@ RSpec.describe 'Api::V1::My', type: :request do
 
       parameter name: :id, in: :path, type: :string, description: 'Heartbeat import run id'
 
-      response(200, 'successful') do
+      response(200, 'successful', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:id) do
@@ -287,7 +309,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'text/html'
 
-      response(302, 'redirect') do
+      response(302, 'redirect', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
 
@@ -302,7 +324,7 @@ RSpec.describe 'Api::V1::My', type: :request do
       security [ Bearer: [], ApiKeyAuth: [] ]
       produces 'text/html'
 
-      response(302, 'redirect') do
+      response(302, 'redirect', document: false) do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
 

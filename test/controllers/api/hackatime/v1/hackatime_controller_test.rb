@@ -1,4 +1,5 @@
 require "test_helper"
+require "stringio"
 
 class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationTest
   test "single text plain heartbeat normalizes hash payloads" do
@@ -27,6 +28,30 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal user.id, heartbeat.user_id
     assert_equal "vscode/1.0.0", heartbeat.user_agent
     assert_equal "coding", heartbeat.category
+  end
+
+  test "single heartbeat stores the Cloudflare JA4 header" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+    ja4 = "t13d1516h2_8daaf6152771_02713d6af862"
+
+    assert_difference([ "Heartbeat.count", "Ja4.count" ], 1) do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: {
+          entity: "src/main.rb",
+          project: "hackatime",
+          time: Time.current.to_f,
+          type: "file"
+        }.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain",
+          "CF-JA4" => ja4
+        }
+    end
+
+    assert_response :accepted
+    assert_equal ja4, Heartbeat.order(:id).last.ja4.fingerprint
   end
 
   test "single heartbeat resolves <<LAST_LANGUAGE>> from existing heartbeats" do
@@ -212,21 +237,32 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
         params: payload.to_json,
         headers: {
           "Authorization" => "Bearer #{api_key.token}",
-          "CONTENT_TYPE" => "text/plain"
+          "CONTENT_TYPE" => "text/plain",
+          "CF-Connecting-IP" => "203.0.113.10"
         }
     end
     assert_response :accepted
+    heartbeat = Heartbeat.order(:id).last
 
-    # Second request with same data should not create a duplicate
+    log_output = StringIO.new
+    previous_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(log_output)
+
+    # Second request with same data should not create a duplicate or log a uniqueness error
     assert_no_difference("Heartbeat.count") do
       post "/api/hackatime/v1/users/current/heartbeats",
         params: payload.to_json,
         headers: {
           "Authorization" => "Bearer #{api_key.token}",
-          "CONTENT_TYPE" => "text/plain"
+          "CONTENT_TYPE" => "text/plain",
+          "CF-Connecting-IP" => "203.0.113.20"
         }
     end
     assert_response :accepted
+    assert_equal heartbeat.id, JSON.parse(response.body)["id"]
+    assert_no_match(/RecordNotUnique|duplicate key|unique/i, log_output.string)
+  ensure
+    Rails.logger = previous_logger if previous_logger
   end
 
   test "bulk heartbeat normalizes permitted params" do

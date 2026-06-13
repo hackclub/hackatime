@@ -1,54 +1,26 @@
 module ApplicationHelper
-  def cache_stats
-    hits = Thread.current[:cache_hits] || 0
-    misses = Thread.current[:cache_misses] || 0
-    { hits: hits, misses: misses }
-  end
-
-  def requests_per_second
-    rps = RequestCounter.per_second
-    rps == :high_load ? "lots of req/sec" : "#{rps} req/sec"
-  end
-
-  def global_requests_per_second
-    rps = RequestCounter.global_per_second
-    rps == :high_load ? "lots of req/sec" : "#{rps} req/sec (global)"
-  end
-
   def current_theme
     theme_name = current_user&.theme
     return User::DEFAULT_THEME if theme_name.blank?
-    return theme_name if User.themes.key?(theme_name)
-
-    User::DEFAULT_THEME
+    User.themes.key?(theme_name) ? theme_name : User::DEFAULT_THEME
   end
 
-  def current_theme_color_scheme
-    User.theme_metadata(current_theme).fetch(:color_scheme, "dark")
-  end
+  def current_theme_color_scheme = User.theme_metadata(current_theme).fetch(:color_scheme, "dark")
+  def current_theme_color = User.theme_metadata(current_theme).fetch(:theme_color, "#c8394f")
 
-  def current_theme_color
-    User.theme_metadata(current_theme).fetch(:theme_color, "#c8394f")
-  end
+  ADMIN_TOOL_ROLES = {
+    admin_tool: %w[admin superadmin ultraadmin],
+    superadmin_tool: %w[superadmin ultraadmin],
+    ultraadmin_tool: %w[ultraadmin],
+    viewer_tool: %w[viewer]
+  }.freeze
 
-  def superadmin_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "superadmin" || current_user.admin_level == "ultraadmin")
-    concat content_tag(element, class: "superadmin-tool #{class_name}", **options, &block)
-  end
-
-  def admin_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "admin" || current_user.admin_level == "superadmin" || current_user.admin_level == "ultraadmin")
-    concat content_tag(element, class: "admin-tool #{class_name}", **options, &block)
-  end
-
-  def viewer_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "viewer")
-    concat content_tag(element, class: "viewer-tool #{class_name}", **options, &block)
-  end
-
-  def ultraadmin_tool(class_name = "", element = "div", **options, &block)
-    return unless current_user && (current_user.admin_level == "ultraadmin")
-    concat content_tag(element, class: "ultraadmin-tool #{class_name}", **options, &block)
+  ADMIN_TOOL_ROLES.each do |name, roles|
+    css_class = name.to_s.tr("_", "-")
+    define_method(name) do |class_name = "", element = "div", **options, &block|
+      return unless current_user && roles.include?(current_user.admin_level)
+      concat content_tag(element, class: "#{css_class} #{class_name}", **options, &block)
+    end
   end
 
   def dev_tool(class_name = "", element = "div", **options, &block)
@@ -58,107 +30,34 @@ module ApplicationHelper
 
   def country_to_emoji(country_code)
     return "" unless country_code.present?
-    c = country_code.upcase.chars.map { |c| (0x1F1E6 + c.ord - "A".ord).to_s(16) }
-    t = c.join("-")
-
+    code_path = country_code.upcase.chars.map { |c| (0x1F1E6 + c.ord - "A".ord).to_s(16) }.join("-")
     image_tag(
-      "https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/#{t}.svg",
-      alt: "#{country_code} flag",
-      class: "inline-block w-5 h-5 align-middle",
-      loading: "lazy"
+      "https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/#{code_path}.svg",
+      alt: "#{country_code} flag", class: "inline-block w-5 h-5 align-middle", loading: "lazy"
     )
   end
 
-  # infer country from timezone
-  def timezone_to_country(timezone)
-    return null unless timezone.present?
-    tz = ActiveSupport::TimeZone[timezone]
-    return null unless tz && tz.tzinfo.respond_to?(:country_code)
-    tz.tzinfo.country_code || null
-  end
-
-  def timezone_difference_in_seconds(timezone1, timezone2)
-    return 0 if timezone1 == timezone2
-
-    tz1 = ActiveSupport::TimeZone[timezone1]
-    tz2 = ActiveSupport::TimeZone[timezone2]
-
-    tz1.utc_offset - tz2.utc_offset
-  end
-
-  def timezone_difference_in_words(timezone1, timezone2)
-    diff = timezone_difference_in_seconds(timezone1, timezone2)
-    msg = distance_of_time_in_words(0, diff)
-
-    if diff.zero?
-      "same timezone"
-    elsif diff.positive?
-      "It's currently #{Time.zone.now.in_time_zone(timezone1).strftime("%H:%M")} in #{timezone1} (#{msg} ahead of you)"
-    else
-      "It's currently #{Time.zone.now.in_time_zone(timezone1).strftime("%H:%M")} in #{timezone1} (#{msg} behind you)"
-    end
-  end
-
-  def visualize_git_url(url)
-    return "" if url.blank?
-
-    "https://maxwofford.com/dandelion/?url=#{CGI.escape(url)}"
-  end
-
   def digital_time(time)
-    hours = time.to_i / 3600
-    minutes = (time.to_i % 3600) / 60
-    seconds = time.to_i % 60
-
-    [ hours, minutes, seconds ].map { |part| part.to_s.rjust(2, "0") }.join(":")
+    h, m, s = time.to_i.divmod(3600).then { |h, r| [ h, *r.divmod(60) ] }
+    [ h, m, s ].map { |part| part.to_s.rjust(2, "0") }.join(":")
   end
 
   def short_time_simple(time)
     hours = time.to_i / 3600
     minutes = (time.to_i % 3600) / 60
-
     return "0m" if hours.zero? && minutes.zero?
-
-    time_parts = []
-    time_parts << "#{hours}h" if hours.positive?
-    time_parts << "#{minutes}m" if minutes.positive?
-    time_parts.join(" ")
+    [ hours.positive? && "#{hours}h", minutes.positive? && "#{minutes}m" ].select { |p| p }.join(" ")
   end
 
   def short_time_detailed(time)
-    # ie. 5h 10m 10s
-    # ie. 10m 10s
-    # ie. 10m
-    hours = time.to_i / 3600
-    minutes = (time.to_i % 3600) / 60
-    seconds = time.to_i % 60
-
-    time_parts = []
-    time_parts << "#{hours}h" if hours.positive?
-    time_parts << "#{minutes}m" if minutes.positive?
-    time_parts << "#{seconds}s" if seconds.positive?
-    time_parts.join(" ")
+    # ie. 5h 10m 10s / 10m 10s / 10m
+    h, m, s = time.to_i.divmod(3600).then { |h, r| [ h, *r.divmod(60) ] }
+    [ h.positive? && "#{h}h", m.positive? && "#{m}m", s.positive? && "#{s}s" ].select { |p| p }.join(" ")
   end
 
-  def time_in_emoji(duration)
-    # ie. 15.hours => "🕒"
-    half_hours = duration.to_i / 1800
-    clocks = [
-        "🕛", "🕧",
-        "🕐", "🕜",
-        "🕑", "🕝",
-        "🕒", "🕞",
-        "🕓", "🕟",
-        "🕔", "🕠",
-        "🕕", "🕡",
-        "🕖", "🕢",
-        "🕗", "🕣",
-        "🕘", "🕤",
-        "🕙", "🕥",
-        "🕚", "🕦"
-    ]
-    clocks[half_hours % clocks.length]
-  end
+  CLOCK_EMOJIS = %w[🕛 🕧 🕐 🕜 🕑 🕝 🕒 🕞 🕓 🕟 🕔 🕠 🕕 🕡 🕖 🕢 🕗 🕣 🕘 🕤 🕙 🕥 🕚 🕦].freeze
+
+  def time_in_emoji(duration) = CLOCK_EMOJIS[(duration.to_i / 1800) % CLOCK_EMOJIS.length]
 
   def human_interval_name(key, from: nil, to: nil)
     if key.present? && Heartbeat.respond_to?(:humanize_range) && Heartbeat::RANGES.key?(key.to_sym)
@@ -170,51 +69,39 @@ module ApplicationHelper
     end
   end
 
+  EDITOR_DISPLAY_NAMES = {
+    "vscode" => "VSCode", "vs code" => "VSCode",
+    "pycharm" => "PyCharm",
+    "intellij" => "IntelliJ IDEA", "intellijidea" => "IntelliJ IDEA", "intellij idea" => "IntelliJ IDEA",
+    "webstorm" => "WebStorm", "phpstorm" => "PhpStorm", "datagrip" => "DataGrip",
+    "ktexteditor" => "Kate", "android studio" => "Android Studio", "visual studio" => "Visual Studio",
+    "sublime text" => "Sublime Text", "iterm2" => "iTerm2", "rubymine" => "RubyMine",
+    "opencode" => "OpenCode", "claudecode" => "Claude Code", "claude code" => "Claude Code",
+    "zoom.us" => "Zoom", "windowspowershell" => "PowerShell",
+    "goland" => "GoLand", "rustrover" => "RustRover"
+  }.freeze
+
+  OS_DISPLAY_NAMES = {
+    "darwin" => "macOS", "macos" => "macOS", "mac" => "macOS",
+    "wsl" => "WSL", "mozilla" => "Firefox", "vscode" => "VSCode"
+  }.freeze
+
   def display_editor_name(editor)
     return "Unknown" if editor.blank?
-
-    case editor.downcase
-    when "vscode", "vs code" then "VSCode"
-    when "pycharm" then "PyCharm"
-    when "intellij", "intellijidea" then "IntelliJ IDEA"
-    when "webstorm" then "WebStorm"
-    when "phpstorm" then "PhpStorm"
-    when "datagrip" then "DataGrip"
-    when "ktexteditor" then "Kate"
-    when "android studio" then "Android Studio"
-    when "visual studio" then "Visual Studio"
-    when "sublime text" then "Sublime Text"
-    when "iterm2" then "iTerm2"
-    when "rubymine" then "RubyMine"
-    else editor.capitalize
-    end
+    EDITOR_DISPLAY_NAMES[editor.downcase] || editor.capitalize
   end
 
   def display_os_name(os)
     return "Unknown" if os.blank?
-
-    case os.downcase
-    when "darwin" then "macOS"
-    when "macos" then "macOS"
-    when "wsl" then "WSL"
-    when "mozilla" then "Firefox"
-    else os.capitalize
-    end
+    OS_DISPLAY_NAMES[os.downcase] || os.capitalize
   end
 
-  def display_language_name(language)
-    LanguageUtils.display_name(language)
-  end
+  def display_language_name(language) = LanguageUtils.display_name(language)
 
-  def language_color(language)
-    LanguageUtils.color(language)
-  end
-
-  def modal_open_button(modal_id, text, **options)
-    button_tag text, {
-      type: "button",
-      onclick: "document.getElementById('#{modal_id}')?.dispatchEvent(new CustomEvent('modal:open'))"
-    }.merge(options)
+  def shorten_file_path(entity)
+    return entity if entity.blank?
+    parts = entity.split("/")
+    parts.length <= 3 ? entity : "#{parts.first}/…/#{parts.last(2).join("/")}"
   end
 
   def safe_asset_path(asset_name, fallback: nil)

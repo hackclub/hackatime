@@ -1,0 +1,57 @@
+diff --git a/dist/LayerCake.svelte b/dist/LayerCake.svelte
+index a7b2dfbfb3541b07ae1298935a53854b9615631e..830a5a8de9054d1d4cfa628ce39cad3c2853f955 100644
+--- a/dist/LayerCake.svelte
++++ b/dist/LayerCake.svelte
+@@ -35,10 +35,15 @@
+ 	/** @type {Number} [height=containerHeight] Override the automated height. */
+ 	export let height = undefined;
+ 
+-	/** @type {Number} [containerWidth=100] The bound container width. */
+-	export let containerWidth = width || 100;
+-	/** @type {Number} [containerHeight=100] The bound container height. */
+-	export let containerHeight = height || 100;
++	/** @type {Number|undefined} [containerWidth] The bound container width. */
++	export let containerWidth = undefined;
++	/** @type {Number|undefined} [containerHeight] The bound container height. */
++	export let containerHeight = undefined;
++
++	let measuredContainerWidth = width || containerWidth || 100;
++	let measuredContainerHeight = height || containerHeight || 100;
++	$: resolvedContainerWidth = width ?? containerWidth ?? measuredContainerWidth;
++	$: resolvedContainerHeight = height ?? containerHeight ?? measuredContainerHeight;
+ 
+ 	/**	@type {Element|undefined} [element] The .layercake-container `<div>` tag. Useful for bindings. */
+ 	export let element = undefined;
+@@ -179,8 +184,8 @@
+ 	 * Prefix these with `_` to keep things organized
+ 	 */
+ 	const _percentRange = writable(percentRange);
+-	const _containerWidth = writable(containerWidth);
+-	const _containerHeight = writable(containerHeight);
++	const _containerWidth = writable(resolvedContainerWidth);
++	const _containerHeight = writable(resolvedContainerHeight);
+ 	const _extents = writable(filterObject(extents));
+ 	const _data = writable(data);
+ 	const _flatData = writable(flatData || data);
+@@ -221,8 +226,8 @@
+ 	const _custom = writable(custom);
+ 
+ 	$: $_percentRange = percentRange;
+-	$: $_containerWidth = containerWidth;
+-	$: $_containerHeight = containerHeight;
++	$: $_containerWidth = resolvedContainerWidth;
++	$: $_containerHeight = resolvedContainerHeight;
+ 	$: $_extents = filterObject(extents);
+ 	$: $_data = data;
+ 	$: $_flatData = flatData || data;
+@@ -540,8 +545,8 @@
+ 		style:bottom={position === 'absolute' ? '0' : null}
+ 		style:left={position === 'absolute' ? '0' : null}
+ 		style:pointer-events={pointerEvents === false ? 'none' : null}
+-		bind:clientWidth={containerWidth}
+-		bind:clientHeight={containerHeight}
++		bind:clientWidth={measuredContainerWidth}
++		bind:clientHeight={measuredContainerHeight}
+ 	>
+ 		<slot
+ 			{element}

@@ -14,9 +14,7 @@ class LeaderboardsController < InertiaController
       country: country,
       leaderboard: leaderboard_metadata(leaderboard),
       is_logged_in: current_user.present?,
-      github_uid_blank: current_user&.github_uid.blank? || false,
-      github_auth_path: "/auth/github",
-      settings_path: my_settings_path,
+      github_uid_blank: current_user.present? && current_user.github_uid.blank?,
       entries: InertiaRails.defer { entries_payload(leaderboard, leaderboard_scope, country) }
     }
   end
@@ -36,12 +34,22 @@ class LeaderboardsController < InertiaController
   end
 
   def load_country_context
-    c = ISO3166::Country.new(current_user&.country_code)
+    code = current_user&.country_code.presence || country_code_from_request_ip
+    c = ISO3166::Country.new(code)
     {
       code: c&.alpha2,
       name: c&.common_name,
       available: c&.alpha2.present? && c&.common_name.present?
     }
+  end
+
+  def country_code_from_request_ip
+    ip = request.remote_ip
+    return nil if ip.blank?
+
+    Rails.cache.fetch([ "leaderboards", "ip_country", ip ], expires_in: 1.day) do
+      User.country_code_from_ip(ip)
+    end
   end
 
   def leaderboard_metadata(leaderboard)
@@ -67,7 +75,11 @@ class LeaderboardsController < InertiaController
 
     active_projects = Cache::ActiveProjectsJob.perform_now
 
-    entries = payload[:entries].map do |e|
+    visible_entries = payload[:entries].reject do |e|
+      e.dig(:user, :shadowbanned) && e[:user_id] != current_user&.id
+    end
+
+    entries = visible_entries.map do |e|
       user = e[:user]
       proj = active_projects&.dig(e[:user_id])
       {
@@ -89,7 +101,7 @@ class LeaderboardsController < InertiaController
 
     {
       entries: entries,
-      total: payload[:total_entries]
+      total: visible_entries.size
     }
   end
 end

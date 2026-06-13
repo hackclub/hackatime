@@ -6,7 +6,8 @@ Rails.application.configure do
 
   if Rails.env.development?
     config.good_job.execution_mode = :async # Run jobs in background threads in development
-    config.good_job.poll_interval = 5 # Poll every 5 seconds for scheduled jobs
+    config.good_job.poll_interval = 5
+    config.good_job.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(nil))
   else
     config.good_job.execution_mode = :external # Use external execution mode in production and staging
   end
@@ -14,8 +15,12 @@ Rails.application.configure do
   config.good_job.enable_cron = Rails.env.production?
 
   # https://github.com/bensheldon/good_job#configuring-your-queues
-  # 12 threads total
-  config.good_job.queues = "latency_critical:2; latency_10s:3; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:4"
+  config.good_job.queues =
+    if Rails.env.development?
+      "*:2"
+    else
+      "latency_critical:2; latency_10s:3; latency_5m,latency_10s:3; literally_whenever,*,latency_5m,latency_10s:4"
+    end
 
   config.good_job.cron = {
     # update_slack_status: {
@@ -34,14 +39,14 @@ Rails.application.configure do
       args: [ :last_7_days ],
       kwargs: { force_update: true }
     },
-    # sailors_log_poll: {
-    #   cron: "*/2 * * * *",
-    #   class: "SailorsLogPollForChangesJob"
-    # },
-    # update_slack_channel_cache: {
-    #   cron: "0 11 * * *",
-    #   class: "SlackCommand::UpdateSlackChannelCacheJob"
-    # },
+    sailors_log_poll: {
+      cron: "*/2 * * * *",
+      class: "SailorsLogPollForChangesJob"
+    },
+    update_slack_channel_cache: {
+      cron: "0 11 * * *",
+      class: "SlackCommand::UpdateSlackChannelCacheJob"
+    },
 
     slack_username_update: {
       cron: "0 0 * * *",
@@ -65,10 +70,6 @@ Rails.application.configure do
     #   cron: "* * * * *",
     #   class: "CleanupExpiredEmailVerificationRequestsJob"
     # },
-    # update_airtable_user_data: {
-    #   cron: "0 13 * * *",
-    #   class: "UpdateAirtableUserDataJob"
-    # },
     cache_active_user_graph_data_job: {
       cron: "*/10 * * * *",
       class: "Cache::ActiveUsersGraphDataJob",
@@ -87,16 +88,6 @@ Rails.application.configure do
     cache_active_projects: {
       cron: "* * * * *",
       class: "Cache::ActiveProjectsJob",
-      kwargs: { force_reload: true }
-    },
-    cache_usage_social_proof: {
-      cron: "* * * * *",
-      class: "Cache::UsageSocialProofJob",
-      kwargs: { force_reload: true }
-    },
-    cache_setup_social_proof: {
-      cron: "* * * * *",
-      class: "Cache::SetupSocialProofJob",
       kwargs: { force_reload: true }
     },
     cache_minutes_logged: {
@@ -122,6 +113,11 @@ Rails.application.configure do
     cleanup_successful_jobs: {
       cron: "0 0 * * *",
       class: "CleanupSuccessfulJobsJob"
+    },
+    update_geolite2_database: {
+      cron: "0 3 * * *",
+      class: "UpdateGeolite2DatabaseJob",
+      description: "Daily GeoLite2 database update from MaxMind"
     },
     process_account_deletions: {
       cron: "0 2 * * *",

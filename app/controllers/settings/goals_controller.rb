@@ -1,13 +1,9 @@
 class Settings::GoalsController < Settings::BaseController
-  def show
-    render_goals
-  end
+  def show = render_goals
 
   def create
     @goal = @user.goals.build(goal_params)
-
     if @goal.save
-      PosthogService.capture(@user, "settings_updated", { fields: [ "programming_goals" ] })
       redirect_to my_settings_goals_path, notice: "Goal created."
     else
       flash.now[:error] = @goal.errors.full_messages.to_sentence
@@ -17,9 +13,7 @@ class Settings::GoalsController < Settings::BaseController
 
   def update
     @goal = @user.goals.find(params[:goal_id])
-
     if @goal.update(goal_params)
-      PosthogService.capture(@user, "settings_updated", { fields: [ "programming_goals" ] })
       redirect_to my_settings_goals_path, notice: "Goal updated."
     else
       flash.now[:error] = @goal.errors.full_messages.to_sentence
@@ -28,50 +22,27 @@ class Settings::GoalsController < Settings::BaseController
   end
 
   def destroy
-    @goal = @user.goals.find(params[:goal_id])
-    @goal.destroy!
-    PosthogService.capture(@user, "settings_updated", { fields: [ "programming_goals" ] })
+    @user.goals.find(params[:goal_id]).destroy!
     redirect_to my_settings_goals_path, notice: "Goal deleted."
   end
 
   private
 
   def render_goals(status: :ok, goal_form: nil)
-    extra_props = {}
-    extra_props[:goal_form] = goal_form if goal_form
-
-    render_settings_page(
-      active_section: "goals",
-      settings_update_path: my_settings_goals_path,
-      status: status,
-      extra_props: extra_props
-    )
+    extra_props = goal_form ? { goal_form: goal_form } : {}
+    render_settings_page(active_section: "goals", status: status, extra_props: extra_props)
   end
 
   def section_props
-    {
-      settings_update_path: my_settings_goals_path,
-      create_goal_path: my_settings_goals_create_path,
-      user: user_props,
-      programming_goals: programming_goals_props,
-      options: options_props
-    }
+    { programming_goals: programming_goals_props, options: { goals: goal_options } }
   end
 
-  def goal_params
-    params.require(:goal).permit(:period, :target_seconds, languages: [], projects: [])
-  end
+  def goal_params = params.require(:goal).permit(:period, :target_seconds, languages: [], projects: [])
 
   def goal_form_props(goal, mode)
-    {
-      open: true,
-      mode: mode,
-      goal_id: goal.id&.to_s,
-      period: goal.period,
-      target_seconds: goal.target_seconds,
-      languages: goal.languages,
-      projects: goal.projects,
-      errors: goal.errors.full_messages
-    }
+    { open: true, mode: mode, goal_id: goal.id&.to_s,
+      period: goal.period, target_seconds: goal.target_seconds,
+      languages: goal.languages, projects: goal.projects,
+      errors: goal.errors.full_messages }
   end
 end

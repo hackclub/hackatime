@@ -11,31 +11,21 @@ module Doorkeeper
       @applications = current_resource_owner.oauth_applications.ordered_by(:created_at)
 
       respond_to do |format|
-        format.html do
-          render inertia: "OAuthApplications/Index", props: index_props
-        end
+        format.html { render inertia: "OAuthApplications/Index", props: index_props }
         format.json { head :no_content }
       end
     end
 
     def show
       respond_to do |format|
-        format.html do
-          render inertia: "OAuthApplications/Show", props: show_props
-        end
+        format.html { render inertia: "OAuthApplications/Show", props: show_props }
         format.json { render json: @application, as_owner: true }
       end
     end
 
     def new
       @application = Doorkeeper.config.application_model.new
-
-      render inertia: "OAuthApplications/New", props: form_props(
-        heading: I18n.t("doorkeeper.applications.new.title"),
-        subheading: "Create a new OAuth application to integrate with Hackatime.",
-        submit_path: oauth_applications_path,
-        form_method: "post"
-      )
+      render inertia: "OAuthApplications/New", props: form_props(action: :new)
     end
 
     def create
@@ -51,30 +41,12 @@ module Doorkeeper
           format.json { render json: @application, as_owner: true }
         end
       else
-        respond_to do |format|
-          format.html do
-            render inertia: "OAuthApplications/New", props: form_props(
-              heading: I18n.t("doorkeeper.applications.new.title"),
-              subheading: "Create a new OAuth application to integrate with Hackatime.",
-              submit_path: oauth_applications_path,
-              form_method: "post"
-            ), status: :unprocessable_entity
-          end
-          format.json do
-            errors = @application.errors.full_messages
-            render json: { errors: errors }, status: :unprocessable_entity
-          end
-        end
+        render_application_form_error(:new)
       end
     end
 
     def edit
-      render inertia: "OAuthApplications/Edit", props: form_props(
-        heading: I18n.t("doorkeeper.applications.edit.title"),
-        subheading: "Update the settings for #{@application.name}.",
-        submit_path: oauth_application_path(@application),
-        form_method: "patch"
-      )
+      render inertia: "OAuthApplications/Edit", props: form_props(action: :edit)
     end
 
     def update
@@ -86,20 +58,7 @@ module Doorkeeper
           format.json { render json: @application, as_owner: true }
         end
       else
-        respond_to do |format|
-          format.html do
-            render inertia: "OAuthApplications/Edit", props: form_props(
-              heading: I18n.t("doorkeeper.applications.edit.title"),
-              subheading: "Update the settings for #{@application.name}.",
-              submit_path: oauth_application_path(@application),
-              form_method: "patch"
-            ), status: :unprocessable_entity
-          end
-          format.json do
-            errors = @application.errors.full_messages
-            render json: { errors: errors }, status: :unprocessable_entity
-          end
-        end
+        render_application_form_error(:edit)
       end
     end
 
@@ -128,64 +87,61 @@ module Doorkeeper
             flash[:alert] = I18n.t(:alert, scope: i18n_scope(:rotate_secret))
             redirect_to oauth_application_url(@application)
           end
-          format.json do
-            errors = @application.errors.full_messages
-            render json: { errors: errors }, status: :unprocessable_entity
-          end
+          format.json { render json: { errors: @application.errors.full_messages }, status: :unprocessable_entity }
         end
       end
     end
 
     private
 
+    FORM_LABELS = {
+      new: { component: "OAuthApplications/New", title_key: "doorkeeper.applications.new.title",
+             subheading: "Create a new OAuth application to integrate with Hackatime.",
+             form_mode: "new", form_method: "post" },
+      edit: { component: "OAuthApplications/Edit", title_key: "doorkeeper.applications.edit.title",
+              subheading_template: "Update the settings for %{name}.",
+              form_mode: "edit", form_method: "patch" }
+    }.freeze
+
+    def render_application_form_error(action)
+      meta = FORM_LABELS[action]
+      respond_to do |format|
+        format.html do
+          render inertia: meta[:component], props: form_props(action: action), status: :unprocessable_entity
+        end
+        format.json { render json: { errors: @application.errors.full_messages }, status: :unprocessable_entity }
+      end
+    end
+
     def set_application
       @application = current_resource_owner.oauth_applications.find(params[:id])
     end
 
     def application_params
-      params.require(:doorkeeper_application)
-            .permit(:name, :redirect_uri, :scopes, :confidential)
+      permitted = params.require(:doorkeeper_application)
+        .permit(:name, :redirect_uri, :confidential, :redirect_to_hca_login, scopes: [])
+      permitted[:scopes] = permitted[:scopes].compact_blank.join(" ")
+      permitted
     end
 
-    def i18n_scope(action)
-      %i[doorkeeper flash applications] << action
-    end
+    def i18n_scope(action) = %i[doorkeeper flash applications] << action
 
-    def current_resource_owner
-      current_user
-    end
+    def current_resource_owner = current_user
 
     def authenticate_oauth_owner!
-      return if current_resource_owner
-
-      redirect_to signin_path(continue: request.fullpath)
+      redirect_to signin_path(continue: request.fullpath) unless current_resource_owner
     end
 
     def index_props
-      {
-        page_title: "OAuth Applications",
-        heading: I18n.t("doorkeeper.applications.index.title"),
-        subheading: "Manage your OAuth applications that integrate with Hackatime.",
-        new_application_path: new_oauth_application_path,
-        applications: @applications.map { |application|
-          {
-            id: application.id,
-            name: application.name,
-            verified: application.verified?,
-            confidential: application.confidential?,
-            scopes: application.scopes.to_a.map(&:to_s),
-            redirect_uris: redirect_uris_for(application),
-            show_path: oauth_application_path(application),
-            edit_path: edit_oauth_application_path(application),
-            destroy_path: oauth_application_path(application)
-          }
-        }
-      }
+      { page_title: "OAuth Applications",
+        applications: @applications.map { |a|
+          { id: a.id, name: a.name, verified: a.verified?, confidential: a.confidential?,
+            scopes: a.scopes.to_a.map(&:to_s), redirect_uris: redirect_uris_for(a) }
+        } }
     end
 
     def show_props
       secret = flash[:application_secret].presence || @application.plaintext_secret
-
       {
         page_title: "#{@application.name} - OAuth Application",
         heading: I18n.t("doorkeeper.applications.show.title", name: @application.name),
@@ -196,66 +152,40 @@ module Doorkeeper
           uid: @application.uid,
           verified: @application.verified?,
           confidential: @application.confidential?,
+          redirect_to_hca_login: @application.redirect_to_hca_login?,
           scopes: @application.scopes.to_a.map(&:to_s),
-          redirect_uris: redirect_uris_for(@application).map { |uri|
-            {
-              value: uri,
-              authorize_path: oauth_authorization_path(
-                client_id: @application.uid,
-                redirect_uri: uri,
-                response_type: "code",
-                scope: @application.scopes.to_s
-              )
-            }
-          },
-          edit_path: edit_oauth_application_path(@application),
-          destroy_path: oauth_application_path(@application),
-          rotate_secret_path: rotate_secret_oauth_application_path(@application),
-          index_path: oauth_applications_path,
-          toggle_verified_path: (
-            current_user&.admin_level_superadmin? ?
-              toggle_verified_admin_oauth_application_path(@application) :
-              nil
-          )
+          redirect_uris: redirect_uris_for(@application),
+          can_toggle_verified: current_user&.admin_level_superadmin? || current_user&.admin_level_ultraadmin? || false
         },
         secret: {
           value: secret,
           hashed: secret.blank? && Doorkeeper.config.application_secret_hashed?,
           just_rotated: flash[:application_secret].present?
         },
-        labels: {
-          application_id: I18n.t("doorkeeper.applications.show.application_id"),
-          secret: I18n.t("doorkeeper.applications.show.secret"),
-          secret_hashed: I18n.t("doorkeeper.applications.show.secret_hashed"),
-          scopes: I18n.t("doorkeeper.applications.show.scopes"),
-          confidential: I18n.t("doorkeeper.applications.show.confidential"),
-          callback_urls: I18n.t("doorkeeper.applications.show.callback_urls"),
-          actions: I18n.t("doorkeeper.applications.show.actions"),
-          not_defined: I18n.t("doorkeeper.applications.show.not_defined")
-        },
+        labels: %i[application_id secret secret_hashed scopes confidential callback_urls actions not_defined]
+                  .index_with { |k| I18n.t("doorkeeper.applications.show.#{k}") },
         confirmations: {
           rotate_secret: "Are you sure? This will invalidate your current secrets and break existing integrations."
         }
       }
     end
 
-    def form_props(heading:, subheading:, submit_path:, form_method:)
+    def form_props(action:)
+      meta = FORM_LABELS[action]
+      heading = I18n.t(meta[:title_key])
+      subheading = meta[:subheading] || format(meta[:subheading_template], name: @application.name)
       {
         page_title: heading,
         heading: heading,
         subheading: subheading,
-        submit_path: submit_path,
-        form_method: form_method,
-        cancel_path: oauth_applications_path,
+        form_mode: meta[:form_mode],
+        form_method: meta[:form_method],
         labels: {
           submit: I18n.t("doorkeeper.applications.buttons.submit"),
           cancel: I18n.t("doorkeeper.applications.buttons.cancel")
         },
-        help_text: {
-          redirect_uri: I18n.t("doorkeeper.applications.help.redirect_uri"),
-          blank_redirect_uri: I18n.t("doorkeeper.applications.help.blank_redirect_uri"),
-          confidential: I18n.t("doorkeeper.applications.help.confidential")
-        },
+        help_text: %i[redirect_uri blank_redirect_uri confidential]
+                     .index_with { |k| I18n.t("doorkeeper.applications.help.#{k}") },
         allow_blank_redirect_uri: Doorkeeper.configuration.allow_blank_redirect_uri?(@application),
         application: {
           id: @application.id,
@@ -263,6 +193,7 @@ module Doorkeeper
           name: @application.name.to_s,
           redirect_uri: @application.redirect_uri.to_s,
           confidential: @application.confidential?,
+          redirect_to_hca_login: @application.redirect_to_hca_login?,
           verified: @application.verified?,
           selected_scopes: selected_scopes_for(@application)
         },
@@ -280,25 +211,19 @@ module Doorkeeper
     def selected_scopes_for(application)
       scopes = application.scopes.to_a.map(&:to_s)
       return scopes if scopes.any? || application.persisted?
-
       Doorkeeper.configuration.default_scopes.to_a.map(&:to_s)
     end
 
     def all_scope_options
       default_scopes = Doorkeeper.configuration.default_scopes.to_a.map(&:to_s)
       optional_scopes = Doorkeeper.configuration.optional_scopes.to_a.map(&:to_s)
-
       (default_scopes + optional_scopes).uniq.map { |scope|
-        {
-          value: scope,
+        { value: scope,
           description: I18n.t(scope, scope: %i[doorkeeper scopes], default: scope.humanize),
-          default: default_scopes.include?(scope)
-        }
+          default: default_scopes.include?(scope) }
       }
     end
 
-    def redirect_uris_for(application)
-      application.redirect_uri.to_s.split
-    end
+    def redirect_uris_for(application) = application.redirect_uri.to_s.split
   end
 end

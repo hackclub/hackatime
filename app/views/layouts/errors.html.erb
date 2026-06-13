@@ -12,8 +12,10 @@
     <%= csp_meta_tag %>
 
     <%= favicon_link_tag asset_path('favicon.png'), type: 'image/png' %>
-    <%= stylesheet_link_tag :app %>
-    <%= stylesheet_link_tag 'tailwind', 'data-turbo-track': 'reload' %>
+    <% unless Rails.env.test? %>
+      <%= vite_stylesheet_tag "application" %>
+      <%= vite_client_tag %>
+    <% end %>
   </head>
 
   <body class="bg-surface">

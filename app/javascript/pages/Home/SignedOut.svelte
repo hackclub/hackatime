@@ -1,5 +1,6 @@
 <script module lang="ts">
-  export const layout = false;
+  import MarketingLayout from "../../layouts/MarketingLayout.svelte";
+  export const layout = MarketingLayout;
 </script>
 
 <script lang="ts">
@@ -13,23 +14,12 @@
   import MarketingFooter from "../../components/MarketingFooter.svelte";
 
   type HomeStats = { seconds_tracked?: number; users_tracked?: number };
-
   type FlashMessage = { message: string; class_name: string };
 
   let {
-    hca_auth_path,
-    slack_auth_path,
-    email_auth_path,
-    sign_in_email,
-    show_dev_tool,
-    dev_magic_link,
-    csrf_token,
     home_stats,
     flash = [],
   }: {
-    hca_auth_path: string;
-    slack_auth_path: string;
-    email_auth_path: string;
     sign_in_email: boolean;
     show_dev_tool: boolean;
     dev_magic_link?: string | null;
@@ -38,25 +28,8 @@
     flash?: FlashMessage[];
   } = $props();
 
-  let previousTheme = $state<string | null>(null);
-
-  $effect(() => {
-    const html = document.documentElement;
-    previousTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "gruvbox_dark");
-
-    const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
-    colorSchemeMeta?.setAttribute("content", "dark");
-
-    return () => {
-      if (previousTheme) {
-        html.setAttribute("data-theme", previousTheme);
-      }
-    };
-  });
-
-  const numberFormatter = new Intl.NumberFormat("en-US");
-  const formatNumber = (value: number) => numberFormatter.format(value);
+  const fmt = new Intl.NumberFormat("en-US");
+  const formatNumber = (v: number) => fmt.format(v);
   const hoursTracked = $derived(
     home_stats?.seconds_tracked
       ? Math.floor(home_stats.seconds_tracked / 3600)
@@ -66,8 +39,6 @@
 
   let flashVisible = $state(false);
   let flashHiding = $state(false);
-  const flashHideDelay = 6000;
-  const flashExitDuration = 250;
 
   $effect(() => {
     if (!flash.length) {
@@ -75,23 +46,38 @@
       flashHiding = false;
       return;
     }
-
     flashVisible = true;
     flashHiding = false;
-    let removeTimeoutId: ReturnType<typeof setTimeout> | undefined;
-    const hideTimeoutId = setTimeout(() => {
+    let removeId: ReturnType<typeof setTimeout> | undefined;
+    const hideId = setTimeout(() => {
       flashHiding = true;
-      removeTimeoutId = setTimeout(() => {
+      removeId = setTimeout(() => {
         flashVisible = false;
         flashHiding = false;
-      }, flashExitDuration);
-    }, flashHideDelay);
-
+      }, 250);
+    }, 6000);
     return () => {
-      clearTimeout(hideTimeoutId);
-      if (removeTimeoutId) clearTimeout(removeTimeoutId);
+      clearTimeout(hideId);
+      if (removeId) clearTimeout(removeId);
     };
   });
+
+  const NAV_LINKS = [
+    { href: "#philosophy", label: "Philosophy" },
+    { href: "#features", label: "Features" },
+    { href: "#integrations", label: "Integrations" },
+    { href: "#faq", label: "FAQ" },
+    {
+      href: "https://github.com/hackclub/hackatime",
+      label: "GitHub",
+      external: true,
+    },
+  ];
+
+  const STATS = $derived([
+    { value: usersTracked, label: "users" },
+    { value: hoursTracked, label: "hours tracked" },
+  ]);
 </script>
 
 <svelte:head>
@@ -105,7 +91,9 @@
     >
       {#each flash as item}
         <div
-          class={`flash-message shadow-lg flash-message--enter ${flashHiding ? "flash-message--leaving" : ""} ${item.class_name}`}
+          class="flash-message shadow-lg flash-message--enter {flashHiding
+            ? 'flash-message--leaving'
+            : ''} {item.class_name}"
         >
           {item.message}
         </div>
@@ -113,7 +101,6 @@
     </div>
   {/if}
 
-  <!-- Fixed -->
   <header
     class="fixed top-0 w-full bg-darker/95 backdrop-blur-sm z-50 border-b border-surface-200/60"
   >
@@ -131,25 +118,13 @@
       <nav
         class="hidden md:flex gap-8 items-center text-sm font-medium text-secondary"
       >
-        <a
-          href="#philosophy"
-          class="hover:text-surface-content transition-colors">Philosophy</a
-        >
-        <a href="#features" class="hover:text-surface-content transition-colors"
-          >Features</a
-        >
-        <a
-          href="#integrations"
-          class="hover:text-surface-content transition-colors">Integrations</a
-        >
-        <a href="#faq" class="hover:text-surface-content transition-colors"
-          >FAQ</a
-        >
-        <a
-          href="https://github.com/hackclub/hackatime"
-          target="_blank"
-          class="hover:text-surface-content transition-colors">GitHub</a
-        >
+        {#each NAV_LINKS as { href, label, external }}
+          <a
+            {href}
+            target={external ? "_blank" : undefined}
+            class="hover:text-surface-content transition-colors">{label}</a
+          >
+        {/each}
         <Link
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
@@ -163,9 +138,9 @@
   <section class="pt-40 pb-20">
     <div class="max-w-[900px] mx-auto px-6 text-center">
       <h1
-        class="text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6"
+        class="text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6 text-pretty"
       >
-        Track your coding time, for free.
+        The open-source coding time tracker
       </h1>
       <p
         class="text-lg md:text-xl text-secondary max-w-[70ch] mx-auto leading-relaxed mb-8"
@@ -193,28 +168,21 @@
         <div
           class="flex items-center justify-center gap-8 mb-16 text-secondary text-sm"
         >
-          {#if usersTracked > 0}
-            <div class="flex flex-col items-center">
-              <span class="text-2xl font-bold text-surface-content"
-                >{formatNumber(usersTracked)}</span
-              >
-              <span>users</span>
-            </div>
-          {/if}
-          {#if hoursTracked > 0}
-            <div class="flex flex-col items-center">
-              <span class="text-2xl font-bold text-surface-content"
-                >{formatNumber(hoursTracked)}</span
-              >
-              <span>hours tracked</span>
-            </div>
-          {/if}
+          {#each STATS as { value, label }}
+            {#if value > 0}
+              <div class="flex flex-col items-center">
+                <span class="text-2xl font-bold text-surface-content"
+                  >{formatNumber(value)}</span
+                >
+                <span>{label}</span>
+              </div>
+            {/if}
+          {/each}
         </div>
       {:else}
         <div class="mb-16"></div>
       {/if}
 
-      <!-- Browser Mockup -->
       <div
         class="bg-surface border border-surface-200 rounded-lg shadow-lg overflow-hidden"
       >
@@ -227,7 +195,7 @@
         </div>
         <div class="bg-surface">
           <img
-            src="/images/docs-index.png"
+            src="/images/docs-index.webp"
             alt="Hackatime Dashboard"
             class="w-full h-auto block rounded"
           />

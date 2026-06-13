@@ -1,105 +1,78 @@
 <script lang="ts">
   import { secondsToDisplay } from "./utils";
 
-  let {
-    goals,
-  }: {
-    goals: {
-      id: string;
-      period: "day" | "week" | "month";
-      target_seconds: number;
-      tracked_seconds: number;
-      completion_percent: number;
-      complete: boolean;
-      languages: string[];
-      projects: string[];
-      period_end: string;
-    }[];
-  } = $props();
-
-  const percentWidth = (percent: number) =>
-    `${Math.max(0, Math.min(percent || 0, 100))}%`;
-
-  const periodLabel = (period: "day" | "week" | "month") => {
-    if (period === "day") return "Daily goal";
-    if (period === "week") return "Weekly goal";
-    return "Monthly goal";
+  type Goal = {
+    id: string;
+    period: "day" | "week" | "month";
+    target_seconds: number;
+    tracked_seconds: number;
+    completion_percent: number;
+    complete: boolean;
+    languages: string[];
+    projects: string[];
+    period_end: string;
   };
 
-  const scopeSubtitle = (goal: { languages: string[]; projects: string[] }) => {
-    const languageScope =
-      goal.languages.length > 0
-        ? `Languages: ${goal.languages.join(", ")}`
-        : "";
-    const projectScope =
-      goal.projects.length > 0 ? `Projects: ${goal.projects.join(", ")}` : "";
+  let { goals }: { goals: Goal[] } = $props();
 
-    if (languageScope && projectScope) {
-      return `${languageScope} AND ${projectScope}`;
-    }
+  const RADIUS = 20;
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+  const clamp = (p: number) => Math.max(0, Math.min(p || 0, 100));
+  const strokeDashoffset = (p: number) =>
+    CIRCUMFERENCE - (clamp(p) / 100) * CIRCUMFERENCE;
 
-    return languageScope || projectScope || "All programming activity";
-  };
+  const PERIOD_LABELS = {
+    day: "Daily goal",
+    week: "Weekly goal",
+    month: "Monthly goal",
+  } as const;
 
-  function lastItemSpanClass(index: number, total: number): string {
-    if (index !== total - 1) return "";
+  function scopeSubtitle(g: Goal) {
+    const lang = g.languages.length
+      ? `Languages: ${g.languages.join(", ")}`
+      : "";
+    const proj = g.projects.length ? `Projects: ${g.projects.join(", ")}` : "";
+    if (lang && proj) return `${lang} AND ${proj}`;
+    return lang || proj || "All programming activity";
+  }
+
+  function lastItemSpanClass(i: number, total: number): string {
+    if (i !== total - 1) return "";
     const parts: string[] = [];
-
-    // 2-column grid (sm): last item fills the row if total is odd
     if (total % 2 === 1) parts.push("sm:col-span-2");
-
-    // 3-column grid (lg): last item fills remaining columns
-    const lgRemainder = total % 3;
-    if (lgRemainder === 1) parts.push("lg:col-span-3");
-    else if (lgRemainder === 2) parts.push("lg:col-span-2");
-    else parts.push("lg:col-span-1"); // reset sm:col-span-2
-
+    const r = total % 3;
+    parts.push(
+      r === 1 ? "xl:col-span-3" : r === 2 ? "xl:col-span-2" : "xl:col-span-1",
+    );
     return parts.join(" ");
   }
 
-  // Arc progress ring
-  const RADIUS = 20;
-  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-  const strokeDashoffset = (percent: number) => {
-    const clamped = Math.max(0, Math.min(percent || 0, 100));
-    return CIRCUMFERENCE - (clamped / 100) * CIRCUMFERENCE;
-  };
-
-  const periodTimeLeft = (goal: { period_end: string; complete: boolean }) => {
-    if (goal.complete) return "Done!";
-    const now = new Date();
-    const end = new Date(goal.period_end);
-    const diffMs = end.getTime() - now.getTime();
+  function periodTimeLeft(g: Goal) {
+    if (g.complete) return "Done!";
+    const diffMs = new Date(g.period_end).getTime() - Date.now();
     if (diffMs <= 0) return "Period ended";
-
-    const diffHours = diffMs / (1000 * 60 * 60);
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffHours < 1) {
-      const mins = Math.ceil(diffMs / (1000 * 60));
-      return `${mins}m left today`;
-    }
-    if (diffHours < 24) {
-      return `${Math.ceil(diffHours)}h left today`;
-    }
-    return `${diffDays} day${diffDays === 1 ? "" : "s"} left`;
-  };
+    const diffHours = diffMs / 3_600_000;
+    if (diffHours < 1) return `${Math.ceil(diffMs / 60_000)}m left today`;
+    if (diffHours < 24) return `${Math.ceil(diffHours)}h left today`;
+    const days = Math.ceil(diffMs / 86_400_000);
+    return `${days} day${days === 1 ? "" : "s"} left`;
+  }
 </script>
 
 {#if goals.length > 0}
   <section
-    class="rounded-xl border border-surface-200 bg-surface-100/30 overflow-hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+    class="grid grid-cols-1 overflow-hidden rounded-xl border border-surface-200 bg-surface-100/30 sm:grid-cols-2 xl:grid-cols-3"
   >
     {#each goals as goal, i}
+      {@const tone = goal.complete ? "text-success" : "text-muted"}
       <div
-        class="p-4 md:p-5 flex flex-col gap-4
-          border-b border-surface-200
-          last:border-b-0
-          {lastItemSpanClass(i, goals.length)}"
+        class="flex min-w-0 flex-col gap-4 p-4 md:p-5 border-b border-surface-200 last:border-b-0 {lastItemSpanClass(
+          i,
+          goals.length,
+        )}"
       >
         <div class="flex items-start justify-between gap-4">
-          <!-- Left: Big time display -->
-          <div>
+          <div class="min-w-0">
             <p
               class="text-2xl font-bold tracking-tight {goal.complete
                 ? 'text-success'
@@ -111,31 +84,20 @@
                 / {secondsToDisplay(goal.target_seconds)}</span
               >
             </p>
-            <p class="text-xs text-muted mt-0.5">{scopeSubtitle(goal)}</p>
+            <p class="mt-0.5 truncate text-xs text-muted">
+              {scopeSubtitle(goal)}
+            </p>
           </div>
 
-          <!-- Right: label + circular progress indicator -->
           <div class="flex items-center gap-2.5 shrink-0">
             <div class="text-right">
-              <p
-                class="text-sm font-medium {goal.complete
-                  ? 'text-success'
-                  : 'text-muted'}"
-              >
-                {periodLabel(goal.period)}
+              <p class="text-sm font-medium {tone}">
+                {PERIOD_LABELS[goal.period]}
               </p>
-              <p
-                class="text-xs mt-0.5 {goal.complete
-                  ? 'text-success'
-                  : 'text-muted'}"
-              >
-                {periodTimeLeft(goal)}
-              </p>
+              <p class="text-xs mt-0.5 {tone}">{periodTimeLeft(goal)}</p>
             </div>
 
-            <!-- Circular progress indicator with percentage inside -->
             <svg width="52" height="52" viewBox="0 0 52 52" class="shrink-0">
-              <!-- Background track -->
               <circle
                 cx="26"
                 cy="26"
@@ -146,7 +108,6 @@
                   ? "stroke-success/20"
                   : "stroke-surface-300"}
               />
-              <!-- Progress arc -->
               <circle
                 cx="26"
                 cy="26"
@@ -160,8 +121,6 @@
                 transform="rotate(-90 26 26)"
                 style="transition: stroke-dashoffset 0.5s ease-out"
               />
-
-              <!-- Percentage text or checkmark -->
               {#if goal.complete}
                 <polyline
                   points="18,26 23,31 34,20"
@@ -186,13 +145,12 @@
           </div>
         </div>
 
-        <!-- Progress bar -->
         <div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-200">
           <div
             class="h-full rounded-full transition-all duration-500 ease-out {goal.complete
               ? 'bg-success'
               : 'bg-primary'}"
-            style="width: {percentWidth(goal.completion_percent)}"
+            style="width: {clamp(goal.completion_percent)}%"
           ></div>
         </div>
       </div>

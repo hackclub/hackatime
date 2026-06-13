@@ -4,15 +4,22 @@ class HeartbeatExportTest < ApplicationSystemTestCase
   fixtures :users, :email_addresses, :heartbeats, :sign_in_tokens, :api_keys, :admin_api_keys
 
   setup do
+    @original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    Rails.cache.clear
     GoodJob::Job.delete_all
     @user = users(:one)
     sign_in_as(@user)
   end
 
-  test "clicking export all heartbeats enqueues job and shows notice" do
-    visit my_settings_data_path
+  teardown do
+    Rails.cache = @original_cache
+  end
 
-    assert_text "Export all heartbeats"
+  test "clicking export all heartbeats enqueues job and shows notice" do
+    visit my_settings_imports_exports_path
+
+    wait_for_export_controls
 
     assert_difference -> { export_job_count }, 1 do
       click_on "Export all heartbeats"
@@ -25,9 +32,9 @@ class HeartbeatExportTest < ApplicationSystemTestCase
   end
 
   test "submitting export date range enqueues job and shows notice" do
-    visit my_settings_data_path
+    visit my_settings_imports_exports_path
 
-    assert_text "Export all heartbeats" # wait till it's loaded
+    wait_for_export_controls
 
     start_date = 7.days.ago.to_date.iso8601
     end_date = Date.current.iso8601
@@ -46,9 +53,25 @@ class HeartbeatExportTest < ApplicationSystemTestCase
     )
   end
 
+  test "repeated export requests are rate limited" do
+    visit my_settings_imports_exports_path
+
+    wait_for_export_controls
+
+    assert_difference -> { export_job_count }, 1 do
+      click_on "Export all heartbeats"
+      assert_text "Your export is being prepared and will be emailed to you"
+    end
+
+    assert_no_difference -> { export_job_count } do
+      click_on "Export all heartbeats"
+      assert_text "Export requests are limited to once every 10 minutes."
+    end
+  end
+
   test "export is not available for restricted users" do
     @user.update!(trust_level: :red)
-    visit my_settings_data_path
+    visit my_settings_imports_exports_path
 
     assert_text "Data export is currently restricted for this account."
   end
@@ -58,7 +81,7 @@ class HeartbeatExportTest < ApplicationSystemTestCase
     create_heartbeat(user_without_email, Time.current - 1.hour, "src/no_email.rb")
 
     sign_in_as(user_without_email)
-    visit my_settings_data_path
+    visit my_settings_imports_exports_path
 
     assert_difference -> { export_job_count }, 0 do
       click_on "Export all heartbeats"
@@ -109,5 +132,9 @@ class HeartbeatExportTest < ApplicationSystemTestCase
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
     JS
+  end
+
+  def wait_for_export_controls
+    assert_button "Export all heartbeats", wait: 15
   end
 end

@@ -1,22 +1,17 @@
 module SlackIntegration
   extend ActiveSupport::Concern
 
-  def set_timezone_from_slack
-    return unless slack_uid.present?
-
-    user_response = HTTP.auth("Bearer #{slack_access_token}")
-      .get("https://slack.com/api/users.info?user=#{slack_uid}")
-
-    user_data = JSON.parse(user_response.body.to_s)
-
-    return unless user_data["ok"]
-
-    timezone_string = user_data.dig("user", "tz")
-
-    return unless timezone_string.present?
-
-    parse_and_set_timezone(timezone_string)
-  end
+  STATUS_EMOJI_BUCKETS = [
+    [ 30.minutes,  %w[thinking cat-on-the-laptop loading-tumbleweed rac-yap] ],
+    [ 1.hour,      %w[working-parrot meow_code] ],
+    [ 2.hours,     %w[working-parrot meow-code] ],
+    [ 3.hours,     %w[working-parrot cat-typing bangbang] ],
+    [ 5.hours,     %w[cat-typing meow-code laptop-fire bangbang] ],
+    [ 8.hours,     %w[cat-typing laptop-fire hole-mantelpiece_clock keyboard-fire bangbang bangbang] ],
+    [ 15.hours,    %w[laptop-fire bangbang bangbang rac_freaking rac_freaking hole-mantelpiece_clock] ],
+    [ 20.hours,    %w[bangbang bangbang rac_freaking hole-mantelpiece_clock] ]
+  ].freeze
+  STATUS_EMOJI_OVERFLOW = %w[areyousure time-to-stop].freeze
 
   def raw_slack_user_info
     return nil unless slack_uid.present?
@@ -30,17 +25,21 @@ module SlackIntegration
 
   def update_from_slack
     user_data = raw_slack_user_info
-
     return unless user_data.present?
 
-    profile = user_data["profile"] || {}
-
-    self.slack_avatar_url = profile["image_192"] || profile["image_72"]
-
-    self.slack_username = profile["display_name_normalized"].presence
-    self.slack_username ||= profile["real_name_normalized"].presence
-    self.slack_username ||= user_data["name"].presence
+    apply_slack_profile_attributes(user_data)
     self.slack_synced_at = Time.current
+  end
+
+  # Assigns slack_username and slack_avatar_url from a Slack `user` payload.
+  # Shared by SlackIntegration#update_from_slack and OauthAuthentication.from_slack_token.
+  def apply_slack_profile_attributes(slack_user)
+    profile = slack_user["profile"] || {}
+    self.slack_avatar_url = profile["image_192"] || profile["image_72"]
+    self.slack_username =
+      profile["display_name_normalized"].presence ||
+      profile["real_name_normalized"].presence ||
+      slack_user["name"].presence
   end
 
   def update_slack_status
@@ -67,27 +66,8 @@ module SlackIntegration
 
     return if current_project_duration.zero?
 
-    status_emoji =
-      case current_project_duration
-      when 0...30.minutes
-        %w[thinking cat-on-the-laptop loading-tumbleweed rac-yap]
-      when 30.minutes...1.hour
-        %w[working-parrot meow_code]
-      when 1.hour...2.hours
-        %w[working-parrot meow-code]
-      when 2.hours...3.hours
-        %w[working-parrot cat-typing bangbang]
-      when 3.hours...5.hours
-        %w[cat-typing meow-code laptop-fire bangbang]
-      when 5.hours...8.hours
-        %w[cat-typing laptop-fire hole-mantelpiece_clock keyboard-fire bangbang bangbang]
-      when 8.hours...15.hours
-        %w[laptop-fire bangbang bangbang rac_freaking rac_freaking hole-mantelpiece_clock]
-      when 15.hours...20.hours
-        %w[bangbang bangbang rac_freaking hole-mantelpiece_clock]
-      else
-        %w[areyousure time-to-stop]
-      end.sample
+    bucket = STATUS_EMOJI_BUCKETS.find { |threshold, _| current_project_duration < threshold }
+    status_emoji = (bucket ? bucket.last : STATUS_EMOJI_OVERFLOW).sample
 
     status_emoji = ":#{status_emoji}:"
     status_text = "#{current_project_duration_formatted} spent on #{current_project} today"

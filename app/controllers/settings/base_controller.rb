@@ -9,167 +9,132 @@ class Settings::BaseController < InertiaController
 
   private
 
-  def render_settings_page(active_section:, settings_update_path:, status: :ok, extra_props: {})
-    render inertia: settings_component_for(active_section), props: common_props(
-      active_section: active_section
-    ).merge(section_props).merge(extra_props), status: status
-  end
+  SETTINGS_COMPONENTS = {
+    "profile" => "Users/Settings/Profile",
+    "setup" => "Users/Settings/Setup",
+    "appearance" => "Users/Settings/Appearance",
+    "editors" => "Users/Settings/Editors",
+    "slack_github" => "Users/Settings/SlackGithub",
+    "notifications" => "Users/Settings/Notifications",
+    "privacy" => "Users/Settings/Privacy",
+    "goals" => "Users/Settings/Goals",
+    "badges" => "Users/Settings/Badges",
+    "imports_exports" => "Users/Settings/ImportsExports"
+  }.freeze
 
-  def settings_component_for(active_section)
-    {
-      "profile" => "Users/Settings/Profile",
-      "integrations" => "Users/Settings/Integrations",
-      "notifications" => "Users/Settings/Notifications",
-      "access" => "Users/Settings/Access",
-      "goals" => "Users/Settings/Goals",
-      "badges" => "Users/Settings/Badges",
-      "data" => "Users/Settings/Data"
-    }.fetch(active_section.to_s, "Users/Settings/Profile")
+  def render_settings_page(active_section:, status: :ok, extra_props: {})
+    component = SETTINGS_COMPONENTS.fetch(active_section.to_s, "Users/Settings/Profile")
+    render inertia: component,
+           props: common_props(active_section: active_section).merge(section_props).merge(extra_props),
+           status: status
   end
 
   # Lightweight props shared by every settings page
   def common_props(active_section:)
     is_own = is_own_settings?
-
-    {
-      active_section: active_section,
-      section_paths: {
-        profile: my_settings_profile_path,
-        integrations: my_settings_integrations_path,
-        notifications: my_settings_notifications_path,
-        access: my_settings_access_path,
-        goals: my_settings_goals_path,
-        badges: my_settings_badges_path,
-        data: my_settings_data_path
-      },
+    { active_section: active_section,
       page_title: (is_own ? "My Settings" : "Settings | #{@user.display_name}"),
       heading: (is_own ? "Settings" : "Settings for #{@user.display_name}"),
-      subheading: "Manage your profile, integrations, notifications, access, goals, and data tools.",
-
-      errors: {
-        full_messages: @user.errors.full_messages,
-        username: @user.errors[:username]
-      }
-    }
+      subheading: "Manage your profile, appearance, editors, integrations, privacy, goals, and data tools.",
+      errors: { full_messages: @user.errors.full_messages,
+                display_name_override: @user.errors[:display_name_override],
+                username: @user.errors[:username] } }
   end
 
   # Subclasses override this to provide section-specific props
-  def section_props
-    {}
-  end
+  def section_props = {}
 
-  # Shared helpers used by multiple section controllers
+  USER_PROP_BUILDERS = {
+    id: ->(u) { u.id },
+    display_name: ->(u) { u.display_name },
+    display_name_override: ->(u) { u.display_name_override },
+    timezone: ->(u) { u.timezone },
+    country_code: ->(u) { u.country_code },
+    username: ->(u) { u.username },
+    theme: ->(u) { u.theme },
+    uses_slack_status: ->(u) { u.uses_slack_status },
+    weekly_summary_email_enabled: ->(u) { u.subscribed?("weekly_summary") },
+    hackatime_extension_text_type: ->(u) { u.hackatime_extension_text_type },
+    show_goals_in_statusbar: ->(u) { u.show_goals_in_statusbar },
+    allow_public_stats_lookup: ->(u) { u.allow_public_stats_lookup },
+    trust_level: ->(u) { u.public_trust_level },
+    can_request_deletion: ->(u) { u.can_request_deletion? },
+    github_uid: ->(u) { u.github_uid },
+    github_username: ->(u) { u.github_username },
+    slack_uid: ->(u) { u.slack_uid }
+  }.freeze
 
-  def user_props
-    {
-      id: @user.id,
-      display_name: @user.display_name,
-      timezone: @user.timezone,
-      country_code: @user.country_code,
-      username: @user.username,
-      theme: @user.theme,
-      uses_slack_status: @user.uses_slack_status,
-      weekly_summary_email_enabled: @user.subscribed?("weekly_summary"),
-      hackatime_extension_text_type: @user.hackatime_extension_text_type,
-      allow_public_stats_lookup: @user.allow_public_stats_lookup,
-      trust_level: @user.trust_level,
-      can_request_deletion: @user.can_request_deletion?,
-      github_uid: @user.github_uid,
-      github_username: @user.github_username,
-      slack_uid: @user.slack_uid
-    }
+  # Build a user prop hash containing only the requested keys.
+  def user_props(keys: nil)
+    (keys.present? ? USER_PROP_BUILDERS.slice(*keys) : USER_PROP_BUILDERS)
+      .transform_values { |builder| builder.call(@user) }
   end
 
   def programming_goals_props
-    @user.goals.order(:created_at).map { |goal|
-      goal.as_programming_goal_payload.merge(
-        update_path: my_settings_goal_update_path(goal),
-        destroy_path: my_settings_goal_destroy_path(goal)
-      )
-    }
-  end
-
-  def paths_props
-    {
-      settings_path: my_settings_profile_path,
-      wakatime_setup_path: my_wakatime_setup_path,
-      slack_auth_path: slack_auth_path,
-      github_auth_path: github_auth_path,
-      github_unlink_path: github_unlink_path,
-      add_email_path: add_email_auth_path,
-      resend_email_verification_path: resend_email_verification_auth_path,
-      unlink_email_path: unlink_email_auth_path,
-      rotate_api_key_path: my_settings_rotate_api_key_path,
-      export_all_heartbeats_path: export_my_heartbeats_path(all_data: "true"),
-      export_range_heartbeats_path: export_my_heartbeats_path,
-      create_heartbeat_import_path: my_heartbeat_imports_path,
-      create_deletion_path: create_deletion_path
-    }
+    # Path helpers (update_path, destroy_path) are built client-side from
+    # the goal id via js_from_routes — see app/javascript/api/Settings/GoalsApi.ts.
+    @user.goals.order(:created_at).map(&:as_programming_goal_payload)
   end
 
   def project_list
     @project_list ||= @user.project_repo_mappings.includes(:repository).distinct.map do |mapping|
-      repo_path = mapping.repository&.full_path || mapping.project_name
-      { display_name: mapping.project_name, repo_path: repo_path }
+      { display_name: mapping.project_name,
+        repo_path: mapping.repository&.full_path || mapping.project_name }
     end
   end
 
-  def options_props
-    base_options.merge(goals: goal_options)
+  def options_props = base_options.merge(goals: goal_options)
+
+  BASE_OPTION_BUILDERS = {
+    countries: -> { ISO3166::Country.all.map { |c| { label: c.common_name, value: c.alpha2 } }.sort_by { |c| c[:label] } },
+    # see .timezone_options below; a user's current zone, if outside the list,
+    # is pinned in ProfileController#section_props so it never disappears.
+    timezones: -> { Settings::BaseController.timezone_options },
+    extension_text_types: -> { User.hackatime_extension_text_types.keys.map { |k| { label: k.humanize, value: k } } },
+    themes: -> { User.theme_options },
+    badge_themes: -> { GithubReadmeStats.themes }
+  }.freeze
+
+  def self.timezone_options
+    @timezone_options ||= ActiveSupport::TimeZone.all
+      .group_by { |z| z.tzinfo.identifier } # London & Edinburgh both map to Europe/London
+      .map { |identifier, zones| { label: "(GMT#{zones.first.formatted_offset}) #{zones.map(&:name).join(", ")}", value: identifier } }
+      .freeze
   end
 
-  def base_options
-    {
-      countries: ISO3166::Country.all.map { |country|
-        { label: country.common_name, value: country.alpha2 }
-      }.sort_by { |country| country[:label] },
-      timezones: TZInfo::Timezone.all_identifiers.sort.map { |timezone|
-        { label: timezone, value: timezone }
-      },
-      extension_text_types: User.hackatime_extension_text_types.keys.map { |key|
-        { label: key.humanize, value: key }
-      },
-      themes: User.theme_options,
-      badge_themes: GithubReadmeStats.themes
-    }
+  # Build a base options hash containing only the requested keys.
+  def base_options(keys: nil)
+    (keys.present? ? BASE_OPTION_BUILDERS.slice(*keys) : BASE_OPTION_BUILDERS)
+      .transform_values { |builder| builder.call }
   end
 
   def goal_options
-    heartbeat_language_and_projects = @user.heartbeats.distinct.pluck(:language, :project)
     goal_languages = []
     goal_projects = project_list.map { |p| p[:display_name] }
 
-    heartbeat_language_and_projects.each do |language, project|
-      categorized_language = language&.categorize_language
-      goal_languages << categorized_language if categorized_language.present?
+    @user.heartbeats.distinct.pluck(:language, :project).each do |language, project|
+      categorized = language&.categorize_language
+      goal_languages << categorized if categorized.present?
       goal_projects << project if project.present?
     end
 
     {
-      periods: Goal::PERIODS.map { |period|
-        { label: period.humanize, value: period }
-      },
+      periods: Goal::PERIODS.map { |p| { label: p.humanize, value: p } },
       preset_target_seconds: Goal::PRESET_TARGET_SECONDS,
-      selectable_languages: goal_languages.uniq.sort
-        .map { |language| { label: language, value: language } },
-      selectable_projects: goal_projects.uniq.sort
-        .map { |project| { label: project, value: project } }
+      selectable_languages: goal_languages.uniq.sort.map { |l| { label: l, value: l } },
+      selectable_projects: goal_projects.uniq.sort.map { |p| { label: p, value: p } }
     }
   end
 
   def badges_props
-    badge_user_id = @user.slack_uid.presence || @user.username.presence || @user.id.to_s
     work_time_stats_base_url = "#{request.base_url}/api/v1/badge/#{badge_user_id}/"
-    work_time_stats_url = if work_time_stats_base_url.present? && project_list.first.present?
-      "#{work_time_stats_base_url}#{project_list.first[:repo_path]}"
-    end
+    work_time_stats_url = (project_list.first.present? ? "#{work_time_stats_base_url}#{project_list.first[:repo_path]}" : nil)
 
     {
       general_badge_url: GithubReadmeStats.new(@user.id, "darcula").generate_badge_url,
       project_badge_url: work_time_stats_url,
       project_badge_base_url: work_time_stats_base_url,
       projects: project_list,
-      profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
       markscribe_template: '{{ wakatimeDoubleCategoryBar "Languages:" wakatimeData.Languages "Projects:" wakatimeData.Projects 5 }}',
       markscribe_reference_url: "https://github.com/taciturnaxolotl/markscribe#your-wakatime-languages-formated-as-a-bar",
       markscribe_preview_image_url: "https://cdn.fluff.pw/slackcdn/524e293aa09bc5f9115c0c29c18fb4bc.png",
@@ -180,9 +145,10 @@ class Settings::BaseController < InertiaController
     }
   end
 
+  def badge_user_id = @user.slack_uid.presence || @user.username.presence || @user.id.to_s
+
   def generated_wakatime_config(api_key)
     return nil if api_key.blank?
-
     <<~CFG
       # put this in your ~/.wakatime.cfg file
 
@@ -196,22 +162,13 @@ class Settings::BaseController < InertiaController
   end
 
   def set_user
-    @user = if params["id"].present? && params["id"] != "my"
-      User.find(params["id"])
-    else
-      current_user
-    end
-
+    @user = (params["id"].present? && params["id"] != "my") ? User.find(params["id"]) : current_user
     redirect_to root_path, alert: "You need to log in!" if @user.nil?
   end
 
   def require_current_user
-    unless @user == current_user
-      redirect_to root_path, alert: "You are not authorized to access this page"
-    end
+    redirect_to root_path, alert: "You are not authorized to access this page" unless @user == current_user
   end
 
-  def is_own_settings?
-    params["id"] == "my" || params["id"]&.blank?
-  end
+  def is_own_settings? = params["id"] == "my" || params["id"]&.blank?
 end

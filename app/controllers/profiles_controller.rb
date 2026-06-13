@@ -2,161 +2,175 @@ class ProfilesController < InertiaController
   layout "inertia"
 
   before_action :find_user
-  before_action :check_profile_visibility, only: %i[time_stats projects languages editors activity]
+
+  SOCIAL_LINKS = [
+    [ :github,   "GitHub",   :profile_github_url ],
+    [ :twitter,  "Twitter",  :profile_twitter_url ],
+    [ :bluesky,  "Bluesky",  :profile_bluesky_url ],
+    [ :linkedin, "LinkedIn", :profile_linkedin_url ],
+    [ :discord,  "Discord",  :profile_discord_url ],
+    [ :website,  "Website",  :profile_website_url ]
+  ].freeze
 
   def show
-    if @user.nil?
-      render inertia: "Errors/NotFound", props: {
-        status_code: 404,
-        title: "Page Not Found",
-        message: "The profile you were looking for doesn't exist."
-      }, status: :not_found
-      return
-    end
+    return render_profile_not_found if @user.nil?
 
     @is_own_profile = current_user.present? && current_user.id == @user.id
     @profile_visible = @user.allow_public_stats_lookup || @is_own_profile
+    set_profile_social_preview
 
     render inertia: "Profiles/Show", props: profile_props
   end
 
-  def time_stats
-    Time.use_zone(@user.timezone) do
-      stats = ProfileStatsService.new(@user).stats
-      render partial: "profiles/time_stats", locals: {
-        total_time_today: stats[:total_time_today],
-        total_time_week: stats[:total_time_week],
-        total_time_all: stats[:total_time_all]
-      }
+  def og_image
+    return head :not_found if @user.nil?
+
+    generated = ensure_profile_og_image!
+    blob = @user.profile_og_image.blob
+    etag = generated&.fingerprint || blob.metadata["fingerprint"] || blob.checksum
+
+    expires_in 1.hour, public: true
+    if stale?(etag: etag, last_modified: blob.created_at, public: true)
+      png = generated&.png || @user.profile_og_image.download
+      filename = generated&.filename || blob.filename.to_s
+      send_data png, filename: filename, type: "image/png", disposition: "inline"
     end
   end
 
-  def projects
-    Time.use_zone(@user.timezone) do
-      stats = ProfileStatsService.new(@user).stats
-      render partial: "profiles/projects", locals: { projects: stats[:top_projects_month] }
-    end
-  end
+  def project
+    return head :not_found if @user.nil?
 
-  def languages
-    Time.use_zone(@user.timezone) do
-      stats = ProfileStatsService.new(@user).stats
-      render partial: "profiles/languages", locals: { languages: stats[:top_languages] }
-    end
-  end
+    project_name = CGI.unescape(params[:project_name])
+    mapping = @user.project_repo_mappings.find_by(project_name: project_name)
+    return head :not_found unless mapping&.public_shared_at.present?
 
-  def editors
-    Time.use_zone(@user.timezone) do
-      stats = ProfileStatsService.new(@user).stats
-      render partial: "profiles/editors", locals: { editors: stats[:top_editors] }
-    end
-  end
+    h = ApplicationController.helpers
+    hb = @user.heartbeats.where(project: project_name)
+    total_time = hb.duration_seconds
+    first_heartbeat = hb.minimum(:time)
+    since_date = first_heartbeat ? Time.at(first_heartbeat).to_date.strftime("%-m/%-d/%Y") : nil
 
-  def activity
-    Time.use_zone(@user.timezone) do
-      daily_durations = @user.heartbeats.daily_durations(user_timezone: @user.timezone).to_h
-      render partial: "profiles/activity", locals: { daily_durations: daily_durations, user_tz: @user.timezone }
-    end
+    language_stats = hb.group(:language).duration_seconds.each_with_object({}) do |(raw, dur), agg|
+      k = raw.to_s.presence || "Unknown"
+      k = k.categorize_language if k != "Unknown"
+      agg[k] = (agg[k] || 0) + dur
+    end.sort_by { |_, d| -d }.first(15).to_h
+
+    file_stats = hb.group(:entity).duration_seconds
+      .reject { |e, dur| e.blank? || dur < 60 }
+      .sort_by { |_, d| -d }.first(50)
+      .map { |entity, dur| [ helpers.shorten_file_path(entity), dur ] }
+
+    branch_stats = hb.group(:branch).duration_seconds
+      .reject { |b, _| b.blank? }
+      .sort_by { |_, d| -d }.first(10)
+
+    render inertia: "Projects/PublicShow", props: {
+      page_title: "#{project_name} — @#{@user.username} | Hackatime",
+      project_name: project_name, username: @user.username,
+      since_date: since_date, repo_url: mapping.repo_url,
+      total_time_label: h.short_time_detailed(total_time),
+      file_count: hb.select(:entity).distinct.count,
+      language_stats: language_stats,
+      language_colors: language_stats.present? ? LanguageUtils.colors_for(language_stats.keys) : {},
+      file_stats: file_stats, branch_stats: branch_stats
+    }
   end
 
   private
 
-  def find_user
-    @user = User.find_by(username: params[:username])
+  def render_profile_not_found
+    render inertia: "Errors/NotFound", props: {
+      status_code: 404, title: "Page Not Found",
+      message: "The profile you were looking for doesn't exist."
+    }, status: :not_found
   end
 
+  def find_user = @user = User.find_by(username: params[:username])
+
   def profile_props
-    {
-      page_title: profile_page_title,
-      profile_visible: @profile_visible,
-      is_own_profile: @is_own_profile,
-      edit_profile_path: (@is_own_profile ? my_settings_profile_path : nil),
-      profile: profile_summary_payload,
-      stats: (@profile_visible ? profile_stats_payload : nil)
-    }
+    { page_title: profile_page_title, profile_visible: @profile_visible,
+      is_own_profile: @is_own_profile, profile: profile_summary_payload,
+      dashboard_stats: (@profile_visible ? ProfileStatsService.new(@user).dashboard_stats : nil) }
   end
 
   def profile_page_title
-    username = @user.username.present? ? "@#{@user.username}" : @user.display_name
-    "#{username} | Hackatime"
+    "#{@user.username.present? ? "@#{@user.username}" : @user.display_name} | Hackatime"
+  end
+
+  def set_profile_social_preview
+    @social_preview = true
+    @page_title = @og_title = @twitter_title = profile_page_title
+    @og_description = @twitter_description = profile_social_description
+    @og_image = @twitter_image = profile_og_image_url(username: @user.username)
+  end
+
+  def profile_social_description
+    return @user.profile_bio.to_s.squish.truncate(180) if @user.profile_bio.present?
+    "View #{@user.display_name}'s Hackatime coding profile."
+  end
+
+  def ensure_profile_og_image!
+    stats = public_profile_og_stats
+    heatmap = public_profile_og_heatmap
+    stats_status = if !@user.allow_public_stats_lookup then :private
+    elsif stats.blank? then :not_computed
+    else :available
+    end
+
+    generator = ProfileOgImageGenerator.new(@user, stats: stats, heatmap: heatmap, stats_status: stats_status)
+    return nil if @user.profile_og_image.attached? && @user.profile_og_image.blob.metadata["fingerprint"] == generator.fingerprint
+
+    result = generator.call
+    previous_attachment = @user.profile_og_image.attachment if @user.profile_og_image.attached?
+    @user.profile_og_image.attach(
+      io: StringIO.new(result.png),
+      filename: result.filename, content_type: "image/png",
+      metadata: { fingerprint: result.fingerprint }
+    )
+    previous_attachment&.purge_later
+    result
+  end
+
+  def public_profile_og_stats
+    return nil unless @user.allow_public_stats_lookup
+    stats = ProfileStatsService.new(@user).og_stats
+    return nil if stats.blank?
+
+    h = ApplicationController.helpers
+    top_language = stats[:top_language]
+    { all_label: h.short_time_simple(stats[:total_time_all]),
+      week_label: h.short_time_simple(stats[:total_time_week]),
+      streak_label: "#{@user.streak_days}d",
+      top_language_label: (top_language.present? ? h.display_language_name(top_language).truncate(14) : "None") }
+  end
+
+  def public_profile_og_heatmap
+    return nil unless @user.allow_public_stats_lookup
+
+    rollup = DashboardRollup.find_by(user_id: @user.id, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
+    duration_by_date = rollup&.payload&.fetch("duration_by_date", nil)
+    return nil if duration_by_date.blank?
+
+    duration_by_date.each_with_object({}) do |(date, seconds), out|
+      key = (date.is_a?(Date) ? date.iso8601 : date.to_date.iso8601 rescue date.to_s)
+      out[key] = seconds.to_i
+    end
   end
 
   def profile_summary_payload
-    {
-      display_name: @user.display_name_override.presence || @user.display_name,
-      username: (@user.username || ""),
-      avatar_url: @user.avatar_url,
-      trust_level: @user.trust_level,
-      bio: @user.profile_bio,
-      social_links: profile_social_links,
-      github_profile_url: @user.github_profile_url,
+    { display_name: @user.display_name,
+      username: @user.username || "", avatar_url: @user.avatar_url,
+      trust_level: @user.public_trust_level, bio: @user.profile_bio,
+      social_links: profile_social_links, github_profile_url: @user.github_profile_url,
       github_username: @user.github_username,
-      streak_days: (@profile_visible ? @user.streak_days : nil)
-    }
+      streak_days: (@profile_visible ? @user.streak_days : nil) }
   end
 
   def profile_social_links
-    links = []
-
-    links << { key: "github", label: "GitHub", url: @user.profile_github_url } if @user.profile_github_url.present?
-    links << { key: "twitter", label: "Twitter", url: @user.profile_twitter_url } if @user.profile_twitter_url.present?
-    links << { key: "bluesky", label: "Bluesky", url: @user.profile_bluesky_url } if @user.profile_bluesky_url.present?
-    links << { key: "linkedin", label: "LinkedIn", url: @user.profile_linkedin_url } if @user.profile_linkedin_url.present?
-    links << { key: "discord", label: "Discord", url: @user.profile_discord_url } if @user.profile_discord_url.present?
-    links << { key: "website", label: "Website", url: @user.profile_website_url } if @user.profile_website_url.present?
-
-    links
-  end
-
-  def profile_stats_payload
-    h = ApplicationController.helpers
-    timezone = @user.timezone
-    stats = ProfileStatsService.new(@user).stats
-
-    durations = Rails.cache.fetch("user_#{@user.id}_daily_durations_#{timezone}", expires_in: 1.minute) do
-      Time.use_zone(timezone) { @user.heartbeats.daily_durations(user_timezone: timezone).to_h }
+    SOCIAL_LINKS.filter_map do |key, label, url_attr|
+      url = @user.public_send(url_attr)
+      { key: key.to_s, label: label, url: url } if url.present?
     end
-
-    {
-      totals: {
-        today_seconds: stats[:total_time_today],
-        week_seconds: stats[:total_time_week],
-        all_seconds: stats[:total_time_all],
-        today_label: h.short_time_simple(stats[:total_time_today]),
-        week_label: h.short_time_simple(stats[:total_time_week]),
-        all_label: h.short_time_simple(stats[:total_time_all])
-      },
-      top_projects_month: stats[:top_projects_month].map { |project|
-        {
-          project: project[:project],
-          duration_seconds: project[:duration],
-          duration_label: h.short_time_simple(project[:duration]),
-          repo_url: project[:repo_url]
-        }
-      },
-      top_languages: stats[:top_languages].map { |language, duration|
-        [ h.display_language_name(language), duration ]
-      },
-      top_editors: stats[:top_editors].map { |editor, duration|
-        [ h.display_editor_name(editor), duration ]
-      },
-      activity_graph: {
-        start_date: 365.days.ago.to_date.iso8601,
-        end_date: Time.current.to_date.iso8601,
-        duration_by_date: durations.transform_keys { |date| date.to_date.iso8601 }.transform_values(&:to_i),
-        busiest_day_seconds: 8.hours.to_i,
-        timezone_label: ActiveSupport::TimeZone[timezone].to_s,
-        timezone_settings_path: "/my/settings#user_timezone"
-      }
-    }
-  end
-
-  def check_profile_visibility
-    return if @user.nil?
-
-    is_own_profile = current_user && current_user.id == @user.id
-    profile_visible = @user.allow_public_stats_lookup || is_own_profile
-
-    head :not_found unless profile_visible
   end
 end

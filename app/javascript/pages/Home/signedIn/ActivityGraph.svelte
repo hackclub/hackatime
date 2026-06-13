@@ -2,26 +2,29 @@
   import { Link } from "@inertiajs/svelte";
   import type { ActivityGraphData } from "../../../types/index";
   import { durationInWords } from "../../../utils";
+  import { settingsProfile } from "../../../api";
 
   let { data }: { data: ActivityGraphData } = $props();
 
+  const timezoneSettingsPath = `${settingsProfile.my.path()}#user_timezone`;
+
   function buildDateRange(startStr: string, endStr: string): string[] {
-    const dates: string[] = [];
-    const current = new Date(startStr + "T00:00:00");
+    const out: string[] = [];
+    const cur = new Date(startStr + "T00:00:00");
     const end = new Date(endStr + "T00:00:00");
-    while (current <= end) {
-      dates.push(current.toISOString().slice(0, 10));
-      current.setDate(current.getDate() + 1);
+    while (cur <= end) {
+      out.push(cur.toISOString().slice(0, 10));
+      cur.setDate(cur.getDate() + 1);
     }
-    return dates;
+    return out;
   }
 
-  function intensityClass(seconds: number, busiestDaySeconds: number): string {
+  function intensityClass(seconds: number, busiest: number): string {
     if (seconds < 60) return "activity-cell--0";
-    const ratio = seconds / busiestDaySeconds;
-    if (ratio >= 0.8) return "activity-cell--4";
-    if (ratio >= 0.5) return "activity-cell--3";
-    if (ratio >= 0.2) return "activity-cell--2";
+    const r = seconds / busiest;
+    if (r >= 0.8) return "activity-cell--4";
+    if (r >= 0.5) return "activity-cell--3";
+    if (r >= 0.2) return "activity-cell--2";
     return "activity-cell--1";
   }
 
@@ -48,6 +51,6 @@
   </div>
   <p class="super">
     Calculated in
-    <Link href={data.timezone_settings_path}>{data.timezone_label}</Link>
+    <Link href={timezoneSettingsPath}>{data.timezone_label}</Link>
   </p>
 </div>

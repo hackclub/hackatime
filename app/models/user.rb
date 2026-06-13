@@ -1,6 +1,8 @@
 class User < ApplicationRecord
-  include TimezoneRegions
+  has_one_attached :profile_og_image
+
   include UserThemeConfiguration
+  include UserFuzzySearch
   include ::OauthAuthentication
   include ::SlackIntegration
   include ::GithubIntegration
@@ -8,12 +10,16 @@ class User < ApplicationRecord
   has_subscriptions
 
   USERNAME_MAX_LENGTH = 21 # going over 21 overflows the navbar
+  DISPLAY_NAME_MAX_LENGTH = 80
 
   has_paper_trail
 
-  after_create :track_signup
   after_create :subscribe_to_default_lists
+  after_create_commit :schedule_welcome_email
+  after_create_commit :schedule_onboarding_check_in_email
+  after_update_commit :clear_leaderboard_page_cache, if: :saved_change_to_leaderboard_shadowban_state?
   before_validation :normalize_username
+  before_validation :normalize_display_name_override
   encrypts :slack_access_token, :github_access_token, :hca_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
@@ -24,19 +30,18 @@ class User < ApplicationRecord
     length: { maximum: USERNAME_MAX_LENGTH },
     format: { with: /\A[A-Za-z0-9_-]+\z/, message: "may only include letters, numbers, '-', and '_'" },
     uniqueness: { case_sensitive: false, message: "has already been taken" },
+    if: :will_save_change_to_username?,
     allow_nil: true
+  validates :display_name_override, length: { maximum: DISPLAY_NAME_MAX_LENGTH }, allow_nil: true
+  validates :leaderboard_shadowban_reason, presence: true, if: :leaderboard_shadowbanned?
+  validate :leaderboard_shadowban_expiration_must_be_in_the_future
   validate :username_must_be_visible
 
   attribute :allow_public_stats_lookup, :boolean, default: true
   attribute :default_timezone_leaderboard, :boolean, default: true
+  attribute :show_goals_in_statusbar, :boolean, default: true
 
-  def country_name
-    ISO3166::Country.new(country_code).common_name
-  end
-
-  def country_subregion
-    ISO3166::Country.new(country_code).subregion
-  end
+  def country_name = ISO3166::Country.new(country_code).common_name
 
   enum :trust_level, {
     blue: 0,     # unscored
@@ -45,6 +50,12 @@ class User < ApplicationRecord
     yellow: 3    # suspected (invisible to user)
   }
 
+  def self.mask_trust_level(level)
+    level.to_s == "yellow" ? "blue" : level.to_s
+  end
+
+  def public_trust_level = self.class.mask_trust_level(trust_level)
+
   enum :admin_level, {
     default: 0,   # pleebs
     superadmin: 1,
@@ -52,6 +63,17 @@ class User < ApplicationRecord
     viewer: 3,
     ultraadmin: 4
   }, prefix: :admin_level
+
+  # Privilege ordering. The integer ordering on the enum is historical and does
+  # NOT correspond to privilege; never compare admin_level numerically. Use this
+  # rank table (or the helpers below) for any "outranks" check.
+  ADMIN_LEVEL_RANK = {
+    "default"    => 0,
+    "viewer"     => 1, # read-only admin
+    "admin"      => 2,
+    "superadmin" => 3,
+    "ultraadmin" => 4
+  }.freeze
 
   enum :theme, {
     standard: 0,
@@ -72,66 +94,94 @@ class User < ApplicationRecord
     return nil if id.blank?
 
     numeric_id = id.to_i if id.match?(/^\d+$/)
-
-    relation = where(slack_uid: id)
-      .or(where(hca_id: id))
-      .or(where(username: id))
+    relation = where(slack_uid: id).or(where(hca_id: id)).or(where(username: id))
     relation = where(id: numeric_id).or(relation) if numeric_id
 
     candidates = relation.to_a
-
-    if numeric_id
-      match = candidates.find { |u| u.id == numeric_id }
-      return match if match
-    end
-
-    candidates.find { |u| u.slack_uid == id } ||
-      candidates.find { |u| u.hca_id == id } ||
-      candidates.find { |u| u.username == id }
+    lookup_order = [
+      numeric_id && ->(u) { u.id == numeric_id },
+      ->(u) { u.slack_uid == id },
+      ->(u) { u.hca_id == id },
+      ->(u) { u.username == id }
+    ].compact
+    lookup_order.each { |matcher| match = candidates.find(&matcher); return match if match }
+    nil
   end
 
-  def can_convict_users?
-    admin_level_superadmin? || admin_level_ultraadmin?
-  end
+  def can_convict_users? = admin_level_superadmin? || admin_level_ultraadmin?
+  def can_leaderboard_shadowban_users? = admin_level.in?(%w[admin superadmin ultraadmin])
+  def can_view_query_stats? = admin_level.in?(%w[viewer admin superadmin ultraadmin])
+  def admin_level_rank = ADMIN_LEVEL_RANK[admin_level.to_s] || 0
 
-  def set_admin_level(level)
-    return false unless level.present? && self.class.admin_levels.key?(level)
-
-    previous_level = admin_level
-
-    if previous_level != level.to_s
-      update!(admin_level: level.to_s)
-    end
+  # True if `self` is allowed to set `target_user`'s admin_level to `new_level`.
+  # Rules: only superadmin+ can change admin_level; no self-change; actor must
+  # strictly outrank target's current level and be at/above the rank being
+  # granted; granting `ultraadmin` requires `ultraadmin`.
+  def can_change_admin_level_of?(target_user, new_level)
+    return false unless ADMIN_LEVEL_RANK.key?(new_level.to_s)
+    return false unless admin_level_superadmin? || admin_level_ultraadmin?
+    return false unless can_act_on?(target_user)
+    return false unless admin_level_rank >= (ADMIN_LEVEL_RANK[new_level.to_s] || 0)
+    return false if new_level.to_s == "ultraadmin" && !admin_level_ultraadmin?
 
     true
   end
 
-  def set_trust(level, changed_by_user: nil, reason: nil, notes: nil)
-    return false unless level.present?
+  # True if `self` is allowed to set `target_user`'s trust_level to `new_level`.
+  # Rules: only admin+ can change trust; no self-change; actor must strictly
+  # outrank target; setting `red` requires `can_convict_users?`.
+  def can_change_trust_of?(target_user, new_level)
+    return false unless self.class.trust_levels.key?(new_level.to_s)
+    return false unless admin_level.in?(%w[admin superadmin ultraadmin])
+    return false unless can_act_on?(target_user)
+    return false if new_level.to_s == "red" && !can_convict_users?
 
-    previous_level = trust_level
+    true
+  end
 
-    if changed_by_user.present? && level.to_s == "red" && !changed_by_user.can_convict_users?
-      return false
+  # Change a user's admin_level. Returns false on auth failure or invalid level.
+  def set_admin_level(level, changed_by_user:) = change_level!(:admin_level, level, changed_by_user: changed_by_user)
+
+  # Change a user's trust_level. Returns false on auth failure or invalid level.
+  def set_trust(level, changed_by_user:, reason: nil, notes: nil)
+    change_level!(:trust_level, level, changed_by_user: changed_by_user) do |previous_level, new_level|
+      trust_level_audit_logs.create!(
+        changed_by: changed_by_user,
+        previous_trust_level: previous_level,
+        new_trust_level: new_level,
+        reason: reason,
+        notes: notes
+      )
     end
+  end
+  # ex: .set_trust(:green, changed_by_user: admin) or set_trust(:red, changed_by_user: admin)
 
-    if previous_level != level.to_s
-      if changed_by_user.present?
-        trust_level_audit_logs.create!(
-          changed_by: changed_by_user,
-          previous_trust_level: previous_level,
-          new_trust_level: level.to_s,
-          reason: reason,
-          notes: notes
-        )
+  def set_leaderboard_shadowban(banned:, changed_by_user:, reason: nil, expires_at: nil)
+    return false unless changed_by_user.is_a?(User)
+    return false unless changed_by_user.can_leaderboard_shadowban_users?
+    return false if changed_by_user == self
+    return false unless changed_by_user.admin_level_rank > admin_level_rank
+
+    if banned
+      expires_at, expiry_valid = coerce_shadowban_expiration(expires_at)
+      unless expiry_valid
+        errors.add(:leaderboard_shadowban_expires_at, "is invalid")
+        return false
       end
-
-      update!(trust_level: level)
     end
 
-    true
+    saved = update(
+      leaderboard_shadowbanned: banned,
+      leaderboard_shadowban_reason: banned ? reason.to_s.strip : nil,
+      leaderboard_shadowbanned_by: banned ? changed_by_user : nil,
+      leaderboard_shadowban_expires_at: banned ? expires_at : nil
+    )
+    schedule_leaderboard_shadowban_expiration if saved && banned && leaderboard_shadowban_expires_at.present?
+    saved
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.logger.error("set_leaderboard_shadowban failed for user #{id}: #{e.class}: #{e.message}")
+    false
   end
-  # ex: .set_trust(:green) or set_trust(1) setting it to red
 
   has_many :heartbeats
   has_many :goals, dependent: :destroy
@@ -143,6 +193,7 @@ class User < ApplicationRecord
   has_many :api_keys
   has_many :admin_api_keys, dependent: :destroy
   has_many :oauth_applications, as: :owner, dependent: :destroy
+  belongs_to :leaderboard_shadowbanned_by, class_name: "User", optional: true
 
   has_one :sailors_log,
     foreign_key: :slack_uid,
@@ -152,22 +203,41 @@ class User < ApplicationRecord
   has_many :heartbeat_import_runs, dependent: :destroy
 
   scope :search_identity, ->(term) {
-    term = term.to_s.strip.downcase
+    term = term.to_s.strip
     return none if term.blank?
 
-    pattern = "%#{sanitize_sql_like(term)}%"
+    contains = "%#{sanitize_sql_like(term)}%"
+    numeric_id = (term.match?(/\A\d+\z/) ? term.to_i : nil)
 
-    left_joins(:email_addresses)
-      .where(
-        "LOWER(users.username) LIKE :p OR " \
-        "LOWER(users.slack_username) LIKE :p OR " \
-        "LOWER(users.github_username) LIKE :p OR " \
-        "LOWER(email_addresses.email) LIKE :p OR " \
-        "CAST(users.id AS TEXT) LIKE :p",
-        p: pattern
-      )
-      .distinct
+    parts = [
+      "SELECT id FROM users WHERE slack_uid = :exact",
+      "SELECT id FROM users WHERE username ILIKE :contains",
+      "SELECT id FROM users WHERE slack_username ILIKE :contains",
+      "SELECT id FROM users WHERE github_username ILIKE :contains",
+      "SELECT user_id AS id FROM email_addresses WHERE email ILIKE :contains"
+    ]
+    parts << "SELECT id FROM users WHERE id = #{numeric_id}" if numeric_id
+
+    candidates_sql = sanitize_sql_for_conditions([ parts.join(" UNION "), { exact: term, contains: contains } ])
+    where("users.id IN (#{candidates_sql})")
   }
+
+  scope :leaderboard_shadowbanned, -> { where(leaderboard_shadowbanned: true) }
+
+  def saved_change_to_leaderboard_shadowban_state?
+    saved_change_to_leaderboard_shadowbanned? ||
+      saved_change_to_leaderboard_shadowban_reason? ||
+      saved_change_to_leaderboard_shadowbanned_by_id? ||
+      saved_change_to_leaderboard_shadowban_expires_at?
+  end
+
+  def clear_leaderboard_page_cache
+    LeaderboardPageCache.clear!
+  end
+
+  def schedule_leaderboard_shadowban_expiration
+    LeaderboardShadowbanExpirationJob.set(wait_until: leaderboard_shadowban_expires_at).perform_later(id)
+  end
 
   has_many :trust_level_audit_logs, dependent: :destroy
   has_many :trust_level_changes_made, class_name: "TrustLevelAuditLog", foreign_key: "changed_by_id", dependent: :destroy
@@ -184,17 +254,9 @@ class User < ApplicationRecord
            foreign_key: :resource_owner_id,
            dependent: :delete_all
 
-  def streak_days
-    @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
-  end
-
-  def active_deletion_request
-    deletion_requests.active.order(created_at: :desc).first
-  end
-
-  def pending_deletion?
-    active_deletion_request.present?
-  end
+  def streak_days = @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
+  def active_deletion_request = deletion_requests.active.order(created_at: :desc).first
+  def pending_deletion? = active_deletion_request.present?
 
   def can_request_deletion?
     return false if pending_deletion?
@@ -206,28 +268,11 @@ class User < ApplicationRecord
     last_audit.created_at <= 365.days.ago
   end
 
-  def can_delete_emails?
-    email_addresses.size > 1
-  end
-
-  def can_delete_email_address?(email)
-    email.can_unlink? && can_delete_emails?
-  end
-
-  if Rails.env.development?
-    def self.slow_find_by_email(email)
-      EmailAddress.find_by(email: email)&.user
-    end
-  end
+  def can_delete_emails? = email_addresses.size > 1
+  def can_delete_email_address?(email) = email.can_unlink? && can_delete_emails?
 
   def streak_days_formatted
-    if streak_days > 30
-      "30+"
-    elsif streak_days < 1
-      nil
-    else
-      streak_days.to_s
-    end
+    streak_days > 30 ? "30+" : (streak_days < 1 ? nil : streak_days.to_s)
   end
 
   enum :hackatime_extension_text_type, {
@@ -236,15 +281,12 @@ class User < ApplicationRecord
     compliment_text: 2
   }
 
-  after_save :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
+  after_update_commit :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
+  after_update_commit :schedule_dashboard_rollup_refresh, if: :saved_change_to_timezone?
 
-  def flipper_id
-    "User;#{id}"
-  end
-
-  def active_remote_heartbeat_import_run?
-    heartbeat_import_runs.remote_imports.active_imports.exists?
-  end
+  def flipper_id = "User;#{id}"
+  def active_remote_heartbeat_import_run? = heartbeat_import_runs.remote_imports.active_imports.exists?
+  def activity_graph_cache_key(timezone = self.timezone) = "user_#{id}_daily_durations_#{timezone}"
 
   def format_extension_text(duration)
     case hackatime_extension_text_type
@@ -254,28 +296,23 @@ class User < ApplicationRecord
     when "clock_emoji"
       ::ApplicationController.helpers.time_in_emoji(duration)
     when "compliment_text"
-      FlavorText.compliment.sample
+      compliments = FlavorText.compliment
+      bucket = Time.now.to_i / (7 * 60)
+      seed = Digest::MD5.hexdigest("#{id}-#{bucket}").to_i(16)
+      compliments[Random.new(seed).rand(compliments.length)]
     end
   end
 
   def parse_and_set_timezone(timezone)
     as_tz = ActiveSupport::TimeZone[timezone]
-
     unless as_tz
       begin
         tzinfo = TZInfo::Timezone.get(timezone)
-        as_tz = ActiveSupport::TimeZone.all.find do |z|
-          z.tzinfo.identifier == tzinfo.identifier
-        end
+        as_tz = ActiveSupport::TimeZone.all.find { |z| z.tzinfo.identifier == tzinfo.identifier }
       rescue TZInfo::InvalidTimezoneIdentifier
       end
     end
-
-    if as_tz
-      self.timezone = as_tz.name
-    else
-      report_message("Invalid timezone #{timezone} for user #{id}")
-    end
+    as_tz ? (self.timezone = as_tz.name) : report_message("Invalid timezone #{timezone} for user #{id}")
   end
 
   def avatar_url
@@ -288,69 +325,85 @@ class User < ApplicationRecord
       hashed_initials = Digest::SHA256.hexdigest(initials)[0..5]
       return "https://i2.wp.com/ui-avatars.com/api/#{initials}/48/#{hashed_initials}/fff?ssl=1"
     end
-
-    base64_identicon = RubyIdenticon.create_base64(id.to_s)
-    "data:image/png;base64,#{base64_identicon}"
+    "data:image/png;base64,#{RubyIdenticon.create_base64(id.to_s)}"
   end
 
   def display_name
+    return display_name_override if display_name_override.present?
+
     name = slack_username || github_username || username
     return name if name.present?
-
     email = email_addresses&.first&.email
     return "error displaying name" unless email.present?
-
     email.split("@")&.first.truncate(10) + " (email sign-up)"
   end
 
-  def most_recent_direct_entry_heartbeat
-    heartbeats.where(source_type: :direct_entry).order(time: :desc).first
-  end
+  def most_recent_direct_entry_heartbeat = heartbeats.where(source_type: :direct_entry).order(time: :desc).first
 
-  def create_email_signin_token(continue_param: nil)
-    sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
-  end
+  def create_email_signin_token(continue_param: nil) = sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
 
   def rotate_api_keys!
-    api_keys.transaction do
-      api_keys.destroy_all
-      api_keys.create!(name: "Hackatime key")
-    end
+    api_keys.transaction { api_keys.destroy_all; api_keys.create!(name: "Hackatime key") }
   end
 
   def rotate_single_api_key!(api_key)
     raise ActiveRecord::RecordNotFound unless api_key.user_id == id
-
     api_key.update!(token: SecureRandom.uuid_v4)
     api_key
   end
 
-  def find_valid_token(token)
-    sign_in_tokens.valid.find_by(token: token)
-  end
+  def find_valid_token(token) = sign_in_tokens.valid.find_by(token: token)
 
-  def self.not_convicted
-    where.not(trust_level: User.trust_levels[:red])
-  end
-
-  def self.not_suspect
-    where(trust_level: [ User.trust_levels[:blue], User.trust_levels[:green] ])
-  end
+  def self.not_convicted = where.not(trust_level: User.trust_levels[:red])
+  def self.not_suspect = where(trust_level: [ User.trust_levels[:blue], User.trust_levels[:green] ])
 
   private
 
+  # Shared precondition for can_change_admin_level_of? / can_change_trust_of?
+  def can_act_on?(target_user)
+    return false unless target_user.is_a?(User)
+    return false if target_user == self
+
+    admin_level_rank > (ADMIN_LEVEL_RANK[target_user.admin_level.to_s] || 0)
+  end
+
+  # Shared change body for set_admin_level / set_trust. Yields (previous, new)
+  # when the value is actually changing, so callers can write audit logs.
+  def change_level!(attr, level, changed_by_user:)
+    return false unless changed_by_user.is_a?(User)
+    levels_map = self.class.public_send(attr.to_s.pluralize)
+    return false unless level.present? && levels_map.key?(level.to_s)
+
+    auth_method = attr == :admin_level ? :can_change_admin_level_of? : :can_change_trust_of?
+    return false unless changed_by_user.public_send(auth_method, self, level.to_s)
+
+    previous_level = public_send(attr)
+    if previous_level != level.to_s
+      yield(previous_level, level.to_s) if block_given?
+      update!(attr => level.to_s)
+    end
+
+    true
+  end
+
   def invalidate_activity_graph_cache
-    Rails.cache.delete("user_#{id}_daily_durations")
+    previous_timezone, current_timezone = previous_changes.fetch("timezone", [ nil, timezone ])
+
+    [ previous_timezone, current_timezone ].compact.uniq.each do |cache_timezone|
+      Rails.cache.delete(activity_graph_cache_key(cache_timezone))
+    end
   end
 
-  def track_signup
-    PosthogService.identify(self)
-    PosthogService.capture(self, "account_created", { source: "signup" })
+  def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
+  def subscribe_to_default_lists = subscribe("weekly_summary")
+  def schedule_welcome_email
+    recipient_email = email_addresses.order(:id).pick(:email)
+    return if recipient_email.blank?
+
+    OnboardingMailer.welcome(self, recipient_email: recipient_email).deliver_later
   end
 
-  def subscribe_to_default_lists
-    subscribe("weekly_summary")
-  end
+  def schedule_onboarding_check_in_email = OnboardingCheckInEmailJob.set(wait: 1.week).perform_later(id)
 
   def normalize_username
     original = username
@@ -370,8 +423,34 @@ class User < ApplicationRecord
   end
 
   def username_must_be_visible
-    if instance_variable_defined?(:@username_cleared_for_invisible) && @username_cleared_for_invisible
-      errors.add(:username, "must include visible characters")
-    end
+    return unless instance_variable_defined?(:@username_cleared_for_invisible) && @username_cleared_for_invisible
+    errors.add(:username, "must include visible characters")
+  end
+
+  def normalize_display_name_override
+    return if display_name_override.nil?
+
+    self.display_name_override = display_name_override.gsub(/\p{Cf}/, "").strip.presence
+  end
+
+  def leaderboard_shadowban_expiration_must_be_in_the_future
+    return unless will_save_change_to_leaderboard_shadowban_expires_at?
+    return unless leaderboard_shadowbanned?
+    return if leaderboard_shadowban_expires_at.blank?
+    return if leaderboard_shadowban_expires_at.future?
+
+    errors.add(:leaderboard_shadowban_expires_at, "must be in the future")
+  end
+
+  # returns [time_or_nil, valid?]. accepts a blank value (no expiration),
+  # an already-parsed time, or a string to parse.
+  def coerce_shadowban_expiration(value)
+    return [ nil, true ] if value.blank?
+    return [ value, true ] unless value.is_a?(String)
+
+    parsed = Time.zone.parse(value)
+    [ parsed, parsed.present? ]
+  rescue ArgumentError
+    [ nil, false ]
   end
 end

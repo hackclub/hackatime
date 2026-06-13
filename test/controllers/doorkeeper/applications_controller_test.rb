@@ -51,7 +51,6 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "OAuthApplications/Show", page["component"]
     assert_equal application.id, page.dig("props", "application", "id")
     assert_equal application.name, page.dig("props", "application", "name")
-    assert_equal rotate_secret_oauth_application_path(application), page.dig("props", "application", "rotate_secret_path")
   end
 
   test "create persists owned application and redirects to show" do
@@ -60,7 +59,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(user)
     assert_difference -> { OauthApplication.count }, 1 do
       post oauth_applications_path, params: {
-        doorkeeper_application: valid_application_params(name: "Created App")
+        doorkeeper_application: valid_application_form_params(name: "Created App")
       }
     end
 
@@ -70,12 +69,24 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert flash[:application_secret].present?
   end
 
+  test "create can persist HCA login redirect preference" do
+    user = User.create!(timezone: "UTC")
+
+    sign_in_as(user)
+    post oauth_applications_path, params: {
+      doorkeeper_application: valid_application_form_params(name: "HCA Login App").merge(redirect_to_hca_login: "1")
+    }
+
+    created_application = OauthApplication.order(:created_at).last
+    assert created_application.redirect_to_hca_login?
+  end
+
   test "create invalid re-renders inertia new with validation errors" do
     user = User.create!(timezone: "UTC")
 
     sign_in_as(user)
     post oauth_applications_path, params: {
-      doorkeeper_application: valid_application_params(name: "")
+      doorkeeper_application: valid_application_form_params(name: "")
     }
 
     assert_response :unprocessable_entity
@@ -90,7 +101,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in_as(user)
     post oauth_applications_path(format: :json), params: {
-      doorkeeper_application: valid_application_params(name: "")
+      doorkeeper_application: valid_application_form_params(name: "")
     }
 
     assert_response :unprocessable_entity
@@ -104,11 +115,24 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in_as(user)
     patch oauth_application_path(application), params: {
-      doorkeeper_application: { name: "After" }
+      doorkeeper_application: valid_application_form_params(name: "After")
     }
 
     assert_redirected_to oauth_application_url(application)
     assert_equal "After", application.reload.name
+  end
+
+  test "update can persist HCA login redirect preference" do
+    user = User.create!(timezone: "UTC")
+    application = create_application_for(user, name: "Before")
+
+    sign_in_as(user)
+    patch oauth_application_path(application), params: {
+      doorkeeper_application: valid_application_form_params(name: application.name).merge(redirect_to_hca_login: "1")
+    }
+
+    assert_redirected_to oauth_application_url(application)
+    assert application.reload.redirect_to_hca_login?
   end
 
   test "update invalid re-renders inertia edit with validation errors" do
@@ -117,7 +141,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in_as(user)
     patch oauth_application_path(application), params: {
-      doorkeeper_application: { name: "" }
+      doorkeeper_application: valid_application_form_params(name: "")
     }
 
     assert_response :unprocessable_entity
@@ -176,6 +200,10 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
       scopes: configured_scopes,
       confidential: "1"
     }
+  end
+
+  def valid_application_form_params(name:)
+    valid_application_params(name: name).merge(scopes: configured_scopes.split)
   end
 
   def create_application_for(user, name:)

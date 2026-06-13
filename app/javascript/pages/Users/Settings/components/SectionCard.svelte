@@ -1,8 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
 
-  type Tone = "default" | "danger";
-
   let {
     id,
     title,
@@ -17,7 +15,7 @@
     id?: string;
     title: string;
     description: string;
-    tone?: Tone;
+    tone?: "default" | "danger";
     wide?: boolean;
     hasBody?: boolean;
     footerClass?: string;
@@ -25,42 +23,37 @@
     footer?: Snippet;
   } = $props();
 
-  const toneClasses = $derived(
-    tone === "danger"
-      ? "border-danger/35 bg-danger/5"
-      : "border-surface-200 bg-surface",
-  );
-  const contentWidth = $derived(wide ? "" : "max-w-2xl");
-  const descriptionWidth = $derived(wide ? "max-w-3xl" : "max-w-2xl");
+  const widthClass = $derived(wide ? "" : "max-w-2xl");
+  const descWidthClass = $derived(wide ? "max-w-3xl" : "max-w-2xl");
 </script>
 
 <section
   {id}
   data-settings-card
   data-settings-card-tone={tone}
-  class={`scroll-mt-24 overflow-hidden rounded-2xl border ${toneClasses}`}
+  class={`scroll-mt-24 overflow-hidden rounded-2xl ${tone === "danger" ? "bg-danger/5" : "bg-surface"}`}
 >
-  <div class="border-b border-surface-200 px-5 py-4 sm:px-6 sm:py-5">
-    <div class={descriptionWidth}>
-      <h2 class="text-xl font-semibold tracking-tight text-surface-content">
+  <div data-settings-card-header class="px-5 py-4 sm:px-6 sm:py-5">
+    <div class={descWidthClass}>
+      <h2
+        class="text-balance text-xl font-semibold tracking-tight text-surface-content"
+      >
         {title}
       </h2>
-      <p class="mt-1 text-sm leading-6 text-muted">{description}</p>
+      <p class="mt-1 text-pretty text-sm leading-6 text-muted">{description}</p>
     </div>
   </div>
 
   {#if hasBody}
     <div class="px-5 py-4 sm:px-6 sm:py-5">
-      <div class={contentWidth}>
-        {@render children?.()}
-      </div>
+      <div class={widthClass}>{@render children?.()}</div>
     </div>
   {/if}
 
   {#if footer}
     <div
       data-settings-footer
-      class={`border-t border-surface-200 bg-surface-100/60 px-5 py-3.5 sm:px-6 sm:py-4 ${footerClass}`}
+      class={`bg-surface-100/60 px-5 py-3.5 sm:px-6 sm:py-4 ${footerClass}`}
     >
       {@render footer()}
     </div>

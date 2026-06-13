@@ -2,74 +2,41 @@
   import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import ActivityGraph from "../Home/signedIn/ActivityGraph.svelte";
-  import HorizontalBarList from "../Home/signedIn/HorizontalBarList.svelte";
-
-  type SocialLink = {
-    key: string;
-    label: string;
-    url: string;
-  };
-
-  type ProfileData = {
-    display_name: string;
-    username: string;
-    avatar_url: string;
-    trust_level: string;
-    bio?: string | null;
-    social_links: SocialLink[];
-    github_profile_url?: string | null;
-    github_username?: string | null;
-    streak_days?: number | null;
-  };
-
-  type TotalsData = {
-    today_seconds: number;
-    week_seconds: number;
-    all_seconds: number;
-    today_label: string;
-    week_label: string;
-    all_label: string;
-  };
-
-  type ProjectData = {
-    project: string;
-    duration_seconds: number;
-    duration_label: string;
-    repo_url?: string | null;
-  };
-
-  type StatsData = {
-    totals: TotalsData;
-    top_projects_month: ProjectData[];
-    top_languages: [string, number][];
-    top_editors: [string, number][];
-    activity_graph: {
-      start_date: string;
-      end_date: string;
-      duration_by_date: Record<string, number>;
-      busiest_day_seconds: number;
-      timezone_label: string;
-      timezone_settings_path: string;
-    };
-  };
+  import Dashboard from "../Home/signedIn/Dashboard.svelte";
+  import { settingsProfile } from "../../api";
+  import type {
+    ActivityGraphData,
+    FilterableDashboardData,
+  } from "../../types/index";
 
   let {
     page_title,
     profile_visible,
     is_own_profile,
-    edit_profile_path,
     profile,
-    stats,
+    dashboard_stats,
   }: {
     page_title: string;
     profile_visible: boolean;
     is_own_profile: boolean;
-    edit_profile_path?: string | null;
-    profile: ProfileData;
-    stats?: StatsData;
+    profile: {
+      display_name: string;
+      username: string;
+      avatar_url: string;
+      trust_level: string;
+      bio?: string | null;
+      social_links: { key: string; label: string; url: string }[];
+      streak_days?: number | null;
+    };
+    dashboard_stats?: {
+      filterable_dashboard_data: Partial<FilterableDashboardData>;
+      activity_graph: ActivityGraphData;
+    };
   } = $props();
 
-  const hasStats = $derived(Boolean(stats));
+  const editProfilePath = settingsProfile.my.path();
+  const badgeClass =
+    "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold";
 </script>
 
 <svelte:head>
@@ -95,16 +62,12 @@
               {profile.display_name}
             </h1>
             {#if profile.trust_level === "green"}
-              <span
-                class="inline-flex items-center rounded-full bg-primary/15 px-2 py-1 text-xs font-semibold text-primary"
-              >
+              <span class="{badgeClass} bg-primary/15 text-primary">
                 Verified
               </span>
             {/if}
             {#if profile.streak_days && profile.streak_days > 0}
-              <span
-                class="inline-flex items-center rounded-full bg-orange-500/15 px-2 py-1 text-xs font-semibold text-orange-300"
-              >
+              <span class="{badgeClass} bg-orange-500/15 text-orange-300">
                 Streak: {profile.streak_days} days
               </span>
             {/if}
@@ -122,16 +85,16 @@
         </div>
       </div>
 
-      {#if is_own_profile && edit_profile_path}
+      {#if is_own_profile}
         <div class="md:pl-4">
-          <Button href={edit_profile_path}>Edit Profile</Button>
+          <Button href={editProfilePath}>Edit Profile</Button>
         </div>
       {/if}
     </div>
 
     {#if profile.social_links.length > 0}
       <div class="mt-6 flex flex-wrap gap-2">
-        {#each profile.social_links as link}
+        {#each profile.social_links as link (link.key)}
           <a
             href={link.url}
             target="_blank"
@@ -145,103 +108,24 @@
     {/if}
   </section>
 
-  {#if profile_visible}
-    {#if hasStats && stats}
-      <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div class="rounded-xl border border-primary/60 bg-surface p-4">
-          <div class="text-xs uppercase tracking-wide text-muted">Today</div>
-          <div class="mt-2 text-2xl font-bold text-primary">
-            {stats.totals.today_label}
-          </div>
-        </div>
-        <div class="rounded-xl border border-primary/60 bg-surface p-4">
-          <div class="text-xs uppercase tracking-wide text-muted">
-            This Week
-          </div>
-          <div class="mt-2 text-2xl font-bold text-primary">
-            {stats.totals.week_label}
-          </div>
-        </div>
-        <div class="rounded-xl border border-primary/60 bg-surface p-4">
-          <div class="text-xs uppercase tracking-wide text-muted">All Time</div>
-          <div class="mt-2 text-2xl font-bold text-primary">
-            {stats.totals.all_label}
-          </div>
-        </div>
-      </section>
+  {#if profile_visible && dashboard_stats}
+    <Dashboard
+      data={dashboard_stats.filterable_dashboard_data}
+      showFilters={false}
+      showGoals={false}
+    />
 
-      <section class="rounded-xl border border-surface-200 bg-surface p-6">
-        <div class="mb-4 flex items-end justify-between gap-3">
-          <h2 class="text-xl font-semibold text-surface-content">
-            Top Projects
-          </h2>
-          <p class="text-sm text-muted">Past month</p>
-        </div>
-
-        {#if stats.top_projects_month.length > 0}
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {#each stats.top_projects_month as project}
-              <article
-                class="rounded-lg border border-surface-200 bg-darker p-4"
-              >
-                <div class="flex items-center justify-between gap-3">
-                  <h3
-                    class="truncate font-medium text-surface-content"
-                    title={project.project}
-                  >
-                    {project.project || "Unknown"}
-                  </h3>
-                  <span class="text-sm font-semibold text-primary"
-                    >{project.duration_label}</span
-                  >
-                </div>
-
-                {#if project.repo_url}
-                  <a
-                    href={project.repo_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="mt-2 inline-flex text-xs text-muted underline hover:text-primary"
-                  >
-                    Open repository
-                  </a>
-                {/if}
-              </article>
-            {/each}
-          </div>
-        {:else}
-          <p class="text-sm text-muted">
-            No project activity in the past month.
-          </p>
-        {/if}
-      </section>
-
-      <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <HorizontalBarList
-          title="Top Languages"
-          entries={stats.top_languages}
-          empty_message="No language activity yet."
-        />
-
-        <HorizontalBarList
-          title="Favorite Editors"
-          entries={stats.top_editors}
-          empty_message="No editor activity yet."
-        />
-      </section>
-
-      <section
-        id="profile_activity"
-        class="rounded-xl border border-surface-200 bg-surface p-6"
-      >
-        <h2 class="text-xl font-semibold text-surface-content">Activity</h2>
-        <ActivityGraph data={stats.activity_graph} />
-      </section>
-    {:else}
-      <section class="rounded-xl border border-surface-200 bg-surface p-6">
-        <p class="text-sm text-muted">Loading profile stats...</p>
-      </section>
-    {/if}
+    <section
+      id="profile_activity"
+      class="rounded-xl border border-surface-200 bg-surface p-6"
+    >
+      <h2 class="text-xl font-semibold text-surface-content">Activity</h2>
+      <ActivityGraph data={dashboard_stats.activity_graph} />
+    </section>
+  {:else if profile_visible}
+    <section class="rounded-xl border border-surface-200 bg-surface p-6">
+      <p class="text-sm text-muted">Loading profile stats...</p>
+    </section>
   {:else}
     <section
       class="rounded-xl border border-yellow/35 bg-yellow/10 p-6 text-center"
@@ -252,9 +136,9 @@
       <p class="mt-2 text-sm text-muted">
         This user chose not to share coding stats publicly.
       </p>
-      {#if is_own_profile && edit_profile_path}
+      {#if is_own_profile}
         <div class="mt-4">
-          <Button href={`${edit_profile_path}#user_privacy`} variant="surface">
+          <Button href={`${editProfilePath}#user_privacy`} variant="surface">
             Update privacy settings
           </Button>
         </div>

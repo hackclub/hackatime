@@ -4,26 +4,22 @@ class SailorsLogPollForChangesJob < ApplicationJob
   include GoodJob::ActiveJobExtensions::Concurrency
 
   good_job_control_concurrency_with(
-    total_limit: 1,
-    key: -> { "sailors_log_poll_for_changes_job" },
-    drop: true
+    total_limit: 1, key: -> { "sailors_log_poll_for_changes_job" }
   )
 
-  def perform
-    users_who_coded = Heartbeat.with_valid_timestamps
-                               .where(time: 10.minutes.ago..)
-                               .distinct.pluck(:user_id)
+  IGNORED_PROJECTS = [ "<<LAST_PROJECT>>", "Unknown" ].freeze
 
+  def perform
+    users_who_coded = Heartbeat.with_valid_timestamps.where(time: 10.minutes.ago..).distinct.pluck(:user_id)
     slack_uids = User.where(id: users_who_coded).pluck(:slack_uid)
 
     new_notifs = SailorsLog.includes(:user, :notification_preferences)
                            .where(notification_preferences: { enabled: true })
                            .where(slack_uid: slack_uids)
-                           .map { |sl| update_sailors_log(sl) }.flatten
+                           .flat_map { |sl| update_sailors_log(sl) }
 
     notifs_to_send = SailorsLogSlackNotification.insert_all(new_notifs)
     notif_ids = notifs_to_send.result.to_a.map { |r| r["id"] }
-
     SailorsLogSlackNotification.where(id: notif_ids).map(&:notify_user!)
   end
 
@@ -32,39 +28,40 @@ class SailorsLogPollForChangesJob < ApplicationJob
   def update_sailors_log(sailors_log)
     return [] if sailors_log.user.active_remote_heartbeat_import_run?
 
-    project_updates = []
-    project_durations = Heartbeat.where(user_id: sailors_log.user.id)
-                                 .group(:project).duration_seconds
-    project_durations.each do |k, v|
-      old_duration = sailors_log.projects_summary[k] || 0
-      new_duration = v
-      if old_duration / 3600 < new_duration / 3600
-        sailors_log.projects_summary[k] = new_duration
-        project_updates << { project: k, duration: new_duration }
-      end
+    project_durations = DashboardRollup
+      .where(user_id: sailors_log.user.id, dimension: "project", bucket_value_present: true)
+      .pluck(:bucket_value, :total_seconds).to_h
+
+    if project_durations.empty?
+      DashboardRollupRefreshJob.schedule_for(sailors_log.user.id, wait: 0.seconds)
+      return []
     end
 
-    notifications_to_create = []
+    project_updates = []
+    project_durations.each do |k, v|
+      next if ignored_project?(k)
+      old_duration = sailors_log.projects_summary[k] || 0
+      next unless old_duration / 3600 < v / 3600
+      sailors_log.projects_summary[k] = v
+      project_updates << { project: k, duration: v }
+    end
+
+    notifications = []
     if sailors_log.changed?
       sailors_log.notification_preferences.each do |np|
         project_updates.each do |pu|
-          next if pu[:project].blank?
-          notifications_to_create << {
-            slack_uid: sailors_log.user.slack_uid,
-            slack_channel_id: np.slack_channel_id,
-            project_name: pu[:project],
-            project_duration: pu[:duration]
+          next if ignored_project?(pu[:project])
+          notifications << {
+            slack_uid: sailors_log.user.slack_uid, slack_channel_id: np.slack_channel_id,
+            project_name: pu[:project], project_duration: pu[:duration]
           }
         end
       end
-
       sailors_log.save!
     end
 
-    notifications_to_create
+    notifications
   end
-end
 
-# optimizations?
-# - index heartbeats on user_id + project so we can call duration_seconds grouping by both
-# - investigate lookup by slack_uid, maybe index or computed field?
+  def ignored_project?(project) = project.blank? || IGNORED_PROJECTS.include?(project)
+end

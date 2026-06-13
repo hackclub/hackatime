@@ -1,81 +1,61 @@
 <script lang="ts">
   import { router } from "@inertiajs/svelte";
+  import { untrack } from "svelte";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
+  import Field from "./components/Field.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { BadgesPageProps } from "./types";
+  import { settingsPrivacy } from "../../../api";
 
   let {
     active_section,
-    section_paths,
     page_title,
     heading,
     subheading,
     badge_themes,
     badges,
     allow_public_stats_lookup,
-    settings_update_path,
     errors,
   }: BadgesPageProps = $props();
 
-  function enablePublicStats() {
-    router.patch(settings_update_path, {
-      user: { allow_public_stats_lookup: true },
-    });
-  }
+  let selectedTheme = $state(
+    untrack(() =>
+      badge_themes.includes("darcula")
+        ? "darcula"
+        : badge_themes[0] || "default",
+    ),
+  );
+  let selectedProject = $state(
+    untrack(() => badges.projects[0]?.repo_path || ""),
+  );
 
-  const defaultTheme = (themes: string[]) =>
-    themes.includes("darcula") ? "darcula" : themes[0] || "default";
-
-  let selectedTheme = $state("default");
-  let selectedProject = $state<string>("");
-
-  $effect(() => {
-    if (badge_themes.length > 0 && !badge_themes.includes(selectedTheme)) {
-      selectedTheme = defaultTheme(badge_themes);
-    }
-  });
-
-  $effect(() => {
-    if (badges.projects.length === 0) {
-      selectedProject = "";
-      return;
-    }
-
-    const projectRepoPath = badges.projects.find(
-      (p) => p.repo_path === selectedProject,
-    );
-    if (!projectRepoPath) {
-      selectedProject = badges.projects[0]?.repo_path || "";
-    }
-  });
-
-  const badgeUrl = () => {
+  const badgeUrl = $derived.by(() => {
     const url = new URL(badges.general_badge_url);
     url.searchParams.set("theme", selectedTheme);
     return url.toString();
-  };
+  });
 
-  const projectBadgeUrl = () => {
-    if (!badges.project_badge_base_url || !selectedProject) return "";
-    // selectedProject is already in owner/repo format
-    return `${badges.project_badge_base_url}${selectedProject}`;
-  };
+  const projectBadgeUrl = $derived(
+    badges.project_badge_base_url && selectedProject
+      ? `${badges.project_badge_base_url}${selectedProject}`
+      : "",
+  );
 </script>
+
+{#snippet badgePreview(src: string, alt: string, url: string)}
+  <div class="rounded-md border border-surface-200 bg-darker p-4">
+    <img {src} {alt} class="settings-image-outline max-w-full rounded" />
+    <pre class="mt-3 overflow-x-auto text-xs text-surface-content">{url}</pre>
+  </div>
+{/snippet}
 
 <svelte:head>
   <title>Badges - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell
-  {active_section}
-  {section_paths}
-  {page_title}
-  {heading}
-  {subheading}
-  {errors}
->
+<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
   {#if !allow_public_stats_lookup}
     <div
       class="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-surface-content"
@@ -86,7 +66,12 @@
         others. Enable public stats to use badges.
       </p>
       <Button
-        onclick={enablePublicStats}
+        onclick={() =>
+          router.patch(
+            settingsPrivacy.update.path(),
+            { user: { allow_public_stats_lookup: true } },
+            { preserveScroll: true },
+          )}
         variant="primary"
         size="sm"
         class="mt-3"
@@ -108,13 +93,7 @@
       wide
     >
       <div class="space-y-4">
-        <div>
-          <label
-            for="badge_theme"
-            class="mb-2 block text-sm text-surface-content"
-          >
-            Theme
-          </label>
+        <Field inputId="badge_theme" label="Theme">
           <Select
             id="badge_theme"
             bind:value={selectedTheme}
@@ -123,43 +102,33 @@
               label: theme,
             }))}
           />
-        </div>
+        </Field>
 
-        <div class="rounded-md border border-surface-200 bg-darker p-4">
-          <img
-            src={badgeUrl()}
-            alt="General coding stats badge preview"
-            class="max-w-full rounded"
-          />
-          <pre
-            class="mt-3 overflow-x-auto text-xs text-surface-content">{badgeUrl()}</pre>
-        </div>
+        {@render badgePreview(
+          badgeUrl,
+          "General coding stats badge preview",
+          badgeUrl,
+        )}
       </div>
 
       {#if badges.projects.length > 0 && badges.project_badge_base_url}
         <div class="mt-6 border-t border-surface-200 pt-6">
-          <label
-            for="badge_project"
-            class="mb-2 block text-sm text-surface-content"
-          >
-            Project
-          </label>
-          <Select
-            id="badge_project"
-            bind:value={selectedProject}
-            items={badges.projects.map((project) => ({
-              value: project.repo_path,
-              label: project.display_name,
-            }))}
-          />
-          <div class="mt-4 rounded-md border border-surface-200 bg-darker p-4">
-            <img
-              src={projectBadgeUrl()}
-              alt="Project stats badge preview"
-              class="max-w-full rounded"
+          <Field inputId="badge_project" label="Project">
+            <Select
+              id="badge_project"
+              bind:value={selectedProject}
+              items={badges.projects.map((p) => ({
+                value: p.repo_path,
+                label: p.display_name,
+              }))}
             />
-            <pre
-              class="mt-3 overflow-x-auto text-xs text-surface-content">{projectBadgeUrl()}</pre>
+          </Field>
+          <div class="mt-4">
+            {@render badgePreview(
+              projectBadgeUrl,
+              "Project stats badge preview",
+              projectBadgeUrl,
+            )}
           </div>
         </div>
       {/if}
@@ -188,7 +157,7 @@
       <img
         src={badges.markscribe_preview_image_url}
         alt="Example markscribe output"
-        class="mt-4 w-full max-w-3xl rounded-md border border-surface-200"
+        class="settings-image-outline mt-4 w-full max-w-3xl rounded-md"
       />
     </SectionCard>
 
@@ -211,13 +180,14 @@
           <img
             src={badges.heatmap_badge_url}
             alt="Heatmap badge preview"
-            class="max-w-full"
+            class="settings-image-outline max-w-full"
           />
         </a>
         <pre
           class="mt-2 overflow-x-auto text-xs text-surface-content">{badges.heatmap_badge_url}</pre>
       </div>
     </SectionCard>
+
     <SectionCard
       id="user_hackabox"
       title="Hackabox Gist"
@@ -237,7 +207,7 @@
       <img
         src={badges.hackabox_preview_image_url}
         alt="Example hackabox output"
-        class="mt-4 w-full max-w-3xl rounded-md border border-surface-200"
+        class="settings-image-outline mt-4 w-full max-w-3xl rounded-md"
       />
     </SectionCard>
   </div>

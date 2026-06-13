@@ -1,27 +1,12 @@
 <script module lang="ts">
-  export const layout = false;
+  import MarketingLayout from "../layouts/MarketingLayout.svelte";
+  export const layout = MarketingLayout;
 </script>
 
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
   import MarketingFooter from "../components/MarketingFooter.svelte";
-
-  let previousTheme = $state<string | null>(null);
-
-  $effect(() => {
-    const html = document.documentElement;
-    previousTheme = html.getAttribute("data-theme");
-    html.setAttribute("data-theme", "gruvbox_dark");
-
-    const colorSchemeMeta = document.querySelector("meta[name='color-scheme']");
-    colorSchemeMeta?.setAttribute("content", "dark");
-
-    return () => {
-      if (previousTheme) {
-        html.setAttribute("data-theme", previousTheme);
-      }
-    };
-  });
+  import Checkmark from "hcicons-svelte/checkmark";
 
   type Feature = {
     name: string;
@@ -41,10 +26,10 @@
     },
     {
       name: "Open Source",
-      hackatime: "\u2713",
+      hackatime: "✓",
       hackatimeHighlight: true,
-      wakatimeFree: "\u2717",
-      wakatimePro: "\u2717",
+      wakatimeFree: "✗",
+      wakatimePro: "✗",
     },
     {
       name: "Editor Support",
@@ -69,72 +54,75 @@
     },
     {
       name: "Language Breakdown",
-      hackatime: "\u2713",
+      hackatime: "✓",
       hackatimeHighlight: true,
-      wakatimeFree: "\u2713",
-      wakatimePro: "\u2713",
+      wakatimeFree: "✓",
+      wakatimePro: "✓",
     },
     {
       name: "Leaderboards",
-      hackatime: "\u2713 (Community)",
+      hackatime: "✓ (Community)",
       hackatimeHighlight: true,
-      wakatimeFree: "\u2713 (Community)",
-      wakatimePro: "\u2713",
+      wakatimeFree: "✓ (Community)",
+      wakatimePro: "✓",
     },
     {
       name: "Self-Hosting",
-      hackatime: "\u2713",
+      hackatime: "✓",
       hackatimeHighlight: true,
-      wakatimeFree: "\u2717",
-      wakatimePro: "\u2717",
+      wakatimeFree: "✗",
+      wakatimePro: "✗",
     },
     {
       name: "Team Features",
-      hackatime: "\u2717",
+      hackatime: "✗",
       hackatimeHighlight: false,
-      wakatimeFree: "\u2717",
-      wakatimePro: "\u2713",
+      wakatimeFree: "✗",
+      wakatimePro: "✓",
     },
     {
       name: "API Access",
-      hackatime: "\u2713 Full",
+      hackatime: "✓ Full",
       hackatimeHighlight: true,
       wakatimeFree: "Limited",
-      wakatimePro: "\u2713 Full",
+      wakatimePro: "✓ Full",
     },
   ];
 
-  type TradeOff = { title: string; description: string };
-
-  const tradeOffs: TradeOff[] = [
+  const tradeOffs = [
     {
       title: "No team dashboards",
       description:
-        "WakaTime Pro offers team analytics. Hackatime is focused on individual developers. If you need team insights, WakaTime might be better suited.",
+        "WakaTime Pro has team analytics. We don't. If you need to see what your coworkers are shipping, stick with WakaTime.",
     },
     {
-      title: "Community-focused",
+      title: "Built for Hack Club",
       description:
-        "Hackatime is built for the Hack Club community. While anyone can use it, some features (like leaderboards) are community-centric.",
+        "Anyone can sign up, but the leaderboards and culture skew toward the Hack Club community. That's a feature for some people and a downside for others.",
     },
     {
-      title: "Newer platform",
+      title: "Younger project",
       description:
-        "WakaTime has been around since 2013 and has a mature ecosystem. Hackatime launched in 2024 and is actively developed.",
-    },
-    {
-      title: "No email summaries",
-      description:
-        "WakaTime sends weekly email reports. Hackatime doesn't currently offer email digests, but this is a feature we're actively working on.",
+        "WakaTime has been around since 2013. Hackatime launched in 2024. The plugin ecosystem is the same, but we're still adding things.",
     },
   ];
 
   const benefits = [
-    "100% free, forever - every feature, no exceptions",
-    "Works with all WakaTime plugins - just change your API endpoint",
-    "Open source - audit the code, contribute, or self-host",
-    "Privacy-first - only metadata tracked, never your code",
-    "Community leaderboards - see how you stack up against peers",
+    "Free, forever. No paid tier hiding behind a feature gate.",
+    "Works with every WakaTime plugin. You just point it at a different URL.",
+    "Open source, so you can read the code, send a PR, or run your own copy.",
+    "We only track metadata (file names, languages, time). Never your code.",
+    "Leaderboards if you want to see how you stack up against other people.",
+  ];
+
+  const navLinks = [
+    { href: "/#philosophy", label: "Philosophy", external: false },
+    { href: "/#features", label: "Features", external: false },
+    {
+      href: "https://github.com/hackclub/hackatime",
+      label: "GitHub",
+      external: true,
+    },
   ];
 </script>
 
@@ -143,7 +131,6 @@
 </svelte:head>
 
 <div class="min-h-screen w-full bg-darker text-surface-content">
-  <!-- Fixed Header -->
   <header
     class="fixed top-0 w-full bg-darker/95 backdrop-blur-sm z-50 border-b border-surface-200/60"
   >
@@ -161,19 +148,13 @@
       <nav
         class="hidden md:flex gap-8 items-center text-sm font-medium text-secondary"
       >
-        <a
-          href="/#philosophy"
-          class="hover:text-surface-content transition-colors">Philosophy</a
-        >
-        <a
-          href="/#features"
-          class="hover:text-surface-content transition-colors">Features</a
-        >
-        <a
-          href="https://github.com/hackclub/hackatime"
-          target="_blank"
-          class="hover:text-surface-content transition-colors">GitHub</a
-        >
+        {#each navLinks as link}
+          <a
+            href={link.href}
+            target={link.external ? "_blank" : undefined}
+            class="hover:text-surface-content transition-colors">{link.label}</a
+          >
+        {/each}
         <Link
           href="/signin"
           class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
@@ -184,7 +165,6 @@
     </div>
   </header>
 
-  <!-- Hero Section -->
   <section class="pt-32 pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h1
@@ -193,45 +173,41 @@
         WakaTime vs Hackatime
       </h1>
       <p class="text-lg md:text-xl text-secondary leading-relaxed max-w-[75ch]">
-        Looking for a WakaTime alternative? <strong class="text-surface-content"
-          >Hackatime</strong
-        >
-        is a free, open source coding time tracker that gives you all the features
-        you need, without the paywall. Built by
+        Want to track your coding time without paying $9 a month?
+        <strong class="text-surface-content">Hackatime</strong> is a free, open
+        source tracker built by
         <a
           href="https://hackclub.com"
           class="text-primary hover:underline"
           target="_blank">Hack Club</a
-        >, it's designed for developers who want powerful analytics without
-        monthly fees.
+        >. It uses the same editor plugins as WakaTime, so switching is mostly a
+        config change.
       </p>
     </div>
   </section>
 
-  <!-- Why Look Section -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-5">
         Why look for a WakaTime alternative?
       </h2>
       <p class="text-secondary leading-relaxed mb-4 max-w-[75ch]">
-        WakaTime pioneered automatic coding time tracking, and it's a great
-        product - in fact, we even use the same editor extensions! At the same
-        time though, its free tier is pretty limited. You get basic stats, but
-        advanced features like detailed project breakdowns and longer data
-        retention require a paid subscription starting at $9/month ($14/month
-        for dashboard history longer than two weeks). For students, hobbyists,
-        and open source contributors, that adds up.
+        WakaTime invented this category and the product is genuinely good. We
+        like it enough that we use their editor extensions. The catch is the
+        free tier: you get basic stats, but project breakdowns and history past
+        two weeks live behind a $9/month plan (or $14/month if you want more
+        than two weeks of dashboard history). If you're a student or just
+        tracking personal projects, paying every month for what's basically a
+        nice graph gets old.
       </p>
       <p class="text-secondary leading-relaxed max-w-[75ch]">
-        That's where Hackatime comes in. It's built from the ground up to be
-        <strong class="text-surface-content">completely free</strong> - no freemium
-        model, no premium tiers, no feature gates.
+        Hackatime is <strong class="text-surface-content">free</strong>. Not
+        free trial, not free tier - just free. We're not planning to add a paid
+        version later either.
       </p>
     </div>
   </section>
 
-  <!-- Feature Comparison -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-6">
@@ -288,13 +264,11 @@
     </div>
   </section>
 
-  <!-- Honest Trade-offs -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
-      <h2 class="text-2xl md:text-3xl font-semibold mb-5">Honest trade-offs</h2>
+      <h2 class="text-2xl md:text-3xl font-semibold mb-5">What you give up</h2>
       <p class="text-secondary leading-relaxed mb-6">
-        We believe in transparency. Here's what you should know before
-        switching:
+        A few things WakaTime does that we don't:
       </p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {#each tradeOffs as tradeOff}
@@ -313,34 +287,20 @@
     </div>
   </section>
 
-  <!-- Why Hackatime -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-5">
-        Why Hackatime might be right for you
+        Reasons you might prefer Hackatime
       </h2>
       <p class="text-secondary leading-relaxed mb-6">
-        If you're a student, open source contributor, or developer who wants
-        powerful coding analytics without paying a subscription, Hackatime might
-        be a good fit:
+        Especially if you're a student, an open source contributor, or just not
+        thrilled about another monthly subscription:
       </p>
       <ul class="space-y-3">
         {#each benefits as benefit}
           <li class="flex items-start gap-3">
             <span class="text-primary mt-0.5 flex-shrink-0">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+              <Checkmark size={18} />
             </span>
             <span class="text-secondary leading-relaxed">{benefit}</span>
           </li>
@@ -349,14 +309,13 @@
     </div>
   </section>
 
-  <!-- Getting Started -->
   <section class="pb-16">
     <div class="max-w-[900px] mx-auto px-6">
       <h2 class="text-2xl md:text-3xl font-semibold mb-5">Getting started</h2>
       <p class="text-secondary leading-relaxed mb-6">
-        Switching from WakaTime takes less than 5 minutes. Since Hackatime uses
-        the same plugin ecosystem, you just update your <code
-          class="bg-surface px-2 py-1 rounded text-surface-content text-sm"
+        Switching takes a couple of minutes. Same plugins, different server -
+        edit your
+        <code class="bg-surface px-2 py-1 rounded text-surface-content text-sm"
           >~/.wakatime.cfg</code
         > file:
       </p>
@@ -367,24 +326,22 @@ api_url = https://hackatime.hackclub.com/api/hackatime/v1
 api_key = YOUR_API_KEY_HERE</code
         ></pre>
       <p class="text-secondary leading-relaxed">
-        Or use our <Link
+        Or sign in and let our <Link
           href="/my/wakatime_setup"
-          class="text-primary hover:underline">automated setup page</Link
-        > that handles everything for you (sign in first!)
+          class="text-primary hover:underline">setup page</Link
+        > do it for you.
       </p>
     </div>
   </section>
 
-  <!-- CTA -->
   <section class="pb-20">
     <div class="max-w-[900px] mx-auto px-6">
       <div
         class="rounded-xl border border-surface-200/60 bg-surface/30 p-8 md:p-12 text-center"
       >
-        <h2 class="text-2xl md:text-3xl font-bold mb-4">Ready to switch?</h2>
+        <h2 class="text-2xl md:text-3xl font-bold mb-4">Give it a try!</h2>
         <p class="text-secondary mb-8 max-w-[50ch] mx-auto">
-          Join thousands of developers who track their coding time for free. No
-          credit card required.
+          Install the plugin and see your hours.
         </p>
         <Link
           href="/signin"
@@ -392,7 +349,7 @@ api_key = YOUR_API_KEY_HERE</code
         >
           Start tracking for free
         </Link>
-        <p class="text-secondary text-sm mt-4">Takes 2 minutes to set up.</p>
+        <p class="text-secondary text-sm mt-4">Setup takes about 2 minutes.</p>
       </div>
     </div>
   </section>

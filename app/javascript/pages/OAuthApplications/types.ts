@@ -1,54 +1,49 @@
-export type OAuthApplicationSummary = {
+type OAuthApplicationSummary = {
   id: number;
   name: string;
   verified: boolean;
   confidential: boolean;
   scopes: string[];
   redirect_uris: string[];
-  show_path: string;
-  edit_path: string;
-  destroy_path: string;
 };
 
 export type OAuthApplicationsIndexProps = {
   page_title: string;
-  heading: string;
-  subheading: string;
-  new_application_path: string;
   applications: OAuthApplicationSummary[];
 };
 
-export type OAuthScopeOption = {
+type OAuthScopeOption = {
   value: string;
   description: string;
   default: boolean;
 };
 
-export type OAuthApplicationFormApplication = {
+type OAuthApplicationFormApplication = {
   id: number | null;
   persisted: boolean;
   name: string;
   redirect_uri: string;
   confidential: boolean;
+  redirect_to_hca_login: boolean;
   verified: boolean;
   selected_scopes: string[];
 };
 
-export type OAuthApplicationFormErrors = {
+type OAuthApplicationFormErrors = {
   full_messages: string[];
   name: string[];
   redirect_uri: string[];
   scopes: string[];
   confidential: string[];
+  redirect_to_hca_login: boolean;
 };
 
 export type OAuthApplicationFormProps = {
   page_title: string;
   heading: string;
   subheading: string;
-  submit_path: string;
+  form_mode: "new" | "edit";
   form_method: "post" | "patch";
-  cancel_path: string;
   labels: {
     submit: string;
     cancel: string;
@@ -64,24 +59,16 @@ export type OAuthApplicationFormProps = {
   errors: OAuthApplicationFormErrors;
 };
 
-export type OAuthShowRedirectUri = {
-  value: string;
-  authorize_path: string;
-};
-
-export type OAuthApplicationShowApplication = {
+type OAuthApplicationShowApplication = {
   id: number;
   name: string;
   uid: string;
   verified: boolean;
   confidential: boolean;
+  redirect_to_hca_login: boolean;
   scopes: string[];
-  redirect_uris: OAuthShowRedirectUri[];
-  edit_path: string;
-  destroy_path: string;
-  rotate_secret_path: string;
-  index_path: string;
-  toggle_verified_path: string | null;
+  redirect_uris: string[];
+  can_toggle_verified: boolean;
 };
 
 export type OAuthApplicationShowProps = {

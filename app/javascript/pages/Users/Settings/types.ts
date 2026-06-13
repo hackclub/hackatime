@@ -1,19 +1,49 @@
+import {
+  settingsProfile,
+  settingsSetup,
+  settingsAppearance,
+  settingsEditors,
+  settingsSlackGithub,
+  settingsNotifications,
+  settingsPrivacy,
+  settingsGoals,
+  settingsBadges,
+  settingsImportsExports,
+} from "../../../api";
+
 export type SectionId =
   | "profile"
-  | "integrations"
+  | "setup"
+  | "appearance"
+  | "editors"
+  | "slack_github"
   | "notifications"
-  | "access"
+  | "privacy"
   | "goals"
   | "badges"
-  | "data";
+  | "imports_exports";
 
 export type SectionPaths = Record<SectionId, string>;
 
 export type SettingsSection = {
   id: SectionId;
   label: string;
-  blurb: string;
   path: string;
+};
+
+// Static map of section paths, derived from js_from_routes path helpers.
+// Stable across renders so we can pass it down without re-computing.
+export const SECTION_PATHS: SectionPaths = {
+  profile: settingsProfile.my.path(),
+  setup: settingsSetup.show.path(),
+  appearance: settingsAppearance.show.path(),
+  editors: settingsEditors.show.path(),
+  slack_github: settingsSlackGithub.show.path(),
+  notifications: settingsNotifications.show.path(),
+  privacy: settingsPrivacy.show.path(),
+  goals: settingsGoals.show.path(),
+  badges: settingsBadges.show.path(),
+  imports_exports: settingsImportsExports.show.path(),
 };
 
 export type SettingsSubsection = {
@@ -21,12 +51,12 @@ export type SettingsSubsection = {
   label: string;
 };
 
-export type Option = {
+type Option = {
   label: string;
   value: string;
 };
 
-export type ThemeOption = {
+type ThemeOption = {
   value: string;
   label: string;
   description: string;
@@ -50,11 +80,9 @@ export type ProgrammingGoal = {
   target_seconds: number;
   languages: string[];
   projects: string[];
-  update_path: string;
-  destroy_path: string;
 };
 
-export type GoalForm = {
+type GoalForm = {
   open: boolean;
   mode: "create" | "edit";
   goal_id: string | null;
@@ -65,9 +93,10 @@ export type GoalForm = {
   errors: string[];
 };
 
-export type UserProps = {
+type UserProps = {
   id: number;
   display_name: string;
+  display_name_override?: string | null;
   timezone: string;
   country_code?: string | null;
   username?: string | null;
@@ -75,32 +104,16 @@ export type UserProps = {
   uses_slack_status: boolean;
   weekly_summary_email_enabled: boolean;
   hackatime_extension_text_type: string;
+  show_goals_in_statusbar: boolean;
   allow_public_stats_lookup: boolean;
   trust_level: string;
   can_request_deletion: boolean;
   github_uid?: string | null;
   github_username?: string | null;
   slack_uid?: string | null;
-  programming_goals: ProgrammingGoal[];
 };
 
-export type PathsProps = {
-  settings_path: string;
-  wakatime_setup_path: string;
-  slack_auth_path: string;
-  github_auth_path: string;
-  github_unlink_path: string;
-  add_email_path: string;
-  resend_email_verification_path: string;
-  unlink_email_path: string;
-  rotate_api_key_path: string;
-  export_all_heartbeats_path: string;
-  export_range_heartbeats_path: string;
-  create_heartbeat_import_path: string;
-  create_deletion_path: string;
-};
-
-export type BaseOptionsProps = {
+type BaseOptionsProps = {
   countries: Option[];
   timezones: Option[];
   extension_text_types: Option[];
@@ -108,7 +121,7 @@ export type BaseOptionsProps = {
   badge_themes: string[];
 };
 
-export type OptionsProps = BaseOptionsProps & {
+type GoalsOptionsProps = {
   goals: {
     periods: Option[];
     preset_target_seconds: number[];
@@ -117,7 +130,9 @@ export type OptionsProps = BaseOptionsProps & {
   };
 };
 
-export type SlackProps = {
+type OptionsProps = BaseOptionsProps & GoalsOptionsProps;
+
+type SlackProps = {
   can_enable_status: boolean;
   notification_channels: {
     id: string;
@@ -126,13 +141,13 @@ export type SlackProps = {
   }[];
 };
 
-export type GithubProps = {
+type GithubProps = {
   connected: boolean;
   username?: string | null;
   profile_url?: string | null;
 };
 
-export type EmailProps = {
+type EmailProps = {
   email: string;
   source: string;
   can_unlink: boolean;
@@ -142,12 +157,11 @@ export type EmailProps = {
   resend_cooldown_seconds: number;
 };
 
-export type BadgesProps = {
+type BadgesProps = {
   general_badge_url: string;
   project_badge_url?: string | null;
   project_badge_base_url?: string | null;
   projects: Array<{ display_name: string; repo_path: string }>;
-  profile_url?: string | null;
   markscribe_template: string;
   markscribe_reference_url: string;
   markscribe_preview_image_url: string;
@@ -157,7 +171,7 @@ export type BadgesProps = {
   hackabox_preview_image_url: string;
 };
 
-export type ConfigFileProps = {
+type ConfigFileProps = {
   content?: string | null;
   has_api_key: boolean;
   empty_message: string;
@@ -165,14 +179,14 @@ export type ConfigFileProps = {
   api_url: string;
 };
 
-export type DataExportProps = {
+type DataExportProps = {
   total_heartbeats: string;
   total_coding_time: string;
   heartbeats_last_7_days: string;
   is_restricted: boolean;
 };
 
-export type UiProps = {
+type UiProps = {
   show_dev_import: boolean;
   show_imports: boolean;
 };
@@ -198,14 +212,14 @@ export type HeartbeatImportStatusProps = {
   finished_at?: string | null;
 };
 
-export type ErrorsProps = {
+type ErrorsProps = {
   full_messages: string[];
+  display_name_override: string[];
   username: string[];
 };
 
 export type SettingsCommonProps = {
   active_section: SectionId;
-  section_paths: SectionPaths;
   page_title: string;
   heading: string;
   subheading: string;
@@ -213,41 +227,56 @@ export type SettingsCommonProps = {
 };
 
 export type ProfilePageProps = SettingsCommonProps & {
-  settings_update_path: string;
   username_max_length: number;
-  user: UserProps;
-  options: BaseOptionsProps;
+  display_name_max_length: number;
+  user: Pick<
+    UserProps,
+    | "country_code"
+    | "timezone"
+    | "display_name"
+    | "display_name_override"
+    | "username"
+  >;
+  options: Pick<BaseOptionsProps, "countries" | "timezones">;
   profile_url: string | null;
-};
-
-export type IntegrationsPageProps = SettingsCommonProps & {
-  settings_update_path: string;
-  user: UserProps;
-  slack: SlackProps;
-  github: GithubProps;
   emails: EmailProps[];
-  paths: PathsProps;
 };
 
-export type AccessPageProps = SettingsCommonProps & {
-  settings_update_path: string;
-  user: UserProps;
-  options: BaseOptionsProps;
-  paths: PathsProps;
+export type SetupPageProps = SettingsCommonProps & {
   config_file: ConfigFileProps;
 };
 
+export type AppearancePageProps = SettingsCommonProps & {
+  user: Pick<UserProps, "theme">;
+  options: Pick<BaseOptionsProps, "themes">;
+};
+
+export type EditorsPageProps = SettingsCommonProps & {
+  user: Pick<
+    UserProps,
+    "hackatime_extension_text_type" | "show_goals_in_statusbar"
+  >;
+  options: Pick<BaseOptionsProps, "extension_text_types">;
+};
+
+export type SlackGithubPageProps = SettingsCommonProps & {
+  user: Pick<UserProps, "uses_slack_status">;
+  slack: SlackProps;
+  github: GithubProps;
+};
+
 export type NotificationsPageProps = SettingsCommonProps & {
-  settings_update_path: string;
-  user: UserProps;
+  user: Pick<UserProps, "weekly_summary_email_enabled">;
+};
+
+export type PrivacyPageProps = SettingsCommonProps & {
+  user: Pick<UserProps, "allow_public_stats_lookup" | "can_request_deletion">;
+  rotated_api_key?: string | null;
 };
 
 export type GoalsPageProps = SettingsCommonProps & {
-  settings_update_path: string;
-  create_goal_path: string;
-  user: UserProps;
   programming_goals: ProgrammingGoal[];
-  options: OptionsProps;
+  options: GoalsOptionsProps;
   goal_form?: GoalForm | null;
 };
 
@@ -255,87 +284,71 @@ export type BadgesPageProps = SettingsCommonProps & {
   badge_themes: string[];
   badges: BadgesProps;
   allow_public_stats_lookup: boolean;
-  settings_update_path: string;
 };
 
-export type DataPageProps = SettingsCommonProps & {
-  user: UserProps;
-  paths: PathsProps;
+export type ImportsExportsPageProps = SettingsCommonProps & {
   data_export?: DataExportProps;
+  export_cooldown_minutes: number;
   imports_enabled: boolean;
   remote_import_cooldown_until?: string | null;
   latest_heartbeat_import?: HeartbeatImportStatusProps | null;
   ui: UiProps;
 };
 
-export const buildSections = (
-  sectionPaths: SectionPaths,
-): SettingsSection[] => [
+export const buildSections = (): SettingsSection[] => [
+  { id: "profile", label: "Profile", path: SECTION_PATHS.profile },
+  { id: "setup", label: "Setup", path: SECTION_PATHS.setup },
+  { id: "appearance", label: "Appearance", path: SECTION_PATHS.appearance },
+  { id: "editors", label: "Editors", path: SECTION_PATHS.editors },
   {
-    id: "profile",
-    label: "Profile",
-    blurb: "Username, region, timezone, and privacy.",
-    path: sectionPaths.profile,
-  },
-  {
-    id: "integrations",
-    label: "Integrations",
-    blurb: "Slack status, GitHub link, and email sign-in addresses.",
-    path: sectionPaths.integrations,
+    id: "slack_github",
+    label: "Slack & GitHub",
+    path: SECTION_PATHS.slack_github,
   },
   {
     id: "notifications",
     label: "Notifications",
-    blurb: "Email notifications and weekly summary preferences.",
-    path: sectionPaths.notifications,
+    path: SECTION_PATHS.notifications,
   },
   {
-    id: "access",
-    label: "Access",
-    blurb: "Time tracking setup, extension options, and API key access.",
-    path: sectionPaths.access,
+    id: "privacy",
+    label: "Privacy & Security",
+    path: SECTION_PATHS.privacy,
   },
+  { id: "goals", label: "Goals", path: SECTION_PATHS.goals },
+  { id: "badges", label: "Badges", path: SECTION_PATHS.badges },
   {
-    id: "goals",
-    label: "Goals",
-    blurb: "Set daily, weekly, or monthly programming targets.",
-    path: sectionPaths.goals,
-  },
-  {
-    id: "badges",
-    label: "Badges",
-    blurb: "Shareable badges and profile snippets.",
-    path: sectionPaths.badges,
-  },
-  {
-    id: "data",
-    label: "Data",
-    blurb: "Exports, imports, and deletion controls.",
-    path: sectionPaths.data,
+    id: "imports_exports",
+    label: "Imports & Exports",
+    path: SECTION_PATHS.imports_exports,
   },
 ];
 
 const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
   profile: [
     { id: "user_region", label: "Region" },
+    { id: "user_display_name", label: "Display name" },
     { id: "user_username", label: "Username" },
-    { id: "user_privacy", label: "Privacy" },
-    { id: "user_theme", label: "Theme" },
+    { id: "user_email_addresses", label: "Email addresses" },
   ],
-  integrations: [
+  setup: [
+    { id: "user_tracking_setup", label: "Setup guide" },
+    { id: "user_config_file", label: "Config file" },
+  ],
+  appearance: [{ id: "user_theme", label: "Theme" }],
+  editors: [{ id: "user_hackatime_extension", label: "Extension display" }],
+  slack_github: [
     { id: "user_slack_status", label: "Slack status" },
     { id: "user_slack_notifications", label: "Slack channels" },
     { id: "user_github_account", label: "GitHub" },
-    { id: "user_email_addresses", label: "Email addresses" },
   ],
   notifications: [
     { id: "user_email_notifications", label: "Email notifications" },
   ],
-  access: [
-    { id: "user_tracking_setup", label: "Setup" },
-    { id: "user_hackatime_extension", label: "Extension display" },
+  privacy: [
+    { id: "user_privacy", label: "Public stats" },
     { id: "user_api_key", label: "API key" },
-    { id: "user_config_file", label: "Config file" },
+    { id: "delete_account", label: "Account deletion" },
   ],
   goals: [{ id: "user_programming_goals", label: "Programming goals" }],
   badges: [
@@ -344,10 +357,9 @@ const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
     { id: "user_heatmap", label: "Heatmap" },
     { id: "user_hackabox", label: "Hackabox" },
   ],
-  data: [
+  imports_exports: [
     { id: "user_imports", label: "Imports" },
     { id: "download_user_data", label: "Download data" },
-    { id: "delete_account", label: "Account deletion" },
   ],
 };
 
@@ -360,29 +372,40 @@ export const buildSubsections = (
 };
 
 const hashSectionMap: Record<string, SectionId> = {
+  // Profile
   user_region: "profile",
   user_timezone: "profile",
+  user_display_name: "profile",
   user_username: "profile",
-  user_privacy: "profile",
-  user_theme: "profile",
-  user_tracking_setup: "access",
-  user_hackatime_extension: "access",
-  user_api_key: "access",
-  user_config_file: "access",
-  user_programming_goals: "goals",
-  user_slack_status: "integrations",
-  user_slack_notifications: "integrations",
-  user_github_account: "integrations",
-  user_email_addresses: "integrations",
+  user_email_addresses: "profile",
+  // Setup
+  user_tracking_setup: "setup",
+  user_config_file: "setup",
+  // Appearance
+  user_theme: "appearance",
+  // Editors
+  user_hackatime_extension: "editors",
+  // Slack & GitHub
+  user_slack_status: "slack_github",
+  user_slack_notifications: "slack_github",
+  user_github_account: "slack_github",
+  // Notifications
   user_email_notifications: "notifications",
   user_weekly_summary_email: "notifications",
+  // Privacy & Security
+  user_privacy: "privacy",
+  user_api_key: "privacy",
+  delete_account: "privacy",
+  // Goals
+  user_programming_goals: "goals",
+  // Badges
   user_stats_badges: "badges",
   user_markscribe: "badges",
   user_heatmap: "badges",
   user_hackabox: "badges",
-  user_imports: "data",
-  download_user_data: "data",
-  delete_account: "data",
+  // Imports & Exports
+  user_imports: "imports_exports",
+  download_user_data: "imports_exports",
 };
 
 export const sectionFromHash = (hash: string): SectionId | null => {

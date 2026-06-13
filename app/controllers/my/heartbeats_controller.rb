@@ -1,21 +1,23 @@
 module My
   class HeartbeatsController < ApplicationController
+    EXPORT_COOLDOWN = 10.minutes
+
     before_action :ensure_current_user
     before_action :ensure_no_ban, only: [ :export ]
 
     def export
       unless current_user.email_addresses.exists?
-        redirect_to my_settings_data_path, alert: "You need an email address on your account to export heartbeats."
-        return
+        return redirect_to my_settings_imports_exports_path, alert: "You need an email address on your account to export heartbeats."
       end
 
-      all_data = params[:all_data] == "true"
+      if params[:all_data] == "true"
+        return if export_rate_limited?
 
-      if all_data
         HeartbeatExportJob.perform_later(current_user.id, all_data: true)
       else
         date_range = export_date_range_from_params
         return if date_range.nil?
+        return if export_rate_limited?
 
         HeartbeatExportJob.perform_later(
           current_user.id,
@@ -25,7 +27,7 @@ module My
         )
       end
 
-      redirect_to my_settings_data_path, notice: "Your export is being prepared and will be emailed to you."
+      redirect_to my_settings_imports_exports_path, notice: "Your export is being prepared and will be emailed to you."
     end
 
     private
@@ -41,20 +43,14 @@ module My
     end
 
     def export_date_range_from_params
-      start_date = parse_iso8601_date(
-        value: params[:start_date],
-        default_value: 30.days.ago.to_date
-      )
+      start_date = parse_iso8601_date(value: params[:start_date], default_value: 30.days.ago.to_date)
       return nil if start_date.nil?
 
-      end_date = parse_iso8601_date(
-        value: params[:end_date],
-        default_value: Date.current
-      )
+      end_date = parse_iso8601_date(value: params[:end_date], default_value: Date.current)
       return nil if end_date.nil?
 
       if start_date > end_date
-        redirect_to my_settings_data_path, alert: "Start date must be on or before end date."
+        redirect_to my_settings_imports_exports_path, alert: "Start date must be on or before end date."
         return nil
       end
 
@@ -63,11 +59,29 @@ module My
 
     def parse_iso8601_date(value:, default_value:)
       return default_value if value.blank?
-
       Date.iso8601(value)
     rescue ArgumentError
-      redirect_to my_settings_data_path, alert: "Invalid date format. Please use YYYY-MM-DD."
+      redirect_to my_settings_imports_exports_path, alert: "Invalid date format. Please use YYYY-MM-DD."
       nil
     end
+
+    def export_rate_limited?
+      return false if reserve_export_request!
+
+      redirect_to my_settings_imports_exports_path,
+        alert: "Export requests are limited to once every #{EXPORT_COOLDOWN.in_minutes.to_i} minutes."
+      true
+    end
+
+    def reserve_export_request!
+      Rails.cache.write(
+        export_rate_limit_cache_key,
+        true,
+        expires_in: EXPORT_COOLDOWN,
+        unless_exist: true
+      )
+    end
+
+    def export_rate_limit_cache_key = "heartbeat_export_rate_limit:user:#{current_user.id}"
   end
 end

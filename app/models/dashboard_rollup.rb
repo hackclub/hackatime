@@ -1,6 +1,10 @@
 class DashboardRollup < ApplicationRecord
-  DIMENSIONS = %w[total project language editor operating_system category weekly_project].freeze
+  DIMENSIONS = %w[total project project_details language editor operating_system category weekly_project activity_graph today_stats filter_options].freeze
   TOTAL_DIMENSION = "total".freeze
+  PROJECT_DETAILS_DIMENSION = "project_details".freeze
+  ACTIVITY_GRAPH_DIMENSION = "activity_graph".freeze
+  TODAY_STATS_DIMENSION = "today_stats".freeze
+  FILTER_OPTIONS_DIMENSION = "filter_options".freeze
   DIRTY_CACHE_KEY_PREFIX = "dashboard_rollup_dirty".freeze
 
   belongs_to :user
@@ -12,27 +16,11 @@ class DashboardRollup < ApplicationRecord
 
   scope :for_dimension, ->(dimension) { where(dimension: dimension.to_s) }
 
-  def total_dimension?
-    dimension == TOTAL_DIMENSION
-  end
+  def total_dimension? = dimension == TOTAL_DIMENSION
+  def bucket = bucket_value_present ? bucket_value : nil
 
-  def bucket
-    bucket_value_present ? bucket_value : nil
-  end
-
-  def self.dirty_cache_key(user_id)
-    "#{DIRTY_CACHE_KEY_PREFIX}_#{user_id}"
-  end
-
-  def self.mark_dirty(user_id)
-    Rails.cache.write(dirty_cache_key(user_id), true, expires_in: 1.day, unless_exist: true)
-  end
-
-  def self.clear_dirty(user_id)
-    Rails.cache.delete(dirty_cache_key(user_id))
-  end
-
-  def self.dirty?(user_id)
-    Rails.cache.exist?(dirty_cache_key(user_id))
-  end
+  def self.dirty_cache_key(user_id) = "#{DIRTY_CACHE_KEY_PREFIX}_#{user_id}"
+  def self.mark_dirty(user_id) = Rails.cache.write(dirty_cache_key(user_id), true, expires_in: 1.day, unless_exist: true)
+  def self.clear_dirty(user_id) = Rails.cache.delete(dirty_cache_key(user_id))
+  def self.dirty?(user_id) = Rails.cache.exist?(dirty_cache_key(user_id))
 end

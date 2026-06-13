@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= title %></title>
+    <style>
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="<%= spec_url %>"
+      data-configuration='<%= raw({
+        theme: "purple",
+        layout: "modern",
+        hideDownloadButton: false,
+        customCss: 'a.no-underline.hover\\:underline[href="https://www.scalar.com"][target="_blank"] { display: none !important; }',
+        metaData: {
+          title: title,
+          description: "The API for Hackatime"
+        }
+      }.to_json) %>'
+    ></script>
+    <%# SRI hash is for the immutable /dist/ file — recompute it when bumping the version %>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.58.0/dist/browser/standalone.js"
+      integrity="sha384-blqXcztiBhcKCu5cq4LLXtLyV3ASqFluFLJZuJjiDGKBweY6ZJGHJhqOK84toOji"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>

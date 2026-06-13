@@ -9,9 +9,7 @@ namespace :cache do
       Cache::HomeStatsJob,
       Cache::HeartbeatCountsJob,
       Cache::ActiveProjectsJob,
-      Cache::MinutesLoggedJob,
-      Cache::SetupSocialProofJob,
-      Cache::UsageSocialProofJob
+      Cache::MinutesLoggedJob
     ]
 
     cache_jobs.each do |job_class|
