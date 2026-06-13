@@ -36,6 +36,8 @@ class SettingsImportsExportsControllerTest < ActionDispatch::IntegrationTest
     get my_settings_imports_exports_path
 
     assert_response :success
+    assert_equal My::HeartbeatsController::EXPORT_COOLDOWN.in_minutes.to_i,
+      inertia_page.dig("props", "export_cooldown_minutes")
     assert_nil inertia_page.dig("props", "remote_import_cooldown_until")
     assert_nil inertia_page.dig("props", "latest_heartbeat_import", "cooldown_until")
   end

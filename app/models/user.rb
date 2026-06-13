@@ -10,6 +10,7 @@ class User < ApplicationRecord
   has_subscriptions
 
   USERNAME_MAX_LENGTH = 21 # going over 21 overflows the navbar
+  DISPLAY_NAME_MAX_LENGTH = 80
 
   has_paper_trail
 
@@ -18,6 +19,7 @@ class User < ApplicationRecord
   after_create_commit :schedule_onboarding_check_in_email
   after_update_commit :clear_leaderboard_page_cache, if: :saved_change_to_leaderboard_shadowban_state?
   before_validation :normalize_username
+  before_validation :normalize_display_name_override
   encrypts :slack_access_token, :github_access_token, :hca_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
@@ -30,6 +32,7 @@ class User < ApplicationRecord
     uniqueness: { case_sensitive: false, message: "has already been taken" },
     if: :will_save_change_to_username?,
     allow_nil: true
+  validates :display_name_override, length: { maximum: DISPLAY_NAME_MAX_LENGTH }, allow_nil: true
   validates :leaderboard_shadowban_reason, presence: true, if: :leaderboard_shadowbanned?
   validate :leaderboard_shadowban_expiration_must_be_in_the_future
   validate :username_must_be_visible
@@ -326,6 +329,8 @@ class User < ApplicationRecord
   end
 
   def display_name
+    return display_name_override if display_name_override.present?
+
     name = slack_username || github_username || username
     return name if name.present?
     email = email_addresses&.first&.email
@@ -420,6 +425,12 @@ class User < ApplicationRecord
   def username_must_be_visible
     return unless instance_variable_defined?(:@username_cleared_for_invisible) && @username_cleared_for_invisible
     errors.add(:username, "must include visible characters")
+  end
+
+  def normalize_display_name_override
+    return if display_name_override.nil?
+
+    self.display_name_override = display_name_override.gsub(/\p{Cf}/, "").strip.presence
   end
 
   def leaderboard_shadowban_expiration_must_be_in_the_future

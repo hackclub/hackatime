@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_08_085022) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_09_195005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -316,6 +316,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_085022) do
     t.text "fields_hash"
     t.inet "ip_address"
     t.boolean "is_write"
+    t.integer "ja4_id"
     t.string "language"
     t.integer "line_additions"
     t.integer "line_deletions"
@@ -335,6 +336,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_085022) do
     t.index ["category", "time"], name: "index_heartbeats_on_category_and_time"
     t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
     t.index ["ip_address"], name: "index_heartbeats_on_ip_address"
+    t.index ["ja4_id"], name: "index_heartbeats_on_ja4_id", where: "(ja4_id IS NOT NULL)"
     t.index ["machine"], name: "index_heartbeats_on_machine"
     t.index ["project", "time"], name: "index_heartbeats_on_project_and_time"
     t.index ["project"], name: "index_heartbeats_on_project"
@@ -373,6 +375,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_085022) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_instance_import_sources_on_user_id", unique: true
+  end
+
+  create_table "ja4s", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "fingerprint", null: false
+    t.datetime "updated_at", null: false
+    t.index ["fingerprint"], name: "index_ja4s_on_fingerprint", unique: true
   end
 
   create_table "leaderboard_entries", force: :cascade do |t|
@@ -735,6 +744,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_085022) do
   add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
+  add_foreign_key "heartbeats", "ja4s", on_delete: :nullify
   add_foreign_key "heartbeats", "users"
   add_foreign_key "instance_import_sources", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"

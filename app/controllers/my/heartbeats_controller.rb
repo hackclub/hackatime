@@ -1,5 +1,7 @@
 module My
   class HeartbeatsController < ApplicationController
+    EXPORT_COOLDOWN = 10.minutes
+
     before_action :ensure_current_user
     before_action :ensure_no_ban, only: [ :export ]
 
@@ -9,10 +11,14 @@ module My
       end
 
       if params[:all_data] == "true"
+        return if export_rate_limited?
+
         HeartbeatExportJob.perform_later(current_user.id, all_data: true)
       else
         date_range = export_date_range_from_params
         return if date_range.nil?
+        return if export_rate_limited?
+
         HeartbeatExportJob.perform_later(
           current_user.id,
           all_data: false,
@@ -58,5 +64,24 @@ module My
       redirect_to my_settings_imports_exports_path, alert: "Invalid date format. Please use YYYY-MM-DD."
       nil
     end
+
+    def export_rate_limited?
+      return false if reserve_export_request!
+
+      redirect_to my_settings_imports_exports_path,
+        alert: "Export requests are limited to once every #{EXPORT_COOLDOWN.in_minutes.to_i} minutes."
+      true
+    end
+
+    def reserve_export_request!
+      Rails.cache.write(
+        export_rate_limit_cache_key,
+        true,
+        expires_in: EXPORT_COOLDOWN,
+        unless_exist: true
+      )
+    end
+
+    def export_rate_limit_cache_key = "heartbeat_export_rate_limit:user:#{current_user.id}"
   end
 end

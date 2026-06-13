@@ -69,6 +69,46 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "User;#{user.id}", user.flipper_id
   end
 
+  test "display name override takes precedence over synced provider names" do
+    user = User.create!(
+      timezone: "UTC",
+      username: "profile_user",
+      slack_username: "slack_user",
+      github_username: "github_user",
+      display_name_override: "Custom Name"
+    )
+
+    assert_equal "Custom Name", user.display_name
+  end
+
+  test "display name override is normalized before validation" do
+    user = User.create!(timezone: "UTC", slack_username: "slack_user", display_name_override: "  Custom Name  ")
+
+    assert_equal "Custom Name", user.display_name_override
+  end
+
+  test "slack profile sync does not replace display name override" do
+    user = User.create!(
+      timezone: "UTC",
+      slack_username: "old_slack",
+      display_name_override: "Custom Name"
+    )
+
+    user.apply_slack_profile_attributes({
+      "name" => "fallback",
+      "profile" => {
+        "display_name_normalized" => "new_slack",
+        "real_name_normalized" => "Real Name",
+        "image_192" => "https://example.com/avatar.png"
+      }
+    })
+    user.save!
+
+    assert_equal "new_slack", user.reload.slack_username
+    assert_equal "Custom Name", user.display_name_override
+    assert_equal "Custom Name", user.display_name
+  end
+
   test "creating a user with an email address queues a welcome email" do
     email = "welcome-#{SecureRandom.hex(4)}@example.com"
 

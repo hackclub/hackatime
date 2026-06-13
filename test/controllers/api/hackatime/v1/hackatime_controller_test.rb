@@ -30,6 +30,30 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal "coding", heartbeat.category
   end
 
+  test "single heartbeat stores the Cloudflare JA4 header" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+    ja4 = "t13d1516h2_8daaf6152771_02713d6af862"
+
+    assert_difference([ "Heartbeat.count", "Ja4.count" ], 1) do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: {
+          entity: "src/main.rb",
+          project: "hackatime",
+          time: Time.current.to_f,
+          type: "file"
+        }.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain",
+          "CF-JA4" => ja4
+        }
+    end
+
+    assert_response :accepted
+    assert_equal ja4, Heartbeat.order(:id).last.ja4.fingerprint
+  end
+
   test "single heartbeat resolves <<LAST_LANGUAGE>> from existing heartbeats" do
     user = User.create!(timezone: "UTC")
     api_key = user.api_keys.create!(name: "primary")
