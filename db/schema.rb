@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_09_195005) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_13_154503) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -134,7 +134,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_195005) do
     t.string "token"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["email"], name: "index_email_verification_requests_on_email", unique: true
+    t.index ["email"], name: "index_email_verification_requests_on_email_active", unique: true, where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_email_verification_requests_on_user_id"
   end
 

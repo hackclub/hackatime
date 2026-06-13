@@ -250,6 +250,23 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "new-address@example.com", user.reload.email_verification_requests.last.email
   end
 
+  test "add_email succeeds again after a pending request was removed" do
+    user = User.create!
+    sign_in_as(user)
+
+    post add_email_auth_path, params: { email: "recycle@example.com" }
+    delete unlink_email_auth_path, params: { email: "recycle@example.com" }
+
+    # Re-adding the same email must not raise a unique-violation on the
+    # soft-deleted request (partial index is scoped to deleted_at IS NULL).
+    assert_difference -> { user.reload.email_verification_requests.where(deleted_at: nil).count }, 1 do
+      post add_email_auth_path, params: { email: "recycle@example.com" }
+    end
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+  end
+
   test "resend_email_verification enforces cooldown" do
     user = User.create!
     verification_request = user.email_verification_requests.create!(email: "pending@example.com")
