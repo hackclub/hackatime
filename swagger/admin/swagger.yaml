@@ -1849,6 +1849,10 @@ paths:
                           type: string
                           nullable: true
                           example: 203.0.113.7
+                        ja4:
+                          type: string
+                          nullable: true
+                          example: t13d1516h2_8daaf6152771_02713d6af862
                         lines:
                           type: integer
                           nullable: true

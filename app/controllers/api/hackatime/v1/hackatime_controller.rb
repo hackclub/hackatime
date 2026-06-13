@@ -160,7 +160,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       heartbeats: heartbeat_array,
       request_context: {
         ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip,
-        machine: request.headers["X-Machine-Name"]
+        machine: request.headers["X-Machine-Name"],
+        ja4: request.headers["CF-JA4"]
       }
     )
 

@@ -1,7 +1,7 @@
 class Admin::TimelineController < Admin::BaseController
   include ApplicationHelper
 
-  USER_SELECT_FIELDS = %i[id username slack_username github_username slack_avatar_url github_avatar_url].freeze
+  USER_SELECT_FIELDS = %i[id username slack_username github_username slack_avatar_url github_avatar_url display_name_override].freeze
 
   def show
     @date ||= params[:date] ? Date.parse(params[:date]) : Time.current.to_date
@@ -22,9 +22,10 @@ class Admin::TimelineController < Admin::BaseController
     end.compact
 
     @initial_selected_user_objects = User.where(id: @selected_user_ids)
-                                         .select(*USER_SELECT_FIELDS)
-                                         .map { |u| user_summary(u) }
-                                         .sort_by { |u| @selected_user_ids.index(u[:id]) || Float::INFINITY }
+                                          .select(*USER_SELECT_FIELDS)
+                                          .preload(:email_addresses)
+                                          .map { |u| user_summary(u) }
+                                          .sort_by { |u| @selected_user_ids.index(u[:id]) || Float::INFINITY }
 
     @primary_user = @users_with_timeline_data.first&.[](:user) || current_user
     @timeline_commit_markers = service.commit_markers
@@ -49,7 +50,7 @@ class Admin::TimelineController < Admin::BaseController
     user_ids_from_leaderboard = leaderboard ? leaderboard.entries.order(total_seconds: :desc).limit(limit).pluck(:user_id) : []
     all_ids_to_fetch = ([ current_user.id ] + user_ids_from_leaderboard).uniq
 
-    users_data = User.where(id: all_ids_to_fetch).select(*USER_SELECT_FIELDS).index_by(&:id)
+    users_data = User.where(id: all_ids_to_fetch).select(*USER_SELECT_FIELDS).preload(:email_addresses).index_by(&:id)
 
     final_user_objects = []
     final_user_objects << user_summary(users_data[current_user.id]) if users_data[current_user.id]

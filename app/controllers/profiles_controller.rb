@@ -107,7 +107,7 @@ class ProfilesController < InertiaController
 
   def profile_social_description
     return @user.profile_bio.to_s.squish.truncate(180) if @user.profile_bio.present?
-    "View #{@user.display_name_override.presence || @user.display_name}'s Hackatime coding profile."
+    "View #{@user.display_name}'s Hackatime coding profile."
   end
 
   def ensure_profile_og_image!
@@ -159,7 +159,7 @@ class ProfilesController < InertiaController
   end
 
   def profile_summary_payload
-    { display_name: @user.display_name_override.presence || @user.display_name,
+    { display_name: @user.display_name,
       username: @user.username || "", avatar_url: @user.avatar_url,
       trust_level: @user.public_trust_level, bio: @user.profile_bio,
       social_links: profile_social_links, github_profile_url: @user.github_profile_url,
