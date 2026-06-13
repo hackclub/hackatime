@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
-  import ViewReload from "hcicons-svelte/view-reload";
-  import Delete from "hcicons-svelte/delete";
+  import { Icon, ArrowPath, Trash } from "svelte-hero-icons";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
@@ -210,7 +209,7 @@
                   aria-label="Resend verification email"
                   class="inline-flex items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:text-surface-content disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <ViewReload size={16} />
+                  <Icon src={ArrowPath} size="20" />
                 </Button>
               </Form>
             {/if}
@@ -228,7 +227,7 @@
                   aria-label={email.pending ? "Remove email" : "Unlink email"}
                   class="inline-flex items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:text-red"
                 >
-                  <Delete size={16} />
+                  <Icon src={Trash} size="20" />
                 </Button>
               </Form>
             {/if}
