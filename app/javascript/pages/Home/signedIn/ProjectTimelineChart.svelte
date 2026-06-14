@@ -1,6 +1,11 @@
 <script lang="ts">
   import { BarChart, Tooltip } from "layerchart";
-  import { secondsToDisplay, secondsToCompactDisplay } from "../../../utils";
+  import {
+    secondsToDisplay,
+    secondsToCompactDisplay,
+    formatUtcDayMonth,
+    formatWeekRange,
+  } from "../../../utils";
   import { CHART_COLORS as PIE_COLORS } from "./utils";
 
   let {
@@ -29,10 +34,8 @@
   const data = $derived(
     sortedWeeks.map((week) => {
       const row: Record<string, string | number> = {
-        week: new Date(week).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
+        week: formatUtcDayMonth(week),
+        weekRange: formatWeekRange(week),
       };
       const ws = weeklyStats[week] || {};
       for (const p of chartProjects) row[p] = ws[p] || 0;
@@ -80,7 +83,7 @@
         <svelte:fragment slot="tooltip">
           <Tooltip.Root let:data>
             {#if data}
-              <Tooltip.Header value={data.week} />
+              <Tooltip.Header value={data.weekRange ?? data.week} />
               <Tooltip.List>
                 {@const items = [...chartSeries]
                   .reverse()
