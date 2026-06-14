@@ -53,7 +53,7 @@ en:
         title: "Application: %{name}"
         application_id: "UID"
         secret: "Secret"
-        secret_hashed: "Secret hashed"
+        secret_hashed: "you already saw this :P"
         scopes: "Scopes"
         confidential: "Confidential"
         callback_urls: "Callback URLs"

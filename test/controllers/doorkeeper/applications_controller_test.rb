@@ -53,6 +53,20 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal application.name, page.dig("props", "application", "name")
   end
 
+  test "show does not include client secret in inertia payload by default" do
+    user = User.create!(timezone: "UTC")
+    application = create_application_for(user, name: "Hidden Secret App")
+
+    sign_in_as(user)
+    get oauth_application_path(application)
+
+    assert_response :success
+    page = inertia_page
+
+    assert_nil page.dig("props", "secret", "value")
+    assert_equal false, page.dig("props", "secret", "just_rotated")
+  end
+
   test "create persists owned application and redirects to show" do
     user = User.create!(timezone: "UTC")
 
@@ -67,6 +81,23 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal user, created_application.owner
     assert_redirected_to oauth_application_url(created_application)
     assert flash[:application_secret].present?
+  end
+
+  test "show includes client secret once after creation" do
+    user = User.create!(timezone: "UTC")
+
+    sign_in_as(user)
+    post oauth_applications_path, params: {
+      doorkeeper_application: valid_application_form_params(name: "Created App")
+    }
+
+    follow_redirect!
+
+    assert_response :success
+    page = inertia_page
+
+    assert page.dig("props", "secret", "value").present?
+    assert_equal true, page.dig("props", "secret", "just_rotated")
   end
 
   test "create can persist HCA login redirect preference" do
@@ -175,6 +206,20 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_not_equal previous_secret, application.reload.secret
     assert flash[:application_secret].present?
     assert flash[:notice].present?
+  end
+
+  test "show includes client secret once after rotation" do
+    user = User.create!(timezone: "UTC")
+    application = create_application_for(user, name: "Rotate Me")
+
+    sign_in_as(user)
+    post rotate_secret_oauth_application_path(application)
+    follow_redirect!
+
+    assert_response :success
+    page = inertia_page
+    assert page.dig("props", "secret", "value").present?
+    assert_equal true, page.dig("props", "secret", "just_rotated")
   end
 
   test "show json returns application data for owner" do

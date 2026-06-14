@@ -110,9 +110,6 @@
               >
                 {labels.secret_hashed}
               </div>
-              <p class="mt-2 text-xs text-yellow">
-                The secret is only shown once when the application is created.
-              </p>
             {:else if secret.value}
               <CopyableCode value={secret.value} />
               {#if secret.just_rotated}
