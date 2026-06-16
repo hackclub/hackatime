@@ -43,6 +43,8 @@ module Harbor
       httponly: true
     config.exceptions_app = routes
 
-    config.skylight.probes << "active_job"
+    if Rails.env.production?
+      config.skylight.probes << "active_job"
+    end
   end
 end
