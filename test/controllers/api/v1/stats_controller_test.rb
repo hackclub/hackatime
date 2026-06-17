@@ -79,6 +79,34 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "user_stats allows owner via OAuth token even when public stats disabled" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    access_token = create_oauth_access_token(user)
+
+    get "/api/v1/users/#{user.username}/stats", headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :success
+  end
+
+  test "user_projects allows owner via OAuth token even when public stats disabled" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    access_token = create_oauth_access_token(user)
+
+    get "/api/v1/users/#{user.username}/projects", headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :success
+  end
+
+  test "user_stats rejects a different user's OAuth token against a private user's stats" do
+    private_user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    other_user = User.create!(username: "other_#{SecureRandom.hex(3)}", timezone: "UTC")
+    access_token = create_oauth_access_token(other_user)
+
+    get "/api/v1/users/#{private_user.username}/stats", headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :forbidden
+  end
+
   test "user_stats rejects a different user's API token against a private user's stats" do
     private_user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
     other_user = User.create!(username: "other_#{SecureRandom.hex(3)}", timezone: "UTC")
@@ -98,6 +126,22 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
       time: time,
       project: project,
       category: category
+    )
+  end
+
+  def create_oauth_access_token(user)
+    application = user.oauth_applications.create!(
+      name: "Test App",
+      redirect_uri: "https://example.com/callback",
+      scopes: "profile",
+      confidential: true
+    )
+
+    Doorkeeper::AccessToken.create!(
+      application: application,
+      resource_owner_id: user.id,
+      scopes: "profile",
+      expires_in: 16.years
     )
   end
 end

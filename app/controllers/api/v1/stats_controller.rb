@@ -170,7 +170,7 @@ class Api::V1::StatsController < ApplicationController
     if identifier == "my"
       token = request.headers["Authorization"]&.split(" ")&.last
       @api_caller_user = ApiKey.find_by(token: token)&.user if token.present?
-      @user = @api_caller_user
+      @user = @api_caller_user || oauth_bearer_user
     else
       @user = User.lookup_by_identifier(identifier)
     end
@@ -179,7 +179,7 @@ class Api::V1::StatsController < ApplicationController
   def ensure_public_stats_allowed!
     return render_not_found_json("User not found") unless @user
     return if @user.allow_public_stats_lookup
-    return if current_user == @user || @api_caller_user == @user
+    return if current_user == @user || @api_caller_user == @user || oauth_bearer_user == @user
     render_forbidden("user has disabled public stats")
   end
 
