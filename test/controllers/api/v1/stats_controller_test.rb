@@ -81,7 +81,7 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
 
   test "user_stats allows owner via OAuth token even when public stats disabled" do
     user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
-    access_token = create_oauth_access_token(user)
+    access_token = create_oauth_access_token(user, scopes: "profile read")
 
     get "/api/v1/users/#{user.username}/stats", headers: { "Authorization" => "Bearer #{access_token.token}" }
 
@@ -90,7 +90,7 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
 
   test "user_projects allows owner via OAuth token even when public stats disabled" do
     user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
-    access_token = create_oauth_access_token(user)
+    access_token = create_oauth_access_token(user, scopes: "profile read")
 
     get "/api/v1/users/#{user.username}/projects", headers: { "Authorization" => "Bearer #{access_token.token}" }
 
@@ -100,9 +100,18 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
   test "user_stats rejects a different user's OAuth token against a private user's stats" do
     private_user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
     other_user = User.create!(username: "other_#{SecureRandom.hex(3)}", timezone: "UTC")
-    access_token = create_oauth_access_token(other_user)
+    access_token = create_oauth_access_token(other_user, scopes: "profile read")
 
     get "/api/v1/users/#{private_user.username}/stats", headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :forbidden
+  end
+
+  test "user_stats rejects owner OAuth token without read scope when public stats disabled" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    access_token = create_oauth_access_token(user, scopes: "profile")
+
+    get "/api/v1/users/#{user.username}/stats", headers: { "Authorization" => "Bearer #{access_token.token}" }
 
     assert_response :forbidden
   end
@@ -129,18 +138,18 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def create_oauth_access_token(user)
+  def create_oauth_access_token(user, scopes: "profile")
     application = user.oauth_applications.create!(
       name: "Test App",
       redirect_uri: "https://example.com/callback",
-      scopes: "profile",
+      scopes: scopes,
       confidential: true
     )
 
     Doorkeeper::AccessToken.create!(
       application: application,
       resource_owner_id: user.id,
-      scopes: "profile",
+      scopes: scopes,
       expires_in: 16.years
     )
   end

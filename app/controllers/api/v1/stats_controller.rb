@@ -167,10 +167,12 @@ class Api::V1::StatsController < ApplicationController
 
   def set_user
     identifier = params[:username] || params[:username_or_id] || params[:user_id]
+    token = request.headers["Authorization"]&.split(" ")&.last
+    @api_caller_user = ApiKey.find_by(token: token)&.user if token.present?
+    @api_caller_user ||= oauth_read_bearer_user
+
     if identifier == "my"
-      token = request.headers["Authorization"]&.split(" ")&.last
-      @api_caller_user = ApiKey.find_by(token: token)&.user if token.present?
-      @user = @api_caller_user || oauth_bearer_user
+      @user = @api_caller_user
     else
       @user = User.lookup_by_identifier(identifier)
     end
@@ -179,9 +181,11 @@ class Api::V1::StatsController < ApplicationController
   def ensure_public_stats_allowed!
     return render_not_found_json("User not found") unless @user
     return if @user.allow_public_stats_lookup
-    return if current_user == @user || @api_caller_user == @user || oauth_bearer_user == @user
+    return if current_user == @user || @api_caller_user == @user
     render_forbidden("user has disabled public stats")
   end
+
+  def oauth_read_bearer_user = oauth_bearer_user([ "read" ])
 
   def find_by_email(email)
     cache_key = "user_id_by_email/#{email}"

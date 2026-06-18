@@ -70,12 +70,13 @@ class ApplicationController < ActionController::Base
     render_unauthorized(message) unless token.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
   end
 
-  def oauth_bearer_user
-    @oauth_bearer_user ||= begin
+  def oauth_bearer_user(required_scopes = [])
+    @oauth_bearer_users ||= {}
+    @oauth_bearer_users[required_scopes] ||= begin
       scheme, raw_token = request.headers["Authorization"].to_s.split(/\s+/, 2)
       if scheme == "Bearer" && raw_token.present?
         token = Doorkeeper::AccessToken.by_token(raw_token)
-        User.find_by(id: token.resource_owner_id) if token&.acceptable?([])
+        User.find_by(id: token.resource_owner_id) if token&.acceptable?(required_scopes)
       end
     end
   end
