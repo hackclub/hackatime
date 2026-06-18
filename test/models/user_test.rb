@@ -69,6 +69,20 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "User;#{user.id}", user.flipper_id
   end
 
+  test "api_access_restricted? is true for red users and users pending deletion" do
+    user = User.create!(timezone: "UTC")
+    assert_not user.api_access_restricted?
+
+    user.update!(trust_level: :red)
+    assert user.api_access_restricted?
+
+    user.update!(trust_level: :blue)
+    assert_not user.api_access_restricted?
+
+    DeletionRequest.create_for_user!(user)
+    assert user.api_access_restricted?
+  end
+
   test "display name override takes precedence over synced provider names" do
     user = User.create!(
       timezone: "UTC",
