@@ -28,7 +28,7 @@
 </svelte:head>
 
 <div class="min-h-screen text-surface-content">
-  <div class="w-full max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+  <div class="w-full max-w-3xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
     <nav class="mb-8">
       {#each breadcrumbs as crumb, i}
         {#if i === breadcrumbs.length - 1}
