@@ -74,9 +74,12 @@ class ApplicationController < ActionController::Base
     @oauth_bearer_users ||= {}
     @oauth_bearer_users[required_scopes] ||= begin
       scheme, raw_token = request.headers["Authorization"].to_s.split(/\s+/, 2)
-      if scheme == "Bearer" && raw_token.present?
+      if scheme&.casecmp?("Bearer") && raw_token.present?
         token = Doorkeeper::AccessToken.by_token(raw_token)
-        User.find_by(id: token.resource_owner_id) if token&.acceptable?(required_scopes)
+        if token&.acceptable?(required_scopes)
+          user = User.find_by(id: token.resource_owner_id)
+          user unless user&.api_access_restricted?
+        end
       end
     end
   end

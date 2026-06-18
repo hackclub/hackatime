@@ -4,7 +4,7 @@ module Api
       class ApplicationController < ActionController::API
         include Doorkeeper::Rails::Helpers
         before_action :doorkeeper_authorize!
-        before_action :ensure_no_ban
+        before_action :ensure_api_access_allowed
 
         private
 
@@ -12,8 +12,8 @@ module Api
           @current_user ||= User.find(doorkeeper_token.resource_owner_id) if doorkeeper_token
         end
 
-        def ensure_no_ban
-          render json: { error: "Unauthorized" }, status: :unauthorized if current_user&.trust_level == "red"
+        def ensure_api_access_allowed
+          render json: { error: "Unauthorized" }, status: :unauthorized if current_user&.api_access_restricted?
         end
       end
     end

@@ -88,6 +88,15 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "user_stats allows owner via lowercase OAuth bearer scheme" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    access_token = create_oauth_access_token(user, scopes: "profile read")
+
+    get "/api/v1/users/#{user.username}/stats", headers: { "Authorization" => "bearer #{access_token.token}" }
+
+    assert_response :success
+  end
+
   test "user_projects allows owner via OAuth token even when public stats disabled" do
     user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
     access_token = create_oauth_access_token(user, scopes: "profile read")
@@ -97,12 +106,47 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "private read endpoints allow owner via OAuth token" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    create_heartbeat(user:, time: Time.current.to_f, project: "Galactic_war", category: "coding")
+    access_token = create_oauth_access_token(user, scopes: "profile read")
+    headers = { "Authorization" => "Bearer #{access_token.token}" }
+
+    get "/api/v1/users/#{user.username}/heartbeats/spans", headers: headers
+    assert_response :success
+
+    get "/api/v1/users/#{user.username}/project/Galactic_war", headers: headers
+    assert_response :success
+
+    get "/api/v1/users/#{user.username}/projects/details", params: { projects: "Galactic_war" }, headers: headers
+    assert_response :success
+  end
+
   test "user_stats rejects a different user's OAuth token against a private user's stats" do
     private_user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
     other_user = User.create!(username: "other_#{SecureRandom.hex(3)}", timezone: "UTC")
     access_token = create_oauth_access_token(other_user, scopes: "profile read")
 
     get "/api/v1/users/#{private_user.username}/stats", headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :forbidden
+  end
+
+  test "user_stats rejects red owner OAuth token when public stats disabled" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false, trust_level: :red)
+    access_token = create_oauth_access_token(user, scopes: "profile read")
+
+    get "/api/v1/users/#{user.username}/stats", headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :forbidden
+  end
+
+  test "user_stats rejects pending deletion owner OAuth token when public stats disabled" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
+    DeletionRequest.create_for_user!(user)
+    access_token = create_oauth_access_token(user, scopes: "profile read")
+
+    get "/api/v1/users/#{user.username}/stats", headers: { "Authorization" => "Bearer #{access_token.token}" }
 
     assert_response :forbidden
   end

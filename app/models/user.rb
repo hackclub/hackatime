@@ -257,6 +257,7 @@ class User < ApplicationRecord
   def streak_days = @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
   def active_deletion_request = deletion_requests.active.order(created_at: :desc).first
   def pending_deletion? = active_deletion_request.present?
+  def api_access_restricted? = red? || pending_deletion?
 
   def can_request_deletion?
     return false if pending_deletion?
