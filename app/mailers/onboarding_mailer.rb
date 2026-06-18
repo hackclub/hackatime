@@ -3,10 +3,10 @@ class OnboardingMailer < ApplicationMailer
 
   def welcome(user, recipient_email:)
     @user = user
-    mail(
-      to: recipient_email,
-      subject: "Welcome to Hackatime!"
-    )
+    # mail(
+    #   to: recipient_email,
+    #   subject: "Welcome to Hackatime!"
+    # )
   end
 
   def check_in(user, recipient_email:)
