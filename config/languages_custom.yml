@@ -8,6 +8,13 @@ Lapse:
   ace_mode: text
   language_id: 999900001
 
+GDScript3:
+  type: programming
+  color: "#488DBF"
+  tm_scope: source.gdscript
+  ace_mode: text
+  language_id: 999900002
+
 AsciiDoc:
   extensions:
   - ".ad"

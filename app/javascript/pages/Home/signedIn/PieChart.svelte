@@ -26,12 +26,24 @@
   onMount(() => (hasMounted = true));
 
   const colors = $derived.by(() => {
-    if (!Object.keys(colorMap).length) return FALLBACK_COLORS;
+    const hasMap = Object.keys(colorMap).length > 0;
+    const used = new Set<string>();
     let idx = 0;
-    return data.map(
-      (d) =>
-        colorMap[d.name] || FALLBACK_COLORS[idx++ % FALLBACK_COLORS.length],
-    );
+    // Pick the next palette color that isn't already in use, so slices never
+    // share a shade (e.g. several languages falling back to the default gray).
+    const nextFallback = () => {
+      for (let i = 0; i < FALLBACK_COLORS.length; i++) {
+        const c = FALLBACK_COLORS[idx++ % FALLBACK_COLORS.length];
+        if (!used.has(c)) return c;
+      }
+      return FALLBACK_COLORS[idx++ % FALLBACK_COLORS.length];
+    };
+    return data.map((d) => {
+      let c = hasMap ? colorMap[d.name] : undefined;
+      if (!c || used.has(c)) c = nextFallback();
+      used.add(c);
+      return c;
+    });
   });
 
   const legendPadding = $derived(
