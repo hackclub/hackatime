@@ -4,6 +4,7 @@
   import ActivityGraph from "../Home/signedIn/ActivityGraph.svelte";
   import Dashboard from "../Home/signedIn/Dashboard.svelte";
   import { settingsProfile } from "../../api";
+  import { Icon, CheckBadge } from "svelte-hero-icons";
   import type {
     ActivityGraphData,
     FilterableDashboardData,
@@ -62,7 +63,8 @@
               {profile.display_name}
             </h1>
             {#if profile.trust_level === "green"}
-              <span class="{badgeClass} bg-primary/15 text-primary">
+              <span class="{badgeClass} gap-1 bg-primary/15 text-primary">
+                <Icon src={CheckBadge} solid size="16" />
                 Verified
               </span>
             {/if}
