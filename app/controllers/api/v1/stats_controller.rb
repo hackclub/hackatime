@@ -169,6 +169,7 @@ class Api::V1::StatsController < ApplicationController
     identifier = params[:username] || params[:username_or_id] || params[:user_id]
     token = request.headers["Authorization"]&.split(" ")&.last
     @api_caller_user = ApiKey.find_by(token: token)&.user if token.present?
+    @api_caller_user = nil if @api_caller_user&.api_access_restricted?
     @api_caller_user ||= oauth_read_bearer_user
 
     if identifier == "my"

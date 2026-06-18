@@ -170,6 +170,15 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "user_stats rejects restricted owner API token when public stats disabled" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false, trust_level: :red)
+    api_key = user.api_keys.create!(name: "test")
+
+    get "/api/v1/users/#{user.username}/stats", headers: { "Authorization" => "Bearer #{api_key.token}" }
+
+    assert_response :forbidden
+  end
+
   private
 
   def create_heartbeat(user:, time:, project:, category:)
