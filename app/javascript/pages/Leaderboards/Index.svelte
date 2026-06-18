@@ -110,7 +110,7 @@
         {/if}
       </div>
 
-      {#if entries && entries.total > 0}
+      {#if entries === undefined || entries.total > 0}
         <div class="relative w-full sm:w-64 sm:shrink-0">
           <label for="leaderboard-search" class="sr-only"
             >Find a leaderboard user</label
@@ -125,7 +125,8 @@
             type="search"
             bind:value={searchQuery}
             placeholder="Find user"
-            class="h-9 w-full rounded-full border border-surface-200 bg-darkless pl-9 pr-3 text-sm text-surface-content placeholder:text-muted focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+            disabled={entries === undefined}
+            class="h-9 w-full rounded-full border border-surface-200 bg-darkless pl-9 pr-3 text-sm text-surface-content placeholder:text-muted focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors disabled:opacity-60"
           />
         </div>
       {/if}
@@ -136,13 +137,17 @@
     {#if leaderboard}
       <Deferred data="entries">
         {#snippet fallback()}
-          <div class="divide-y divide-gray-800">
+          <div>
             {#each Array(20) as _}
-              <div class="flex items-center p-2 animate-pulse">
-                <div class="w-12 h-6 bg-darkless rounded shrink-0"></div>
-                <div class="w-8 h-8 bg-darkless rounded-full mx-4"></div>
-                <div class="flex-1">
-                  <div class="h-4 w-32 bg-darkless rounded"></div>
+              <div
+                class="flex items-center p-2 sm:p-3 gap-2 sm:gap-0 border-b border-gray-800 animate-pulse"
+              >
+                <div class="w-8 sm:w-12 shrink-0 flex justify-center">
+                  <div class="h-5 w-5 bg-darkless rounded"></div>
+                </div>
+                <div class="flex-1 mx-1 sm:mx-4 min-w-0 flex items-center gap-2">
+                  <div class="w-8 h-8 bg-darkless rounded-full shrink-0"></div>
+                  <div class="h-4 w-32 max-w-full bg-darkless rounded"></div>
                 </div>
                 <div class="h-4 w-16 bg-darkless rounded shrink-0"></div>
               </div>
