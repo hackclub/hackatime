@@ -7,7 +7,7 @@ class OnboardingCheckInEmailJob < ApplicationJob
     return if user.pending_deletion?
 
     recipient_email = user.email_addresses.order(:id).pick(:email)
-    return if recipient_email.blank?
+    nil if recipient_email.blank?
 
     # OnboardingMailer.check_in(user, recipient_email: recipient_email).deliver_now
   end
