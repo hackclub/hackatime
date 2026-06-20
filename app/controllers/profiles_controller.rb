@@ -46,7 +46,9 @@ class ProfilesController < InertiaController
 
     h = ApplicationController.helpers
     hb = @user.heartbeats.where(project: project_name)
-    stats = ProjectStatsService.new(hb).call
+    stats = ProjectStatsService.new(hb).call(
+      only: %i[total_time file_count language_stats language_colors file_stats branch_stats]
+    )
     first_heartbeat = hb.minimum(:time)
     since_date = first_heartbeat ? Time.at(first_heartbeat).to_date.strftime("%-m/%-d/%Y") : nil
 

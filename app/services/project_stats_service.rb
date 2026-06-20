@@ -1,20 +1,15 @@
 class ProjectStatsService
+  FIELDS = %i[
+    total_time file_count language_stats language_colors
+    editor_stats os_stats category_stats file_stats branch_stats
+  ].freeze
+
   def initialize(heartbeats)
     @hb = heartbeats
   end
 
-  def call
-    {
-      total_time: total_time,
-      file_count: file_count,
-      language_stats: language_stats,
-      language_colors: language_colors,
-      editor_stats: editor_stats,
-      os_stats: os_stats,
-      category_stats: category_stats,
-      file_stats: file_stats,
-      branch_stats: branch_stats
-    }
+  def call(only: FIELDS)
+    only.index_with { |key| send(key) }
   end
 
   private
