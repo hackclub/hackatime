@@ -247,45 +247,14 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def project_detail_payload(project_name)
-    h = ApplicationController.helpers
     hb = current_user.heartbeats.where(project: project_name)
       .filter_by_time_range(selected_interval, params[:from], params[:to])
 
-    total_time = hb.duration_seconds
-
-    grouped = ->(field, n, normalize: ->(k) { k.to_s }, display: nil) {
-      result = Heartbeat.attributed_durations_by(hb, field).each_with_object({}) do |(raw, dur), agg|
-        k = normalize.call(raw)
-        agg[k] = (agg[k] || 0) + dur
-      end.sort_by { |_, d| -d }.first(n)
-      display ? result.map { |k, v| [ display.call(k), v ] }.to_h : result.to_h
-    }
-
-    language_stats = grouped.call(:language, 15, normalize: ->(k) { k.to_s.categorize_language })
-    editor_stats = grouped.call(:editor, 10, normalize: ->(k) { k.to_s.downcase }, display: ->(k) { h.display_editor_name(k) })
-    os_stats = grouped.call(:operating_system, 10, normalize: ->(k) { k.to_s.downcase }, display: ->(k) { h.display_os_name(k) })
-
-    all_file_stats = Heartbeat.attributed_durations_by(hb, :entity).reject { |_, dur| dur < 60 }.sort_by { |_, d| -d }
-    file_stats = all_file_stats.first(50).map { |entity, dur| [ helpers.shorten_file_path(entity), dur ] }
-
-    branch_stats = Heartbeat.attributed_durations_by(hb, :branch).sort_by { |_, d| -d }.first(10)
-    category_stats = Heartbeat.attributed_durations_by(hb, :category).sort_by { |_, d| -d }.first(10).to_h
-
-    language_colors = language_stats.present? ? LanguageUtils.colors_for(language_stats.keys) : {}
-
-    {
-      total_time: total_time,
-      total_time_label: format_duration(total_time),
-      file_count: hb.select(:entity).distinct.count,
-      language_stats: language_stats,
-      language_colors: language_colors,
-      editor_stats: editor_stats,
-      os_stats: os_stats,
-      category_stats: category_stats,
-      file_stats: file_stats,
-      branch_stats: branch_stats,
+    stats = ProjectStatsService.new(hb).call
+    stats.merge(
+      total_time_label: format_duration(stats[:total_time]),
       activity_graph: project_activity_graph(project_name)
-    }
+    )
   end
 
   def project_activity_graph(project_name)
