@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
+  import { Tooltip } from "bits-ui";
+  import { Icon, ArrowPath, Trash } from "svelte-hero-icons";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
@@ -24,6 +26,13 @@
 
   const inputClass =
     "w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none";
+
+  function formatCooldown(seconds: number): string {
+    if (seconds <= 0) return "";
+
+    const minutes = Math.ceil(seconds / 60);
+    return `Wait ${minutes} minutes before requesting another verification email`;
+  }
 </script>
 
 <svelte:head>
@@ -164,9 +173,68 @@
             class="flex flex-wrap items-center gap-2 rounded-md border border-surface-200 bg-darker px-3 py-2"
           >
             <div class="grow text-sm text-surface-content">
-              <p>{email.email}</p>
+              <p class="flex items-center gap-2">
+                <span>{email.email}</span>
+                {#if email.pending}
+                  <span
+                    class="rounded-md border border-surface-200 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted"
+                  >
+                    Unverified
+                  </span>
+                  {#if email.expired}
+                    <span
+                      class="rounded-md border border-surface-200 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted"
+                    >
+                      Expired
+                    </span>
+                  {/if}
+                {/if}
+              </p>
               <p class="text-xs text-muted">{email.source}</p>
             </div>
+            {#if email.pending}
+              <Tooltip.Provider delayDuration={150}>
+                <Tooltip.Root>
+                  <Tooltip.Trigger>
+                    {#snippet child({ props })}
+                      <span {...props} class="inline-flex">
+                        <Form
+                          action={sessions.resendEmailVerification.path()}
+                          method="post"
+                          options={{ preserveScroll: true }}
+                        >
+                          <input
+                            type="hidden"
+                            name="email"
+                            value={email.email}
+                          />
+                          <Button
+                            type="submit"
+                            unstyled
+                            disabled={!email.can_resend}
+                            aria-label="Resend verification email"
+                            class="inline-flex items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:text-surface-content disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Icon src={ArrowPath} size="20" />
+                          </Button>
+                        </Form>
+                      </span>
+                    {/snippet}
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      sideOffset={6}
+                      class="bits-tooltip-content z-[11000] rounded-md border border-surface-200 bg-darkless px-2.5 py-1.5 text-xs text-surface-content shadow-lg shadow-black/30"
+                    >
+                      {email.can_resend
+                        ? "Resend verification email"
+                        : formatCooldown(email.resend_cooldown_seconds) ||
+                          "Resend available soon"}
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              </Tooltip.Provider>
+            {/if}
             {#if email.can_unlink}
               <Form
                 action={sessions.unlinkEmail.path()}
@@ -176,10 +244,13 @@
                 <input type="hidden" name="email" value={email.email} />
                 <Button
                   type="submit"
-                  variant="surface"
-                  size="xs"
-                  class="rounded-md">Unlink</Button
+                  unstyled
+                  title={email.pending ? "Remove email" : "Unlink email"}
+                  aria-label={email.pending ? "Remove email" : "Unlink email"}
+                  class="inline-flex items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:text-red"
                 >
+                  <Icon src={Trash} size="20" />
+                </Button>
               </Form>
             {/if}
           </div>

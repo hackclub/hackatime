@@ -141,7 +141,7 @@ module Doorkeeper
     end
 
     def show_props
-      secret = flash[:application_secret].presence || @application.plaintext_secret
+      secret = flash[:application_secret].presence
       {
         page_title: "#{@application.name} - OAuth Application",
         heading: I18n.t("doorkeeper.applications.show.title", name: @application.name),

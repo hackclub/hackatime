@@ -145,7 +145,7 @@
 
           <div class="mt-6">
             <VideoTutorial
-              src="https://www.youtube.com/embed/QTwhJy7nT_w?modestbranding=1&rel=0"
+              src="https://www.youtube.com/embed/grriwsX5mIo?modestbranding=1&rel=0&t=219"
               iframeTitle="macOS setup video tutorial"
             />
           </div>
@@ -178,7 +178,7 @@
 
           <div class="mt-6">
             <VideoTutorial
-              src="https://www.youtube.com/embed/fX9tsiRvzhg?modestbranding=1&rel=0"
+              src="https://www.youtube.com/embed/grriwsX5mIo?modestbranding=1&rel=0&t=54"
               iframeTitle="Windows setup video tutorial"
             />
           </div>

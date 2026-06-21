@@ -250,6 +250,73 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "new-address@example.com", user.reload.email_verification_requests.last.email
   end
 
+  test "add_email succeeds again after a pending request was removed" do
+    user = User.create!
+    sign_in_as(user)
+
+    post add_email_auth_path, params: { email: "recycle@example.com" }
+    delete unlink_email_auth_path, params: { email: "recycle@example.com" }
+
+    # Re-adding the same email must not raise a unique-violation on the
+    # soft-deleted request (partial index is scoped to deleted_at IS NULL).
+    assert_difference -> { user.reload.email_verification_requests.where(deleted_at: nil).count }, 1 do
+      post add_email_auth_path, params: { email: "recycle@example.com" }
+    end
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+  end
+
+  test "resend_email_verification enforces cooldown" do
+    user = User.create!
+    verification_request = user.email_verification_requests.create!(email: "pending@example.com")
+    sign_in_as(user)
+
+    old_token = verification_request.token
+    post resend_email_verification_auth_path, params: { email: verification_request.email }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert_equal old_token, verification_request.reload.token
+  end
+
+  test "resend_email_verification refreshes token after cooldown" do
+    user = User.create!
+    verification_request = user.email_verification_requests.create!(email: "pending-ok@example.com")
+    verification_request.update_columns(created_at: 11.minutes.ago, updated_at: 11.minutes.ago)
+    sign_in_as(user)
+
+    old_token = verification_request.token
+    post resend_email_verification_auth_path, params: { email: verification_request.email }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert_not_equal old_token, verification_request.reload.token
+  end
+
+  test "resend_email_verification revives an expired request" do
+    user = User.create!
+    verification_request = user.email_verification_requests.create!(email: "expired-resend@example.com")
+    verification_request.update_columns(
+      created_at: 2.weeks.ago,
+      updated_at: 2.weeks.ago,
+      expires_at: 2.weeks.ago
+    )
+    sign_in_as(user)
+
+    old_token = verification_request.token
+    assert verification_request.expired?
+
+    post resend_email_verification_auth_path, params: { email: verification_request.email }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+
+    verification_request.reload
+    assert_not_equal old_token, verification_request.token
+    assert_not verification_request.expired?, "resending should extend the expiry"
+  end
+
   test "unlink_email removes secondary signing-in email" do
     user = User.create!
     removable = user.email_addresses.create!(email: "remove-me@example.com", source: :signing_in)
@@ -263,6 +330,31 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to my_settings_path
     assert_not user.reload.email_addresses.exists?(email: removable.email)
+  end
+
+  test "unlink_email removes pending verification request when email is unverified" do
+    user = User.create!
+    verification_request = user.email_verification_requests.create!(email: "pending-remove@example.com")
+    sign_in_as(user)
+
+    delete unlink_email_auth_path, params: { email: verification_request.email }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert verification_request.reload.deleted_at.present?
+  end
+
+  test "unlink_email removes expired pending verification request" do
+    user = User.create!
+    verification_request = user.email_verification_requests.create!(email: "expired-remove@example.com")
+    verification_request.update_columns(expires_at: 1.minute.ago)
+    sign_in_as(user)
+
+    delete unlink_email_auth_path, params: { email: verification_request.email }
+
+    assert_response :redirect
+    assert_redirected_to my_settings_path
+    assert verification_request.reload.deleted_at.present?
   end
 
   test "auth token verifies email verification request token" do

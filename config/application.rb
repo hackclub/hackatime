@@ -42,5 +42,9 @@ module Harbor
       secure: Rails.env.production?,
       httponly: true
     config.exceptions_app = routes
+
+    if Rails.env.production?
+      config.skylight.probes << "active_job"
+    end
   end
 end

@@ -147,3 +147,27 @@ export const formatUtcDate = (value: string | null) =>
 // "Jun 5, 2026, 14:30 UTC"
 export const formatUtcDateTime = (value: string | null) =>
   formatWith(utcDateTimeFormatter, value);
+
+const utcDayMonthFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  month: "short",
+  day: "numeric",
+});
+
+// "Jun 5"
+export const formatUtcDayMonth = (value: string | Date) =>
+  utcDayMonthFormatter.format(typeof value === "string" ? new Date(value) : value);
+
+// Given a week-start ISO date, render the 7-day range:
+//   same month  -> "Jun 8 - 14"
+//   cross month -> "May 31 - Jun 6"
+export const formatWeekRange = (weekStart: string) => {
+  const start = new Date(weekStart);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 6);
+  const endLabel =
+    start.getUTCMonth() === end.getUTCMonth()
+      ? `${end.getUTCDate()}`
+      : formatUtcDayMonth(end);
+  return `${formatUtcDayMonth(start)} - ${endLabel}`;
+};

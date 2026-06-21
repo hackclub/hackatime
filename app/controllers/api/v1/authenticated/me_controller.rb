@@ -2,7 +2,8 @@ module Api
   module V1
     module Authenticated
       class MeController < ApplicationController
-        skip_before_action :ensure_no_ban, only: :index
+        skip_before_action :ensure_api_access_allowed, only: :index
+        before_action :ensure_no_pending_deletion, only: :index
 
         def index
           app = doorkeeper_token&.application

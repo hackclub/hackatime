@@ -70,6 +70,20 @@ class ApplicationController < ActionController::Base
     render_unauthorized(message) unless token.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
   end
 
+  def oauth_bearer_user(required_scopes = [])
+    @oauth_bearer_users ||= {}
+    @oauth_bearer_users[required_scopes] ||= begin
+      scheme, raw_token = request.headers["Authorization"].to_s.split(/\s+/, 2)
+      if scheme&.casecmp?("Bearer") && raw_token.present?
+        token = Doorkeeper::AccessToken.by_token(raw_token)
+        if token&.acceptable?(required_scopes)
+          user = User.find_by(id: token.resource_owner_id)
+          user unless user&.api_access_restricted?
+        end
+      end
+    end
+  end
+
   def enforce_lockout
     return unless current_user&.pending_deletion?
     return if %w[deletion_requests sessions].include?(controller_name)
