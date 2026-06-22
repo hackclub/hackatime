@@ -34,7 +34,7 @@
     "vite-plugin-ruby": "^5.2.2"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.0",
     "knip": "^6.16.1",
     "prettier": "^3.8.4",
     "prettier-plugin-svelte": "^3.5.2"
