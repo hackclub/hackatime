@@ -160,5 +160,11 @@
       >
       on GitHub.
     </p>
+    <Link
+      href="/docs/troubleshooting/hackatime-stuck-initialised"
+      class="mt-2 inline-block text-sm text-primary hover:underline"
+    >
+      Hackatime stuck initialised →
+    </Link>
   </div>
 </div>
