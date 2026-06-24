@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_13_154503) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -344,7 +344,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_13_154503) do
     t.index ["time", "source_type"], name: "index_heartbeats_on_time_and_source_type"
     t.index ["time", "user_id"], name: "idx_heartbeats_time_user_active", where: "(deleted_at IS NULL)"
     t.index ["time"], name: "index_heartbeats_on_time_active_covering", where: "(deleted_at IS NULL)", include: ["source_type"]
-    t.index ["time"], name: "index_heartbeats_on_time_imported", where: "(source_type <> 0)"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent"
     t.index ["user_agent"], name: "index_heartbeats_on_user_agent_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id", "category", "time"], name: "idx_heartbeats_user_category_time_incl_editor", where: "(deleted_at IS NULL)", include: ["editor"]
@@ -380,6 +379,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_13_154503) do
   create_table "ja4s", id: :serial, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "fingerprint", null: false
+    t.text "name"
     t.datetime "updated_at", null: false
     t.index ["fingerprint"], name: "index_ja4s_on_fingerprint", unique: true
   end
