@@ -177,7 +177,14 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
                   machine: { type: :string, nullable: true, example: 'Orpheus-MacBook-Pro' },
                   user_agent: { type: :string, nullable: true, example: 'wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0' },
                   ip_address: { type: :string, nullable: true, example: '203.0.113.7' },
-                  ja4: { type: :string, nullable: true, example: 't13d1516h2_8daaf6152771_02713d6af862' },
+                  ja4: {
+                    type: :object,
+                    nullable: true,
+                    properties: {
+                      fingerprint: { type: :string, example: 't13d1516h2_8daaf6152771_02713d6af862' },
+                      name: { type: :string, nullable: true, example: 'Go net/http' }
+                    }
+                  },
                   lines: { type: :integer, nullable: true, example: 350 },
                   source_type: { type: :string, example: 'direct_entry' }
                 }
@@ -195,7 +202,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
             entity: 'app/models/user.rb',
             time: Time.current.to_f,
             source_type: :direct_entry,
-            ja4: Ja4.create!(fingerprint: 't13d1516h2_8daaf6152771_02713d6af862')
+            ja4: Ja4.create!(fingerprint: 't13d1516h2_8daaf6152771_02713d6af862', name: 'Go net/http')
           )
           u
         end
@@ -210,7 +217,10 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
         let(:limit) { 10 }
         let(:offset) { 0 }
         run_test! do |response|
-          expect(JSON.parse(response.body).dig('heartbeats', 0, 'ja4')).to eq('t13d1516h2_8daaf6152771_02713d6af862')
+          expect(JSON.parse(response.body).dig('heartbeats', 0, 'ja4')).to eq(
+            'fingerprint' => 't13d1516h2_8daaf6152771_02713d6af862',
+            'name' => 'Go net/http'
+          )
         end
       end
 

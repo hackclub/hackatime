@@ -1850,9 +1850,16 @@ paths:
                           nullable: true
                           example: 203.0.113.7
                         ja4:
-                          type: string
+                          type: object
                           nullable: true
-                          example: t13d1516h2_8daaf6152771_02713d6af862
+                          properties:
+                            fingerprint:
+                              type: string
+                              example: t13d1516h2_8daaf6152771_02713d6af862
+                            name:
+                              type: string
+                              nullable: true
+                              example: Go net/http
                         lines:
                           type: integer
                           nullable: true

@@ -307,7 +307,7 @@ module Api
           total_count = query.count
           source_types = Heartbeat.source_types.invert
           rows = query.order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
-          ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).pluck(:id, :fingerprint).to_h
+          ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).index_by(&:id)
           heartbeats = rows.map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type, ja4_id|
             {
               id: id,
@@ -324,7 +324,7 @@ module Api
               machine: machine,
               user_agent: user_agent,
               ip_address: ip_address,
-              ja4: ja4s_by_id[ja4_id],
+              ja4: ja4s_by_id[ja4_id]&.then { |ja4| { fingerprint: ja4.fingerprint, name: ja4.name } },
               lines: lines,
               source_type: source_types[source_type] || source_type
             }
