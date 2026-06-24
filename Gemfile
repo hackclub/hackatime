@@ -150,7 +150,6 @@ end
 group :production do
   # request.remote_ip behind Cloudflare [https://github.com/modosc/cloudflare-rails]
   gem "cloudflare-rails"
-  gem "logtail-rails"
   gem "skylight"
   gem "aws-sdk-s3"
   gem "autotuner", "~> 1.0"
