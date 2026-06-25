@@ -1,0 +1,42 @@
+<script lang="ts">
+  import ImportantFill from "hcicons-svelte/important-fill";
+</script>
+
+<div
+  class="text-red bg-red-500/10 border-2 border-red-500/20 p-4 text-center rounded-lg mb-4"
+>
+  <div class="flex items-center justify-center mb-3">
+    <ImportantFill size={24} />
+    <span class="text-3xl font-bold block ml-2"
+      >Hold up! Your account has been banned for suspicious activity.</span
+    >
+  </div>
+  <div class="text-surface-content text-left text-lg space-y-2">
+    <p class="mb-2">
+      <b>What does this mean?</b> Your account was found to be engaging in fraud or
+      abuse of Hackatime. This includes using methods to gain an unfair advantage
+      on the leaderboards or attempting to manipulate your coding time in any way.
+      This ban restricts your ability to participate in public leaderboards, but Hackatime
+      will still track and display your time. Your ability to participate in current
+      and future Hack Club events may also be affected.
+    </p>
+    <p class="mb-2">
+      <b>What can I do?</b> Account bans are non-negotiable, and will not be
+      removed unless determined to have been issued incorrectly. In that case,
+      it will automatically be removed. We take fraud very seriously and have a
+      zero-tolerance policy for abuse. If you believe this was a mistake, please
+      DM the
+      <a
+        href="https://hackclub.slack.com/team/U091HC53CE8"
+        target="_blank"
+        class="underline">Fraud Department</a
+      > on Slack. We do not respond in any other channel, DM or thread.
+    </p>
+    <p class="mb-0">
+      <b>What caused this?</b> We do not disclose the patterns that were detected.
+      Releasing this information would only benefit fraudsters. The fraud team regularly
+      investigates claims of false bans to increase the effectiveness of our detection
+      systems to combat fraud.
+    </p>
+  </div>
+</div>
