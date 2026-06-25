@@ -140,7 +140,7 @@
       <h1
         class="text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6 text-pretty"
       >
-        The open-source technical time tracker
+        The open-source project time tracker
       </h1>
       <p
         class="text-lg md:text-xl text-secondary max-w-[70ch] mx-auto leading-relaxed mb-8"
