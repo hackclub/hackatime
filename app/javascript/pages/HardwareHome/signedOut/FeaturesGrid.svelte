@@ -19,9 +19,9 @@
       icon: Clock,
     },
     {
-      title: "Language stats",
+      title: "Stats",
       description:
-        "See your actual tech stack - how much time do you spend writing React vs Svelte?",
+        "See your actual tech stack - how much time do you spend in CAD vs. code editors?",
       icon: CodeBracketSquare,
     },
     {
@@ -42,7 +42,8 @@
     },
     {
       title: "Privacy-first",
-      description: "We never see your code, so your projects stay private.",
+      description:
+        "We never see your source code, so your projects stay private.",
       icon: LockClosed,
     },
   ];

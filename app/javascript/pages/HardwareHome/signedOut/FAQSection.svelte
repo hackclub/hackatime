@@ -11,7 +11,7 @@
       a: "Point your existing WakaTime plugin at Hackatime's API URL and enter your Hackatime API key! You can even import your WakaTime data into Hackatime.",
     },
     {
-      q: "Is my code private?",
+      q: "Is my design private?",
       a: "Hackatime only receives metadata (e.g. file names, project names, timestamps, language). We never see your actual source code.",
     },
     {

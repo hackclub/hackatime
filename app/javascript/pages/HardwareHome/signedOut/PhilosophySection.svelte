@@ -19,7 +19,7 @@
       <h2
         class="text-3xl md:text-4xl font-semibold text-primary tracking-tight mb-6"
       >
-        Your coding data should belong to you
+        Your data should belong to you
       </h2>
       <p class="text-secondary text-lg leading-relaxed mb-4">
         We have an extensive API you can play around with, and you can export

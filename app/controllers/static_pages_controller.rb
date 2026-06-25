@@ -24,6 +24,28 @@ class StaticPagesController < InertiaController
     end
   end
 
+  def hardware
+    if current_user
+      flavor_texts = FlavorText.motto + FlavorText.conditional_mottos(current_user)
+      flavor_texts += FlavorText.rare_motto if Random.rand(10) < 1
+      @flavor_text = flavor_texts.sample
+
+      if params[:date].present?
+        d = Date.parse(params[:date]) rescue nil
+        return redirect_to "/my/projects?interval=custom&from=#{d}&to=#{d}" if d
+      end
+
+      # should skip over the setup notice since it just needs oauth with a program
+      # @show_wakatime_setup_notice = true if !current_user.heartbeats.exists? || params[:show_wakatime_setup_notice]
+
+      render inertia: "HardwareHome/SignedIn", props: signed_in_props
+    else
+      set_homepage_seo_content
+      @home_stats = Cache::HomeStatsJob.perform_now
+      render inertia: "HardwareHome/SignedOut", props: signed_out_props
+    end
+  end
+
   def signin
     return redirect_to root_path if current_user
 
