@@ -195,7 +195,7 @@
         </div>
         <div class="bg-surface">
           <img
-            src="/images/docs-index.webp"
+            src="/images/hardware-home.webp"
             alt="Hackatime Dashboard"
             class="w-full h-auto block rounded"
           />
