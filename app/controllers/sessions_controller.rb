@@ -22,15 +22,14 @@ class SessionsController < ApplicationController
       session[:return_data] = preserved_return_data if preserved_return_data
       notice = "Successfully signed in with Hack Club Auth! Welcome!"
 
-      # if @user.previously_new_record?
-      #   redirect_to my_wakatime_setup_path, notice: notice
-      # elsif session[:return_data]&.dig("url").present?
-      #   redirect_to session[:return_data].delete("url"), notice: notice
-      # else
-      #   redirect_to root_path, notice: notice
-      # end
+      if @user.previously_new_record?
+        redirect_to my_wakatime_setup_path, notice: notice
+      elsif session[:return_data]&.dig("url").present?
+        redirect_to session[:return_data].delete("url"), notice: notice
+      else
+        redirect_to root_path, notice: notice
+      end
 
-      redirect_to my_wakatime_setup_path, notice: notice
     else
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
     end
