@@ -3,7 +3,7 @@ module HCAService
     if Rails.env.production?
       "https://auth.hackclub.com"
     else
-      "https://auth.hackclub.com"
+      "https://hca.dinosaurbbq.org"
     end
   end
 
