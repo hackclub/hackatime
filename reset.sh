@@ -14,7 +14,7 @@ OauthApplication.create!(
   redirect_to_hca_login: false,
   redirect_uri: 'http://localhost:3001/auth/hackatime/callback',
   scopes: 'profile read',
-  secret: '168L3q9SgZogm5jySI106nnbZI8FBFJ1hT6_FvqRG4w',
+  secret: '61IuM8ndjSKV-tbIy3kwk4euagajbzjf8w-m0wuu6Do',
   uid: '1urYGmQAvkxu23-I9gx4xpnrEy7U12b6ZlXAHxyg6Mo',
   verified: true
 )

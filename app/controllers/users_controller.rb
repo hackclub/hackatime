@@ -18,7 +18,9 @@ class UsersController < InertiaController
       # Full URL (with host) is shown to users in their config file, so we
       # build it server-side rather than via js_from_routes.
       api_url: api_hackatime_v1_url,
-      skip_setup_flow: skipping
+      skip_setup_flow: skipping,
+      return_url: skipping ? session.dig(:return_data, "url") : nil,
+      return_button_text: skipping ? (session.dig(:return_data, "button_text") || "Done") : nil
     }
   end
 

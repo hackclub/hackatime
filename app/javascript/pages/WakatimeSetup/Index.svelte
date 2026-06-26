@@ -15,10 +15,18 @@
     setup_os: string;
     api_url: string;
     skip_setup_flow?: boolean;
+    return_url?: string;
+    return_button_text?: string;
   }
 
-  let { current_user_api_key, setup_os, api_url, skip_setup_flow }: Props =
-    $props();
+  let {
+    current_user_api_key,
+    setup_os,
+    api_url,
+    skip_setup_flow,
+    return_url,
+    return_button_text,
+  }: Props = $props();
 
   let agreed = $state(false);
 
@@ -155,13 +163,13 @@
           </div>
 
           <Button
-            href="/"
+            href={return_url ?? "/"}
             size="xl"
             class="w-full sm:w-auto transition-all font-semibold transform active:scale-[0.98] text-center {agreed
               ? ''
               : 'opacity-50 cursor-not-allowed pointer-events-none'}"
           >
-            Let's get going!
+            {return_url ? (return_button_text ?? "Done") : "Let's get going!"}
           </Button>
         </div>
       </div>
