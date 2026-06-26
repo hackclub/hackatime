@@ -7,13 +7,18 @@ class UsersController < InertiaController
 
   def wakatime_setup
     api_key = ensure_api_key
+    skipping = session.dig(:return_data, "skip_setup_flow") || params[:skip_setup_flow].present?
+
+    # Clear so it doesn't persist across future visits
+    session[:return_data]&.delete("skip_setup_flow") if skipping
 
     render inertia: "WakatimeSetup/Index", props: {
       current_user_api_key: api_key.token,
       setup_os: detect_setup_os(request.user_agent).to_s,
       # Full URL (with host) is shown to users in their config file, so we
       # build it server-side rather than via js_from_routes.
-      api_url: api_hackatime_v1_url
+      api_url: api_hackatime_v1_url,
+      skip_setup_flow: skipping
     }
   end
 

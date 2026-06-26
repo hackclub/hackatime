@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
   def hca_new
-    session[:return_data] = { "url" => safe_return_url(params[:continue].presence) } if params[:continue].present?
+    session[:return_data] = build_return_data(params[:continue]) if params[:continue].present?
     Rails.logger.info("Sessions return data: #{session[:return_data]}")
     redirect_uri = url_for(action: :hca_create, only_path: false)
 
@@ -22,13 +22,15 @@ class SessionsController < ApplicationController
       session[:return_data] = preserved_return_data if preserved_return_data
       notice = "Successfully signed in with Hack Club Auth! Welcome!"
 
-      if @user.previously_new_record?
-        redirect_to my_wakatime_setup_path, notice: notice
-      elsif session[:return_data]&.dig("url").present?
-        redirect_to session[:return_data].delete("url"), notice: notice
-      else
-        redirect_to root_path, notice: notice
-      end
+      # if @user.previously_new_record?
+      #   redirect_to my_wakatime_setup_path, notice: notice
+      # elsif session[:return_data]&.dig("url").present?
+      #   redirect_to session[:return_data].delete("url"), notice: notice
+      # else
+      #   redirect_to root_path, notice: notice
+      # end
+
+      redirect_to my_wakatime_setup_path, notice: notice
     else
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
     end
@@ -71,7 +73,7 @@ class SessionsController < ApplicationController
       if slack_state&.dig("close_window")
         redirect_to close_window_path
       elsif @user.previously_new_record?
-        session[:return_data] = { "url" => continue_url }
+        session[:return_data] = build_return_data(continue_url)
         redirect_to my_wakatime_setup_path, notice: notice
       elsif continue_url.present?
         redirect_to continue_url, notice: notice # codeql[rb/url-redirection]
@@ -234,9 +236,8 @@ class SessionsController < ApplicationController
       valid_token.mark_used!
       reset_session
       session[:user_id] = valid_token.user_id
-      session[:return_data] = valid_token.return_data || {}
-
       continue_url = safe_return_url(valid_token.continue_param)
+      session[:return_data] = (valid_token.return_data || {}).merge(build_return_data(continue_url))
       if continue_url.present?
         redirect_to continue_url, notice: "Successfully signed in!" # codeql[rb/url-redirection]
       else
