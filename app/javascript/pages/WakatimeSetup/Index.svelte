@@ -82,20 +82,20 @@
 
     {#if skip_setup_flow}
       <div class="space-y-6">
-        <div
-          class="bg-blue/5 border border-blue/20 rounded-xl p-5 flex gap-3"
-        >
+        <div class="bg-blue/5 border border-blue/20 rounded-xl p-5 flex gap-3">
           <Icon
             src={InformationCircle}
             size="22"
             class="text-blue shrink-0 mt-0.5"
           />
           <div class="text-sm">
-            <p class="font-semibold text-blue mb-1">No code editor setup needed</p>
+            <p class="font-semibold text-blue mb-1">
+              No code editor setup needed
+            </p>
             <p class="text-secondary">
               Since you're joining through a hardware program, you don't need to
-              set up a code editor right now. If you'd like to connect one later,
-              you can always do so from
+              set up a code editor right now. If you'd like to connect one
+              later, you can always do so from
               <Link
                 href="/my/wakatime_setup"
                 class="text-primary underline hover:text-primary/80"
