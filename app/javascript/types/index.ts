@@ -24,6 +24,7 @@ export type AdminLevel =
 export type NavCurrentUser = {
   display_name: string;
   avatar_url?: string | null;
+  username?: string | null;
   title: string;
   country_code?: string | null;
   country_name?: string | null;
