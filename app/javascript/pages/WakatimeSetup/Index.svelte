@@ -62,10 +62,6 @@
   const advancedCfg = $derived(
     `[settings]\napi_url = ${api_url}\napi_key = ${current_user_api_key}\nheartbeat_rate_limit_seconds = 30`,
   );
-
-  onMount(() => {
-    console.log(current_user_api_key, setup_os, api_url, skip_setup_flow);
-  });
 </script>
 
 <svelte:head>
@@ -114,8 +110,8 @@
           <div class="bg-yellow text-black rounded-xl p-6 mb-8 text-left">
             <h3 class="font-bold mb-2">Fair Play Policy</h3>
             <p class="text-sm mb-3">
-              Hackatime tracks the time you genuinely spend writing code. Fraud
-              means trying to make it look like you're coding when you are not,
+              Hackatime tracks the time you actually work on projects. Fraud
+              means trying to make it look like you're working when you are not,
               including using scripts, bots, manipulated heartbeats, spoofed
               editor activity, or API abuse.
             </p>

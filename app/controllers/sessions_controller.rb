@@ -29,7 +29,6 @@ class SessionsController < ApplicationController
       else
         redirect_to root_path, notice: notice
       end
-
     else
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
     end
