@@ -118,6 +118,19 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_no_enqueued_jobs only: DashboardRollupRefreshJob
   end
 
+  test "direct heartbeat ingest records event participation for inserted heartbeats" do
+    user = User.create!(timezone: "UTC")
+    high_seas_time = Time.zone.parse("2024-12-15 12:00:00").to_f
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ { entity: "src/event.rb", time: high_seas_time, type: "file" } ]
+    )
+
+    assert user.reload.event_participation.set?(:high_seas)
+  end
+
   test "direct heartbeat ingest resolves last language within the batch" do
     user = User.create!(timezone: "UTC")
     now = Time.current.to_f
@@ -187,5 +200,35 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
 
     heartbeat = user.heartbeats.order(:id).last
     assert_equal "wakapi_import", heartbeat.source_type
+  end
+
+  test "import heartbeat ingest records event participation only for inserted heartbeats" do
+    user = User.create!(timezone: "UTC")
+    high_seas_time = Time.zone.parse("2024-12-15 12:00:00").to_f
+    heartbeat = {
+      entity: "/tmp/event.rb",
+      type: "file",
+      time: high_seas_time,
+      project: "hackatime",
+      language: "Ruby"
+    }
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :import,
+      heartbeats: [ heartbeat ]
+    )
+
+    assert user.reload.event_participation.set?(:high_seas)
+
+    user.update_column(:event_participation, 0)
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :import,
+      heartbeats: [ heartbeat ]
+    )
+
+    assert_not user.reload.event_participation.set?(:high_seas)
   end
 end

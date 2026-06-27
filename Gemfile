@@ -39,6 +39,9 @@ gem "sentry-rails"
 
 gem "good_job"
 
+# Bitmask flag column on AR models — used for User#event_participation.
+gem "active_flag"
+
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
