@@ -136,7 +136,7 @@ GEM
       activesupport (>= 7.2.0, < 8.2.0)
       railties (>= 7.2.0, < 8.2.0)
       zeitwerk (>= 2.5.0)
-    concurrent-ruby (1.3.6)
+    concurrent-ruby (1.3.7)
     connection_pool (3.0.2)
     countries (8.1.0)
       unaccent (~> 0.3)
