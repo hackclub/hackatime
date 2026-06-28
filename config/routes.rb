@@ -110,6 +110,9 @@ Rails.application.routes.draw do
 
   get "/signin", to: "static_pages#signin", as: :signin
 
+  # hardware variant of homepage
+  get "/hardware", to: "static_pages#hardware", as: :hardware
+
   # Auth routes
   get "/auth/hca", to: "sessions#hca_new", as: :hca_auth
   get "/auth/hca/callback", to: "sessions#hca_create"

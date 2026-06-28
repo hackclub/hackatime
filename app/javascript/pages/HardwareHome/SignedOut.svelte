@@ -1,0 +1,218 @@
+<script module lang="ts">
+  import MarketingLayout from "../../layouts/MarketingLayout.svelte";
+  export const layout = MarketingLayout;
+</script>
+
+<script lang="ts">
+  import { Link } from "@inertiajs/svelte";
+  import PhilosophySection from "./signedOut/PhilosophySection.svelte";
+  import FeaturesGrid from "./signedOut/FeaturesGrid.svelte";
+  import EditorGrid from "./signedOut/EditorGrid.svelte";
+  import HowItWorks from "./signedOut/HowItWorks.svelte";
+  import FAQSection from "./signedOut/FAQSection.svelte";
+  import CTASection from "./signedOut/CTASection.svelte";
+  import MarketingFooter from "../../components/MarketingFooter.svelte";
+
+  type HomeStats = { seconds_tracked?: number; users_tracked?: number };
+  type FlashMessage = { message: string; class_name: string };
+
+  let {
+    home_stats,
+    flash = [],
+  }: {
+    sign_in_email: boolean;
+    show_dev_tool: boolean;
+    dev_magic_link?: string | null;
+    csrf_token: string;
+    home_stats: HomeStats;
+    flash?: FlashMessage[];
+  } = $props();
+
+  const fmt = new Intl.NumberFormat("en-US");
+  const formatNumber = (v: number) => fmt.format(v);
+  const hoursTracked = $derived(
+    home_stats?.seconds_tracked
+      ? Math.floor(home_stats.seconds_tracked / 3600)
+      : 0,
+  );
+  const usersTracked = $derived(home_stats?.users_tracked ?? 0);
+
+  let flashVisible = $state(false);
+  let flashHiding = $state(false);
+
+  $effect(() => {
+    if (!flash.length) {
+      flashVisible = false;
+      flashHiding = false;
+      return;
+    }
+    flashVisible = true;
+    flashHiding = false;
+    let removeId: ReturnType<typeof setTimeout> | undefined;
+    const hideId = setTimeout(() => {
+      flashHiding = true;
+      removeId = setTimeout(() => {
+        flashVisible = false;
+        flashHiding = false;
+      }, 250);
+    }, 6000);
+    return () => {
+      clearTimeout(hideId);
+      if (removeId) clearTimeout(removeId);
+    };
+  });
+
+  const NAV_LINKS = [
+    { href: "#philosophy", label: "Philosophy" },
+    { href: "#features", label: "Features" },
+    { href: "#integrations", label: "Integrations" },
+    { href: "#faq", label: "FAQ" },
+    {
+      href: "https://github.com/hackclub/hackatime",
+      label: "GitHub",
+      external: true,
+    },
+  ];
+
+  const STATS = $derived([
+    { value: usersTracked, label: "users" },
+    { value: hoursTracked, label: "hours tracked" },
+  ]);
+</script>
+
+<svelte:head>
+  <title>Hackatime - Track your development time</title>
+</svelte:head>
+
+<div class="landing-page min-h-screen w-full bg-darker text-surface-content">
+  {#if flashVisible && flash.length > 0}
+    <div
+      class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] w-full max-w-md px-4 space-y-2"
+    >
+      {#each flash as item}
+        <div
+          class="flash-message shadow-lg flash-message--enter {flashHiding
+            ? 'flash-message--leaving'
+            : ''} {item.class_name}"
+        >
+          {item.message}
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <header
+    class="fixed top-0 w-full bg-darker/95 backdrop-blur-sm z-50 border-b border-surface-200/60"
+  >
+    <div
+      class="max-w-[1100px] mx-auto px-6 py-4 flex justify-between items-center"
+    >
+      <a href="/" class="flex items-center gap-3">
+        <img
+          src="/images/new-icon-rounded.png"
+          class="w-10 h-10 rounded-lg"
+          alt="Hackatime"
+        />
+        <span class="font-bold text-2xl tracking-tight">Hackatime</span>
+      </a>
+      <nav
+        class="hidden md:flex gap-8 items-center text-sm font-medium text-secondary"
+      >
+        {#each NAV_LINKS as { href, label, external }}
+          <a
+            {href}
+            target={external ? "_blank" : undefined}
+            class="hover:text-surface-content transition-colors">{label}</a
+          >
+        {/each}
+        <Link
+          href="/signin"
+          class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
+        >
+          Sign in
+        </Link>
+      </nav>
+    </div>
+  </header>
+
+  <section class="pt-40 pb-20">
+    <div class="max-w-[900px] mx-auto px-6 text-center">
+      <h1
+        class="text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6 text-pretty"
+      >
+        The open-source project time tracker
+      </h1>
+      <p
+        class="text-lg md:text-xl text-secondary max-w-[70ch] mx-auto leading-relaxed mb-8"
+      >
+        Hackatime is a free, open-source replacement for WakaTime. Your design
+        habits, project breakdowns and language stats belong to you - not a
+        proprietary database!
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+        <Link
+          href="/signin"
+          class="px-7 py-3.5 bg-primary text-on-primary rounded-md font-semibold text-base hover:opacity-90 transition-colors"
+        >
+          Start tracking
+        </Link>
+        <Link
+          href="/docs"
+          class="px-7 py-3.5 bg-surface border border-surface-200 text-surface-content rounded-md font-semibold text-base hover:border-primary hover:text-primary transition-colors"
+        >
+          Read the docs
+        </Link>
+      </div>
+
+      {#if hoursTracked > 0 || usersTracked > 0}
+        <div
+          class="flex items-center justify-center gap-8 mb-16 text-secondary text-sm"
+        >
+          {#each STATS as { value, label }}
+            {#if value > 0}
+              <div class="flex flex-col items-center">
+                <span class="text-2xl font-bold text-surface-content"
+                  >{formatNumber(value)}</span
+                >
+                <span>{label}</span>
+              </div>
+            {/if}
+          {/each}
+        </div>
+      {:else}
+        <div class="mb-16"></div>
+      {/if}
+
+      <div
+        class="bg-surface border border-surface-200 rounded-lg shadow-lg overflow-hidden"
+      >
+        <div
+          class="bg-surface-100 px-4 py-3 border-b border-surface-200 flex gap-2"
+        >
+          <div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-orange"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-cyan"></div>
+        </div>
+        <div class="bg-surface">
+          <img
+            src="/images/hardware-home.webp"
+            alt="Hackatime Dashboard"
+            class="w-full h-auto block rounded"
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <PhilosophySection />
+  <FeaturesGrid />
+  <EditorGrid />
+  <HowItWorks />
+  <FAQSection />
+  <CTASection
+    hoursTracked={formatNumber(hoursTracked)}
+    usersTracked={formatNumber(usersTracked)}
+  />
+
+  <MarketingFooter />
+</div>
