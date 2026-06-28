@@ -6,8 +6,15 @@ class UsersController < InertiaController
   before_action :require_admin, only: [ :update_trust_level ]
 
   def wakatime_setup
-    api_key = ensure_api_key
+    # Hardware-program users skip editor setup and go straight to the
+    # "you're all set" page (step 4). Persist the flag so it survives the
+    # redirect even when it arrived as a bare query param.
+    if session.dig(:return_data, "skip_setup_flow") || params[:skip_setup_flow].present?
+      session[:return_data] = (session[:return_data] || {}).merge("skip_setup_flow" => true)
+      return redirect_to my_wakatime_setup_step_4_path
+    end
 
+    api_key = ensure_api_key
     render inertia: "WakatimeSetup/Index", props: {
       current_user_api_key: api_key.token,
       setup_os: detect_setup_os(request.user_agent).to_s,
@@ -28,7 +35,12 @@ class UsersController < InertiaController
   end
 
   def wakatime_setup_step_4
+    hardware = session.dig(:return_data, "skip_setup_flow").present?
+    # Clear so it doesn't persist across future visits
+    session[:return_data]&.delete("skip_setup_flow")
+
     render inertia: "WakatimeSetup/Step4", props: {
+      hardware: hardware,
       return_url: session.dig(:return_data, "url"),
       return_button_text: session.dig(:return_data, "button_text") || "Done"
     }
