@@ -53,6 +53,21 @@ class ApplicationController < ActionController::Base
     url
   end
 
+  # Build a return_data hash from a continue URL, extracting known query
+  # params (like skip_setup_flow) so they survive auth redirects.
+  def build_return_data(continue_url)
+    url = safe_return_url(continue_url)
+    return {} if url.blank?
+
+    data = { "url" => url }
+    query = Rack::Utils.parse_query(URI.parse(url).query.to_s)
+    data["skip_setup_flow"] = true if query.key?("skip_setup_flow")
+    data["button_text"] = query["button_text"] if query["button_text"].present?
+    data
+  rescue URI::InvalidURIError
+    { "url" => url }
+  end
+
   def authenticate_user!
     unless user_signed_in?
       redirect_to signin_path(continue: request.fullpath), alert: "Please sign in first!"

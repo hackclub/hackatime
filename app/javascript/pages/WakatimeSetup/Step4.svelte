@@ -1,14 +1,17 @@
 <script lang="ts">
   import { Checkbox } from "bits-ui";
+  import { Link } from "@inertiajs/svelte";
+  import { Icon, InformationCircle } from "svelte-hero-icons";
   import Button from "../../components/Button.svelte";
   import Stepper from "./Stepper.svelte";
 
   interface Props {
     return_url?: string;
     return_button_text: string;
+    hardware?: boolean;
   }
 
-  let { return_url, return_button_text }: Props = $props();
+  let { return_url, return_button_text, hardware = false }: Props = $props();
 
   let agreed = $state(false);
 </script>
@@ -20,6 +23,33 @@
 <div class="min-h-screen text-surface-content pt-8 pb-16">
   <div class="max-w-2xl mx-auto px-4">
     <Stepper currentStep={4} />
+
+    {#if hardware}
+      <div
+        class="bg-blue/5 border border-blue/20 rounded-xl p-5 mb-6 flex gap-3"
+      >
+        <Icon
+          src={InformationCircle}
+          size="22"
+          class="text-blue shrink-0 mt-0.5"
+        />
+        <div class="text-sm">
+          <p class="font-semibold text-blue mb-1">
+            No code editor setup needed
+          </p>
+          <p class="text-secondary">
+            Since you're joining through a hardware program, you don't need to
+            set up a code editor right now. If you'd like to connect one later,
+            you can always do so from
+            <Link
+              href="/my/wakatime_setup"
+              class="text-primary underline hover:text-primary/80"
+              >My&nbsp;Setup</Link
+            > on your dashboard.
+          </p>
+        </div>
+      </div>
+    {/if}
 
     <div class="bg-dark border border-darkless rounded-xl p-6 text-center">
       <h1 class="text-lg font-bold mb-2">You're all set!</h1>
@@ -45,7 +75,7 @@
             rel="noreferrer"
             class="underline font-semibold"
           >
-            >Fraud page</a
+            Fraud page</a
           >.
         </p>
         <p class="text-sm mt-3">
