@@ -62,6 +62,7 @@ class ApplicationController < ActionController::Base
     data = { "url" => url }
     query = Rack::Utils.parse_query(URI.parse(url).query.to_s)
     data["skip_setup_flow"] = true if query.key?("skip_setup_flow")
+    data["button_text"] = query["button_text"] if query["button_text"].present?
     data
   rescue URI::InvalidURIError
     { "url" => url }
