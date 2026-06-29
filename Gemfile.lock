@@ -485,7 +485,7 @@ GEM
       logger
     ruby_identicon (0.0.6)
       chunky_png (~> 1.4.0)
-    rubyzip (3.3.1)
+    rubyzip (3.4.1)
     sanitize (7.0.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.16.8)
@@ -638,7 +638,7 @@ DEPENDENCIES
   rubocop-rails-omakase
   ruby-vips (~> 2.3)
   ruby_identicon
-  rubyzip (~> 3.3)
+  rubyzip (~> 3.4)
   selenium-webdriver
   sentry-rails
   sentry-ruby
