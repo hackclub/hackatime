@@ -27,7 +27,7 @@
     "svelte": "^5.56.3",
     "svelte-check": "^4.6.0",
     "svelte-hero-icons": "^5.2.0",
-    "tailwindcss": "^4.3.0",
+    "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3",
     "virtua": "^0.49.1",
     "vite": "^8.0.16",
