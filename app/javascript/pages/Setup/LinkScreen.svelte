@@ -10,9 +10,23 @@
     url: string;
     urlLabel: string;
     onDone: () => void;
+    helpText?: string;
+    helpUrl?: string;
+    helpLabel?: string;
   }
 
-  let { emoji, title, subtitle, lead, url, urlLabel, onDone }: Props = $props();
+  let {
+    emoji,
+    title,
+    subtitle,
+    lead,
+    url,
+    urlLabel,
+    onDone,
+    helpText,
+    helpUrl,
+    helpLabel,
+  }: Props = $props();
 </script>
 
 <div class="space-y-8 sm:space-y-10">
@@ -30,6 +44,19 @@
         {urlLabel}
       </a>
     </p>
+    {#if helpUrl}
+      <p class="mt-6 text-sm text-muted">
+        {helpText}
+        <a
+          href={helpUrl}
+          target="_blank"
+          rel="noreferrer"
+          class="font-medium text-primary underline underline-offset-4"
+        >
+          {helpLabel}
+        </a>
+      </p>
+    {/if}
     <div class="mt-8">
       <Button variant="dark" size="lg" onclick={onDone}>I'm done!</Button>
     </div>

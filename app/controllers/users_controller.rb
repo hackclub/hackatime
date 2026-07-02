@@ -81,6 +81,11 @@ class UsersController < InertiaController
   def require_admin = require_admin!
 
   def detect_setup_os(user_agent)
-    user_agent.to_s.match?(/windows/i) ? :windows : :mac_linux
+    ua = user_agent.to_s
+    return :windows if ua.match?(/windows/i)
+    return :mac if ua.match?(/macintosh|mac os x/i)
+    return :linux if ua.match?(/linux|x11/i)
+
+    :mac
   end
 end

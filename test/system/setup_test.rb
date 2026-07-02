@@ -12,20 +12,33 @@ class SetupTest < ApplicationSystemTestCase
     assert_text "Welcome to Hackatime!"
   end
 
-  test "terminal flow shows the setup command with an OS toggle" do
+  test "terminal flow shows the setup command with per-OS tabs" do
     visit setup_path
 
     assert_text "Welcome to Hackatime!"
-    click_on "Yes!"
+    click_on "Yes, I have an editor installed"
 
     assert_text "Are you comfortable with pasting a setup script in your terminal, or would you like to manually install each extension?"
     click_on "Terminal (automatic)"
 
-    # Non-Windows user agent defaults to the macOS / Linux command
+    # Non-Windows user agents default to a Unix shell command.
     assert_text "curl -fsSL"
 
     click_on "Windows"
     assert_text "install.ps1"
+    assert_text "type \"PowerShell\""
+
+    click_on "macOS"
+    assert_text "curl -fsSL"
+    assert_text "Spotlight"
+
+    click_on "Linux"
+    assert_text "curl -fsSL"
+    assert_text "Ctrl + Alt + T"
+
+    click_on "WSL"
+    assert_text "curl -fsSL"
+    assert_text "type wsl"
 
     click_on "I'm done!"
     assert_text "Fair Play Policy"
@@ -34,10 +47,10 @@ class SetupTest < ApplicationSystemTestCase
   test "codespaces flow walks through the extension install" do
     visit setup_path
 
-    click_on "Nope!"
+    click_on "No, I don't have an editor installed"
     assert_text "Are you able to install programs on your computer?"
 
-    click_on "No"
+    click_on "No, I can't download programs"
     assert_text "github.com/codespaces"
 
     click_on "I'm done!"

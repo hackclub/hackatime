@@ -1,60 +1,30 @@
 /*
- * Graphik (served by Fontstand).
+ * Inter (rsms.me/inter), self-hosted.
  *
- * Fontstand exposes each weight/style as its own family name
- * ("Graphik Regular", "Graphik Bold", ...). We remap them into a single
- * "Graphik" family with proper font-weight/font-style descriptors so that
- * Tailwind weight utilities (font-medium, font-semibold, font-bold) and
- * <strong>/<b>/<em> all resolve to the correct file automatically.
+ * We ship the variable font, which carries both a weight (wght) axis and an
+ * optical-size (opsz) axis. The opsz axis is what powers the "Display" cut of
+ * Inter at large sizes -- with `font-optical-sizing: auto` (set on html/body
+ * below) the browser automatically switches to the Display optical size for
+ * headings/large text, so a single family covers both text and display.
+ *
+ * A single "Inter" family with the full 100-900 weight range lets Tailwind
+ * weight utilities (font-medium, font-semibold, font-bold) and
+ * <strong>/<b>/<em> all resolve correctly against the variable font.
  */
 @font-face {
-  font-family: "Graphik";
-  font-weight: 400;
+  font-family: "Inter";
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
-  src:
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001428-f6ab16bdb203c1a534da7b20fc62159af1d90004.woff2") format("woff2"),
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001428-492b39936dbea1be90a3017accbc716e3380188e.woff") format("woff");
+  src: url("./fonts/InterVariable.woff2") format("woff2");
 }
 
 @font-face {
-  font-family: "Graphik";
-  font-weight: 400;
+  font-family: "Inter";
+  font-weight: 100 900;
   font-style: italic;
   font-display: swap;
-  src:
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001427-3ea1ae22fd0b004f006472f22f733eab26a97803.woff2") format("woff2"),
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001427-439b5224e0faf2b2e2cf2c91c4a47915b51b5415.woff") format("woff");
-}
-
-@font-face {
-  font-family: "Graphik";
-  font-weight: 500 600;
-  font-style: normal;
-  font-display: swap;
-  src:
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001430-ff0fc78b77f70945982993ffd41f6e5bcd5a0544.woff2") format("woff2"),
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001430-4243103abe592e4c0a3b1d691615fc06af50ce4c.woff") format("woff");
-}
-
-@font-face {
-  font-family: "Graphik";
-  font-weight: 700 900;
-  font-style: normal;
-  font-display: swap;
-  src:
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001420-11a75388810e0f4e1c27cea13807656ada6f0542.woff2") format("woff2"),
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001420-97bc4bf12c1f2172d3d4b8885fe7d276f4f16390.woff") format("woff");
-}
-
-@font-face {
-  font-family: "Graphik";
-  font-weight: 700 900;
-  font-style: italic;
-  font-display: swap;
-  src:
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001419-ffe18eff71f0dcdb1fc40eedc0d56ef6bd34610e.woff2") format("woff2"),
-    url("https://webfonts.fontstand.com/Webfont-100393-000317-001419-82701a1c4b1db7c08b2034434f690789c3dc1f3e.woff") format("woff");
+  src: url("./fonts/InterVariable-Italic.woff2") format("woff2");
 }
 
 @keyframes flash {
@@ -80,12 +50,15 @@
 body,
 html {
   font-family:
-    "Graphik",
+    "Inter",
     -apple-system,
     BlinkMacSystemFont,
-    "Inter",
     "Segoe UI",
     sans-serif;
+  /* Let the browser use Inter's Display optical size at large sizes. */
+  font-optical-sizing: auto;
+  /* Inter reads a touch loose at its default tracking; tighten slightly. */
+  letter-spacing: -0.011em;
   overflow-x: hidden;
   color-scheme: var(--app-color-scheme, dark);
 }
@@ -94,6 +67,34 @@ html {
 *::before,
 *::after {
   font-family: inherit;
+}
+
+/*
+ * Tighter negative tracking for large / display type. Inter's own guidance is
+ * to reduce tracking as size increases; headings and other big text want more
+ * negative letter-spacing than body copy.
+ */
+h1,
+h2,
+h3,
+.text-display {
+  letter-spacing: -0.021em;
+}
+
+h4,
+h5,
+h6 {
+  letter-spacing: -0.017em;
+}
+
+/* Monospace should never inherit the negative tracking. */
+code,
+pre,
+kbd,
+samp,
+.monospace,
+.font-mono {
+  letter-spacing: normal;
 }
 
 .blink {

@@ -3,9 +3,10 @@
     emoji: string;
     title: string;
     subtitle?: string;
+    html?: string;
   }
 
-  let { emoji, title, subtitle }: Props = $props();
+  let { emoji, title, subtitle, html }: Props = $props();
 </script>
 
 <div class="text-center">
@@ -18,6 +19,11 @@
   {#if subtitle}
     <p class="mx-auto mt-3 max-w-[48ch] text-base text-pretty text-secondary">
       {subtitle}
+    </p>
+  {/if}
+  {#if html}
+    <p class="mx-auto mt-3 max-w-[48ch] text-base text-pretty text-secondary">
+      {@html html}
     </p>
   {/if}
 </div>

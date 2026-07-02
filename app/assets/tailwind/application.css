@@ -46,8 +46,7 @@ html[data-theme="rose_pine_dawn"] .avatar-image-outline {
 
 @theme {
   --font-sans:
-    "Graphik", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
-    sans-serif;
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --color-darker: #1f1617;
   --color-dark: #2a1f21;
