@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page, router } from "@inertiajs/svelte";
   import { untrack } from "svelte";
+  import { Icon, ArrowLeft } from "svelte-hero-icons";
   import TwoChoiceLayout from "./components/TwoChoiceLayout.svelte";
   import TwoChoiceCard from "./components/TwoChoiceCard.svelte";
   import LinkScreen from "./LinkScreen.svelte";
@@ -78,6 +79,17 @@
   class="setup-grid pointer-events-none fixed inset-0 -z-10"
   aria-hidden="true"
 ></div>
+
+{#if step !== initialStep}
+  <button
+    type="button"
+    onclick={() => window.history.back()}
+    class="fixed top-4 left-4 z-10 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-secondary transition-colors hover:text-surface-content sm:top-6 sm:left-6"
+  >
+    <Icon src={ArrowLeft} size="18" />
+    Back
+  </button>
+{/if}
 
 <div class="mx-auto max-w-3xl py-6 sm:py-10">
   {#key step}
