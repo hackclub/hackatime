@@ -44,6 +44,11 @@
   <title>Set Up Hackatime</title>
 </svelte:head>
 
+<div
+  class="setup-grid pointer-events-none fixed inset-0 -z-10"
+  aria-hidden="true"
+></div>
+
 <div class="mx-auto max-w-3xl py-6 sm:py-10">
   {#key step}
     <div in:popIn>
@@ -135,3 +140,18 @@
     </div>
   {/key}
 </div>
+
+<style>
+  .setup-grid {
+    --grid-line: color-mix(
+      in srgb,
+      var(--color-surface-content) 7%,
+      transparent
+    );
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse at center, black 50%, transparent 95%);
+  }
+</style>

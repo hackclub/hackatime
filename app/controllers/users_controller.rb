@@ -1,9 +1,14 @@
 class UsersController < InertiaController
+  SETUP_THEME = "rose_pine_dawn".freeze
+
   layout "inertia", only: %i[setup]
 
   before_action :ensure_current_user_for_setup, only: %i[setup]
   before_action :set_setup_meta, only: %i[setup]
   before_action :require_admin, only: [ :update_trust_level ]
+
+  # The setup flow forces its own light theme regardless of the user's choice.
+  helper_method :current_theme, :current_theme_color_scheme, :current_theme_color
 
   def setup
     # Hardware-program users skip editor setup and land directly on the
@@ -47,6 +52,18 @@ class UsersController < InertiaController
   def inertia_layout_props
     super.merge(hide_sidebar: true, hide_footer: true)
   end
+
+  def inertia_theme_props
+    {
+      name: SETUP_THEME,
+      color_scheme: current_theme_color_scheme,
+      theme_color: current_theme_color
+    }
+  end
+
+  def current_theme = SETUP_THEME
+  def current_theme_color_scheme = User.theme_metadata(SETUP_THEME).fetch(:color_scheme, "light")
+  def current_theme_color = User.theme_metadata(SETUP_THEME).fetch(:theme_color, "#aa586f")
 
   def ensure_api_key
     current_user&.api_keys&.last || current_user.api_keys.create!(name: "Wakatime API Key")

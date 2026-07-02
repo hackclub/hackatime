@@ -40,8 +40,10 @@
     <h1 class="mb-2 text-lg font-semibold">You're all set!</h1>
     <p class="mb-8 text-sm">Hackatime is configured and tracking your code.</p>
 
-    <div class="mb-8 rounded-xl bg-yellow p-6 text-left text-black">
-      <h2 class="mb-2 font-semibold">Fair Play Policy</h2>
+    <div
+      class="mb-8 rounded-xl border border-yellow/40 bg-yellow/10 p-6 text-left text-surface-content"
+    >
+      <h2 class="mb-2 font-semibold text-yellow">Fair Play Policy</h2>
       <p class="mb-3 text-sm">
         Hackatime tracks the time you legitimately spend working on projects.
         However, some activities may be considered fraud if they do not align
