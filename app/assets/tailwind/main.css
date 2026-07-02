@@ -1,15 +1,5 @@
 /*
  * Inter (rsms.me/inter), self-hosted.
- *
- * We ship the variable font, which carries both a weight (wght) axis and an
- * optical-size (opsz) axis. The opsz axis is what powers the "Display" cut of
- * Inter at large sizes -- with `font-optical-sizing: auto` (set on html/body
- * below) the browser automatically switches to the Display optical size for
- * headings/large text, so a single family covers both text and display.
- *
- * A single "Inter" family with the full 100-900 weight range lets Tailwind
- * weight utilities (font-medium, font-semibold, font-bold) and
- * <strong>/<b>/<em> all resolve correctly against the variable font.
  */
 @font-face {
   font-family: "Inter";
@@ -172,13 +162,21 @@ select {
 .flash-message--success {
   color: var(--color-success);
   border-color: var(--color-success);
-  background-color: color-mix(in oklab, var(--color-success) 20%, var(--color-surface));
+  background-color: color-mix(
+    in oklab,
+    var(--color-success) 20%,
+    var(--color-surface)
+  );
 }
 
 .flash-message--error {
   color: var(--color-danger);
   border-color: var(--color-danger);
-  background-color: color-mix(in oklab, var(--color-danger) 20%, var(--color-surface));
+  background-color: color-mix(
+    in oklab,
+    var(--color-danger) 20%,
+    var(--color-surface)
+  );
 }
 
 .flash-message--enter {
