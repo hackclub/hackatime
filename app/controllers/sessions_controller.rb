@@ -23,7 +23,7 @@ class SessionsController < ApplicationController
       notice = "Successfully signed in with Hack Club Auth! Welcome!"
 
       if @user.previously_new_record?
-        redirect_to my_wakatime_setup_path, notice: notice
+        redirect_to setup_path, notice: notice
       elsif session[:return_data]&.dig("url").present?
         redirect_to session[:return_data].delete("url"), notice: notice
       else
@@ -72,7 +72,7 @@ class SessionsController < ApplicationController
         redirect_to close_window_path
       elsif @user.previously_new_record?
         session[:return_data] = build_return_data(continue_url)
-        redirect_to my_wakatime_setup_path, notice: notice
+        redirect_to setup_path, notice: notice
       elsif continue_url.present?
         redirect_to continue_url, notice: notice # codeql[rb/url-redirection]
       else

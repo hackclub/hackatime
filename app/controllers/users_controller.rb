@@ -1,46 +1,20 @@
 class UsersController < InertiaController
-  layout "inertia", only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
+  layout "inertia", only: %i[setup]
 
-  before_action :ensure_current_user_for_setup, only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
-  before_action :set_wakatime_setup_meta, only: %i[wakatime_setup wakatime_setup_step_2 wakatime_setup_step_3 wakatime_setup_step_4]
+  before_action :ensure_current_user_for_setup, only: %i[setup]
+  before_action :set_setup_meta, only: %i[setup]
   before_action :require_admin, only: [ :update_trust_level ]
 
-  def wakatime_setup
-    # Hardware-program users skip editor setup and go straight to the
-    # "you're all set" page (step 4). Persist the flag so it survives the
-    # redirect even when it arrived as a bare query param.
-    if session.dig(:return_data, "skip_setup_flow") || params[:skip_setup_flow].present?
-      session[:return_data] = (session[:return_data] || {}).merge("skip_setup_flow" => true)
-      return redirect_to my_wakatime_setup_step_4_path
-    end
-
-    api_key = ensure_api_key
-    render inertia: "WakatimeSetup/Index", props: {
-      current_user_api_key: api_key.token,
-      setup_os: detect_setup_os(request.user_agent).to_s,
-      # Full URL (with host) is shown to users in their config file, so we
-      # build it server-side rather than via js_from_routes.
-      api_url: api_hackatime_v1_url
-    }
-  end
-
-  def wakatime_setup_step_2
-    render inertia: "WakatimeSetup/Step2"
-  end
-
-  def wakatime_setup_step_3
-    render inertia: "WakatimeSetup/Step3", props: {
-      current_user_api_key: ensure_api_key.token, editor: params[:editor]
-    }
-  end
-
-  def wakatime_setup_step_4
-    hardware = session.dig(:return_data, "skip_setup_flow").present?
-    # Clear so it doesn't persist across future visits
+  def setup
+    # Hardware-program users skip editor setup and land directly on the
+    # finish screen.
+    skip_setup_flow = session.dig(:return_data, "skip_setup_flow").present? || params[:skip_setup_flow].present?
     session[:return_data]&.delete("skip_setup_flow")
 
-    render inertia: "WakatimeSetup/Step4", props: {
-      hardware: hardware,
+    render inertia: "Setup/Index", props: {
+      current_user_api_key: ensure_api_key.token,
+      setup_os: detect_setup_os(request.user_agent).to_s,
+      skip_setup_flow: skip_setup_flow,
       return_url: session.dig(:return_data, "url"),
       return_button_text: session.dig(:return_data, "button_text") || "Done"
     }
@@ -70,6 +44,10 @@ class UsersController < InertiaController
 
   private
 
+  def inertia_layout_props
+    super.merge(hide_sidebar: true, hide_footer: true)
+  end
+
   def ensure_api_key
     current_user&.api_keys&.last || current_user.api_keys.create!(name: "Wakatime API Key")
   end
@@ -78,7 +56,7 @@ class UsersController < InertiaController
     redirect_to signin_path(continue: request.fullpath), alert: "Please sign in to set up your editor." if current_user.nil?
   end
 
-  def set_wakatime_setup_meta
+  def set_setup_meta
     @page_title = @og_title = "Set Up Your Editor - Hackatime"
     @meta_description = @og_description = "Connect your code editor to Hackatime in minutes. Install the WakaTime plugin and start tracking your coding time for free."
   end
