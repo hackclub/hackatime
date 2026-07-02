@@ -19,6 +19,7 @@
     "@tailwindcss/vite": "^4.3.0",
     "@tsconfig/svelte": "^5.0.8",
     "bits-ui": "^2.18.1",
+    "canvas-confetti": "^1.9.4",
     "d3-shape": "^3.2.0",
     "hcicons-svelte": "0.2.2",
     "layerchart": "^1.0.13",
@@ -34,6 +35,7 @@
     "vite-plugin-ruby": "^5.2.2"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^25.9.3",
     "knip": "^6.16.1",
     "prettier": "^3.8.4",
