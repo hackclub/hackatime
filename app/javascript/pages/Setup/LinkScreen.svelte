@@ -58,7 +58,7 @@
       </p>
     {/if}
     <div class="mt-8">
-      <Button variant="dark" size="lg" onclick={onDone}>I'm done!</Button>
+      <Button variant="dark" size="lg" onclick={onDone}>Continue</Button>
     </div>
   </div>
 </div>

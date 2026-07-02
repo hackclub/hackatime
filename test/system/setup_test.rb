@@ -53,7 +53,7 @@ class SetupTest < ApplicationSystemTestCase
     click_on "No, I can't download programs"
     assert_text "github.com/codespaces"
 
-    click_on "I'm done!"
+    click_on "Continue"
     assert_text "Install \"Hackatime Time Tracker\""
 
     click_on "I'm done!"
