@@ -60,37 +60,40 @@
           question="To get started, do you have a code editor (like VSCode) installed?"
         >
           <TwoChoiceCard
-            label="Nope!"
-            sublabel="(or I don't even know what that is)"
-            onclick={() => (step = "install-programs")}
+            label="Yes, I have an editor installed"
+            sublabel="(we'll help you install the plugin for your editor(s))"
+            onclick={() => (step = "terminal-choice")}
           />
           <TwoChoiceCard
-            label="Yes!"
-            onclick={() => (step = "terminal-choice")}
+            label="Nope!"
+            sublabel={'or: "I don\'t even know what that is"'}
+            onclick={() => (step = "install-programs")}
           />
         </TwoChoiceLayout>
       {:else if step === "install-programs"}
         <TwoChoiceLayout
           emoji="/images/emojis/ms-hugging-face.svg"
           title="Not a problem!"
-          subtitle="We'll help you get set up with our suggested code editor, VSCode."
+          subtitle="We'll help you get set up with a code editor, so you can get started on your project."
           question="Are you able to install programs on your computer?"
         >
           <TwoChoiceCard
-            label="No"
-            onclick={() => (step = "codespaces-link")}
+            label="Yes, I can download programs"
+            sublabel="We'll help you install VSCode to your device."
+            onclick={() => (step = "vscode-download")}
           />
           <TwoChoiceCard
-            label="Yeah!"
-            onclick={() => (step = "vscode-download")}
+            label="No, I can't download programs"
+            sublabel="We'll help you set up GitHub Codespaces, a free online code editor."
+            onclick={() => (step = "codespaces-link")}
           />
         </TwoChoiceLayout>
       {:else if step === "codespaces-link"}
         <LinkScreen
           emoji="/images/emojis/ms-cloud.svg"
-          title="Great!"
-          subtitle="We suggest using GitHub Codespaces as a way to code without having to download anything."
-          lead="To get started, head here:"
+          title="Codespaces setup"
+          subtitle="We suggest using GitHub Codespaces, a free online code editor, to get started."
+          lead="To use Codespaces, head here:"
           url="https://github.com/codespaces"
           urlLabel="github.com/codespaces"
           onDone={() => (step = "codespaces-steps")}
@@ -100,8 +103,8 @@
       {:else if step === "vscode-download"}
         <LinkScreen
           emoji="/images/emojis/ms-computer.svg"
-          title="Great!"
-          subtitle="Let's install VSCode on your computer. It's our suggested code editor for making things for Hack Club!"
+          title="VSCode setup"
+          subtitle="Let's install Microsoft VSCode on your computer. It's our suggested code editor for making things for Hack Club!"
           lead="To download VSCode, go to this url and select your system type:"
           url="https://code.visualstudio.com/download"
           urlLabel="code.visualstudio.com/download"
@@ -116,10 +119,11 @@
         >
           <TwoChoiceCard
             label="Terminal (automatic)"
+            sublabel="Supports VSCode and its forks, Zed, JetBrains IDEs, Xcode, and more"
             onclick={() => (step = "terminal-command")}
           />
           <TwoChoiceCard
-            label="No Terminal (manual)"
+            label="No terminal (manual setup)"
             sublabel="Follow the editor guides in our docs"
             onclick={() => router.visit("/docs")}
           />
