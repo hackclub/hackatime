@@ -150,6 +150,70 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal [ "Python", "Python" ], heartbeats.pluck(:language)
   end
 
+  test "direct heartbeat ingest normalizes millisecond-scaled epoch times" do
+    user = User.create!(timezone: "UTC")
+    sane_time = Time.current.to_f
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ { entity: "src/main.rb", time: (sane_time * 1000).round, type: "file" } ]
+    )
+
+    assert_in_delta sane_time, user.heartbeats.sole.time, 1.0
+  end
+
+  test "import heartbeat ingest normalizes nanosecond-scaled epoch times" do
+    user = User.create!(timezone: "UTC")
+    sane_time = 1_700_000_000.0
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :import,
+      heartbeats: [ { entity: "/tmp/test.rb", type: "file", time: sane_time * 1_000_000_000 } ]
+    )
+
+    assert_in_delta sane_time, user.heartbeats.sole.time, 1.0
+  end
+
+  test "epoch normalization leaves sane and unrepairable values untouched" do
+    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+
+    sane = Time.current.to_f
+    assert_equal sane, ingest.send(:normalize_epoch_time, sane)
+    # literal-year garbage is not scaled data; passes through (quarantined DB-side later)
+    assert_equal 2026.0, ingest.send(:normalize_epoch_time, 2026)
+    assert_equal(-9_999_999.0, ingest.send(:normalize_epoch_time, -9_999_999))
+  end
+
+  test "heartbeat_unique_by targets the composite index once time_epoch exists" do
+    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+
+    assert_equal [ :fields_hash ], ingest.send(:heartbeat_unique_by)
+
+    with_time_epoch_column = Heartbeat.column_names + [ "time_epoch" ]
+    Heartbeat.define_singleton_method(:column_names) { with_time_epoch_column }
+    begin
+      assert_equal %i[fields_hash time_epoch], ingest.send(:heartbeat_unique_by)
+    ensure
+      Heartbeat.singleton_class.remove_method(:column_names)
+    end
+  end
+
+  test "with_heartbeat_unique_by re-raises inside an open transaction after refreshing the schema cache" do
+    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+
+    # transactional tests already wrap us in a transaction, so the guard applies
+    calls = 0
+    assert_raises(ArgumentError) do
+      ingest.send(:with_heartbeat_unique_by) do |_unique_by|
+        calls += 1
+        raise ArgumentError, "No unique index found"
+      end
+    end
+    assert_equal 1, calls
+  end
+
   test "import heartbeat ingest deduplicates imported heartbeats and schedules dashboard rollup refresh" do
     user = User.create!(timezone: "UTC")
 
@@ -187,5 +251,38 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
 
     heartbeat = user.heartbeats.order(:id).last
     assert_equal "wakapi_import", heartbeat.source_type
+  end
+end
+
+# Outside a transaction (the production configuration for both ingest modes),
+# the unique_by fallback must retry exactly once with a refreshed schema cache.
+class HeartbeatIngestUniqueByFallbackTest < ActiveSupport::TestCase
+  self.use_transactional_tests = false
+
+  test "with_heartbeat_unique_by retries once after a schema-cache failure" do
+    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+
+    calls = 0
+    result = ingest.send(:with_heartbeat_unique_by) do |unique_by|
+      calls += 1
+      raise ActiveRecord::StatementInvalid, "no unique or exclusion constraint" if calls == 1
+      unique_by
+    end
+
+    assert_equal 2, calls
+    assert_equal [ :fields_hash ], result
+  end
+
+  test "with_heartbeat_unique_by does not retry more than once" do
+    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+
+    calls = 0
+    assert_raises(ActiveRecord::StatementInvalid) do
+      ingest.send(:with_heartbeat_unique_by) do |_unique_by|
+        calls += 1
+        raise ActiveRecord::StatementInvalid, "no unique or exclusion constraint"
+      end
+    end
+    assert_equal 2, calls
   end
 end

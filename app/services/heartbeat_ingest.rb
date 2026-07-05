@@ -1,6 +1,16 @@
 class HeartbeatIngest
   LAST_LANGUAGE_SENTINEL = "<<LAST_LANGUAGE>>"
 
+  # Sane epoch-seconds window: 2001-09-09 .. 2033-05-18. Values outside are
+  # client bugs (uptime-like numbers, literal years, ms/µs/ns-scaled epochs).
+  EPOCH_SANE_MIN = 1_000_000_000
+  EPOCH_SANE_MAX = 2_000_000_000
+
+  # The heartbeats dedup unique index changes from (fields_hash) to
+  # (fields_hash, time_epoch) during the hypertable migration.
+  UNIQUE_BY_LEGACY = [ :fields_hash ].freeze
+  UNIQUE_BY_COMPOSITE = %i[fields_hash time_epoch].freeze
+
   Result = Data.define(:total_count, :persisted_count, :duplicate_count, :failed_count, :errors, :items)
   Item = Data.define(:heartbeat, :status, :error)
 
@@ -57,6 +67,7 @@ class HeartbeatIngest
 
   def normalize_direct_heartbeat(heartbeat, last_language:)
     attrs = heartbeat.to_h.with_indifferent_access
+    attrs[:time] = normalize_epoch_time(attrs[:time]) if attrs[:time].present?
     source_type = attrs[:entity] == "test.txt" ? :test_entry : :direct_entry
 
     if attrs[:language] == LAST_LANGUAGE_SENTINEL
@@ -91,10 +102,12 @@ class HeartbeatIngest
     return [ existing, true ] if existing
 
     now = Time.current
-    result = Heartbeat.insert(
-      attrs.merge(fields_hash:, created_at: now, updated_at: now),
-      unique_by: :fields_hash, returning: Heartbeat.column_names
-    )
+    result = with_heartbeat_unique_by do |unique_by|
+      Heartbeat.insert(
+        attrs.merge(fields_hash:, created_at: now, updated_at: now),
+        unique_by:, returning: Heartbeat.column_names
+      )
+    end
 
     persisted = result.any? ? Heartbeat.new(result.first) : @user.heartbeats.find_by!(fields_hash:)
     self.class.schedule_rollup_refresh(user: @user) if result.any? && @schedule_rollup_refresh
@@ -136,7 +149,7 @@ class HeartbeatIngest
 
     attrs = {
       user_id: @user.id,
-      time: hb[:time].is_a?(String) ? Time.parse(hb[:time]).to_f : hb[:time].to_f,
+      time: normalize_epoch_time(hb[:time].is_a?(String) ? Time.parse(hb[:time]).to_f : hb[:time]),
       entity: hb[:entity],
       type: hb[:type],
       category: hb[:category] || "coding",
@@ -165,7 +178,40 @@ class HeartbeatIngest
     return 0 if seen_hashes.empty?
     timestamp = Time.current
     records = seen_hashes.values.map { |r| r.merge(created_at: timestamp, updated_at: timestamp) }
-    ActiveRecord::Base.logger.silence { Heartbeat.insert_all(records, unique_by: [ :fields_hash ]).length }
+    ActiveRecord::Base.logger.silence do
+      with_heartbeat_unique_by { |unique_by| Heartbeat.insert_all(records, unique_by:).length }
+    end
+  end
+
+  def heartbeat_unique_by
+    Heartbeat.column_names.include?("time_epoch") ? UNIQUE_BY_COMPOSITE : UNIQUE_BY_LEGACY
+  end
+
+  # Rails resolves `unique_by:` against its schema cache, which goes stale the
+  # moment the hypertable cutover swaps the table under us. Refresh the cache
+  # and retry once so in-flight processes self-heal without a restart.
+  def with_heartbeat_unique_by
+    yield heartbeat_unique_by
+  rescue ActiveRecord::StatementInvalid, ArgumentError => e
+    Heartbeat.reset_column_information
+    # Inside an open (now aborted) transaction a retry cannot succeed; re-raise
+    # and let the caller retry with the already-refreshed schema cache.
+    raise if Heartbeat.connection.transaction_open?
+
+    Rails.logger.warn("HeartbeatIngest unique_by fallback: #{e.class}: #{e.message}")
+    yield heartbeat_unique_by
+  end
+
+  def normalize_epoch_time(value)
+    t = value.to_f
+    return t if t >= EPOCH_SANE_MIN && t < EPOCH_SANE_MAX
+
+    # ms / µs / ns-scaled epochs are mechanically repairable
+    [ 1e3, 1e6, 1e9 ].each do |scale|
+      scaled = t / scale
+      return scaled if scaled >= EPOCH_SANE_MIN && scaled < EPOCH_SANE_MAX
+    end
+    t
   end
 
   def parse_user_agent(user_agent)

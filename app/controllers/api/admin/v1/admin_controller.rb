@@ -44,6 +44,7 @@ module Api
                     date_trunc('day', to_timestamp("time")) as day_start
                 FROM heartbeats
                 WHERE user_id = ?
+                AND deleted_at IS NULL
                 AND "time" >= ? AND "time" <= ?
                 LIMIT 1000000
             ),
@@ -94,7 +95,7 @@ module Api
                 date_trunc('day', to_timestamp("time"))::date as day,
                 "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time", id) as gap
               FROM heartbeats
-              WHERE user_id = ? AND time >= ? AND time <= ?
+              WHERE user_id = ? AND deleted_at IS NULL AND time >= ? AND time <= ?
             )
             SELECT day, SUM(LEAST(gap, 120)) as total_seconds
             FROM heartbeats_with_gaps
@@ -148,6 +149,7 @@ module Api
                         user_id IS NOT NULL
                         AND machine IS NOT NULL
                         AND ip_address IS NOT NULL
+                        AND deleted_at IS NULL
                         AND time >= ?
                     GROUP BY 1, 2, 3
                 ) r1
@@ -164,6 +166,7 @@ module Api
                         user_id IS NOT NULL
                         AND machine IS NOT NULL
                         AND ip_address IS NOT NULL
+                        AND deleted_at IS NULL
                         AND time >= ?
                     GROUP BY 1, 2, 3
                 ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address

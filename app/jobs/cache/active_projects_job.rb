@@ -10,6 +10,7 @@ class Cache::ActiveProjectsJob < Cache::ActivityJob
       .joins("INNER JOIN heartbeats ON heartbeats.project = project_repo_mappings.project_name AND heartbeats.user_id = project_repo_mappings.user_id")
       .joins("INNER JOIN users ON users.id = heartbeats.user_id")
       .where("heartbeats.source_type = ?", Heartbeat.source_types[:direct_entry])
+      .where("heartbeats.deleted_at IS NULL")
       .where("heartbeats.time > ?", 5.minutes.ago.to_f)
       .select("DISTINCT ON (heartbeats.user_id) project_repo_mappings.*, heartbeats.user_id")
       .order("heartbeats.user_id, heartbeats.time DESC")
