@@ -104,7 +104,7 @@ class HeartbeatIngest
     now = Time.current
     result = with_heartbeat_unique_by do |unique_by|
       Heartbeat.insert(
-        attrs.merge(fields_hash:, created_at: now, updated_at: now),
+        attrs.merge(fields_hash:, created_at: now, updated_at: now, **partition_attrs(attrs[:time])),
         unique_by:, returning: Heartbeat.column_names
       )
     end
@@ -177,14 +177,29 @@ class HeartbeatIngest
   def flush_import_batch(seen_hashes)
     return 0 if seen_hashes.empty?
     timestamp = Time.current
-    records = seen_hashes.values.map { |r| r.merge(created_at: timestamp, updated_at: timestamp) }
     ActiveRecord::Base.logger.silence do
-      with_heartbeat_unique_by { |unique_by| Heartbeat.insert_all(records, unique_by:).length }
+      # Build records inside the retry block so a cutover-time schema refresh
+      # recomputes both the conflict target and the time_epoch partition column.
+      with_heartbeat_unique_by do |unique_by|
+        records = seen_hashes.values.map { |r| r.merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(r[:time])) }
+        Heartbeat.insert_all(records, unique_by:).length
+      end
     end
   end
 
   def heartbeat_unique_by
-    Heartbeat.column_names.include?("time_epoch") ? UNIQUE_BY_COMPOSITE : UNIQUE_BY_LEGACY
+    time_epoch_column? ? UNIQUE_BY_COMPOSITE : UNIQUE_BY_LEGACY
+  end
+
+  def time_epoch_column? = Heartbeat.column_names.include?("time_epoch")
+
+  # The hypertable partition column must arrive populated (TimescaleDB routes to
+  # a chunk before row triggers fire). Bulk insert/insert_all bypass model
+  # callbacks, so ingest supplies time_epoch explicitly once the column exists.
+  # No-op on the pre-cutover / dev-and-test plain table.
+  def partition_attrs(time)
+    return {} unless time_epoch_column? && time.present?
+    { time_epoch: time.to_f.floor }
   end
 
   # Rails resolves `unique_by:` against its schema cache, which goes stale the

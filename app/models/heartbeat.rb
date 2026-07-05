@@ -1,5 +1,6 @@
 class Heartbeat < ApplicationRecord
   before_save :set_fields_hash!
+  before_save :set_time_epoch!
   after_commit :schedule_dashboard_rollup_refresh, on: %i[create update destroy]
 
   include Heartbeatable
@@ -59,6 +60,13 @@ class Heartbeat < ApplicationRecord
   def set_fields_hash!
     # only if the field exists in activerecord
     self.fields_hash = self.class.generate_fields_hash(self.attributes) if self.class.column_names.include?("fields_hash")
+  end
+
+  # Populate the hypertable partition column on AR-object saves. Bulk ingest
+  # (insert/insert_all) sets it directly; this covers create/save/update paths.
+  # No-op until the column exists (post-cutover; plain table in dev/test).
+  def set_time_epoch!
+    self.time_epoch = time&.floor if self.class.column_names.include?("time_epoch") && time.present?
   end
 
   def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(user_id)

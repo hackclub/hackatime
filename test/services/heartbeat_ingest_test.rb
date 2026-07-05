@@ -200,6 +200,40 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
+  test "partition_attrs supplies floor(time) as time_epoch only once the column exists" do
+    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+
+    # pre-cutover / dev-and-test plain table: no-op
+    assert_equal({}, ingest.send(:partition_attrs, 1_783_000_000.9))
+
+    with_time_epoch_column = Heartbeat.column_names + [ "time_epoch" ]
+    Heartbeat.define_singleton_method(:column_names) { with_time_epoch_column }
+    begin
+      assert_equal({ time_epoch: 1_783_000_000 }, ingest.send(:partition_attrs, 1_783_000_000.9))
+      assert_equal({}, ingest.send(:partition_attrs, nil))
+    ensure
+      Heartbeat.singleton_class.remove_method(:column_names)
+    end
+  end
+
+  test "set_time_epoch! populates the partition column when it exists" do
+    hb = Heartbeat.new(time: 1_783_000_000.9)
+
+    # column absent today: hook is a no-op and does not raise
+    assert_nothing_raised { hb.send(:set_time_epoch!) }
+
+    captured = []
+    hb.define_singleton_method(:time_epoch=) { |v| captured << v }
+    with_time_epoch = Heartbeat.column_names + [ "time_epoch" ]
+    Heartbeat.define_singleton_method(:column_names) { with_time_epoch }
+    begin
+      hb.send(:set_time_epoch!)
+      assert_equal [ 1_783_000_000 ], captured
+    ensure
+      Heartbeat.singleton_class.remove_method(:column_names)
+    end
+  end
+
   test "with_heartbeat_unique_by re-raises inside an open transaction after refreshing the schema cache" do
     ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
 
