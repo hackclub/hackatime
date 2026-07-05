@@ -6,10 +6,6 @@ class Cache::ActiveProjectsJob < Cache::ActivityJob
   def cache_expiration = 15.minutes
 
   def calculate
-    # The recent-heartbeats set (last 5 min) is tiny, so we materialize it first
-    # and join outward. Filtering heartbeats.deleted_at inline instead makes the
-    # planner abandon the index-only scan and fall into a per-mapping nested loop
-    # (measured ~380x slower on prod), so keep this shape.
     sql = ProjectRepoMapping.sanitize_sql_array([ <<~SQL, Heartbeat.source_types[:direct_entry], 5.minutes.ago.to_f ])
       WITH recent AS MATERIALIZED (
         SELECT user_id, project, time
