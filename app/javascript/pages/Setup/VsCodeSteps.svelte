@@ -12,6 +12,7 @@
 
   let { onDone }: Props = $props();
 
+  // change this shit when you change the images!!!
   const steps = [
     {
       title: "Go to the extension menu",
