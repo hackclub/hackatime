@@ -3,5 +3,5 @@
   "compilerOptions": {
     "checkJs": false
   },
-  "include": ["app/javascript/**/*.svelte"]
+  "include": ["app/javascript/**/*.svelte", "app/javascript/**/*.d.ts"]
 }

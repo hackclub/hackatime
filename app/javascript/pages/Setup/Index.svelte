@@ -5,7 +5,7 @@
   import TwoChoiceLayout from "./components/TwoChoiceLayout.svelte";
   import TwoChoiceCard from "./components/TwoChoiceCard.svelte";
   import LinkScreen from "./LinkScreen.svelte";
-  import CodespacesSteps from "./CodespacesSteps.svelte";
+  import VsCodeSteps from "./VsCodeSteps.svelte";
   import TerminalCommand from "./TerminalCommand.svelte";
   import Finish from "./Finish.svelte";
   import { popIn } from "./transitions";
@@ -14,7 +14,7 @@
     | "welcome"
     | "install-programs"
     | "codespaces-link"
-    | "codespaces-steps"
+    | "vscode-steps"
     | "vscode-download"
     | "terminal-choice"
     | "terminal-command"
@@ -24,7 +24,7 @@
     "welcome",
     "install-programs",
     "codespaces-link",
-    "codespaces-steps",
+    "vscode-steps",
     "vscode-download",
     "terminal-choice",
     "terminal-command",
@@ -47,14 +47,10 @@
     return_button_text,
   }: Props = $props();
 
-  // `skip_setup_flow` never changes after mount, so read it once.
   const initialStep: Step = untrack(() =>
     skip_setup_flow ? "finish" : "welcome",
   );
 
-  // The current step is derived from the URL (?step=...) rather than kept in
-  // local state, so the browser Back/Forward buttons walk through the setup
-  // steps. `page.url` is Inertia's reactive URL and updates on popstate too.
   function stepFromUrl(url: string): Step {
     const query = url.split("?")[1] ?? "";
     const value = new URLSearchParams(query).get("step") as Step | null;
@@ -63,8 +59,6 @@
 
   const step = $derived(stepFromUrl(page.url));
 
-  // Push a client-side history entry (no server round-trip) so Back returns to
-  // the previous step instead of leaving /setup entirely.
   function goToStep(next: Step) {
     const url = next === initialStep ? "/setup" : `/setup?step=${next}`;
     router.push({ url, preserveState: true, preserveScroll: true });
@@ -141,10 +135,10 @@
           helpText="New to Codespaces?"
           helpUrl="https://github.blog/developer-skills/github/a-beginners-guide-to-learning-to-code-with-github-codespaces/"
           helpLabel="Read GitHub's beginner's guide"
-          onDone={() => goToStep("codespaces-steps")}
+          onDone={() => goToStep("vscode-steps")}
         />
-      {:else if step === "codespaces-steps"}
-        <CodespacesSteps onDone={() => goToStep("finish")} />
+      {:else if step === "vscode-steps"}
+        <VsCodeSteps onDone={() => goToStep("finish")} />
       {:else if step === "vscode-download"}
         <LinkScreen
           emoji="/images/emojis/ms-computer.svg"
@@ -153,7 +147,7 @@
           lead="To download VSCode, go to this URL and select your system type:"
           url="https://code.visualstudio.com/download"
           urlLabel="code.visualstudio.com/download"
-          onDone={() => goToStep("terminal-command")}
+          onDone={() => goToStep("vscode-steps")}
         />
       {:else if step === "terminal-choice"}
         <TwoChoiceLayout
