@@ -10,7 +10,7 @@ Go to [Hackatime](https://hackatime.hackclub.com) and make an account. Then log 
 
 ## Step 2: Get Your Settings Ready
 
-Click this link to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup). It will set up your account so it works with Sublime Text.
+Click this link to the [setup page](https://hackatime.hackclub.com/setup). It will set up your account so it works with Sublime Text.
 
 ## Step 3: Add the Plugin to Sublime Text
 
@@ -25,7 +25,7 @@ That's it! The plugin will use your settings from Step 2.
 
 ## If Something Goes Wrong
 
-**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) and try again.
+**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
 **Plugin not working?** Close Sublime Text and open it again.
 

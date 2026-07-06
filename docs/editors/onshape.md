@@ -10,7 +10,7 @@ Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are
 
 ## Step 2: Get Your API key
 
-Visit the [setup page](https://hackatime.hackclub.com/my/wakatime_setup#show-advanced-button), press on the button called "Custom Setup" and copy the api key. 
+Visit the [setup page](https://hackatime.hackclub.com/setup#show-advanced-button), press on the button called "Custom Setup" and copy the api key. 
 
 It should be random letters and numbers with some dashes in between. EX: 1234abcd-56ef-7891-abcd-efgh2345abcd
 
