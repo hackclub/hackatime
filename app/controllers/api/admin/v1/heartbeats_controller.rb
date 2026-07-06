@@ -27,6 +27,7 @@ module Api
               WHERE user_id IS NOT NULL
                 AND machine IS NOT NULL
                 AND ip_address IS NOT NULL
+                AND deleted_at IS NULL
                 AND time > ?
               GROUP BY user_id, machine, ip_address
             ) r1
@@ -37,6 +38,7 @@ module Api
               WHERE user_id IS NOT NULL
                 AND machine IS NOT NULL
                 AND ip_address IS NOT NULL
+                AND deleted_at IS NULL
                 AND time > ?
               GROUP BY user_id, machine, ip_address
             ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
@@ -67,12 +69,13 @@ module Api
                 SELECT DISTINCT machine, user_id
                 FROM heartbeats
                 WHERE machine IS NOT NULL
+                  AND deleted_at IS NULL
                   AND time > ?
               ) AS user_machines
               GROUP BY machine
               HAVING COUNT(user_id) > 1
             ) AS sms
-            JOIN heartbeats hb ON hb.machine = sms.machine AND hb.time > ?
+            JOIN heartbeats hb ON hb.machine = sms.machine AND hb.deleted_at IS NULL AND hb.time > ?
             JOIN users u ON u.id = hb.user_id
             GROUP BY sms.machine, sms.machine_frequency
             ORDER BY sms.machine_frequency DESC, sms.machine ASC
