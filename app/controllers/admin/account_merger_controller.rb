@@ -106,10 +106,8 @@ class Admin::AccountMergerController < InertiaController
       results << "user ##{newer_user.id} deleted"
     end
 
-    # Heartbeats live only in ClickHouse; the move runs in a retried job so a
-    # transient ClickHouse failure can't silently drop the merge.
-    AccountMergeHeartbeatsJob.perform_later(older_user.id, newer_user.id)
-    results << "#{moved_heartbeats} heartbeats queued to move"
+    Clickhouse::HeartbeatWriter.merge_user_heartbeats!(older_user_id: older_user.id, newer_user_id: newer_user.id)
+    results << "#{moved_heartbeats} heartbeats moved"
 
     results.join(", ")
   end

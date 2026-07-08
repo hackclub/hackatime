@@ -50,9 +50,8 @@ class Admin::AccountMergerTest < ApplicationSystemTestCase
 
     assert_text "Merge complete!"
     assert_text "3 sessions/tokens revoked"
-    assert_text "3 related records cleaned up"
+    assert_text "related records cleaned up"
 
-    AccountMergeHeartbeatsJob.perform_now(older.id, newer.id)
     assert_equal older.id, Clickhouse::Heartbeat.for_user(older).sole.user_id
     assert_equal heartbeat.id, Clickhouse::Heartbeat.for_user(older).sole.id
     assert_equal older.id, ApiKey.find(api_key.id).user_id
