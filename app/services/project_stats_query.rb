@@ -26,10 +26,6 @@ class ProjectStatsQuery
     requested_names = Array(names.presence || parse_csv(@params[:projects]))
                        .map { |n| n.to_s.strip }.reject(&:blank?).uniq
 
-    if requested_names.empty? && rollup_eligible? && (rollup_details = rollup_project_details)
-      return rollup_details
-    end
-
     query = scoped_heartbeats(stats_start_time, stats_end_time)
     query = query.where(project: requested_names) if requested_names.any?
 
@@ -77,45 +73,13 @@ class ProjectStatsQuery
   def scoped_heartbeats(start_time, end_time)
     start_ts = timestamp_value(start_time)
     end_ts = timestamp_value(end_time)
-    return @user.heartbeats.none if start_ts.nil? || end_ts.nil?
+    return Clickhouse::Heartbeat.none if start_ts.nil? || end_ts.nil?
 
-    @user.heartbeats.with_valid_timestamps.where.not(project: [ nil, "" ]).where(time: start_ts..end_ts)
+    Clickhouse::Heartbeat.for_user(@user).with_valid_timestamps.where.not(project: [ nil, "" ]).where(time: start_ts..end_ts)
   end
 
   def archived_project_names
     @archived_project_names ||= @user.project_repo_mappings.archived.pluck(:project_name)
-  end
-
-  def rollup_project_details
-    rows = DashboardRollup.where(user_id: @user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true).to_a
-    return if rows.empty?
-
-    DashboardRollupRefreshJob.schedule_for(@user.id, wait: 0.seconds) if DashboardRollup.dirty?(@user.id)
-
-    details_by_project = rows.index_by(&:bucket)
-    details_by_project.delete("")
-    return if details_by_project.empty?
-
-    repo_mappings = @user.project_repo_mappings.where(project_name: details_by_project.keys).index_by(&:project_name)
-
-    details_by_project.filter_map { |name, rollup|
-      next if !@include_archived && repo_mappings[name]&.archived?
-      payload = rollup.payload.to_h
-      build_project_row(
-        name: name, stat: {}, repo_mapping: repo_mappings[name],
-        total_seconds: rollup.total_seconds.to_i,
-        total_heartbeats: rollup.source_heartbeats_count.to_i,
-        languages: Array(payload["languages"]).compact_blank,
-        first_heartbeat: payload["first_heartbeat"],
-        last_heartbeat: payload["last_heartbeat"]
-      )
-    }.sort_by { |project| -project[:total_seconds] }
-  end
-
-  def rollup_eligible?
-    @params[:projects].blank? &&
-      %i[start start_date end end_date].none? { |key| @params[key].present? } &&
-      timestamp_value(@default_stats_start).to_f.zero?
   end
 
   def discovery_start_time = parse_time([ :since, :start, :start_date ], default: @default_discovery_start)

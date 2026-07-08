@@ -149,6 +149,17 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: app_test
+      clickhouse:
+        image: clickhouse/clickhouse-server:26.6.1.1193
+        ports:
+          - 8123:8123
+        options: >-
+          --health-cmd "clickhouse-client --query 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          CLICKHOUSE_DB: hackatime_test
 
     steps:
       - name: Checkout code
@@ -167,6 +178,11 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
+          CLICKHOUSE_HOST: localhost
+          CLICKHOUSE_PORT: 8123
+          CLICKHOUSE_TEST_DATABASE: hackatime_test
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD: ""
         run: |
           bin/rails db:create RAILS_ENV=test
           bin/rails db:schema:load RAILS_ENV=test
@@ -179,6 +195,11 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
+          CLICKHOUSE_HOST: localhost
+          CLICKHOUSE_PORT: 8123
+          CLICKHOUSE_TEST_DATABASE: hackatime_test
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD: ""
         run: |
           bin/rails rswag:specs:swaggerize
           git diff --exit-code swagger/
@@ -196,6 +217,17 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: app_test
+      clickhouse:
+        image: clickhouse/clickhouse-server:26.6.1.1193
+        ports:
+          - 8123:8123
+        options: >-
+          --health-cmd "clickhouse-client --query 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          CLICKHOUSE_DB: hackatime_test
 
     steps:
       - name: Checkout code
@@ -236,6 +268,11 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
+          CLICKHOUSE_HOST: localhost
+          CLICKHOUSE_PORT: 8123
+          CLICKHOUSE_TEST_DATABASE: hackatime_test
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD: ""
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
           CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
         run: |

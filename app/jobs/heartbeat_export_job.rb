@@ -27,8 +27,8 @@ class HeartbeatExportJob < ApplicationJob
     end
 
     if all_data
-      heartbeats = user.heartbeats.order(time: :asc)
-      first_time, last_time = user.heartbeats.pick(Arel.sql("MIN(time), MAX(time)"))
+      heartbeats = Clickhouse::Heartbeat.for_user(user).order(time: :asc, fields_hash: :asc)
+      first_time, last_time = Clickhouse::Heartbeat.for_user(user).pick(Arel.sql("MIN(time), MAX(time)"))
       if first_time && last_time
         start_date = Time.at(first_time).to_date
         end_date = Time.at(last_time).to_date
@@ -38,9 +38,9 @@ class HeartbeatExportJob < ApplicationJob
     else
       start_date = Date.iso8601(start_date)
       end_date = Date.iso8601(end_date)
-      heartbeats = user.heartbeats
+      heartbeats = Clickhouse::Heartbeat.for_user(user)
         .where("time >= ? AND time <= ?", start_date.beginning_of_day.to_f, end_date.end_of_day.to_f)
-        .order(time: :asc)
+        .order(time: :asc, fields_hash: :asc)
     end
 
     export_data = build_export_data(heartbeats, start_date, end_date)
@@ -79,6 +79,8 @@ class HeartbeatExportJob < ApplicationJob
 
   private
 
+  def source_type_labels = @source_type_labels ||= Heartbeat.source_types.invert
+
   def build_export_data(heartbeats, start_date, end_date)
     {
       export_info: {
@@ -89,6 +91,7 @@ class HeartbeatExportJob < ApplicationJob
       },
       heartbeats: heartbeats.map do |hb|
         HEARTBEAT_EXPORT_FIELDS.index_with { |f| hb.public_send(f) }.merge(
+          source_type: source_type_labels[hb.source_type],
           time: Time.at(hb.time).iso8601,
           created_at: hb.created_at.iso8601,
           updated_at: hb.updated_at.iso8601

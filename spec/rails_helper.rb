@@ -1,6 +1,7 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 require 'spec_helper'
-ENV['RAILS_ENV'] ||= 'test'
+# Force (not ||=): the dev container exports RAILS_ENV=development
+ENV['RAILS_ENV'] = 'test'
 require_relative '../config/environment'
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?
@@ -10,7 +11,7 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 require 'rspec/rails'
 require 'webmock/rspec'
 
-WebMock.disable_net_connect!(allow_localhost: true)
+WebMock.disable_net_connect!(allow_localhost: true, allow: [ ENV.fetch("CLICKHOUSE_HOST", "clickhouse") ])
 # Add additional requires below this line. Rails is not loaded until this point!
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
@@ -72,6 +73,13 @@ RSpec.configure do |config|
   config.filter_rails_from_backtrace!
   # arbitrary gems may also be filtered via:
   # config.filter_gems_from_backtrace("gem name")
+
+  # Reset ClickHouse to exactly the committed Postgres heartbeats (the seed
+  # data) — CH inserts are not rolled back with the per-example PG transaction.
+  config.before(:each) do
+    Clickhouse::Heartbeat.connection.execute("TRUNCATE TABLE heartbeats")
+    Clickhouse::HeartbeatMirror.backfill
+  end
 
   config.before(:suite) do
     Rails.application.load_seed

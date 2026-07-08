@@ -112,7 +112,7 @@ class Settings::BaseController < InertiaController
     goal_languages = []
     goal_projects = project_list.map { |p| p[:display_name] }
 
-    @user.heartbeats.distinct.pluck(:language, :project).each do |language, project|
+    Clickhouse::Heartbeat.for_user(@user).distinct.pluck(:language, :project).each do |language, project|
       categorized = language&.categorize_language
       goal_languages << categorized if categorized.present?
       goal_projects << project if project.present?

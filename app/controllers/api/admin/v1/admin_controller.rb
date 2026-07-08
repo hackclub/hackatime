@@ -38,76 +38,83 @@ module Api
           quantized_query = <<-SQL
             WITH base_heartbeats AS (
                 SELECT
-                    "time",
+                    time,
                     lineno,
                     cursorpos,
-                    date_trunc('day', to_timestamp("time")) as day_start
-                FROM heartbeats
+                    toStartOfDay(toDateTime(time)) as day_start
+                FROM heartbeats FINAL
                 WHERE user_id = ?
                 AND deleted_at IS NULL
-                AND "time" >= ? AND "time" <= ?
+                AND time >= ? AND time <= ?
                 LIMIT 1000000
             ),
             daily_stats AS (
                 SELECT
                     *,
-                    GREATEST(1, MAX(lineno) OVER (PARTITION BY day_start)) as max_lineno,
-                    GREATEST(1, MAX(cursorpos) OVER (PARTITION BY day_start)) as max_cursorpos
+                    greatest(1, ifNull(MAX(lineno) OVER (PARTITION BY day_start), 1)) as max_lineno,
+                    greatest(1, ifNull(MAX(cursorpos) OVER (PARTITION BY day_start), 1)) as max_cursorpos
                 FROM base_heartbeats
             ),
             quantized_heartbeats AS (
                 SELECT
                     *,
-                    ROUND(2 + (("time" - extract(epoch from day_start)) / 86400) * (396)) as qx,
-                    ROUND(2 + (1 - CAST(lineno AS decimal) / max_lineno) * (96)) as qy_lineno,
-                    ROUND(2 + (1 - CAST(cursorpos AS decimal) / max_cursorpos) * (96)) as qy_cursorpos
+                    round(2 + ((time - toUnixTimestamp(day_start)) / 86400) * (396)) as qx,
+                    round(2 + (1 - toFloat64(lineno) / max_lineno) * (96)) as qy_lineno,
+                    round(2 + (1 - toFloat64(cursorpos) / max_cursorpos) * (96)) as qy_cursorpos
                 FROM daily_stats
             )
-            SELECT "time", lineno, cursorpos
-            FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_lineno) "time", lineno, cursorpos
-                FROM quantized_heartbeats
-                WHERE lineno IS NOT NULL
-                ORDER BY day_start, qx, qy_lineno, "time" ASC
-            ) AS lineno_pixels
-            UNION
-            SELECT "time", lineno, cursorpos
-            FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_cursorpos) "time", lineno, cursorpos
-                FROM quantized_heartbeats
-                WHERE cursorpos IS NOT NULL
-                ORDER BY day_start, qx, qy_cursorpos, "time" ASC
-            ) AS cursorpos_pixels
-            UNION
-            SELECT "time", lineno, cursorpos
-            FROM (
-                SELECT DISTINCT ON (day_start, qx) "time", lineno, cursorpos
-                FROM quantized_heartbeats
-                WHERE lineno IS NULL AND cursorpos IS NULL
-                ORDER BY day_start, qx, "time" ASC
-            ) AS null_pixels
-            ORDER BY "time" ASC
+            SELECT time, lineno, cursorpos FROM (
+              SELECT time, lineno, cursorpos
+              FROM (
+                  SELECT time, lineno, cursorpos
+                  FROM quantized_heartbeats
+                  WHERE lineno IS NOT NULL
+                  ORDER BY day_start, qx, qy_lineno, time ASC
+                  LIMIT 1 BY day_start, qx, qy_lineno
+              ) AS lineno_pixels
+              UNION DISTINCT
+              SELECT time, lineno, cursorpos
+              FROM (
+                  SELECT time, lineno, cursorpos
+                  FROM quantized_heartbeats
+                  WHERE cursorpos IS NOT NULL
+                  ORDER BY day_start, qx, qy_cursorpos, time ASC
+                  LIMIT 1 BY day_start, qx, qy_cursorpos
+              ) AS cursorpos_pixels
+              UNION DISTINCT
+              SELECT time, lineno, cursorpos
+              FROM (
+                  SELECT time, lineno, cursorpos
+                  FROM quantized_heartbeats
+                  WHERE lineno IS NULL AND cursorpos IS NULL
+                  ORDER BY day_start, qx, time ASC
+                  LIMIT 1 BY day_start, qx
+              ) AS null_pixels
+            ) AS pixels
+            ORDER BY time ASC
           SQL
 
           daily_totals_query = <<-SQL
             WITH heartbeats_with_gaps AS (
               SELECT
-                date_trunc('day', to_timestamp("time"))::date as day,
-                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time", id) as gap
-              FROM heartbeats
+                toDate(toDateTime(time)) as day,
+                time - lagInFrame(time, 1, time) OVER (
+                  PARTITION BY toStartOfDay(toDateTime(time)) ORDER BY time, fields_hash
+                  ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                ) as gap
+              FROM heartbeats FINAL
               WHERE user_id = ? AND deleted_at IS NULL AND time >= ? AND time <= ?
             )
             SELECT day, SUM(LEAST(gap, 120)) as total_seconds
             FROM heartbeats_with_gaps
-            WHERE gap IS NOT NULL
             GROUP BY day
           SQL
 
-          conn = ActiveRecord::Base.connection
-          quantized_result = conn.execute(ActiveRecord::Base.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ]))
-          daily_totals_result = conn.execute(ActiveRecord::Base.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ]))
+          conn = Clickhouse::Heartbeat.connection
+          quantized_result = conn.select_all(Clickhouse::Heartbeat.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ]))
+          daily_totals_result = conn.select_all(Clickhouse::Heartbeat.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ]))
 
-          daily_totals = daily_totals_result.each_with_object({}) { |row, h| h[row["day"]] = row["total_seconds"] }
+          daily_totals = daily_totals_result.each_with_object({}) { |row, h| h[row["day"].to_date] = row["total_seconds"].to_f.round }
 
           points_by_day = quantized_result.each_with_object({}) do |row, hash|
             day = Time.at(row["time"]).to_date
@@ -130,8 +137,8 @@ module Api
             SELECT
                 r1.user_id AS user_a_id,
                 r2.user_id AS user_b_id,
-                r1.machine,
-                r1.ip_address,
+                r1.machine AS machine,
+                r1.ip_address AS ip_address,
                 r1.first_seen as user_a_first_seen_on_combo,
                 r1.last_seen as user_a_last_seen_on_combo,
                 r2.first_seen as user_b_first_seen_on_combo,
@@ -144,14 +151,13 @@ module Api
                         ip_address,
                         MIN(time) as first_seen,
                         MAX(time) as last_seen
-                    FROM heartbeats
+                    FROM heartbeats FINAL
                     WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
+                        machine IS NOT NULL
                         AND ip_address IS NOT NULL
                         AND deleted_at IS NULL
                         AND time >= ?
-                    GROUP BY 1, 2, 3
+                    GROUP BY user_id, machine, ip_address
                 ) r1
             JOIN
                 (
@@ -161,22 +167,21 @@ module Api
                         ip_address,
                         MIN(time) as first_seen,
                         MAX(time) as last_seen
-                    FROM heartbeats
+                    FROM heartbeats FINAL
                     WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
+                        machine IS NOT NULL
                         AND ip_address IS NOT NULL
                         AND deleted_at IS NULL
                         AND time >= ?
-                    GROUP BY 1, 2, 3
+                    GROUP BY user_id, machine, ip_address
                 ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
             WHERE
                 r1.user_id < r2.user_id
             LIMIT 5000
           SQL
 
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff ])
+          result = Clickhouse::Heartbeat.connection.select_all(
+            Clickhouse::Heartbeat.sanitize_sql([ query, cutoff, cutoff ])
           )
 
           render json: { candidates: result.to_a }
@@ -188,7 +193,7 @@ module Api
           return render_error("invalid since parameter") if since_ts < 0
 
           since_ts = [ since_ts, 90.days.ago.to_i ].max
-          render json: { user_ids: Heartbeat.where("time >= ?", since_ts).distinct.limit(50_000).pluck(:user_id) }
+          render json: { user_ids: Clickhouse::Heartbeat.where("time >= ?", since_ts).distinct.limit(50_000).pluck(:user_id) }
         end
 
         def audit_logs_counts
@@ -217,7 +222,7 @@ module Api
           user_id = params[:user_id].presence
 
           escaped = segment.gsub(/[\\%_]/) { |c| "\\#{c}" }
-          query = Heartbeat.where("user_agent ILIKE ?", "%#{escaped}%")
+          query = Clickhouse::Heartbeat.where("user_agent ILIKE ?", "%#{escaped}%")
           query = query.where(user_id: user_id) if user_id
           query = apply_time_range(query) or return
 
@@ -225,10 +230,11 @@ module Api
             return render json: { segment: segment, total_count: query.limit(nil).count }
           end
 
-          heartbeats = query.order(time: :desc).limit(limit + 1).offset(offset).to_a
+          heartbeats = query.order(time: :desc, fields_hash: :desc).limit(limit + 1).offset(offset).to_a
           has_more = heartbeats.size > limit
           heartbeats = heartbeats.first(limit)
 
+          source_types = Heartbeat.source_types.invert
           render json: {
             segment: segment,
             limit: limit,
@@ -252,7 +258,7 @@ module Api
                 lineno: hb.lineno,
                 cursorpos: hb.cursorpos,
                 lines: hb.lines,
-                source_type: hb.source_type
+                source_type: source_types[hb.source_type] || hb.source_type
               }
             },
             has_more: has_more

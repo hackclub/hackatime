@@ -11,7 +11,7 @@ class HeartbeatImportService
     flush = lambda do
       next if heartbeat_batch.empty?
       result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch.values,
-                                    user_agents_by_id:, schedule_rollup_refresh: false)
+                                    user_agents_by_id:)
       imported_count += result.persisted_count
       errors.concat(result.errors)
       heartbeat_batch.clear
@@ -35,7 +35,6 @@ class HeartbeatImportService
 
     raise StandardError, "Expected a heartbeat export JSON file." if total_count.zero?
     flush.call
-    HeartbeatIngest.schedule_rollup_refresh(user:) if imported_count.positive?
 
     elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
     { success: true, imported_count:, total_count:,

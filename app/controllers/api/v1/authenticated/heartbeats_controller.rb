@@ -3,10 +3,10 @@ module Api
     module Authenticated
       class HeartbeatsController < ApplicationController
         def latest
-          heartbeat = current_user.heartbeats
-                                  .where.not(source_type: :test_entry)
-                                  .order(time: :desc)
-                                  .first
+          heartbeat = Clickhouse::Heartbeat.for_user(current_user)
+                                           .where.not(source_type: Heartbeat.source_types.fetch("test_entry"))
+                                           .order(time: :desc, fields_hash: :desc)
+                                           .first
 
           if heartbeat
             render json: {

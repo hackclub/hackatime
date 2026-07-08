@@ -5,9 +5,9 @@ class Cache::HeartbeatCountsJob < Cache::ActivityJob
 
   def calculate
     direct = Heartbeat.source_types.fetch("direct_entry")
-    recent_count, recent_imported_count = Heartbeat.recent.pluck(
+    recent_count, recent_imported_count = Clickhouse::Heartbeat.recent.pluck(
       Arel.sql("COUNT(*)"),
-      Arel.sql("COUNT(*) FILTER (WHERE source_type != #{direct})")
+      Arel.sql("countIf(source_type != #{direct})")
     ).first
     { recent_count:, recent_imported_count: }
   end

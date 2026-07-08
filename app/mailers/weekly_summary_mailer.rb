@@ -14,14 +14,14 @@ class WeeklySummaryMailer < ApplicationMailer
     @subject_period_label = "#{@starts_at_local.strftime("%b %-d")} - #{@ends_at_local.strftime("%b %-d, %Y")}"
     @period_label = @subject_period_label
 
-    coding_heartbeats = @user.heartbeats.where(time: @starts_at.to_f...@ends_at.to_f)
-    @total_seconds = coding_heartbeats.duration_seconds
+    coding_heartbeats = Clickhouse::Heartbeat.for_user(@user).where(time: @starts_at.to_f...@ends_at.to_f)
+    @total_seconds = Clickhouse::Heartbeat.duration_seconds(coding_heartbeats)
     num_days = [ (@ends_at - @starts_at) / 1.day, 1 ].max
     @daily_average_seconds = (@total_seconds / num_days).round
     @total_heartbeats = coding_heartbeats.count
     @active_days = active_days_count(coding_heartbeats)
-    @top_projects = breakdown(coding_heartbeats.group(:project).duration_seconds, default_name: "Other")
-    @top_languages = breakdown(Heartbeat.attributed_durations_by(coding_heartbeats, :language))
+    @top_projects = breakdown(Clickhouse::Heartbeat.duration_seconds(coding_heartbeats.group(:project)), default_name: "Other")
+    @top_languages = breakdown(Clickhouse::Heartbeat.attributed_durations_by(coding_heartbeats, :language))
 
     mail(to: recipient_email, subject: "Your Hackatime weekly summary (#{@subject_period_label})")
   end
@@ -37,8 +37,12 @@ class WeeklySummaryMailer < ApplicationMailer
   end
 
   def active_days_count(scope)
-    timezone_sql = ActiveRecord::Base.connection.quote(@timezone_label)
-    scope.where.not(time: nil).distinct.count(Arel.sql("DATE(to_timestamp(time) AT TIME ZONE #{timezone_sql})"))
+    timezone_sql = Clickhouse::Heartbeat.connection.quote(@timezone_label)
+    relation_sql = scope.where.not(time: nil).select(:time).to_sql
+    Clickhouse::Heartbeat.connection.select_value(<<~SQL.squish).to_i
+      SELECT COUNT(DISTINCT toDate(toTimeZone(toDateTime64(time, 3), #{timezone_sql})))
+      FROM (#{relation_sql}) weekly_summary_heartbeats
+    SQL
   rescue StandardError
     scope.where.not(time: nil).pluck(:time).map { |t| Time.at(t).in_time_zone(@timezone_label).to_date }.uniq.count
   end

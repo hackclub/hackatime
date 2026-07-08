@@ -1,7 +1,8 @@
 class Heartbeat < ApplicationRecord
   before_save :set_fields_hash!
   before_save :set_time_epoch!
-  after_commit :schedule_dashboard_rollup_refresh, on: %i[create update destroy]
+  after_commit :mirror_to_clickhouse, on: %i[create update], unless: -> { Rails.env.test? }
+  after_save :mirror_to_clickhouse, if: -> { Rails.env.test? }
 
   include Heartbeatable
   include TimeRangeFilterable
@@ -47,15 +48,24 @@ class Heartbeat < ApplicationRecord
 
   def soft_delete
     update_column(:deleted_at, Time.current)
-    DashboardRollupRefreshJob.schedule_for(user_id)
+    mirror_to_clickhouse
   end
 
   def restore
-    update_column(:deleted_at, nil)
-    DashboardRollupRefreshJob.schedule_for(user_id)
+    # updated_at bump required: the ClickHouse row version is max(updated_at, deleted_at)
+    update_columns(deleted_at: nil, updated_at: Time.current)
+    mirror_to_clickhouse
   end
 
   private
+
+  def mirror_to_clickhouse
+    return unless Clickhouse::HeartbeatMirror.enabled?
+
+    Clickhouse::HeartbeatMirror.upsert(self)
+  rescue => e
+    Rails.logger.error "ClickHouse heartbeat mirror failed for heartbeat #{id}: #{e.class}: #{e.message}"
+  end
 
   def set_fields_hash!
     # only if the field exists in activerecord
@@ -68,6 +78,4 @@ class Heartbeat < ApplicationRecord
   def set_time_epoch!
     self.time_epoch = time&.floor if self.class.column_names.include?("time_epoch") && time.present?
   end
-
-  def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(user_id)
 end

@@ -6,8 +6,9 @@ class Cache::CurrentlyHackingCountJob < Cache::ActivityJob
   def cache_expiration = 1.minute
 
   def calculate
-    count = Heartbeat.joins(:user).where(source_type: :direct_entry).coding_only
-      .where("time > ?", 5.minutes.ago.to_f).select("DISTINCT user_id").count
+    count = Clickhouse::Heartbeat
+      .where(source_type: Heartbeat.source_types.fetch("direct_entry")).coding_only
+      .where("time > ?", 5.minutes.ago.to_f).distinct.count(:user_id)
     { count: count }
   end
 end

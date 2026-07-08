@@ -1,7 +1,7 @@
 require "test_helper"
 
 class StaticPagesControllerTest < ActionDispatch::IntegrationTest
-  test "signed in homepage includes dashboard stats immediately when rollups exist" do
+  test "signed in homepage defers dashboard stats" do
     travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
       user = User.create!(timezone: "UTC")
       sign_in_as(user)
@@ -11,15 +11,23 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
       create_heartbeat(user, "2026-04-13 10:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       create_heartbeat(user, "2026-04-13 10:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
-      DashboardRollupRefreshService.new(user: user).call
-
       get root_path
 
       assert_response :success
       assert_inertia_component "Home/SignedIn"
-      assert_nil inertia_page["deferredProps"]
+      assert_equal [ "dashboard_stats" ], inertia_page.dig("deferredProps", "default")
 
-      dashboard_stats = inertia_page.dig("props", "dashboard_stats")
+      get root_path, headers: {
+        "X-Inertia" => "true",
+        "X-Requested-With" => "XMLHttpRequest",
+        "X-Inertia-Version" => inertia_page["version"],
+        "X-Inertia-Partial-Component" => "Home/SignedIn",
+        "X-Inertia-Partial-Data" => "dashboard_stats"
+      }
+
+      assert_response :success
+
+      dashboard_stats = JSON.parse(response.body).dig("props", "dashboard_stats")
 
       assert_equal 240, dashboard_stats.dig("filterable_dashboard_data", "total_time")
       assert_equal "2026-04-14", dashboard_stats.dig("activity_graph", "end_date")

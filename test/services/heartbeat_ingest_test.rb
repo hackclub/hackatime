@@ -16,36 +16,34 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
-  test "direct heartbeat ingest persists normalized heartbeats and schedules dashboard rollup refresh" do
+  test "direct heartbeat ingest persists normalized heartbeats" do
     user = User.create!(timezone: "UTC")
 
     assert_difference("user.heartbeats.count", 1) do
-      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
-        assert_enqueued_with(job: AttemptProjectRepoMappingJob, args: [ user.id, "hackatime" ]) do
-          result = HeartbeatIngest.call(
-            user: user,
-            mode: :direct,
-            heartbeats: [ {
-              entity: "src/main.rb",
-              plugin: "vscode/1.0.0",
-              project: "hackatime",
-              time: Time.current.to_f,
-              type: "file"
-            } ],
-            request_context: {
-              ip_address: "203.0.113.10",
-              machine: "laptop",
-              ja4: "t13d1516h2_8daaf6152771_02713d6af862"
-            }
-          )
+      assert_enqueued_with(job: AttemptProjectRepoMappingJob, args: [ user.id, "hackatime" ]) do
+        result = HeartbeatIngest.call(
+          user: user,
+          mode: :direct,
+          heartbeats: [ {
+            entity: "src/main.rb",
+            plugin: "vscode/1.0.0",
+            project: "hackatime",
+            time: Time.current.to_f,
+            type: "file"
+          } ],
+          request_context: {
+            ip_address: "203.0.113.10",
+            machine: "laptop",
+            ja4: "t13d1516h2_8daaf6152771_02713d6af862"
+          }
+        )
 
-          assert_equal 1, result.total_count
-          assert_equal 1, result.persisted_count
-          assert_equal 0, result.duplicate_count
-          assert_equal 0, result.failed_count
-          assert_equal 1, result.items.length
-          assert_equal :accepted, result.items.first.status
-        end
+        assert_equal 1, result.total_count
+        assert_equal 1, result.persisted_count
+        assert_equal 0, result.duplicate_count
+        assert_equal 0, result.failed_count
+        assert_equal 1, result.items.length
+        assert_equal :accepted, result.items.first.status
       end
     end
 
@@ -114,8 +112,6 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
       assert_equal 0, result.failed_count
       assert_equal first_heartbeat.id, result.items.first.heartbeat.id
     end
-
-    assert_no_enqueued_jobs only: DashboardRollupRefreshJob
   end
 
   test "direct heartbeat ingest resolves last language within the batch" do
@@ -248,39 +244,37 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal 1, calls
   end
 
-  test "import heartbeat ingest deduplicates imported heartbeats and schedules dashboard rollup refresh" do
+  test "import heartbeat ingest deduplicates imported heartbeats" do
     user = User.create!(timezone: "UTC")
 
     assert_difference("user.heartbeats.count", 1) do
-      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
-        result = HeartbeatIngest.call(
-          user: user,
-          mode: :import,
-          heartbeats: [
-            {
-              entity: "/tmp/test.rb",
-              type: "file",
-              time: 1_700_000_000.0,
-              project: "hackatime",
-              language: "Ruby",
-              is_write: true
-            },
-            {
-              entity: "/tmp/test.rb",
-              type: "file",
-              time: 1_700_000_000.0,
-              project: "hackatime",
-              language: "Ruby",
-              is_write: true
-            }
-          ]
-        )
+      result = HeartbeatIngest.call(
+        user: user,
+        mode: :import,
+        heartbeats: [
+          {
+            entity: "/tmp/test.rb",
+            type: "file",
+            time: 1_700_000_000.0,
+            project: "hackatime",
+            language: "Ruby",
+            is_write: true
+          },
+          {
+            entity: "/tmp/test.rb",
+            type: "file",
+            time: 1_700_000_000.0,
+            project: "hackatime",
+            language: "Ruby",
+            is_write: true
+          }
+        ]
+      )
 
-        assert_equal 2, result.total_count
-        assert_equal 1, result.persisted_count
-        assert_equal 1, result.duplicate_count
-        assert_equal 0, result.failed_count
-      end
+      assert_equal 2, result.total_count
+      assert_equal 1, result.persisted_count
+      assert_equal 1, result.duplicate_count
+      assert_equal 0, result.failed_count
     end
 
     heartbeat = user.heartbeats.order(:id).last

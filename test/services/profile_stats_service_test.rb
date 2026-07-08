@@ -5,15 +5,13 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
     Rails.cache.clear
   end
 
-  test "dashboard_stats returns dashboard-shaped data backed by rollups" do
+  test "dashboard_stats returns dashboard-shaped data" do
     user = User.create!(timezone: "UTC")
     base_time = (Time.current - 1.day).to_f
 
     create_heartbeat(user, time: base_time, project: "alpha", language: "Ruby", editor: "vscode")
     create_heartbeat(user, time: base_time + 60, project: "alpha", language: "Ruby", editor: "vscode")
     create_heartbeat(user, time: base_time + 120, project: "beta", language: "Python", editor: "vscode")
-
-    DashboardRollupRefreshService.new(user: user).call
 
     payload = ProfileStatsService.new(user).dashboard_stats
 
@@ -22,14 +20,12 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
     assert payload[:activity_graph][:duration_by_date].is_a?(Hash)
   end
 
-  test "og_stats reports totals and top language from rollups" do
+  test "og_stats reports totals and top language" do
     user = User.create!(timezone: "UTC")
     base_time = (Time.current - 1.hour).to_f
 
     create_heartbeat(user, time: base_time, project: "alpha", language: "Ruby", editor: "vscode")
     create_heartbeat(user, time: base_time + 60, project: "alpha", language: "Ruby", editor: "vscode")
-
-    DashboardRollupRefreshService.new(user: user).call
 
     og = ProfileStatsService.new(user).og_stats
 

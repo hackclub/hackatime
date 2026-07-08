@@ -59,7 +59,7 @@ module Api
         def get_users_by_ip
           return render_error("bro dont got the ip") if params[:ip].blank?
 
-          result = Heartbeat.where(ip_address: params[:ip]).select(:ip_address, :user_id, :machine, :user_agent).distinct
+          result = Clickhouse::Heartbeat.where(ip_address: params[:ip]).select(:ip_address, :user_id, :machine, :user_agent).distinct
           render json: {
             users: result.map { |u|
               {
@@ -75,7 +75,7 @@ module Api
         def get_users_by_machine
           return render_error("bro dont got the machine") if params[:machine].blank?
 
-          result = Heartbeat.where(machine: params[:machine]).select(:user_id, :machine).distinct
+          result = Clickhouse::Heartbeat.where(machine: params[:machine]).select(:user_id, :machine).distinct
           render json: { users: result.map { |u| { user_id: u.user_id, machine: u.machine } } }
         end
 
@@ -83,7 +83,7 @@ module Api
           user = find_user_by_id
           return unless user
 
-          valid = user.heartbeats.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
+          valid = Clickhouse::Heartbeat.for_user(user).where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
 
           lht = valid.maximum(:time)
           lht /= 1000 if lht && lht > 1000000000000
@@ -112,7 +112,7 @@ module Api
                 total_coding_time: valid.duration_seconds || 0,
                 languages_used: valid.distinct.pluck(:language).compact.count,
                 projects_worked_on: valid.distinct.pluck(:project).compact.count,
-                days_active: valid.distinct.count("DATE(to_timestamp(CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END))")
+                days_active: valid.distinct.count("toDate(toDateTime(CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END))")
               }
             }
           }
@@ -133,7 +133,8 @@ module Api
             end_time = date.end_of_day.utc
           end
 
-          heartbeats = user.heartbeats.where(time: start_time.to_i..end_time.to_i).order(:time)
+          heartbeats = Clickhouse::Heartbeat.for_user(user).where(time: start_time.to_i..end_time.to_i).order(:time, :fields_hash)
+          source_types = Heartbeat.source_types.invert
 
           render json: {
             user_id: user.id,
@@ -164,7 +165,7 @@ module Api
                 cursorpos: hb.cursorpos,
                 project_root_count: hb.project_root_count,
                 is_write: hb.is_write,
-                source_type: hb.source_type,
+                source_type: source_types[hb.source_type] || hb.source_type,
                 ip_address: hb.ip_address
               }
             },
@@ -177,7 +178,7 @@ module Api
           user = find_user_by_id
           return unless user
 
-          base_heartbeats = user.heartbeats.where.not(project: nil)
+          base_heartbeats = Clickhouse::Heartbeat.for_user(user).where.not(project: nil)
 
           if params[:start_date].present? || params[:end_date].present?
             range = parse_default_time_range or return
@@ -187,7 +188,7 @@ module Api
           project_stats = base_heartbeats
             .select(:project, "COUNT(*) as heartbeat_count", "MIN(time) as first_heartbeat",
                     "MAX(time) as last_heartbeat",
-                    "ARRAY_AGG(DISTINCT language) FILTER (WHERE language IS NOT NULL) as languages")
+                    "groupUniqArrayIf(assumeNotNull(language), language IS NOT NULL) as languages")
             .group(:project).order(Arel.sql("COUNT(*) DESC"))
 
           durations = base_heartbeats.group(:project).duration_seconds
@@ -298,7 +299,7 @@ module Api
           limit = (params[:limit] || 1000).to_i.clamp(1, 5_000)
           offset = (params[:offset] || 0).to_i.clamp(0, Float::INFINITY)
 
-          query = user.heartbeats
+          query = Clickhouse::Heartbeat.for_user(user)
           query = apply_time_range(query) or return
           %i[project language entity editor machine].each do |f|
             query = query.where(f => params[f]) if params[f].present?
@@ -306,7 +307,7 @@ module Api
 
           total_count = query.count
           source_types = Heartbeat.source_types.invert
-          rows = query.order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
+          rows = query.order(time: :asc, fields_hash: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
           ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).index_by(&:id)
           heartbeats = rows.map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type, ja4_id|
             {
@@ -348,10 +349,10 @@ module Api
 
           limit = (params[:limit] || 5000).to_i.clamp(1, 5000)
 
-          query = user.heartbeats
+          query = Clickhouse::Heartbeat.for_user(user)
           query = apply_time_range(query) or return
 
-          quoted_column = Heartbeat.connection.quote_column_name(column_name)
+          quoted_column = Clickhouse::Heartbeat.connection.quote_column_name(column_name)
           values = query.where.not(column_name => nil).distinct
                         .order(Arel.sql("#{quoted_column} ASC"))
                         .limit(limit).pluck(column_name).reject(&:empty?)

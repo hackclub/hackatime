@@ -6,9 +6,9 @@ module Api
           start_date = params[:start_date]&.to_date || 7.days.ago.to_date
           end_date = params[:end_date]&.to_date || Date.current
 
-          total_seconds = current_user.heartbeats
-                                      .where(time: start_date.beginning_of_day.to_i..end_date.end_of_day.to_i)
-                                      .duration_seconds
+          total_seconds = Clickhouse::Heartbeat.for_user(current_user)
+                                               .where(time: start_date.beginning_of_day.to_i..end_date.end_of_day.to_i)
+                                               .duration_seconds
 
           render json: {
             start_date: start_date,

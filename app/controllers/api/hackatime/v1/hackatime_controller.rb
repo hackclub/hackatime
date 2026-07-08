@@ -34,7 +34,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def status_bar_today
     Time.use_zone(@user.timezone) do
-      total_seconds = @user.heartbeats.today.duration_seconds
+      total_seconds = Clickhouse::Heartbeat.for_user(@user).today.duration_seconds
       result = {
         data: {
           grand_total: {
@@ -69,7 +69,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       start_time = (Time.current - 7.days).beginning_of_day
       end_time = Time.current.end_of_day
 
-      heartbeats = @user.heartbeats.where(time: start_time.to_i..end_time.to_i)
+      heartbeats = Clickhouse::Heartbeat.for_user(@user).where(time: start_time.to_i..end_time.to_i)
       total_seconds = heartbeats.duration_seconds.to_i
       days_covered = heartbeats.pluck(:time).map { |ts| Time.at(ts).in_time_zone(@user.timezone).to_date }.uniq.length
       daily_average = days_covered > 0 ? (total_seconds.to_f / days_covered).round(1) : 0

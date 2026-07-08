@@ -21,10 +21,12 @@ class Settings::ImportsExportsController < Settings::BaseController
 
     {
       data_export: InertiaRails.defer {
+        heartbeats = Clickhouse::Heartbeat.for_user(@user)
+
         {
-          total_heartbeats: number_with_delimiter(@user.heartbeats.count),
-          total_coding_time: @user.heartbeats.duration_simple,
-          heartbeats_last_7_days: number_with_delimiter(@user.heartbeats.where("time >= ?", 7.days.ago.to_f).count),
+          total_heartbeats: number_with_delimiter(heartbeats.count),
+          total_coding_time: Clickhouse::Heartbeat.duration_simple(heartbeats),
+          heartbeats_last_7_days: number_with_delimiter(heartbeats.where("time >= ?", 7.days.ago.to_f).count),
           is_restricted: (@user.trust_level == "red")
         }
       },

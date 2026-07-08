@@ -254,7 +254,7 @@ class User < ApplicationRecord
            foreign_key: :resource_owner_id,
            dependent: :delete_all
 
-  def streak_days = @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
+  def streak_days = @streak_days ||= Clickhouse::Heartbeat.daily_streaks_for_users([ id ]).values.first
   def active_deletion_request = deletion_requests.active.order(created_at: :desc).first
   def pending_deletion? = active_deletion_request.present?
   def api_access_restricted? = red? || pending_deletion?
@@ -283,7 +283,6 @@ class User < ApplicationRecord
   }
 
   after_update_commit :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
-  after_update_commit :schedule_dashboard_rollup_refresh, if: :saved_change_to_timezone?
 
   def flipper_id = "User;#{id}"
   def active_remote_heartbeat_import_run? = heartbeat_import_runs.remote_imports.active_imports.exists?
@@ -339,7 +338,12 @@ class User < ApplicationRecord
     email.split("@")&.first.truncate(10) + " (email sign-up)"
   end
 
-  def most_recent_direct_entry_heartbeat = heartbeats.where(source_type: :direct_entry).order(time: :desc).first
+  def most_recent_direct_entry_heartbeat
+    Clickhouse::Heartbeat.for_user(self)
+      .where(source_type: Heartbeat.source_types.fetch("direct_entry"))
+      .order(time: :desc, fields_hash: :desc)
+      .first
+  end
 
   def create_email_signin_token(continue_param: nil) = sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
 
@@ -395,7 +399,6 @@ class User < ApplicationRecord
     end
   end
 
-  def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)
   def subscribe_to_default_lists = subscribe("weekly_summary")
   def schedule_welcome_email
     recipient_email = email_addresses.order(:id).pick(:email)

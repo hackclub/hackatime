@@ -4,9 +4,8 @@ class Cache::HomeStatsJob < Cache::ActivityJob
   private
 
   def calculate
-    users_tracked, seconds_tracked = DashboardRollup
-      .where(dimension: DashboardRollup::TOTAL_DIMENSION).where(total_seconds: 1..)
-      .pick(Arel.sql("COUNT(*), COALESCE(SUM(total_seconds), 0)"))
-    { users_tracked: users_tracked || 0, seconds_tracked: seconds_tracked || 0 }
+    totals = Clickhouse::Heartbeat.duration_seconds(Clickhouse::Heartbeat.group(:user_id))
+    totals = totals.select { |_, seconds| seconds >= 1 }
+    { users_tracked: totals.size, seconds_tracked: totals.values.sum }
   end
 end

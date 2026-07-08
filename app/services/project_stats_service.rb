@@ -17,13 +17,14 @@ class ProjectStatsService
   attr_reader :hb
 
   def h = ApplicationController.helpers
+  def heartbeat_model = hb.klass
 
-  def total_time = @total_time ||= hb.duration_seconds
+  def total_time = @total_time ||= heartbeat_model.duration_seconds(hb)
 
   def file_count = hb.select(:entity).distinct.count
 
   def grouped(field, n, normalize: ->(k) { k.to_s }, display: nil)
-    result = Heartbeat.attributed_durations_by(hb, field).each_with_object({}) do |(raw, dur), agg|
+    result = heartbeat_model.attributed_durations_by(hb, field).each_with_object({}) do |(raw, dur), agg|
       k = normalize.call(raw)
       agg[k] = (agg[k] || 0) + dur
     end.sort_by { |_, d| -d }.first(n)
@@ -47,11 +48,11 @@ class ProjectStatsService
   def category_stats = grouped(:category, 10)
 
   def file_stats
-    Heartbeat.attributed_durations_by(hb, :entity)
+    heartbeat_model.attributed_durations_by(hb, :entity)
       .reject { |_, dur| dur < 60 }
       .sort_by { |_, d| -d }.first(50)
       .map { |entity, dur| [ h.shorten_file_path(entity), dur ] }
   end
 
-  def branch_stats = Heartbeat.attributed_durations_by(hb, :branch).sort_by { |_, d| -d }.first(10)
+  def branch_stats = heartbeat_model.attributed_durations_by(hb, :branch).sort_by { |_, d| -d }.first(10)
 end

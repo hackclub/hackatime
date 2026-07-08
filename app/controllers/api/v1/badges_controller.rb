@@ -16,13 +16,13 @@ module Api
         project_name = resolve_project_name(user, params[:project])
         return render_not_found_json("Project not found") unless project_name
 
-        seconds = user.heartbeats.where(project: project_name).duration_seconds
+        seconds = Clickhouse::Heartbeat.for_user(user).where(project: project_name).duration_seconds
         return head :bad_request if seconds <= 0
 
         # Handle aliases (comma-separated project names to sum)
         if params[:aliases].present?
           alias_names = params[:aliases].split(",").map(&:strip) - [ project_name ]
-          seconds += user.heartbeats.where(project: alias_names).duration_seconds
+          seconds += Clickhouse::Heartbeat.for_user(user).where(project: alias_names).duration_seconds
         end
 
         label = params[:label] || "hackatime"
@@ -48,7 +48,7 @@ module Api
       # Resolve owner/repo format to a project name via ProjectRepoMapping
       def resolve_project_name(user, project_param)
         return nil if project_param.blank?
-        return project_param if user.heartbeats.where(project: project_param).exists?
+        return project_param if Clickhouse::Heartbeat.for_user(user).where(project: project_param).exists?
 
         if project_param.include?("/")
           owner, name = project_param.split("/", 2)

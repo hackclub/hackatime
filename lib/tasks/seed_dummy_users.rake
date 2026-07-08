@@ -29,7 +29,7 @@ namespace :seed do
                                                    created_at: t, updated_at: t)
       end
 
-      Heartbeat.insert_all(hbs) if hbs.any?
+      Clickhouse::HeartbeatMirror.upsert_rows(Heartbeat.insert_all(hbs, returning: Heartbeat.column_names).to_a) if hbs.any?
       puts "#{i + 1}/100: #{u.username} (#{hbs.count} hbs)"
     end
   end
@@ -39,6 +39,7 @@ namespace :seed do
     return puts "no dummies found (except for you)" if ids.empty?
 
     Heartbeat.unscoped.where(user_id: ids).delete_all
+    Clickhouse::Heartbeat.connection.execute("DELETE FROM heartbeats WHERE user_id IN (#{ids.join(', ')})") if Clickhouse::HeartbeatMirror.enabled?
     LeaderboardEntry.where(user_id: ids).delete_all
     User.where(id: ids).delete_all
     puts "exploded #{ids.count} dummies"

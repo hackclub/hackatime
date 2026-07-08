@@ -15,17 +15,15 @@ class HeartbeatIngest
   Item = Data.define(:heartbeat, :status, :error)
 
   def self.call(...) = new(...).call
-  def self.schedule_rollup_refresh(user:) = DashboardRollupRefreshJob.schedule_for(user.id)
 
   def self.normalize_imported_heartbeat(user:, heartbeat:, user_agents_by_id: {}) = new(user:, mode: :import, heartbeats: [], user_agents_by_id:).send(:normalize_imported_heartbeat, heartbeat)
 
-  def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {}, schedule_rollup_refresh: true)
+  def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {})
     @user = user
     @mode = mode
     @heartbeats = heartbeats
     @request_context = request_context.with_indifferent_access
     @user_agents_by_id = user_agents_by_id
-    @schedule_rollup_refresh = schedule_rollup_refresh
   end
 
   def call
@@ -110,7 +108,7 @@ class HeartbeatIngest
     end
 
     persisted = result.any? ? Heartbeat.new(result.first) : @user.heartbeats.find_by!(fields_hash:)
-    self.class.schedule_rollup_refresh(user: @user) if result.any? && @schedule_rollup_refresh
+    mirror_heartbeat(persisted) if result.any?
     [ persisted, !result.any? ]
   end
 
@@ -129,7 +127,6 @@ class HeartbeatIngest
     end
 
     persisted_count = flush_import_batch(seen_hashes)
-    self.class.schedule_rollup_refresh(user: @user) if persisted_count.positive? && @schedule_rollup_refresh
 
     Result.new(
       total_count:,
@@ -182,9 +179,25 @@ class HeartbeatIngest
       # recomputes both the conflict target and the time_epoch partition column.
       with_heartbeat_unique_by do |unique_by|
         records = seen_hashes.values.map { |r| r.merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(r[:time])) }
-        Heartbeat.insert_all(records, unique_by:).length
+        inserted = Heartbeat.insert_all(records, unique_by:, returning: Heartbeat.column_names).to_a
+        mirror_rows(inserted)
+        inserted.length
       end
     end
+  end
+
+  def mirror_heartbeat(heartbeat)
+    Clickhouse::HeartbeatMirror.upsert(heartbeat)
+  rescue => e
+    Rails.logger.error "ClickHouse heartbeat mirror failed for heartbeat #{heartbeat.id}: #{e.class}: #{e.message}"
+  end
+
+  def mirror_rows(rows)
+    return if rows.empty?
+
+    Clickhouse::HeartbeatMirror.upsert_rows(rows)
+  rescue => e
+    Rails.logger.error "ClickHouse heartbeat mirror failed for #{rows.length} ingested heartbeats: #{e.class}: #{e.message}"
   end
 
   def heartbeat_unique_by

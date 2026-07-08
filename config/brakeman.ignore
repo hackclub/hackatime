@@ -45,6 +45,52 @@
         89
       ],
       "note": ""
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "4d79f8799c85530bd202988a63a645d2b79a69aa5d64946e1241f05c03254b9f",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/controllers/admin/account_merger_controller.rb",
+      "line": 131,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Clickhouse::Heartbeat.connection.execute(\"INSERT INTO #{Clickhouse::Heartbeat.connection.quote_table_name(Clickhouse::Heartbeat.table_name)} (#{Clickhouse::Heartbeat.column_names.map do\n Clickhouse::Heartbeat.connection.quote_column_name(column)\n end.join(\", \")})\\nSELECT #{Clickhouse::Heartbeat.column_names.map do\n if (column == \"user_id\") then\n  \"#{older_user.id.to_i} AS user_id\"\nelse\n  Clickhouse::Heartbeat.connection.quote_column_name(column)\nend\n end.join(\", \")} FROM #{Clickhouse::Heartbeat.connection.quote_table_name(Clickhouse::Heartbeat.table_name)} FINAL\\nWHERE user_id = #{newer_user.id.to_i} AND deleted_at IS NULL\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Admin::AccountMergerController",
+        "method": "mirror_merge_to_clickhouse"
+      },
+      "user_input": "Clickhouse::Heartbeat.connection.quote_column_name(column)",
+      "confidence": "High",
+      "cwe_id": [
+        89
+      ],
+      "note": "Identifiers come from Clickhouse::Heartbeat.column_names and are quoted with quote_column_name/quote_table_name; interpolated values are .to_i integers."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "c0cf1933be058f97b0451c44f874d83b2ab2b8736423f3626b2f3a1df2e996e1",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/controllers/admin/account_merger_controller.rb",
+      "line": 144,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Clickhouse::Heartbeat.connection.execute(\"INSERT INTO #{Clickhouse::Heartbeat.connection.quote_table_name(Clickhouse::Heartbeat.table_name)} (#{Clickhouse::Heartbeat.column_names.map do\n Clickhouse::Heartbeat.connection.quote_column_name(column)\n end.join(\", \")})\\nSELECT #{Clickhouse::Heartbeat.column_names.map do\n case column\nwhen \"deleted_at\" then\n  \"now64(6) AS deleted_at\"\nwhen \"version\" then\n  \"#{(Time.current.to_f * 1000000).round.to_i} AS version\"\nelse\n  Clickhouse::Heartbeat.connection.quote_column_name(column)\nend\n end.join(\", \")} FROM #{Clickhouse::Heartbeat.connection.quote_table_name(Clickhouse::Heartbeat.table_name)} FINAL\\nWHERE user_id = #{newer_user.id.to_i} AND deleted_at IS NULL\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Admin::AccountMergerController",
+        "method": "mirror_merge_to_clickhouse"
+      },
+      "user_input": "Clickhouse::Heartbeat.connection.quote_column_name(column)",
+      "confidence": "High",
+      "cwe_id": [
+        89
+      ],
+      "note": "Identifiers come from Clickhouse::Heartbeat.column_names and are quoted with quote_column_name/quote_table_name; interpolated values are .to_i integers."
     }
   ],
   "brakeman_version": "7.0.2"

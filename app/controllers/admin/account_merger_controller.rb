@@ -107,7 +107,47 @@ class Admin::AccountMergerController < InertiaController
       results << "user ##{newer_user.id} deleted"
     end
 
+    mirror_merge_to_clickhouse(older_user:, newer_user:)
+
     results.join(", ")
+  end
+
+  # update_all(user_id:) bypasses the mirror callback, so replay the move in
+  # ClickHouse server-side: copy the live rows under the older user, then
+  # tombstone everything left under the newer user.
+  def mirror_merge_to_clickhouse(older_user:, newer_user:)
+    return unless Clickhouse::HeartbeatMirror.enabled?
+
+    connection = Clickhouse::Heartbeat.connection
+    table = connection.quote_table_name(Clickhouse::Heartbeat.table_name)
+    columns = Clickhouse::Heartbeat.column_names
+    column_list = columns.map { |column| connection.quote_column_name(column) }.join(", ")
+    version = (Time.current.to_f * 1_000_000).round
+
+    moved_exprs = columns.map do |column|
+      column == "user_id" ? "#{older_user.id.to_i} AS user_id" : connection.quote_column_name(column)
+    end
+    connection.execute(<<~SQL.squish)
+      INSERT INTO #{table} (#{column_list})
+      SELECT #{moved_exprs.join(", ")} FROM #{table} FINAL
+      WHERE user_id = #{newer_user.id.to_i} AND deleted_at IS NULL
+    SQL
+
+    tombstone_exprs = columns.map do |column|
+      case column
+      when "deleted_at" then "now64(6) AS deleted_at"
+      when "version" then "#{version.to_i} AS version"
+      else connection.quote_column_name(column)
+      end
+    end
+    connection.execute(<<~SQL.squish)
+      INSERT INTO #{table} (#{column_list})
+      SELECT #{tombstone_exprs.join(", ")} FROM #{table} FINAL
+      WHERE user_id = #{newer_user.id.to_i} AND deleted_at IS NULL
+    SQL
+  rescue => e
+    Rails.logger.error("ClickHouse mirror of account merge failed (Postgres merge already committed): #{e.class}: #{e.message}")
+    report_error(e, message: "ClickHouse mirror of account merge failed for users #{older_user.id} <- #{newer_user.id}")
   end
 
   DELETABLE_TABLES = %w[heartbeat_import_sources wakatime_mirrors project_labels].freeze

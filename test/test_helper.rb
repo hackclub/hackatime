@@ -4,10 +4,36 @@ require "rails/test_help"
 require "nokogiri"
 require "json"
 
+module ClickhouseTestIsolation
+  def before_setup
+    Clickhouse::Heartbeat.connection.execute("TRUNCATE TABLE heartbeats")
+    super
+  end
+end
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
     parallelize(workers: ENV.fetch("PARALLEL_WORKERS", 2).to_i)
+
+    CLICKHOUSE_BASE_DATABASE = Clickhouse::Record.connection_db_config.database
+
+    # Rails' TestDatabases after_fork hook has already suffixed the config's
+    # database with the worker number; build the name from the pre-fork base
+    # so this doesn't double-suffix.
+    parallelize_setup do |worker|
+      db = "#{CLICKHOUSE_BASE_DATABASE}_#{worker}"
+      base_config = Clickhouse::Record.connection_db_config.configuration_hash.merge(database: CLICKHOUSE_BASE_DATABASE)
+      Clickhouse::Record.establish_connection(base_config)
+      Clickhouse::Record.connection.execute("DROP DATABASE IF EXISTS #{db}")
+      Clickhouse::Record.connection.execute("CREATE DATABASE #{db}")
+      Clickhouse::Record.establish_connection(base_config.merge(database: db))
+      File.read(Rails.root.join("db/clickhouse_structure.sql")).split(";\n\n").each do |statement|
+        Clickhouse::Record.connection.execute(statement, nil, format: nil) if statement.strip.present?
+      end
+    end
+
+    include ClickhouseTestIsolation
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all

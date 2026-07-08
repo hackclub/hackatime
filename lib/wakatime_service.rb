@@ -5,7 +5,7 @@ include ErrorReporting
 
 class WakatimeService
   def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil, boundary_aware: false, valid_timestamps_only: false, exclude_categories: [])
-    @scope = scope || Heartbeat.all
+    @scope = scope || Clickhouse::Heartbeat.all
     @scope = @scope.with_valid_timestamps if valid_timestamps_only
     @scope = @scope.where.not("LOWER(category) IN (?)", exclude_categories) if exclude_categories.any?
     @exclude_categories = exclude_categories
@@ -62,7 +62,7 @@ class WakatimeService
     summary[:human_readable_range] = "All Time"
 
     @total_seconds = if @boundary_aware
-      Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date, excluded_categories: @exclude_categories) || 0
+      Clickhouse::Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date, excluded_categories: @exclude_categories) || 0
     else
       @scope.duration_seconds || 0
     end

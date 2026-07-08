@@ -45,13 +45,13 @@ class SailorsLogLeaderboard < ApplicationRecord
   def self.generate_leaderboard_stats(channel)
     slack_ids_in_channel = SailorsLogNotificationPreference.where(enabled: true, slack_channel_id: channel)
                                                            .distinct.pluck(:slack_uid)
-    users_in_channel = User.where(slack_uid: slack_ids_in_channel)
-    user_durations = Heartbeat.where(user: users_in_channel).today.group(:user_id).duration_seconds
+    user_ids_in_channel = User.where(slack_uid: slack_ids_in_channel).pluck(:id)
+    user_durations = Clickhouse::Heartbeat.where(user_id: user_ids_in_channel).today.group(:user_id).duration_seconds
     top_user_ids = user_durations.sort_by { |_, duration| -duration }.first(10).map(&:first)
     users_by_id = User.where(id: top_user_ids).index_by(&:id)
 
     top_user_ids.map do |user_id|
-      user_heartbeats = Heartbeat.where(user_id: user_id).today
+      user_heartbeats = Clickhouse::Heartbeat.for_user(user_id).today
       most_common_languages = user_heartbeats.where.not(language: nil).group(:project, :language).count
         .group_by { |k, _| k[0] }
         .transform_values { |langs| langs.max_by { |_, count| count }&.first&.last }

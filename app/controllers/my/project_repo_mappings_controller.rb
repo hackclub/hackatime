@@ -45,7 +45,7 @@ class My::ProjectRepoMappingsController < InertiaController
   def show
     project_name = CGI.unescape(params[:project_name])
     mapping = current_user.project_repo_mappings.find_by(project_name: project_name)
-    first_heartbeat = current_user.heartbeats.where(project: project_name).minimum(:time)
+    first_heartbeat = heartbeats_scope.where(project: project_name).minimum(:time)
     since_date = first_heartbeat ? Time.at(first_heartbeat).to_date.strftime("%-m/%-d/%Y") : nil
 
     share_url = if mapping&.public_shared_at.present? && current_user.username.present?
@@ -100,6 +100,7 @@ class My::ProjectRepoMappingsController < InertiaController
     @project_repo_mapping = current_user.project_repo_mappings.find_or_create_by!(project_name: params[:project_name])
   end
 
+  def heartbeats_scope = Clickhouse::Heartbeat.for_user(current_user)
   def project_repo_mapping_params = params.require(:project_repo_mapping).permit(:repo_url)
   def show_archived? = params[:show_archived] == "true"
   def selected_interval = params[:interval]
@@ -116,7 +117,7 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def sanitized_cache_date(value) = value.to_s.gsub(/[^0-9-]/, "")[0, 10].presence
 
-  # Builds the data needed for either projects_payload or rollup_projects_payload:
+  # Builds the data needed for projects_payload:
   # scoped mappings, archived name set, and latest commit timestamps by repo id.
   def projects_context(archived:)
     mappings = current_user.project_repo_mappings.includes(:repository)
@@ -134,7 +135,7 @@ class My::ProjectRepoMappingsController < InertiaController
     mappings_by_name, archived_names, latest_user_commit_at_by_repo_id = projects_context(archived: archived)
 
     cached = Rails.cache.fetch(project_durations_cache_key, expires_in: 1.minute) do
-      hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
+      hb = heartbeats_scope.filter_by_time_range(selected_interval, params[:from], params[:to])
       { durations: hb.group(:project).duration_seconds, total_time: hb.duration_seconds }
     end
 
@@ -149,40 +150,13 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def projects_data_for_index(archived:)
-    return empty_projects_payload unless current_user.heartbeats.exists?
-    return rollup_projects_payload(archived: archived) if rollup_projects_path?
+    return empty_projects_payload unless heartbeats_scope.exists?
 
     InertiaRails.defer { projects_payload(archived: archived) }
   end
 
   def empty_projects_payload
     { total_time_seconds: 0, total_time_label: format_duration(0), has_activity: false, projects: [] }
-  end
-
-  def rollup_projects_path? = selected_interval.blank? && params[:from].blank? && params[:to].blank?
-
-  def rollup_projects_payload(archived:)
-    rollups = DashboardRollup
-      .where(user_id: current_user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true)
-      .to_a
-
-    DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds) if DashboardRollup.dirty?(current_user.id) || rollups.empty?
-    return InertiaRails.defer { projects_payload(archived: archived) } if rollups.empty?
-
-    mappings_by_name, archived_names, latest_user_commit_at_by_repo_id = projects_context(archived: archived)
-
-    projects = rollups.filter_map do |rollup|
-      project_key = rollup.bucket
-      next if project_key.blank?
-      next if archived_names.key?(project_key) != archived
-
-      duration = rollup.total_seconds.to_i
-      next if duration <= 0
-
-      project_summary_payload(project_key, duration, mappings_by_name[project_key], latest_user_commit_at_by_repo_id)
-    end.sort_by { |project| -project[:duration_seconds] }
-
-    build_projects_payload(projects)
   end
 
   def project_summary_payload(project_key, duration, mapping, latest_user_commit_at_by_repo_id)
@@ -241,13 +215,13 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def project_count(archived)
     archived_names = current_user.project_repo_mappings.archived.pluck(:project_name)
-    hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
+    hb = heartbeats_scope.filter_by_time_range(selected_interval, params[:from], params[:to])
     projects = hb.select(:project).distinct.pluck(:project)
     projects.count { |proj| archived_names.include?(proj) == archived }
   end
 
   def project_detail_payload(project_name)
-    hb = current_user.heartbeats.where(project: project_name)
+    hb = heartbeats_scope.where(project: project_name)
       .filter_by_time_range(selected_interval, params[:from], params[:to])
 
     stats = ProjectStatsService.new(hb).call
@@ -259,7 +233,7 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def project_activity_graph(project_name)
     snapshot = DashboardData::Snapshots.activity_graph_snapshot(
-      user: current_user, scope: current_user.heartbeats.where(project: project_name)
+      user: current_user, scope: heartbeats_scope.where(project: project_name)
     )
     DashboardData::Snapshots.activity_graph_result(
       start_date: snapshot[:start_date],

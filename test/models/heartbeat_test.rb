@@ -111,22 +111,6 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert_not_includes buckets.keys, ""
   end
 
-  test "creating a heartbeat schedules a dashboard rollup refresh" do
-    user = User.create!(timezone: "UTC")
-
-    assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
-      user.heartbeats.create!(
-        entity: "src/main.rb",
-        type: "file",
-        category: "coding",
-        editor: "vscode",
-        time: Time.current.to_f,
-        project: "heartbeat-test",
-        source_type: :test_entry
-      )
-    end
-  end
-
   private
 
   def create_heartbeat_sequence(user:, started_at:, editor:, count: 9)

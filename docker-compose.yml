@@ -17,8 +17,15 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secureorpheus123
       - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_DATABASE=hackatime_development
+      - CLICKHOUSE_TEST_DATABASE=hackatime_test
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
     depends_on:
       - db
+      - clickhouse
     command: ["sleep", "infinity"]
 
   db:
@@ -32,7 +39,25 @@ services:
     ports:
       - "5432:5432"
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.6.1.1193
+    environment:
+      - CLICKHOUSE_DB=hackatime_development
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - harbor_clickhouse_data:/var/lib/clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+
 volumes:
   harbor_postgres_data:
+  harbor_clickhouse_data:
   bundle_cache:
   node_modules:
