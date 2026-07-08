@@ -234,7 +234,6 @@ module Api
           has_more = heartbeats.size > limit
           heartbeats = heartbeats.first(limit)
 
-          source_types = Clickhouse::Heartbeat.source_types.invert
           render json: {
             segment: segment,
             limit: limit,
@@ -258,7 +257,7 @@ module Api
                 lineno: hb.lineno,
                 cursorpos: hb.cursorpos,
                 lines: hb.lines,
-                source_type: source_types[hb.source_type] || hb.source_type
+                source_type: hb.source_type
               }
             },
             has_more: has_more

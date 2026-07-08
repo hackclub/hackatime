@@ -54,7 +54,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "laptop", heartbeat.machine
     assert_equal "203.0.113.10", heartbeat.ip_address
     assert_equal Ja4.find_by!(fingerprint: "t13d1516h2_8daaf6152771_02713d6af862").id, heartbeat.ja4_id
-    assert_equal Clickhouse::Heartbeat.source_types.fetch("direct_entry"), heartbeat.source_type
+    assert_equal "direct_entry", heartbeat.source_type
     assert heartbeat.id.positive?
     assert heartbeat.fields_hash.present?
   end
@@ -254,7 +254,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
 
     assert_equal 1, ch_count(user)
     heartbeat = Clickhouse::Heartbeat.for_user(user).sole
-    assert_equal Clickhouse::Heartbeat.source_types.fetch("wakapi_import"), heartbeat.source_type
+    assert_equal "wakapi_import", heartbeat.source_type
   end
 
   test "re-importing the same dump does not duplicate rows" do

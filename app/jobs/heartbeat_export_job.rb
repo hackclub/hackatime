@@ -79,8 +79,6 @@ class HeartbeatExportJob < ApplicationJob
 
   private
 
-  def source_type_labels = @source_type_labels ||= Clickhouse::Heartbeat.source_types.invert
-
   def build_export_data(heartbeats, start_date, end_date)
     {
       export_info: {
@@ -91,7 +89,6 @@ class HeartbeatExportJob < ApplicationJob
       },
       heartbeats: heartbeats.map do |hb|
         HEARTBEAT_EXPORT_FIELDS.index_with { |f| hb.public_send(f) }.merge(
-          source_type: source_type_labels[hb.source_type],
           time: Time.at(hb.time).iso8601,
           created_at: hb.created_at.iso8601,
           updated_at: hb.updated_at.iso8601

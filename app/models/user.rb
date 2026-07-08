@@ -339,7 +339,7 @@ class User < ApplicationRecord
 
   def most_recent_direct_entry_heartbeat
     Clickhouse::Heartbeat.for_user(self)
-      .where(source_type: Clickhouse::Heartbeat.source_types.fetch("direct_entry"))
+      .where(source_type: :direct_entry)
       .order(time: :desc, fields_hash: :desc)
       .first
   end

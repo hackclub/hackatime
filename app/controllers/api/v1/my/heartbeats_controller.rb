@@ -6,9 +6,9 @@ class Api::V1::My::HeartbeatsController < ApplicationController
     scope = Clickhouse::Heartbeat.for_user(current_user).order(time: :desc, fields_hash: :desc)
 
     if params[:source_type].present?
-      scope = scope.where(source_type: Clickhouse::Heartbeat.source_types[params[:source_type]] || params[:source_type])
+      scope = scope.where(source_type: params[:source_type])
     else
-      scope = scope.where.not(source_type: Clickhouse::Heartbeat.source_types.fetch("test_entry"))
+      scope = scope.where.not(source_type: :test_entry)
     end
 
     scope = scope.where("LOWER(editor) = ?", params[:editor].downcase) if params[:editor].present?
@@ -40,12 +40,8 @@ class Api::V1::My::HeartbeatsController < ApplicationController
   private
 
   def heartbeat_json(heartbeat)
-    heartbeat.as_json(except: %w[version]).merge(
-      "source_type" => source_type_labels[heartbeat.source_type] || heartbeat.source_type
-    )
+    heartbeat.as_json(except: %w[version])
   end
-
-  def source_type_labels = @source_type_labels ||= Clickhouse::Heartbeat.source_types.invert
 
   def ensure_authenticated!
     api_header = request.headers["Authorization"]

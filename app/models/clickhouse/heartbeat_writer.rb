@@ -127,10 +127,7 @@ module Clickhouse
       end
 
       def shape_source_type(value)
-        return 0 if value.nil?
-        return value if value.is_a?(Integer)
-
-        Clickhouse::Heartbeat.source_types.fetch(value.to_s, 0)
+        value.presence || "direct_entry"
       end
     end
   end

@@ -10,11 +10,11 @@ module Clickhouse
 
     BROWSER_EDITORS = %w[arc brave chrome chromium edge firefox floorp librewolf microsoft-edge opera opera-gx safari vivaldi waterfox zen].freeze
 
-    SOURCE_TYPES = ActiveSupport::HashWithIndifferentAccess.new(
-      "direct_entry" => 0,
-      "wakapi_import" => 1,
-      "test_entry" => 2
-    ).freeze
+    enum :source_type, {
+      direct_entry: 0,
+      wakapi_import: 1,
+      test_entry: 2
+    }
 
     # Keys ordered to match the historical Postgres attributes-hash order so
     # fields_hash stays stable across the PG -> ClickHouse write cutover.
@@ -46,8 +46,6 @@ module Clickhouse
       def heartbeat_timeout_duration(duration = nil)
         duration ? (@heartbeat_timeout_duration = duration) : (@heartbeat_timeout_duration || 2.minutes)
       end
-
-      def source_types = SOURCE_TYPES
 
       def indexed_attributes = FIELDS_HASH_KEY_ORDER
 

@@ -167,7 +167,7 @@ class HeartbeatIngest
       cursorpos: hb[:cursorpos],
       dependencies: hb[:dependencies] || [],
       project_root_count: hb[:project_root_count],
-      source_type: Clickhouse::Heartbeat.source_types.fetch("wakapi_import")
+      source_type: :wakapi_import
     }
     attrs[:fields_hash] = Clickhouse::Heartbeat.generate_fields_hash(attrs)
     attrs
