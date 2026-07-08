@@ -26,13 +26,13 @@ class DashboardStatsTest < ActiveSupport::TestCase
     user = User.create!(timezone: "UTC")
     stats = build_stats(user)
 
-    Heartbeat.create!(
-      user: user, time: Time.current.to_f - 60, project: nil,
+    Clickhouse::HeartbeatWriter.create!(
+      user_id: user.id, time: Time.current.to_f - 60, project: nil,
       language: "ruby", editor: "vscode", operating_system: "macos",
       category: "coding", source_type: :test_entry
     )
-    Heartbeat.create!(
-      user: user, time: Time.current.to_f, project: nil,
+    Clickhouse::HeartbeatWriter.create!(
+      user_id: user.id, time: Time.current.to_f, project: nil,
       language: "ruby", editor: "vscode", operating_system: "macos",
       category: "coding", source_type: :test_entry
     )
@@ -44,7 +44,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
     assert_equal scope.group(:project).duration_seconds, stats.project_grouped_durations(scope)
   end
 
-  test "all-time dashboard data is served live" do
+  test "all-time dashboard data aggregates live heartbeats" do
     with_memory_cache_store do
       Rails.cache.clear
       user = User.create!(timezone: "UTC")
@@ -58,8 +58,8 @@ class DashboardStatsTest < ActiveSupport::TestCase
 
         result = build_stats(user).filterable_dashboard_data
 
-        assert_equal user.heartbeats.duration_seconds, result[:total_time]
-        assert_equal user.heartbeats.count, result[:total_heartbeats]
+        assert_equal Clickhouse::Heartbeat.for_user(user).duration_seconds, result[:total_time]
+        assert_equal Clickhouse::Heartbeat.for_user(user).count, result[:total_heartbeats]
         assert_equal "alpha", result["top_project"]
         assert_equal [ "alpha", "beta" ], result[:project]
       end
@@ -88,6 +88,25 @@ class DashboardStatsTest < ActiveSupport::TestCase
         assert_equal "2026-04-14", activity_graph[:end_date]
         assert_equal 120, activity_graph[:duration_by_date]["2026-04-14"]
       end
+    end
+  end
+
+  test "unfiltered all-time dashboard data is cached" do
+    with_memory_cache_store do
+      Rails.cache.clear
+
+      user = User.create!(timezone: "UTC")
+      create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+
+      first = build_stats(user).filterable_dashboard_data
+
+      create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
+
+      second = build_stats(user).filterable_dashboard_data
+
+      assert_equal first[:total_heartbeats], second[:total_heartbeats]
+      assert_equal first[:project], second[:project]
     end
   end
 
@@ -193,16 +212,16 @@ class DashboardStatsTest < ActiveSupport::TestCase
   end
 
   def create_heartbeat(user, project:, language:, editor:, operating_system:, category:)
-    Heartbeat.create!(
-      user: user, time: Time.current.to_f, project: project,
+    Clickhouse::HeartbeatWriter.create!(
+      user_id: user.id, time: Time.current.to_f, project: project,
       language: language, editor: editor, operating_system: operating_system,
       category: category, source_type: :test_entry
     )
   end
 
   def create_heartbeat_at(user, timestamp, project:, language:, editor:, operating_system:, category:)
-    Heartbeat.create!(
-      user: user, time: Time.parse(timestamp).to_f, project: project,
+    Clickhouse::HeartbeatWriter.create!(
+      user_id: user.id, time: Time.parse(timestamp).to_f, project: project,
       language: language, editor: editor, operating_system: operating_system,
       category: category, source_type: :test_entry
     )

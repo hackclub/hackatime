@@ -26,7 +26,7 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     newer = User.create!(timezone: "UTC", username: "newer_user")
     sign_in_as(admin)
 
-    heartbeat = Heartbeat.create!(user: newer, time: Time.current.to_i, source_type: :test_entry)
+    heartbeat = create_heartbeat(user: newer, time: Time.current.to_i, source_type: :test_entry)
     api_key = ApiKey.create!(user: newer, name: "Merge Test Key")
     newer.email_addresses.create!(email: "newer@example.com", source: :signing_in)
     newer.sign_in_tokens.create!(auth_type: :email)
@@ -51,10 +51,11 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     )
 
     post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+    AccountMergeHeartbeatsJob.perform_now(older.id, newer.id)
 
     assert_redirected_to admin_account_merger_path
-    assert_equal 1, Heartbeat.where(user_id: older.id).count
-    assert_equal heartbeat.id, Heartbeat.find_by(user_id: older.id)&.id
+    assert_equal 1, Clickhouse::Heartbeat.for_user(older).count
+    assert_equal heartbeat.id, Clickhouse::Heartbeat.for_user(older).sole.id
     assert_equal older.id, ApiKey.find(api_key.id).user_id
     assert_nil User.find_by(id: newer.id)
     assert_equal 0, Doorkeeper::AccessToken.where(resource_owner_id: newer.id).count

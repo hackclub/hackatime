@@ -48,7 +48,8 @@ module Api
       # Resolve owner/repo format to a project name via ProjectRepoMapping
       def resolve_project_name(user, project_param)
         return nil if project_param.blank?
-        return project_param if Clickhouse::Heartbeat.for_user(user).where(project: project_param).exists?
+        project_scope = Clickhouse::Heartbeat.for_user(user).where(project: project_param)
+        return project_param if Clickhouse::Heartbeat.safe_exists?(project_scope)
 
         if project_param.include?("/")
           owner, name = project_param.split("/", 2)

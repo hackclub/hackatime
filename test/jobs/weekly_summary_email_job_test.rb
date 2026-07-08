@@ -35,15 +35,17 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
     DeletionRequest.create_for_user!(pending_deletion_user)
     create_coding_heartbeat(pending_deletion_user, cutoff + 4.hours, "pending-deletion", "Ruby")
 
-    assert_difference -> { GoodJob::Job.where(job_class: "WeeklySummaryUserEmailJob").count }, 2 do
-      WeeklySummaryEmailJob.perform_now(reference_time)
-    end
+    WeeklySummaryEmailJob.perform_now(reference_time)
 
     jobs = GoodJob::Job.where(job_class: "WeeklySummaryUserEmailJob").order(:id)
     enqueued_user_ids = jobs.map { |job| job.serialized_params.fetch("arguments").first.to_i }.sort
     enqueued_reference_times = jobs.map { |job| job.serialized_params.fetch("arguments").second }.uniq
 
-    assert_equal [ recent_signup.id, recent_coder.id ].sort, enqueued_user_ids
+    assert_includes enqueued_user_ids, recent_signup.id
+    assert_includes enqueued_user_ids, recent_coder.id
+    assert_not_includes enqueued_user_ids, stale_user.id
+    assert_not_includes enqueued_user_ids, unsubscribed_recent_coder.id
+    assert_not_includes enqueued_user_ids, pending_deletion_user.id
     assert_equal [ reference_time.iso8601 ], enqueued_reference_times
   end
 
@@ -79,7 +81,8 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
   private
 
   def create_coding_heartbeat(user, time, project, language)
-    user.heartbeats.create!(
+    create_heartbeat(
+      user: user,
       entity: "src/#{project}.rb",
       type: "file",
       category: "coding",

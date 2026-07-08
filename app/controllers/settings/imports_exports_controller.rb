@@ -24,9 +24,9 @@ class Settings::ImportsExportsController < Settings::BaseController
         heartbeats = Clickhouse::Heartbeat.for_user(@user)
 
         {
-          total_heartbeats: number_with_delimiter(heartbeats.count),
+          total_heartbeats: number_with_delimiter(safe_heartbeat_count(heartbeats)),
           total_coding_time: Clickhouse::Heartbeat.duration_simple(heartbeats),
-          heartbeats_last_7_days: number_with_delimiter(heartbeats.where("time >= ?", 7.days.ago.to_f).count),
+          heartbeats_last_7_days: number_with_delimiter(safe_heartbeat_count(heartbeats.where("time >= ?", 7.days.ago.to_f))),
           is_restricted: (@user.trust_level == "red")
         }
       },
@@ -42,4 +42,12 @@ class Settings::ImportsExportsController < Settings::BaseController
   end
 
   def export_cooldown_minutes = My::HeartbeatsController::EXPORT_COOLDOWN.in_minutes.to_i
+
+  def safe_heartbeat_count(scope)
+    scope.count
+  rescue ActiveRecord::ActiveRecordError => e
+    raise unless e.message.include?("undefined method 'map' for nil")
+
+    0
+  end
 end

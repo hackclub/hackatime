@@ -18,7 +18,8 @@ class HeartbeatTest < ActiveSupport::TestCase
 
   test "soft delete hides record from default scope and restore brings it back" do
     user = User.create!(timezone: "UTC")
-    heartbeat = user.heartbeats.create!(
+    heartbeat = create_heartbeat(
+      user: user,
       entity: "src/main.rb",
       type: "file",
       category: "coding",
@@ -27,24 +28,24 @@ class HeartbeatTest < ActiveSupport::TestCase
       source_type: :test_entry
     )
 
-    assert_includes Heartbeat.all, heartbeat
+    assert_includes Clickhouse::Heartbeat.all.map(&:id), heartbeat.id
 
-    heartbeat.soft_delete
+    soft_delete_heartbeat(heartbeat)
 
-    assert_not_includes Heartbeat.all, heartbeat
-    assert_includes Heartbeat.with_deleted, heartbeat
+    assert_not_includes Clickhouse::Heartbeat.all.map(&:id), heartbeat.id
+    assert_includes Clickhouse::Heartbeat.with_deleted.map(&:id), heartbeat.id
 
-    heartbeat.restore
+    restore_heartbeat(heartbeat)
 
-    assert_includes Heartbeat.all, heartbeat
+    assert_includes Clickhouse::Heartbeat.all.map(&:id), heartbeat.id
   end
 
   test "daily streak cache is separated for browser-filtered leaderboard streaks" do
     user = User.create!(timezone: "UTC", username: "hb_streak_cache")
     create_heartbeat_sequence(user: user, started_at: 1.day.ago.beginning_of_day + 9.hours, editor: "firefox")
 
-    assert_equal 1, Heartbeat.daily_streaks_for_users([ user.id ])[user.id]
-    assert_equal 0, Heartbeat.daily_streaks_for_users([ user.id ], exclude_browser_time: true)[user.id]
+    assert_equal 1, Clickhouse::Heartbeat.daily_streaks_for_users([ user.id ])[user.id]
+    assert_equal 0, Clickhouse::Heartbeat.daily_streaks_for_users([ user.id ], exclude_browser_time: true)[user.id]
   end
 
   test "attributed_durations_by sums to total duration when every heartbeat has the field" do
@@ -52,7 +53,8 @@ class HeartbeatTest < ActiveSupport::TestCase
     base = Time.current.to_i.to_f
     languages = %w[ruby ruby python python javascript]
     languages.each_with_index do |lang, i|
-      user.heartbeats.create!(
+      create_heartbeat(
+        user: user,
         entity: "src/#{lang}.rb",
         type: "file",
         category: "coding",
@@ -64,8 +66,8 @@ class HeartbeatTest < ActiveSupport::TestCase
       )
     end
 
-    scope = user.heartbeats.where(project: "attribution-full")
-    buckets = Heartbeat.attributed_durations_by(scope, :language)
+    scope = Clickhouse::Heartbeat.for_user(user).where(project: "attribution-full")
+    buckets = Clickhouse::Heartbeat.attributed_durations_by(scope, :language)
     total = scope.duration_seconds
 
     assert_equal 240, total
@@ -87,7 +89,8 @@ class HeartbeatTest < ActiveSupport::TestCase
       { language: "python", offset: 240 }
     ]
     rows.each do |r|
-      user.heartbeats.create!(
+      create_heartbeat(
+        user: user,
         entity: "src/file.rb",
         type: "file",
         category: "coding",
@@ -99,8 +102,8 @@ class HeartbeatTest < ActiveSupport::TestCase
       )
     end
 
-    scope = user.heartbeats.where(project: "attribution-nulls")
-    buckets = Heartbeat.attributed_durations_by(scope, :language)
+    scope = Clickhouse::Heartbeat.for_user(user).where(project: "attribution-nulls")
+    buckets = Clickhouse::Heartbeat.attributed_durations_by(scope, :language)
     total = scope.duration_seconds
 
     assert_equal 240, total
@@ -111,11 +114,61 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert_not_includes buckets.keys, ""
   end
 
+  test "same-timestamp attribution ties break by id like the legacy Postgres path" do
+    user = User.create!(timezone: "UTC")
+    base = Time.current.to_i.to_f
+    create_heartbeat(user: user, id: 100, time: base, project: "ties", language: "text",
+      entity: "a.txt", type: "file", category: "coding", editor: "vscode", source_type: :test_entry)
+    create_heartbeat(user: user, id: 200, time: base + 60, project: "ties", language: "ruby",
+      entity: "b.rb", type: "file", category: "coding", editor: "vscode", source_type: :test_entry)
+    create_heartbeat(user: user, id: 150, time: base + 60, project: "ties", language: "python",
+      entity: "c.py", type: "file", category: "coding", editor: "vscode", source_type: :test_entry)
+
+    scope = Clickhouse::Heartbeat.for_user(user).where(project: "ties")
+    buckets = Clickhouse::Heartbeat.attributed_durations_by(scope, :language)
+
+    # Gap of 60s lands on the first row at the tied timestamp (lowest id);
+    # the second tied row contributes a zero-length diff.
+    assert_equal 60, buckets["python"]
+    assert_equal 0, buckets["ruby"]
+    assert_equal 0, buckets["text"]
+  end
+
+  test "streaks preserve the Postgres LEAST(NULL, timeout) quirk: first heartbeat of a day counts the full timeout" do
+    user = User.create!(timezone: "UTC", username: "hb_quirk_#{SecureRandom.hex(4)}")
+    # One heartbeat + 7 more at 2min gaps = 14min of gaps + 120s first-row
+    # contribution = 15min: exactly the streak threshold.
+    create_heartbeat_sequence(user: user, started_at: 1.day.ago.beginning_of_day + 9.hours, editor: "vscode", count: 8)
+
+    assert_equal 1, Clickhouse::Heartbeat.daily_streaks_for_users([ user.id ])[user.id]
+  end
+
+  test "generate_fields_hash is stable and insensitive to key types" do
+    attrs = { user_id: 7, entity: "a.rb", time: 1_700_000_000.5, language: "Ruby", is_write: true }
+    hash_from_symbols = Clickhouse::Heartbeat.generate_fields_hash(attrs)
+    hash_from_strings = Clickhouse::Heartbeat.generate_fields_hash(attrs.transform_keys(&:to_s))
+
+    assert_equal hash_from_symbols, hash_from_strings
+    assert_equal 32, hash_from_symbols.length
+
+    different = Clickhouse::Heartbeat.generate_fields_hash(attrs.merge(entity: "b.rb"))
+    assert_not_equal hash_from_symbols, different
+  end
+
+  test "writer ids are JS-safe and time-ordered" do
+    id_now = Clickhouse::HeartbeatWriter.generate_id
+    id_future = Clickhouse::HeartbeatWriter.generate_id(1.hour.from_now)
+
+    assert id_now < 2**53, "ids must stay within JS-safe integer range"
+    assert id_future > id_now
+  end
+
   private
 
   def create_heartbeat_sequence(user:, started_at:, editor:, count: 9)
     count.times do |offset|
-      user.heartbeats.create!(
+      create_heartbeat(
+        user: user,
         entity: "src/#{editor}.rb",
         type: "file",
         category: "coding",

@@ -60,7 +60,7 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
 
   def create_project_heartbeats(user, project_name)
     now = Time.current.to_i
-    Heartbeat.create!(user: user, project: project_name, category: "coding", time: now - 1800, source_type: :test_entry)
-    Heartbeat.create!(user: user, project: project_name, category: "coding", time: now, source_type: :test_entry)
+    create_heartbeat(user: user, project: project_name, category: "coding", time: now - 1800, source_type: :test_entry)
+    create_heartbeat(user: user, project: project_name, category: "coding", time: now, source_type: :test_entry)
   end
 end

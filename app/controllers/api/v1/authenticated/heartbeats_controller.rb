@@ -4,7 +4,7 @@ module Api
       class HeartbeatsController < ApplicationController
         def latest
           heartbeat = Clickhouse::Heartbeat.for_user(current_user)
-                                           .where.not(source_type: Heartbeat.source_types.fetch("test_entry"))
+                                           .where.not(source_type: Clickhouse::Heartbeat.source_types.fetch("test_entry"))
                                            .order(time: :desc, fields_hash: :desc)
                                            .first
 

@@ -183,7 +183,6 @@ class User < ApplicationRecord
     false
   end
 
-  has_many :heartbeats
   has_many :goals, dependent: :destroy
   has_many :email_addresses, dependent: :destroy
   has_many :email_verification_requests, dependent: :destroy
@@ -340,7 +339,7 @@ class User < ApplicationRecord
 
   def most_recent_direct_entry_heartbeat
     Clickhouse::Heartbeat.for_user(self)
-      .where(source_type: Heartbeat.source_types.fetch("direct_entry"))
+      .where(source_type: Clickhouse::Heartbeat.source_types.fetch("direct_entry"))
       .order(time: :desc, fields_hash: :desc)
       .first
   end

@@ -36,7 +36,7 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
 
     instantiated_heartbeats = 0
     subscriber = ActiveSupport::Notifications.subscribe("instantiation.active_record") do |*, payload|
-      instantiated_heartbeats += payload[:record_count] if payload[:class_name] == "Heartbeat"
+      instantiated_heartbeats += payload[:record_count] if payload[:class_name] == "Clickhouse::Heartbeat"
     end
 
     get "/api/v1/users/#{user.username}/stats", params: {
@@ -182,7 +182,7 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_heartbeat(user:, time:, project:, category:)
-    Heartbeat.create!(
+    super(
       user: user,
       source_type: :direct_entry,
       time: time,

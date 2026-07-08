@@ -44,7 +44,7 @@ if Rails.env.development? || Rails.env.test?
   puts "  Sign-in Token: #{token.token}"
 
   # Create sample heartbeats for last 7 days with variety of data
-  if test_user.heartbeats.count < 50
+  if Clickhouse::Heartbeat.for_user(test_user).count < 50
     # Ensure timezone is set
     test_user.update!(timezone: 'America/New_York') unless test_user.timezone.present?
 
@@ -56,7 +56,11 @@ if Rails.env.development? || Rails.env.test?
     machines = [ 'dev-machine', 'laptop', 'desktop' ]
 
     # Clear existing heartbeats to ensure consistent test data
-    test_user.heartbeats.destroy_all
+    Clickhouse::Heartbeat.connection.execute(
+      "DELETE FROM heartbeats WHERE user_id = #{test_user.id.to_i}"
+    )
+
+    rows = []
 
     # Create heartbeats for the last 7 days
     7.downto(0) do |day|
@@ -71,8 +75,8 @@ if Rails.env.development? || Rails.env.test?
         # Create timestamp for this heartbeat
         timestamp = (Time.current - day.days).beginning_of_day + hour.hours + minute.minutes + second.seconds
 
-        # Create the heartbeat with varied data
-        test_user.heartbeats.create!(
+        rows << {
+          user_id: test_user.id,
           time: timestamp.to_i,
           entity: "test/file_#{rand(1..30)}.#{[ 'rb', 'js', 'ts', 'py', 'go' ].sample}",
           project: projects.sample,
@@ -82,14 +86,15 @@ if Rails.env.development? || Rails.env.test?
           machine: machines.sample,
           category: "coding",
           source_type: :direct_entry
-        )
+        }
       end
     end
 
     # Create a few sequential heartbeats to properly test duration calculation
     base_time = Time.current - 2.days
     10.times do |i|
-      test_user.heartbeats.create!(
+      rows << {
+        user_id: test_user.id,
         time: (base_time + i.minutes).to_i,
         entity: "test/sequential_file.rb",
         project: "harbor",
@@ -99,8 +104,10 @@ if Rails.env.development? || Rails.env.test?
         machine: "dev-machine",
         category: "coding",
         source_type: :direct_entry
-      )
+      }
     end
+
+    Clickhouse::HeartbeatWriter.insert_rows(rows)
 
     puts "Created comprehensive heartbeat data over the last 7 days for the test user"
   else

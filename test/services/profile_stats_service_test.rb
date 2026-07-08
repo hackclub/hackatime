@@ -37,7 +37,8 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
   private
 
   def create_heartbeat(user, time:, project:, language: "Ruby", editor: "vscode")
-    user.heartbeats.create!(
+    Clickhouse::HeartbeatWriter.create!(
+      user_id: user.id,
       entity: "src/main.rb",
       type: "file",
       category: "coding",

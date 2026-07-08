@@ -3,94 +3,71 @@
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "06ca3650eaeb8d28e062c1c6dcbeab95fb2ccd0c5bb49165ad469bcb6b791d3e",
+      "fingerprint": "62b399e453470663b181f03607cfe7a32dfab3ebf714b907dbe4ccbb540188df",
       "check_name": "SQL",
       "message": "Possible SQL injection",
-      "file": "app/models/concerns/heartbeatable.rb",
-      "line": 175,
+      "file": "app/models/clickhouse/heartbeat_writer.rb",
+      "line": 53,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Arel.sql(\"DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{(user_timezone or \"UTC\")}')\")",
+      "code": "Clickhouse::Heartbeat.connection.execute(...)" ,
       "render_path": null,
       "location": {
         "type": "method",
-        "class": "Heartbeatable",
-        "method": "daily_durations"
+        "class": "Clickhouse::HeartbeatWriter",
+        "method": "soft_delete_user_heartbeats!"
       },
-      "user_input": "user_timezone",
+      "user_input": "column_list(Clickhouse::Heartbeat.connection)",
       "confidence": "Medium",
       "cwe_id": [
         89
       ],
-      "note": ""
+      "note": "Identifiers come from WRITABLE_COLUMNS and are quoted; user IDs are cast with to_i."
     },
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "db41fbf90d0feb7b7c1c11545d498447162cf5e54e091d2ddcfcaba28b2513f6",
+      "fingerprint": "3e072caffbc9db064555f78b2b32edaa9f9b2c62843181cd03e13600bc310038",
       "check_name": "SQL",
       "message": "Possible SQL injection",
-      "file": "app/jobs/one_time/generate_unique_heartbeat_hashes_job.rb",
-      "line": 32,
+      "file": "app/models/clickhouse/heartbeat_writer.rb",
+      "line": 72,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Heartbeat.where(:id => chunk.map do\n index = 1\nputs(\"Processing heartbeat #{heartbeat.id} (#{1} of #{batch.size})\")\nfield_hash = Heartbeat.generate_fields_hash(heartbeat.attributes)\nputs(\"Field hash: #{Heartbeat.generate_fields_hash(heartbeat.attributes)}\")\n[heartbeat.id, Heartbeat.generate_fields_hash(heartbeat.attributes)]\n end.map(&:first)).update_all(\"fields_hash = CASE #{chunk.map do\n index = 1\nputs(\"Processing heartbeat #{heartbeat.id} (#{1} of #{batch.size})\")\nfield_hash = Heartbeat.generate_fields_hash(heartbeat.attributes)\nputs(\"Field hash: #{Heartbeat.generate_fields_hash(heartbeat.attributes)}\")\n[heartbeat.id, Heartbeat.generate_fields_hash(heartbeat.attributes)]\n end.map do\n \"WHEN id = #{id} THEN '#{hash}'\"\n end.join(\" \")} END\")",
+      "code": "Clickhouse::Heartbeat.connection.execute(...)" ,
       "render_path": null,
       "location": {
         "type": "method",
-        "class": "OneTime::GenerateUniqueHeartbeatHashesJob",
-        "method": "perform"
+        "class": "Clickhouse::HeartbeatWriter",
+        "method": "merge_user_heartbeats!"
       },
-      "user_input": "Heartbeat.generate_fields_hash(heartbeat.attributes)",
-      "confidence": "High",
+      "user_input": "column_list(Clickhouse::Heartbeat.connection)",
+      "confidence": "Medium",
       "cwe_id": [
         89
       ],
-      "note": ""
+      "note": "Identifiers come from WRITABLE_COLUMNS and are quoted; user IDs are cast with to_i."
     },
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "4d79f8799c85530bd202988a63a645d2b79a69aa5d64946e1241f05c03254b9f",
+      "fingerprint": "256e58728e5f1b2442828e109d75dbcabd9cf85b2b839d1294d88690ebd6cd26",
       "check_name": "SQL",
       "message": "Possible SQL injection",
-      "file": "app/controllers/admin/account_merger_controller.rb",
-      "line": 131,
+      "file": "app/models/clickhouse/heartbeat_writer.rb",
+      "line": 85,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Clickhouse::Heartbeat.connection.execute(\"INSERT INTO #{Clickhouse::Heartbeat.connection.quote_table_name(Clickhouse::Heartbeat.table_name)} (#{Clickhouse::Heartbeat.column_names.map do\n Clickhouse::Heartbeat.connection.quote_column_name(column)\n end.join(\", \")})\\nSELECT #{Clickhouse::Heartbeat.column_names.map do\n if (column == \"user_id\") then\n  \"#{older_user.id.to_i} AS user_id\"\nelse\n  Clickhouse::Heartbeat.connection.quote_column_name(column)\nend\n end.join(\", \")} FROM #{Clickhouse::Heartbeat.connection.quote_table_name(Clickhouse::Heartbeat.table_name)} FINAL\\nWHERE user_id = #{newer_user.id.to_i} AND deleted_at IS NULL\\n\".squish)",
+      "code": "Clickhouse::Heartbeat.connection.execute(...)" ,
       "render_path": null,
       "location": {
         "type": "method",
-        "class": "Admin::AccountMergerController",
-        "method": "mirror_merge_to_clickhouse"
+        "class": "Clickhouse::HeartbeatWriter",
+        "method": "merge_user_heartbeats!"
       },
-      "user_input": "Clickhouse::Heartbeat.connection.quote_column_name(column)",
-      "confidence": "High",
+      "user_input": "column_list(Clickhouse::Heartbeat.connection)",
+      "confidence": "Medium",
       "cwe_id": [
         89
       ],
-      "note": "Identifiers come from Clickhouse::Heartbeat.column_names and are quoted with quote_column_name/quote_table_name; interpolated values are .to_i integers."
-    },
-    {
-      "warning_type": "SQL Injection",
-      "warning_code": 0,
-      "fingerprint": "c0cf1933be058f97b0451c44f874d83b2ab2b8736423f3626b2f3a1df2e996e1",
-      "check_name": "SQL",
-      "message": "Possible SQL injection",
-      "file": "app/controllers/admin/account_merger_controller.rb",
-      "line": 144,
-      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Clickhouse::Heartbeat.connection.execute(\"INSERT INTO #{Clickhouse::Heartbeat.connection.quote_table_name(Clickhouse::Heartbeat.table_name)} (#{Clickhouse::Heartbeat.column_names.map do\n Clickhouse::Heartbeat.connection.quote_column_name(column)\n end.join(\", \")})\\nSELECT #{Clickhouse::Heartbeat.column_names.map do\n case column\nwhen \"deleted_at\" then\n  \"now64(6) AS deleted_at\"\nwhen \"version\" then\n  \"#{(Time.current.to_f * 1000000).round.to_i} AS version\"\nelse\n  Clickhouse::Heartbeat.connection.quote_column_name(column)\nend\n end.join(\", \")} FROM #{Clickhouse::Heartbeat.connection.quote_table_name(Clickhouse::Heartbeat.table_name)} FINAL\\nWHERE user_id = #{newer_user.id.to_i} AND deleted_at IS NULL\\n\".squish)",
-      "render_path": null,
-      "location": {
-        "type": "method",
-        "class": "Admin::AccountMergerController",
-        "method": "mirror_merge_to_clickhouse"
-      },
-      "user_input": "Clickhouse::Heartbeat.connection.quote_column_name(column)",
-      "confidence": "High",
-      "cwe_id": [
-        89
-      ],
-      "note": "Identifiers come from Clickhouse::Heartbeat.column_names and are quoted with quote_column_name/quote_table_name; interpolated values are .to_i integers."
+      "note": "Identifiers come from WRITABLE_COLUMNS and are quoted; user IDs are cast with to_i."
     }
   ],
   "brakeman_version": "7.0.2"

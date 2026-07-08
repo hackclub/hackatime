@@ -5,19 +5,17 @@ class Cache::ActiveUsersGraphDataJobTest < ActiveSupport::TestCase
     user = User.create!(timezone: "UTC")
     hour = 6.hours.ago.beginning_of_hour.to_i
 
-    Clickhouse::HeartbeatMirror.with_mirroring do
-      Heartbeat.create!(
-        user: user,
-        entity: "src/hour_boundary.rb",
-        type: "file",
-        category: "coding",
-        editor: "vscode",
-        language: "ruby",
-        project: "hour-boundary",
-        source_type: :test_entry,
-        time: hour + 3599.6
-      )
-    end
+    create_heartbeat(
+      user: user,
+      entity: "src/hour_boundary.rb",
+      type: "file",
+      category: "coding",
+      editor: "vscode",
+      language: "ruby",
+      project: "hour-boundary",
+      source_type: :test_entry,
+      time: hour + 3599.6
+    )
 
     result = Cache::ActiveUsersGraphDataJob.new.send(:calculate)
 

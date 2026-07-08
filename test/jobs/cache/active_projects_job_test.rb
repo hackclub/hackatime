@@ -5,10 +5,7 @@ class Cache::ActiveProjectsJobTest < ActiveSupport::TestCase
   teardown { Rails.cache.clear }
 
   def create_heartbeat(user:, project:, **attrs)
-    Heartbeat.create!(
-      user: user, project: project, entity: "src/#{project}.rb",
-      source_type: :direct_entry, time: Time.current.to_f, **attrs
-    )
+    super(user: user, project: project, entity: "src/#{project}.rb", source_type: :direct_entry, time: Time.current.to_f, **attrs)
   end
 
   test "returns the most recent active project per user and excludes soft-deleted heartbeats" do

@@ -150,8 +150,6 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def projects_data_for_index(archived:)
-    return empty_projects_payload unless heartbeats_scope.exists?
-
     InertiaRails.defer { projects_payload(archived: archived) }
   end
 
@@ -218,6 +216,10 @@ class My::ProjectRepoMappingsController < InertiaController
     hb = heartbeats_scope.filter_by_time_range(selected_interval, params[:from], params[:to])
     projects = hb.select(:project).distinct.pluck(:project)
     projects.count { |proj| archived_names.include?(proj) == archived }
+  rescue ActiveRecord::ActiveRecordError => e
+    raise unless e.message.include?("undefined method 'map' for nil")
+
+    archived ? current_user.project_repo_mappings.archived.count : current_user.project_repo_mappings.active.count
   end
 
   def project_detail_payload(project_name)

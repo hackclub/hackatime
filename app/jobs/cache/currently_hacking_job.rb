@@ -7,7 +7,7 @@ class Cache::CurrentlyHackingJob < Cache::ActivityJob
 
   def calculate
     latest_project_by_user = Clickhouse::Heartbeat
-      .where(source_type: Heartbeat.source_types.fetch("direct_entry")).coding_only
+      .where(source_type: Clickhouse::Heartbeat.source_types.fetch("direct_entry")).coding_only
       .where("time > ?", 5.minutes.ago.to_f)
       .group(:user_id)
       .pluck(Arel.sql("user_id, argMax(ifNull(project, ''), tuple(time, fields_hash))"))

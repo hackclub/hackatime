@@ -319,7 +319,7 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
   private
 
   def create_heartbeat(project:, time:, language: nil)
-    Heartbeat.create!(
+    super(
       user: @user,
       source_type: :direct_entry,
       category: "coding",

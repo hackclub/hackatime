@@ -8,8 +8,8 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request, openapi_spec: 'admi
   end
 
   def create_heartbeat(user, machine:, ip_address: nil)
-    Heartbeat.create!(
-      user: user,
+    Clickhouse::HeartbeatWriter.create!(
+      user_id: user.id,
       time: Time.current.to_i,
       project: 'test',
       language: 'Ruby',

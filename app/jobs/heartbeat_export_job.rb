@@ -79,7 +79,7 @@ class HeartbeatExportJob < ApplicationJob
 
   private
 
-  def source_type_labels = @source_type_labels ||= Heartbeat.source_types.invert
+  def source_type_labels = @source_type_labels ||= Clickhouse::Heartbeat.source_types.invert
 
   def build_export_data(heartbeats, start_date, end_date)
     {

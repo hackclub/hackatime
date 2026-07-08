@@ -7,7 +7,7 @@ class Cache::CurrentlyHackingCountJob < Cache::ActivityJob
 
   def calculate
     count = Clickhouse::Heartbeat
-      .where(source_type: Heartbeat.source_types.fetch("direct_entry")).coding_only
+      .where(source_type: Clickhouse::Heartbeat.source_types.fetch("direct_entry")).coding_only
       .where("time > ?", 5.minutes.ago.to_f).distinct.count(:user_id)
     { count: count }
   end

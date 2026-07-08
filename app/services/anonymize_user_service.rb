@@ -45,9 +45,7 @@ class AnonymizeUserService < ApplicationService
     user.heartbeat_import_runs.destroy_all
     user.project_repo_mappings.destroy_all
     user.goals.destroy_all
-    Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)
-    # update_all bypasses the mirror callback; push the soft-deletes to ClickHouse.
-    Clickhouse::HeartbeatMirror.backfill(Heartbeat.with_deleted.where(user_id: user.id)) if Clickhouse::HeartbeatMirror.enabled?
+    Clickhouse::HeartbeatWriter.soft_delete_user_heartbeats!(user.id)
     user.access_grants.destroy_all
     user.access_tokens.destroy_all
   end

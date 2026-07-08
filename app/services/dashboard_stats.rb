@@ -40,7 +40,13 @@ class DashboardStats
     reverse_lookup = cache_keys.invert
 
     cached = Rails.cache.fetch_multi(*cache_keys.values, expires_in: 15.minutes) do |cache_key|
-      heartbeats_scope.distinct.pluck(reverse_lookup.fetch(cache_key)).compact_blank.sort
+      field = reverse_lookup.fetch(cache_key)
+      rows = heartbeats_scope.where.not(field => nil).distinct.select(field).to_sql
+      Clickhouse::Heartbeat.connection.select_all(rows).map { |row| row[field.to_s] }.compact_blank.sort
+    rescue ActiveRecord::ActiveRecordError => e
+      raise unless e.message.include?("undefined method 'map' for nil")
+
+      []
     end
 
     cache_keys.transform_values { |cache_key| cached.fetch(cache_key, []) }

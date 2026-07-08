@@ -134,7 +134,7 @@ module Api
           end
 
           heartbeats = Clickhouse::Heartbeat.for_user(user).where(time: start_time.to_i..end_time.to_i).order(:time, :fields_hash)
-          source_types = Heartbeat.source_types.invert
+          source_types = Clickhouse::Heartbeat.source_types.invert
 
           render json: {
             user_id: user.id,
@@ -306,7 +306,7 @@ module Api
           end
 
           total_count = query.count
-          source_types = Heartbeat.source_types.invert
+          source_types = Clickhouse::Heartbeat.source_types.invert
           rows = query.order(time: :asc, fields_hash: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
           ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).index_by(&:id)
           heartbeats = rows.map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type, ja4_id|

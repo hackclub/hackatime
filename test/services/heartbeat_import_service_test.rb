@@ -30,7 +30,7 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     assert_equal 2, result[:total_count]
     assert_equal 1, result[:imported_count]
     assert_equal 1, result[:skipped_count]
-    assert_equal 1, user.heartbeats.count
+    assert_equal 1, Clickhouse::Heartbeat.for_user(user).count
   end
 
   test "imports heartbeats from wakatime data dump day groups" do
@@ -65,7 +65,7 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     assert_equal 1, result[:total_count]
     assert_equal 1, result[:imported_count]
 
-    heartbeat = user.heartbeats.order(:created_at).last
+    heartbeat = Clickhouse::Heartbeat.for_user(user).order(:created_at).last
     assert_equal "skyfall-pc", heartbeat.machine
     assert_equal "wakatime/v1.102.1", heartbeat.user_agent
   end

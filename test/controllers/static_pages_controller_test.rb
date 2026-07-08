@@ -107,7 +107,7 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_heartbeat(user, timestamp, project:, language:, editor:, operating_system:, category:)
-    Heartbeat.create!(
+    super(
       user: user,
       time: Time.parse(timestamp).to_f,
       project: project,

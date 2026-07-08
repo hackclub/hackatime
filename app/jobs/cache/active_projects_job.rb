@@ -7,7 +7,7 @@ class Cache::ActiveProjectsJob < Cache::ActivityJob
 
   def calculate
     recent = Clickhouse::Heartbeat
-      .where(source_type: Heartbeat.source_types.fetch("direct_entry"))
+      .where(source_type: Clickhouse::Heartbeat.source_types.fetch("direct_entry"))
       .where("time > ?", 5.minutes.ago.to_f)
       .pluck(:user_id, :project, :time)
     return {} if recent.empty?

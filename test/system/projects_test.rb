@@ -61,14 +61,14 @@ class ProjectsTest < ApplicationSystemTestCase
   def create_project_heartbeats(user, project_name, started_at:)
     user.project_repo_mappings.find_or_create_by!(project_name: project_name)
 
-    Heartbeat.create!(
+    create_heartbeat(
       user: user,
       project: project_name,
       category: "coding",
       time: started_at.to_i,
       source_type: :test_entry
     )
-    Heartbeat.create!(
+    create_heartbeat(
       user: user,
       project: project_name,
       category: "coding",

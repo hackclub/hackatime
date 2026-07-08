@@ -74,15 +74,21 @@ RSpec.configure do |config|
   # arbitrary gems may also be filtered via:
   # config.filter_gems_from_backtrace("gem name")
 
-  # Reset ClickHouse to exactly the committed Postgres heartbeats (the seed
-  # data) — CH inserts are not rolled back with the per-example PG transaction.
+  # ClickHouse inserts are not rolled back with the per-example PG
+  # transaction; reset the heartbeats table to exactly the seeded rows.
   config.before(:each) do
-    Clickhouse::Heartbeat.connection.execute("TRUNCATE TABLE heartbeats")
-    Clickhouse::HeartbeatMirror.backfill
+    connection = Clickhouse::Heartbeat.connection
+    connection.execute("TRUNCATE TABLE heartbeats")
+    rows = $clickhouse_seed_heartbeats
+    Clickhouse::Heartbeat.unscoped.insert_all(rows) if rows.present?
   end
 
   config.before(:suite) do
+    Clickhouse::Heartbeat.connection.execute("TRUNCATE TABLE heartbeats")
     Rails.application.load_seed
+    columns = Clickhouse::HeartbeatWriter::WRITABLE_COLUMNS
+    $clickhouse_seed_heartbeats = Clickhouse::Heartbeat.unscoped.final
+      .select(*columns).map { |row| row.attributes.slice(*columns) }
     ENV['STATS_API_KEY'] = 'dev-api-key-12345'
   end
 end

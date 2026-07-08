@@ -43,7 +43,8 @@ class WakatimeServiceSummaryTest < ActiveSupport::TestCase
   end
 
   def create_heartbeat(project:, language:, time:)
-    @user.heartbeats.create!(
+    super(
+      user: @user,
       entity: "src/main.rb",
       type: "file",
       category: "coding",

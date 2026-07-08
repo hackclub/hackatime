@@ -11,6 +11,36 @@ module ClickhouseTestIsolation
   end
 end
 
+# Heartbeats live only in ClickHouse. Tests create them through the writer and
+# get back a readonly-ish Clickhouse::Heartbeat instance.
+module ClickhouseHeartbeatFactory
+  def create_heartbeat(user: nil, user_id: nil, **attrs)
+    user_id ||= user.respond_to?(:id) ? user.id : user
+    raise ArgumentError, "create_heartbeat requires user: or user_id:" if user_id.nil?
+
+    row = Clickhouse::HeartbeatWriter.create!(attrs.merge(user_id: user_id))
+    Clickhouse::Heartbeat.instantiate(row.transform_values { |v| v.is_a?(Symbol) ? v.to_s : v })
+  end
+
+  # Soft delete = insert a tombstone version of the row.
+  def soft_delete_heartbeat(heartbeat)
+    now = Time.current
+    Clickhouse::HeartbeatWriter.insert_rows([
+      heartbeat.attributes.slice(*Clickhouse::HeartbeatWriter::WRITABLE_COLUMNS)
+        .merge("deleted_at" => now, "updated_at" => now, "version" => (now.to_f * 1_000_000).round)
+    ])
+  end
+
+  # Restore = insert a live version with a bumped version.
+  def restore_heartbeat(heartbeat)
+    now = Time.current
+    Clickhouse::HeartbeatWriter.insert_rows([
+      heartbeat.attributes.slice(*Clickhouse::HeartbeatWriter::WRITABLE_COLUMNS)
+        .merge("deleted_at" => nil, "updated_at" => now, "version" => (now.to_f * 1_000_000).round)
+    ])
+  end
+end
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
@@ -34,6 +64,7 @@ module ActiveSupport
     end
 
     include ClickhouseTestIsolation
+    include ClickhouseHeartbeatFactory
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all

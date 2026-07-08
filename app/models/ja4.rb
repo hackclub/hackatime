@@ -1,6 +1,4 @@
 class Ja4 < ApplicationRecord
-  has_many :heartbeats, dependent: :nullify
-
   validates :fingerprint, presence: true
 
   def self.resolve(fingerprint)

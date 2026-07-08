@@ -43,7 +43,8 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
   end
 
   def create_heartbeat_pair(user:, started_at:, editor:)
-    user.heartbeats.create!(
+    create_heartbeat(
+      user: user,
       entity: "src/#{editor}.rb",
       type: "file",
       category: "coding",
@@ -52,7 +53,8 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
       project: "leaderboard-job-test",
       source_type: :test_entry
     )
-    user.heartbeats.create!(
+    create_heartbeat(
+      user: user,
       entity: "src/#{editor}.rb",
       type: "file",
       category: "coding",

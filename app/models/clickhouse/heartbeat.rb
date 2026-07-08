@@ -8,7 +8,24 @@ module Clickhouse
     # hijacks #id; the table carries the real Postgres id column.
     self.primary_key = "id"
 
-    BROWSER_EDITORS = Heartbeatable::BROWSER_EDITORS
+    BROWSER_EDITORS = %w[arc brave chrome chromium edge firefox floorp librewolf microsoft-edge opera opera-gx safari vivaldi waterfox zen].freeze
+
+    SOURCE_TYPES = ActiveSupport::HashWithIndifferentAccess.new(
+      "direct_entry" => 0,
+      "wakapi_import" => 1,
+      "test_entry" => 2
+    ).freeze
+
+    # Keys ordered to match the historical Postgres attributes-hash order so
+    # fields_hash stays stable across the PG -> ClickHouse write cutover.
+    FIELDS_HASH_KEY_ORDER = %w[
+      branch category cursorpos dependencies editor entity is_write language
+      line_additions line_deletions lineno lines machine operating_system
+      project project_root_count time type user_agent user_id
+    ].freeze
+
+    INTEGER_HASH_KEYS = %w[cursorpos line_additions line_deletions lineno lines project_root_count user_id].freeze
+    STRING_HASH_KEYS = %w[branch category editor entity language machine operating_system project type user_agent].freeze
 
     default_scope { final.where(deleted_at: nil) }
 
@@ -26,7 +43,31 @@ module Clickhouse
     scope :only_deleted, -> { with_deleted.where.not(deleted_at: nil) }
 
     class << self
-      def heartbeat_timeout_duration = ::Heartbeat.heartbeat_timeout_duration
+      def heartbeat_timeout_duration(duration = nil)
+        duration ? (@heartbeat_timeout_duration = duration) : (@heartbeat_timeout_duration || 2.minutes)
+      end
+
+      def source_types = SOURCE_TYPES
+
+      def indexed_attributes = FIELDS_HASH_KEY_ORDER
+
+      def generate_fields_hash(attributes)
+        attrs = attributes.transform_keys(&:to_s)
+        normalized = FIELDS_HASH_KEY_ORDER.index_with { |key| cast_fields_hash_value(key, attrs[key]) }
+        Digest::MD5.hexdigest(normalized.to_json)
+      end
+
+      def recent_count = Cache::HeartbeatCountsJob.perform_now[:recent_count]
+      def recent_imported_count = Cache::HeartbeatCountsJob.perform_now[:recent_imported_count]
+
+      def safe_exists?(scope = all)
+        inner = scope.unscope(:select, :order).select(Arel.sql("1 AS one")).limit(1).to_sql
+        connection.select_all("SELECT one FROM (#{inner}) AS existence_check LIMIT 1").any?
+      rescue ActiveRecord::ActiveRecordError => e
+        raise unless e.message.include?("undefined method 'map' for nil")
+
+        false
+      end
 
       def duration_seconds(scope = all)
         scope = scope.with_valid_timestamps
@@ -45,8 +86,12 @@ module Clickhouse
             .each_with_object({}) { |row, hash| hash[row["grouped_time"]] = row["duration"].to_f.round }
         else
           inner = deduped(scope).select(Arel.sql("#{capped_diff_sql(timeout)} AS diff")).to_sql
-          connection.select_value("SELECT SUM(diff) FROM (#{inner}) AS diffs").to_f.round
+          connection.select_all("SELECT SUM(diff) AS duration FROM (#{inner}) AS diffs").first["duration"].to_f.round
         end
+      rescue ActiveRecord::ActiveRecordError => e
+        raise unless e.message.include?("undefined method 'map' for nil")
+
+        scope.group_values.any? ? {} : 0
       end
 
       def duration_seconds_boundary_aware(scope, start_time, end_time, excluded_categories: [])
@@ -98,6 +143,10 @@ module Clickhouse
 
         connection.select_all("SELECT day_group, SUM(diff) AS duration FROM (#{inner}) AS diffs GROUP BY day_group ORDER BY day_group")
           .map { |row| [ Date.parse(row["day_group"].to_s), row["duration"].to_f.round ] }
+      rescue ActiveRecord::ActiveRecordError => e
+        raise unless e.message.include?("undefined method 'map' for nil")
+
+        []
       end
 
       def attributed_durations_by(scope, field)
@@ -210,6 +259,12 @@ module Clickhouse
             FROM (#{inner}) AS diffs
             GROUP BY user_id, day_group
           SQL
+        rescue ActiveRecord::ActiveRecordError => e
+          raise unless e.message.include?("undefined method 'map' for nil")
+
+          rows = []
+        ensure
+          rows ||= []
 
           current_date = Time.current.in_time_zone(timezone).to_date
           rows.group_by { |row| row["user_id"].to_i }.each do |user_id, user_rows|
@@ -269,6 +324,25 @@ module Clickhouse
 
       def to_epoch(value)
         value.respond_to?(:to_f) ? value.to_f : value
+      end
+
+      def cast_fields_hash_value(key, value)
+        return nil if value.nil?
+
+        case key
+        when *INTEGER_HASH_KEYS then value.to_s.strip.empty? ? nil : value.to_i
+        when *STRING_HASH_KEYS then value.to_s
+        when "time" then value.to_f
+        when "is_write" then cast_boolean(value)
+        when "dependencies" then Array(value).map(&:to_s)
+        else value
+        end
+      end
+
+      def cast_boolean(value)
+        return value if value == true || value == false
+
+        %w[true t 1 yes on].include?(value.to_s.downcase)
       end
     end
   end

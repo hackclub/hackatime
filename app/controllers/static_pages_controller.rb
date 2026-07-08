@@ -14,7 +14,7 @@ class StaticPagesController < InertiaController
         return redirect_to "/my/projects?interval=custom&from=#{d}&to=#{d}" if d
       end
 
-      @show_wakatime_setup_notice = true if !Clickhouse::Heartbeat.for_user(current_user).exists? || params[:show_wakatime_setup_notice]
+      @show_wakatime_setup_notice = true if !Clickhouse::Heartbeat.safe_exists?(Clickhouse::Heartbeat.for_user(current_user)) || params[:show_wakatime_setup_notice]
 
       render inertia: "Home/SignedIn", props: signed_in_props
     else

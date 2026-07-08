@@ -115,6 +115,16 @@ module DashboardData
           todays_language_categories: language_categories,
           todays_editor_keys: editor_keys
         }
+      rescue ActiveRecord::ActiveRecordError => e
+        raise unless e.message.include?("undefined method 'map' for nil")
+
+        {
+          timezone: user.timezone,
+          today_date: Date.current.iso8601,
+          todays_duration_seconds: 0,
+          todays_language_categories: [],
+          todays_editor_keys: []
+        }
       end
     end
 
@@ -161,6 +171,15 @@ module DashboardData
         total_heartbeats: scope.count,
         grouped_durations: grouped_durations_snapshot(scope),
         weekly_project_stats: weekly_project_stats(user: user, scope: scope)
+      }
+    rescue ActiveRecord::ActiveRecordError => e
+      raise unless e.message.include?("undefined method 'map' for nil")
+
+      {
+        total_time: 0,
+        total_heartbeats: 0,
+        grouped_durations: GROUPED_DIMENSIONS.index_with { {} },
+        weekly_project_stats: week_ranges(user.timezone).to_h { |week_key, *_| [ week_key, {} ] }
       }
     end
 
