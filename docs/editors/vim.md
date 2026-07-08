@@ -10,7 +10,7 @@ Go to [Hackatime](https://hackatime.hackclub.com) and make an account. Then log 
 
 ## Step 2: Get Your Settings Ready
 
-Click this link to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup). It will set up your account so it works with Vim.
+Click this link to the [setup page](https://hackatime.hackclub.com/setup). It will set up your account so it works with Vim.
 
 ## Step 3: Add the Plugin to Vim
 
@@ -37,7 +37,7 @@ That's it! The plugin will use your settings from Step 2.
 
 ## If Something Goes Wrong
 
-**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) and try again.
+**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
 **Plugin not working?** Close Vim and open it again.
 

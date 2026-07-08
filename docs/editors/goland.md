@@ -10,7 +10,7 @@ Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are
 
 ## Step 2: Run the Setup Script
 
-Visit the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
+Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
 
 ## Step 3: Install GoLand Plugin
 
@@ -20,7 +20,7 @@ The WakaTime plugin will automatically use your Hackatime configuration after ru
 
 ## Troubleshooting
 
-- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) first
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first
 - **Plugin not working?** Try restarting GoLand after installation
 - **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 

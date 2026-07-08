@@ -6,7 +6,7 @@
 Follow these steps to start tracking your coding time in Swift Playgrounds or any other iPad apps with Hackatime.
 
 _P.S.: If you're tracking any apps that do not save their files to the Files app (e.g. Procreate), this will not work!_
-_If you're going to be using Codespaces on your iPad, please switch to the guide on Codespaces, available at the [setup page](https://hackatime.hackclub.com/my/wakatime_setup)_
+_If you're going to be using Codespaces on your iPad, please switch to the guide on Codespaces, available at the [setup page](https://hackatime.hackclub.com/setup)_
 
 ## Step 1: Log into Hackatime
 
@@ -16,7 +16,7 @@ Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are
 
 Start by downloading it from the [TestFlight Link](https://testflight.apple.com/join/xCpuSbPs). You will need to download the [TestFlight App](https://apps.apple.com/us/app/testflight/id899247664) before you use the link to get it.
 
-Visit the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) and copy the `api_key`, `api_url` and `heartbeat_rate_limit_seconds`. This ensures everything works perfectly with Hackatime.
+Visit the [setup page](https://hackatime.hackclub.com/setup) and copy the `api_key`, `api_url` and `heartbeat_rate_limit_seconds`. This ensures everything works perfectly with Hackatime.
 
 ## Step 3: Select your project/folder
 Hit the "Select folder" button in the middle and enter the directory you're working in and hit the "Done" in the top right or click on the Swift Playgrounds project if you're working on one. 
@@ -29,7 +29,7 @@ After a while of coding, you should see a heartbeat be passed through, and it wi
 
 ## Troubleshooting
 
-- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) first
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first
 - **Plugin not working?** Try restarting Wakatime Playgrounds. If the app crashes on you, please contact [@advaitconty on the Hack Club Slack](https://hackclub.slack.com/team/U0794TACKMG)
 - **Still stuck?** Ask for help from [@advaitconty on Hack Club Slack](https://hackclub.slack.com/team/U0794TACKMG) (DMs)
 

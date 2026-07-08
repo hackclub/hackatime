@@ -26,7 +26,7 @@
     external?: boolean;
   }[] = [
     {
-      href: "/my/wakatime_setup",
+      href: "/setup",
       title: "Quick Start",
       desc: "Set up in under a minute",
       icon: Bolt,

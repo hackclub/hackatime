@@ -4,7 +4,7 @@
 
 ## Automatic Setup
 
-1. Configure your editor by using our [simple installer](https://hackatime.hackclub.com/my/wakatime_setup)
+1. Configure your editor by using our [simple installer](https://hackatime.hackclub.com/setup)
 2. Restart VS Code and start coding!
 
 ---
@@ -17,7 +17,7 @@ Go to [Hackatime](https://hackatime.hackclub.com) and make an account. Then log 
 
 ## Step 2: Get Your Settings Ready
 
-Click this link to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup). It will set up your device so it works with Hackatime.
+Click this link to the [setup page](https://hackatime.hackclub.com/setup). It will set up your device so it works with Hackatime.
 
 ## Step 3: Add the Plugin to VS Code
 
@@ -33,7 +33,7 @@ That's it! The plugin will use your settings from Step 2.
 
 ## If Something Goes Wrong
 
-**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) and try again.
+**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
 **Plugin not working?** Close VS Code and open it again.
 

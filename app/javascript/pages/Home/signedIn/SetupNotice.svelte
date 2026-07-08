@@ -15,7 +15,7 @@
         automatically.
       </p>
       <Button
-        href={users.wakatimeSetup.path()}
+        href={users.setup.path()}
         size="lg"
         class="w-full md:w-auto shrink-0"
       >

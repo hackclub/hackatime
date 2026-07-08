@@ -32,7 +32,7 @@
     </p>
 
     {#snippet footer()}
-      <Button href={users.wakatimeSetup.path()}>Open setup guide</Button>
+      <Button href={users.setup.path()}>Open setup guide</Button>
     {/snippet}
   </SectionCard>
 
