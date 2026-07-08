@@ -14,8 +14,6 @@ class DashboardStats
 
   def filterable_dashboard_data
     interval = params[:interval]
-    return build_filterable_dashboard_data(interval) if unfiltered_all_time?
-
     key = [ user ] + FILTERS.map { |field| params[field] } + [ interval.to_s, params[:from], params[:to] ]
     Rails.cache.fetch(key, expires_in: 5.minutes) { build_filterable_dashboard_data(interval) }
   end
@@ -89,11 +87,6 @@ class DashboardStats
         end
       }.uniq
     end
-  end
-
-  def unfiltered_all_time?
-    params[:interval].blank? && params[:from].blank? && params[:to].blank? &&
-      FILTERS.none? { |field| params[field].present? }
   end
 
   def heartbeats_scope = Clickhouse::Heartbeat.for_user(user)

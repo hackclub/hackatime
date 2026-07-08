@@ -149,8 +149,6 @@ class DashboardStatsTest < ActiveSupport::TestCase
 
         create_heartbeat_at(user, "2026-04-13 14:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-13 14:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-<<<<<<< Updated upstream
-=======
 
         result = build_stats(user).filterable_dashboard_data
 
@@ -158,16 +156,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
         assert_equal [ "alpha" ], result[:project]
         assert_equal({ "alpha" => 60 }, result[:project_durations])
         assert_equal({ "alpha" => 60 }, result[:weekly_project_stats].fetch("2026-04-13"))
->>>>>>> Stashed changes
       end
-
-      DashboardRollupRefreshService.new(user: user).call
-      result = build_stats(user).filterable_dashboard_data
-
-      assert_equal "alpha", result["top_project"]
-      assert_equal [ "alpha" ], result[:project]
-      assert_equal({ "alpha" => 60 }, result[:project_durations])
-      assert_equal({ "alpha" => 60 }, result[:weekly_project_stats].fetch("2026-04-13"))
     end
   end
 
