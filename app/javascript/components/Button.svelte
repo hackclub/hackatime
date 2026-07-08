@@ -52,10 +52,12 @@
     unstyled
       ? className
       : [
-          "inline-flex min-h-10 items-center justify-center rounded-lg font-semibold transition-[background-color,border-color,color,box-shadow,opacity,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
+          "inline-flex min-h-10 items-center justify-center rounded-lg font-semibold transition-[background-color,border-color,color,box-shadow,opacity,transform] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
           "disabled:cursor-not-allowed disabled:opacity-60",
-          staticPress ? "" : "active:scale-[0.96]",
+          staticPress
+            ? ""
+            : "active:scale-[0.93] motion-reduce:active:scale-100",
           sizeClasses[size],
           variantClasses[variant],
           className,

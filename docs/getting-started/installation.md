@@ -11,7 +11,7 @@ Before you start, make sure you have:
 
 ## Step 1: Do the Automated Setup
 
-**First, use our automated [setup tutorial](https://hackatime.hackclub.com/my/wakatime_setup)!** It automatically sets up your API key and endpoint so everything works perfectly.
+**First, use our automated [setup tutorial](https://hackatime.hackclub.com/setup)!** It automatically sets up your API key and endpoint so everything works perfectly.
 
 ## Step 2: Add WakaTime Plugin
 
@@ -19,7 +19,7 @@ After doing the automated setup, install the WakaTime plugin for your editor. Vi
 
 ## Already Have the Plugin Installed?
 
-If you already have a WakaTime plugin, just run the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) to switch it to Hackatime. It will automatically update your settings.
+If you already have a WakaTime plugin, just run the [setup page](https://hackatime.hackclub.com/setup) to switch it to Hackatime. It will automatically update your settings.
 
 ## Check If It's Working
 

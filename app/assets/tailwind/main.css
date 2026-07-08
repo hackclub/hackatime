@@ -113,13 +113,21 @@ select {
 .flash-message--success {
   color: var(--color-success);
   border-color: var(--color-success);
-  background-color: color-mix(in oklab, var(--color-success) 20%, var(--color-surface));
+  background-color: color-mix(
+    in oklab,
+    var(--color-success) 20%,
+    var(--color-surface)
+  );
 }
 
 .flash-message--error {
   color: var(--color-danger);
   border-color: var(--color-danger);
-  background-color: color-mix(in oklab, var(--color-danger) 20%, var(--color-surface));
+  background-color: color-mix(
+    in oklab,
+    var(--color-danger) 20%,
+    var(--color-surface)
+  );
 }
 
 .flash-message--enter {

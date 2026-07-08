@@ -16,7 +16,7 @@ Follow the instructions on the site, then copy the command into whatever termina
 
 This will set some environment variables and tell Hackatime where to "phone home" when you're working.
 
-**💡 Visit our [setup page](https://hackatime.hackclub.com/my/wakatime_setup) to automatically configure everything!**
+**💡 Visit our [setup page](https://hackatime.hackclub.com/setup) to automatically configure everything!**
 
 ## 3: Install Helix
 
@@ -136,7 +136,7 @@ You can also try some **[wakatime.com/plugins](https://wakatime.com/plugins)** i
 
 ## Troubleshooting
 
-- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) first.
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first.
 - **LSP hasn't started?** Type `:lsp-restart ` in Helix for it to autocomplete the active LSPs. If `wakatime` isn't listed, then it's not setup in your `languages.toml` correctly.
 - **Language server exited?** This error will show up if you haven't installed everything correctly. Double check that `wakatime` and `wakatime-ls` are installed using `which` (Linux/MacOS) or `where` (Windows).
 - **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)

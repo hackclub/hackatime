@@ -84,10 +84,7 @@ module JsFromRoutes
     create_deletion
     cancel_deletion
 
-    my_wakatime_setup
-    my_wakatime_setup_step_2
-    my_wakatime_setup_step_3
-    my_wakatime_setup_step_4
+    setup
 
     profile
     profile_project

@@ -29,7 +29,7 @@ function likelyNextPages(pageName: string | null): string[] {
     case "Auth/SignIn":
       return ["Home/SignedIn"];
     case "Home/SignedIn":
-      return ["WakatimeSetup/Index"];
+      return ["Setup/Index"];
     default:
       return [];
   }

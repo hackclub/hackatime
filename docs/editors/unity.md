@@ -10,7 +10,7 @@ Go to **[Hackatime](https://hackatime.hackclub.com)** and make an account. Then 
 
 ## Step 2: Get Your Settings Ready
 
-Click this link to the **[setup page](https://hackatime.hackclub.com/my/wakatime_setup)**. It will set up your account so it works with Unity.
+Click this link to the **[setup page](https://hackatime.hackclub.com/setup)**. It will set up your account so it works with Unity.
 
 ## Step 3: Add the Plugin to Unity
 
@@ -48,7 +48,7 @@ After installing, you will need to grab your Hackatime API key and paste it into
 
 ## If Something Goes Wrong
 
-**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) and try again.
+**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
 **Plugin not working?** Close Unity and open it again. Or reinstall it using a different method listed on this page: **[Unity Hackatime Plugin](https://github.com/Daniel-Geo/unity-hackatime)**
 

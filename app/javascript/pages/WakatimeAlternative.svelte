@@ -327,7 +327,7 @@ api_key = YOUR_API_KEY_HERE</code
         ></pre>
       <p class="text-secondary leading-relaxed">
         Or sign in and let our <Link
-          href="/my/wakatime_setup"
+          href="/setup"
           class="text-primary hover:underline">setup page</Link
         > do it for you.
       </p>

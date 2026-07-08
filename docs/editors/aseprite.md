@@ -10,7 +10,7 @@ Go to **[Hackatime](https://hackatime.hackclub.com)** and make an account. Then 
 
 ## Step 2: Get Your Settings Ready
 
-Click this link to the **[setup page](https://hackatime.hackclub.com/my/wakatime_setup)**. It will set up your account so it works with Aseprite.
+Click this link to the **[setup page](https://hackatime.hackclub.com/setup)**. It will set up your account so it works with Aseprite.
 
 ## Step 3: Add the Plugin to Aseprite
 
@@ -41,7 +41,7 @@ To ensure your canvas displays correctly on the Hackatime dashboard:
 
 ## If Something Goes Wrong
 
-**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) and try again.
+**Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
 **Plugin not working?** Make sure your `.wakatime.cfg` file has the correct API key and home directory path
 

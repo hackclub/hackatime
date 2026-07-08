@@ -15,7 +15,7 @@ Visit [hackatime.hackclub.com](https://hackatime.hackclub.com) and sign up using
 
 ## Step 2: Run Automated Setup
 
-🚀 **Visit the [Hackatime Setup Page](https://hackatime.hackclub.com/my/wakatime_setup)** - this will:
+🚀 **Visit the [Hackatime Setup Page](https://hackatime.hackclub.com/setup)** - this will:
 
 1. Auto-detect your operating system
 2. Provide a copy-paste command that configures everything
@@ -66,18 +66,18 @@ Check that it's working:
 
 **Not seeing activity?**
 
-1. Re-run the [setup page](https://hackatime.hackclub.com/my/wakatime_setup) to verify configuration
+1. Re-run the [setup page](https://hackatime.hackclub.com/setup) to verify configuration
 2. Check that your WakaTime plugin is enabled in your editor
 3. Make sure you're actively coding (not just viewing files)
 
 **Need help?**
 
-- Visit the [Hackatime Setup Page](https://hackatime.hackclub.com/my/wakatime_setup) for guided troubleshooting
+- Visit the [Hackatime Setup Page](https://hackatime.hackclub.com/setup) for guided troubleshooting
 - Join [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 - [Create an issue](https://github.com/hackclub/hackatime/issues) on GitHub
 
 **Migrating from WakaTime?**
-Just run the automated setup script on the [Hackatime Setup Page](https://hackatime.hackclub.com/my/wakatime_setup) - it will automatically update your `~/.wakatime.cfg` file and all your existing plugins will work immediately!
+Just run the automated setup script on the [Hackatime Setup Page](https://hackatime.hackclub.com/setup) - it will automatically update your `~/.wakatime.cfg` file and all your existing plugins will work immediately!
 
 ---
 

@@ -221,10 +221,11 @@ Rails.application.routes.draw do
   post "deletion", to: "deletion_requests#create", as: :create_deletion
   delete "deletion", to: "deletion_requests#cancel", as: :cancel_deletion
 
-  get "my/wakatime_setup", to: "users#wakatime_setup"
-  get "my/wakatime_setup/step-2", to: "users#wakatime_setup_step_2"
-  get "my/wakatime_setup/step-3", to: "users#wakatime_setup_step_3"
-  get "my/wakatime_setup/step-4", to: "users#wakatime_setup_step_4"
+  get "setup", to: "users#setup", as: :setup
+  get "my/wakatime_setup", to: redirect("/setup")
+  get "my/wakatime_setup/step-2", to: redirect("/setup")
+  get "my/wakatime_setup/step-3", to: redirect("/setup")
+  get "my/wakatime_setup/step-4", to: redirect("/setup")
 
   post "/sailors_log/slack/commands", to: "slack#create"
 

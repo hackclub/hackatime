@@ -16,7 +16,7 @@ Visit the [GitHub page](https://github.com/SkyfallWasTaken/figma-wakatime) and i
 
 1. Click the "puzzle piece" icon on your toolbar
 2. Click on "WakaTime for Figma"
-3. For the API key, use your Hackatime API key (which is located [here](https://hackatime.hackclub.com/my/wakatime_setup))
+3. For the API key, use your Hackatime API key (which is located [here](https://hackatime.hackclub.com/setup))
 4. For the API URL, use `https://hackatime.hackclub.com/api/hackatime/v1`
 
 ## Troubleshooting
