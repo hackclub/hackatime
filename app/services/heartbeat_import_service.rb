@@ -10,8 +10,8 @@ class HeartbeatImportService
 
     flush = lambda do
       next if heartbeat_batch.empty?
-      result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch.values,
-                                    user_agents_by_id:)
+      result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch.values.map { |entry| entry[:heartbeat] },
+                                     user_agents_by_id:)
       imported_count += result.persisted_count
       errors.concat(result.errors)
       heartbeat_batch.clear
@@ -23,7 +23,10 @@ class HeartbeatImportService
 
       begin
         attrs = HeartbeatIngest.normalize_imported_heartbeat(user:, heartbeat: hb, user_agents_by_id:)
-        heartbeat_batch[attrs[:fields_hash]] = hb
+        existing = heartbeat_batch[attrs[:fields_hash]]
+        if existing.nil? || attrs[:time].to_f >= existing[:time]
+          heartbeat_batch[attrs[:fields_hash]] = { heartbeat: hb, time: attrs[:time].to_f }
+        end
         flush.call if heartbeat_batch.size >= BATCH_SIZE
       rescue => e
         errors << { heartbeat: hb, error: e.message }

@@ -137,7 +137,7 @@ module Clickhouse
         timeout = heartbeat_timeout_duration.to_i
         day_expr = day_group_sql(user_timezone)
 
-        inner = deduped(with_valid_timestamps.where(time: start_date..end_date))
+        inner = deduped(all.with_valid_timestamps.where(time: start_date..end_date))
           .select(Arel.sql("#{day_expr} AS day_group, #{capped_diff_sql(timeout, day_expr)} AS diff"))
           .to_sql
 
@@ -169,7 +169,7 @@ module Clickhouse
 
       def to_span(timeout_duration: nil)
         timeout = (timeout_duration || heartbeat_timeout_duration.to_i).to_i
-        times = deduped(with_valid_timestamps).order(:time).pluck(:time)
+        times = deduped(all.with_valid_timestamps).order(:time).pluck(:time)
         return [] if times.empty?
 
         spans = []

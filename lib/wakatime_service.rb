@@ -11,6 +11,7 @@ class WakatimeService
     @exclude_categories = exclude_categories
     @user = user
     @boundary_aware = boundary_aware
+    @scope = @scope.where(user_id: @user.id) if @user.present?
 
     @start_date = convert_to_unix_timestamp(start_date)
     @end_date = convert_to_unix_timestamp(end_date)
@@ -23,8 +24,6 @@ class WakatimeService
 
     @limit = limit
     @limit = nil if @limit&.zero?
-
-    @scope = @scope.where(user_id: @user.id) if @user.present?
 
     @specific_filters = specific_filters
     @allow_cache = allow_cache

@@ -29,6 +29,24 @@ class WakatimeServiceSummaryTest < ActiveSupport::TestCase
     assert_operator fresh_summary[:total_seconds], :>, cached_summary[:total_seconds]
   end
 
+  test "default date range is scoped to the requested user" do
+    other_user = User.create!(username: "wts_other_#{SecureRandom.hex(4)}")
+    other_old_time = 30.days.ago.beginning_of_day.to_i
+    create_heartbeat_for(other_user, project: "other", language: "Ruby", time: other_old_time)
+    create_heartbeat_for(other_user, project: "other", language: "Ruby", time: other_old_time + 60)
+
+    base = Time.current.beginning_of_day.to_i
+    create_heartbeat(project: "scoped", language: "Ruby", time: base)
+    create_heartbeat(project: "scoped", language: "Ruby", time: base + 60)
+    create_heartbeat(project: "scoped", language: "Ruby", time: base + 120)
+
+    summary = WakatimeService.new(user: @user, allow_cache: false, limit: nil).generate_summary
+
+    assert_equal Time.at(base).strftime("%Y-%m-%dT%H:%M:%SZ"), summary[:start]
+    assert_equal Time.at(base + 120).strftime("%Y-%m-%dT%H:%M:%SZ"), summary[:end]
+    assert_equal 60, summary[:total_seconds]
+  end
+
   private
 
   def summary_for(allow_cache:)
@@ -43,8 +61,12 @@ class WakatimeServiceSummaryTest < ActiveSupport::TestCase
   end
 
   def create_heartbeat(project:, language:, time:)
-    super(
-      user: @user,
+    create_heartbeat_for(@user, project: project, language: language, time: time)
+  end
+
+  def create_heartbeat_for(user, project:, language:, time:)
+    Clickhouse::HeartbeatWriter.create!(
+      user_id: user.id,
       entity: "src/main.rb",
       type: "file",
       category: "coding",

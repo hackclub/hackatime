@@ -33,6 +33,38 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     assert_equal 1, Clickhouse::Heartbeat.for_user(user).count
   end
 
+  test "pre-batch dedupe keeps the latest heartbeat for a duplicate fields hash" do
+    user = User.create!(timezone: "UTC")
+    captured_heartbeats = nil
+    file_content = {
+      heartbeats: [
+        { entity: "/tmp/newer.rb", time: 1_700_000_200.0 },
+        { entity: "/tmp/older.rb", time: 1_700_000_100.0 }
+      ]
+    }.to_json
+
+    original_normalizer = HeartbeatIngest.method(:normalize_imported_heartbeat)
+    original_call = HeartbeatIngest.method(:call)
+    HeartbeatIngest.define_singleton_method(:normalize_imported_heartbeat) do |user:, heartbeat:, user_agents_by_id: {}|
+      { fields_hash: "duplicate-hash", time: heartbeat.fetch("time") }
+    end
+    HeartbeatIngest.define_singleton_method(:call) do |user:, mode:, heartbeats:, user_agents_by_id: {}|
+      captured_heartbeats = heartbeats
+      HeartbeatIngest::Result.new(total_count: heartbeats.length, persisted_count: heartbeats.length,
+        duplicate_count: 0, failed_count: 0, errors: [], items: [])
+    end
+
+    result = HeartbeatImportService.import_from_file(file_content, user)
+
+    assert result[:success]
+    assert_equal 2, result[:total_count]
+    assert_equal 1, result[:imported_count]
+    assert_equal [ 1_700_000_200.0 ], captured_heartbeats.map { |heartbeat| heartbeat.fetch("time") }
+  ensure
+    HeartbeatIngest.define_singleton_method(:normalize_imported_heartbeat, original_normalizer) if original_normalizer
+    HeartbeatIngest.define_singleton_method(:call, original_call) if original_call
+  end
+
   test "imports heartbeats from wakatime data dump day groups" do
     user = User.create!(timezone: "UTC")
     file_content = {
