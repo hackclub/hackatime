@@ -99,7 +99,7 @@ module Api
               SELECT
                 toDate(toDateTime(time)) as day,
                 time - lagInFrame(time, 1, time) OVER (
-                  PARTITION BY toStartOfDay(toDateTime(time)) ORDER BY time, fields_hash
+                  PARTITION BY toStartOfDay(toDateTime(time)) ORDER BY time, id
                   ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
                 ) as gap
               FROM heartbeats FINAL
@@ -230,7 +230,7 @@ module Api
             return render json: { segment: segment, total_count: query.limit(nil).count }
           end
 
-          heartbeats = query.order(time: :desc, fields_hash: :desc).limit(limit + 1).offset(offset).to_a
+          heartbeats = query.order(time: :desc, id: :desc).limit(limit + 1).offset(offset).to_a
           has_more = heartbeats.size > limit
           heartbeats = heartbeats.first(limit)
 

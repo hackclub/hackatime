@@ -27,7 +27,7 @@ class HeartbeatExportJob < ApplicationJob
     end
 
     if all_data
-      heartbeats = Clickhouse::Heartbeat.for_user(user).order(time: :asc, fields_hash: :asc)
+      heartbeats = Clickhouse::Heartbeat.for_user(user).order(time: :asc, id: :asc)
       first_time, last_time = Clickhouse::Heartbeat.for_user(user).pick(Arel.sql("MIN(time), MAX(time)"))
       if first_time && last_time
         start_date = Time.at(first_time).to_date
@@ -40,7 +40,7 @@ class HeartbeatExportJob < ApplicationJob
       end_date = Date.iso8601(end_date)
       heartbeats = Clickhouse::Heartbeat.for_user(user)
         .where("time >= ? AND time <= ?", start_date.beginning_of_day.to_f, end_date.end_of_day.to_f)
-        .order(time: :asc, fields_hash: :asc)
+        .order(time: :asc, id: :asc)
     end
 
     export_data = build_export_data(heartbeats, start_date, end_date)

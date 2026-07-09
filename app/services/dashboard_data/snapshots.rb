@@ -24,8 +24,9 @@ module DashboardData
     def project_details_snapshot(scope:)
       timeout = Clickhouse::Heartbeat.heartbeat_timeout_duration.to_i
       relation_sql = scope.with_valid_timestamps
-        .where.not(project: [ nil, "" ], time: nil)
-        .select(:fields_hash, :time, :project, :language)
+        .where.not(project: [ nil, "" ])
+        .where.not(time: nil)
+        .select(:id, :time, :project, :language)
         .to_sql
 
       rows = Clickhouse::Heartbeat.connection.select_all(<<~SQL.squish)
@@ -39,7 +40,7 @@ module DashboardData
           SELECT project AS grouped_time,
                  time,
                  language,
-                 least(time - lagInFrame(time, 1, time) OVER (PARTITION BY project ORDER BY time, fields_hash ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), #{timeout}) AS diff
+                 least(time - lagInFrame(time, 1, time) OVER (PARTITION BY project ORDER BY time, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), #{timeout}) AS diff
           FROM (#{relation_sql}) AS project_detail_heartbeats
         ) AS diffs
         GROUP BY grouped_time
@@ -63,12 +64,12 @@ module DashboardData
       relation_sql = scope.with_valid_timestamps
         .where.not(time: nil)
         .where(time: ranges.last[1]..ranges.first[2])
-        .select(:fields_hash, :time, :project)
+        .select(:id, :time, :project)
         .to_sql
 
       quoted_timezone = Clickhouse::Heartbeat.connection.quote(user.timezone)
       week_group_sql = "toMonday(toTimeZone(toDateTime64(time, 3), #{quoted_timezone}))"
-      lag_sql = "lagInFrame(time, 1, time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, fields_hash ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)"
+      lag_sql = "lagInFrame(time, 1, time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)"
 
       rows = Clickhouse::Heartbeat.connection.select_all(<<~SQL.squish)
         SELECT toString(week_group) AS week_key,

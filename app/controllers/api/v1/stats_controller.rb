@@ -208,7 +208,7 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def unique_heartbeat_seconds(heartbeats)
-    timestamps = heartbeats.order(:time, :fields_hash).pluck(:time)
+    timestamps = heartbeats.order(:time, :id).pluck(:time)
     return 0 if timestamps.empty?
 
     total_seconds = 0

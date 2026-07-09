@@ -54,7 +54,7 @@ class TimelineService
       .where(user_id: users_by_id.keys)
       .where("time >= ? AND time <= ?", date.beginning_of_day.to_f - 24.hours.to_i, date.end_of_day.to_f + 24.hours.to_i)
       .select(:id, :user_id, :time, :entity, :project, :editor, :language)
-      .order(:user_id, :time, :fields_hash).to_a.group_by(&:user_id)
+      .order(:user_id, :time, :id).to_a.group_by(&:user_id)
   end
 
   def calculate_spans(user, heartbeats)

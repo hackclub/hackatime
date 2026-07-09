@@ -133,7 +133,7 @@ module Api
             end_time = date.end_of_day.utc
           end
 
-          heartbeats = Clickhouse::Heartbeat.for_user(user).where(time: start_time.to_i..end_time.to_i).order(:time, :fields_hash)
+          heartbeats = Clickhouse::Heartbeat.for_user(user).where(time: start_time.to_i..end_time.to_i).order(:time, :id)
           render json: {
             user_id: user.id,
             username: user.display_name,
@@ -304,7 +304,7 @@ module Api
           end
 
           total_count = query.count
-          rows = query.order(time: :asc, fields_hash: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
+          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
           ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).index_by(&:id)
           heartbeats = rows.map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type, ja4_id|
             {

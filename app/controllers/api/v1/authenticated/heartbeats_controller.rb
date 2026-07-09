@@ -5,7 +5,7 @@ module Api
         def latest
           heartbeat = Clickhouse::Heartbeat.for_user(current_user)
                                            .where.not(source_type: :test_entry)
-                                           .order(time: :desc, fields_hash: :desc)
+                                           .order(time: :desc, id: :desc)
                                            .first
 
           if heartbeat

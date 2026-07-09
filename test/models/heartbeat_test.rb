@@ -144,38 +144,42 @@ class HeartbeatTest < ActiveSupport::TestCase
   end
 
   test "daily_durations preserves the caller relation scope" do
-    user = User.create!(timezone: "UTC")
-    other_user = User.create!(timezone: "UTC")
-    user_day = Time.current.beginning_of_day + 10.hours
-    other_day = 1.day.ago.beginning_of_day + 10.hours
+    travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+      user = User.create!(timezone: "UTC")
+      other_user = User.create!(timezone: "UTC")
+      user_day = Time.current.beginning_of_day + 10.hours
+      other_day = 1.day.ago.beginning_of_day + 10.hours
 
-    create_heartbeat(user: user, time: user_day.to_f, project: "scoped", category: "coding", source_type: :test_entry)
-    create_heartbeat(user: user, time: (user_day + 60.seconds).to_f, project: "scoped", category: "coding", source_type: :test_entry)
-    create_heartbeat(user: other_user, time: other_day.to_f, project: "other", category: "coding", source_type: :test_entry)
-    create_heartbeat(user: other_user, time: (other_day + 60.seconds).to_f, project: "other", category: "coding", source_type: :test_entry)
+      create_heartbeat(user: user, time: user_day.to_f, project: "scoped", category: "coding", source_type: :test_entry)
+      create_heartbeat(user: user, time: (user_day + 60.seconds).to_f, project: "scoped", category: "coding", source_type: :test_entry)
+      create_heartbeat(user: other_user, time: other_day.to_f, project: "other", category: "coding", source_type: :test_entry)
+      create_heartbeat(user: other_user, time: (other_day + 60.seconds).to_f, project: "other", category: "coding", source_type: :test_entry)
 
-    durations = Clickhouse::Heartbeat.for_user(user).daily_durations(user_timezone: "UTC").to_h
+      durations = Clickhouse::Heartbeat.for_user(user).daily_durations(user_timezone: "UTC").to_h
 
-    assert_equal [ user_day.to_date ], durations.keys
-    assert_equal 60, durations[user_day.to_date]
+      assert_equal [ user_day.to_date ], durations.keys
+      assert_equal 60, durations[user_day.to_date]
+    end
   end
 
   test "to_span preserves the caller relation scope" do
-    user = User.create!(timezone: "UTC")
-    other_user = User.create!(timezone: "UTC")
-    base = Time.current.beginning_of_day + 9.hours
-    other_base = base + 4.hours
+    travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+      user = User.create!(timezone: "UTC")
+      other_user = User.create!(timezone: "UTC")
+      base = Time.current.beginning_of_day + 9.hours
+      other_base = base + 4.hours
 
-    create_heartbeat(user: user, time: base.to_f, project: "scoped", category: "coding", source_type: :test_entry)
-    create_heartbeat(user: user, time: (base + 60.seconds).to_f, project: "scoped", category: "coding", source_type: :test_entry)
-    create_heartbeat(user: other_user, time: other_base.to_f, project: "other", category: "coding", source_type: :test_entry)
-    create_heartbeat(user: other_user, time: (other_base + 60.seconds).to_f, project: "other", category: "coding", source_type: :test_entry)
+      create_heartbeat(user: user, time: base.to_f, project: "scoped", category: "coding", source_type: :test_entry)
+      create_heartbeat(user: user, time: (base + 60.seconds).to_f, project: "scoped", category: "coding", source_type: :test_entry)
+      create_heartbeat(user: other_user, time: other_base.to_f, project: "other", category: "coding", source_type: :test_entry)
+      create_heartbeat(user: other_user, time: (other_base + 60.seconds).to_f, project: "other", category: "coding", source_type: :test_entry)
 
-    spans = Clickhouse::Heartbeat.for_user(user).where(time: base.to_f...(base + 2.hours).to_f).to_span
+      spans = Clickhouse::Heartbeat.for_user(user).where(time: base.to_f...(base + 2.hours).to_f).to_span
 
-    assert_equal 1, spans.length
-    assert_equal base.to_f, spans.first[:start_time]
-    assert_equal 60, spans.first[:duration]
+      assert_equal 1, spans.length
+      assert_equal base.to_f, spans.first[:start_time]
+      assert_equal 60, spans.first[:duration]
+    end
   end
 
   test "generate_fields_hash is stable and insensitive to key types" do
@@ -190,12 +194,52 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert_not_equal hash_from_symbols, different
   end
 
+  test "generate_fields_hash matches the legacy Postgres digest" do
+    attrs = {
+      branch: "main",
+      category: "coding",
+      cursorpos: 17,
+      dependencies: [ "rails", "svelte" ],
+      editor: "vscode",
+      entity: "app/models/user.rb",
+      is_write: true,
+      language: "Ruby",
+      line_additions: 3,
+      line_deletions: 1,
+      lineno: 42,
+      lines: 120,
+      machine: "laptop",
+      operating_system: "macOS",
+      project: "hackatime",
+      project_root_count: 1,
+      time: 1_700_000_000.5,
+      type: "file",
+      user_agent: "vscode/1.0.0",
+      user_id: 123
+    }
+
+    assert_equal "2f720968efb2caf0c1f10601b724b0ca", Clickhouse::Heartbeat.generate_fields_hash(attrs)
+  end
+
   test "writer ids are JS-safe and time-ordered" do
     id_now = Clickhouse::HeartbeatWriter.generate_id
     id_future = Clickhouse::HeartbeatWriter.generate_id(1.hour.from_now)
 
     assert id_now < 2**53, "ids must stay within JS-safe integer range"
     assert id_future > id_now
+  end
+
+  test "merge_user_heartbeats skips rows whose latest version is deleted" do
+    older = User.create!(timezone: "UTC")
+    newer = User.create!(timezone: "UTC")
+    live = create_heartbeat(user: newer, time: Time.current.to_f, project: "live", source_type: :test_entry)
+    deleted = create_heartbeat(user: newer, time: 1.minute.from_now.to_f, project: "deleted", source_type: :test_entry)
+
+    soft_delete_heartbeat(deleted)
+    Clickhouse::HeartbeatWriter.merge_user_heartbeats!(older_user_id: older.id, newer_user_id: newer.id)
+
+    assert_equal [ live.fields_hash ], Clickhouse::Heartbeat.for_user(older).pluck(:fields_hash)
+    assert_empty Clickhouse::Heartbeat.for_user(newer)
   end
 
   private

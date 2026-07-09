@@ -10,7 +10,7 @@ class Cache::CurrentlyHackingJob < Cache::ActivityJob
       .where(source_type: :direct_entry).coding_only
       .where("time > ?", 5.minutes.ago.to_f)
       .group(:user_id)
-      .pluck(Arel.sql("user_id, argMax(ifNull(project, ''), tuple(time, fields_hash))"))
+      .pluck(Arel.sql("user_id, argMax(ifNull(project, ''), tuple(time, id))"))
       .to_h
 
     users = User.where(id: latest_project_by_user.keys)

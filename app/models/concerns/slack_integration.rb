@@ -56,7 +56,7 @@ module SlackIntegration
 
     return if status_present && status_custom
 
-    current_project = Clickhouse::Heartbeat.for_user(self).order(time: :desc, fields_hash: :desc).first&.project
+    current_project = Clickhouse::Heartbeat.for_user(self).order(time: :desc, id: :desc).first&.project
     current_project_duration = Time.use_zone(timezone) do
       Clickhouse::Heartbeat.for_user(self)
                            .where(project: current_project)

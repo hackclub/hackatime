@@ -23,6 +23,18 @@ class Cache::ActiveProjectsJobTest < ActiveSupport::TestCase
     assert_equal "live", result[user.id].project_name
   end
 
+  test "falls back to the newest recent project with an active mapping" do
+    user = User.create!(timezone: "UTC")
+    ProjectRepoMapping.create!(user: user, project_name: "mapped")
+
+    create_heartbeat(user: user, project: "mapped", time: 2.minutes.ago.to_f)
+    create_heartbeat(user: user, project: "unmapped", time: 1.minute.ago.to_f)
+
+    result = Cache::ActiveProjectsJob.new.send(:calculate)
+
+    assert_equal "mapped", result[user.id].project_name
+  end
+
   test "excludes heartbeats older than the recent window and non-direct source types" do
     user = User.create!(timezone: "UTC")
     ProjectRepoMapping.create!(user: user, project_name: "stale")

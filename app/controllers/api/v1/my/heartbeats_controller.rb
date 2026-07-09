@@ -3,7 +3,7 @@ class Api::V1::My::HeartbeatsController < ApplicationController
   before_action :ensure_authenticated!
 
   def most_recent
-    scope = Clickhouse::Heartbeat.for_user(current_user).order(time: :desc, fields_hash: :desc)
+    scope = Clickhouse::Heartbeat.for_user(current_user).order(time: :desc, id: :desc)
 
     if params[:source_type].present?
       scope = scope.where(source_type: params[:source_type])
@@ -29,7 +29,7 @@ class Api::V1::My::HeartbeatsController < ApplicationController
 
     heartbeats = Clickhouse::Heartbeat.for_user(current_user)
       .where("time >= ? AND time <= ?", start_time.to_f, end_time.to_f)
-      .order(time: :asc, fields_hash: :asc)
+      .order(time: :asc, id: :asc)
 
     render json: {
       start_time: start_time, end_time: end_time,

@@ -51,7 +51,7 @@ module Clickhouse
         end
         connection.execute(<<~SQL.squish)
           INSERT INTO #{table} (#{column_list(connection)})
-          SELECT #{exprs.join(", ")} FROM #{table}
+          SELECT #{exprs.join(", ")} FROM #{table} FINAL
           WHERE user_id = #{user_id.to_i} AND deleted_at IS NULL
         SQL
         clear_query_cache
@@ -70,7 +70,7 @@ module Clickhouse
         end
         connection.execute(<<~SQL.squish)
           INSERT INTO #{table} (#{column_list(connection)})
-          SELECT #{moved_exprs.join(", ")} FROM #{table}
+          SELECT #{moved_exprs.join(", ")} FROM #{table} FINAL
           WHERE user_id = #{newer_user_id.to_i} AND deleted_at IS NULL
         SQL
 
@@ -83,7 +83,7 @@ module Clickhouse
         end
         connection.execute(<<~SQL.squish)
           INSERT INTO #{table} (#{column_list(connection)})
-          SELECT #{tombstone_exprs.join(", ")} FROM #{table}
+          SELECT #{tombstone_exprs.join(", ")} FROM #{table} FINAL
           WHERE user_id = #{newer_user_id.to_i} AND deleted_at IS NULL
         SQL
         clear_query_cache
