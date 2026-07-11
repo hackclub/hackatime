@@ -4,42 +4,48 @@ module Api
       include ActionController::HttpAuthentication::Token::ControllerMethods
       include RenderHelpers
 
-      before_action :authenticate_admin_api_key!
+      before_action :authenticate_admin!
       before_action :set_paper_trail_whodunnit
 
       private
 
-      def authenticate_admin_api_key!
-        authenticate_or_request_with_http_token do |token, _options|
-          @admin_api_key = AdminApiKey.active.includes(:user).find_by(token: token)
-          next false unless @admin_api_key
-
-          @current_user = @admin_api_key.user
-          if @current_user.admin_level.in?(%w[admin superadmin viewer ultraadmin])
-            true
-          else
-            @admin_api_key.revoke!
-            false
-          end
+      def authenticate_admin!
+        authenticate_or_request_with_http_token do |token, _|
+          auth_admin_api_key(token) || auth_oauth_admin(token)
         end
       end
+      alias_method :authenticate_admin_api_key!, :authenticate_admin!
 
-      def current_user
-        @current_user
+      def auth_admin_api_key(token)
+        key = AdminApiKey.active.includes(:user).find_by(token: token) or return false
+        u = key.user
+        unless admin_api_user?(u)
+          key.revoke!
+          return false
+        end
+        @admin_api_key, @current_user = key, u
+        true
       end
 
-      def current_admin_api_key
-        @admin_api_key
+      def auth_oauth_admin(token)
+        t = Doorkeeper::AccessToken.by_token(token)
+        return false unless t&.acceptable?([ OauthApplication::ADMIN_SCOPE ])
+
+        u = User.find_by(id: t.resource_owner_id)
+        return false unless admin_api_user?(u)
+
+        @oauth_token, @current_user = t, u
+        true
       end
 
-      def set_paper_trail_whodunnit
-        PaperTrail.request.whodunnit = current_user&.id
-      end
+      def admin_api_user?(u) = u&.admin_level.in?(%w[admin superadmin viewer ultraadmin])
+      def current_user = @current_user
+      def current_admin_api_key = @admin_api_key
+      def current_oauth_token = @oauth_token
+      def set_paper_trail_whodunnit = PaperTrail.request.whodunnit = current_user&.id
 
       def require_superadmin
-        unless current_user&.admin_level_superadmin? || current_user&.admin_level_ultraadmin?
-          render_unauthorized("lmao no perms")
-        end
+        render_unauthorized("lmao no perms") unless current_user&.admin_level_superadmin? || current_user&.admin_level_ultraadmin?
       end
     end
   end

@@ -159,3 +159,4 @@ en:
     scopes:
       profile: Access your basic profile info (user ID, emails, Slack ID, GitHub username)
       read: View your Hackatime stats, projects, heartbeats, and coding activity
+      admin: Access the Admin API on your behalf (user management, trust actions, heartbeats, and other internal tools)

@@ -27,12 +27,14 @@
     page_title,
     client_name,
     verified,
+    has_admin_scope = false,
     scopes,
     form_data,
   }: {
     page_title: string;
     client_name: string;
     verified: boolean;
+    has_admin_scope?: boolean;
     scopes: Scope[];
     form_data: FormData;
   } = $props();
@@ -42,10 +44,14 @@
   let authorizing = $state(false);
   let denying = $state(false);
 
+  const warnPath =
+    "M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z";
   const scopeIcons: Record<string, string> = {
     profile:
       "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
     read: "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
+    admin:
+      "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z",
   };
 
   const hiddenFields = $derived<[string, string][]>([
@@ -77,20 +83,36 @@
       </p>
     </div>
 
+    {#if has_admin_scope}
+      <div
+        class="mb-5 flex items-start gap-3 rounded-xl border-2 border-red bg-red/15 p-4"
+      >
+        <svg class="mt-0.5 h-6 w-6 shrink-0 text-red" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d={warnPath} clip-rule="evenodd" />
+        </svg>
+        <div>
+          <p class="text-base font-bold uppercase tracking-wide text-red">
+            Danger: Admin API access
+          </p>
+          <p class="mt-1 text-sm font-semibold text-red">
+            This app is requesting full Admin API access on your behalf. It can
+            read and act with your admin privileges (users, trust levels,
+            heartbeats, and other internal tools).
+          </p>
+          <p class="mt-1 text-sm text-red/90">
+            Only authorize if you recognize this internal tool and trust the
+            operators. If you did not expect this prompt, click Deny.
+          </p>
+        </div>
+      </div>
+    {/if}
+
     {#if !verified}
       <div
         class="mb-5 flex items-start gap-3 rounded-xl border border-yellow/30 bg-yellow/10 p-4"
       >
-        <svg
-          class="mt-0.5 h-5 w-5 shrink-0 text-yellow"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-            clip-rule="evenodd"
-          />
+        <svg class="mt-0.5 h-5 w-5 shrink-0 text-yellow" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d={warnPath} clip-rule="evenodd" />
         </svg>
         <div>
           <p class="text-sm font-medium text-yellow">Unverified application</p>

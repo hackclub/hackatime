@@ -236,6 +236,51 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal application.name, body["name"]
   end
 
+  test "new form omits admin scope for non-admin users" do
+    sign_in_as(User.create!(timezone: "UTC"))
+    get new_oauth_application_path
+    vals = scope_option_values
+    assert_includes vals, "profile"
+    assert_includes vals, "read"
+    assert_not_includes vals, "admin"
+  end
+
+  test "new form includes admin scope for admin users" do
+    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    get new_oauth_application_path
+    assert_includes scope_option_values, "admin"
+  end
+
+  test "non-admin cannot create application with admin scope" do
+    sign_in_as(User.create!(timezone: "UTC"))
+    post oauth_applications_path, params: {
+      doorkeeper_application: valid_application_form_params(name: "Sneaky").merge(scopes: %w[profile admin])
+    }
+    app = OauthApplication.order(:created_at).last
+    assert_equal "Sneaky", app.name
+    assert_not_includes app.scopes.to_a, "admin"
+  end
+
+  test "admin can create confidential application with admin scope" do
+    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    post oauth_applications_path, params: {
+      doorkeeper_application: valid_application_form_params(name: "Fraud Tool").merge(scopes: %w[profile admin])
+    }
+    assert_includes OauthApplication.order(:created_at).last.scopes.to_a, "admin"
+  end
+
+  test "admin scope requires confidential application" do
+    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    assert_no_difference -> { OauthApplication.count } do
+      post oauth_applications_path, params: {
+        doorkeeper_application: valid_application_form_params(name: "Public Admin").merge(
+          scopes: %w[profile admin], confidential: "0"
+        )
+      }
+    end
+    assert_response :unprocessable_entity
+  end
+
   private
 
   def valid_application_params(name:)
@@ -257,5 +302,9 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
 
   def configured_scopes
     Doorkeeper.configuration.default_scopes.to_a.join(" ")
+  end
+
+  def scope_option_values
+    inertia_page.dig("props", "scope_options").map { |s| s["value"] }
   end
 end

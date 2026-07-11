@@ -5,18 +5,25 @@ module Api
         include Api::Admin::V1::UserUtilities
 
         def check
-          api_key = current_admin_api_key
-          creator = User.find(api_key.user_id)
-          render json: {
+          u = current_user
+          body = {
             valid: true,
-            api_key: { id: api_key.id, name: api_key.name, created_at: api_key.created_at },
-            creator: {
-              id: creator.id,
-              username: creator.username,
-              display_name: creator.display_name,
-              admin_level: creator.admin_level
-            }
+            creator: { id: u.id, username: u.username, display_name: u.display_name, admin_level: u.admin_level }
           }
+
+          if (k = current_admin_api_key)
+            body[:auth] = { type: "api_key" }
+            body[:api_key] = { id: k.id, name: k.name, created_at: k.created_at }
+          elsif (t = current_oauth_token)
+            a = t.application
+            body[:auth] = {
+              type: "oauth",
+              application: { id: a&.id, name: a&.name, uid: a&.uid },
+              scopes: t.scopes.to_a
+            }
+          end
+
+          render json: body
         end
 
         def visualization_quantized

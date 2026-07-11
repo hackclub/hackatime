@@ -5,7 +5,7 @@ Doorkeeper.configure do
   application_class "OauthApplication"
 
   default_scopes "profile"
-  optional_scopes "read"
+  optional_scopes "read", "admin"
   enforce_configured_scopes
 
   resource_owner_authenticator do

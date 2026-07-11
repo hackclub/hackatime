@@ -120,9 +120,20 @@ module Doorkeeper
     def application_params
       permitted = params.require(:doorkeeper_application)
         .permit(:name, :redirect_uri, :confidential, :redirect_to_hca_login, scopes: [])
-      permitted[:scopes] = permitted[:scopes].compact_blank.join(" ")
+      permitted[:scopes] = normalize_scopes(permitted[:scopes]).join(" ")
       permitted
     end
+
+    def normalize_scopes(raw)
+      scopes = Array(raw).compact_blank.map(&:to_s)
+      return scopes if can_assign_admin_scope?
+
+      scopes.delete(OauthApplication::ADMIN_SCOPE)
+      scopes |= [ OauthApplication::ADMIN_SCOPE ] if action_name == "update" && @application&.admin_scope?
+      scopes
+    end
+
+    def can_assign_admin_scope? = current_user&.admin_level.in?(AuthHelpers::ADMIN_LEVELS)
 
     def i18n_scope(action) = %i[doorkeeper flash applications] << action
 
@@ -217,6 +228,8 @@ module Doorkeeper
     def all_scope_options
       default_scopes = Doorkeeper.configuration.default_scopes.to_a.map(&:to_s)
       optional_scopes = Doorkeeper.configuration.optional_scopes.to_a.map(&:to_s)
+      optional_scopes -= [ OauthApplication::ADMIN_SCOPE ] unless can_assign_admin_scope?
+
       (default_scopes + optional_scopes).uniq.map { |scope|
         { value: scope,
           description: I18n.t(scope, scope: %i[doorkeeper scopes], default: scope.humanize),
