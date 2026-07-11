@@ -87,7 +87,11 @@
       <div
         class="mb-5 flex items-start gap-3 rounded-xl border-2 border-red bg-red/15 p-4"
       >
-        <svg class="mt-0.5 h-6 w-6 shrink-0 text-red" fill="currentColor" viewBox="0 0 20 20">
+        <svg
+          class="mt-0.5 h-6 w-6 shrink-0 text-red"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
           <path fill-rule="evenodd" d={warnPath} clip-rule="evenodd" />
         </svg>
         <div>
@@ -111,7 +115,11 @@
       <div
         class="mb-5 flex items-start gap-3 rounded-xl border border-yellow/30 bg-yellow/10 p-4"
       >
-        <svg class="mt-0.5 h-5 w-5 shrink-0 text-yellow" fill="currentColor" viewBox="0 0 20 20">
+        <svg
+          class="mt-0.5 h-5 w-5 shrink-0 text-yellow"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
           <path fill-rule="evenodd" d={warnPath} clip-rule="evenodd" />
         </svg>
         <div>

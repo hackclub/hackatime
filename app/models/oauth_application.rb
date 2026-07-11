@@ -1,4 +1,6 @@
 class OauthApplication < Doorkeeper::Application
+  ADMIN_SCOPE = "admin"
+
   belongs_to :owner, polymorphic: true, optional: true
 
   scope :verified, -> { where(verified: true) }
@@ -11,7 +13,7 @@ class OauthApplication < Doorkeeper::Application
   def admin_update(attrs) = with_admin_override { update(attrs) }
   def admin_update!(attrs) = with_admin_override { update!(attrs) }
 
-  def admin_scope? = scopes.to_a.include?("admin")
+  def admin_scope? = scopes.to_a.include?(ADMIN_SCOPE)
 
   private
 

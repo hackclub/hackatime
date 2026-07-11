@@ -4,6 +4,8 @@ module Api
       include ActionController::HttpAuthentication::Token::ControllerMethods
       include RenderHelpers
 
+      ADMIN_API_LEVELS = %w[admin superadmin viewer ultraadmin].freeze
+
       before_action :authenticate_admin!
       before_action :set_paper_trail_whodunnit
 
@@ -38,7 +40,7 @@ module Api
         true
       end
 
-      def admin_api_user?(u) = u&.admin_level.in?(%w[admin superadmin viewer ultraadmin])
+      def admin_api_user?(u) = u&.admin_level.in?(ADMIN_API_LEVELS)
       def current_user = @current_user
       def current_admin_api_key = @admin_api_key
       def current_oauth_token = @oauth_token
