@@ -360,8 +360,9 @@ class DashboardStatsTest < ActiveSupport::TestCase
     with_memory_cache_store do
       Rails.cache.clear
 
-      user = User.create!(timezone: "UTC")
+      # Freeze time for the whole test so weekly rollups use the same week as the heartbeats.
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+        user = User.create!(timezone: "UTC")
         [ "<<LAST_PROJECT>>", "", nil, "Unknown" ].each_with_index do |project, index|
           start_at = Time.zone.parse("2026-04-13 09:00:00") + index.hours
           create_heartbeat_at(user, start_at.to_s, project:, language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -370,15 +371,15 @@ class DashboardStatsTest < ActiveSupport::TestCase
 
         create_heartbeat_at(user, "2026-04-13 14:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-13 14:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+
+        DashboardRollupRefreshService.new(user: user).call
+        result = build_stats(user).filterable_dashboard_data
+
+        assert_equal "alpha", result["top_project"]
+        assert_equal [ "alpha" ], result[:project]
+        assert_equal({ "alpha" => 60 }, result[:project_durations])
+        assert_equal({ "alpha" => 60 }, result[:weekly_project_stats].fetch("2026-04-13"))
       end
-
-      DashboardRollupRefreshService.new(user: user).call
-      result = build_stats(user).filterable_dashboard_data
-
-      assert_equal "alpha", result["top_project"]
-      assert_equal [ "alpha" ], result[:project]
-      assert_equal({ "alpha" => 60 }, result[:project_durations])
-      assert_equal({ "alpha" => 60 }, result[:weekly_project_stats].fetch("2026-04-13"))
     end
   end
 
