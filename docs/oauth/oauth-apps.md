@@ -28,6 +28,7 @@ Scopes control what data your app can access. Request only the scopes you need.
 |-------|-------------|-------------------|
 | `profile` | Access basic profile information (user ID, email addresses, Slack ID, GitHub username, trust factor) | Yes |
 | `read` | View basic info about the user's Hackatime account | No |
+| `admin` | Access the [Admin API](#admin-api-access) on the authorizing admin's behalf | No |
 
 If you don't specify any scopes, only the `profile` scope is granted.
 
@@ -36,6 +37,12 @@ When requesting scopes in the authorization URL, separate multiple scopes with s
 ```
 scope=profile+read
 ```
+
+### Admin scope restrictions
+
+- Only **admin+** users (`admin`, `superadmin`, `ultraadmin`) can attach the `admin` scope to an OAuth application.
+- Apps with the `admin` scope must be **confidential** (server-side clients that can keep a secret).
+- Only staff can authorize an app that requests `admin`. Regular users are denied.
 
 ## Authorization Flow
 
@@ -120,6 +127,17 @@ Use the access token in the `Authorization` header:
 GET https://hackatime.hackclub.com/api/v1/authenticated/me
 Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
+
+### Admin API access
+
+With a token that includes the `admin` scope, call Admin API endpoints the same way (instead of minting an Admin API key):
+
+```
+GET https://hackatime.hackclub.com/api/admin/v1/check
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+The token acts as the authorizing staff member: permissions follow their `admin_level` (viewer is read-oriented; admin+ can write where the Admin API allows). Existing Admin API keys (`hka_…`) continue to work for scripts and CI.
 
 ## OAuth-Authenticated API Endpoints
 
