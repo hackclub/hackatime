@@ -21,6 +21,10 @@ module Clickhouse
         (time.to_i << 22) | SecureRandom.random_number(1 << 22)
       end
 
+      def generate_version(time = Time.current)
+        (time.to_r * 1_000_000).to_i
+      end
+
       def create!(attrs)
         rows = insert_rows([ attrs ])
         rows.first
@@ -46,7 +50,7 @@ module Clickhouse
         HeartbeatIntervals::UserLock.call(user_ids: [ user_id ]) do
           connection = Clickhouse::Heartbeat.connection
           table = connection.quote_table_name(Clickhouse::Heartbeat.table_name)
-          version = (Time.current.to_f * 1_000_000).round
+          version = generate_version
 
           exprs = WRITABLE_COLUMNS.map do |column|
             case column
@@ -74,7 +78,7 @@ module Clickhouse
         HeartbeatIntervals::UserLock.call(user_ids: user_ids) do
           connection = Clickhouse::Heartbeat.connection
           table = connection.quote_table_name(Clickhouse::Heartbeat.table_name)
-          version = (Time.current.to_f * 1_000_000).round
+          version = generate_version
 
           moved_exprs = WRITABLE_COLUMNS.map do |column|
             column == "user_id" ? older_user_id.to_i.to_s : connection.quote_column_name(column)
@@ -203,7 +207,7 @@ module Clickhouse
       end
 
       def live_valid_row?(row)
-        live_row?(row) && row["time"].present? && HeartbeatIntervals::Calculator::VALID_TIME_RANGE.cover?(row["time"].to_f)
+        live_row?(row) && row["time"].present? && HeartbeatIntervals::VALID_TIME_RANGE.cover?(row["time"].to_f)
       end
 
       def column_list(connection)
@@ -237,7 +241,7 @@ module Clickhouse
         row["updated_at"] = updated_at
         row["deleted_at"] = deleted_at
         version_time = [ updated_at, deleted_at ].compact.max
-        row["version"] = attrs["version"] || (version_time.to_f * 1_000_000).round
+        row["version"] = attrs["version"] || generate_version(version_time)
         row
       end
 

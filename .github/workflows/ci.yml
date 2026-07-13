@@ -153,6 +153,7 @@ jobs:
         image: clickhouse/clickhouse-server:26.6.1.1193
         ports:
           - 8123:8123
+          - 9000:9000
         options: >-
           --health-cmd "clickhouse-client --query 'SELECT 1'"
           --health-interval 10s
@@ -221,6 +222,7 @@ jobs:
         image: clickhouse/clickhouse-server:26.6.1.1193
         ports:
           - 8123:8123
+          - 9000:9000
         options: >-
           --health-cmd "clickhouse-client --query 'SELECT 1'"
           --health-interval 10s

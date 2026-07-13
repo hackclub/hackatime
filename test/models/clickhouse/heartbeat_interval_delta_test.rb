@@ -44,19 +44,19 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
       }
     ])
 
-    assert_equal 90, Clickhouse::HeartbeatUserDailyStat.seconds_for(user_id: 123, start_date: now.to_date, end_date: now.to_date)
-    assert_equal 80, Clickhouse::HeartbeatProjectDailyStat.seconds_for(user_id: 123, project: "hackatime", start_date: now.to_date, end_date: now.to_date)
-    assert_equal 70, Clickhouse::HeartbeatDimensionDailyStat.seconds_for(user_id: 123, dimension: "language", value: "Ruby", start_date: now.to_date, end_date: now.to_date)
-    assert_equal 60, Clickhouse::HeartbeatDimensionDailyStat.seconds_for(user_id: 123, dimension: "editor", value: "vscode", start_date: now.to_date, end_date: now.to_date)
-    assert_equal 45, Clickhouse::HeartbeatDimensionDailyStat.seconds_for(user_id: 123, dimension: "machine", value: "devbox", start_date: now.to_date, end_date: now.to_date)
+    reader = Clickhouse::StatsReader.new(123)
+    range = { start_time: now.beginning_of_day, end_time: now.end_of_day }
+    assert_equal 90, reader.total_seconds(**range)
+    assert_equal 80, reader.total_seconds(**range, filters: { project: "hackatime" })
+    assert_equal 70, reader.total_seconds(**range, filters: { language: "Ruby" })
+    assert_equal 60, reader.total_seconds(**range, filters: { editor: "vscode" })
+    assert_equal 45, reader.total_seconds(**range, filters: { machine: "devbox" })
     assert_equal(
       { "Ruby" => 80 },
-      Clickhouse::HeartbeatProjectDimensionDailyStat.durations_for(
-        user_id: 123,
+      reader.project_dimension_durations(
         project: "hackatime",
         dimension: "language",
-        start_date: now.to_date,
-        end_date: now.to_date
+        **range
       )
     )
     assert_equal 80, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: 123, project: "hackatime")
@@ -93,14 +93,15 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
       source_type: :test_entry
     )
 
-    day = base.to_date
-    assert_equal 60, Clickhouse::HeartbeatUserDailyStat.seconds_for(user_id: user.id, start_date: day, end_date: day)
-    assert_equal 60, Clickhouse::HeartbeatProjectDailyStat.seconds_for(user_id: user.id, project: "serving", start_date: day, end_date: day)
-    assert_equal 60, Clickhouse::HeartbeatDimensionDailyStat.seconds_for(user_id: user.id, dimension: "language", value: "Ruby", start_date: day, end_date: day)
-    assert_equal 60, Clickhouse::HeartbeatDimensionDailyStat.seconds_for(user_id: user.id, dimension: "machine", value: "devbox", start_date: day, end_date: day)
+    range = { start_time: base.beginning_of_day, end_time: base.end_of_day }
+    reader = Clickhouse::StatsReader.new(user)
+    assert_equal 60, reader.total_seconds(**range)
+    assert_equal 60, reader.total_seconds(**range, filters: { project: "serving" })
+    assert_equal 60, reader.total_seconds(**range, filters: { language: "Ruby" })
+    assert_equal 60, reader.total_seconds(**range, filters: { machine: "devbox" })
     assert_equal(
       { "Ruby" => 60 },
-      Clickhouse::HeartbeatProjectDimensionDailyStat.durations_for(user_id: user.id, project: "serving", dimension: "language", start_date: day, end_date: day)
+      reader.project_dimension_durations(project: "serving", dimension: "language", **range)
     )
     assert_equal 60, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: user.id, project: "serving")
   end
@@ -146,6 +147,33 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     assert_operator heartbeat_reads, :<=, 3
     assert_equal Clickhouse::Heartbeat.for_user(user).duration_seconds,
       Clickhouse::StatsReader.new(user).total_seconds
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+  end
+
+  test "single appends load all predecessors in one heartbeat query" do
+    user = User.create!(timezone: "UTC")
+    base = Time.utc(2026, 7, 10, 12)
+    create_heartbeat(
+      user: user, time: base.to_f, project: "single", language: "Ruby",
+      editor: "vscode", operating_system: "macOS", machine: "devbox",
+      category: "coding", entity: "app/first.rb", branch: "main", source_type: :test_entry
+    )
+
+    predecessor_reads = 0
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      sql = payload[:sql].to_s
+      predecessor_reads += 1 if sql.match?(/\bFROM\s+heartbeats\s+FINAL\b/i) && sql.include?("partition_value")
+    end
+
+    create_heartbeat(
+      user: user, time: (base + 60.seconds).to_f, project: "single", language: "Ruby",
+      editor: "vscode", operating_system: "macOS", machine: "devbox",
+      category: "coding", entity: "app/second.rb", branch: "main", source_type: :test_entry
+    )
+
+    assert_equal 1, predecessor_reads
+    assert_equal 60, Clickhouse::StatsReader.new(user).total_seconds
   ensure
     ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end
@@ -298,8 +326,8 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     HeartbeatIntervals::UserRebuilder.call(user_id: user.id, reason: "second_rebuild")
     second_count = Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id).count
 
-    assert_equal 60, Clickhouse::HeartbeatDimensionDailyStat.seconds_for(
-      user_id: user.id, dimension: "machine", value: "laptop", start_date: day, end_date: day
+    assert_equal 60, Clickhouse::StatsReader.new(user).total_seconds(
+      start_time: day, end_time: day + 1.day, filters: { machine: "laptop" }
     )
     assert_equal first_count - initial_count, second_count - first_count
   end

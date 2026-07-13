@@ -61,6 +61,25 @@ class Clickhouse::StatsReaderTest < ActiveSupport::TestCase
     )
   end
 
+  test "preserves blank projects for stats Other bucket" do
+    user = User.create!(timezone: "UTC")
+    base = Time.zone.local(2026, 7, 10, 12)
+
+    create_heartbeat(user:, time: base.to_f, project: "", category: "coding", source_type: :test_entry)
+    create_heartbeat(user:, time: (base + 75.seconds).to_f, project: "", category: "coding", source_type: :test_entry)
+
+    range = { start_time: base.beginning_of_day, end_time: base.end_of_day }
+    reader = Clickhouse::StatsReader.new(user)
+    summary = WakatimeService.new(
+      user:, specific_filters: [ :projects ], allow_cache: false,
+      start_date: range.fetch(:start_time), end_date: range.fetch(:end_time)
+    ).generate_summary
+
+    assert_equal({ "" => 75 }, reader.project_durations(**range))
+    assert_equal [ { name: "Other", total_seconds: 75 } ],
+      summary.fetch(:projects).map { |project| project.slice(:name, :total_seconds) }
+  end
+
   test "rejects unsupported combined filters instead of silently using the wrong summary" do
     reader = Clickhouse::StatsReader.new(123)
 

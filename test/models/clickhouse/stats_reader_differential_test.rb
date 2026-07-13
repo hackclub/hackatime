@@ -56,7 +56,7 @@ class Clickhouse::StatsReaderDifferentialTest < ActiveSupport::TestCase
     {
       user_id: user.id,
       time: time,
-      project: PROJECTS.fetch(sequence % PROJECTS.length),
+      project: sequence % 7 == 0 ? "" : PROJECTS.fetch(sequence % PROJECTS.length),
       language: DIMENSION_FILTERS.fetch(:language).fetch(sequence % 3),
       editor: DIMENSION_FILTERS.fetch(:editor).fetch(sequence % 2),
       operating_system: sequence.even? ? "macOS" : "Linux",
@@ -73,15 +73,15 @@ class Clickhouse::StatsReaderDifferentialTest < ActiveSupport::TestCase
     raw = Clickhouse::Heartbeat.for_user(user)
 
     assert_equal raw.duration_seconds, reader.total_seconds
-    assert_equal positive_nonblank(raw.group(:project).duration_seconds), positive_nonblank(reader.project_durations)
+    assert_equal positive(raw.group(:project).duration_seconds), positive(reader.project_durations)
 
     ranges.each do |start_time, end_time|
       range_scope = raw.where("time >= ? AND time < ?", start_time.to_f, end_time.to_f)
       range = { start_time: start_time, end_time: end_time }
 
       assert_equal range_scope.duration_seconds, reader.total_seconds(**range)
-      assert_equal positive_nonblank(range_scope.group(:project).duration_seconds),
-        positive_nonblank(reader.project_durations(**range))
+      assert_equal positive(range_scope.group(:project).duration_seconds),
+        positive(reader.project_durations(**range))
       assert_equal range_scope.distinct.count(Arel.sql("toDate(toDateTime64(time, 3, 'UTC'))")),
         reader.days_with_heartbeats(**range)
 
@@ -116,9 +116,9 @@ class Clickhouse::StatsReaderDifferentialTest < ActiveSupport::TestCase
     ]
   end
 
-  def positive_nonblank(durations)
+  def positive(durations)
     durations.each_with_object({}) do |(key, seconds), result|
-      result[key] = seconds if key.present? && seconds.positive?
+      result[key] = seconds if seconds.positive?
     end
   end
 end

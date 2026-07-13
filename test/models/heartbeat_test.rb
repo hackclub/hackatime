@@ -229,6 +229,20 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert id_future > id_now
   end
 
+  test "native heartbeat schema is owned by the application" do
+    connection = Clickhouse::Heartbeat.connection
+    columns = connection.columns(:heartbeats).map(&:name)
+    engine = connection.select_value(<<~SQL.squish)
+      SELECT engine_full
+      FROM system.tables
+      WHERE database = currentDatabase() AND name = 'heartbeats'
+    SQL
+
+    assert_includes columns, "version"
+    assert_empty columns.grep(/peerdb/i)
+    assert engine.start_with?("ReplacingMergeTree(version)")
+  end
+
   test "merge_user_heartbeats skips rows whose latest version is deleted" do
     older = User.create!(timezone: "UTC")
     newer = User.create!(timezone: "UTC")

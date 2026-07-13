@@ -1,16 +1,6 @@
 module HeartbeatIntervals
   class DeltaWriter
-    DIMENSION_SECONDS_COLUMNS = {
-      project: "project_seconds_delta",
-      language: "language_seconds_delta",
-      editor: "editor_seconds_delta",
-      operating_system: "operating_system_seconds_delta",
-      machine: "machine_seconds_delta",
-      category: "category_seconds_delta",
-      entity: "entity_seconds_delta",
-      branch: "branch_seconds_delta"
-    }.freeze
-    VALID_TIME_RANGE = 0..253402300799
+    DIMENSION_SECONDS_COLUMNS = HeartbeatIntervals::DIMENSIONS.index_with { |dimension| "#{dimension}_seconds_delta" }.freeze
 
     def self.emit_for_inserted_rows(rows, reason:)
       new(rows, reason: reason).call
@@ -22,7 +12,7 @@ module HeartbeatIntervals
     end
 
     def call
-      load_batched_previous_times if live_rows.many?
+      load_batched_previous_times if live_rows.any?
       deltas = live_rows.map { |row| delta_for(row) }
       Clickhouse::HeartbeatIntervalDelta.insert_all(deltas) if deltas.any?
       deltas
@@ -34,7 +24,7 @@ module HeartbeatIntervals
 
     def live_rows
       @live_rows ||= rows.reject { |row| row["deleted_at"].present? || row["time"].nil? }
-        .select { |row| VALID_TIME_RANGE.cover?(row["time"].to_f) }
+        .select { |row| HeartbeatIntervals::VALID_TIME_RANGE.cover?(row["time"].to_f) }
         .sort_by { |row| [ row["user_id"].to_i, row["time"].to_f, row["id"].to_i ] }
     end
 
@@ -72,8 +62,6 @@ module HeartbeatIntervals
 
     def dimension_interval(row, dimension)
       value = row[dimension.to_s]
-      return [ 0, 0 ] if dimension == :project && value.blank?
-
       interval_since_previous(row, dimension => value)
     end
 
@@ -90,20 +78,9 @@ module HeartbeatIntervals
     end
 
     def previous_time_for(row, conditions)
-      if defined?(@batched_previous_times)
-        dimension, value = conditions.first || [ :user, nil ]
-        key = partition_key(row["user_id"], dimension, value)
-        return @batched_previous_times[key].tap { @batched_previous_times[key] = row["time"].to_f }
-      end
-
-      scope = Clickhouse::Heartbeat.unscoped.final
-        .where(deleted_at: nil, user_id: row["user_id"].to_i)
-        .with_valid_timestamps
-        .where("time < ? OR (time = ? AND id < ?)", row["time"].to_f, row["time"].to_f, row["id"].to_i)
-
-      conditions.each { |field, value| scope = scope.where(field => value) }
-
-      scope.order(time: :desc, id: :desc).limit(1).pick(:time)
+      dimension, value = conditions.first || [ :user, nil ]
+      key = partition_key(row["user_id"], dimension, value)
+      @batched_previous_times[key].tap { @batched_previous_times[key] = row["time"].to_f }
     end
 
     def load_batched_previous_times
@@ -120,8 +97,8 @@ module HeartbeatIntervals
                  arrayJoin([#{partition_array_sql}]) AS partition_value
           FROM #{heartbeat_table} FINAL
           WHERE deleted_at IS NULL
-            AND time >= #{VALID_TIME_RANGE.begin}
-            AND time <= #{VALID_TIME_RANGE.end}
+            AND time >= #{HeartbeatIntervals::VALID_TIME_RANGE.begin}
+            AND time <= #{HeartbeatIntervals::VALID_TIME_RANGE.end}
             AND (#{cutoff_conditions_sql})
         ) AS candidate_predecessors
         WHERE (user_id, partition_value.1, partition_value.2) IN (#{requested_partition_keys_sql})
@@ -147,19 +124,19 @@ module HeartbeatIntervals
 
     def cutoff_conditions_sql
       live_rows.group_by { |row| row["user_id"].to_i }.map do |user_id, user_rows|
-        cutoff = user_rows.min_by { |row| [ row["time"].to_f, row["id"].to_i ] }.fetch("time").to_f
-        "(user_id = #{user_id} AND time < #{connection.quote(cutoff)})"
+        cutoff_row = user_rows.min_by { |row| [ row["time"].to_f, row["id"].to_i ] }
+        cutoff_time = cutoff_row.fetch("time").to_f
+        cutoff_id = cutoff_row.fetch("id").to_i
+        "(user_id = #{user_id} AND (time < #{connection.quote(cutoff_time)} " \
+          "OR (time = #{connection.quote(cutoff_time)} AND id < #{cutoff_id})))"
       end.join(" OR ")
     end
 
     def requested_partition_keys_sql
       keys = live_rows.flat_map do |row|
         user_key = partition_key(row["user_id"], :user, nil)
-        dimension_keys = DIMENSION_SECONDS_COLUMNS.keys.filter_map do |dimension|
-          value = row[dimension.to_s]
-          next if dimension == :project && value.blank?
-
-          partition_key(row["user_id"], dimension, value)
+        dimension_keys = DIMENSION_SECONDS_COLUMNS.keys.map do |dimension|
+          partition_key(row["user_id"], dimension, row[dimension.to_s])
         end
         [ user_key, *dimension_keys ]
       end.uniq

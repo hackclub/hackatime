@@ -51,7 +51,7 @@ module ClickhouseHeartbeatFactory
     now = Time.current
     Clickhouse::HeartbeatWriter.insert_rows([
       heartbeat.attributes.slice(*Clickhouse::HeartbeatWriter::WRITABLE_COLUMNS)
-        .merge("deleted_at" => now, "updated_at" => now, "version" => (now.to_f * 1_000_000).round)
+        .merge("deleted_at" => now, "updated_at" => now, "version" => Clickhouse::HeartbeatWriter.generate_version(now))
     ])
   end
 
@@ -60,7 +60,7 @@ module ClickhouseHeartbeatFactory
     now = Time.current
     Clickhouse::HeartbeatWriter.insert_rows([
       heartbeat.attributes.slice(*Clickhouse::HeartbeatWriter::WRITABLE_COLUMNS)
-        .merge("deleted_at" => nil, "updated_at" => now, "version" => (now.to_f * 1_000_000).round)
+        .merge("deleted_at" => nil, "updated_at" => now, "version" => Clickhouse::HeartbeatWriter.generate_version(now))
     ])
   end
 end

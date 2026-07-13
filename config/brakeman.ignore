@@ -3,11 +3,11 @@
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "cf1c8aa5f329ece7aee649e5e236a0cffd2e1f0abb9599eba3545f54bf00f965",
+      "fingerprint": "41bd9e222a38ec2ea0330072f466d569ff1eaaa841a1ce4cacf0f1d27db19c5a",
       "check_name": "SQL",
       "message": "Possible SQL injection",
       "file": "app/models/clickhouse/heartbeat_writer.rb",
-      "line": 55,
+      "line": 63,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
       "code": "Clickhouse::Heartbeat.connection.execute(...)",
       "render_path": null,
@@ -49,11 +49,11 @@
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "c233c346062a2d9f15a7f67f9dd0bd6994616e6fadd7df1c6602fbe3e1d0888d",
+      "fingerprint": "76596ef9c872b7908887aab1b3ddb908a72c215b450c921a8aac92b414a22220",
       "check_name": "SQL",
       "message": "Possible SQL injection",
       "file": "app/models/clickhouse/heartbeat_writer.rb",
-      "line": 89,
+      "line": 100,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
       "code": "Clickhouse::Heartbeat.connection.execute(...)",
       "render_path": null,
@@ -160,6 +160,29 @@
         89
       ],
       "note": "Table and column identifiers come from fixed model names and frozen constants; tables are quoted, user IDs and timeout are integers, and reason is connection-quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "34d94a9d2a6d26c428aa01b3fc6328e5fc9a09ae0bafb52e5128438e89b530e9",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "lib/heartbeat_comprehensive_benchmark.rb",
+      "line": 430,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Clickhouse::Heartbeat.connection.select_one(...)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "HeartbeatComprehensiveBenchmark",
+        "method": "raw_homepage_totals"
+      },
+      "user_input": "table",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "Benchmark-only read query; the table identifier is model-derived and quoted, while timeout and timestamp bounds are integer constants."
     }
   ],
   "brakeman_version": "8.0.5"

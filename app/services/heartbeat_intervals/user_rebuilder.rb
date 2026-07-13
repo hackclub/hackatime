@@ -1,27 +1,16 @@
 module HeartbeatIntervals
   class UserRebuilder
-    REBUILD_READ_TIMEOUT = 5.minutes.to_i
+    REBUILD_READ_TIMEOUT = 30.minutes.to_i
     REBUILD_SETTINGS = {
       max_threads: 1,
       max_bytes_before_external_sort: 64.megabytes,
       max_bytes_before_external_group_by: 64.megabytes
     }.freeze
 
-    DIMENSION_COLUMNS = %w[
-      project language editor operating_system machine category entity branch
-    ].freeze
-
-    SECONDS_COLUMNS = %w[
-      user_seconds_delta user_first_seconds_delta
-      project_seconds_delta project_first_seconds_delta
-      language_seconds_delta language_first_seconds_delta
-      editor_seconds_delta editor_first_seconds_delta
-      operating_system_seconds_delta operating_system_first_seconds_delta
-      machine_seconds_delta machine_first_seconds_delta
-      category_seconds_delta category_first_seconds_delta
-      entity_seconds_delta entity_first_seconds_delta
-      branch_seconds_delta branch_first_seconds_delta
-    ].freeze
+    DIMENSION_COLUMNS = HeartbeatIntervals::DIMENSIONS.map(&:to_s).freeze
+    SECONDS_COLUMNS = ([ "user_seconds_delta", "user_first_seconds_delta" ] + DIMENSION_COLUMNS.flat_map do |dimension|
+      [ "#{dimension}_seconds_delta", "#{dimension}_first_seconds_delta" ]
+    end).freeze
 
     DELTA_COLUMNS = (SECONDS_COLUMNS + %w[heartbeat_count_delta]).freeze
     GROUP_COLUMNS = (%w[user_id day time] + DIMENSION_COLUMNS).freeze
@@ -114,8 +103,8 @@ module HeartbeatIntervals
           FROM #{heartbeat_table} FINAL
           WHERE user_id = #{user_id}
             AND deleted_at IS NULL
-            AND time >= #{HeartbeatIntervals::Calculator::VALID_TIME_RANGE.begin}
-            AND time <= #{HeartbeatIntervals::Calculator::VALID_TIME_RANGE.end}
+            AND time >= #{HeartbeatIntervals::VALID_TIME_RANGE.begin}
+            AND time <= #{HeartbeatIntervals::VALID_TIME_RANGE.end}
         ) AS canonical_heartbeats
       SQL
     end
@@ -125,10 +114,9 @@ module HeartbeatIntervals
       interval_specs.flat_map do |name, _dimension|
         previous = "#{name}_previous_time"
         seconds = "#{name}_seconds_delta"
-        condition = name == "project" ? "project != '' AND " : ""
         [
-          "if(#{condition}time > #{previous}, least(time - #{previous}, #{timeout}), 0) AS #{seconds}",
-          "if(#{condition}toDate(toDateTime64(time, 3, 'UTC')) != toDate(toDateTime64(#{previous}, 3, 'UTC')), #{seconds}, 0) AS #{name}_first_seconds_delta"
+          "if(time > #{previous}, least(time - #{previous}, #{timeout}), 0) AS #{seconds}",
+          "if(toDate(toDateTime64(time, 3, 'UTC')) != toDate(toDateTime64(#{previous}, 3, 'UTC')), #{seconds}, 0) AS #{name}_first_seconds_delta"
         ]
       end
     end
