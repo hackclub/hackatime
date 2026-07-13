@@ -75,3 +75,5 @@ target.txt
 plans/
 
 .playwright-cli/
+public/ch-pg-benchmark-report.html
+public/ch-serving-implementation-plan.html
