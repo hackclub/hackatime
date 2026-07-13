@@ -86,3 +86,6 @@ public/ch-comprehensive-benchmark-results.json
 lib/heartbeat_comprehensive_benchmark.rb
 lib/clickhouse_benchmark_report.rb
 config/benchmarks/clickhouse_comprehensive_profiles.json
+public/postgres-serving-*
+test/lib/postgres_serving_bench*
+lib/postgres_serving_bench*
