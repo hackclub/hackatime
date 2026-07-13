@@ -5,9 +5,33 @@ require "nokogiri"
 require "json"
 
 module ClickhouseTestIsolation
+  SERVING_TABLES = %w[
+    heartbeat_interval_deltas
+    heartbeat_user_daily_stats
+    heartbeat_project_daily_stats
+    heartbeat_project_dimension_daily_stats
+    heartbeat_dimension_daily_stats
+    heartbeat_dimension_attribution_daily_stats
+    heartbeat_project_summaries
+  ].freeze
+
   def before_setup
-    Clickhouse::Heartbeat.connection.execute("TRUNCATE TABLE heartbeats")
+    truncate_clickhouse_table(Clickhouse::Heartbeat.connection, "heartbeats")
+    SERVING_TABLES.each do |table|
+      truncate_clickhouse_table(Clickhouse::Record.connection, table)
+    end
     super
+  end
+
+  private
+
+  def truncate_clickhouse_table(connection, table, attempts: 3)
+    connection.execute("TRUNCATE TABLE #{table}")
+  rescue Net::ReadTimeout
+    raise if attempts <= 1
+
+    connection.reconnect!
+    truncate_clickhouse_table(connection, table, attempts: attempts - 1)
   end
 end
 

@@ -73,3 +73,5 @@ target.txt
 
 .amp/
 plans/
+
+.playwright-cli/

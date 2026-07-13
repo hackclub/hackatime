@@ -51,4 +51,34 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_inertia_prop "profile_visible", true
     assert_inertia_prop "is_own_profile", true
   end
+
+  test "shared project page reads its stats bundle from serving tables" do
+    user = User.create!(username: "shared_#{SecureRandom.hex(3)}", timezone: "UTC")
+    user.project_repo_mappings.create!(project_name: "public-project", public_shared_at: Time.current)
+    base = Time.utc(2026, 7, 10, 12)
+    create_heartbeat(
+      user: user, time: base.to_f, project: "public-project", language: "Ruby",
+      entity: "app/main.rb", branch: "main", category: "coding", source_type: :test_entry
+    )
+    create_heartbeat(
+      user: user, time: (base + 90.seconds).to_f, project: "public-project", language: "Ruby",
+      entity: "app/main.rb", branch: "main", category: "coding", source_type: :test_entry
+    )
+    raw_duration_queries = []
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      sql = payload[:sql].to_s
+      raw_duration_queries << sql if sql.match?(/\bFROM\s+heartbeats\b/i) && sql.include?("lagInFrame")
+    end
+
+    get profile_project_path(username: user.username, project_name: "public-project")
+
+    assert_response :success
+    assert_inertia_component "Projects/PublicShow"
+    assert_equal "1m 30s", inertia_page.dig("props", "total_time_label")
+    assert_equal 1, inertia_page.dig("props", "file_count")
+    assert_equal({ "Ruby" => 90 }, inertia_page.dig("props", "language_stats"))
+    assert_empty raw_duration_queries
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+  end
 end

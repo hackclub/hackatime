@@ -11,6 +11,8 @@ gem "sqlite3", ">= 2.1"
 gem "pg"
 # ClickHouse ActiveRecord adapter - heartbeat reads + writes run on ClickHouse
 gem "clickhouse-activerecord"
+# Native protocol client for latency-sensitive serving-table reads
+gem "clickhouse-native", "~> 0.10.0"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]

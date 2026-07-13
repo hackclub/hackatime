@@ -72,7 +72,11 @@ class DashboardStats
       end
 
       hb = hb.filter_by_time_range(params[:interval], params[:from], params[:to])
-      snapshot = DashboardData::Snapshots.aggregate_query_snapshot(user: user, scope: hb)
+      snapshot = if serving_aggregate_supported?(params[:interval])
+        DashboardData::Snapshots.serving_aggregate_query_snapshot(user: user, total_heartbeats: hb.count)
+      else
+        DashboardData::Snapshots.aggregate_query_snapshot(user: user, scope: hb)
+      end
       DashboardData::Snapshots.fill_aggregate_result(result: result, snapshot: snapshot, archived: archived, helpers: h)
     end
 
@@ -93,6 +97,10 @@ class DashboardStats
         end
       }.uniq
     end
+  end
+
+  def serving_aggregate_supported?(interval)
+    interval.blank? && user.timezone == "UTC" && FILTERS.none? { |field| params[field].present? }
   end
 
   def heartbeats_scope = Clickhouse::Heartbeat.for_user(user)

@@ -135,8 +135,13 @@ class My::ProjectRepoMappingsController < InertiaController
     mappings_by_name, archived_names, latest_user_commit_at_by_repo_id = projects_context(archived: archived)
 
     cached = Rails.cache.fetch(project_durations_cache_key, expires_in: 1.minute) do
-      hb = heartbeats_scope.filter_by_time_range(selected_interval, params[:from], params[:to])
-      { durations: hb.group(:project).duration_seconds, total_time: hb.duration_seconds }
+      if (range = serving_time_range)
+        durations = Clickhouse::StatsReader.new(current_user).project_durations(start_time: range.begin, end_time: range.end)
+        { durations: durations, total_time: durations.values.sum }
+      else
+        hb = heartbeats_scope.filter_by_time_range(selected_interval, params[:from], params[:to])
+        { durations: hb.group(:project).duration_seconds, total_time: hb.duration_seconds }
+      end
     end
 
     projects = cached[:durations].filter_map do |project_key, duration|
@@ -213,8 +218,12 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def project_count(archived)
     archived_names = current_user.project_repo_mappings.archived.pluck(:project_name)
-    hb = heartbeats_scope.filter_by_time_range(selected_interval, params[:from], params[:to])
-    projects = hb.select(:project).distinct.pluck(:project)
+    projects = if (range = serving_time_range)
+      Clickhouse::StatsReader.new(current_user).project_durations(start_time: range.begin, end_time: range.end).keys
+    else
+      hb = heartbeats_scope.filter_by_time_range(selected_interval, params[:from], params[:to])
+      hb.select(:project).distinct.pluck(:project)
+    end
     projects.count { |proj| archived_names.include?(proj) == archived }
   rescue ActiveRecord::ActiveRecordError => e
     raise unless e.message.include?("undefined method 'map' for nil")
@@ -223,10 +232,19 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def project_detail_payload(project_name)
-    hb = heartbeats_scope.where(project: project_name)
-      .filter_by_time_range(selected_interval, params[:from], params[:to])
+    stats = if (range = serving_time_range)
+      ProjectStatsServingService.new(
+        user: current_user,
+        project: project_name,
+        start_time: range.begin,
+        end_time: range.end
+      ).call
+    else
+      hb = heartbeats_scope.where(project: project_name)
+        .filter_by_time_range(selected_interval, params[:from], params[:to])
+      ProjectStatsService.new(hb).call
+    end
 
-    stats = ProjectStatsService.new(hb).call
     stats.merge(
       total_time_label: format_duration(stats[:total_time]),
       activity_graph: project_activity_graph(project_name)
@@ -243,5 +261,41 @@ class My::ProjectRepoMappingsController < InertiaController
       duration_by_date: snapshot[:duration_by_date],
       timezone: snapshot[:timezone]
     )
+  end
+
+  def serving_time_range
+    return @serving_time_range if defined?(@serving_time_range)
+
+    @serving_time_range = build_serving_time_range
+  end
+
+  def build_serving_time_range
+    interval = selected_interval&.to_sym
+    range = if interval == :custom
+      return nil if params[:from].blank? && params[:to].blank?
+
+      from_time = params[:from].present? ? Time.zone.parse(params[:from]).beginning_of_day : nil
+      to_time = params[:to].present? ? Time.zone.parse(params[:to]).end_of_day : nil
+      (from_time..to_time)
+    elsif interval && TimeRangeFilterable::RANGES.key?(interval)
+      TimeRangeFilterable::RANGES.fetch(interval).fetch(:calculate).call
+    else
+      nil..nil
+    end
+
+    return range if range.begin.nil? && range.end.nil?
+    return range if range.begin.present? && range.end.present? && day_boundary?(range.begin) && end_of_day_boundary?(range.end)
+
+    nil
+  rescue ArgumentError, TypeError
+    nil
+  end
+
+  def day_boundary?(time)
+    time == time.beginning_of_day
+  end
+
+  def end_of_day_boundary?(time)
+    (time.to_f - time.end_of_day.to_f).abs < 0.001
   end
 end

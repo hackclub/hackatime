@@ -27,7 +27,7 @@ class ProjectStatsService
     result = heartbeat_model.attributed_durations_by(hb, field).each_with_object({}) do |(raw, dur), agg|
       k = normalize.call(raw)
       agg[k] = (agg[k] || 0) + dur
-    end.sort_by { |_, d| -d }.first(n)
+    end.sort_by { |key, duration| [ -duration, key.to_s ] }.first(n)
     display ? result.map { |k, v| [ display.call(k), v ] }.to_h : result.to_h
   end
 
@@ -50,9 +50,13 @@ class ProjectStatsService
   def file_stats
     heartbeat_model.attributed_durations_by(hb, :entity)
       .reject { |_, dur| dur < 60 }
-      .sort_by { |_, d| -d }.first(50)
+      .sort_by { |entity, duration| [ -duration, entity.to_s ] }.first(50)
       .map { |entity, dur| [ h.shorten_file_path(entity), dur ] }
   end
 
-  def branch_stats = heartbeat_model.attributed_durations_by(hb, :branch).sort_by { |_, d| -d }.first(10)
+  def branch_stats
+    heartbeat_model.attributed_durations_by(hb, :branch)
+      .sort_by { |branch, duration| [ -duration, branch.to_s ] }
+      .first(10)
+  end
 end

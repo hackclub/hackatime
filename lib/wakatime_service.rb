@@ -4,7 +4,12 @@ include ApplicationHelper
 include ErrorReporting
 
 class WakatimeService
-  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil, boundary_aware: false, valid_timestamps_only: false, exclude_categories: [])
+  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil, boundary_aware: false, valid_timestamps_only: false, exclude_categories: [], serving_filters: nil)
+    @serving_filters = if serving_filters
+      serving_filters.compact_blank.symbolize_keys
+    elsif scope.nil?
+      {}
+    end
     @scope = scope || Clickhouse::Heartbeat.all
     @scope = @scope.with_valid_timestamps if valid_timestamps_only
     @scope = @scope.where.not("LOWER(category) IN (?)", exclude_categories) if exclude_categories.any?
@@ -60,7 +65,15 @@ class WakatimeService
     summary[:range] = "all_time"
     summary[:human_readable_range] = "All Time"
 
-    @total_seconds = if @boundary_aware
+    @serving_language_summary = if fused_language_summary_supported?
+      stats_reader.language_summary(start_time: @start_date, end_time: @end_date)
+    end
+
+    @total_seconds = if @serving_language_summary
+      @serving_language_summary.fetch(:total_seconds)
+    elsif serving_summary_supported?
+      stats_reader.total_seconds(start_time: @start_date, end_time: @end_date, filters: @serving_filters)
+    elsif @boundary_aware
       Clickhouse::Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date, excluded_categories: @exclude_categories) || 0
     else
       @scope.duration_seconds || 0
@@ -87,8 +100,16 @@ class WakatimeService
   end
 
   def generate_summary_chunk(group_by)
+    if serving_summary_supported?
+      return summary_chunk_from_durations(group_by, serving_durations(group_by))
+    end
+
+    summary_chunk_from_durations(group_by, @scope.group(group_by).duration_seconds)
+  end
+
+  def summary_chunk_from_durations(group_by, durations)
     result = []
-    @scope.group(group_by).duration_seconds.each do |key, value|
+    durations.each do |key, value|
       entry = {
         name: @raw_names ? (key.presence || "Other") : transform_display_name(group_by, key),
         total_seconds: value,
@@ -101,7 +122,7 @@ class WakatimeService
       entry[:color] = LanguageUtils.color(key) if group_by == :language
       result << entry
     end
-    result = result.sort_by { |item| -item[:total_seconds] }
+    result = result.sort_by { |item| [ -item[:total_seconds], item[:name].to_s ] }
     result = result.first(@limit) if @limit.present?
     result
   end
@@ -167,6 +188,59 @@ class WakatimeService
   end
 
   private
+
+  def serving_summary_supported?
+    return @serving_summary_supported if defined?(@serving_summary_supported)
+
+    @serving_summary_supported = @user.present? && !@serving_filters.nil? &&
+      !@boundary_aware && @exclude_categories.empty? && supported_serving_filters? &&
+      day_boundary?(@start_date) && (day_boundary?(@end_date) || end_of_day_boundary?(@end_date))
+  end
+
+  def supported_serving_filters?
+    return true if @serving_filters.empty?
+
+    @serving_filters.keys == [ :project ] && Array(@serving_filters[:project]).one?
+  end
+
+  def stats_reader
+    @stats_reader ||= Clickhouse::StatsReader.new(@user)
+  end
+
+  def serving_durations(group_by)
+    project = Array(@serving_filters[:project]).first
+
+    case group_by
+    when :project
+      return { project => stats_reader.total_seconds(start_time: @start_date, end_time: @end_date, filters: { project: project }) } if project
+
+      stats_reader.project_durations(start_time: @start_date, end_time: @end_date)
+    when :language
+      if project
+        @scope.group(:language).duration_seconds
+      elsif @serving_language_summary
+        @serving_language_summary.fetch(:languages)
+      else
+        stats_reader.filter_durations(dimension: :language, start_time: @start_date, end_time: @end_date)
+      end
+    else
+      {}
+    end
+  end
+
+  def day_boundary?(epoch)
+    time = Time.at(epoch).utc
+    time == time.beginning_of_day
+  end
+
+  def fused_language_summary_supported?
+    serving_summary_supported? && @specific_filters.include?(:languages) && @serving_filters.empty?
+  end
+
+  def end_of_day_boundary?(epoch)
+    time = Time.at(epoch).utc
+    (time.to_f - time.end_of_day.to_f).abs < 1.001
+  end
 
   def convert_to_unix_timestamp(timestamp)
     # our lord and savior stack overflow for this bit of code

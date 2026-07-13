@@ -20,12 +20,13 @@ class HeartbeatIngest
 
   def self.normalize_imported_heartbeat(user:, heartbeat:, user_agents_by_id: {}) = new(user:, mode: :import, heartbeats: [], user_agents_by_id:).send(:normalize_imported_heartbeat, heartbeat)
 
-  def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {})
+  def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {}, maintain_serving_tables: true)
     @user = user
     @mode = mode
     @heartbeats = heartbeats
     @request_context = request_context.with_indifferent_access
     @user_agents_by_id = user_agents_by_id
+    @maintain_serving_tables = maintain_serving_tables
   end
 
   def call
@@ -177,7 +178,10 @@ class HeartbeatIngest
     return 0 if seen_hashes.empty?
     timestamp = Time.current
     rows = seen_hashes.values.map { |r| r.merge(created_at: timestamp, updated_at: timestamp) }
-    Clickhouse::HeartbeatWriter.insert_rows(rows)
+    Clickhouse::HeartbeatWriter.insert_rows(rows, maintain_serving_tables: false)
+    if @maintain_serving_tables
+      HeartbeatIntervals::UserRebuilder.call(user_id: @user.id, reason: "heartbeat_import")
+    end
     rows.length
   end
 

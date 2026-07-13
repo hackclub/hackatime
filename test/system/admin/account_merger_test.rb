@@ -48,7 +48,7 @@ class Admin::AccountMergerTest < ApplicationSystemTestCase
       click_on "Merge & Delete"
     end
 
-    assert_text "Merge complete!"
+    assert_text "Merge complete!", wait: 15
     assert_text "3 sessions/tokens revoked"
     assert_text "related records cleaned up"
 

@@ -11,7 +11,7 @@ class HeartbeatImportService
     flush = lambda do
       next if heartbeat_batch.empty?
       result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch.values.map { |entry| entry[:heartbeat] },
-                                     user_agents_by_id:)
+                                     user_agents_by_id:, maintain_serving_tables: false)
       imported_count += result.persisted_count
       errors.concat(result.errors)
       heartbeat_batch.clear
@@ -38,11 +38,17 @@ class HeartbeatImportService
 
     raise StandardError, "Expected a heartbeat export JSON file." if total_count.zero?
     flush.call
+    HeartbeatIntervals::UserRebuilder.call(user_id: user.id, reason: "heartbeat_import_file") if imported_count.positive?
 
     elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
     { success: true, imported_count:, total_count:,
       skipped_count: total_count - imported_count, errors:, time_taken: elapsed.round(2) }
   rescue => e
+    begin
+      HeartbeatIntervals::UserRebuilder.call(user_id: user.id, reason: "heartbeat_import_file_partial") if imported_count.positive?
+    rescue => rebuild_error
+      errors << "Serving rebuild failed: #{rebuild_error.message}"
+    end
     { success: false, error: e.message, imported_count:, total_count:,
       skipped_count: total_count - imported_count, errors: errors + [ e.message ] }
   end

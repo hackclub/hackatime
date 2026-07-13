@@ -19,7 +19,7 @@ class SailorsLogPollForChangesJob < ApplicationJob
                              .where(notification_preferences: { enabled: true })
                              .where(slack_uid: slack_uids)
                              .to_a
-    durations_by_user = Clickhouse::Heartbeat.project_durations_for_users(sailors_logs.map { |sl| sl.user.id })
+    durations_by_user = Clickhouse::HeartbeatProjectSummary.durations_for_users(sailors_logs.map { |sl| sl.user.id })
 
     new_notifs = sailors_logs.flat_map { |sl| update_sailors_log(sl, durations_by_user[sl.user.id] || {}) }
 

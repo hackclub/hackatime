@@ -66,6 +66,32 @@ class DashboardStatsTest < ActiveSupport::TestCase
     end
   end
 
+  test "unfiltered UTC dashboard duration bundle uses serving tables" do
+    with_memory_cache_store do
+      Rails.cache.clear
+      user = User.create!(timezone: "UTC")
+      travel_to Time.utc(2026, 4, 14, 12) do
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+        travel 1.minute
+        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      end
+      raw_duration_queries = []
+      subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+        sql = payload[:sql].to_s
+        raw_duration_queries << sql if sql.match?(/\bFROM\s+heartbeats\b/i) && sql.include?("lagInFrame")
+      end
+
+      result = build_stats(user).filterable_dashboard_data
+
+      assert_equal 60, result[:total_time]
+      assert_equal({ "alpha" => 60 }, result[:project_durations])
+      assert_equal({ "Ruby" => 60 }, result["language_stats"])
+      assert_empty raw_duration_queries
+    ensure
+      ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+    end
+  end
+
   test "today stats and activity graph are served live" do
     with_memory_cache_store do
       Rails.cache.clear

@@ -184,6 +184,27 @@ module DashboardData
       }
     end
 
+    def serving_aggregate_query_snapshot(user:, total_heartbeats:)
+      reader = Clickhouse::StatsReader.new(user)
+      grouped_durations = {
+        project: reader.project_durations,
+        language: reader.dimension_durations(dimension: :language),
+        editor: reader.dimension_durations(dimension: :editor),
+        operating_system: reader.dimension_durations(dimension: :operating_system),
+        category: reader.dimension_durations(dimension: :category)
+      }
+      weekly = week_ranges(user.timezone).to_h do |week_key, start_time, end_time|
+        [ week_key, reader.project_durations(start_time: start_time, end_time: end_time) ]
+      end
+
+      {
+        total_time: reader.total_seconds,
+        total_heartbeats: total_heartbeats,
+        grouped_durations: grouped_durations,
+        weekly_project_stats: weekly
+      }
+    end
+
     # Reject project entries that should not appear in dashboard summaries.
     def grouped_durations_for(grouped_durations, field, archived)
       stats = grouped_durations.fetch(field, {})

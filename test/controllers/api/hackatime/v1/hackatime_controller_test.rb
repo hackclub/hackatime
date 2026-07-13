@@ -296,6 +296,37 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal "coding", heartbeat.category
   end
 
+  test "last 7 days stats reads UTC summaries from serving tables" do
+    travel_to Time.utc(2026, 7, 10, 12, 0, 0) do
+      user = User.create!(slack_uid: "UHACK#{SecureRandom.hex(4)}", timezone: "UTC")
+      api_key = user.api_keys.create!(name: "primary")
+
+      create_summary_heartbeat(user, Time.utc(2026, 7, 8, 9, 0, 0))
+      create_summary_heartbeat(user, Time.utc(2026, 7, 8, 9, 1, 0))
+      create_summary_heartbeat(user, Time.utc(2026, 7, 9, 9, 0, 0))
+      create_summary_heartbeat(user, Time.utc(2026, 7, 9, 9, 2, 0))
+
+      heartbeat_queries = collect_heartbeat_queries do
+        get "/api/hackatime/v1/users/current/stats/last_7_days",
+          headers: { "Authorization" => "Bearer #{api_key.token}" }
+      end
+
+      assert_response :success
+      data = JSON.parse(response.body).fetch("data")
+
+      assert_equal 300, data.fetch("total_seconds")
+      assert_equal 2, data.fetch("days_including_holidays")
+      assert_equal 150.0, data.fetch("daily_average")
+      assert_equal "0 hrs 5 mins", data.fetch("human_readable_total")
+      assert_equal [ "hackatime" ], data.fetch("projects").map { |row| row.fetch("name") }
+      assert_equal [ "Ruby" ], data.fetch("languages").map { |row| row.fetch("name") }
+      assert_equal [ "VSCode" ], data.fetch("editors").map { |row| row.fetch("name") }
+      assert_equal [ "devbox" ], data.fetch("machines").map { |row| row.fetch("name") }
+      assert_equal [ "Linux" ], data.fetch("operating_systems").map { |row| row.fetch("name") }
+      assert_empty heartbeat_queries
+    end
+  end
+
   private
 
   def heartbeat_count(user)
@@ -310,5 +341,31 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     before = heartbeat_count(user)
     yield
     assert_equal before + difference, heartbeat_count(user)
+  end
+
+  def create_summary_heartbeat(user, time)
+    create_heartbeat(
+      user: user,
+      time: time.to_f,
+      project: "hackatime",
+      language: "Ruby",
+      editor: "vscode",
+      operating_system: "linux",
+      machine: "devbox",
+      category: "coding",
+      source_type: :direct_entry
+    )
+  end
+
+  def collect_heartbeat_queries
+    queries = []
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      sql = payload[:sql].to_s
+      queries << sql if sql.match?(/\bFROM\s+`?heartbeats`?\b/i)
+    end
+    yield
+    queries
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end
 end

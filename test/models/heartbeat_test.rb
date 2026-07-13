@@ -236,7 +236,9 @@ class HeartbeatTest < ActiveSupport::TestCase
     deleted = create_heartbeat(user: newer, time: 1.minute.from_now.to_f, project: "deleted", source_type: :test_entry)
 
     soft_delete_heartbeat(deleted)
-    Clickhouse::HeartbeatWriter.merge_user_heartbeats!(older_user_id: older.id, newer_user_id: newer.id)
+    assert_enqueued_with(job: HeartbeatServingRebuildJob, args: [ [ older.id, newer.id ], { reason: "merge_user" } ]) do
+      Clickhouse::HeartbeatWriter.merge_user_heartbeats!(older_user_id: older.id, newer_user_id: newer.id)
+    end
 
     assert_equal [ live.fields_hash ], Clickhouse::Heartbeat.for_user(older).pluck(:fields_hash)
     assert_empty Clickhouse::Heartbeat.for_user(newer)

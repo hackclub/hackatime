@@ -134,6 +134,14 @@ GEM
     clickhouse-activerecord (1.6.7)
       activerecord (>= 7.1, < 9.0)
       bundler (>= 1.13.4)
+    clickhouse-native (0.10.0)
+      connection_pool (>= 2.5.4)
+    clickhouse-native (0.10.0-aarch64-linux-gnu)
+      connection_pool (>= 2.5.4)
+    clickhouse-native (0.10.0-arm64-darwin)
+      connection_pool (>= 2.5.4)
+    clickhouse-native (0.10.0-x86_64-linux-gnu)
+      connection_pool (>= 2.5.4)
     cloudflare-rails (7.0.0)
       actionpack (>= 7.2.0, < 8.2.0)
       activesupport (>= 7.2.0, < 8.2.0)
@@ -598,6 +606,7 @@ DEPENDENCIES
   bullet
   capybara
   clickhouse-activerecord
+  clickhouse-native (~> 0.10.0)
   cloudflare-rails
   countries
   debug

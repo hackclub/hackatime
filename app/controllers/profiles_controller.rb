@@ -46,7 +46,7 @@ class ProfilesController < InertiaController
 
     h = ApplicationController.helpers
     hb = Clickhouse::Heartbeat.for_user(@user).where(project: project_name)
-    stats = ProjectStatsService.new(hb).call(
+    stats = ProjectStatsServingService.new(user: @user, project: project_name).call(
       only: %i[total_time file_count language_stats language_colors file_stats branch_stats]
     )
     first_heartbeat = hb.minimum(:time)
