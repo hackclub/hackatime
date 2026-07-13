@@ -155,12 +155,15 @@ jobs:
           - 8123:8123
           - 9000:9000
         options: >-
-          --health-cmd "clickhouse-client --query 'SELECT 1'"
+          --health-cmd "clickhouse-client --user default --password clickhouse --query 'SELECT 1'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         env:
           CLICKHOUSE_DB: hackatime_test
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD: clickhouse
+          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
 
     steps:
       - name: Checkout code
@@ -183,7 +186,7 @@ jobs:
           CLICKHOUSE_PORT: 8123
           CLICKHOUSE_TEST_DATABASE: hackatime_test
           CLICKHOUSE_USER: default
-          CLICKHOUSE_PASSWORD: ""
+          CLICKHOUSE_PASSWORD: clickhouse
         run: |
           bin/rails db:create RAILS_ENV=test
           bin/rails db:schema:load RAILS_ENV=test
@@ -200,7 +203,7 @@ jobs:
           CLICKHOUSE_PORT: 8123
           CLICKHOUSE_TEST_DATABASE: hackatime_test
           CLICKHOUSE_USER: default
-          CLICKHOUSE_PASSWORD: ""
+          CLICKHOUSE_PASSWORD: clickhouse
         run: |
           bin/rails rswag:specs:swaggerize
           git diff --exit-code swagger/
@@ -224,12 +227,15 @@ jobs:
           - 8123:8123
           - 9000:9000
         options: >-
-          --health-cmd "clickhouse-client --query 'SELECT 1'"
+          --health-cmd "clickhouse-client --user default --password clickhouse --query 'SELECT 1'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         env:
           CLICKHOUSE_DB: hackatime_test
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD: clickhouse
+          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
 
     steps:
       - name: Checkout code
@@ -274,7 +280,7 @@ jobs:
           CLICKHOUSE_PORT: 8123
           CLICKHOUSE_TEST_DATABASE: hackatime_test
           CLICKHOUSE_USER: default
-          CLICKHOUSE_PASSWORD: ""
+          CLICKHOUSE_PASSWORD: clickhouse
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
           CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
         run: |
