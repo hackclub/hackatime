@@ -76,14 +76,18 @@ plans/
 
 .playwright-cli/
 
-# note to self: remove these later
+# Local ClickHouse benchmark artifacts
 public/ch-pg-benchmark-report.html
 public/ch-serving-implementation-plan.html
 public/ch-comprehensive-benchmark-report.html
 test/lib/clickhouse_benchmark_report_test.rb
 test/lib/heartbeat_comprehensive_benchmark_test.rb
+test/lib/heartbeat_postgres_serving_benchmark_test.rb
+test/lib/heartbeat_serving_benchmark_test.rb
 public/ch-comprehensive-benchmark-results.json
 lib/heartbeat_comprehensive_benchmark.rb
+lib/heartbeat_postgres_serving_benchmark.rb
+lib/heartbeat_serving_benchmark.rb
 lib/clickhouse_benchmark_report.rb
 config/benchmarks/clickhouse_comprehensive_profiles.json
 public/postgres-serving-*

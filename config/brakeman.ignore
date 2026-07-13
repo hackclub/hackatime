@@ -160,29 +160,6 @@
         89
       ],
       "note": "Table and column identifiers come from fixed model names and frozen constants; tables are quoted, user IDs and timeout are integers, and reason is connection-quoted."
-    },
-    {
-      "warning_type": "SQL Injection",
-      "warning_code": 0,
-      "fingerprint": "34d94a9d2a6d26c428aa01b3fc6328e5fc9a09ae0bafb52e5128438e89b530e9",
-      "check_name": "SQL",
-      "message": "Possible SQL injection",
-      "file": "lib/heartbeat_comprehensive_benchmark.rb",
-      "line": 430,
-      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Clickhouse::Heartbeat.connection.select_one(...)",
-      "render_path": null,
-      "location": {
-        "type": "method",
-        "class": "HeartbeatComprehensiveBenchmark",
-        "method": "raw_homepage_totals"
-      },
-      "user_input": "table",
-      "confidence": "Medium",
-      "cwe_id": [
-        89
-      ],
-      "note": "Benchmark-only read query; the table identifier is model-derived and quoted, while timeout and timestamp bounds are integer constants."
     }
   ],
   "brakeman_version": "8.0.5"
