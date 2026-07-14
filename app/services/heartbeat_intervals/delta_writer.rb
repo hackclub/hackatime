@@ -35,7 +35,7 @@ module HeartbeatIntervals
         user_id: row["user_id"].to_i,
         day: Time.at(row["time"].to_f).utc.to_date,
         time: row["time"].to_f,
-        project: row["project"].to_s,
+        project: HeartbeatIntervals.encode_project(row["project"]),
         language: clean_filter_dimension(row["language"]),
         editor: clean_filter_dimension(row["editor"]),
         operating_system: clean_filter_dimension(row["operating_system"]),
@@ -112,11 +112,7 @@ module HeartbeatIntervals
 
     def partition_array_sql
       dimensions = DIMENSION_SECONDS_COLUMNS.keys.map do |dimension|
-        value = if dimension == :project
-          "ifNull(project, '')"
-        else
-          "ifNull(#{dimension}, #{connection.quote(HeartbeatIntervals::NULL_DIMENSION_VALUE)})"
-        end
+        value = "ifNull(#{dimension}, #{connection.quote(HeartbeatIntervals::NULL_DIMENSION_VALUE)})"
         "tuple(#{connection.quote(dimension.to_s)}, #{value})"
       end
       ([ "tuple('user', '')" ] + dimensions).join(", ")
@@ -150,7 +146,7 @@ module HeartbeatIntervals
       normalized_value = if dimension.to_sym == :user
         ""
       elsif dimension.to_sym == :project
-        value.to_s
+        HeartbeatIntervals.encode_project(value)
       else
         clean_filter_dimension(value)
       end

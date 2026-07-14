@@ -80,6 +80,33 @@ class Clickhouse::StatsReaderTest < ActiveSupport::TestCase
       summary.fetch(:projects).map { |project| project.slice(:name, :total_seconds) }
   end
 
+  test "preserves nil projects in public project durations" do
+    user = User.create!(timezone: "UTC")
+    base = Time.zone.local(2026, 7, 10, 12)
+
+    create_heartbeat(
+      user:, time: base.to_f, project: nil, language: "Ruby", category: "coding", source_type: :test_entry
+    )
+    create_heartbeat(
+      user:, time: (base + 75.seconds).to_f, project: nil, language: "Ruby",
+      category: "coding", source_type: :test_entry
+    )
+
+    range = { start_time: base.beginning_of_day, end_time: base.end_of_day }
+    reader = Clickhouse::StatsReader.new(user)
+    assert_equal({ nil => 75 }, reader.project_durations(**range))
+    assert_equal 75, reader.project_seconds(nil)
+    assert_equal({ "Ruby" => 75 }, reader.project_dimension_durations(project: nil, dimension: :language, **range))
+    assert_equal 1, reader.project_dimension_value_count(project: nil, dimension: :language, **range)
+    assert_equal 75, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: user.id, project: nil)
+    assert_equal 2, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: nil)
+    assert_equal({ nil => 75 }, Clickhouse::HeartbeatProjectSummary.durations_for(user_id: user.id))
+    assert_equal(
+      { user.id => { nil => 75 } },
+      Clickhouse::HeartbeatProjectSummary.durations_for_users([ user.id ])
+    )
+  end
+
   test "rejects unsupported combined filters instead of silently using the wrong summary" do
     reader = Clickhouse::StatsReader.new(123)
 

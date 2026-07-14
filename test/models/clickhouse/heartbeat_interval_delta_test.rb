@@ -62,6 +62,42 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     assert_equal 80, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: 123, project: "hackatime")
   end
 
+  test "rounds negative fractional correction facts once at the Ruby boundary" do
+    now = Time.utc(2026, 7, 14, 12)
+    Clickhouse::HeartbeatIntervalDelta.insert_all([
+      {
+        delta_id: Clickhouse::HeartbeatWriter.generate_id(now),
+        user_id: 123,
+        day: now.to_date,
+        time: now.to_f,
+        project: "corrected",
+        language: "Ruby",
+        editor: "vscode",
+        operating_system: "macOS",
+        machine: "devbox",
+        category: "coding",
+        entity: "app/corrected.rb",
+        branch: "main",
+        user_seconds_delta: -84.5,
+        project_seconds_delta: -84.5,
+        language_seconds_delta: -84.5,
+        editor_seconds_delta: -84.5,
+        operating_system_seconds_delta: -84.5,
+        machine_seconds_delta: -84.5,
+        category_seconds_delta: -84.5,
+        entity_seconds_delta: -84.5,
+        branch_seconds_delta: -84.5,
+        heartbeat_count_delta: -1,
+        reason: "negative_correction",
+        created_at: now
+      }
+    ])
+
+    reader = Clickhouse::StatsReader.new(123)
+    assert_equal(-85, reader.project_seconds("corrected"))
+    assert_equal({ "corrected" => -85 }, reader.project_durations)
+  end
+
   test "heartbeat writer emits interval deltas for appended heartbeats" do
     user = User.create!(timezone: "UTC")
     base = Time.zone.local(2026, 7, 10, 12)
@@ -104,6 +140,54 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
       reader.project_dimension_durations(project: "serving", dimension: "language", **range)
     )
     assert_equal 60, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: user.id, project: "serving")
+  end
+
+  test "appended intervals keep nil and blank project partitions distinct" do
+    user = User.create!(timezone: "UTC")
+    base = Time.utc(2026, 7, 14, 12)
+
+    [ [ 0, nil ], [ 30, "" ], [ 60, nil ], [ 90, "" ] ].each do |offset, project|
+      create_heartbeat(
+        user:, time: (base + offset.seconds).to_f, project: project,
+        category: "coding", source_type: :test_entry
+      )
+    end
+
+    project_deltas = Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id)
+      .group(:project).sum(:project_seconds_delta).transform_values { |seconds| seconds.to_f.round }
+    assert_equal({ HeartbeatIntervals::NULL_DIMENSION_VALUE => 60, "" => 60 }, project_deltas)
+    assert_equal({ nil => 60, "" => 60 }, Clickhouse::StatsReader.new(user).project_durations)
+  end
+
+  test "rebuild converges legacy coalesced project facts and is idempotent" do
+    user = User.create!(timezone: "UTC")
+    base = Time.utc(2026, 7, 14, 12)
+    sequence = [ [ 0, nil ], [ 30, "" ], [ 60, nil ], [ 90, "" ] ]
+    rows = sequence.map.with_index do |(offset, project), index|
+      {
+        user_id: user.id,
+        time: (base + offset.seconds).to_f,
+        project: project,
+        language: "Ruby",
+        category: "coding",
+        entity: "fixture_#{index}.rb",
+        source_type: :test_entry
+      }
+    end
+    Clickhouse::HeartbeatWriter.insert_rows(rows, maintain_serving_tables: false)
+    insert_legacy_project_deltas(user.id, base, sequence)
+    reader = Clickhouse::StatsReader.new(user)
+    assert_equal({ "" => 90 }, reader.project_durations)
+
+    HeartbeatIntervals::UserRebuilder.call(user_id: user.id, reason: "correct_legacy_project_encoding")
+    raw = Clickhouse::Heartbeat.for_user(user).group(:project).duration_seconds
+    assert_equal({ nil => 60, "" => 60 }, raw)
+    assert_equal raw, reader.project_durations
+
+    delta_count = Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id).count
+    HeartbeatIntervals::UserRebuilder.call(user_id: user.id, reason: "verify_project_encoding_idempotency")
+    assert_equal delta_count, Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id).count
+    assert_equal raw, reader.project_durations
   end
 
   test "appended intervals ignore invalid predecessor timestamps" do
@@ -413,5 +497,41 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     flunk errors.pop.full_message unless errors.empty?
     assert_equal 1, Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id).sum(:heartbeat_count_delta)
     assert_equal 1, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: "concurrent")
+  end
+
+  private
+
+  def insert_legacy_project_deltas(user_id, base, sequence)
+    null_value = HeartbeatIntervals::NULL_DIMENSION_VALUE
+    deltas = sequence.map.with_index do |(offset, _project), index|
+      seconds = index.zero? ? 0 : 30
+      {
+        delta_id: Clickhouse::HeartbeatWriter.generate_id(base + index.seconds),
+        user_id: user_id,
+        day: base.to_date,
+        time: (base + offset.seconds).to_f,
+        project: "",
+        language: "Ruby",
+        editor: null_value,
+        operating_system: null_value,
+        machine: null_value,
+        category: "coding",
+        entity: "fixture_#{index}.rb",
+        branch: null_value,
+        user_seconds_delta: seconds,
+        project_seconds_delta: seconds,
+        language_seconds_delta: seconds,
+        editor_seconds_delta: seconds,
+        operating_system_seconds_delta: seconds,
+        machine_seconds_delta: seconds,
+        category_seconds_delta: seconds,
+        entity_seconds_delta: 0,
+        branch_seconds_delta: seconds,
+        heartbeat_count_delta: 1,
+        reason: "legacy_coalesced_project",
+        created_at: base
+      }
+    end
+    Clickhouse::HeartbeatIntervalDelta.insert_all(deltas)
   end
 end

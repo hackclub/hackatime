@@ -5,15 +5,15 @@ module Clickhouse
 
     class << self
       def seconds_for(user_id:, project:)
-        where(user_id: user_id, project: Array(project).map(&:to_s)).sum(:seconds).to_f.round
+        where(user_id: user_id, project: encoded_projects(project)).sum(:seconds).to_f.round
       end
 
       def heartbeat_count_for(user_id:, project:)
-        where(user_id: user_id, project: Array(project).map(&:to_s)).sum(:heartbeat_count).to_i
+        where(user_id: user_id, project: encoded_projects(project)).sum(:heartbeat_count).to_i
       end
 
       def durations_for(user_id:)
-        where(user_id: user_id).group(:project).sum(:seconds).transform_values { |seconds| seconds.to_f.round }
+        decode_durations(where(user_id: user_id).group(:project).sum(:seconds))
       end
 
       def durations_for_users(user_ids)
@@ -24,8 +24,22 @@ module Clickhouse
           .group(:user_id, :project)
           .sum(:seconds)
           .each_with_object({}) do |((user_id, project), seconds), result|
-            (result[user_id.to_i] ||= {})[project] = seconds.to_f.round
+            decoded_project = HeartbeatIntervals.decode_project(project)
+            (result[user_id.to_i] ||= {})[decoded_project] = seconds.to_f.round
           end
+      end
+
+      private
+
+      def encoded_projects(projects)
+        values = projects.is_a?(Array) ? projects : [ projects ]
+        values.map { |project| HeartbeatIntervals.encode_project(project) }
+      end
+
+      def decode_durations(durations)
+        durations.to_h do |project, seconds|
+          [ HeartbeatIntervals.decode_project(project), seconds.to_f.round ]
+        end
       end
     end
   end

@@ -138,8 +138,6 @@ module HeartbeatIntervals
     end
 
     def normalized_dimension_sql(dimension)
-      return "ifNull(project, '')" if dimension == "project"
-
       "ifNull(#{dimension}, #{connection.quote(HeartbeatIntervals::NULL_DIMENSION_VALUE)})"
     end
 

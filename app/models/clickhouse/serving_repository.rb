@@ -68,7 +68,7 @@ module Clickhouse
       conditions.concat(date_conditions(date_range))
 
       value = if date_range.empty?
-        query_value("SELECT round(sum(seconds)) FROM #{table} WHERE #{conditions.join(' AND ')}")
+        query_value("SELECT sum(seconds) FROM #{table} WHERE #{conditions.join(' AND ')}")
       else
         query_value(corrected_total_sql(table:, conditions:))
       end
@@ -77,9 +77,9 @@ module Clickhouse
 
     def project_seconds(user_id:, project:)
       numeric(query_value(<<~SQL.squish))
-        SELECT round(sum(seconds))
+        SELECT sum(seconds)
         FROM heartbeat_project_summaries
-        WHERE user_id = #{Integer(user_id)} AND project = #{quote(project)}
+        WHERE user_id = #{Integer(user_id)} AND project = #{quote(encoded_project(project))}
       SQL
     end
 
@@ -87,14 +87,14 @@ module Clickhouse
       conditions = [ "user_id = #{Integer(user_id)}", *date_conditions(date_range) ]
       sql = if date_range.empty?
         <<~SQL.squish
-          SELECT project, round(sum(seconds)) AS seconds
+          SELECT project, sum(seconds) AS seconds
           FROM heartbeat_project_summaries
           WHERE #{conditions.join(' AND ')}
           GROUP BY project
         SQL
       else
         <<~SQL.squish
-          SELECT project, round(sum(seconds) - argMin(first_seconds, day)) AS seconds
+          SELECT project, sum(seconds) - argMin(first_seconds, day) AS seconds
           FROM (
             SELECT project, day, sum(seconds) AS seconds, sum(first_seconds) AS first_seconds,
                    sum(heartbeat_count) AS heartbeat_count
@@ -106,7 +106,9 @@ module Clickhouse
           GROUP BY project
         SQL
       end
-      durations(query(sql), :project)
+      durations(query(sql), :project).to_h do |project, seconds|
+        [ HeartbeatIntervals.decode_project(project), seconds ]
+      end
     end
 
     def dimension_durations(user_id:, dimension:, date_range:)
@@ -149,17 +151,21 @@ module Clickhouse
       attribution_durations(
         table: "heartbeat_project_dimension_daily_stats",
         conditions: [
-          "user_id = #{Integer(user_id)}", "project = #{quote(project)}", "dimension = #{quote(dimension)}"
+          "user_id = #{Integer(user_id)}", "project = #{quote(encoded_project(project))}",
+          "dimension = #{quote(dimension)}"
         ],
         first_day_source: "heartbeat_project_daily_stats",
-        first_day_conditions: [ "user_id = #{Integer(user_id)}", "project = #{quote(project)}" ],
+        first_day_conditions: [
+          "user_id = #{Integer(user_id)}", "project = #{quote(encoded_project(project))}"
+        ],
         date_range:
       )
     end
 
     def project_dimension_value_count(user_id:, project:, dimension:, date_range:)
       conditions = [
-        "user_id = #{Integer(user_id)}", "project = #{quote(project)}", "dimension = #{quote(dimension)}",
+        "user_id = #{Integer(user_id)}", "project = #{quote(encoded_project(project))}",
+        "dimension = #{quote(dimension)}",
         *date_conditions(date_range)
       ]
       query_value(<<~SQL.squish).to_i
@@ -180,7 +186,7 @@ module Clickhouse
         "user_id = #{Integer(user_id)}", "dimension = 'language'", *date_conditions(date_range)
       ]
       total_sql = if date_range.empty?
-        "SELECT 'total' AS kind, '' AS value, round(sum(seconds)) AS seconds " \
+        "SELECT 'total' AS kind, '' AS value, sum(seconds) AS seconds " \
           "FROM heartbeat_user_daily_stats WHERE #{user_conditions.join(' AND ')}"
       else
         corrected_total_sql(table: "heartbeat_user_daily_stats", conditions: user_conditions)
@@ -230,7 +236,8 @@ module Clickhouse
       return [ "heartbeat_user_daily_stats", base ] if filters.empty?
 
       if filters.keys == [ :project ]
-        return [ "heartbeat_project_daily_stats", base << "project = #{quote(filters.fetch(:project))}" ]
+        project = encoded_project(filters.fetch(:project))
+        return [ "heartbeat_project_daily_stats", base << "project = #{quote(project)}" ]
       end
 
       dimension, value = filters.first
@@ -242,7 +249,7 @@ module Clickhouse
 
     def corrected_total_sql(table:, conditions:)
       <<~SQL.squish
-        SELECT if(count() = 0, 0, round(sum(seconds) - argMin(first_seconds, day))) AS seconds
+        SELECT if(count() = 0, 0, sum(seconds) - argMin(first_seconds, day)) AS seconds
         FROM (
           SELECT day, sum(seconds) AS seconds, sum(first_seconds) AS first_seconds,
                  sum(heartbeat_count) AS heartbeat_count
@@ -256,14 +263,14 @@ module Clickhouse
 
     def grouped_filter_sql(conditions:, date_range:)
       return <<~SQL.squish if date_range.empty?
-        SELECT value, round(sum(seconds)) AS seconds
+        SELECT value, sum(seconds) AS seconds
         FROM heartbeat_dimension_daily_stats
         WHERE #{conditions.join(' AND ')}
         GROUP BY value
       SQL
 
       <<~SQL.squish
-        SELECT value, round(sum(seconds) - argMin(first_seconds, day)) AS seconds
+        SELECT value, sum(seconds) - argMin(first_seconds, day) AS seconds
         FROM (
           SELECT value, day, sum(seconds) AS seconds, sum(first_seconds) AS first_seconds,
                  sum(heartbeat_count) AS heartbeat_count
@@ -280,7 +287,7 @@ module Clickhouse
       scoped_conditions = [ *conditions, *date_conditions(date_range) ]
       if date_range.empty?
         return durations(query(<<~SQL.squish), :value)
-          SELECT value, round(sum(seconds)) AS seconds
+          SELECT value, sum(seconds) AS seconds
           FROM #{table}
           WHERE #{scoped_conditions.join(' AND ')}
           GROUP BY value
@@ -299,7 +306,7 @@ module Clickhouse
           ) AS active_days
           WHERE heartbeat_count > 0
         ) AS first_day
-        SELECT value, round(sum(seconds) - sumIf(first_seconds, day = first_day)) AS seconds
+        SELECT value, sum(seconds) - sumIf(first_seconds, day = first_day) AS seconds
         FROM (
           SELECT value, day, sum(seconds) AS seconds, sum(first_seconds) AS first_seconds
           FROM #{table}
@@ -312,10 +319,13 @@ module Clickhouse
     end
 
     def project_total_row_sql(user_id:, project:, date_range:)
-      conditions = [ "user_id = #{Integer(user_id)}", "project = #{quote(project)}", *date_conditions(date_range) ]
+      conditions = [
+        "user_id = #{Integer(user_id)}", "project = #{quote(encoded_project(project))}",
+        *date_conditions(date_range)
+      ]
       if date_range.empty?
         return <<~SQL.squish
-          SELECT 'total' AS kind, '' AS value, round(sum(seconds)) AS seconds,
+          SELECT 'total' AS kind, '' AS value, sum(seconds) AS seconds,
                  toInt64(sum(heartbeat_count)) AS heartbeat_count
           FROM heartbeat_project_summaries
           WHERE #{conditions.join(' AND ')}
@@ -324,7 +334,7 @@ module Clickhouse
 
       <<~SQL.squish
         SELECT 'total' AS kind, '' AS value,
-               if(count() = 0, 0, round(sum(seconds) - argMin(first_seconds, day))) AS seconds,
+               if(count() = 0, 0, sum(seconds) - argMin(first_seconds, day)) AS seconds,
                toInt64(sum(daily_heartbeat_count)) AS heartbeat_count
         FROM (
           SELECT day, sum(seconds) AS seconds, sum(first_seconds) AS first_seconds,
@@ -339,13 +349,13 @@ module Clickhouse
 
     def project_dimension_rows_sql(user_id:, project:, date_range:, dimensions:)
       conditions = [
-        "user_id = #{Integer(user_id)}", "project = #{quote(project)}",
+        "user_id = #{Integer(user_id)}", "project = #{quote(encoded_project(project))}",
         "dimension IN (#{dimensions.map { |dimension| quote(dimension) }.join(', ')})",
         *date_conditions(date_range)
       ]
       if date_range.empty?
         return <<~SQL.squish
-          SELECT dimension AS kind, value, round(sum(seconds)) AS seconds,
+          SELECT dimension AS kind, value, sum(seconds) AS seconds,
                  toInt64(sum(heartbeat_count)) AS heartbeat_count
           FROM heartbeat_project_dimension_daily_stats
           WHERE #{conditions.join(' AND ')}
@@ -354,7 +364,8 @@ module Clickhouse
       end
 
       first_day_conditions = [
-        "user_id = #{Integer(user_id)}", "project = #{quote(project)}", *date_conditions(date_range)
+        "user_id = #{Integer(user_id)}", "project = #{quote(encoded_project(project))}",
+        *date_conditions(date_range)
       ]
       <<~SQL.squish
         WITH (
@@ -368,7 +379,7 @@ module Clickhouse
           WHERE heartbeat_count > 0
         ) AS first_day
         SELECT dimension AS kind, value,
-               round(sum(seconds) - sumIf(first_seconds, day = first_day)) AS seconds,
+               sum(seconds) - sumIf(first_seconds, day = first_day) AS seconds,
                toInt64(sum(heartbeat_count)) AS heartbeat_count
         FROM (
           SELECT dimension, value, day, sum(seconds) AS seconds, sum(first_seconds) AS first_seconds,
@@ -390,6 +401,10 @@ module Clickhouse
     def quote(value)
       string = value.to_s.gsub("\\", "\\\\").gsub("'", "''")
       "'#{string}'"
+    end
+
+    def encoded_project(project)
+      HeartbeatIntervals.encode_project(project)
     end
 
     def query(sql)

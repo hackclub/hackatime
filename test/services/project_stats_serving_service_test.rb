@@ -91,4 +91,30 @@ class ProjectStatsServingServiceTest < ActiveSupport::TestCase
     assert_equal 2, raw[:file_count]
     assert_equal raw, serving
   end
+
+  test "rounds fractional project stats once at the Ruby boundary" do
+    user = User.create!(timezone: "UTC")
+    base = Time.utc(2026, 7, 14, 12)
+    attributes = {
+      user: user,
+      project: "fractional",
+      language: "Ruby",
+      editor: "vscode",
+      operating_system: "macOS",
+      category: "coding",
+      entity: "app/fractional.rb",
+      branch: "main",
+      source_type: :test_entry
+    }
+    create_heartbeat(**attributes, time: base.to_f)
+    create_heartbeat(**attributes, time: base.to_f + 84.5)
+
+    raw = ProjectStatsService.new(Clickhouse::Heartbeat.for_user(user).where(project: "fractional")).call
+    serving = ProjectStatsServingService.new(user: user, project: "fractional").call
+
+    assert_equal 85, raw.fetch(:total_time)
+    assert_equal({ "Ruby" => 85 }, raw.fetch(:language_stats))
+    assert_equal([ [ "app/fractional.rb", 85 ] ], raw.fetch(:file_stats))
+    assert_equal raw, serving
+  end
 end

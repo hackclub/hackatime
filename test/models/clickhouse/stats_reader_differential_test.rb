@@ -38,6 +38,23 @@ class Clickhouse::StatsReaderDifferentialTest < ActiveSupport::TestCase
     assert_reader_parity(user)
   end
 
+  test "rebuild preserves nil and blank projects as distinct duration buckets" do
+    user = User.create!(timezone: "UTC")
+    base = Time.utc(2026, 7, 14, 12)
+    projects = [ nil, "", nil, "", "named", "named" ]
+    offsets = [ 0, 30, 60, 90, 120, 180 ]
+    rows = projects.zip(offsets).each_with_index.map do |(project, offset), sequence|
+      heartbeat_attributes(user, time: (base + offset.seconds).to_f, sequence: sequence).merge(project: project)
+    end
+
+    Clickhouse::HeartbeatWriter.insert_rows(rows, maintain_serving_tables: false)
+    HeartbeatIntervals::UserRebuilder.call(user_id: user.id, reason: "nil_blank_project_differential")
+
+    raw = Clickhouse::Heartbeat.for_user(user).group(:project).duration_seconds
+    assert_equal({ nil => 60, "" => 60, "named" => 60 }, raw)
+    assert_equal raw, Clickhouse::StatsReader.new(user).project_durations
+  end
+
   private
 
   def initial_rows(user)
