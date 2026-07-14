@@ -118,7 +118,7 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
 
     assert result[:success]
     assert_equal [ "heartbeat_import_file" ], Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id).distinct.pluck(:reason)
-    assert_equal 60, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: user.id, project: "once")
+    assert_equal 60, Clickhouse::StatsReader.new(user).project_seconds("once")
   ensure
     HeartbeatImportService.send(:remove_const, :BATCH_SIZE)
     HeartbeatImportService.const_set(:BATCH_SIZE, original_batch_size)
@@ -140,7 +140,7 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     assert_not result[:success]
     assert_equal 2, result[:imported_count]
     assert_equal [ "heartbeat_import_file_partial" ], Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id).distinct.pluck(:reason)
-    assert_equal 60, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: user.id, project: "partial")
+    assert_equal 60, Clickhouse::StatsReader.new(user).project_seconds("partial")
   ensure
     HeartbeatImportService.send(:remove_const, :BATCH_SIZE)
     HeartbeatImportService.const_set(:BATCH_SIZE, original_batch_size)

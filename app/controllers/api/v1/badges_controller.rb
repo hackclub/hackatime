@@ -13,10 +13,10 @@ module Api
         return render_not_found_json("User not found") unless user
         return render_forbidden("User has disabled public stats") unless user.allow_public_stats_lookup
 
-        project_name = resolve_project_name(user, params[:project])
+        stats_reader = Clickhouse::StatsReader.new(user)
+        project_name = resolve_project_name(user, params[:project], stats_reader:)
         return render_not_found_json("Project not found") unless project_name
 
-        stats_reader = Clickhouse::StatsReader.new(user)
         seconds = stats_reader.project_seconds(project_name)
         return head :bad_request if seconds <= 0
 
@@ -47,9 +47,9 @@ module Api
       end
 
       # Resolve owner/repo format to a project name via ProjectRepoMapping
-      def resolve_project_name(user, project_param)
+      def resolve_project_name(user, project_param, stats_reader:)
         return nil if project_param.blank?
-        return project_param if Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: project_param).positive?
+        return project_param if stats_reader.project_heartbeat_count(project_param).positive?
 
         if project_param.include?("/")
           owner, name = project_param.split("/", 2)

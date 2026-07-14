@@ -37,9 +37,22 @@ class Clickhouse::StatsReaderTest < ActiveSupport::TestCase
     assert_equal 75, reader.total_seconds(**range, filters: { editor: "vscode" })
     assert_equal 75, reader.total_seconds(**range, filters: { machine: "devbox" })
     assert_equal 75, reader.project_seconds("reader")
+    assert_equal 2, reader.project_heartbeat_count("reader")
     assert_equal({ "reader" => 75 }, reader.project_durations(**range))
     assert_equal({ "Ruby" => 75 }, reader.project_dimension_durations(project: "reader", dimension: :language, **range))
     assert_equal({ "devbox" => 75 }, reader.dimension_durations(dimension: :machine, **range))
+  end
+
+  test "counts heartbeats for one project or an alias set" do
+    user = User.create!(timezone: "UTC")
+    base = Time.zone.local(2026, 7, 10, 12)
+    create_heartbeat(user:, time: base.to_f, project: "primary", category: "coding", source_type: :test_entry)
+    create_heartbeat(user:, time: (base + 60.seconds).to_f, project: "primary", category: "coding", source_type: :test_entry)
+    create_heartbeat(user:, time: (base + 120.seconds).to_f, project: "alias", category: "coding", source_type: :test_entry)
+
+    reader = Clickhouse::StatsReader.new(user)
+    assert_equal 2, reader.project_heartbeat_count("primary")
+    assert_equal 3, reader.project_heartbeat_count([ "primary", "alias" ])
   end
 
   test "reads project durations for multiple users from project summaries" do
@@ -52,12 +65,60 @@ class Clickhouse::StatsReaderTest < ActiveSupport::TestCase
     create_heartbeat(user: second_user, time: base.to_f, project: "beta", language: "Ruby", category: "coding", source_type: :test_entry)
     create_heartbeat(user: second_user, time: (base + 90.seconds).to_f, project: "beta", language: "Ruby", category: "coding", source_type: :test_entry)
 
+    serving_queries = []
+    subscriber = ActiveSupport::Notifications.subscribe("sql.clickhouse_serving") do |*, payload|
+      serving_queries << payload.fetch(:sql)
+    end
     assert_equal(
       {
         first_user.id => { "alpha" => 60 },
         second_user.id => { "beta" => 90 }
       },
-      Clickhouse::HeartbeatProjectSummary.durations_for_users([ first_user.id, second_user.id ])
+      Clickhouse::StatsReader.project_durations_for_users([ first_user.id, second_user.id ])
+    )
+    assert_equal 1, serving_queries.size
+    assert_equal({}, Clickhouse::StatsReader.project_durations_for_users([]))
+    assert_equal 1, serving_queries.size
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+  end
+
+  test "global home totals group physical rows before applying the tracked threshold" do
+    first_user = User.create!(timezone: "UTC")
+    second_user = User.create!(timezone: "UTC")
+    day = Date.new(2026, 7, 10)
+
+    Clickhouse::Record.connection.execute(<<~SQL.squish, format: nil)
+      INSERT INTO heartbeat_user_daily_stats
+        (user_id, day, seconds, first_seconds, heartbeat_count)
+      VALUES
+        (#{first_user.id}, '#{day}', 120, 0, 2),
+        (#{first_user.id}, '#{day}', -30, 0, -1),
+        (#{second_user.id}, '#{day}', 0.5, 0, 1)
+    SQL
+
+    assert_equal({ users_tracked: 1, seconds_tracked: 90 }, Clickhouse::StatsReader.home_totals)
+  end
+
+  test "cross-user project durations sum correction rows before rounding" do
+    first_user = User.create!(timezone: "UTC")
+    second_user = User.create!(timezone: "UTC")
+
+    Clickhouse::Record.connection.execute(<<~SQL.squish, format: nil)
+      INSERT INTO heartbeat_project_summaries (user_id, project, seconds, heartbeat_count)
+      VALUES
+        (#{first_user.id}, 'alpha', 120, 2),
+        (#{first_user.id}, 'alpha', -35.5, -1),
+        (#{second_user.id}, 'beta', 90, 2),
+        (#{second_user.id}, 'beta', -5.5, -1)
+    SQL
+
+    assert_equal(
+      {
+        first_user.id => { "alpha" => 85 },
+        second_user.id => { "beta" => 85 }
+      },
+      Clickhouse::StatsReader.project_durations_for_users([ first_user.id, second_user.id ])
     )
   end
 
@@ -96,14 +157,12 @@ class Clickhouse::StatsReaderTest < ActiveSupport::TestCase
     reader = Clickhouse::StatsReader.new(user)
     assert_equal({ nil => 75 }, reader.project_durations(**range))
     assert_equal 75, reader.project_seconds(nil)
+    assert_equal 2, reader.project_heartbeat_count(nil)
     assert_equal({ "Ruby" => 75 }, reader.project_dimension_durations(project: nil, dimension: :language, **range))
     assert_equal 1, reader.project_dimension_value_count(project: nil, dimension: :language, **range)
-    assert_equal 75, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: user.id, project: nil)
-    assert_equal 2, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: nil)
-    assert_equal({ nil => 75 }, Clickhouse::HeartbeatProjectSummary.durations_for(user_id: user.id))
     assert_equal(
       { user.id => { nil => 75 } },
-      Clickhouse::HeartbeatProjectSummary.durations_for_users([ user.id ])
+      Clickhouse::StatsReader.project_durations_for_users([ user.id ])
     )
   end
 

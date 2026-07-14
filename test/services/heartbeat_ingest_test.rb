@@ -133,12 +133,12 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
     perform_enqueued_jobs(only: HeartbeatServingRebuildJob)
     assert_equal 1, ch_count(user)
-    assert_equal 1, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: nil)
+    assert_equal 1, Clickhouse::StatsReader.new(user).project_heartbeat_count(nil)
 
     HeartbeatIngest.call(user: user, mode: :direct, heartbeats: [ payload ])
 
     assert_equal 1, ch_count(user)
-    assert_equal 1, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: nil)
+    assert_equal 1, Clickhouse::StatsReader.new(user).project_heartbeat_count(nil)
   end
 
   test "in-batch duplicate input is deduplicated and counted" do

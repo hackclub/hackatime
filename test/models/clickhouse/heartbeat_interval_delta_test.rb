@@ -64,7 +64,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
         **range
       )
     )
-    assert_equal 80, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: 123, project: "hackatime")
+    assert_equal 80, reader.project_seconds("hackatime")
   end
 
   test "rounds negative fractional correction facts once at the Ruby boundary" do
@@ -144,7 +144,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
       { "Ruby" => 60 },
       reader.project_dimension_durations(project: "serving", dimension: "language", **range)
     )
-    assert_equal 60, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: user.id, project: "serving")
+    assert_equal 60, reader.project_seconds("serving")
   end
 
   test "appended intervals keep nil and blank project partitions distinct" do
@@ -275,12 +275,12 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     create_heartbeat(user: user, time: (base + 60.seconds).to_f, project: "deleted", language: "Ruby", category: "coding", source_type: :test_entry)
     day = base.to_date
 
-    assert_equal 60, Clickhouse::HeartbeatUserDailyStat.seconds_for(user_id: user.id, start_date: day, end_date: day)
+    assert_equal 60, Clickhouse::StatsReader.new(user).total_seconds(start_time: day, end_time: day + 1.day)
 
     Clickhouse::HeartbeatWriter.soft_delete_user_heartbeats!(user.id)
 
-    assert_equal 0, Clickhouse::HeartbeatUserDailyStat.seconds_for(user_id: user.id, start_date: day, end_date: day)
-    assert_equal 0, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: user.id, project: "deleted")
+    assert_equal 0, Clickhouse::StatsReader.new(user).total_seconds(start_time: day, end_time: day + 1.day)
+    assert_equal 0, Clickhouse::StatsReader.new(user).project_seconds("deleted")
   end
 
   test "import rebuild corrects out of order interval deltas" do
@@ -291,7 +291,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     create_heartbeat(user: user, time: base.to_f, project: "imported", language: "Ruby", category: "coding", source_type: :test_entry)
     create_heartbeat(user: user, time: (base + 120.seconds).to_f, project: "imported", language: "Ruby", category: "coding", source_type: :test_entry)
 
-    assert_equal 120, Clickhouse::HeartbeatUserDailyStat.seconds_for(user_id: user.id, start_date: day, end_date: day)
+    assert_equal 120, Clickhouse::StatsReader.new(user).total_seconds(start_time: day, end_time: day + 1.day)
 
     HeartbeatIngest.call(
       user: user,
@@ -308,8 +308,8 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
       ]
     )
 
-    assert_equal 120, Clickhouse::HeartbeatUserDailyStat.seconds_for(user_id: user.id, start_date: day, end_date: day)
-    assert_equal 120, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: user.id, project: "imported")
+    assert_equal 120, Clickhouse::StatsReader.new(user).total_seconds(start_time: day, end_time: day + 1.day)
+    assert_equal 120, Clickhouse::StatsReader.new(user).project_seconds("imported")
   end
 
   test "direct late heartbeat rebuilds the affected user intervals" do
@@ -321,7 +321,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     create_heartbeat(user: user, time: (base + 120.seconds).to_f, project: "late", language: "Ruby", category: "coding", source_type: :test_entry)
     create_heartbeat(user: user, time: (base + 60.seconds).to_f, project: "late", language: "Python", category: "coding", source_type: :test_entry)
 
-    assert_equal 120, Clickhouse::HeartbeatUserDailyStat.seconds_for(user_id: user.id, start_date: day, end_date: day)
+    assert_equal 120, Clickhouse::StatsReader.new(user).total_seconds(start_time: day, end_time: day + 1.day)
     assert_equal({ "Ruby" => 60, "Python" => 60 }, Clickhouse::StatsReader.new(user).dimension_durations(
       dimension: :language, start_time: day, end_time: day + 1.day
     ))
@@ -367,7 +367,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     ])
 
     assert_equal delta_count, Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id).count
-    assert_equal 60, Clickhouse::HeartbeatUserDailyStat.seconds_for(user_id: user.id, start_date: day, end_date: day)
+    assert_equal 60, Clickhouse::StatsReader.new(user).total_seconds(start_time: day, end_time: day + 1.day)
   end
 
   test "enqueues one recovery when canonical insert succeeds before delta maintenance fails" do
@@ -396,7 +396,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     end
 
     assert_equal 1, Clickhouse::Heartbeat.for_user(user).count
-    assert_equal 0, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: "recovery")
+    assert_equal 0, Clickhouse::StatsReader.new(user).project_heartbeat_count("recovery")
   end
 
   test "rebuilds synchronously when serving recovery cannot be enqueued" do
@@ -421,7 +421,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
 
     assert_equal 2, Clickhouse::Heartbeat.for_user(user).count
     assert_equal 60, Clickhouse::StatsReader.new(user).project_seconds("recovery")
-    assert_equal 2, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: "recovery")
+    assert_equal 2, Clickhouse::StatsReader.new(user).project_heartbeat_count("recovery")
     assert_includes Clickhouse::HeartbeatIntervalDelta.distinct.pluck(:reason), "heartbeat_write_recovery_synchronous"
   end
 
@@ -457,7 +457,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     end
 
     assert_equal 1, Clickhouse::Heartbeat.for_user(user).count
-    assert_equal 0, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: "unrepaired")
+    assert_equal 0, Clickhouse::StatsReader.new(user).project_heartbeat_count("unrepaired")
     assert_equal [ "queue unavailable", "synchronous rebuild failed" ], reports.map { |error, _| error.message }
     assert reports.all? { |_, options| options[:handled] }
   end
@@ -562,7 +562,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
 
     flunk errors.pop.full_message unless errors.empty?
     assert_equal 1, Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id).sum(:heartbeat_count_delta)
-    assert_equal 1, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: "concurrent")
+    assert_equal 1, Clickhouse::StatsReader.new(user).project_heartbeat_count("concurrent")
   end
 
   private

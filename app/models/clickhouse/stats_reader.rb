@@ -2,6 +2,16 @@ module Clickhouse
   class StatsReader
     DIMENSION_FILTERS = %i[language editor operating_system machine category entity branch].freeze
 
+    class << self
+      def project_durations_for_users(user_ids, repository: nil)
+        (repository || ServingRepository.new).project_durations_for_users(user_ids:)
+      end
+
+      def home_totals(repository: nil)
+        (repository || ServingRepository.new).home_totals
+      end
+    end
+
     def initialize(user, repository: nil)
       @user_id = user.respond_to?(:id) ? user.id : user
       @repository = repository || ServingRepository.new
@@ -35,6 +45,10 @@ module Clickhouse
 
     def project_seconds(project)
       repository.project_seconds(user_id:, project:)
+    end
+
+    def project_heartbeat_count(project)
+      repository.project_heartbeat_count(user_id:, project:)
     end
 
     def project_durations(start_time: nil, end_time: nil)

@@ -11,8 +11,8 @@ class HeartbeatServingBackfillJobTest < ActiveJob::TestCase
 
     HeartbeatServingBackfillJob.perform_now([ first_user.id, second_user.id ])
 
-    assert_equal 60, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: first_user.id, project: "first")
-    assert_equal 90, Clickhouse::HeartbeatProjectSummary.seconds_for(user_id: second_user.id, project: "second")
+    assert_equal 60, Clickhouse::StatsReader.new(first_user).project_seconds("first")
+    assert_equal 90, Clickhouse::StatsReader.new(second_user).project_seconds("second")
     assert_equal [ "serving_backfill" ], Clickhouse::HeartbeatIntervalDelta.distinct.pluck(:reason)
   end
 

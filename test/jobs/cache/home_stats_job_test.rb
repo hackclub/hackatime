@@ -14,10 +14,15 @@ class Cache::HomeStatsJobTest < ActiveSupport::TestCase
       create_heartbeat(user: second, time: (base + 5.minutes).to_f, project: "two", category: "coding", source_type: :test_entry)
       create_heartbeat(user: single, time: base.to_f, project: "single", category: "coding", source_type: :test_entry)
 
-      assert_equal(
-        { users_tracked: 2, seconds_tracked: 180 },
-        Cache::HomeStatsJob.new.send(:calculate)
-      )
+      serving_queries = []
+      subscriber = ActiveSupport::Notifications.subscribe("sql.clickhouse_serving") do |*, payload|
+        serving_queries << payload.fetch(:sql)
+      end
+
+      assert_equal({ users_tracked: 2, seconds_tracked: 180 }, Cache::HomeStatsJob.new.send(:calculate))
+      assert_equal 1, serving_queries.size
+    ensure
+      ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
     end
   end
 end

@@ -76,11 +76,60 @@ module Clickhouse
     end
 
     def project_seconds(user_id:, project:)
+      projects = encoded_projects(project)
+      return 0 if projects.empty?
+
       numeric(query_value(<<~SQL.squish))
         SELECT sum(seconds)
         FROM heartbeat_project_summaries
-        WHERE user_id = #{Integer(user_id)} AND project = #{quote(encoded_project(project))}
+        WHERE user_id = #{Integer(user_id)} AND project IN (#{projects.map { |value| quote(value) }.join(', ')})
       SQL
+    end
+
+    def project_heartbeat_count(user_id:, project:)
+      projects = encoded_projects(project)
+      return 0 if projects.empty?
+
+      query_value(<<~SQL.squish).to_i
+        SELECT sum(heartbeat_count)
+        FROM heartbeat_project_summaries
+        WHERE user_id = #{Integer(user_id)} AND project IN (#{projects.map { |value| quote(value) }.join(', ')})
+      SQL
+    end
+
+    def project_durations_for_users(user_ids:)
+      ids = Array(user_ids).map { |user_id| Integer(user_id) }.uniq
+      return {} if ids.empty?
+
+      rows = query(<<~SQL.squish)
+        SELECT user_id, project, sum(seconds) AS seconds
+        FROM heartbeat_project_summaries
+        WHERE user_id IN (#{ids.join(', ')})
+        GROUP BY user_id, project
+      SQL
+
+      rows.each_with_object({}) do |row, result|
+        user_id = row.fetch(:user_id).to_i
+        project = HeartbeatIntervals.decode_project(row.fetch(:project))
+        (result[user_id] ||= {})[project] = numeric(row.fetch(:seconds))
+      end
+    end
+
+    def home_totals
+      row = query(<<~SQL.squish).first || {}
+        SELECT countIf(duration >= 1) AS users_tracked,
+               sumIf(duration, duration >= 1) AS seconds_tracked
+        FROM (
+          SELECT user_id, sum(seconds) AS duration
+          FROM heartbeat_user_daily_stats
+          GROUP BY user_id
+        ) AS user_durations
+      SQL
+
+      {
+        users_tracked: row.fetch(:users_tracked, 0).to_i,
+        seconds_tracked: row.fetch(:seconds_tracked, 0).to_i
+      }
     end
 
     def project_durations(user_id:, date_range:)
@@ -405,6 +454,11 @@ module Clickhouse
 
     def encoded_project(project)
       HeartbeatIntervals.encode_project(project)
+    end
+
+    def encoded_projects(projects)
+      values = projects.is_a?(Array) ? projects : [ projects ]
+      values.map { |project| encoded_project(project) }.uniq
     end
 
     def query(sql)
