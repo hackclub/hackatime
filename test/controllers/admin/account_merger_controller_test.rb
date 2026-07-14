@@ -1,6 +1,21 @@
 require "test_helper"
 
 class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
+  class RejectingQueueAdapter
+    def enqueue(_job) = raise ActiveJob::EnqueueError, "queue unavailable"
+    def enqueue_at(_job, _timestamp) = raise ActiveJob::EnqueueError, "queue unavailable"
+  end
+
+  setup do
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    enqueued_jobs.clear
+  end
+
+  teardown do
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
+  end
+
   test "search_users returns formatted user results" do
     admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
     user = User.create!(timezone: "UTC", username: "merge_target")
@@ -50,17 +65,27 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
       expires_in: 10.minutes.to_i
     )
 
-    post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+    ActiveJob::Base.queue_adapter = :good_job
+    jobs = GoodJob::Job.where(job_class: "HeartbeatAccountMergeJob")
+    assert_difference -> { jobs.count }, +1 do
+      post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+    end
 
     assert_redirected_to admin_account_merger_path
-    assert_equal 1, Clickhouse::Heartbeat.for_user(older).count
-    assert_equal heartbeat.id, Clickhouse::Heartbeat.for_user(older).sole.id
+    assert_empty Clickhouse::Heartbeat.for_user(older)
+    assert_equal heartbeat.id, Clickhouse::Heartbeat.for_user(newer).sole.id
     assert_equal older.id, ApiKey.find(api_key.id).user_id
     assert_nil User.find_by(id: newer.id)
     assert_equal 0, Doorkeeper::AccessToken.where(resource_owner_id: newer.id).count
     assert_equal 0, Doorkeeper::AccessGrant.where(resource_owner_id: newer.id).count
     assert_includes flash[:notice], "3 sessions/tokens revoked"
     assert_includes flash[:notice], "related records cleaned up"
+    assert_includes flash[:notice], "heartbeat transfer queued"
+    job = jobs.order(:created_at).last
+    arguments = job.serialized_params.fetch("arguments").first
+    assert_equal({ "older_user_id" => older.id, "newer_user_id" => newer.id }, arguments.except("_aj_ruby2_keywords"))
+    assert_equal "latency_5m", job.queue_name
+    assert_equal "heartbeat_serving_rebuild", job.concurrency_key
   end
 
   test "merge renames transferred api keys when the older account already has the same key name" do
@@ -123,6 +148,26 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, instance_import_source_count_for(older)
     assert_equal 0, instance_import_source_count_for(newer)
     assert_equal "https://older.example.com", instance_import_source_endpoint_for(older)
+  end
+
+  test "enqueue failure rolls back the user deletion and transferred records" do
+    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
+    older = User.create!(timezone: "UTC", username: "older_user")
+    newer = User.create!(timezone: "UTC", username: "newer_user")
+    api_key = newer.api_keys.create!(name: "Rollback Test Key")
+    goal = newer.goals.create!(period: "day", target_seconds: 30.minutes.to_i)
+    sign_in_as(admin)
+    ActiveJob::Base.queue_adapter = RejectingQueueAdapter.new
+
+    post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+
+    assert_redirected_to admin_account_merger_path
+    assert User.exists?(newer.id)
+    assert_equal newer.id, api_key.reload.user_id
+    assert_equal newer.id, goal.reload.user_id
+    assert_equal "Account merge failed.", flash[:alert]
+  ensure
+    ActiveJob::Base.queue_adapter = :test
   end
 
   private

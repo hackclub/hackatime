@@ -70,23 +70,22 @@ module Clickhouse
         end
       end
 
-      # Account merge: copy the newer user's live rows to the older user, then
-      # tombstone everything left under the newer user. Idempotent — re-running
-      # re-inserts identical rows which ReplacingMergeTree collapses.
       def merge_user_heartbeats!(older_user_id:, newer_user_id:)
-        user_ids = [ older_user_id.to_i, newer_user_id.to_i ]
+        older_user_id = older_user_id.to_i
+        newer_user_id = newer_user_id.to_i
+        user_ids = [ older_user_id, newer_user_id ]
         HeartbeatIntervals::UserLock.call(user_ids: user_ids) do
           connection = Clickhouse::Heartbeat.connection
           table = connection.quote_table_name(Clickhouse::Heartbeat.table_name)
           version = generate_version
 
           moved_exprs = WRITABLE_COLUMNS.map do |column|
-            column == "user_id" ? older_user_id.to_i.to_s : connection.quote_column_name(column)
+            column == "user_id" ? older_user_id.to_s : connection.quote_column_name(column)
           end
           connection.execute(<<~SQL.squish)
             INSERT INTO #{table} (#{column_list(connection)})
             SELECT #{moved_exprs.join(", ")} FROM #{table} FINAL
-            WHERE user_id = #{newer_user_id.to_i} AND deleted_at IS NULL
+            WHERE user_id = #{newer_user_id} AND deleted_at IS NULL
           SQL
 
           tombstone_exprs = WRITABLE_COLUMNS.map do |column|
@@ -99,14 +98,15 @@ module Clickhouse
           connection.execute(<<~SQL.squish)
             INSERT INTO #{table} (#{column_list(connection)})
             SELECT #{tombstone_exprs.join(", ")} FROM #{table} FINAL
-            WHERE user_id = #{newer_user_id.to_i} AND deleted_at IS NULL
+            WHERE user_id = #{newer_user_id} AND deleted_at IS NULL
           SQL
           clear_query_cache
+          user_ids.each do |user_id|
+            HeartbeatIntervals::UserRebuilder.call(user_id: user_id, reason: "merge_user")
+          end
+          clear_query_cache
         end
-        enqueue_rebuild!(user_ids, reason: "merge_user")
-      rescue => error
-        Rails.error.report(error, handled: true, context: { message: "Serving rebuild enqueue failed after account merge" })
-        user_ids.each { |user_id| HeartbeatIntervals::UserRebuilder.call(user_id: user_id, reason: "merge_user_recovery") }
+        true
       end
 
       private
