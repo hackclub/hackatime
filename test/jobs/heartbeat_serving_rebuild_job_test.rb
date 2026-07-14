@@ -9,11 +9,14 @@ class HeartbeatServingRebuildJobTest < ActiveJob::TestCase
     create_project_heartbeats(second_user, "second", base, 90)
     clear_serving_tables
 
-    HeartbeatServingRebuildJob.perform_now([ first_user.id, second_user.id ], reason: "test_rebuild")
+    HeartbeatServingRebuildJob.perform_now(
+      [ first_user.id.to_s, second_user.id, first_user.id ],
+      reason: "serving_backfill"
+    )
 
     assert_equal 60, Clickhouse::StatsReader.new(first_user).project_seconds("first")
     assert_equal 90, Clickhouse::StatsReader.new(second_user).project_seconds("second")
-    assert_equal [ "test_rebuild" ], Clickhouse::HeartbeatIntervalDelta.distinct.pluck(:reason)
+    assert_equal [ "serving_backfill" ], Clickhouse::HeartbeatIntervalDelta.distinct.pluck(:reason)
   end
 
   private

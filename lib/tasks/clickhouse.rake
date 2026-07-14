@@ -17,7 +17,7 @@ namespace :clickhouse do
         .map(&:to_i)
       break if user_ids.empty?
 
-      HeartbeatServingBackfillJob.perform_later(user_ids)
+      HeartbeatServingRebuildJob.perform_later(user_ids, reason: "serving_backfill")
       last_user_id = user_ids.last
       enqueued_users += user_ids.length
       enqueued_batches += 1

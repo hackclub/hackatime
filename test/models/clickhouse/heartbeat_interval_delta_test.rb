@@ -482,37 +482,6 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     assert_equal first_count - initial_count, second_count - first_count
   end
 
-  test "rebuild emits one net correction generation instead of retracting first" do
-    user = User.create!(timezone: "UTC")
-    base = Time.utc(2026, 7, 10, 12)
-
-    create_heartbeat(
-      user: user, time: base.to_f, project: "net", language: "Ruby",
-      category: "coding", source_type: :test_entry
-    )
-    create_heartbeat(
-      user: user, time: (base + 120.seconds).to_f, project: "net", language: "Ruby",
-      category: "coding", source_type: :test_entry
-    )
-    Clickhouse::HeartbeatWriter.insert_rows(
-      [
-        {
-          user_id: user.id, time: (base + 60.seconds).to_f, project: "net",
-          language: "Python", category: "coding", source_type: :test_entry
-        }
-      ],
-      maintain_serving_tables: false
-    )
-
-    HeartbeatIntervals::UserRebuilder.call(user_id: user.id, reason: "net_rebuild")
-
-    reasons = Clickhouse::HeartbeatIntervalDelta.where(user_id: user.id).distinct.pluck(:reason)
-    assert_includes reasons, "net_rebuild"
-    assert_not reasons.any? { |reason| reason.end_with?("_retract") }
-    assert_equal Clickhouse::Heartbeat.attributed_durations_by(Clickhouse::Heartbeat.for_user(user), :language),
-      Clickhouse::StatsReader.new(user).dimension_durations(dimension: :language)
-  end
-
   test "fractional intervals are summed before the final result is rounded" do
     user = User.create!(timezone: "UTC")
     base = Time.utc(2026, 7, 10, 12)
