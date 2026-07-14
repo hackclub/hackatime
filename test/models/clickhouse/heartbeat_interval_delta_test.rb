@@ -3,6 +3,11 @@ require "test_helper"
 class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
 
+  class RejectingQueueAdapter
+    def enqueue(_job) = raise ActiveJob::EnqueueError, "queue unavailable"
+    def enqueue_at(_job, _timestamp) = raise ActiveJob::EnqueueError, "queue unavailable"
+  end
+
   setup do
     @original_queue_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :test
@@ -365,7 +370,7 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     assert_equal 60, Clickhouse::HeartbeatUserDailyStat.seconds_for(user_id: user.id, start_date: day, end_date: day)
   end
 
-  test "enqueues recovery when canonical insert succeeds before delta maintenance fails" do
+  test "enqueues one recovery when canonical insert succeeds before delta maintenance fails" do
     user = User.create!(timezone: "UTC")
     attrs = {
       user_id: user.id,
@@ -376,24 +381,85 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
       source_type: :test_entry
     }
 
-    assert_enqueued_with(
-      job: HeartbeatServingRebuildJob,
-      args: [ [ user.id ], { reason: "heartbeat_write_recovery" } ]
-    ) do
-      original_writer = HeartbeatIntervals::DeltaWriter.method(:emit_for_inserted_rows)
-      HeartbeatIntervals::DeltaWriter.define_singleton_method(:emit_for_inserted_rows) { |*| raise "delta write failed" }
-      begin
-        error = assert_raises(RuntimeError) do
-          Clickhouse::HeartbeatWriter.insert_rows([ attrs ])
+    assert_enqueued_jobs 1, only: HeartbeatServingRebuildJob do
+      assert_enqueued_with(
+        job: HeartbeatServingRebuildJob,
+        args: [ [ user.id ], { reason: "heartbeat_write_recovery" } ]
+      ) do
+        with_singleton_method(HeartbeatIntervals::DeltaWriter, :emit_for_inserted_rows, ->(*) { raise "delta write failed" }) do
+          error = assert_raises(RuntimeError) do
+            Clickhouse::HeartbeatWriter.insert_rows([ attrs ])
+          end
+          assert_equal "delta write failed", error.message
         end
-        assert_equal "delta write failed", error.message
-      ensure
-        HeartbeatIntervals::DeltaWriter.define_singleton_method(:emit_for_inserted_rows, original_writer)
       end
     end
 
     assert_equal 1, Clickhouse::Heartbeat.for_user(user).count
     assert_equal 0, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: "recovery")
+  end
+
+  test "rebuilds synchronously when serving recovery cannot be enqueued" do
+    user = User.create!(timezone: "UTC")
+    base = Time.utc(2026, 7, 10, 12)
+    create_heartbeat(user: user, time: base.to_f, project: "recovery", category: "coding", source_type: :test_entry)
+    ActiveJob::Base.queue_adapter = RejectingQueueAdapter.new
+
+    maintenance_error = RuntimeError.new("delta write failed")
+    with_singleton_method(HeartbeatIntervals::DeltaWriter, :emit_for_inserted_rows, ->(*) { raise maintenance_error }) do
+      error = assert_raises(RuntimeError) do
+        create_heartbeat(
+          user: user,
+          time: (base + 60.seconds).to_f,
+          project: "recovery",
+          category: "coding",
+          source_type: :test_entry
+        )
+      end
+      assert_same maintenance_error, error
+    end
+
+    assert_equal 2, Clickhouse::Heartbeat.for_user(user).count
+    assert_equal 60, Clickhouse::StatsReader.new(user).project_seconds("recovery")
+    assert_equal 2, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: "recovery")
+    assert_includes Clickhouse::HeartbeatIntervalDelta.distinct.pluck(:reason), "heartbeat_write_recovery_synchronous"
+  end
+
+  test "raises complete recovery context when enqueue and synchronous rebuild fail" do
+    user = User.create!(timezone: "UTC")
+    attrs = {
+      user_id: user.id,
+      time: Time.utc(2026, 7, 10, 12).to_f,
+      project: "unrepaired",
+      category: "coding",
+      source_type: :test_entry
+    }
+    ActiveJob::Base.queue_adapter = RejectingQueueAdapter.new
+    maintenance_error = RuntimeError.new("delta write failed")
+    rebuild_error = RuntimeError.new("synchronous rebuild failed")
+    reports = []
+
+    with_singleton_method(Rails.error, :report, ->(error, **options) { reports << [ error, options ] }) do
+      with_singleton_method(HeartbeatIntervals::DeltaWriter, :emit_for_inserted_rows, ->(*) { raise maintenance_error }) do
+        with_singleton_method(HeartbeatIntervals::UserRebuilder, :call, ->(**) { raise rebuild_error }) do
+          error = assert_raises(Clickhouse::HeartbeatWriter::ServingRecoveryError) do
+            Clickhouse::HeartbeatWriter.insert_rows([ attrs ])
+          end
+
+          assert_same maintenance_error, error.maintenance_error
+          assert_same maintenance_error, error.cause
+          assert_same rebuild_error, error.rebuild_error
+          assert_match(/enqueue/i, error.message)
+          assert_match(/synchronous rebuild/i, error.message)
+          assert_match(/queue unavailable/, error.enqueue_error.message)
+        end
+      end
+    end
+
+    assert_equal 1, Clickhouse::Heartbeat.for_user(user).count
+    assert_equal 0, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: "unrepaired")
+    assert_equal [ "queue unavailable", "synchronous rebuild failed" ], reports.map { |error, _| error.message }
+    assert reports.all? { |_, options| options[:handled] }
   end
 
   test "repeated rebuilds keep machine stats stable without multiplying correction history" do
@@ -500,6 +566,14 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
   end
 
   private
+
+  def with_singleton_method(object, name, replacement)
+    original = object.method(name)
+    object.define_singleton_method(name, replacement)
+    yield
+  ensure
+    object.define_singleton_method(name, original)
+  end
 
   def insert_legacy_project_deltas(user_id, base, sequence)
     null_value = HeartbeatIntervals::NULL_DIMENSION_VALUE

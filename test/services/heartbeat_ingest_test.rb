@@ -115,6 +115,32 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal 1, ch_count(user)
   end
 
+  test "retry after serving maintenance failure keeps canonical and serving counts deduplicated" do
+    user = User.create!(timezone: "UTC")
+    time = Time.utc(2026, 7, 10, 12)
+    payload = {
+      entity: "src/retry.rb",
+      time: time.to_f,
+      type: "file"
+    }
+
+    assert_enqueued_jobs 1, only: HeartbeatServingRebuildJob do
+      with_singleton_method(HeartbeatIntervals::DeltaWriter, :emit_for_inserted_rows, ->(*) { raise "delta write failed" }) do
+        assert_raises(RuntimeError) do
+          HeartbeatIngest.call(user: user, mode: :direct, heartbeats: [ payload ])
+        end
+      end
+    end
+    perform_enqueued_jobs(only: HeartbeatServingRebuildJob)
+    assert_equal 1, ch_count(user)
+    assert_equal 1, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: nil)
+
+    HeartbeatIngest.call(user: user, mode: :direct, heartbeats: [ payload ])
+
+    assert_equal 1, ch_count(user)
+    assert_equal 1, Clickhouse::HeartbeatProjectSummary.heartbeat_count_for(user_id: user.id, project: nil)
+  end
+
   test "in-batch duplicate input is deduplicated and counted" do
     user = User.create!(timezone: "UTC")
     payload = {
@@ -265,5 +291,15 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     HeartbeatIngest.call(user: user, mode: :import, heartbeats: heartbeats)
 
     assert_equal 1, ch_count(user)
+  end
+
+  private
+
+  def with_singleton_method(object, name, replacement)
+    original = object.method(name)
+    object.define_singleton_method(name, replacement)
+    yield
+  ensure
+    object.define_singleton_method(name, original)
   end
 end

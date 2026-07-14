@@ -6,6 +6,17 @@ module Clickhouse
   # (user_id, time, fields_hash) collapse eventually, keeping the highest
   # version. Soft deletes and merges are new row versions, never mutations.
   module HeartbeatWriter
+    class ServingRecoveryError < StandardError
+      attr_reader :maintenance_error, :enqueue_error, :rebuild_error
+
+      def initialize(maintenance_error:, enqueue_error:, rebuild_error:)
+        @maintenance_error = maintenance_error
+        @enqueue_error = enqueue_error
+        @rebuild_error = rebuild_error
+        super("Serving table recovery failed during durable enqueue and synchronous rebuild")
+      end
+    end
+
     WRITABLE_COLUMNS = %w[
       id user_id time fields_hash project branch entity category editor
       language machine operating_system type user_agent ip_address dependencies
@@ -112,14 +123,21 @@ module Clickhouse
       private
 
       def persist_rows(rows, maintain_serving_tables:)
+        raw_rows_persisted = false
         serving_changes = classify_serving_changes(rows) if maintain_serving_tables
         Clickhouse::Heartbeat.unscoped.insert_all(rows)
         raw_rows_persisted = true
         clear_query_cache
         apply_serving_changes(serving_changes) if serving_changes
         clear_query_cache
-      rescue
-        enqueue_rebuild(rows.pluck("user_id"), reason: "heartbeat_write_recovery") if raw_rows_persisted && maintain_serving_tables
+      rescue => maintenance_error
+        if raw_rows_persisted && maintain_serving_tables
+          recover_serving_tables!(
+            rows.pluck("user_id"),
+            reason: "heartbeat_write_recovery",
+            maintenance_error: maintenance_error
+          )
+        end
         raise
       end
 
@@ -163,17 +181,42 @@ module Clickhouse
         end
       end
 
-      def enqueue_rebuild(user_ids, reason:)
+      def recover_serving_tables!(user_ids, reason:, maintenance_error:)
+        user_ids = Array(user_ids).map(&:to_i).uniq
         enqueue_rebuild!(user_ids, reason: reason)
-      rescue => error
-        Rails.error.report(error, handled: true, context: { message: "Serving rebuild recovery enqueue failed", user_ids: user_ids })
+        :enqueued
+      rescue => enqueue_error
+        Rails.error.report(
+          enqueue_error,
+          handled: true,
+          context: { message: "Serving rebuild recovery enqueue failed", user_ids: user_ids, reason: reason }
+        )
+
+        begin
+          user_ids.each do |user_id|
+            HeartbeatIntervals::UserRebuilder.call(user_id: user_id, reason: "#{reason}_synchronous")
+          end
+          :rebuilt_synchronously
+        rescue => rebuild_error
+          Rails.error.report(
+            rebuild_error,
+            handled: true,
+            context: { message: "Synchronous serving rebuild recovery failed", user_ids: user_ids, reason: reason }
+          )
+          raise ServingRecoveryError.new(
+            maintenance_error: maintenance_error,
+            enqueue_error: enqueue_error,
+            rebuild_error: rebuild_error
+          ), cause: maintenance_error
+        end
       end
 
       def enqueue_rebuild!(user_ids, reason:)
-        job = HeartbeatServingRebuildJob.perform_later(Array(user_ids).map(&:to_i).uniq, reason: reason)
-        raise ActiveJob::EnqueueError, "Serving rebuild job was not enqueued" unless job
+        job = HeartbeatServingRebuildJob.new(Array(user_ids).map(&:to_i).uniq, reason: reason)
+        enqueued_job = job.enqueue
+        raise(job.enqueue_error || ActiveJob::EnqueueError.new("Serving rebuild job was not enqueued")) unless enqueued_job
 
-        job
+        enqueued_job
       end
 
       def existing_rows_by_key(rows)
