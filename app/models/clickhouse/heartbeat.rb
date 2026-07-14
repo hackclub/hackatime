@@ -4,8 +4,8 @@ module Clickhouse
 
     self.table_name = "heartbeats"
     self.inheritance_column = nil
-    # The gem infers a composite primary key from the ORDER BY tuple, which
-    # hijacks #id; the table carries the real Postgres id column.
+    # The adapter infers a composite primary key from the MergeTree ORDER BY;
+    # this override keeps #id mapped to the heartbeat's logical id.
     self.primary_key = "id"
 
     BROWSER_EDITORS = %w[arc brave chrome chromium edge firefox floorp librewolf microsoft-edge opera opera-gx safari vivaldi waterfox zen].freeze

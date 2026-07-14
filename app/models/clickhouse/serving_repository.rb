@@ -20,10 +20,6 @@ module Clickhouse
         end
       end
 
-      def reset!
-        pools_mutex.synchronize { @pools = {} }
-      end
-
       private
 
       def pools

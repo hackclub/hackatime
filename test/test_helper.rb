@@ -67,7 +67,6 @@ end
 
 module ActiveSupport
   class TestCase
-    # Run tests in parallel with specified workers
     parallelize(workers: ENV.fetch("PARALLEL_WORKERS", 2).to_i)
 
     CLICKHOUSE_BASE_DATABASE = Clickhouse::Record.connection_db_config.database
@@ -90,7 +89,6 @@ module ActiveSupport
     include ClickhouseTestIsolation
     include ClickhouseHeartbeatFactory
 
-    # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
     self.fixture_table_names -= [
@@ -107,8 +105,6 @@ module ActiveSupport
       "sailors_log_slack_notifications",
       "sailors_logs"
     ]
-
-    # Add more helper methods to be used by all tests here...
   end
 end
 

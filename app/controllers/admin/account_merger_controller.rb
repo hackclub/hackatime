@@ -93,7 +93,7 @@ class Admin::AccountMergerController < InertiaController
       deleted_records += PaperTrail::Version.where(item_type: "User", item_id: newer_user.id).delete_all
       results << "#{deleted_records} related records cleaned up"
 
-      # GoodJob's current non-deferred enqueue makes this row share the PostgreSQL transaction.
+      # GoodJob enqueues immediately, so its row participates in this PostgreSQL transaction.
       job = HeartbeatAccountMergeJob.perform_later(
         older_user_id: older_user.id.to_i,
         newer_user_id: newer_user.id.to_i
