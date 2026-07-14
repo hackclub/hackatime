@@ -267,18 +267,30 @@ class Clickhouse::HeartbeatIntervalDeltaTest < ActiveSupport::TestCase
     ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end
 
-  test "bulk soft delete rebuilds serving totals with correction deltas" do
+  test "bulk soft delete supersedes production-scale versions and rebuilds serving totals" do
     user = User.create!(timezone: "UTC")
     base = Time.zone.local(2026, 7, 10, 12)
+    imported_version = (Time.current.to_r * 1_000_000_000).to_i - 1_000_000
 
-    create_heartbeat(user: user, time: base.to_f, project: "deleted", language: "Ruby", category: "coding", source_type: :test_entry)
-    create_heartbeat(user: user, time: (base + 60.seconds).to_f, project: "deleted", language: "Ruby", category: "coding", source_type: :test_entry)
+    create_heartbeat(
+      user: user, time: base.to_f, project: "deleted", language: "Ruby",
+      category: "coding", source_type: :test_entry, version: imported_version
+    )
+    create_heartbeat(
+      user: user, time: (base + 60.seconds).to_f, project: "deleted", language: "Ruby",
+      category: "coding", source_type: :test_entry, version: imported_version + 1
+    )
     day = base.to_date
 
+    assert_equal 2, Clickhouse::Heartbeat.for_user(user).count
     assert_equal 60, Clickhouse::StatsReader.new(user).total_seconds(start_time: day, end_time: day + 1.day)
 
     Clickhouse::HeartbeatWriter.soft_delete_user_heartbeats!(user.id)
 
+    winning_rows = Clickhouse::Heartbeat.with_deleted.for_user(user).pluck(:version, :deleted_at)
+    assert_equal 2, winning_rows.size
+    assert winning_rows.all? { |version, deleted_at| version > imported_version + 1 && deleted_at.present? }
+    assert_empty Clickhouse::Heartbeat.for_user(user)
     assert_equal 0, Clickhouse::StatsReader.new(user).total_seconds(start_time: day, end_time: day + 1.day)
     assert_equal 0, Clickhouse::StatsReader.new(user).project_seconds("deleted")
   end

@@ -5,6 +5,7 @@ class HeartbeatAccountMergeJobTest < ActiveJob::TestCase
     @older_user = User.create!(timezone: "UTC")
     @newer_user = User.create!(timezone: "UTC")
     @base = Time.utc(2026, 7, 10, 12)
+    @imported_version = (Time.current.to_r * 1_000_000_000).to_i - 1_000_000
   end
 
   test "GoodJob enqueue participates in a requires_new transaction" do
@@ -28,21 +29,28 @@ class HeartbeatAccountMergeJobTest < ActiveJob::TestCase
     ActiveJob::Base.queue_adapter = original_queue_adapter if original_queue_adapter
   end
 
-  test "moves canonical heartbeats and rebuilds serving facts" do
+  test "moves production-scale imported versions and rebuilds serving facts" do
     create_project_heartbeats(@older_user, start_time: @base, duration: 60)
-    create_project_heartbeats(@newer_user, start_time: @base + 2.minutes, duration: 60)
+    create_project_heartbeats(
+      @newer_user, start_time: @base + 2.minutes, duration: 60, version: @imported_version
+    )
 
     HeartbeatAccountMergeJob.perform_now(
       older_user_id: @older_user.id,
       newer_user_id: @newer_user.id
     )
 
+    winning_rows = Clickhouse::Heartbeat.with_deleted.for_user(@newer_user).pluck(:version, :deleted_at)
+    assert_equal 2, winning_rows.size
+    assert winning_rows.all? { |version, deleted_at| version > @imported_version + 1 && deleted_at.present? }
     assert_merge_converged(expected_seconds: 180)
   end
 
   test "is idempotent when performed twice" do
     create_project_heartbeats(@older_user, start_time: @base, duration: 60)
-    create_project_heartbeats(@newer_user, start_time: @base + 2.minutes, duration: 60)
+    create_project_heartbeats(
+      @newer_user, start_time: @base + 2.minutes, duration: 60, version: @imported_version
+    )
 
     2.times do
       HeartbeatAccountMergeJob.perform_now(
@@ -140,13 +148,14 @@ class HeartbeatAccountMergeJobTest < ActiveJob::TestCase
     singleton_class&.define_method(method_name, original_method) if original_method
   end
 
-  def create_project_heartbeats(user, start_time:, duration:)
+  def create_project_heartbeats(user, start_time:, duration:, version: nil)
     create_heartbeat(
-      user: user, time: start_time.to_f, project: "merged", category: "coding", source_type: :test_entry
+      user: user, time: start_time.to_f, project: "merged", category: "coding",
+      source_type: :test_entry, version: version
     )
     create_heartbeat(
       user: user, time: (start_time + duration.seconds).to_f, project: "merged",
-      category: "coding", source_type: :test_entry
+      category: "coding", source_type: :test_entry, version: version && version + 1
     )
   end
 

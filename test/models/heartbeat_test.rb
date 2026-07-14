@@ -229,6 +229,17 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert id_future > id_now
   end
 
+  test "writer versions use epoch nanoseconds and preserve ordering" do
+    earlier = Time.at(1_784_057_271, 174_723_000, :nanosecond)
+    later = earlier + Rational(1, 1_000_000_000)
+    earlier_version = Clickhouse::HeartbeatWriter.generate_version(earlier)
+    later_version = Clickhouse::HeartbeatWriter.generate_version(later)
+
+    assert_operator earlier_version, :>=, 1_000_000_000_000_000_000
+    assert_equal 1, later_version - earlier_version
+    assert_operator later_version, :<, 2**64
+  end
+
   test "native heartbeat schema is owned by the application" do
     connection = Clickhouse::Heartbeat.connection
     columns = connection.columns(:heartbeats).map(&:name)

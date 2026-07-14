@@ -33,7 +33,8 @@ module Clickhouse
       end
 
       def generate_version(time = Time.current)
-        (time.to_r * 1_000_000).to_i
+        # PeerDB imports use epoch nanoseconds, so replacements must share that scale.
+        (time.to_r * 1_000_000_000).to_i
       end
 
       def create!(attrs)
