@@ -7,21 +7,14 @@ class GeocodeUsersWithoutCountryJob < ApplicationJob
   enqueue_limit 1
 
   def perform
-    rows = ActiveRecord::Base.connection.select_rows(<<~SQL.squish)
-      SELECT u.id AS user_id, h.ip_address
-      FROM (
-        SELECT id FROM users WHERE country_code IS NULL
-      ) AS u(id)
-      CROSS JOIN LATERAL (
-        SELECT ip_address
-        FROM heartbeats
-        WHERE heartbeats.user_id = u.id
-          AND heartbeats.ip_address IS NOT NULL
-          AND heartbeats.deleted_at IS NULL
-        ORDER BY heartbeats.id DESC
-        LIMIT 1
-      ) AS h
-    SQL
+    user_ids = User.where(country_code: nil).pluck(:id)
+    return if user_ids.empty?
+
+    # Latest (by insertion id) non-null IP per user, matching the old LATERAL ... LIMIT 1.
+    rows = Clickhouse::Heartbeat
+      .where(user_id: user_ids).where.not(ip_address: nil)
+      .group(:user_id)
+      .pluck(Arel.sql("user_id, argMax(ip_address, id)"))
 
     return if rows.empty?
 

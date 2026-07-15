@@ -9,6 +9,10 @@ gem "propshaft"
 gem "sqlite3", ">= 2.1"
 # Use PostgreSQL as the database for Wakatime
 gem "pg"
+# ClickHouse ActiveRecord adapter - heartbeat reads + writes run on ClickHouse
+gem "clickhouse-activerecord"
+# Native protocol client for latency-sensitive serving-table reads
+gem "clickhouse-native", "~> 0.10.0"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
@@ -118,8 +122,7 @@ group :development, :test do
   # Random data generation — only used in seed rake tasks
   gem "faker", require: false
 
-  # technically not used for any of the scripts in the repo, but I like
-  # to use it for scratch benchmarks
+  # Ruby 4 requires this gem for disposable performance diagnostics.
   gem "benchmark"
 end
 

@@ -37,7 +37,8 @@ class WeeklySummaryMailerTest < ActionMailer::TestCase
   private
 
   def create_coding_heartbeat(time, project, language)
-    @user.heartbeats.create!(
+    create_heartbeat(
+      user: @user,
       entity: "src/#{project}.rb",
       type: "file",
       category: "coding",

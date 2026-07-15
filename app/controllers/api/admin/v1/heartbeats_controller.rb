@@ -23,7 +23,7 @@ module Api
             FROM (
               SELECT user_id, machine, ip_address,
                      MIN(time) AS first_seen, MAX(time) AS last_seen
-              FROM heartbeats
+              FROM heartbeats FINAL
               WHERE user_id IS NOT NULL
                 AND machine IS NOT NULL
                 AND ip_address IS NOT NULL
@@ -34,7 +34,7 @@ module Api
             JOIN (
               SELECT user_id, machine, ip_address,
                      MIN(time) AS first_seen, MAX(time) AS last_seen
-              FROM heartbeats
+              FROM heartbeats FINAL
               WHERE user_id IS NOT NULL
                 AND machine IS NOT NULL
                 AND ip_address IS NOT NULL
@@ -46,8 +46,8 @@ module Api
             LIMIT ?
           SQL
 
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff, limit ])
+          result = Clickhouse::Heartbeat.connection.select_all(
+            Clickhouse::Heartbeat.sanitize_sql([ query, cutoff, cutoff, limit ])
           )
 
           render json: { pairs: result.to_a }
@@ -62,12 +62,12 @@ module Api
             SELECT
               sms.machine,
               sms.machine_frequency,
-              ARRAY_AGG(DISTINCT u.id) AS user_ids
+              concat('{', arrayStringConcat(arrayMap(id -> toString(id), groupUniqArray(hb.user_id)), ','), '}') AS user_ids
             FROM (
               SELECT machine, COUNT(user_id) AS machine_frequency
               FROM (
                 SELECT DISTINCT machine, user_id
-                FROM heartbeats
+                FROM heartbeats FINAL
                 WHERE machine IS NOT NULL
                   AND deleted_at IS NULL
                   AND time > ?
@@ -75,15 +75,14 @@ module Api
               GROUP BY machine
               HAVING COUNT(user_id) > 1
             ) AS sms
-            JOIN heartbeats hb ON hb.machine = sms.machine AND hb.deleted_at IS NULL AND hb.time > ?
-            JOIN users u ON u.id = hb.user_id
+            JOIN heartbeats AS hb FINAL ON hb.machine = sms.machine AND hb.deleted_at IS NULL AND hb.time > ?
             GROUP BY sms.machine, sms.machine_frequency
             ORDER BY sms.machine_frequency DESC, sms.machine ASC
             LIMIT ?
           SQL
 
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff, limit ])
+          result = Clickhouse::Heartbeat.connection.select_all(
+            Clickhouse::Heartbeat.sanitize_sql([ query, cutoff, cutoff, limit ])
           )
 
           render json: { machines: result.to_a }

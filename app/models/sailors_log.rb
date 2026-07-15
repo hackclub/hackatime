@@ -16,7 +16,7 @@ class SailorsLog < ApplicationRecord
 
   def initialize_projects_summary
     return if projects_summary.present?
-    self.projects_summary = Heartbeat.where(user_id: user.id).group(:project).duration_seconds
+    self.projects_summary = Clickhouse::StatsReader.new(user).project_durations
     self.projects_summary ||= {}
   end
 

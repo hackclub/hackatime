@@ -7,7 +7,7 @@ module DashboardData
 
     def grouped_durations_snapshot(scope)
       GROUPED_DIMENSIONS.index_with do |field|
-        field == :project ? project_grouped_durations(scope) : Heartbeat.attributed_durations_by(scope, field)
+        field == :project ? project_grouped_durations(scope) : scope.klass.attributed_durations_by(scope, field)
       end
     end
 
@@ -22,48 +22,39 @@ module DashboardData
     end
 
     def project_details_snapshot(scope:)
-      timeout = Heartbeat.heartbeat_timeout_duration.to_i
+      timeout = Clickhouse::Heartbeat.heartbeat_timeout_duration.to_i
       relation_sql = scope.with_valid_timestamps
-        .where.not(project: [ nil, "" ], time: nil)
+        .where.not(project: [ nil, "" ])
+        .where.not(time: nil)
         .select(:id, :time, :project, :language)
         .to_sql
 
-      rows = Heartbeat.connection.select_all(<<~SQL.squish)
+      rows = Clickhouse::Heartbeat.connection.select_all(<<~SQL.squish)
         SELECT grouped_time,
-               COUNT(*)::integer AS heartbeat_count,
+               COUNT(*) AS heartbeat_count,
                MIN(time) AS first_heartbeat,
                MAX(time) AS last_heartbeat,
-               ARRAY_REMOVE(ARRAY_AGG(DISTINCT NULLIF(language, '')), NULL) AS languages,
-               COALESCE(SUM(diff), 0)::integer AS duration
+               groupUniqArrayIf(assumeNotNull(language), language IS NOT NULL AND language != '') AS languages,
+               SUM(diff) AS duration
         FROM (
           SELECT project AS grouped_time,
                  time,
                  language,
-                 CASE
-                   WHEN LAG(time) OVER (PARTITION BY project ORDER BY time, id) IS NULL THEN 0
-                   ELSE LEAST(time - LAG(time) OVER (PARTITION BY project ORDER BY time, id), #{timeout})
-                 END AS diff
-          FROM (#{relation_sql}) project_detail_heartbeats
-        ) diffs
+                 least(time - lagInFrame(time, 1, time) OVER (PARTITION BY project ORDER BY time, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), #{timeout}) AS diff
+          FROM (#{relation_sql}) AS project_detail_heartbeats
+        ) AS diffs
         GROUP BY grouped_time
       SQL
 
       rows.each_with_object({}) do |row, result|
         result[row["grouped_time"]] = {
-          total_seconds: row["duration"].to_i,
+          total_seconds: row["duration"].to_f.round,
           total_heartbeats: row["heartbeat_count"].to_i,
           first_heartbeat: row["first_heartbeat"],
           last_heartbeat: row["last_heartbeat"],
-          languages: pg_array(row["languages"]).compact_blank
+          languages: Array(row["languages"]).compact_blank
         }
       end
-    end
-
-    def pg_array(value)
-      return value if value.is_a?(Array)
-      return [] if value.blank?
-
-      PG::TextDecoder::Array.new.decode(value.to_s)
     end
 
     def weekly_project_stats(user:, scope:)
@@ -76,31 +67,26 @@ module DashboardData
         .select(:id, :time, :project)
         .to_sql
 
-      quoted_timezone = Heartbeat.connection.quote(user.timezone)
-      week_group_sql = "DATE_TRUNC('week', to_timestamp(time) AT TIME ZONE #{quoted_timezone})"
+      quoted_timezone = Clickhouse::Heartbeat.connection.quote(user.timezone)
+      week_group_sql = "toMonday(toTimeZone(toDateTime64(time, 3), #{quoted_timezone}))"
+      lag_sql = "lagInFrame(time, 1, time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)"
 
-      rows = Heartbeat.connection.select_all(<<~SQL.squish)
-        SELECT TO_CHAR(week_group, 'YYYY-MM-DD') AS week_key,
+      rows = Clickhouse::Heartbeat.connection.select_all(<<~SQL.squish)
+        SELECT toString(week_group) AS week_key,
                grouped_time,
-               COALESCE(SUM(diff), 0)::integer AS duration
+               SUM(diff) AS duration
         FROM (
           SELECT project AS grouped_time,
                  #{week_group_sql} AS week_group,
-                 CASE
-                   WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
-                   ELSE LEAST(
-                     time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
-                     #{Heartbeat.heartbeat_timeout_duration.to_i}
-                   )
-                 END AS diff
-          FROM (#{relation_sql}) dashboard_heartbeats
-        ) diffs
+                 least(time - #{lag_sql}, #{Clickhouse::Heartbeat.heartbeat_timeout_duration.to_i}) AS diff
+          FROM (#{relation_sql}) AS dashboard_heartbeats
+        ) AS diffs
         GROUP BY week_group, grouped_time
         ORDER BY week_key DESC, grouped_time
       SQL
 
       rows.each do |row|
-        result[row["week_key"]][row["grouped_time"]] = row["duration"].to_i
+        result[row["week_key"]][row["grouped_time"]] = row["duration"].to_f.round
       end
 
       result
@@ -108,51 +94,37 @@ module DashboardData
 
     def today_stats_snapshot(user:, scope:)
       Time.use_zone(user.timezone) do
-        timeout = Heartbeat.heartbeat_timeout_duration.to_i
-        today_sql = scope.today.to_sql
+        today_scope = scope.today
 
-        rows = Heartbeat.connection.select_all(<<~SQL.squish).to_a
-          WITH today_rows AS (#{today_sql}),
-               duration_calc AS (
-                 SELECT
-                   CASE WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
-                        ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout}) END AS diff
-                 FROM today_rows
-                 WHERE time IS NOT NULL AND time >= 0 AND time <= 253402300799
-               ),
-               total_duration AS (SELECT COALESCE(SUM(diff), 0)::integer AS total FROM duration_calc)
-          SELECT DISTINCT
-            language,
-            editor,
-            COUNT(*) OVER (PARTITION BY language) AS language_count,
-            COUNT(*) OVER (PARTITION BY editor) AS editor_count,
-            (SELECT total FROM total_duration) AS total_duration
-          FROM today_rows
-        SQL
-
-        language_categories = rows
-          .map { |row| [ row["language"], row["language_count"].to_i ] }
+        language_categories = today_scope.group(:language).count
           .reject { |language, _| language.blank? }
-          .uniq
-          .group_by { |language, _| language.categorize_language }
+          .group_by { |(language, _)| language.categorize_language }
           .transform_values { |pairs| pairs.sum { |_, count| count } }
           .reject { |category, _| category.blank? }
           .sort_by { |_, count| -count }
           .map(&:first)
 
-        editor_keys = rows
-          .map { |row| [ row["editor"], row["editor_count"].to_i ] }
+        editor_keys = today_scope.group(:editor).count
           .reject { |editor, _| editor.blank? }
-          .uniq
           .sort_by { |_, count| -count }
           .map(&:first)
 
         {
           timezone: user.timezone,
           today_date: Date.current.iso8601,
-          todays_duration_seconds: rows.first&.fetch("total_duration").to_i,
+          todays_duration_seconds: today_scope.duration_seconds.to_i,
           todays_language_categories: language_categories,
           todays_editor_keys: editor_keys
+        }
+      rescue ActiveRecord::ActiveRecordError => e
+        raise unless e.message.include?("undefined method 'map' for nil")
+
+        {
+          timezone: user.timezone,
+          today_date: Date.current.iso8601,
+          todays_duration_seconds: 0,
+          todays_language_categories: [],
+          todays_editor_keys: []
         }
       end
     end
@@ -194,14 +166,42 @@ module DashboardData
       end
     end
 
-    # Live aggregate snapshot used by the filtered (non-rollup) dashboard path.
-    # Returns the same shape as the rollup-derived aggregate snapshot.
     def aggregate_query_snapshot(user:, scope:)
       {
         total_time: scope.duration_seconds,
         total_heartbeats: scope.count,
         grouped_durations: grouped_durations_snapshot(scope),
         weekly_project_stats: weekly_project_stats(user: user, scope: scope)
+      }
+    rescue ActiveRecord::ActiveRecordError => e
+      raise unless e.message.include?("undefined method 'map' for nil")
+
+      {
+        total_time: 0,
+        total_heartbeats: 0,
+        grouped_durations: GROUPED_DIMENSIONS.index_with { {} },
+        weekly_project_stats: week_ranges(user.timezone).to_h { |week_key, *_| [ week_key, {} ] }
+      }
+    end
+
+    def serving_aggregate_query_snapshot(user:, total_heartbeats:)
+      reader = Clickhouse::StatsReader.new(user)
+      grouped_durations = {
+        project: reader.project_durations,
+        language: reader.dimension_durations(dimension: :language),
+        editor: reader.dimension_durations(dimension: :editor),
+        operating_system: reader.dimension_durations(dimension: :operating_system),
+        category: reader.dimension_durations(dimension: :category)
+      }
+      weekly = week_ranges(user.timezone).to_h do |week_key, start_time, end_time|
+        [ week_key, reader.project_durations(start_time: start_time, end_time: end_time) ]
+      end
+
+      {
+        total_time: reader.total_seconds,
+        total_heartbeats: total_heartbeats,
+        grouped_durations: grouped_durations,
+        weekly_project_stats: weekly
       }
     end
 

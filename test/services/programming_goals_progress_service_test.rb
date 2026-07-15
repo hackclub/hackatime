@@ -2,12 +2,12 @@ require "test_helper"
 
 class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
   setup do
-    @original_timeout = Heartbeat.heartbeat_timeout_duration
-    Heartbeat.heartbeat_timeout_duration(1.second)
+    @original_timeout = Clickhouse::Heartbeat.heartbeat_timeout_duration
+    Clickhouse::Heartbeat.heartbeat_timeout_duration(1.second)
   end
 
   teardown do
-    Heartbeat.heartbeat_timeout_duration(@original_timeout)
+    Clickhouse::Heartbeat.heartbeat_timeout_duration(@original_timeout)
   end
 
   test "day goal uses current day in user timezone" do
@@ -110,7 +110,7 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
   def create_heartbeat_pair(user, start_time, language: "Ruby", project: "alpha")
     start_at = to_time_in_zone(user.timezone, start_time)
 
-    Heartbeat.create!(
+    create_heartbeat(
       user: user,
       time: start_at.to_i,
       language: language,
@@ -119,7 +119,7 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
       source_type: :test_entry
     )
 
-    Heartbeat.create!(
+    create_heartbeat(
       user: user,
       time: (start_at + 1.second).to_i,
       language: language,

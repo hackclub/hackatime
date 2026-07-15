@@ -16,7 +16,7 @@ class ScanGithubReposJob < ApplicationJob
     scope.find_each(batch_size: 100) do |user|
       Rails.logger.info "Scanning GitHub repos for user #{user.id} (#{user.github_username})"
       existing = user.project_repo_mappings.pluck(:project_name)
-      project_names = user.heartbeats.where.not(project: existing).distinct.pluck(:project).compact
+      project_names = Clickhouse::Heartbeat.for_user(user).where.not(project: existing).distinct.pluck(:project).compact
 
       project_names.each do |project_name|
         Rails.cache.fetch("attempt_project_repo_mapping_job_#{user.id}_#{project_name}", expires_in: 1.hour) do

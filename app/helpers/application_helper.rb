@@ -60,8 +60,8 @@ module ApplicationHelper
   def time_in_emoji(duration) = CLOCK_EMOJIS[(duration.to_i / 1800) % CLOCK_EMOJIS.length]
 
   def human_interval_name(key, from: nil, to: nil)
-    if key.present? && Heartbeat.respond_to?(:humanize_range) && Heartbeat::RANGES.key?(key.to_sym)
-      Heartbeat.humanize_range(Heartbeat::RANGES[key.to_sym][:calculate].call)
+    if key.present? && Clickhouse::Heartbeat.respond_to?(:humanize_range) && Clickhouse::Heartbeat::RANGES.key?(key.to_sym)
+      Clickhouse::Heartbeat.humanize_range(Clickhouse::Heartbeat::RANGES[key.to_sym][:calculate].call)
     elsif from.present? && to.present?
       "#{from} to #{to}"
     else

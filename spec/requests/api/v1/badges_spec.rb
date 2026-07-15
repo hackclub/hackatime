@@ -2,8 +2,8 @@ require 'swagger_helper'
 
 RSpec.describe 'Api::V1::Badges', type: :request do
   def create_heartbeat(user, project, time)
-    Heartbeat.create!(
-      user: user,
+    Clickhouse::HeartbeatWriter.create!(
+      user_id: user.id,
       time: time,
       project: project,
       language: 'Ruby',

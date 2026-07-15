@@ -45,8 +45,8 @@ class ProfilesController < InertiaController
     return head :not_found unless mapping&.public_shared_at.present?
 
     h = ApplicationController.helpers
-    hb = @user.heartbeats.where(project: project_name)
-    stats = ProjectStatsService.new(hb).call(
+    hb = Clickhouse::Heartbeat.for_user(@user).where(project: project_name)
+    stats = ProjectStatsServingService.new(user: @user, project: project_name).call(
       only: %i[total_time file_count language_stats language_colors file_stats branch_stats]
     )
     first_heartbeat = hb.minimum(:time)
@@ -135,14 +135,8 @@ class ProfilesController < InertiaController
   def public_profile_og_heatmap
     return nil unless @user.allow_public_stats_lookup
 
-    rollup = DashboardRollup.find_by(user_id: @user.id, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
-    duration_by_date = rollup&.payload&.fetch("duration_by_date", nil)
-    return nil if duration_by_date.blank?
-
-    duration_by_date.each_with_object({}) do |(date, seconds), out|
-      key = (date.is_a?(Date) ? date.iso8601 : date.to_date.iso8601 rescue date.to_s)
-      out[key] = seconds.to_i
-    end
+    duration_by_date = DashboardStats.new(user: @user).activity_graph_data[:duration_by_date]
+    duration_by_date.presence
   end
 
   def profile_summary_payload

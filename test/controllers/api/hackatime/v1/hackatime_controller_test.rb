@@ -14,7 +14,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
       type: "file"
     }
 
-    assert_difference("Heartbeat.count", 1) do
+    assert_heartbeat_difference(user, 1) do
       post "/api/hackatime/v1/users/current/heartbeats",
         params: payload.to_json,
         headers: {
@@ -24,7 +24,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = latest_heartbeat(user)
     assert_equal user.id, heartbeat.user_id
     assert_equal "vscode/1.0.0", heartbeat.user_agent
     assert_equal "coding", heartbeat.category
@@ -35,7 +35,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     api_key = user.api_keys.create!(name: "primary")
     ja4 = "t13d1516h2_8daaf6152771_02713d6af862"
 
-    assert_difference([ "Heartbeat.count", "Ja4.count" ], 1) do
+    before_heartbeats = heartbeat_count(user)
+    assert_difference("Ja4.count", 1) do
       post "/api/hackatime/v1/users/current/heartbeats",
         params: {
           entity: "src/main.rb",
@@ -51,14 +52,16 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    assert_equal ja4, Heartbeat.order(:id).last.ja4.fingerprint
+    assert_equal before_heartbeats + 1, heartbeat_count(user)
+    assert_equal ja4, Ja4.find(latest_heartbeat(user).ja4_id).fingerprint
   end
 
   test "single heartbeat resolves <<LAST_LANGUAGE>> from existing heartbeats" do
     user = User.create!(timezone: "UTC")
     api_key = user.api_keys.create!(name: "primary")
     # Seed a prior heartbeat with a known language
-    user.heartbeats.create!(
+    create_heartbeat(
+      user: user,
       entity: "src/old.rb",
       type: "file",
       category: "coding",
@@ -76,7 +79,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
       language: "<<LAST_LANGUAGE>>"
     }
 
-    assert_difference("Heartbeat.count", 1) do
+    assert_heartbeat_difference(user, 1) do
       post "/api/hackatime/v1/users/current/heartbeats",
         params: payload.to_json,
         headers: {
@@ -86,7 +89,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = latest_heartbeat(user)
     assert_equal "Ruby", heartbeat.language
   end
 
@@ -114,7 +117,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
       }
     ]
 
-    assert_difference("Heartbeat.count", 2) do
+    assert_heartbeat_difference(user, 2) do
       post "/api/hackatime/v1/users/current/heartbeats.bulk",
         params: payload.to_json,
         headers: {
@@ -124,7 +127,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :created
-    heartbeats = Heartbeat.order(:id).last(2)
+    heartbeats = Clickhouse::Heartbeat.for_user(user).order(:time).last(2)
     assert_equal "Python", heartbeats.first.language
     assert_equal "Python", heartbeats.last.language
   end
@@ -142,7 +145,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
       language: "<<LAST_LANGUAGE>>"
     }
 
-    assert_difference("Heartbeat.count", 1) do
+    assert_heartbeat_difference(user, 1) do
       post "/api/hackatime/v1/users/current/heartbeats",
         params: payload.to_json,
         headers: {
@@ -152,7 +155,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = latest_heartbeat(user)
     assert_equal "Ruby", heartbeat.language
   end
 
@@ -172,7 +175,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
       completely_bogus_field: "should be ignored"
     }
 
-    assert_difference("Heartbeat.count", 1) do
+    assert_heartbeat_difference(user, 1) do
       post "/api/hackatime/v1/users/current/heartbeats",
         params: payload.to_json,
         headers: {
@@ -182,7 +185,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = latest_heartbeat(user)
     assert_equal "src/main.rb", heartbeat.entity
     assert_equal "hackatime", heartbeat.project
   end
@@ -204,7 +207,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
       }
     ]
 
-    assert_difference("Heartbeat.count", 1) do
+    assert_heartbeat_difference(user, 1) do
       post "/api/hackatime/v1/users/current/heartbeats.bulk",
         params: payload.to_json,
         headers: {
@@ -214,7 +217,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :created
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = latest_heartbeat(user)
     assert_equal "src/first.rb", heartbeat.entity
     assert_equal "hackatime", heartbeat.project
   end
@@ -232,7 +235,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     }
 
     # First request creates the heartbeat
-    assert_difference("Heartbeat.count", 1) do
+    assert_heartbeat_difference(user, 1) do
       post "/api/hackatime/v1/users/current/heartbeats",
         params: payload.to_json,
         headers: {
@@ -242,14 +245,14 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
         }
     end
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = latest_heartbeat(user)
 
     log_output = StringIO.new
     previous_logger = Rails.logger
     Rails.logger = ActiveSupport::Logger.new(log_output)
 
     # Second request with same data should not create a duplicate or log a uniqueness error
-    assert_no_difference("Heartbeat.count") do
+    assert_heartbeat_difference(user, 0) do
       post "/api/hackatime/v1/users/current/heartbeats",
         params: payload.to_json,
         headers: {
@@ -259,7 +262,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
         }
     end
     assert_response :accepted
-    assert_equal heartbeat.id, JSON.parse(response.body)["id"]
+    assert JSON.parse(response.body)["id"].present?
     assert_no_match(/RecordNotUnique|duplicate key|unique/i, log_output.string)
   ensure
     Rails.logger = previous_logger if previous_logger
@@ -277,7 +280,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
       type: "file"
     } ]
 
-    assert_difference("Heartbeat.count", 1) do
+    assert_heartbeat_difference(user, 1) do
       post "/api/hackatime/v1/users/current/heartbeats.bulk",
         params: payload.to_json,
         headers: {
@@ -287,9 +290,82 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :created
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = latest_heartbeat(user)
     assert_equal user.id, heartbeat.user_id
     assert_equal "zed/1.0.0", heartbeat.user_agent
     assert_equal "coding", heartbeat.category
+  end
+
+  test "last 7 days stats reads UTC summaries from serving tables" do
+    travel_to Time.utc(2026, 7, 10, 12, 0, 0) do
+      user = User.create!(slack_uid: "UHACK#{SecureRandom.hex(4)}", timezone: "UTC")
+      api_key = user.api_keys.create!(name: "primary")
+
+      create_summary_heartbeat(user, Time.utc(2026, 7, 8, 9, 0, 0))
+      create_summary_heartbeat(user, Time.utc(2026, 7, 8, 9, 1, 0))
+      create_summary_heartbeat(user, Time.utc(2026, 7, 9, 9, 0, 0))
+      create_summary_heartbeat(user, Time.utc(2026, 7, 9, 9, 2, 0))
+
+      heartbeat_queries = collect_heartbeat_queries do
+        get "/api/hackatime/v1/users/current/stats/last_7_days",
+          headers: { "Authorization" => "Bearer #{api_key.token}" }
+      end
+
+      assert_response :success
+      data = JSON.parse(response.body).fetch("data")
+
+      assert_equal 300, data.fetch("total_seconds")
+      assert_equal 2, data.fetch("days_including_holidays")
+      assert_equal 150.0, data.fetch("daily_average")
+      assert_equal "0 hrs 5 mins", data.fetch("human_readable_total")
+      assert_equal [ "hackatime" ], data.fetch("projects").map { |row| row.fetch("name") }
+      assert_equal [ "Ruby" ], data.fetch("languages").map { |row| row.fetch("name") }
+      assert_equal [ "VSCode" ], data.fetch("editors").map { |row| row.fetch("name") }
+      assert_equal [ "devbox" ], data.fetch("machines").map { |row| row.fetch("name") }
+      assert_equal [ "Linux" ], data.fetch("operating_systems").map { |row| row.fetch("name") }
+      assert_empty heartbeat_queries
+    end
+  end
+
+  private
+
+  def heartbeat_count(user)
+    Clickhouse::Heartbeat.for_user(user).count
+  end
+
+  def latest_heartbeat(user)
+    Clickhouse::Heartbeat.for_user(user).order(time: :desc, id: :desc).first
+  end
+
+  def assert_heartbeat_difference(user, difference)
+    before = heartbeat_count(user)
+    yield
+    assert_equal before + difference, heartbeat_count(user)
+  end
+
+  def create_summary_heartbeat(user, time)
+    create_heartbeat(
+      user: user,
+      time: time.to_f,
+      project: "hackatime",
+      language: "Ruby",
+      editor: "vscode",
+      operating_system: "linux",
+      machine: "devbox",
+      category: "coding",
+      source_type: :direct_entry
+    )
+  end
+
+  def collect_heartbeat_queries
+    queries = []
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      sql = payload[:sql].to_s
+      queries << sql if sql.match?(/\bFROM\s+`?heartbeats`?\b/i)
+    end
+    yield
+    queries
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end
 end

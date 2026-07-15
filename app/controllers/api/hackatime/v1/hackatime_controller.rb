@@ -34,7 +34,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def status_bar_today
     Time.use_zone(@user.timezone) do
-      total_seconds = @user.heartbeats.today.duration_seconds
+      total_seconds = Clickhouse::Heartbeat.for_user(@user).today.duration_seconds
       result = {
         data: {
           grand_total: {
@@ -69,7 +69,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       start_time = (Time.current - 7.days).beginning_of_day
       end_time = Time.current.end_of_day
 
-      heartbeats = @user.heartbeats.where(time: start_time.to_i..end_time.to_i)
+      if serving_last_7_days_supported?
+        return render json: stats_last_7_days_from_serving(start_time:, end_time:)
+      end
+
+      heartbeats = Clickhouse::Heartbeat.for_user(@user).where(time: start_time.to_i..end_time.to_i)
       total_seconds = heartbeats.duration_seconds.to_i
       days_covered = heartbeats.pluck(:time).map { |ts| Time.at(ts).in_time_zone(@user.timezone).to_date }.uniq.length
       daily_average = days_covered > 0 ? (total_seconds.to_f / days_covered).round(1) : 0
@@ -125,6 +129,10 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def calculate_category_stats(heartbeats, category)
     durations = heartbeats.group(category).duration_seconds
+    category_stats_from_durations(durations, category)
+  end
+
+  def category_stats_from_durations(durations, category)
     total_duration = durations.values.sum.to_f
     return [] if total_duration == 0
 
@@ -153,6 +161,53 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     end.sort_by { |item| -item[:total_seconds] }
   end
 
+  def stats_last_7_days_from_serving(start_time:, end_time:)
+    reader = Clickhouse::StatsReader.new(@user)
+    total_seconds = reader.total_seconds(start_time:, end_time:)
+    days_covered = reader.days_with_heartbeats(start_time:, end_time:)
+    daily_average = days_covered > 0 ? (total_seconds.to_f / days_covered).round(1) : 0
+    human_readable_total = format_hr(total_seconds)
+    hours, minutes, seconds = hms(total_seconds)
+
+    {
+      data: {
+        username: @user.slack_uid,
+        user_id: @user.slack_uid,
+        start: start_time.iso8601,
+        end: end_time.iso8601,
+        status: "ok",
+        total_seconds: total_seconds,
+        daily_average: daily_average,
+        days_including_holidays: days_covered,
+        range: "last_7_days",
+        human_readable_range: "Last 7 Days",
+        human_readable_total: human_readable_total,
+        human_readable_daily_average: format_hr(daily_average.to_i),
+        is_coding_activity_visible: true,
+        is_other_usage_visible: true,
+        editors: category_stats_from_durations(reader.filter_durations(dimension: :editor, start_time:, end_time:), "editor"),
+        languages: category_stats_from_durations(reader.filter_durations(dimension: :language, start_time:, end_time:), "language"),
+        machines: category_stats_from_durations(reader.filter_durations(dimension: :machine, start_time:, end_time:), "machine"),
+        projects: category_stats_from_durations(reader.project_durations(start_time:, end_time:), "project"),
+        operating_systems: category_stats_from_durations(reader.filter_durations(dimension: :operating_system, start_time:, end_time:), "operating_system"),
+        categories: [ {
+          name: "coding",
+          total_seconds: total_seconds,
+          percent: 100.0,
+          digital: format("%d:%02d:%02d", hours, minutes, seconds),
+          text: human_readable_total,
+          hours: hours,
+          minutes: minutes,
+          seconds: seconds
+        } ]
+      }
+    }
+  end
+
+  def serving_last_7_days_supported?
+    @user.timezone == "UTC"
+  end
+
   def handle_heartbeat(heartbeat_array)
     result = HeartbeatIngest.call(
       user: @user,
@@ -166,7 +221,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     )
 
     result.items.map do |item|
-      next [ item.heartbeat.attributes, 201 ] if item.status == :accepted
+      next [ item.heartbeat, 201 ] if item.status == :accepted
       error = item.error
       report_error(
         error,

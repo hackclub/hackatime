@@ -12,7 +12,7 @@ class Api::V1::StatsController < ApplicationController
     end_date = parse_date_param(:end_date, default: Date.today.end_of_day, boundary: :end)
     return if performed?
 
-    query = Heartbeat.where(time: start_date..end_date)
+    query = Clickhouse::Heartbeat.where(time: start_date..end_date)
 
     if params[:username].present?
       user = User.lookup_by_identifier(params[:username])
@@ -39,7 +39,7 @@ class Api::V1::StatsController < ApplicationController
     # /api/v1/users/current/stats?filter_by_project=harbor,high-seas
     filter_by_projects = params[:filter_by_project].presence&.split(",")
     filter_by_categories = params[:filter_by_category].presence&.split(",")
-    scope = filter_by_projects ? @user.heartbeats.where(project: filter_by_projects) : nil
+    scope = filter_by_projects ? Clickhouse::Heartbeat.for_user(@user).where(project: filter_by_projects) : nil
 
     enabled_features = params[:features]&.split(",")&.map(&:to_sym) || %i[languages]
 
@@ -52,6 +52,7 @@ class Api::V1::StatsController < ApplicationController
       end_date: end_date
     }
     service_params[:scope] = scope if scope
+    service_params[:serving_filters] = { project: filter_by_projects.first } if filter_by_projects&.one?
 
     no_ai_coding = params[:no_ai_coding] == "true"
 
@@ -69,19 +70,26 @@ class Api::V1::StatsController < ApplicationController
       summary = WakatimeService.new(**service_params).generate_summary
     else
       if params[:total_seconds] == "true"
-        query = Heartbeat.where(user_id: @user.id).where("time >= ? AND time < ?", start_date.to_f, end_date.to_f)
+        query = Clickhouse::Heartbeat.for_user(@user).where("time >= ? AND time < ?", start_date.to_f, end_date.to_f)
         query = query.where(project: filter_by_projects) if filter_by_projects
         query = query.where(category: filter_by_categories) if filter_by_categories
 
         total_seconds = if params[:boundary_aware] == "true"
           excluded = [ "browsing", "meeting", "communicating" ]
           excluded << "ai coding" if no_ai_coding
-          Heartbeat.duration_seconds_boundary_aware(
+          Clickhouse::Heartbeat.duration_seconds_boundary_aware(
             query,
             start_date.to_f,
             end_date.to_f,
             excluded_categories: excluded
           ) || 0
+        elsif serving_total_seconds_supported?(start_date:, end_date:, filter_by_projects:, filter_by_categories:, no_ai_coding:)
+          serving_total_seconds(
+            start_date: start_date,
+            end_date: end_date,
+            filter_by_projects: filter_by_projects,
+            filter_by_categories: filter_by_categories
+          )
         else
           query = query.where.not(category: "ai coding") if no_ai_coding
           query.duration_seconds || 0
@@ -95,8 +103,8 @@ class Api::V1::StatsController < ApplicationController
     end
 
     if params[:features]&.include?("projects") && params[:filter_by_project].present?
-      heartbeats = @user.heartbeats.coding_only.with_valid_timestamps
-                                   .where(time: start_date..end_date, project: filter_by_projects)
+      heartbeats = Clickhouse::Heartbeat.for_user(@user).coding_only.with_valid_timestamps
+                                        .where(time: start_date..end_date, project: filter_by_projects)
       summary[:unique_total_seconds] = unique_heartbeat_seconds(heartbeats)
     end
 
@@ -118,7 +126,7 @@ class Api::V1::StatsController < ApplicationController
     end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
     return if performed?
 
-    heartbeats = @user.heartbeats.where(time: start_date.to_f..end_date.to_f)
+    heartbeats = Clickhouse::Heartbeat.for_user(@user).where(time: start_date.to_f..end_date.to_f)
     heartbeats = heartbeats.where(project: params[:project]) if params[:project].present?
     heartbeats = heartbeats.where(project: params[:filter_by_project].split(",")) if params[:project].blank? && params[:filter_by_project].present?
 
@@ -205,6 +213,30 @@ class Api::V1::StatsController < ApplicationController
   def project_stats_query(include_archived: false)
     @project_stats_queries ||= {}
     @project_stats_queries[include_archived] ||= ProjectStatsQuery.new(user: @user, params: params, include_archived: include_archived)
+  end
+
+  def serving_total_seconds_supported?(start_date:, end_date:, filter_by_projects:, filter_by_categories:, no_ai_coding:)
+    return false if no_ai_coding
+    return false if filter_by_projects.present? && filter_by_categories.present?
+    return false if filter_by_projects&.many? || filter_by_categories&.many?
+    return false unless day_boundary?(start_date)
+    day_boundary?(end_date) || end_of_day_boundary?(end_date)
+  end
+
+  def serving_total_seconds(start_date:, end_date:, filter_by_projects:, filter_by_categories:)
+    filters = {}
+    filters[:project] = filter_by_projects if filter_by_projects.present?
+    filters[:category] = filter_by_categories if filter_by_categories.present?
+
+    Clickhouse::StatsReader.new(@user).total_seconds(start_time: start_date, end_time: end_date, filters: filters)
+  end
+
+  def day_boundary?(time)
+    time == time.beginning_of_day
+  end
+
+  def end_of_day_boundary?(time)
+    (time.to_f - time.end_of_day.to_f).abs < 0.001
   end
 
   def unique_heartbeat_seconds(heartbeats)

@@ -5,10 +5,7 @@ class Cache::ActiveProjectsJobTest < ActiveSupport::TestCase
   teardown { Rails.cache.clear }
 
   def create_heartbeat(user:, project:, **attrs)
-    Heartbeat.create!(
-      user: user, project: project, entity: "src/#{project}.rb",
-      source_type: :direct_entry, time: Time.current.to_f, **attrs
-    )
+    super(user: user, project: project, entity: "src/#{project}.rb", source_type: :direct_entry, time: Time.current.to_f, **attrs)
   end
 
   test "returns the most recent active project per user and excludes soft-deleted heartbeats" do
@@ -24,6 +21,18 @@ class Cache::ActiveProjectsJobTest < ActiveSupport::TestCase
 
     assert_equal [ user.id ], result.keys
     assert_equal "live", result[user.id].project_name
+  end
+
+  test "falls back to the newest recent project with an active mapping" do
+    user = User.create!(timezone: "UTC")
+    ProjectRepoMapping.create!(user: user, project_name: "mapped")
+
+    create_heartbeat(user: user, project: "mapped", time: 2.minutes.ago.to_f)
+    create_heartbeat(user: user, project: "unmapped", time: 1.minute.ago.to_f)
+
+    result = Cache::ActiveProjectsJob.new.send(:calculate)
+
+    assert_equal "mapped", result[user.id].project_name
   end
 
   test "excludes heartbeats older than the recent window and non-direct source types" do

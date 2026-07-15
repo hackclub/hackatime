@@ -38,8 +38,8 @@ class Admin::AccountMergerController < InertiaController
     merge_results = perform_merge(older_user, newer_user)
     redirect_to admin_account_merger_path, notice: "Merge complete! #{merge_results}"
   rescue => e
-    Rails.logger.error("Account merge failed and was rolled back: #{e.message}")
-    redirect_to admin_account_merger_path, alert: "Merge failed and was rolled back: #{e.message}"
+    Rails.logger.error("Account merge failed: #{e.message}")
+    redirect_to admin_account_merger_path, alert: "Account merge failed."
   end
 
   private
@@ -61,25 +61,17 @@ class Admin::AccountMergerController < InertiaController
     results = []
 
     ActiveRecord::Base.transaction do
-      # 1. Move heartbeats from newer to older
-      results << "#{Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)} heartbeats moved"
-
-      # 2. Transfer API keys from newer to older
       results << "#{transfer_api_keys(older_user:, newer_user:)} API keys transferred"
 
-      # 3. Transfer goals from newer to older
       results << "#{newer_user.goals.update_all(user_id: older_user.id)} goals transferred"
 
-      # 4. Reconcile instance import sources before deleting the newer user.
       deleted_records = reconcile_instance_import_source(older_user:, newer_user:)
 
-      # 5. Revoke newer user's sessions
       revoked_tokens = newer_user.sign_in_tokens.destroy_all.count
       revoked_tokens += Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
       revoked_tokens += Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
       results << "#{revoked_tokens} sessions/tokens revoked"
 
-      # 6. Delete all related data for the newer user
       deleted_records += newer_user.email_addresses.destroy_all.count
       deleted_records += newer_user.email_verification_requests.destroy_all.count
       deleted_records += newer_user.goals.destroy_all.count
@@ -101,11 +93,19 @@ class Admin::AccountMergerController < InertiaController
       deleted_records += PaperTrail::Version.where(item_type: "User", item_id: newer_user.id).delete_all
       results << "#{deleted_records} related records cleaned up"
 
-      # 7. Finally, delete the newer user
+      # GoodJob enqueues immediately, so its row participates in this PostgreSQL transaction.
+      job = HeartbeatAccountMergeJob.perform_later(
+        older_user_id: older_user.id.to_i,
+        newer_user_id: newer_user.id.to_i
+      )
+      raise ActiveJob::EnqueueError, "Heartbeat transfer job was not enqueued" unless job
+
       newer_user.reload
       newer_user.destroy!
       results << "user ##{newer_user.id} deleted"
     end
+
+    results << "heartbeat transfer queued"
 
     results.join(", ")
   end

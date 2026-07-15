@@ -36,7 +36,7 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
 
     instantiated_heartbeats = 0
     subscriber = ActiveSupport::Notifications.subscribe("instantiation.active_record") do |*, payload|
-      instantiated_heartbeats += payload[:record_count] if payload[:class_name] == "Heartbeat"
+      instantiated_heartbeats += payload[:record_count] if payload[:class_name] == "Clickhouse::Heartbeat"
     end
 
     get "/api/v1/users/#{user.username}/stats", params: {
@@ -48,6 +48,58 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal 0, instantiated_heartbeats
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+  end
+
+  test "user_stats whole-day summary uses serving totals and language breakdowns" do
+    user = User.create!(username: "stats_user_#{SecureRandom.hex(3)}", timezone: "UTC")
+    create_heartbeat(user:, time: Time.utc(2025, 12, 15, 10).to_f, project: "alpha", language: "Ruby", category: "coding")
+    create_heartbeat(user:, time: Time.utc(2025, 12, 15, 10, 1).to_f, project: "alpha", language: "Ruby", category: "coding")
+    raw_summary_queries = []
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      sql = payload[:sql].to_s
+      next unless sql.match?(/\bFROM\s+heartbeats\b/i) && sql.include?("lagInFrame")
+
+      raw_summary_queries << sql unless sql.include?("PARTITION BY user_id, toDate")
+    end
+
+    get "/api/v1/users/#{user.username}/stats", params: {
+      features: "languages",
+      start_date: "2025-12-15",
+      end_date: "2025-12-16"
+    }
+
+    assert_response :success
+    data = JSON.parse(response.body).fetch("data")
+    assert_equal 60, data.fetch("total_seconds")
+    assert_equal [ [ "Ruby", 60 ] ], data.fetch("languages").map { |language| [ language.fetch("name"), language.fetch("total_seconds") ] }
+    assert_empty raw_summary_queries
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+  end
+
+  test "user_stats total_seconds uses serving tables for supported project filters" do
+    user = User.create!(username: "stats_user_#{SecureRandom.hex(3)}", timezone: "UTC")
+    create_heartbeat(user:, time: Time.utc(2025, 12, 15, 10, 0, 0).to_f, project: "Galactic_war", category: "coding")
+    create_heartbeat(user:, time: Time.utc(2025, 12, 15, 10, 1, 0).to_f, project: "Galactic_war", category: "coding")
+
+    heartbeat_queries = []
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      sql = payload[:sql].to_s
+      heartbeat_queries << sql if sql.match?(/\bFROM\s+heartbeats\b/i)
+    end
+
+    get "/api/v1/users/#{user.username}/stats", params: {
+      total_seconds: "true",
+      filter_by_project: "Galactic_war",
+      start_date: "2025-12-15",
+      end_date: "2025-12-16"
+    }
+
+    assert_response :success
+    assert_equal 60, JSON.parse(response.body).fetch("total_seconds")
+    assert_empty heartbeat_queries
   ensure
     ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end
@@ -181,13 +233,14 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def create_heartbeat(user:, time:, project:, category:)
-    Heartbeat.create!(
+  def create_heartbeat(user:, time:, project:, category:, **attrs)
+    super(
       user: user,
       source_type: :direct_entry,
       time: time,
       project: project,
-      category: category
+      category: category,
+      **attrs
     )
   end
 

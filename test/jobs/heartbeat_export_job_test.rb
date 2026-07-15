@@ -45,7 +45,7 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
     assert_equal "2026-02-10", payload.dig("export_info", "date_range", "start_date")
     assert_equal "2026-02-12", payload.dig("export_info", "date_range", "end_date")
     assert_equal 2, payload.dig("export_info", "total_heartbeats")
-    assert_equal @user.heartbeats.order(time: :asc).duration_seconds, payload.dig("export_info", "total_duration_seconds")
+    assert_equal Clickhouse::Heartbeat.for_user(@user).order(time: :asc).duration_seconds, payload.dig("export_info", "total_duration_seconds")
     assert_equal [ hb1.id, hb2.id ], payload.fetch("heartbeats").map { |row| row.fetch("id") }
     assert_equal "src/first.rb", payload.fetch("heartbeats").first.fetch("entity")
     assert_equal "src/second.rb", payload.fetch("heartbeats").last.fetch("entity")
@@ -83,7 +83,8 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
       slack_uid: "U#{SecureRandom.hex(5)}",
       username: "job_no_email_#{SecureRandom.hex(4)}"
     )
-    user_without_email.heartbeats.create!(
+    create_heartbeat_for(
+      user: user_without_email,
       entity: "src/no_email.rb",
       type: "file",
       category: "coding",
@@ -121,7 +122,8 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
   private
 
   def create_heartbeat(at_time:, entity:)
-    @user.heartbeats.create!(
+    create_heartbeat_for(
+      user: @user,
       entity: entity,
       type: "file",
       category: "coding",
@@ -129,6 +131,10 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
       project: "export-test",
       source_type: :test_entry
     )
+  end
+
+  def create_heartbeat_for(user:, **attrs)
+    Clickhouse::Heartbeat.instantiate(Clickhouse::HeartbeatWriter.create!(attrs.merge(user_id: user.id)))
   end
 
   def parse_zipped_export_payload(zip_bytes, json_filename)

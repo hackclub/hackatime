@@ -1,7 +1,7 @@
 require "application_system_test_case"
 
 class HeartbeatExportTest < ApplicationSystemTestCase
-  fixtures :users, :email_addresses, :heartbeats, :sign_in_tokens, :api_keys, :admin_api_keys
+  fixtures :users, :email_addresses, :sign_in_tokens, :api_keys, :admin_api_keys
 
   setup do
     @original_cache = Rails.cache
@@ -115,7 +115,8 @@ class HeartbeatExportTest < ApplicationSystemTestCase
   end
 
   def create_heartbeat(user, at_time, entity)
-    user.heartbeats.create!(
+    super(
+      user: user,
       entity: entity,
       type: "file",
       category: "coding",

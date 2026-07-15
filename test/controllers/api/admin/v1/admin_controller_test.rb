@@ -7,12 +7,13 @@ class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
     user = User.create!(timezone: "UTC", username: "admin_heartbeats_ja4")
     ja4 = Ja4.create!(fingerprint: "t13d1312h2_f57a46bbacb6_ab7e3b40a677", name: "Go net/http")
 
-    user.heartbeats.create!(
+    create_heartbeat(
+      user: user,
       time: Time.current.to_i,
       project: "test-project",
       entity: "test.rb",
       source_type: :direct_entry,
-      ja4: ja4
+      ja4_id: ja4.id
     )
 
     get "/api/admin/v1/user/heartbeats", params: { user_id: user.id }, headers: auth_headers(key)

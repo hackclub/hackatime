@@ -155,8 +155,8 @@ class InertiaController < ApplicationController
       git_version: Rails.application.config.git_version,
       commit_link: Rails.application.config.commit_link,
       server_start_time_ago: h.time_ago_in_words(Rails.application.config.server_start_time),
-      heartbeat_recent_count: Heartbeat.recent_count,
-      heartbeat_recent_imported_count: Heartbeat.recent_imported_count,
+      heartbeat_recent_count: Clickhouse::Heartbeat.recent_count,
+      heartbeat_recent_imported_count: Clickhouse::Heartbeat.recent_imported_count,
       active_users_graph: hours
     }
 

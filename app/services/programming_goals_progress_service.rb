@@ -37,7 +37,7 @@ class ProgrammingGoalsProgressService
 
   def tracked_seconds_for_goal(goal, now:)
     time_window = time_window_for(goal.period, now: now)
-    scope = user.heartbeats.where(time: time_window.begin.to_i..time_window.end.to_i)
+    scope = Clickhouse::Heartbeat.for_user(user).where(time: time_window.begin.to_i..time_window.end.to_i)
     scope = scope.where(project: goal.projects) if goal.projects.any?
 
     if goal.languages.any?
@@ -52,7 +52,7 @@ class ProgrammingGoalsProgressService
       scope = scope.where(language: matching_languages)
     end
 
-    scope.duration_seconds.to_i
+    Clickhouse::Heartbeat.duration_seconds(scope).to_i
   end
 
   def time_window_for(period, now:)

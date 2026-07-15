@@ -12,7 +12,6 @@ class ProjectsTest < ApplicationSystemTestCase
     archived_mapping = @user.project_repo_mappings.create!(project_name: "archived-project")
     archived_mapping.archive!
     create_project_heartbeats(@user, "archived-project", started_at: 2.days.ago.change(hour: 14))
-    DashboardRollupRefreshService.new(user: @user).call
 
     visit my_projects_path
 
@@ -62,14 +61,14 @@ class ProjectsTest < ApplicationSystemTestCase
   def create_project_heartbeats(user, project_name, started_at:)
     user.project_repo_mappings.find_or_create_by!(project_name: project_name)
 
-    Heartbeat.create!(
+    create_heartbeat(
       user: user,
       project: project_name,
       category: "coding",
       time: started_at.to_i,
       source_type: :test_entry
     )
-    Heartbeat.create!(
+    create_heartbeat(
       user: user,
       project: project_name,
       category: "coding",

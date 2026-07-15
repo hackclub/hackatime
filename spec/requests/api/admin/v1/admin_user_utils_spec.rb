@@ -1,6 +1,10 @@
 require 'swagger_helper'
 
 RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin/swagger.yaml' do
+  def create_heartbeat_for(user, **attrs)
+    Clickhouse::HeartbeatWriter.create!(attrs.merge(user_id: user.id))
+  end
+
   path '/api/admin/v1/user/info_batch' do
     get('Get user info batch') do
       tags 'Admin Utils'
@@ -198,11 +202,12 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
         let(:user) do
           u = User.create!(username: 'hb_user')
           EmailAddress.create!(user: u, email: 'hb@example.com')
-          u.heartbeats.create!(
+          create_heartbeat_for(
+            u,
             entity: 'app/models/user.rb',
             time: Time.current.to_f,
             source_type: :direct_entry,
-            ja4: Ja4.create!(fingerprint: 't13d1516h2_8daaf6152771_02713d6af862', name: 'Go net/http')
+            ja4_id: Ja4.create!(fingerprint: 't13d1516h2_8daaf6152771_02713d6af862', name: 'Go net/http').id
           )
           u
         end
@@ -285,8 +290,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
           u
         end
         before do
-          Heartbeat.create!(
-            user: hb_user,
+          create_heartbeat_for(
+            hb_user,
             time: Time.current.to_i,
             project: 'demo',
             language: 'GDScript',
@@ -324,8 +329,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
         end
         before do
           2.times do |i|
-            Heartbeat.create!(
-              user: hb_user,
+            create_heartbeat_for(
+              hb_user,
               time: Time.current.to_i - i,
               project: 'demo',
               language: 'GDScript',
@@ -336,7 +341,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
               is_write: true,
               user_agent: 'Godot/4.2 Godot_Super-Wakatime/2.0.0',
               operating_system: 'linux',
-              machine: 'test-machine'
+              machine: 'test-machine',
+              entity: "res://player_#{i}.gd"
             )
           end
         end
@@ -423,8 +429,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
           u
         end
         before do
-          Heartbeat.create!(
-            user: hb_user_doc,
+          create_heartbeat_for(
+            hb_user_doc,
             time: Time.current.to_i,
             project: 'demo',
             language: 'GDScript',

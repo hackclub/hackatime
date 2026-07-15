@@ -10,13 +10,18 @@ class SailorsLogPollForChangesJob < ApplicationJob
   IGNORED_PROJECTS = [ "<<LAST_PROJECT>>", "Unknown" ].freeze
 
   def perform
-    users_who_coded = Heartbeat.with_valid_timestamps.where(time: 10.minutes.ago..).distinct.pluck(:user_id)
+    users_who_coded = Clickhouse::Heartbeat.with_valid_timestamps
+                                           .where(time: 10.minutes.ago.to_f..)
+                                           .distinct.pluck(:user_id)
     slack_uids = User.where(id: users_who_coded).pluck(:slack_uid)
 
-    new_notifs = SailorsLog.includes(:user, :notification_preferences)
-                           .where(notification_preferences: { enabled: true })
-                           .where(slack_uid: slack_uids)
-                           .flat_map { |sl| update_sailors_log(sl) }
+    sailors_logs = SailorsLog.includes(:user, :notification_preferences)
+                             .where(notification_preferences: { enabled: true })
+                             .where(slack_uid: slack_uids)
+                             .to_a
+    durations_by_user = Clickhouse::StatsReader.project_durations_for_users(sailors_logs.map { |sl| sl.user.id })
+
+    new_notifs = sailors_logs.flat_map { |sl| update_sailors_log(sl, durations_by_user[sl.user.id] || {}) }
 
     notifs_to_send = SailorsLogSlackNotification.insert_all(new_notifs)
     notif_ids = notifs_to_send.result.to_a.map { |r| r["id"] }
@@ -25,17 +30,8 @@ class SailorsLogPollForChangesJob < ApplicationJob
 
   private
 
-  def update_sailors_log(sailors_log)
+  def update_sailors_log(sailors_log, project_durations)
     return [] if sailors_log.user.active_remote_heartbeat_import_run?
-
-    project_durations = DashboardRollup
-      .where(user_id: sailors_log.user.id, dimension: "project", bucket_value_present: true)
-      .pluck(:bucket_value, :total_seconds).to_h
-
-    if project_durations.empty?
-      DashboardRollupRefreshJob.schedule_for(sailors_log.user.id, wait: 0.seconds)
-      return []
-    end
 
     project_updates = []
     project_durations.each do |k, v|

@@ -10,7 +10,9 @@ module Api
         }.freeze
 
         def index
-          audit_logs = TrustLevelAuditLog.includes(:user, :changed_by).recent.limit(250)
+          audit_logs = TrustLevelAuditLog
+            .includes(user: :email_addresses, changed_by: :email_addresses)
+            .recent.limit(250)
 
           if params[:user_id].present?
             user = User.find_by(id: params[:user_id])

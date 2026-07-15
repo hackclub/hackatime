@@ -3,7 +3,7 @@ class Api::V1::My::HeartbeatsController < ApplicationController
   before_action :ensure_authenticated!
 
   def most_recent
-    scope = current_user.heartbeats.order(time: :desc)
+    scope = Clickhouse::Heartbeat.for_user(current_user).order(time: :desc, id: :desc)
 
     if params[:source_type].present?
       scope = scope.where(source_type: params[:source_type])
@@ -17,7 +17,7 @@ class Api::V1::My::HeartbeatsController < ApplicationController
 
     render json: {
       has_heartbeat: heartbeat.present?,
-      heartbeat: heartbeat,
+      heartbeat: heartbeat && heartbeat_json(heartbeat),
       editor: heartbeat&.editor,
       time_ago: heartbeat.present? ? time_ago_in_words(Time.at(heartbeat.time)) + " ago" : nil
     }
@@ -27,17 +27,21 @@ class Api::V1::My::HeartbeatsController < ApplicationController
     start_time = params[:start_time].present? ? Time.parse(params[:start_time]) : Time.current.beginning_of_day
     end_time = params[:end_time].present? ? Time.parse(params[:end_time]) : Time.current.end_of_day
 
-    heartbeats = current_user.heartbeats
+    heartbeats = Clickhouse::Heartbeat.for_user(current_user)
       .where("time >= ? AND time <= ?", start_time.to_f, end_time.to_f)
-      .order(time: :asc)
+      .order(time: :asc, id: :asc)
 
     render json: {
       start_time: start_time, end_time: end_time,
-      total_seconds: heartbeats.duration_seconds, heartbeats: heartbeats
+      total_seconds: heartbeats.duration_seconds, heartbeats: heartbeats.map { |hb| heartbeat_json(hb) }
     }
   end
 
   private
+
+  def heartbeat_json(heartbeat)
+    heartbeat.as_json(except: %w[version])
+  end
 
   def ensure_authenticated!
     api_header = request.headers["Authorization"]

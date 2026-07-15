@@ -165,8 +165,8 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
 
         before do
           [ user_a, user_b ].each do |u|
-            Heartbeat.create!(
-              user: u,
+            Clickhouse::HeartbeatWriter.create!(
+              user_id: u.id,
               time: Time.current.to_i,
               project: 'demo',
               language: 'Ruby',

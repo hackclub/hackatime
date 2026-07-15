@@ -6,26 +6,27 @@ class HeartbeatIngest
   EPOCH_SANE_MIN = 1_000_000_000
   EPOCH_SANE_MAX = 2_000_000_000
 
-  # The heartbeats dedup unique index changes from (fields_hash) to
-  # (fields_hash, time_epoch) during the hypertable migration.
-  UNIQUE_BY_LEGACY = [ :fields_hash ].freeze
-  UNIQUE_BY_COMPOSITE = %i[fields_hash time_epoch].freeze
+  ATTRIBUTE_KEYS = %i[
+    user_id time project branch entity category editor language machine
+    operating_system type user_agent ip_address dependencies lineno lines
+    cursorpos line_additions line_deletions project_root_count is_write
+    source_type ja4_id
+  ].freeze
 
   Result = Data.define(:total_count, :persisted_count, :duplicate_count, :failed_count, :errors, :items)
   Item = Data.define(:heartbeat, :status, :error)
 
   def self.call(...) = new(...).call
-  def self.schedule_rollup_refresh(user:) = DashboardRollupRefreshJob.schedule_for(user.id)
 
   def self.normalize_imported_heartbeat(user:, heartbeat:, user_agents_by_id: {}) = new(user:, mode: :import, heartbeats: [], user_agents_by_id:).send(:normalize_imported_heartbeat, heartbeat)
 
-  def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {}, schedule_rollup_refresh: true)
+  def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {}, maintain_serving_tables: true)
     @user = user
     @mode = mode
     @heartbeats = heartbeats
     @request_context = request_context.with_indifferent_access
     @user_agents_by_id = user_agents_by_id
-    @schedule_rollup_refresh = schedule_rollup_refresh
+    @maintain_serving_tables = maintain_serving_tables
   end
 
   def call
@@ -39,25 +40,38 @@ class HeartbeatIngest
   private
 
   def ingest_direct
-    items, errors = [], []
-    persisted_count = duplicate_count = 0
+    items, errors, rows = [], [], []
+    seen_hashes = {}
+    duplicate_count = 0
     last_language = nil
 
     @heartbeats.each do |heartbeat|
       attrs = normalize_direct_heartbeat(heartbeat, last_language:)
-      persisted, duplicate = persist_direct_heartbeat(attrs)
+      fields_hash = Clickhouse::Heartbeat.generate_fields_hash(attrs)
       last_language = attrs[:language] if attrs[:language].present?
-      duplicate ? duplicate_count += 1 : persisted_count += 1
-      items << Item.new(heartbeat: persisted, status: :accepted, error: nil)
+
+      # In-batch dedup only; cross-request duplicates share the same
+      # (user_id, time, fields_hash) ORDER BY key and collapse in ClickHouse.
+      row = seen_hashes[fields_hash]
+      if row
+        duplicate_count += 1
+      else
+        row = build_row(attrs, fields_hash:)
+        seen_hashes[fields_hash] = row
+        rows << row
+      end
+      items << Item.new(heartbeat: row, status: :accepted, error: nil)
       queue_project_mapping(attrs[:project])
     rescue => e
       errors << { heartbeat: heartbeat, error: e.message, type: e.class.name }
       items << Item.new(heartbeat: nil, status: :failed, error: e)
     end
 
+    Clickhouse::HeartbeatWriter.insert_rows(rows) if rows.any?
+
     Result.new(
       total_count: @heartbeats.length,
-      persisted_count:,
+      persisted_count: rows.length,
       duplicate_count:,
       failed_count: errors.length,
       errors:,
@@ -71,8 +85,8 @@ class HeartbeatIngest
     source_type = attrs[:entity] == "test.txt" ? :test_entry : :direct_entry
 
     if attrs[:language] == LAST_LANGUAGE_SENTINEL
-      attrs[:language] = last_language || @user.heartbeats
-        .where.not(language: [ nil, "", LAST_LANGUAGE_SENTINEL ]).order(time: :desc).pick(:language)
+      attrs[:language] = last_language || Clickhouse::Heartbeat.for_user(@user)
+        .where.not(language: [ nil, "", LAST_LANGUAGE_SENTINEL ]).order(time: :desc).limit(1).pick(:language)
     end
 
     if attrs[:language].blank? || attrs[:language] == "Unknown"
@@ -93,25 +107,12 @@ class HeartbeatIngest
       editor: parsed_ua[:editor],
       operating_system: parsed_ua[:os],
       machine: @request_context[:machine]
-    ).slice(*Heartbeat.column_names.map(&:to_sym))
+    ).slice(*ATTRIBUTE_KEYS)
   end
 
-  def persist_direct_heartbeat(attrs)
-    fields_hash = Heartbeat.generate_fields_hash(Heartbeat.new(attrs).attributes)
-    existing = @user.heartbeats.find_by(fields_hash: fields_hash)
-    return [ existing, true ] if existing
-
+  def build_row(attrs, fields_hash:)
     now = Time.current
-    result = with_heartbeat_unique_by do |unique_by|
-      Heartbeat.insert(
-        attrs.merge(fields_hash:, created_at: now, updated_at: now, **partition_attrs(attrs[:time])),
-        unique_by:, returning: Heartbeat.column_names
-      )
-    end
-
-    persisted = result.any? ? Heartbeat.new(result.first) : @user.heartbeats.find_by!(fields_hash:)
-    self.class.schedule_rollup_refresh(user: @user) if result.any? && @schedule_rollup_refresh
-    [ persisted, !result.any? ]
+    Clickhouse::HeartbeatWriter.send(:shape_row, attrs.merge(fields_hash:, created_at: now, updated_at: now))
   end
 
   def ingest_import
@@ -129,7 +130,6 @@ class HeartbeatIngest
     end
 
     persisted_count = flush_import_batch(seen_hashes)
-    self.class.schedule_rollup_refresh(user: @user) if persisted_count.positive? && @schedule_rollup_refresh
 
     Result.new(
       total_count:,
@@ -168,53 +168,21 @@ class HeartbeatIngest
       cursorpos: hb[:cursorpos],
       dependencies: hb[:dependencies] || [],
       project_root_count: hb[:project_root_count],
-      source_type: Heartbeat.source_types.fetch("wakapi_import")
+      source_type: :wakapi_import
     }
-    attrs[:fields_hash] = Heartbeat.generate_fields_hash(attrs)
+    attrs[:fields_hash] = Clickhouse::Heartbeat.generate_fields_hash(attrs)
     attrs
   end
 
   def flush_import_batch(seen_hashes)
     return 0 if seen_hashes.empty?
     timestamp = Time.current
-    ActiveRecord::Base.logger.silence do
-      # Build records inside the retry block so a cutover-time schema refresh
-      # recomputes both the conflict target and the time_epoch partition column.
-      with_heartbeat_unique_by do |unique_by|
-        records = seen_hashes.values.map { |r| r.merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(r[:time])) }
-        Heartbeat.insert_all(records, unique_by:).length
-      end
+    rows = seen_hashes.values.map { |r| r.merge(created_at: timestamp, updated_at: timestamp) }
+    Clickhouse::HeartbeatWriter.insert_rows(rows, maintain_serving_tables: false)
+    if @maintain_serving_tables
+      HeartbeatIntervals::UserRebuilder.call(user_id: @user.id, reason: "heartbeat_import")
     end
-  end
-
-  def heartbeat_unique_by
-    time_epoch_column? ? UNIQUE_BY_COMPOSITE : UNIQUE_BY_LEGACY
-  end
-
-  def time_epoch_column? = Heartbeat.column_names.include?("time_epoch")
-
-  # The hypertable partition column must arrive populated (TimescaleDB routes to
-  # a chunk before row triggers fire). Bulk insert/insert_all bypass model
-  # callbacks, so ingest supplies time_epoch explicitly once the column exists.
-  # No-op on the pre-cutover / dev-and-test plain table.
-  def partition_attrs(time)
-    return {} unless time_epoch_column? && time.present?
-    { time_epoch: time.to_f.floor }
-  end
-
-  # Rails resolves `unique_by:` against its schema cache, which goes stale the
-  # moment the hypertable cutover swaps the table under us. Refresh the cache
-  # and retry once so in-flight processes self-heal without a restart.
-  def with_heartbeat_unique_by
-    yield heartbeat_unique_by
-  rescue ActiveRecord::StatementInvalid, ArgumentError => e
-    Heartbeat.reset_column_information
-    # Inside an open (now aborted) transaction a retry cannot succeed; re-raise
-    # and let the caller retry with the already-refreshed schema cache.
-    raise if Heartbeat.connection.transaction_open?
-
-    Rails.logger.warn("HeartbeatIngest unique_by fallback: #{e.class}: #{e.message}")
-    yield heartbeat_unique_by
+    rows.length
   end
 
   def normalize_epoch_time(value)

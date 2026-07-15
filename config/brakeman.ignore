@@ -3,49 +3,164 @@
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "06ca3650eaeb8d28e062c1c6dcbeab95fb2ccd0c5bb49165ad469bcb6b791d3e",
+      "fingerprint": "41bd9e222a38ec2ea0330072f466d569ff1eaaa841a1ce4cacf0f1d27db19c5a",
       "check_name": "SQL",
       "message": "Possible SQL injection",
-      "file": "app/models/concerns/heartbeatable.rb",
-      "line": 175,
+      "file": "app/models/clickhouse/heartbeat_writer.rb",
+      "line": 63,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Arel.sql(\"DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{(user_timezone or \"UTC\")}')\")",
+      "code": "Clickhouse::Heartbeat.connection.execute(...)",
       "render_path": null,
       "location": {
         "type": "method",
-        "class": "Heartbeatable",
-        "method": "daily_durations"
+        "class": "Clickhouse::HeartbeatWriter",
+        "method": "soft_delete_user_heartbeats!"
       },
-      "user_input": "user_timezone",
+      "user_input": "column_list(Clickhouse::Heartbeat.connection)",
       "confidence": "Medium",
       "cwe_id": [
         89
       ],
-      "note": ""
+      "note": "Identifiers come from WRITABLE_COLUMNS and are quoted; user IDs are cast with to_i."
     },
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "db41fbf90d0feb7b7c1c11545d498447162cf5e54e091d2ddcfcaba28b2513f6",
+      "fingerprint": "41650b37b6107d20cb9f44beae8e3851b7dde8dbaae298b14b6b97e2137732db",
       "check_name": "SQL",
       "message": "Possible SQL injection",
-      "file": "app/jobs/one_time/generate_unique_heartbeat_hashes_job.rb",
-      "line": 32,
+      "file": "app/models/clickhouse/heartbeat_writer.rb",
+      "line": 76,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Heartbeat.where(:id => chunk.map do\n index = 1\nputs(\"Processing heartbeat #{heartbeat.id} (#{1} of #{batch.size})\")\nfield_hash = Heartbeat.generate_fields_hash(heartbeat.attributes)\nputs(\"Field hash: #{Heartbeat.generate_fields_hash(heartbeat.attributes)}\")\n[heartbeat.id, Heartbeat.generate_fields_hash(heartbeat.attributes)]\n end.map(&:first)).update_all(\"fields_hash = CASE #{chunk.map do\n index = 1\nputs(\"Processing heartbeat #{heartbeat.id} (#{1} of #{batch.size})\")\nfield_hash = Heartbeat.generate_fields_hash(heartbeat.attributes)\nputs(\"Field hash: #{Heartbeat.generate_fields_hash(heartbeat.attributes)}\")\n[heartbeat.id, Heartbeat.generate_fields_hash(heartbeat.attributes)]\n end.map do\n \"WHEN id = #{id} THEN '#{hash}'\"\n end.join(\" \")} END\")",
+      "code": "Clickhouse::Heartbeat.connection.execute(...)",
       "render_path": null,
       "location": {
         "type": "method",
-        "class": "OneTime::GenerateUniqueHeartbeatHashesJob",
-        "method": "perform"
+        "class": "Clickhouse::HeartbeatWriter",
+        "method": "merge_user_heartbeats!"
       },
-      "user_input": "Heartbeat.generate_fields_hash(heartbeat.attributes)",
-      "confidence": "High",
+      "user_input": "column_list(Clickhouse::Heartbeat.connection)",
+      "confidence": "Medium",
       "cwe_id": [
         89
       ],
-      "note": ""
+      "note": "Identifiers come from WRITABLE_COLUMNS and are quoted; user IDs are cast with to_i."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "76596ef9c872b7908887aab1b3ddb908a72c215b450c921a8aac92b414a22220",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/clickhouse/heartbeat_writer.rb",
+      "line": 100,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Clickhouse::Heartbeat.connection.execute(...)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Clickhouse::HeartbeatWriter",
+        "method": "merge_user_heartbeats!"
+      },
+      "user_input": "column_list(Clickhouse::Heartbeat.connection)",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "Identifiers come from WRITABLE_COLUMNS and are quoted; user IDs are cast with to_i."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "55ec63b69f9db70dd999140400910a57c993a2fa9340af30580b04ee0029f440",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/heartbeat_intervals/delta_writer.rb",
+      "line": 120,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Clickhouse::Heartbeat.connection.select_all(...)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "HeartbeatIntervals::DeltaWriter",
+        "method": "load_batched_previous_times"
+      },
+      "user_input": "partition_array_sql",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "Table and dimension identifiers come from fixed model names and frozen constants; the table is quoted, user IDs and cutoffs are numeric casts, and dimension values are connection-quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "d2b4769b9672f520f7ea9f44aa57c41cc04f88784d2e346cbe61bcdfe0a0e5f5",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/heartbeat_intervals/user_rebuilder.rb",
+      "line": 55,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_value(...)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "HeartbeatIntervals::UserRebuilder",
+        "method": "existing_deltas?"
+      },
+      "user_input": "delta_table",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "The table name is model-derived and quoted; user_id is cast with to_i."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "9cba9bd52df5401d914e64c100dc85fa6568fa69225b0ab5c5f2aa736135a637",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/heartbeat_intervals/user_rebuilder.rb",
+      "line": 61,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.execute(...)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "HeartbeatIntervals::UserRebuilder",
+        "method": "write_initial_facts"
+      },
+      "user_input": "delta_table",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "Table and column identifiers come from fixed model names and frozen constants; tables are quoted, user IDs and timeout are integers, and reason is connection-quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "b755855b3c0352fa069f97833a7d99a958cad7ce08622817dedd9e13c68cea88",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/heartbeat_intervals/user_rebuilder.rb",
+      "line": 78,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.execute(...)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "HeartbeatIntervals::UserRebuilder",
+        "method": "write_net_corrections"
+      },
+      "user_input": "delta_table",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "Table and column identifiers come from fixed model names and frozen constants; tables are quoted, user IDs and timeout are integers, and reason is connection-quoted."
     }
   ],
-  "brakeman_version": "7.0.2"
+  "brakeman_version": "8.0.5"
 }

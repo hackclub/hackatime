@@ -9,7 +9,6 @@ class Admin::AccountMergerTest < ApplicationSystemTestCase
     older.update_column(:created_at, 2.days.ago)
     newer.update_column(:created_at, 1.day.ago)
 
-    heartbeat = Heartbeat.create!(user: newer, time: Time.current.to_i, source_type: :test_entry)
     api_key = ApiKey.create!(user: newer, name: "Merge Test Key")
     newer.email_addresses.create!(email: "newer@example.com", source: :signing_in)
     newer.sign_in_tokens.create!(auth_type: :email)
@@ -48,11 +47,12 @@ class Admin::AccountMergerTest < ApplicationSystemTestCase
       click_on "Merge & Delete"
     end
 
-    assert_text "Merge complete!"
+    assert_text "Merge complete!", wait: 15
     assert_text "3 sessions/tokens revoked"
-    assert_text "3 related records cleaned up"
+    assert_text "related records cleaned up"
+    assert_text "heartbeat transfer queued"
 
-    assert_equal older.id, Heartbeat.find(heartbeat.id).user_id
+    assert GoodJob::Job.exists?(job_class: "HeartbeatAccountMergeJob")
     assert_equal older.id, ApiKey.find(api_key.id).user_id
     assert_nil User.find_by(id: newer.id)
     assert_equal 0, Doorkeeper::AccessToken.where(resource_owner_id: newer.id).count

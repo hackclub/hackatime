@@ -6,18 +6,19 @@ class Cache::CurrentlyHackingJob < Cache::ActivityJob
   def cache_expiration = 5.minutes
 
   def calculate
-    recent_heartbeats = Heartbeat.joins(:user)
+    latest_project_by_user = Clickhouse::Heartbeat
       .where(source_type: :direct_entry).coding_only
       .where("time > ?", 5.minutes.ago.to_f)
-      .select("DISTINCT ON (user_id) user_id, project, time, users.*")
-      .order("user_id, time DESC")
-      .includes(user: [ :project_repo_mappings, :email_addresses ])
-      .index_by(&:user_id)
+      .group(:user_id)
+      .pluck(Arel.sql("user_id, argMax(ifNull(project, ''), tuple(time, id))"))
+      .to_h
 
-    users = recent_heartbeats.values.map(&:user)
+    users = User.where(id: latest_project_by_user.keys)
+                .includes(:project_repo_mappings, :email_addresses).to_a
+
     active_projects = {}
     users.each do |user|
-      mapping = user.project_repo_mappings.find { |p| p.project_name == recent_heartbeats[user.id]&.project }
+      mapping = user.project_repo_mappings.find { |p| p.project_name == latest_project_by_user[user.id] }
       active_projects[user.id] = mapping&.archived? ? nil : mapping
     end
 
