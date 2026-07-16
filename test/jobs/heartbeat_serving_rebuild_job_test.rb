@@ -1,6 +1,21 @@
 require "test_helper"
 
 class HeartbeatServingRebuildJobTest < ActiveJob::TestCase
+  test "persists every queued rebuild while execution is serialized" do
+    original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :good_job
+    jobs = [
+      HeartbeatServingRebuildJob.perform_later([ 101 ], reason: "first"),
+      HeartbeatServingRebuildJob.perform_later([ 202 ], reason: "second")
+    ]
+
+    assert jobs.all?(&:successfully_enqueued?)
+    assert_equal 2, GoodJob::Job.where(active_job_id: jobs.map(&:job_id)).count
+  ensure
+    GoodJob::Job.where(active_job_id: jobs&.map(&:job_id)).delete_all
+    ActiveJob::Base.queue_adapter = original_queue_adapter if original_queue_adapter
+  end
+
   test "rebuilds serving facts for each requested user" do
     first_user = User.create!(timezone: "UTC")
     second_user = User.create!(timezone: "UTC")

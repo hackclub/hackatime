@@ -17,7 +17,13 @@ namespace :clickhouse do
         .map(&:to_i)
       break if user_ids.empty?
 
-      HeartbeatServingRebuildJob.perform_later(user_ids, reason: "serving_backfill")
+      job = HeartbeatServingRebuildJob.perform_later(user_ids, reason: "serving_backfill")
+      unless job&.successfully_enqueued?
+        message = "Failed to enqueue users #{user_ids.join(', ')}. Resume with START_AFTER=#{last_user_id}"
+        warn message
+        raise(job&.enqueue_error || ActiveJob::EnqueueError.new(message))
+      end
+
       last_user_id = user_ids.last
       enqueued_users += user_ids.length
       enqueued_batches += 1
