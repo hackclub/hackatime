@@ -9,7 +9,12 @@ module Heartbeatable
     scope :excluding_browser_time, -> {
       where("editor IS NULL OR LOWER(editor) NOT IN (?)", BROWSER_EDITORS)
     }
-    scope :leaderboard_eligible, -> { coding_only.excluding_browser_time.with_valid_timestamps }
+    scope :leaderboard_eligible, -> {
+      coding_only
+        .excluding_browser_time
+        .where("project IS DISTINCT FROM ?", "<<LAST_PROJECT>>")
+        .with_valid_timestamps
+    }
 
     # This is to prevent PG timestamp overflow errors if someones gives us a
     # heartbeat with a time that is enormously far in the future.

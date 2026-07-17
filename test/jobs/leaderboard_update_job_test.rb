@@ -9,13 +9,14 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
     Rails.cache.clear
   end
 
-  test "perform uses rolling 24 hours and excludes browser editor heartbeats" do
+  test "perform uses rolling 24 hours and excludes browser editor and last-project heartbeats" do
     coded_user = create_user(username: "lb_job_coded", github_uid: "GH_LEADERBOARD_JOB_CODED")
     browser_only_user = create_user(username: "lb_job_browser", github_uid: "GH_LEADERBOARD_JOB_BROWSER")
     old_user = create_user(username: "lb_job_old", github_uid: "GH_LEADERBOARD_JOB_OLD")
 
     create_heartbeat_pair(user: coded_user, started_at: 23.hours.ago, editor: "vscode")
     create_heartbeat_pair(user: coded_user, started_at: 2.hours.ago, editor: "firefox")
+    create_heartbeat_pair(user: coded_user, started_at: 1.hour.ago, editor: "vscode", project: "<<LAST_PROJECT>>")
     create_heartbeat_pair(user: browser_only_user, started_at: 1.hour.ago, editor: "firefox")
     create_heartbeat_pair(user: old_user, started_at: 25.hours.ago, editor: "vscode")
 
@@ -42,14 +43,14 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
     )
   end
 
-  def create_heartbeat_pair(user:, started_at:, editor:)
+  def create_heartbeat_pair(user:, started_at:, editor:, project: "leaderboard-job-test")
     user.heartbeats.create!(
       entity: "src/#{editor}.rb",
       type: "file",
       category: "coding",
       editor: editor,
       time: started_at.to_f,
-      project: "leaderboard-job-test",
+      project: project,
       source_type: :test_entry
     )
     user.heartbeats.create!(
@@ -58,7 +59,7 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
       category: "coding",
       editor: editor,
       time: (started_at + 2.minutes).to_f,
-      project: "leaderboard-job-test",
+      project: project,
       source_type: :test_entry
     )
   end
