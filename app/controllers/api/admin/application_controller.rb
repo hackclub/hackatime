@@ -33,6 +33,9 @@ module Api
         t = Doorkeeper::AccessToken.by_token(token)
         return false unless t&.acceptable?([ OauthApplication::ADMIN_SCOPE ])
 
+        application = t.application
+        return false unless application&.admin_scope? && application.confidential? && application.verified?
+
         u = User.find_by(id: t.resource_owner_id)
         return false unless admin_api_user?(u)
 

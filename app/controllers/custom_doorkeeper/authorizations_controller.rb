@@ -29,9 +29,25 @@ module CustomDoorkeeper
 
     def ensure_admin_scope_allowed!
       return unless pre_auth&.scopes&.include?(OauthApplication::ADMIN_SCOPE)
+      return unless pre_auth.authorizable?
 
-      application = OauthApplication.find_by(uid: params[:client_id])
-      return unless application
+      application = pre_auth.client.application
+
+      unless application.admin_scope?
+        render_oauth_error(
+          "Only applications configured with the admin scope can request it.",
+          status: :forbidden
+        )
+        return
+      end
+
+      unless application.confidential?
+        render_oauth_error(
+          "Only confidential applications can request the admin scope.",
+          status: :forbidden
+        )
+        return
+      end
 
       unless application.verified?
         render_oauth_error(
