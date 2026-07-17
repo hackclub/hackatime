@@ -8,7 +8,12 @@ module Api
           u = current_user
           body = {
             valid: true,
-            creator: { id: u.id, username: u.username, display_name: u.display_name, admin_level: u.admin_level }
+            creator: {
+              id: u.id,
+              username: u.username,
+              display_name: u.display_name,
+              admin_level: u.admin_level
+            }
           }
 
           if (k = current_admin_api_key)
