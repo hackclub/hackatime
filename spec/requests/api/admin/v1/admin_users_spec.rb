@@ -4,7 +4,7 @@ RSpec.describe 'Api::Admin::V1::AdminUsers', type: :request, openapi_spec: 'admi
   path '/api/admin/v1/check' do
     get('Check status') do
       tags 'Admin'
-      description 'Check if admin API is working. Returns metadata about the admin API key and its creator.'
+      description 'Check if admin API authentication is working. Returns metadata about the Admin API key or OAuth token and its authorizing user.'
       security [ AdminToken: [] ]
       produces 'application/json'
 
@@ -13,7 +13,7 @@ RSpec.describe 'Api::Admin::V1::AdminUsers', type: :request, openapi_spec: 'admi
         run_test!
       end
 
-      response(401, 'unauthorized — Returned when the bearer token is missing/invalid, or when the associated user is not an admin/superadmin/viewer/ultraadmin (the key is then revoked).') do
+      response(401, 'unauthorized — Returned when the bearer token is missing/invalid, the OAuth application is no longer eligible for admin access, or the associated user is not an admin/superadmin/viewer/ultraadmin. Demoted users have their Admin API key revoked.') do
         let(:Authorization) { "Bearer not-a-real-admin-token" }
         run_test!
       end

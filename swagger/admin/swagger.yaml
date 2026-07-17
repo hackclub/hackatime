@@ -6,7 +6,8 @@ info:
   description: |
     Admin and internal endpoints for Hackatime.
 
-    These require an Admin API Key (or internal env token) and are not part of the public API.
+    Admin endpoints require an Admin API Key or an OAuth access token with the `admin` scope.
+    Internal endpoints require an internal environment token. These endpoints are not part of the public API.
 paths:
   "/api/admin/v1/users/{id}/visualization/quantized":
     get:
@@ -2790,8 +2791,8 @@ paths:
       summary: Check status
       tags:
       - Admin
-      description: Check if admin API is working. Returns metadata about the admin
-        API key and its creator.
+      description: Check if admin API authentication is working. Returns metadata
+        about the Admin API key or OAuth token and its authorizing user.
       security:
       - AdminToken: []
       responses:
@@ -2799,8 +2800,9 @@ paths:
           description: successful
         '401':
           description: unauthorized — Returned when the bearer token is missing/invalid,
-            or when the associated user is not an admin/superadmin/viewer/ultraadmin
-            (the key is then revoked).
+            the OAuth application is no longer eligible for admin access, or the associated
+            user is not an admin/superadmin/viewer/ultraadmin. Demoted users have
+            their Admin API key revoked.
   "/api/admin/v1/banned_users":
     get:
       summary: Get banned users
@@ -3402,7 +3404,8 @@ components:
     AdminToken:
       type: http
       scheme: bearer
-      description: Admin API Key, prefixed with "Bearer"
+      description: Admin API Key or OAuth access token with the `admin` scope, prefixed
+        with "Bearer"
     InternalToken:
       type: http
       scheme: bearer

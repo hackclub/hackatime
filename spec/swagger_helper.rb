@@ -333,7 +333,8 @@ RSpec.configure do |config|
         description: <<~DESC
           Admin and internal endpoints for Hackatime.
 
-          These require an Admin API Key (or internal env token) and are not part of the public API.
+          Admin endpoints require an Admin API Key or an OAuth access token with the `admin` scope.
+          Internal endpoints require an internal environment token. These endpoints are not part of the public API.
         DESC
       },
       paths: {},
@@ -342,7 +343,7 @@ RSpec.configure do |config|
           AdminToken: {
             type: :http,
             scheme: :bearer,
-            description: 'Admin API Key, prefixed with "Bearer"'
+            description: 'Admin API Key or OAuth access token with the `admin` scope, prefixed with "Bearer"'
           },
           InternalToken: {
             type: :http,
