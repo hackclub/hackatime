@@ -95,17 +95,13 @@
           <path fill-rule="evenodd" d={warnPath} clip-rule="evenodd" />
         </svg>
         <div>
-          <p class="text-base font-bold uppercase tracking-wide text-red">
-            Danger: Admin API access
+          <p class="text-base font-bold tracking-tight text-red">
+            You're giving access to admin data
           </p>
           <p class="mt-1 text-sm font-semibold text-red">
             This app is requesting full Admin API access on your behalf. It can
             read and act with your admin privileges (users, trust levels,
             heartbeats, and other internal tools).
-          </p>
-          <p class="mt-1 text-sm text-red/90">
-            Only authorize if you recognize this internal tool and trust the
-            operators. If you did not expect this prompt, click Deny.
           </p>
         </div>
       </div>

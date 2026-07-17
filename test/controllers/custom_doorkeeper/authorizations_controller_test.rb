@@ -97,6 +97,24 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
     assert_match(/admins/i, inertia_page.dig("props", "error_description"))
   end
 
+  test "new denies unverified applications requesting admin scope" do
+    enable_admin_scope!(verified: false)
+    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    get "/oauth/authorize", params: authorization_params(scope: "admin")
+    assert_response :forbidden
+    assert_equal "OAuthAuthorize/Error", inertia_page["component"]
+    assert_match(/verified applications/i, inertia_page.dig("props", "error_description"))
+  end
+
+  test "create denies unverified applications requesting admin scope" do
+    enable_admin_scope!(verified: false)
+    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    post "/oauth/authorize", params: authorization_params(scope: "admin")
+    assert_response :forbidden
+    assert_equal "OAuthAuthorize/Error", inertia_page["component"]
+    assert_match(/verified applications/i, inertia_page.dig("props", "error_description"))
+  end
+
   test "new allows viewer requesting admin scope with warning prop" do
     enable_admin_scope!
     sign_in_as(User.create!(timezone: "UTC", admin_level: :viewer))
@@ -116,8 +134,8 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
 
   private
 
-  def enable_admin_scope!
-    @oauth_app.update!(scopes: "profile admin", confidential: true)
+  def enable_admin_scope!(verified: true)
+    @oauth_app.update!(scopes: "profile admin", confidential: true, verified: verified)
     Doorkeeper::AccessToken.where(application: @oauth_app).delete_all
   end
 

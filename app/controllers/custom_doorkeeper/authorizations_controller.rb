@@ -29,6 +29,18 @@ module CustomDoorkeeper
 
     def ensure_admin_scope_allowed!
       return unless pre_auth&.scopes&.include?(OauthApplication::ADMIN_SCOPE)
+
+      application = OauthApplication.find_by(uid: params[:client_id])
+      return unless application
+
+      unless application.verified?
+        render_oauth_error(
+          "Only verified applications can request the admin scope.",
+          status: :forbidden
+        )
+        return
+      end
+
       return if current_resource_owner&.admin_level.in?(Api::Admin::ApplicationController::ADMIN_API_LEVELS)
 
       render_oauth_error(
