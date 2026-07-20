@@ -34,11 +34,30 @@
   } = $props();
 
   const key = $derived(project.url_safe ? project.project_key : null);
+
+  // URL-encode the project name before passing to `js_from_routes`' path
+  // helpers. `interpolateUrl` misreads a colon followed by letters (e.g.
+  // ":R") as an unfulfilled route parameter and throws — encoding the colon
+  // to %3A avoids that. Rails decodes %3A back to ":" when matching the
+  // route, so the controller receives the original name. Wrap in try/catch
+  // as defense-in-depth so any future edge case degrades to "no link"
+  // instead of nuking the whole Projects virtualizer (#1414).
+  const safePath = (build: () => string): string | null => {
+    if (!key) return null;
+    try {
+      return build();
+    } catch {
+      return null;
+    }
+  };
+
+  const encodedKey = $derived(key ? encodeURIComponent(key) : null);
+
   const showPath = $derived(
-    key ? myProjectRepoMappings.show.path({ projectName: key }) : null,
+    safePath(() => myProjectRepoMappings.show.path({ projectName: encodedKey! })),
   );
   const updatePath = $derived(
-    key ? myProjectRepoMappings.update.path({ projectName: key }) : null,
+    safePath(() => myProjectRepoMappings.update.path({ projectName: encodedKey! })),
   );
   const projectHref = $derived(
     showPath
