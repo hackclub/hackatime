@@ -133,7 +133,7 @@ class WakatimeService
 
       model_prefixed = ai_category?(category) && model_first_product_chain?(products)
       if model_prefixed
-        ai_model = shift_meaningful_product!(products)
+        ai_model = shift_first_non_metadata_product!(products)
       end
 
       return {
@@ -193,7 +193,7 @@ class WakatimeService
     product.present? && !product.start_with?("(")
   end
 
-  def self.shift_meaningful_product!(products)
+  def self.shift_first_non_metadata_product!(products)
     index = products.index { |token| meaningful_product?(token) }
     products.delete_at(index) if index
   end
@@ -296,7 +296,7 @@ class WakatimeService
     return { os: "", editor: "", err: "failed to parse user agent string" } unless has_parseable_product
 
     model_prefixed = ai_category?(category) && model_first_product_chain?(products)
-    ai_model = model_prefixed ? shift_meaningful_product!(products) : nil
+    ai_model = model_prefixed ? shift_first_non_metadata_product!(products) : nil
 
     # Some integrations put an editor name containing spaces before their
     # plugin product. Splitting that name is ambiguous, while the plugin suffix
@@ -331,7 +331,7 @@ class WakatimeService
   end
 
   private_class_method :ai_category?, :model_first_product_chain?, :user_agent_product,
-    :meaningful_product?, :shift_meaningful_product!,
+    :meaningful_product?, :shift_first_non_metadata_product!,
     :extract_editor, :plugin_product?, :plugin_base, :normalize_editor, :runtime_product?, :normalize_os,
     :parse_browser_or_legacy_user_agent, :direct_user_agent_os, :direct_os_product?
 
