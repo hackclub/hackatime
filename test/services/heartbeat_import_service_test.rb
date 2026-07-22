@@ -90,4 +90,36 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
       Heartbeat.skip_callback(:validate, :before, validation)
     end
   end
+
+  test "re-importing placeholders is idempotent after database context changes" do
+    user = User.create!(timezone: "UTC")
+    file_content = {
+      heartbeats: [
+        {
+          branch: "<<LAST_BRANCH>>",
+          entity: "notes",
+          language: "<<LAST_LANGUAGE>>",
+          project: "api",
+          time: 1_700_000_000.0,
+          type: "file"
+        },
+        {
+          branch: "main",
+          entity: "b.rb",
+          language: "Ruby",
+          project: "api",
+          time: 1_700_000_001.0,
+          type: "file"
+        }
+      ]
+    }.to_json
+
+    first = HeartbeatImportService.import_from_file(file_content, user)
+    second = HeartbeatImportService.import_from_file(file_content, user)
+
+    assert_equal 2, first[:imported_count]
+    assert_equal 0, second[:imported_count]
+    assert_equal 2, second[:skipped_count]
+    assert_equal 2, user.heartbeats.count
+  end
 end

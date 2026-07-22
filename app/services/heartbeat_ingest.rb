@@ -260,7 +260,7 @@ class HeartbeatIngest
     normalized = model_attributes
       .except("id", "fields_hash", "created_at", "updated_at", "time_epoch")
       .symbolize_keys
-    normalized[:fields_hash] = Heartbeat.generate_fields_hash(model_attributes)
+    normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
     normalized[:legacy_fields_hash] = legacy_import_fields_hash(
       hb,
       user_agent_info:,
@@ -325,6 +325,16 @@ class HeartbeatIngest
       dependencies: hb[:dependencies] || [],
       project_root_count: hb[:project_root_count]
     )
+  end
+
+  # Resolved placeholders are useful metadata, but database-backed resolution
+  # can change between identical imports. Keep the raw sentinel in the persisted
+  # identity so fields_hash remains a pure function of the dump row.
+  def import_fields_hash(model_attributes, source:)
+    hash_attributes = model_attributes.dup
+    hash_attributes["language"] = LAST_LANGUAGE_SENTINEL if source[:language] == LAST_LANGUAGE_SENTINEL
+    hash_attributes["branch"] = LAST_BRANCH_SENTINEL if source[:branch] == LAST_BRANCH_SENTINEL
+    Heartbeat.generate_fields_hash(hash_attributes)
   end
 
   def legacy_parse_user_agent(user_agent)
