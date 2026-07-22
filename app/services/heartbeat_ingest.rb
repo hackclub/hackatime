@@ -261,21 +261,87 @@ class HeartbeatIngest
       .except("id", "fields_hash", "created_at", "updated_at", "time_epoch")
       .symbolize_keys
     normalized[:fields_hash] = Heartbeat.generate_fields_hash(model_attributes)
+    normalized[:legacy_fields_hash] = legacy_import_fields_hash(
+      hb,
+      user_agent_info:,
+      resolved_user_agent:,
+      normalized_time: normalized[:time]
+    )
     update_placeholder_state!(normalized, placeholder_state)
     normalized
   end
 
   def flush_import_batch(seen_hashes)
     return 0 if seen_hashes.empty?
+
+    records = seen_hashes.values
+    compatible_hashes = records.flat_map { |record| [ record[:fields_hash], record[:legacy_fields_hash] ] }.compact.uniq
+    existing_hashes = compatible_hashes.each_slice(10_000).flat_map do |hashes|
+      @user.heartbeats.where(fields_hash: hashes).pluck(:fields_hash)
+    end.to_set
+    records = records.reject do |record|
+      existing_hashes.include?(record[:fields_hash]) || existing_hashes.include?(record[:legacy_fields_hash])
+    end
+    return 0 if records.empty?
+
     timestamp = Time.current
     ActiveRecord::Base.logger.silence do
       # Build records inside the retry block so a cutover-time schema refresh
       # recomputes both the conflict target and the time_epoch partition column.
       with_heartbeat_unique_by do |unique_by|
-        records = seen_hashes.values.map { |r| r.merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(r[:time])) }
-        Heartbeat.insert_all(records, unique_by:).length
+        insert_records = records.map do |record|
+          record.except(:legacy_fields_hash)
+            .merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(record[:time]))
+        end
+        Heartbeat.insert_all(insert_records, unique_by:).length
       end
     end
+  end
+
+  # Import normalization is part of the persisted dedup contract. Keep the
+  # pre-parity hash as a lookup alias so re-importing an old dump cannot mint a
+  # second row merely because canonical category, project or UA values changed.
+  def legacy_import_fields_hash(hb, user_agent_info:, resolved_user_agent:, normalized_time:)
+    legacy_user_agent = legacy_parse_user_agent(resolved_user_agent)
+    Heartbeat.generate_fields_hash(
+      user_id: @user.id,
+      time: normalized_time,
+      entity: hb[:entity],
+      type: hb[:type],
+      category: hb[:category] || "coding",
+      project: hb[:project],
+      language: LanguageUtils.fill_missing_language(hb[:language], entity: hb[:entity]),
+      editor: hb[:editor].presence || user_agent_info[:editor].presence || legacy_user_agent[:editor].presence,
+      operating_system: hb[:operating_system].presence || user_agent_info[:os].presence || legacy_user_agent[:os].presence,
+      machine: hb[:machine].presence || hb[:machine_name_id].presence,
+      branch: hb[:branch],
+      user_agent: resolved_user_agent,
+      is_write: hb[:is_write] || false,
+      line_additions: hb[:line_additions],
+      line_deletions: hb[:line_deletions],
+      lineno: hb[:lineno],
+      lines: hb[:lines],
+      cursorpos: hb[:cursorpos],
+      dependencies: hb[:dependencies] || [],
+      project_root_count: hb[:project_root_count]
+    )
+  end
+
+  def legacy_parse_user_agent(user_agent)
+    return { editor: nil, os: nil } if user_agent.blank?
+
+    if matches = user_agent.match(/wakatime\/[^ ]+ \(([^)]+)\)(?: [^ ]+ ([^\/]+)(?:\/([^\/]+))?)?/)
+      return { os: matches[1].split("-").first, editor: matches[2].presence }
+    end
+
+    browser = user_agent.match(/^([^\/]+)\/([^\/\s]+)/)
+    return { editor: nil, os: nil } unless browser
+    return { editor: browser[2], os: browser[1] } unless user_agent.include?("wakatime")
+
+    full_os = user_agent.split(" ")[1]
+    return { editor: nil, os: nil } if full_os.blank?
+
+    { editor: browser[1].downcase, os: full_os.include?("_") ? full_os.split("_").first : full_os }
   end
 
   def heartbeat_unique_by

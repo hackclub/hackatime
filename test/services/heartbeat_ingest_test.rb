@@ -477,6 +477,73 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "hackatime", heartbeat.project
   end
 
+  test "import heartbeat ingest recognizes a pre-normalization fields hash" do
+    user = User.create!(timezone: "UTC")
+    raw = {
+      category: "",
+      entity: "/tmp/test.rb",
+      project: "  hackatime\n",
+      time: 1_700_000_000.0,
+      type: "file"
+    }
+    create_legacy_imported_heartbeat(
+      user,
+      category: raw[:category], entity: raw[:entity], language: "Ruby",
+      project: raw[:project], time: raw[:time], type: raw[:type]
+    )
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 0, result.persisted_count
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
+  test "import heartbeat ingest recognizes legacy hashes containing placeholders" do
+    user = User.create!(timezone: "UTC")
+    raw = {
+      branch: "<<LAST_BRANCH>>",
+      entity: "/tmp/test.rb",
+      language: "<<LAST_LANGUAGE>>",
+      project: "api",
+      time: 1_700_000_000.0,
+      type: "file"
+    }
+    create_legacy_imported_heartbeat(user, raw.merge(category: "coding"))
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 0, result.persisted_count
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
+  test "import heartbeat ingest recognizes legacy user agent normalization hashes" do
+    user = User.create!(timezone: "UTC")
+    user_agent = "wakatime/v1.0.0 (darwin-arm64) go1.0.0 vscode/1.90.0"
+    raw = {
+      category: "coding",
+      entity: "/tmp/test.rb",
+      project: "api",
+      time: 1_700_000_000.0,
+      type: "file",
+      user_agent:
+    }
+    create_legacy_imported_heartbeat(
+      user,
+      raw.merge(editor: "vscode", language: "Ruby", operating_system: "darwin")
+    )
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 0, result.persisted_count
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
   test "import heartbeat ingest preserves AI telemetry" do
     user = User.create!(timezone: "UTC")
 
@@ -708,6 +775,19 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
 
     heartbeat = user.heartbeats.order(:id).last
     assert_equal "wakapi_import", heartbeat.source_type
+  end
+
+  private
+
+  def create_legacy_imported_heartbeat(user, attributes)
+    legacy_attributes = Heartbeat.indexed_attributes.index_with { nil }.symbolize_keys.merge(
+      dependencies: [],
+      is_write: false,
+      user_id: user.id
+    ).merge(attributes)
+    heartbeat = user.heartbeats.create!(legacy_attributes.merge(source_type: :wakapi_import))
+    heartbeat.update_column(:fields_hash, Heartbeat.generate_fields_hash(legacy_attributes))
+    heartbeat
   end
 end
 
