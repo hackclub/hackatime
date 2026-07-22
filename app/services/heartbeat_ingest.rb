@@ -372,14 +372,17 @@ class HeartbeatIngest
 
   def placeholder_context_for(project, state)
     return {} if project.blank?
-    return state[:contexts][project] if state[:contexts].key?(project)
 
-    state[:contexts][project] = {
-      language: @user.heartbeats.where(project: project)
-        .where.not(language: [ nil, "", LAST_LANGUAGE_SENTINEL ]).order(time: :desc).pick(:language),
-      branch: @user.heartbeats.where(project: project)
+    context = state[:contexts][project] ||= {}
+    unless context.key?(:language)
+      context[:language] = @user.heartbeats.where(project: project)
+        .where.not(language: [ nil, "", LAST_LANGUAGE_SENTINEL ]).order(time: :desc).pick(:language)
+    end
+    unless context.key?(:branch)
+      context[:branch] = @user.heartbeats.where(project: project)
         .where.not(branch: [ nil, "", LAST_BRANCH_SENTINEL ]).order(time: :desc).pick(:branch)
-    }
+    end
+    context
   end
 
   def update_placeholder_state!(attrs, state)

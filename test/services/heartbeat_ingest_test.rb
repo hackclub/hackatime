@@ -589,6 +589,26 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "<<LAST_PROJECT>>", heartbeats.last.project
   end
 
+  test "placeholder resolution fills missing in-batch context from database history" do
+    user = User.create!(timezone: "UTC")
+    now = Time.current.to_f
+    user.heartbeats.create!(
+      entity: "historical.rb", project: "api", branch: "main", language: "Ruby",
+      category: "coding", source_type: :direct_entry, time: now - 10, type: "file"
+    )
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [
+        { entity: "first.py", project: "api", language: "Python", time: now - 1, type: "file" },
+        { entity: "second.py", project: "api", branch: "<<LAST_BRANCH>>", language: "Python", time: now, type: "file" }
+      ]
+    )
+
+    assert_equal [ nil, "main" ], user.heartbeats.where(entity: [ "first.py", "second.py" ]).order(:time).pluck(:branch)
+  end
+
   test "heartbeat_unique_by targets the composite index once time_epoch exists" do
     ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
 
