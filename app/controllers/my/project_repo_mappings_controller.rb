@@ -150,6 +150,7 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def projects_data_for_index(archived:)
     return empty_projects_payload unless current_user.heartbeats.exists?
+    return InertiaRails.defer { projects_payload(archived:) } if archived
     return rollup_projects_payload(archived: archived) if rollup_projects_path?
 
     InertiaRails.defer { projects_payload(archived: archived) }

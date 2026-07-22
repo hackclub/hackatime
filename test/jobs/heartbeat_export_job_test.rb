@@ -21,6 +21,16 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
     second_time = Time.utc(2026, 2, 12, 12, 0, 0)
 
     hb1 = create_heartbeat(at_time: first_time, entity: "src/first.rb")
+    hb1.update!(
+      ai_input_tokens: 1_000,
+      ai_line_changes: 12,
+      ai_model: "opus/4-8",
+      ai_output_tokens: 250,
+      ai_prompt_length: 80,
+      ai_session: "session-123",
+      ai_subscription_plan: "pro",
+      human_line_changes: 4
+    )
     hb2 = create_heartbeat(at_time: second_time, entity: "src/second.rb")
 
     assert_difference -> { ActiveStorage::Blob.count }, 1 do
@@ -47,7 +57,16 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
     assert_equal 2, payload.dig("export_info", "total_heartbeats")
     assert_equal @user.heartbeats.order(time: :asc).duration_seconds, payload.dig("export_info", "total_duration_seconds")
     assert_equal [ hb1.id, hb2.id ], payload.fetch("heartbeats").map { |row| row.fetch("id") }
-    assert_equal "src/first.rb", payload.fetch("heartbeats").first.fetch("entity")
+    first_heartbeat = payload.fetch("heartbeats").first
+    assert_equal "src/first.rb", first_heartbeat.fetch("entity")
+    assert_equal "opus/4-8", first_heartbeat.fetch("ai_model")
+    assert_equal "session-123", first_heartbeat.fetch("ai_session")
+    assert_equal "pro", first_heartbeat.fetch("ai_subscription_plan")
+    assert_equal 1_000, first_heartbeat.fetch("ai_input_tokens")
+    assert_equal 250, first_heartbeat.fetch("ai_output_tokens")
+    assert_equal 80, first_heartbeat.fetch("ai_prompt_length")
+    assert_equal 12, first_heartbeat.fetch("ai_line_changes")
+    assert_equal 4, first_heartbeat.fetch("human_line_changes")
     assert_equal "src/second.rb", payload.fetch("heartbeats").last.fetch("entity")
 
     assert_includes mail.text_part.body.decoded, "/rails/active_storage/"

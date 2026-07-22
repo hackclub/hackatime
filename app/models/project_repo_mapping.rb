@@ -1,5 +1,5 @@
 class ProjectRepoMapping < ApplicationRecord
-  IGNORED_PROJECTS = [ nil, "", "<<LAST PROJECT>>" ]
+  IGNORED_PROJECTS = [ nil, "", "<<LAST_PROJECT>>" ].freeze
 
   belongs_to :user
   belongs_to :repository, optional: true
