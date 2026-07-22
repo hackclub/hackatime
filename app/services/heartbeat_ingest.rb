@@ -22,8 +22,6 @@ class HeartbeatIngest
   def self.call(...) = new(...).call
   def self.schedule_rollup_refresh(user:) = DashboardRollupRefreshJob.schedule_for(user.id)
 
-  def self.normalize_imported_heartbeat(user:, heartbeat:, user_agents_by_id: {}) = new(user:, mode: :import, heartbeats: [], user_agents_by_id:).send(:normalize_imported_heartbeat, heartbeat)
-
   def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {}, schedule_rollup_refresh: true)
     @user = user
     @mode = mode
