@@ -133,7 +133,7 @@ class WakatimeService
 
       model_prefixed = ai_category?(category) && model_first_product_chain?(products)
       if model_prefixed
-        ai_model = products.shift
+        ai_model = shift_meaningful_product!(products)
       end
 
       return {
@@ -153,10 +153,7 @@ class WakatimeService
   def self.ai_category?(category) = category.to_s.casecmp?("ai coding")
 
   def self.model_first_product_chain?(products)
-    meaningful_products = products.reject do |token|
-      product = user_agent_product(token)
-      product.blank? || product.start_with?("(")
-    end
+    meaningful_products = products.select { |token| meaningful_product?(token) }
     return false if meaningful_products.length < 2
 
     first_product_original = user_agent_product(meaningful_products.first)
@@ -190,6 +187,16 @@ class WakatimeService
   end
 
   def self.user_agent_product(token) = token.to_s.split("/", 2).first
+
+  def self.meaningful_product?(token)
+    product = user_agent_product(token)
+    product.present? && !product.start_with?("(")
+  end
+
+  def self.shift_meaningful_product!(products)
+    index = products.index { |token| meaningful_product?(token) }
+    products.delete_at(index) if index
+  end
 
   def self.extract_editor(products, skip_ai_agents: false)
     skipped_ai_agent = nil
@@ -289,7 +296,7 @@ class WakatimeService
     return { os: "", editor: "", err: "failed to parse user agent string" } unless has_parseable_product
 
     model_prefixed = ai_category?(category) && model_first_product_chain?(products)
-    ai_model = model_prefixed ? products.shift : nil
+    ai_model = model_prefixed ? shift_meaningful_product!(products) : nil
 
     # Some integrations put an editor name containing spaces before their
     # plugin product. Splitting that name is ambiguous, while the plugin suffix
@@ -324,6 +331,7 @@ class WakatimeService
   end
 
   private_class_method :ai_category?, :model_first_product_chain?, :user_agent_product,
+    :meaningful_product?, :shift_meaningful_product!,
     :extract_editor, :plugin_product?, :plugin_base, :normalize_editor, :runtime_product?, :normalize_os,
     :parse_browser_or_legacy_user_agent, :direct_user_agent_os, :direct_os_product?
 

@@ -337,6 +337,18 @@ class WakatimeServiceTest < Minitest::Test
     assert_nil result[:err]
   end
 
+  def test_parse_user_agent_skips_parenthesized_metadata_before_the_ai_model
+    result = WakatimeService.parse_user_agent(
+      "wakatime/1.0 (linux) (extra) opus/4-8 claude-code/2.1",
+      category: "ai coding"
+    )
+
+    assert_equal "linux", result[:os]
+    assert_equal "claude-code", result[:editor]
+    assert_equal "opus/4-8", result[:ai_model]
+    assert_nil result[:err]
+  end
+
   def test_parse_user_agent_with_Firefox
     user_agent = "Firefox/139.0 linux_x86-64 firefox-wakatime/4.1.0"
     result = WakatimeService.parse_user_agent(user_agent)
