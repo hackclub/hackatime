@@ -138,8 +138,8 @@ class HeartbeatIngest
     inserted_by_hash = {}
     if missing_entries.any?
       timestamp = Time.current
-      records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
       result = with_heartbeat_unique_by do |unique_by|
+        records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
         Heartbeat.insert_all(records, unique_by:, returning: Heartbeat.column_names)
       end
       inserted_by_hash = result.to_a.index_by { |attributes| attributes.fetch("fields_hash") }

@@ -332,6 +332,47 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal 1, user.heartbeats.count
   end
 
+  test "direct heartbeat ingest rebuilds partition attributes inside a schema retry" do
+    user = User.create!(timezone: "UTC")
+    time = Time.current.to_f
+    attrs = { user_id: user.id, entity: "src/main.rb", time:, type: "file", category: "coding", source_type: :direct_entry }
+    model_attributes = Heartbeat.new(attrs).attributes
+    fields_hash = Heartbeat.generate_fields_hash(model_attributes)
+    entry = { attrs:, model_attributes:, fields_hash: }
+    ingest = HeartbeatIngest.new(user:, mode: :direct, heartbeats: [], schedule_rollup_refresh: false)
+    attempts = []
+    include_time_epoch = false
+    original_column_names = Heartbeat.method(:column_names)
+    original_insert_all = Heartbeat.method(:insert_all)
+
+    Heartbeat.define_singleton_method(:column_names) do
+      columns = original_column_names.call
+      include_time_epoch ? columns + [ "time_epoch" ] : columns
+    end
+    Heartbeat.define_singleton_method(:insert_all) do |records, **|
+      attempts << records
+      raise ArgumentError, "stale schema" if attempts.one?
+
+      ActiveRecord::Result.new([ "fields_hash" ], [ [ fields_hash ] ])
+    end
+    ingest.define_singleton_method(:with_heartbeat_unique_by) do |&block|
+      block.call([ :fields_hash ])
+    rescue ArgumentError
+      include_time_epoch = true
+      block.call(%i[fields_hash time_epoch])
+    end
+
+    begin
+      ingest.send(:persist_direct_heartbeats, [ entry ])
+    ensure
+      Heartbeat.define_singleton_method(:column_names, original_column_names)
+      Heartbeat.define_singleton_method(:insert_all, original_insert_all)
+    end
+
+    assert_not attempts.first.sole.key?("time_epoch")
+    assert_equal time.floor, attempts.second.sole.fetch("time_epoch")
+  end
+
   test "direct heartbeat ingest deduplicates repeated items within one bulk request" do
     user = User.create!(timezone: "UTC")
     payload = {
