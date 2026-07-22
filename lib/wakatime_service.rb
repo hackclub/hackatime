@@ -128,7 +128,7 @@ class WakatimeService
     # preceded by a runtime and a model token from an AI transcript parser.
     if matches = user_agent.match(/\Awakatime\/\S*\s+\(([^)]+)\)(?:\s+(.*))?\z/i)
       products = matches[2].to_s.split
-      products.shift if runtime_product?(user_agent_product(products.first).downcase)
+      products.shift if runtime_product?(user_agent_product(products.first).to_s.downcase)
       ai_model = nil
 
       model_prefixed = ai_category?(category) && model_first_product_chain?(products)

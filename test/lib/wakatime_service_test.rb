@@ -25,6 +25,16 @@ class WakatimeServiceTest < Minitest::Test
     assert_nil result[:ai_model]
   end
 
+  def test_parse_user_agent_without_products_after_the_platform
+    result = WakatimeService.parse_user_agent(
+      "wakatime/v1.86.0 (windows-10.0.22631-x86_64)"
+    )
+
+    assert_equal "windows", result[:os]
+    assert_equal "", result[:editor]
+    assert_nil result[:err]
+  end
+
   def test_parse_user_agent_with_GitHub_Desktop
     user_agent = "wakatime/v1.0.0 (darwin-arm64) go1.0.0 github-desktop/1.0.0"
     result = WakatimeService.parse_user_agent(user_agent)
