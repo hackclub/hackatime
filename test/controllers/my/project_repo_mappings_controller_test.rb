@@ -57,6 +57,8 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
 
   test "index supports archived view state" do
     user = User.create!(timezone: "UTC")
+    user.project_repo_mappings.create!(project_name: "alpha")
+    create_project_heartbeats(user, "alpha")
     mapping = user.project_repo_mappings.create!(project_name: "beta")
     mapping.archive!
     create_project_heartbeats(user, "beta")
@@ -71,6 +73,7 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     page = inertia_page
     assert_equal true, page.dig("props", "show_archived")
     assert_equal 1, page.dig("props", "total_projects")
+    assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
   end
 
   private
