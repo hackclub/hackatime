@@ -97,6 +97,18 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "browsing", user.heartbeats.sole.category
   end
 
+  test "direct heartbeat ingest classifies a minimal heartbeat as coding" do
+    user = User.create!(timezone: "UTC")
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ { entity: "LICENSE", time: Time.current.to_f } ]
+    )
+
+    assert_equal "coding", user.heartbeats.sole.category
+  end
+
   test "direct heartbeat ingest uses the HTTP user agent when the body omits it" do
     user = User.create!(timezone: "UTC")
     user_agent = "wakatime/v1.0.0 (linux-x86_64) go1.0.0 zed/1.0.0"

@@ -113,7 +113,7 @@ class HeartbeatIngest
       attrs[:language] = inferred if inferred
     end
 
-    attrs[:category] = default_category(attrs[:category], type: attrs[:type], language: attrs[:language])
+    attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     attrs[:user_agent] = attrs[:user_agent].presence || attrs.delete(:plugin).presence || @request_context[:user_agent].presence
     parsed_ua = WakatimeService.parse_user_agent(attrs[:user_agent], category: attrs[:category])
 
@@ -257,7 +257,7 @@ class HeartbeatIngest
     }
     resolve_placeholders!(attrs, placeholder_state)
     attrs[:language] = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
-    attrs[:category] = default_category(attrs[:category], type: attrs[:type], language: attrs[:language])
+    attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     model_attributes = validated_model_attributes(attrs)
     normalized = model_attributes
       .except("id", "fields_hash", "created_at", "updated_at", "time_epoch")
@@ -351,12 +351,11 @@ class HeartbeatIngest
     { editor: parsed[:editor].presence, os: parsed[:os].presence, ai_model: parsed[:ai_model].presence }
   end
 
-  def default_category(category, type:, language:)
+  def default_category(category, type:)
     return category if category.present?
     return "browsing" if %w[domain url].include?(type)
-    return "coding" if type == "file" && language.present?
 
-    nil
+    "coding"
   end
 
   # `<<LAST_PROJECT>>` stays persisted by design, but language and branch need
