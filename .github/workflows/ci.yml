@@ -126,7 +126,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Blacksmith Builder
-        uses: useblacksmith/setup-docker-builder@v1
+        uses: useblacksmith/setup-docker-builder@v2
 
       - name: Build ${{ matrix.dockerfile }}
         uses: useblacksmith/build-push-action@v2
