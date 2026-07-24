@@ -1,7 +1,7 @@
 services:
   web:
-    command: docker compose exec -T -e RUNNING_INSIDE_CONTAINER=1 -e PORT="$PORT" web bin/dev
-    port: 3000
+    command: docker compose exec -T -e RUNNING_INSIDE_CONTAINER=1 -e PORT=3000 -e PUBLIC_URL="$PUBLIC_URL" -e VITE_RUBY_SSR_BUILD_ENABLED=false web bin/dev
+    port: 3036
     portal:
       title: Hackatime
       description: Sign in with the seeded test@example.com account.
