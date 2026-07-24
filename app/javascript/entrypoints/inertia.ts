@@ -1,4 +1,3 @@
-import "@fontsource-variable/spline-sans";
 import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
 
 const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte");
