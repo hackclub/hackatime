@@ -11,7 +11,6 @@
   import SetupNotice from "./signedIn/SetupNotice.svelte";
   import TodaySentence from "./signedIn/TodaySentence.svelte";
   import TodaySentenceSkeleton from "./signedIn/TodaySentenceSkeleton.svelte";
-  import Dashboard from "./signedIn/Dashboard.svelte";
   import DashboardSkeleton from "./signedIn/DashboardSkeleton.svelte";
   import ActivityGraph from "./signedIn/ActivityGraph.svelte";
   import ActivityGraphSkeleton from "./signedIn/ActivityGraphSkeleton.svelte";
@@ -34,6 +33,17 @@
       programming_goals_progress: ProgrammingGoalProgress[];
     };
   } = $props();
+
+  let Dashboard = $state<
+    (typeof import("./signedIn/Dashboard.svelte"))["default"] | null
+  >(null);
+
+  $effect(() => {
+    if (!dashboard_stats?.filterable_dashboard_data || Dashboard) return;
+    import("./signedIn/Dashboard.svelte").then((module) => {
+      Dashboard = module.default;
+    });
+  });
 
   function refreshDashboardData(search: string) {
     router.visit(`${window.location.pathname}${search}`, {
@@ -91,13 +101,15 @@
           />
         {/if}
 
-        {#if dashboard_stats?.filterable_dashboard_data}
+        {#if dashboard_stats?.filterable_dashboard_data && Dashboard}
           <Dashboard
             data={dashboard_stats.filterable_dashboard_data}
             programmingGoalsProgress={dashboard_stats?.programming_goals_progress ||
               []}
             onFiltersChange={refreshDashboardData}
           />
+        {:else}
+          <DashboardSkeleton />
         {/if}
 
         <!-- {#if dashboard_stats?.activity_graph}
