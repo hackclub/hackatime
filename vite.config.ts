@@ -30,8 +30,18 @@ export default defineConfig({
     },
   },
   plugins: [
+    {
+      name: "portal-resolved-url",
+      configureServer(server) {
+        if (!publicUrl) return;
+
+        server.httpServer?.on("listening", () => {
+          if (server.resolvedUrls) server.resolvedUrls.local = [publicUrl];
+        });
+      },
+    },
     inertia({
-      ssr: portal ? false : "ssr/ssr.ts",
+      ssr: "ssr/ssr.ts",
     }),
     svelte(),
     tailwindcss(),
