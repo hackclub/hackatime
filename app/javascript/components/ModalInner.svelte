@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Dialog } from "bits-ui";
+  import { Dialog } from "bits-ui/dialog";
   import type { Snippet } from "svelte";
 
   let {

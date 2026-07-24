@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
+  echo "Docker or Docker Compose is missing; run .agents/setup" >&2
+  exit 1
+fi
+
+if ! sudo docker info >/dev/null 2>&1; then
+  sudo service docker start
+fi
+sudo chmod 0666 /var/run/docker.sock
+
+if sudo service postgresql status >/dev/null 2>&1; then
+  sudo service postgresql stop
+fi
+
+running_services="$(docker compose ps --status running --services)"
+if ! grep -Fxq web <<<"$running_services" || ! grep -Fxq db <<<"$running_services"; then
+  docker compose up -d --no-build --remove-orphans
+fi
+
+amp orb services ensure
+
+echo "Hackatime services are ready"

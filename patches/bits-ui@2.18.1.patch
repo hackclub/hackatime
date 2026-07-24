@@ -1,0 +1,45 @@
+diff --git a/package.json b/package.json
+index a9a531f..286d417 100644
+--- a/package.json
++++ b/package.json
+@@ -12,5 +12,40 @@
+       "svelte": "./dist/index.js",
+       "default": "./dist/index.js"
++    },
++    "./button": {
++      "types": "./dist/bits/button/index.d.ts",
++      "svelte": "./dist/bits/button/index.js",
++      "default": "./dist/bits/button/index.js"
++    },
++    "./checkbox": {
++      "types": "./dist/bits/checkbox/index.d.ts",
++      "svelte": "./dist/bits/checkbox/index.js",
++      "default": "./dist/bits/checkbox/index.js"
++    },
++    "./dialog": {
++      "types": "./dist/bits/dialog/index.d.ts",
++      "svelte": "./dist/bits/dialog/index.js",
++      "default": "./dist/bits/dialog/index.js"
++    },
++    "./popover": {
++      "types": "./dist/bits/popover/index.d.ts",
++      "svelte": "./dist/bits/popover/index.js",
++      "default": "./dist/bits/popover/index.js"
++    },
++    "./radio-group": {
++      "types": "./dist/bits/radio-group/index.d.ts",
++      "svelte": "./dist/bits/radio-group/index.js",
++      "default": "./dist/bits/radio-group/index.js"
++    },
++    "./select": {
++      "types": "./dist/bits/select/index.d.ts",
++      "svelte": "./dist/bits/select/index.js",
++      "default": "./dist/bits/select/index.js"
++    },
++    "./tooltip": {
++      "types": "./dist/bits/tooltip/index.d.ts",
++      "svelte": "./dist/bits/tooltip/index.js",
++      "default": "./dist/bits/tooltip/index.js"
+     }
+   },
+   "files": [

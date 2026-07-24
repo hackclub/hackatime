@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Select as BitsSelect } from "bits-ui";
+  import { Select as BitsSelect } from "bits-ui/select";
 
   type SelectItem = {
     value: string;

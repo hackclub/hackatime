@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Checkbox } from "bits-ui";
+  import { Checkbox } from "bits-ui/checkbox";
   import FilterShell from "./FilterShell.svelte";
 
   let {
