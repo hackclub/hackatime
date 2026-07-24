@@ -154,7 +154,7 @@
       restoring
         ? myProjectRepoMappings.unarchive
         : myProjectRepoMappings.archive
-    ).path({ projectName: project.project_key });
+    ).path({ projectName: encodeURIComponent(project.project_key) });
 
     pendingStatusAction = {
       path,
