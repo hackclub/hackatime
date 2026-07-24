@@ -1,4 +1,5 @@
-@import '../../assets/tailwind/application.css';
+@import "@fontsource-variable/spline-sans";
+@import "../../assets/tailwind/application.css";
 
 @plugin '@tailwindcss/typography';
 @plugin '@tailwindcss/forms';
