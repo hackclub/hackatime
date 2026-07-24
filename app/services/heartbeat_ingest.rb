@@ -113,7 +113,7 @@ class HeartbeatIngest
 
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     attrs[:user_agent] = attrs[:user_agent].presence || attrs.delete(:plugin).presence || @request_context[:user_agent].presence
-    parsed_ua = WakatimeService.parse_user_agent(attrs[:user_agent], category: attrs[:category])
+    parsed_ua = WakatimeUserAgentParser.parse(attrs[:user_agent], category: attrs[:category])
 
     attrs.merge(
       user_id: @user.id,
@@ -421,7 +421,7 @@ class HeartbeatIngest
 
   def parse_user_agent(user_agent, category: nil)
     return { editor: nil, os: nil, ai_model: nil } if user_agent.blank?
-    parsed = WakatimeService.parse_user_agent(user_agent, category:)
+    parsed = WakatimeUserAgentParser.parse(user_agent, category:)
     { editor: parsed[:editor].presence, os: parsed[:os].presence, ai_model: parsed[:ai_model].presence }
   end
 
