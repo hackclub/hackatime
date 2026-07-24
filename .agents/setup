@@ -64,9 +64,12 @@ for attempt in {1..30}; do
   sleep 2
 done
 
-echo "==> Preparing development and test databases"
+echo "==> Installing application dependencies"
 docker compose exec -T web git config --global --add safe.directory /app
-docker compose exec -T web bin/rails db:prepare
+docker compose exec -T web bun upgrade
+docker compose exec -T web bin/setup --skip-server
+
+echo "==> Seeding development and preparing test databases"
 docker compose exec -T web bin/rails db:seed
 docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare
 
