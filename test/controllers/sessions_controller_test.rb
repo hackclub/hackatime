@@ -87,6 +87,16 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal oauth_path, token.continue_param
   end
 
+  test "email auth stores a relative development magic link" do
+    user = User.create!
+    email = "dev-link-#{SecureRandom.hex(4)}@example.com"
+    user.email_addresses.create!(email: email)
+
+    post email_auth_path, params: { email: email }
+
+    assert_equal auth_token_path(token: SignInToken.last.token), session[:dev_magic_link]
+  end
+
   test "email token redirects to continue param after sign in" do
     user = User.create!
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
