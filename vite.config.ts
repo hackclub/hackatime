@@ -10,7 +10,7 @@ const portal = publicUrl ? new URL(publicUrl) : null;
 export default defineConfig({
   server: {
     origin: publicUrl,
-    allowedHosts: portal ? [portal.hostname] : undefined,
+    allowedHosts: portal ? true : undefined,
     hmr: portal
       ? {
           protocol: portal.protocol === "https:" ? "wss" : "ws",
