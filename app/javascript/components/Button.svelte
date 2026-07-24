@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import { Button as BitsButton } from "bits-ui/button";
   import type { Snippet } from "svelte";
 
   type ButtonType = "button" | "submit" | "reset";
@@ -66,16 +67,16 @@
 
 {#if href}
   {#if native}
-    <a {href} class={classes} {...rest}>
+    <BitsButton.Root {href} class={classes} {...rest}>
       {@render children?.()}
-    </a>
+    </BitsButton.Root>
   {:else}
     <Link {href} class={classes} {...rest}>
       {@render children?.()}
     </Link>
   {/if}
 {:else}
-  <button {type} class={classes} {...rest}>
+  <BitsButton.Root {type} class={classes} {...rest}>
     {@render children?.()}
-  </button>
+  </BitsButton.Root>
 {/if}

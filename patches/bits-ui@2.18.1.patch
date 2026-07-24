@@ -2,9 +2,14 @@ diff --git a/package.json b/package.json
 index a9a531f..286d417 100644
 --- a/package.json
 +++ b/package.json
-@@ -12,5 +12,35 @@
+@@ -12,5 +12,40 @@
        "svelte": "./dist/index.js",
        "default": "./dist/index.js"
++    },
++    "./button": {
++      "types": "./dist/bits/button/index.d.ts",
++      "svelte": "./dist/bits/button/index.js",
++      "default": "./dist/bits/button/index.js"
 +    },
 +    "./checkbox": {
 +      "types": "./dist/bits/checkbox/index.d.ts",
