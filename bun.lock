@@ -5,7 +5,7 @@
     "": {
       "dependencies": {
         "@fontsource-variable/spline-sans": "^5.2.8",
-        "@inertiajs/svelte": "^3.4.0",
+        "@inertiajs/svelte": "^3.6.1",
         "@inertiajs/vite": "^3.4.0",
         "@js-from-routes/client": "^1.0.4",
         "@sveltejs/vite-plugin-svelte": "^7.1.2",
@@ -62,9 +62,9 @@
 
     "@fontsource-variable/spline-sans": ["@fontsource-variable/spline-sans@5.2.8", "", {}, "sha512-Cn4tVu+wTZpJoD9zHN1fio0bPXq/79qE9yvQmiUz09rBZTJntKYNpA5bawDeRtS07dTxueeAVJqVwKGb0TNheQ=="],
 
-    "@inertiajs/core": ["@inertiajs/core@3.4.0", "", { "dependencies": { "@jridgewell/trace-mapping": "^0.3.31", "es-toolkit": "^1.33.0", "laravel-precognition": "^2.0.0" }, "peerDependencies": { "axios": "^1.15.2" }, "optionalPeers": ["axios"] }, "sha512-3O+My9yhY1NliwyaEFS2OhLpnNb73mWIgAJEeh6KnBL5lJKy5P5TlvmjR4ROWJhMjVmvtbkiJ/sQ2n4qazsH8g=="],
+    "@inertiajs/core": ["@inertiajs/core@3.6.1", "", { "dependencies": { "@jridgewell/trace-mapping": "^0.3.31", "es-toolkit": "^1.33.0", "laravel-precognition": "^2.0.0" }, "peerDependencies": { "axios": "^1.15.2" }, "optionalPeers": ["axios"] }, "sha512-h6+qqkKfpcoZvxWENy/F5yyiD00PIm8lK+ruQkt6HGk4d3N0LMS9GeUbWVQ4+TDZzIxP/vQLurPktnYvDhYeew=="],
 
-    "@inertiajs/svelte": ["@inertiajs/svelte@3.4.0", "", { "dependencies": { "@inertiajs/core": "3.4.0", "es-toolkit": "^1.33.0", "laravel-precognition": "^2.0.0" }, "peerDependencies": { "svelte": "^5.0.0" } }, "sha512-yjQGu/FaG0JBR/s81k8CHEeOnBfjPVrH1igZEGVOcuhD/uT05KK7+FpsHycBXqby1wzrIOwIWiifwpTTVRSbqw=="],
+    "@inertiajs/svelte": ["@inertiajs/svelte@3.6.1", "", { "dependencies": { "@inertiajs/core": "3.6.1", "es-toolkit": "^1.33.0", "laravel-precognition": "^2.0.0" }, "peerDependencies": { "svelte": "^5.0.0" } }, "sha512-k1JLpyZhPIZlYs0vk86mcQ0WKJMTsObI2WA4gRx0dUmDJK+p2nOOG5cnjyrrzDuK6bdq3POVOg/kAfgUHpWPig=="],
 
     "@inertiajs/vite": ["@inertiajs/vite@3.4.0", "", { "dependencies": { "@inertiajs/core": "3.4.0", "tinyglobby": "^0.2.15" }, "peerDependencies": { "vite": "^7.0.0 || ^8.0.0" } }, "sha512-2A/tGPelQFbx1DwoymnLbyVgpeMDdlBXUyR9qJXx49U8YVdqQwB40ejhX2hLVVjLTRqCmK/Z/p1s0DaajOdlpQ=="],
 
@@ -659,6 +659,8 @@
     "zimmerframe": ["zimmerframe@1.1.4", "", {}, "sha512-B58NGBEoc8Y9MWWCQGl/gq9xBCe4IiKM0a2x7GZdQKOW5Exr8S1W24J6OgM1njK8xCRGvAJIL/MxXHf6SkmQKQ=="],
 
     "zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
+
+    "@inertiajs/vite/@inertiajs/core": ["@inertiajs/core@3.4.0", "", { "dependencies": { "@jridgewell/trace-mapping": "^0.3.31", "es-toolkit": "^1.33.0", "laravel-precognition": "^2.0.0" }, "peerDependencies": { "axios": "^1.15.2" }, "optionalPeers": ["axios"] }, "sha512-3O+My9yhY1NliwyaEFS2OhLpnNb73mWIgAJEeh6KnBL5lJKy5P5TlvmjR4ROWJhMjVmvtbkiJ/sQ2n4qazsH8g=="],
 
     "@layerstack/svelte-stores/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
