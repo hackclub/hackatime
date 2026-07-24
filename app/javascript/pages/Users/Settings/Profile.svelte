@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
-  import { Tooltip } from "bits-ui";
+  import { Tooltip } from "bits-ui/tooltip";
   import { Icon, ArrowPath, Trash } from "svelte-hero-icons";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";

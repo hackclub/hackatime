@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Popover } from "bits-ui";
+  import { Popover } from "bits-ui/popover";
   import Button from "../../../components/Button.svelte";
   import type { Snippet } from "svelte";
   import { Icon, ChevronDown } from "svelte-hero-icons";
