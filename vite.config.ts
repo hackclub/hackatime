@@ -22,7 +22,24 @@ export default defineConfig({
         },
     proxy: portal
       ? {
-          "^/(?!vite-dev(?:/|$))": "http://localhost:3000",
+          "^/(?!vite-dev(?:/|$))": {
+            target: "http://localhost:3000",
+            changeOrigin: false,
+            configure(proxy) {
+              proxy.on("proxyReq", (proxyRequest, request) => {
+                const forwardedHost =
+                  request.headers["x-forwarded-host"] ?? request.headers.host;
+                if (forwardedHost) {
+                  proxyRequest.setHeader("Host", forwardedHost);
+                  proxyRequest.setHeader("X-Forwarded-Host", forwardedHost);
+                }
+                proxyRequest.setHeader(
+                  "X-Forwarded-Proto",
+                  request.headers["x-forwarded-proto"] ?? "https",
+                );
+              });
+            },
+          },
         }
       : undefined,
     watch: {
