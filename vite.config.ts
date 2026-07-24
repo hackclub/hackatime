@@ -4,55 +4,16 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import RubyPlugin from "vite-plugin-ruby";
 
-const publicUrl = process.env.PUBLIC_URL?.replace(/\/$/, "");
-const portal = publicUrl ? new URL(publicUrl) : null;
-
 export default defineConfig({
   server: {
-    origin: publicUrl,
-    allowedHosts: portal ? true : undefined,
-    hmr: portal
-      ? {
-          protocol: portal.protocol === "https:" ? "wss" : "ws",
-          host: portal.hostname,
-          clientPort: portal.protocol === "https:" ? 443 : Number(portal.port),
-        }
-      : {
-          host: "localhost",
-        },
-    proxy: portal
-      ? {
-          "^/(?!vite-dev(?:/|$))": {
-            target: "http://localhost:3000",
-            changeOrigin: false,
-            configure(proxy) {
-              proxy.on("proxyReq", (proxyRequest) => {
-                proxyRequest.setHeader("Host", portal.host);
-                proxyRequest.setHeader("X-Forwarded-Host", portal.host);
-                proxyRequest.setHeader(
-                  "X-Forwarded-Proto",
-                  portal.protocol.slice(0, -1),
-                );
-              });
-            },
-          },
-        }
-      : undefined,
+    hmr: {
+      host: "localhost",
+    },
     watch: {
       usePolling: false, // uses a sh*tton of CPU
     },
   },
   plugins: [
-    {
-      name: "portal-resolved-url",
-      configureServer(server) {
-        if (!publicUrl) return;
-
-        server.httpServer?.on("listening", () => {
-          if (server.resolvedUrls) server.resolvedUrls.local = [publicUrl];
-        });
-      },
-    },
     inertia({
       ssr: "ssr/ssr.ts",
     }),

@@ -13,7 +13,7 @@
         "@tailwindcss/typography": "^0.5.20",
         "@tailwindcss/vite": "^4.3.0",
         "@tsconfig/svelte": "^5.0.8",
-        "bits-ui": "2.18.1",
+        "bits-ui": "^2.18.1",
         "canvas-confetti": "^1.9.4",
         "d3-shape": "^3.2.0",
         "hcicons-svelte": "0.2.2",
@@ -40,7 +40,6 @@
   },
   "patchedDependencies": {
     "layercake@8.4.3": "patches/layercake@8.4.3.patch",
-    "bits-ui@2.18.1": "patches/bits-ui@2.18.1.patch",
   },
   "packages": {
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],

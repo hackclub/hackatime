@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Checkbox } from "bits-ui/checkbox";
+  import { Checkbox } from "bits-ui";
   import type { Snippet } from "svelte";
 
   let {

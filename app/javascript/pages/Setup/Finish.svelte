@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Checkbox } from "bits-ui/checkbox";
+  import { Checkbox } from "bits-ui";
   import { Icon, InformationCircle } from "svelte-hero-icons";
   import { onMount } from "svelte";
   import confetti from "canvas-confetti";

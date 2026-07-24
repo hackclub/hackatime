@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { RadioGroup } from "bits-ui/radio-group";
+  import { RadioGroup } from "bits-ui";
   import Button from "../../../components/Button.svelte";
 
   const INTERVALS = [

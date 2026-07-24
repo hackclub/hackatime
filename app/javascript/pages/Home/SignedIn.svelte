@@ -13,6 +13,7 @@
   import TodaySentenceSkeleton from "./signedIn/TodaySentenceSkeleton.svelte";
   import Dashboard from "./signedIn/Dashboard.svelte";
   import DashboardSkeleton from "./signedIn/DashboardSkeleton.svelte";
+  import ActivityGraph from "./signedIn/ActivityGraph.svelte";
   import ActivityGraphSkeleton from "./signedIn/ActivityGraphSkeleton.svelte";
 
   let {

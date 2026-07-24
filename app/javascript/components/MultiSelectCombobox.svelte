@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Popover } from "bits-ui/popover";
+  import { Popover } from "bits-ui";
   import Button from "./Button.svelte";
 
   type Option = {

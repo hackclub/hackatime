@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
-  import { RadioGroup } from "bits-ui/radio-group";
+  import { RadioGroup } from "bits-ui";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import SettingsShell from "./Shell.svelte";
