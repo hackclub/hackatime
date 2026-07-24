@@ -43,7 +43,7 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def show
-    project_name = CGI.unescape(params[:project_name])
+    project_name = params[:project_name]
     mapping = current_user.project_repo_mappings.find_by(project_name: project_name)
     first_heartbeat = current_user.heartbeats.where(project: project_name).minimum(:time)
     since_date = first_heartbeat ? Time.at(first_heartbeat).to_date.strftime("%-m/%-d/%Y") : nil

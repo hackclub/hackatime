@@ -76,6 +76,29 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
   end
 
+  test "show preserves percent-encoded text in project names" do
+    user = User.create!(timezone: "UTC")
+    project_name = "folder/café ?# 100%25"
+    create_project_heartbeats(user, project_name)
+
+    sign_in_as(user)
+    get my_project_path(project_name: project_name)
+
+    assert_response :success
+    assert_equal project_name, inertia_page.dig("props", "project_name")
+  end
+
+  test "archive accepts a slash as the project name" do
+    user = User.create!(timezone: "UTC")
+    mapping = user.project_repo_mappings.create!(project_name: "/")
+
+    sign_in_as(user)
+    patch archive_my_project_repo_mapping_path(project_name: "/")
+
+    assert_redirected_to my_projects_path
+    assert_predicate mapping.reload, :archived?
+  end
+
   private
 
   def create_project_heartbeats(user, project_name)
