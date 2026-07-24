@@ -23,4 +23,6 @@ if ! grep -Fxq web <<<"$running_services" || ! grep -Fxq db <<<"$running_service
   docker compose up -d --no-build --remove-orphans
 fi
 
+amp orb services ensure
+
 echo "Hackatime services are ready"
