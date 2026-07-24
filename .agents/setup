@@ -70,4 +70,7 @@ docker compose exec -T web bin/rails db:prepare
 docker compose exec -T web bin/rails db:seed
 docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare
 
+echo "==> Starting supervised development services"
+amp orb services ensure
+
 echo "==> Orb setup complete"

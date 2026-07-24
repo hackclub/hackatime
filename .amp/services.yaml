@@ -1,0 +1,7 @@
+services:
+  web:
+    command: docker compose exec -T -e RUNNING_INSIDE_CONTAINER=1 -e PORT="$PORT" web bin/dev
+    port: 3000
+    portal:
+      title: Hackatime
+      description: Sign in with the seeded test@example.com account.
