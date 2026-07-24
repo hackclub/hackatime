@@ -69,4 +69,57 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     assert_equal "skyfall-pc", heartbeat.machine
     assert_equal "wakatime/v1.102.1", heartbeat.user_agent
   end
+
+  test "normalizes and validates each imported heartbeat once" do
+    user = User.create!(timezone: "UTC")
+    validation_count = 0
+    validation = lambda do |_heartbeat|
+      validation_count += 1
+    end
+    Heartbeat.set_callback(:validate, :before, validation)
+
+    begin
+      result = HeartbeatImportService.import_from_file(
+        { heartbeats: [ { entity: "/tmp/test.rb", time: 1_700_000_000.0, type: "file" } ] }.to_json,
+        user
+      )
+
+      assert result[:success]
+      assert_equal 1, validation_count
+    ensure
+      Heartbeat.skip_callback(:validate, :before, validation)
+    end
+  end
+
+  test "re-importing placeholders is idempotent after database context changes" do
+    user = User.create!(timezone: "UTC")
+    file_content = {
+      heartbeats: [
+        {
+          branch: "<<LAST_BRANCH>>",
+          entity: "notes",
+          language: "<<LAST_LANGUAGE>>",
+          project: "api",
+          time: 1_700_000_000.0,
+          type: "file"
+        },
+        {
+          branch: "main",
+          entity: "b.rb",
+          language: "Ruby",
+          project: "api",
+          time: 1_700_000_001.0,
+          type: "file"
+        }
+      ]
+    }.to_json
+
+    first = HeartbeatImportService.import_from_file(file_content, user)
+    second = HeartbeatImportService.import_from_file(file_content, user)
+
+    assert_equal 2, first[:imported_count]
+    assert_equal 0, second[:imported_count]
+    assert_equal 2, second[:skipped_count]
+    assert_equal 2, user.heartbeats.count
+  end
 end

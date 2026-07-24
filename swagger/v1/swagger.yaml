@@ -31,6 +31,8 @@ paths:
           description: accepted
         '400':
           description: no data provided
+        '422':
+          description: heartbeat rejected
         '401':
           description: unauthorized
         '403':
@@ -63,6 +65,32 @@ paths:
                   branch:
                     type: string
                     example: main
+                  ai_model:
+                    type: string
+                    example: gpt/5.3-codex
+                  ai_session:
+                    type: string
+                    example: session-123
+                  ai_subscription_plan:
+                    type: string
+                    example: pro
+                  ai_input_tokens:
+                    type: integer
+                    format: int64
+                    example: 1200
+                  ai_output_tokens:
+                    type: integer
+                    format: int64
+                    example: 350
+                  ai_prompt_length:
+                    type: integer
+                    example: 240
+                  ai_line_changes:
+                    type: integer
+                    example: 18
+                  human_line_changes:
+                    type: integer
+                    example: 7
                   language:
                     type: string
                     example: Ruby
@@ -170,6 +198,32 @@ paths:
                   branch:
                     type: string
                     example: main
+                  ai_model:
+                    type: string
+                    example: gpt/5.3-codex
+                  ai_session:
+                    type: string
+                    example: session-123
+                  ai_subscription_plan:
+                    type: string
+                    example: pro
+                  ai_input_tokens:
+                    type: integer
+                    format: int64
+                    example: 1200
+                  ai_output_tokens:
+                    type: integer
+                    format: int64
+                    example: 350
+                  ai_prompt_length:
+                    type: integer
+                    example: 240
+                  ai_line_changes:
+                    type: integer
+                    example: 18
+                  human_line_changes:
+                    type: integer
+                    example: 7
                   language:
                     type: string
                     example: Ruby

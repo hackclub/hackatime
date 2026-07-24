@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_135825) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -305,6 +305,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
   end
 
   create_table "heartbeats", force: :cascade do |t|
+    t.bigint "ai_input_tokens"
+    t.integer "ai_line_changes"
+    t.string "ai_model"
+    t.bigint "ai_output_tokens"
+    t.integer "ai_prompt_length"
+    t.string "ai_session"
+    t.string "ai_subscription_plan"
     t.string "branch"
     t.string "category"
     t.datetime "created_at", null: false
@@ -314,6 +321,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
     t.string "editor"
     t.string "entity"
     t.text "fields_hash"
+    t.integer "human_line_changes"
     t.inet "ip_address"
     t.boolean "is_write"
     t.integer "ja4_id"

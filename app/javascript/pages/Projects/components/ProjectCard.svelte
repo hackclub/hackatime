@@ -34,11 +34,16 @@
   } = $props();
 
   const key = $derived(project.url_safe ? project.project_key : null);
+  const encodedKey = $derived(key ? encodeURIComponent(key) : null);
   const showPath = $derived(
-    key ? myProjectRepoMappings.show.path({ projectName: key }) : null,
+    encodedKey
+      ? myProjectRepoMappings.show.path({ projectName: encodedKey })
+      : null,
   );
   const updatePath = $derived(
-    key ? myProjectRepoMappings.update.path({ projectName: key }) : null,
+    encodedKey
+      ? myProjectRepoMappings.update.path({ projectName: encodedKey })
+      : null,
   );
   const projectHref = $derived(
     showPath
