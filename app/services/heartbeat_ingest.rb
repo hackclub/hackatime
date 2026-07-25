@@ -4,7 +4,6 @@ class HeartbeatIngest
   LAST_LANGUAGE_SENTINEL = "<<LAST_LANGUAGE>>"
   LAST_BRANCH_SENTINEL = "<<LAST_BRANCH>>"
   LAST_PROJECT_SENTINEL = "<<LAST_PROJECT>>"
-  DIRECT_FUTURE_TOLERANCE = 1.hour
 
   # Sane epoch-seconds window: 2001-09-09 .. 2033-05-18. Values outside are
   # client bugs (uptime-like numbers, literal years, ms/µs/ns-scaled epochs).
@@ -98,9 +97,8 @@ class HeartbeatIngest
   end
 
   def normalize_direct_heartbeat(heartbeat, placeholder_state:)
-    attrs = heartbeat.to_h.with_indifferent_access
+    attrs = strip_null_bytes(heartbeat.to_h.with_indifferent_access)
     attrs[:time] = normalize_heartbeat_time(attrs[:time])
-    validate_direct_time!(attrs[:time])
     source_type = attrs[:entity] == "test.txt" ? :test_entry : :direct_entry
     attrs[:project] = sanitize_project(attrs[:project])
 
@@ -413,10 +411,13 @@ class HeartbeatIngest
     raise InvalidHeartbeatTime, "time must be a Unix epoch timestamp or parseable date"
   end
 
-  def validate_direct_time!(time)
-    return if time <= DIRECT_FUTURE_TOLERANCE.from_now.to_f
-
-    raise InvalidHeartbeatTime, "time must not be more than #{DIRECT_FUTURE_TOLERANCE.inspect} in the future"
+  def strip_null_bytes(value)
+    case value
+    when String then value.delete("\0")
+    when Array then value.map { |item| strip_null_bytes(item) }
+    when Hash then value.transform_values { |item| strip_null_bytes(item) }
+    else value
+    end
   end
 
   def parse_user_agent(user_agent, category: nil)
