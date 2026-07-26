@@ -11,3 +11,9 @@ Lapse:
 AsciiDoc:
   extensions:
   - ".ad"
+
+Assembly:
+  extensions:
+  - ".asm"
+  - ".s"
+  - ".S"  
