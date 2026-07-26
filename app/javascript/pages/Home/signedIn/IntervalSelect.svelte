@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { Component } from "svelte";
+  import { CalendarDateRange } from "svelte-hero-icons";
   import FilterShell from "./FilterShell.svelte";
 
   const INTERVAL_LABELS: Record<string, string> = {
@@ -25,11 +26,15 @@
     from,
     to,
     onchange,
+    showLabel = true,
+    showIcon = false,
   }: {
     selected: string;
     from: string;
     to: string;
     onchange: (interval: string, from: string, to: string) => void;
+    showLabel?: boolean;
+    showIcon?: boolean;
   } = $props();
 
   type BodyProps = {
@@ -93,6 +98,8 @@
   label="Date Range"
   displayText={displayLabel}
   canClear={!isDefault}
+  {showLabel}
+  leadingIcon={showIcon ? CalendarDateRange : undefined}
   onclear={clear}
   bind:open
 >

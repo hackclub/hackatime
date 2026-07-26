@@ -663,17 +663,28 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
-  test "direct heartbeat ingest rejects timestamps more than an hour in the future" do
+  test "direct heartbeat ingest strips null bytes from string attributes" do
     user = User.create!(timezone: "UTC")
 
     result = HeartbeatIngest.call(
       user: user,
       mode: :direct,
-      heartbeats: [ { entity: "src/main.rb", time: 2.hours.from_now.to_f, type: "file" } ]
+      heartbeats: [ {
+        branch: "mai\0n",
+        dependencies: [ "active\0support" ],
+        entity: "src/mai\0n.rb",
+        time: Time.current.to_f,
+        type: "fi\0le"
+      } ]
     )
 
-    assert_equal 1, result.failed_count
-    assert_instance_of HeartbeatIngest::InvalidHeartbeatTime, result.items.sole.error
+    assert_equal 0, result.failed_count
+    assert_equal 1, result.persisted_count
+    heartbeat = user.heartbeats.sole
+    assert_equal "main", heartbeat.branch
+    assert_equal [ "activesupport" ], heartbeat.dependencies
+    assert_equal "src/main.rb", heartbeat.entity
+    assert_equal "file", heartbeat.type
   end
 
   test "direct placeholder resolution is scoped to the project and preserves last project" do
