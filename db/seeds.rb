@@ -113,11 +113,10 @@ end
 # Use the test user if we have one, otherwise fall back to User ID 1 (for other envs or if test user logic changes)
 app_owner = test_user || User.find_by(id: 1)
 
-OauthApplication.find_or_create_by(
+OauthApplication.find_or_create_by(uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ").update!(
   name: "Hackatime Desktop",
   owner: app_owner,
   redirect_uri: "hackatime://auth/callback",
-  uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ",
   scopes: [ "profile", "read", "heartbeats" ],
   confidential: false,
 )
