@@ -29,7 +29,7 @@ module Api
         private
 
         def required_doorkeeper_scopes
-          [ :read ]
+          [ :heartbeats ]
         end
       end
     end

@@ -27,7 +27,8 @@ Scopes control what data your app can access. Request only the scopes you need.
 | Scope | Description | Granted by Default |
 |-------|-------------|-------------------|
 | `profile` | Access basic profile information (user ID, email addresses, Slack ID, GitHub username, trust factor) | Yes |
-| `read` | View basic info about the user's Hackatime account | No |
+| `read` | Access your Hackatime stats, projects, and streak | No |
+| `heartbeats` | Access all your raw heartbeats (may include sensitive data) | No |
 | `admin` | Access the [Admin API](#admin-api-access) on the authorizing admin's behalf | No |
 
 If you don't specify any scopes, only the `profile` scope is granted.
@@ -111,13 +112,14 @@ POST https://hackatime.hackclub.com/oauth/token
 {
   "access_token": "abc123...",
   "token_type": "Bearer",
-  "expires_in": 504576000,
+  "expires_in": 15778476,
+  "refresh_token": "def456...",
   "scope": "profile read",
   "created_at": 1700000000
 }
 ```
 
-Access tokens are long-lived (approximately 16 years) so you typically don't need to worry about refreshing them.
+Access tokens currently expire after 6 months. Use the `refresh_token` to get a new access token without re-prompting the user for consent (see [Refreshing Tokens](#refreshing-tokens) below).
 
 ### Step 4: Make API Requests
 
@@ -127,6 +129,25 @@ Use the access token in the `Authorization` header:
 GET https://hackatime.hackclub.com/api/v1/authenticated/me
 Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
+
+### Refreshing Tokens
+
+Access tokens currently expire after 6 months. Before that, exchange your `refresh_token` for a new access token:
+
+```
+POST https://hackatime.hackclub.com/oauth/token
+```
+
+**Parameters (form-encoded body):**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `client_id` | Yes | Your app's UID |
+| `client_secret` | Yes (confidential apps) | Your app's secret |
+| `grant_type` | Yes | Set to `refresh_token` |
+| `refresh_token` | Yes | The refresh token from the previous token response |
+
+The response has the same shape as the initial token exchange, including a new `refresh_token`. Store the new refresh token and discard the old one -- refresh tokens rotate on each use.
 
 ### Admin API access
 
@@ -223,7 +244,7 @@ Returns the user's projects with time totals.
 
 ### GET /api/v1/authenticated/heartbeats/latest
 
-Returns the user's most recent heartbeat.
+Requires the `heartbeats` scope. Returns the user's most recent heartbeat.
 
 **Response:**
 
@@ -239,18 +260,6 @@ Returns the user's most recent heartbeat.
   "operating_system": "Mac",
   "machine": "MacBook-Pro",
   "entity": "app/models/user.rb"
-}
-```
-
-### GET /api/v1/authenticated/api_keys
-
-Returns the user's Hackatime API key (creates one if none exists).
-
-**Response:**
-
-```json
-{
-  "token": "abc123..."
 }
 ```
 
