@@ -24,6 +24,12 @@ module Api
             }
           }
         end
+
+        private
+
+        def required_doorkeeper_scopes
+          [ :profile ]
+        end
       end
     end
   end

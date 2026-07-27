@@ -3,10 +3,18 @@ module Api
     module Authenticated
       class ApplicationController < ActionController::API
         include Doorkeeper::Rails::Helpers
-        before_action :doorkeeper_authorize!
+        before_action :authorize_scope!
         before_action :ensure_api_access_allowed
 
         private
+
+        def required_doorkeeper_scopes
+          []
+        end
+
+        def authorize_scope!
+          doorkeeper_authorize!(*required_doorkeeper_scopes)
+        end
 
         def current_user
           @current_user ||= User.find(doorkeeper_token.resource_owner_id) if doorkeeper_token

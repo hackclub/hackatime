@@ -118,7 +118,7 @@ OauthApplication.find_or_create_by(
   owner: app_owner,
   redirect_uri: "hackatime://auth/callback",
   uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ",
-  scopes: [ "profile" ],
+  scopes: [ "profile", "read" ],
   confidential: false,
 )
 
@@ -132,7 +132,7 @@ if test_user && defined?(Doorkeeper)
       application_id: app.id,
       resource_owner_id: test_user.id,
       expires_in: nil,
-      scopes: 'profile'
+      scopes: 'profile read'
     )
   else
     token = Doorkeeper::AccessToken.find_or_create_by(
@@ -140,7 +140,7 @@ if test_user && defined?(Doorkeeper)
       resource_owner_id: test_user.id
     ) do |t|
       t.expires_in = nil
-      t.scopes = 'profile'
+      t.scopes = 'profile read'
     end
 
     token.update_column(:token, 'dev-api-key-12345')

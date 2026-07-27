@@ -7,6 +7,12 @@ module Api
             streak_days: current_user.streak_days
           }
         end
+
+        private
+
+        def required_doorkeeper_scopes
+          [ :read ]
+        end
       end
     end
   end
