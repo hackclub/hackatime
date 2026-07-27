@@ -140,7 +140,7 @@ if test_user && defined?(Doorkeeper)
       resource_owner_id: test_user.id
     ) do |t|
       t.expires_in = nil
-      t.scopes = 'profile read'
+      t.scopes = 'profile read heartbeats'
     end
 
     token.update_column(:token, 'dev-api-key-12345')

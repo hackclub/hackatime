@@ -1,6 +1,18 @@
 require 'swagger_helper'
 
 RSpec.describe 'Api::V1::Authenticated', type: :request do
+  def token_with_scopes(*scopes)
+    application = OauthApplication.find_by!(name: 'Hackatime Desktop')
+    user = User.find_by!(slack_uid: 'TEST123456')
+
+    Doorkeeper::AccessToken.create!(
+      application_id: application.id,
+      resource_owner_id: user.id,
+      expires_in: nil,
+      scopes: scopes.join(' ')
+    ).token
+  end
+
   path '/api/v1/authenticated/me' do
     get('Get current user info') do
       tags 'OAuth2-specific'
@@ -35,6 +47,11 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
         let(:Authorization) { 'Bearer invalid' }
         run_test!
       end
+
+      response(403, 'forbidden — Returned when the token is valid but lacks the required "profile" scope.') do
+        let(:Authorization) { "Bearer #{token_with_scopes('read', 'heartbeats')}" }
+        run_test!
+      end
     end
   end
 
@@ -67,6 +84,13 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
         let(:end_date) { Date.today.to_s }
         run_test!
       end
+
+      response(403, 'forbidden — Returned when the token is valid but lacks the required "read" scope.') do
+        let(:Authorization) { "Bearer #{token_with_scopes('profile', 'heartbeats')}" }
+        let(:start_date) { 7.days.ago.to_date.to_s }
+        let(:end_date) { Date.today.to_s }
+        run_test!
+      end
     end
   end
 
@@ -88,6 +112,11 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
 
       response(401, 'unauthorized — Returned when the OAuth access token is missing or invalid.') do
         let(:Authorization) { 'Bearer invalid' }
+        run_test!
+      end
+
+      response(403, 'forbidden — Returned when the token is valid but lacks the required "read" scope.') do
+        let(:Authorization) { "Bearer #{token_with_scopes('profile', 'heartbeats')}" }
         run_test!
       end
     end
@@ -153,6 +182,20 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
         let(:end_date) { nil }
         run_test!
       end
+
+      response(403, 'forbidden — Returned when the token is valid but lacks the required "read" scope.') do
+        let(:Authorization) { "Bearer #{token_with_scopes('profile', 'heartbeats')}" }
+        let(:include_archived) { false }
+        let(:projects) { nil }
+        let(:since) { nil }
+        let(:until) { nil }
+        let(:until_date) { nil }
+        let(:start) { nil }
+        let(:end) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        run_test!
+      end
     end
   end
 
@@ -199,6 +242,11 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
 
       response(401, 'unauthorized — Returned when the OAuth access token is missing or invalid.') do
         let(:Authorization) { 'Bearer invalid' }
+        run_test!
+      end
+
+      response(403, 'forbidden — Returned when the token is valid but lacks the required "heartbeats" scope.') do
+        let(:Authorization) { "Bearer #{token_with_scopes('profile', 'read')}" }
         run_test!
       end
     end

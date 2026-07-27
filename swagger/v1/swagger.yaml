@@ -746,6 +746,9 @@ paths:
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
+        '403':
+          description: forbidden — Returned when the token is valid but lacks the
+            required "profile" scope.
   "/api/v1/authenticated/hours":
     get:
       summary: Get hours
@@ -792,6 +795,9 @@ paths:
             or invalid (empty body), or when the authenticated user is banned (`trust_level
             == "red"`) via the `ensure_no_ban` before_action (which responds with
             a `{ "error": "Unauthorized" }` body).'
+        '403':
+          description: forbidden — Returned when the token is valid but lacks the
+            required "read" scope.
   "/api/v1/authenticated/streak":
     get:
       summary: Get streak
@@ -815,6 +821,9 @@ paths:
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
+        '403':
+          description: forbidden — Returned when the token is valid but lacks the
+            required "read" scope.
   "/api/v1/authenticated/projects":
     get:
       summary: Get projects
@@ -912,6 +921,9 @@ paths:
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
+        '403':
+          description: forbidden — Returned when the token is valid but lacks the
+            required "read" scope.
   "/api/v1/authenticated/heartbeats/latest":
     get:
       summary: Get latest heartbeat
@@ -979,6 +991,9 @@ paths:
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
+        '403':
+          description: forbidden — Returned when the token is valid but lacks the
+            required "heartbeats" scope.
   "/api/v1/badge/{user_id}/{project}":
     get:
       summary: Generate a shields.io coding-time badge for a project
