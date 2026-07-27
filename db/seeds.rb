@@ -122,7 +122,7 @@ OauthApplication.find_or_create_by(uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HY
 )
 
 if test_user && defined?(Doorkeeper)
-  app = OauthApplication.find_by(name: "Hackatime Desktop")
+  app = OauthApplication.find_by(uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ")
 
   token = Doorkeeper::AccessToken.find_or_initialize_by(token: 'dev-api-key-12345')
   token.application_id = app.id
