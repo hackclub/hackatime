@@ -929,8 +929,8 @@ paths:
       summary: Get API keys
       tags:
       - OAuth2-specific
-      description: 'Returns the API keys for the authenticated user. Requires an OAuth2
-        access token (Bearer header) with the "api_key" scope.'
+      description: Returns the API keys for the authenticated user. Requires an OAuth2
+        access token (Bearer header) with the "api_key" scope.
       security:
       - Bearer: []
       responses:
