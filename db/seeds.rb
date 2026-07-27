@@ -124,24 +124,10 @@ OauthApplication.find_or_create_by(uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HY
 if test_user && defined?(Doorkeeper)
   app = OauthApplication.find_by(name: "Hackatime Desktop")
 
-  existing_token = Doorkeeper::AccessToken.find_by(token: 'dev-api-key-12345')
-
-  if existing_token
-    existing_token.update_columns(
-      application_id: app.id,
-      resource_owner_id: test_user.id,
-      expires_in: nil,
-      scopes: 'profile read heartbeats'
-    )
-  else
-    token = Doorkeeper::AccessToken.find_or_create_by(
-      application_id: app.id,
-      resource_owner_id: test_user.id
-    ) do |t|
-      t.expires_in = nil
-      t.scopes = 'profile read heartbeats'
-    end
-
-    token.update_columns(token: 'dev-api-key-12345', scopes: 'profile read heartbeats', expires_in: nil)
-  end
+  token = Doorkeeper::AccessToken.find_or_initialize_by(token: 'dev-api-key-12345')
+  token.application_id = app.id
+  token.resource_owner_id = test_user.id
+  token.expires_in = nil
+  token.scopes = 'profile read heartbeats'
+  token.save!(validate: false)
 end
