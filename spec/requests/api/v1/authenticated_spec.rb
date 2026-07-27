@@ -199,6 +199,45 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
     end
   end
 
+  path '/api/v1/authenticated/api_keys' do
+    get('Get API keys') do
+      tags 'OAuth2-specific'
+      description 'Returns the API keys for the authenticated user. Requires an OAuth2 access token (Bearer header) with the "api_key" scope.'
+      security [ { Bearer: [] } ]
+      produces 'application/json'
+
+      response(200, 'successful') do
+        let(:Authorization) do
+          application = OauthApplication.create!(
+            name: 'Api Key Scope Test App',
+            redirect_uri: 'https://example.com/callback',
+            scopes: 'api_key'
+          )
+          user = User.find_by!(slack_uid: 'TEST123456')
+
+          token = Doorkeeper::AccessToken.create!(
+            application_id: application.id,
+            resource_owner_id: user.id,
+            expires_in: nil,
+            scopes: 'api_key'
+          ).token
+
+          "Bearer #{token}"
+        end
+        schema type: :object,
+          properties: {
+            token: { type: :string, example: '550e8400-e29b-41d4-a716-446655440000' }
+          }
+        run_test!
+      end
+
+      response(401, 'unauthorized — Returned when the OAuth access token is missing or invalid.') do
+        let(:Authorization) { 'Bearer invalid' }
+        run_test!
+      end
+    end
+  end
+
   path '/api/v1/authenticated/heartbeats/latest' do
     get('Get latest heartbeat') do
       tags 'OAuth2-specific'

@@ -924,6 +924,29 @@ paths:
         '403':
           description: forbidden — Returned when the token is valid but lacks the
             required "read" scope.
+  "/api/v1/authenticated/api_keys":
+    get:
+      summary: Get API keys
+      tags:
+      - OAuth2-specific
+      description: 'Returns the API keys for the authenticated user. Requires an OAuth2
+        access token (Bearer header) with the "api_key" scope.'
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+        '401':
+          description: unauthorized — Returned when the OAuth access token is missing
+            or invalid.
   "/api/v1/authenticated/heartbeats/latest":
     get:
       summary: Get latest heartbeat

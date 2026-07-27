@@ -29,6 +29,7 @@ Scopes control what data your app can access. Request only the scopes you need.
 | `profile` | Access basic profile information (user ID, email addresses, Slack ID, GitHub username, trust factor) | Yes |
 | `read` | Access your Hackatime stats, projects, and streak | No |
 | `heartbeats` | Access all your raw heartbeats (may include sensitive data) | No |
+| `api_key` | **SENSITIVE:** Access your permanent Hackatime API key, which can be used to fully impersonate you on any WakaTime-compatible client | No |
 | `admin` | Access the [Admin API](#admin-api-access) on the authorizing admin's behalf | No |
 
 If you don't specify any scopes, only the `profile` scope is granted.
@@ -112,14 +113,14 @@ POST https://hackatime.hackclub.com/oauth/token
 {
   "access_token": "abc123...",
   "token_type": "Bearer",
-  "expires_in": 15778476,
+  "expires_in": 31556952,
   "refresh_token": "def456...",
   "scope": "profile read",
   "created_at": 1700000000
 }
 ```
 
-Access tokens currently expire after 6 months. Use the `refresh_token` to get a new access token without re-prompting the user for consent (see [Refreshing Tokens](#refreshing-tokens) below).
+Access tokens currently expire after 1 year. Use the `refresh_token` to get a new access token without re-prompting the user for consent (see [Refreshing Tokens](#refreshing-tokens) below).
 
 ### Step 4: Make API Requests
 
@@ -132,7 +133,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 ### Refreshing Tokens
 
-Access tokens currently expire after 6 months. Before that, exchange your `refresh_token` for a new access token:
+Access tokens currently expire after 1 year. Before that, exchange your `refresh_token` for a new access token:
 
 ```
 POST https://hackatime.hackclub.com/oauth/token
