@@ -142,6 +142,6 @@ if test_user && defined?(Doorkeeper)
       t.scopes = 'profile read heartbeats'
     end
 
-    token.update_column(:token, 'dev-api-key-12345')
+    token.update_columns(token: 'dev-api-key-12345', scopes: 'profile read heartbeats', expires_in: nil)
   end
 end
