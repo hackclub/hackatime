@@ -4,6 +4,7 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
   setup do
     @superadmin = User.create!(timezone: "UTC", admin_level: :superadmin, username: "admin_manager")
     @ultraadmin = User.create!(timezone: "UTC", admin_level: :ultraadmin, username: "protected_ultraadmin")
+    User.create!(timezone: "UTC", admin_level: :admin, username: "manageable_admin")
     sign_in_as(@superadmin)
   end
 
@@ -21,6 +22,7 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "form[action=?]", admin_admin_user_path(@ultraadmin, admin_level: "superadmin"), count: 0
     assert_select "form[action=?]", admin_admin_user_path(@ultraadmin, admin_level: "default"), count: 0
+    assert_select "th", text: "Actions", count: 1
   end
 
   test "search does not offer superadmins controls for ultraadmins" do
