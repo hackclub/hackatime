@@ -1,27 +1,66 @@
 services:
-  web:
+  legacy-rails:
     build:
-      context: .
+      context: ./legacy/rails
       dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
       - "3036:3036"
     volumes:
-      - .:/app
+      - .:/workspace
+      - ./legacy/rails/entrypoint.dev.sh:/usr/bin/entrypoint.dev.sh:ro
       - bundle_cache:/usr/local/bundle
-      - node_modules:/app/node_modules
+      - node_modules:/workspace/legacy/rails/node_modules
+    working_dir: /workspace/legacy/rails
     environment:
       - RAILS_ENV=development
-      - DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
-      - POSTGRES_HOST=db
+      - DATABASE_URL=postgres://postgres:secureorpheus123@legacy-postgres:5432/app_development
+      - POSTGRES_HOST=legacy-postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secureorpheus123
-      - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
+      - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@legacy-postgres:5432/app_test
+      - GIT_CONFIG_COUNT=1
+      - GIT_CONFIG_KEY_0=safe.directory
+      - GIT_CONFIG_VALUE_0=/workspace
     depends_on:
-      - db
-    command: ["sleep", "infinity"]
+      - legacy-postgres
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - BIND_ADDRESS=0.0.0.0:3002
+      - DATABASE_URL=postgres://postgres:secureorpheus123@postgres:5432/app_development
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - CLICKHOUSE_DATABASE=hackatime
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
+      - CORS_ORIGIN=http://localhost:5173
+      - STATS_API_KEY=dev-api-key-12345
+      - RUST_LOG=hackatime=info,tower_http=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
 
-  db:
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - API_INTERNAL_URL=http://api:3002
+      - PUBLIC_API_URL=http://localhost:3002
+      - HOST=0.0.0.0
+      - PORT=5173
+    depends_on:
+      - api
+
+  legacy-postgres:
     image: postgres:16
     volumes:
       - harbor_postgres_data:/var/lib/postgresql/data
@@ -32,7 +71,44 @@ services:
     ports:
       - "5432:5432"
 
+  postgres:
+    image: postgres:18.4
+    volumes:
+      - hackatime_postgres_data:/var/lib/postgresql
+      - ./infra/migrations/postgres/0001_schema.sql:/docker-entrypoint-initdb.d/0001_schema.sql:ro
+      - ./infra/docker/postgres/development_seed.sql:/docker-entrypoint-initdb.d/0002_development_seed.sql:ro
+    environment:
+      - POSTGRES_PASSWORD=secureorpheus123
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=app_development
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app_development"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.7.1
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      - CLICKHOUSE_DB=hackatime
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    volumes:
+      - hackatime_clickhouse_data:/var/lib/clickhouse
+      - ./infra/migrations/clickhouse:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:8123/ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
 volumes:
   harbor_postgres_data:
+  hackatime_postgres_data:
+  hackatime_clickhouse_data:
   bundle_cache:
   node_modules:

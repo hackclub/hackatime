@@ -2,27 +2,29 @@
 
 _You MUST read the [development guide](DEVELOPMENT.md) before starting. If you cannot read it, please ask for help._
 
-We do development using docker-compose. Run `docker compose ps` to see if the dev server is running. If it is, then you can restart the dev server with `touch tmp/restart.txt` (but do not do this unless you added/removed a gem). If not, bring the containers up first with `docker compose up -d`.
+The active Rust application is in `apps/api`, the active SvelteKit application is in `apps/web` and the reference Rails application is in `legacy/rails`. Rails paths below are relative to `legacy/rails`. Commands run through the `legacy-rails` Compose service use `/workspace/legacy/rails` as their working directory.
+
+We do development using docker-compose. Run `docker compose ps` to see if the dev server is running. If it is, then you can restart the dev server with `touch legacy/rails/tmp/restart.txt` (but do not do this unless you added/removed a gem). If not, bring the containers up first with `docker compose up -d`.
 
 **IMPORTANT**: Always use `docker compose exec` (not `run`) to execute commands in the existing container. `run` creates a new container each time; `exec` reuses the running one.
 
 ## Commands (via Docker Compose)
 
-- **Tests**: `docker compose exec web rails test` (all), `docker compose exec web rails test test/models/user_test.rb` (single file), `docker compose exec web rails test test/models/user_test.rb -n test_method_name` (single test) - Note: Limited test coverage
-- **Lint**: `docker compose exec web bundle exec rubocop` (check), `docker compose exec web bundle exec rubocop -A` (auto-fix)
-- **Console**: `docker compose exec web rails c` (interactive console)
-- **Server**: `docker compose exec web rails s -b 0.0.0.0` (development server)
-- **Database**: `docker compose exec web rails db:migrate`, `docker compose exec web rails db:create`, `docker compose exec web rails db:schema:load`, `docker compose exec web rails db:seed`
-- **Security**: `docker compose exec web bundle exec brakeman` (security audit)
-- **JS Security**: `docker compose exec web bin/importmap audit` (JS dependency scan)
-- **Zeitwerk**: `docker compose exec web bin/rails zeitwerk:check` (autoloader check)
-- **Swagger**: `docker compose exec web bin/rails rswag:specs:swaggerize` (generate API docs)
+- **Tests**: `docker compose exec legacy-rails rails test` (all), `docker compose exec legacy-rails rails test test/models/user_test.rb` (single file), `docker compose exec legacy-rails rails test test/models/user_test.rb -n test_method_name` (single test) - Note: Limited test coverage
+- **Lint**: `docker compose exec legacy-rails bundle exec rubocop` (check), `docker compose exec legacy-rails bundle exec rubocop -A` (auto-fix)
+- **Console**: `docker compose exec legacy-rails rails c` (interactive console)
+- **Server**: `docker compose exec legacy-rails rails s -b 0.0.0.0` (development server)
+- **Database**: `docker compose exec legacy-rails rails db:migrate`, `docker compose exec legacy-rails rails db:create`, `docker compose exec legacy-rails rails db:schema:load`, `docker compose exec legacy-rails rails db:seed`
+- **Security**: `docker compose exec legacy-rails bundle exec brakeman` (security audit)
+- **JS Security**: `docker compose exec legacy-rails bin/importmap audit` (JS dependency scan)
+- **Zeitwerk**: `docker compose exec legacy-rails bin/rails zeitwerk:check` (autoloader check)
+- **Swagger**: `docker compose exec legacy-rails bin/rails rswag:specs:swaggerize` (generate API docs)
 
 ## CI/Testing Requirements
 
-Before marking any task complete, you MUST check `config/ci.rb` and manually run the checks in that file which are relevant to your changes (with `docker compose exec`.)
+Before marking any task complete, you MUST check `legacy/rails/config/ci.rb` and manually run the checks in that file which are relevant to your changes (with `docker compose exec`.)
 
-Skip running checks which aren't relevant to your changes. However, at the very end of feature development, recommend the user to run all checks. If they say yes, run `docker compose exec web bin/ci` to run them all.
+Skip running checks which aren't relevant to your changes. However, at the very end of feature development, recommend the user to run all checks. If they say yes, run `docker compose exec legacy-rails bin/ci` to run them all.
 
 ## API Documentation
 
@@ -33,8 +35,8 @@ Skip running checks which aren't relevant to your changes. However, at the very 
 ## Docker Development
 
 - **Start containers**: `docker compose up -d` (must be running before using `exec`)
-- **Interactive shell**: `docker compose exec web /bin/bash`
-- **Initial setup**: `docker compose exec web bin/rails db:create db:schema:load db:seed`
+- **Interactive shell**: `docker compose exec legacy-rails /bin/bash`
+- **Initial setup**: `docker compose exec legacy-rails bin/rails db:create db:schema:load db:seed`
 - **Cleanup**: Run commands with the `--remove-orphans` flag to remove unused containers and images
 
 ## Git Practices
@@ -104,7 +106,7 @@ fooThings.update.path({ query: { from: "x" } }); // -> "/foo_things?from=x"
 ### Adding a new path helper
 
 1. Add the route's `as:` name to `EXPORTED_ROUTES` in `config/initializers/js_from_routes.rb`. We use an explicit allowlist (not `defaults export: true`) so the generated `app/javascript/api/` stays small and predictable.
-2. In dev, refresh the page (Rails reloader regenerates) or run `docker compose exec web bin/rake js_from_routes:generate`. Force regeneration with `JS_FROM_ROUTES_FORCE=true`.
+2. In dev, refresh the page (Rails reloader regenerates) or run `docker compose exec legacy-rails bin/rake js_from_routes:generate`. Force regeneration with `JS_FROM_ROUTES_FORCE=true`.
 3. Import from `app/javascript/api/<Namespace>Api.ts` (one file per controller). All helpers are also re-exported from `app/javascript/api/index.ts`.
 
 ### When to keep paths as server-built props
@@ -121,7 +123,7 @@ Files under `app/javascript/api/` are gitignored and regenerated on every build:
 - **Production Docker build**: regenerated in `Dockerfile` before `assets:precompile`.
 - **CI**: regenerated in the `frontend` and `test_system` jobs before Vite/svelte-check run; the `test` job triggers regeneration via Rails boot.
 
-After adding a route to `EXPORTED_ROUTES`, just refresh the page (or run `docker compose exec web bin/rake js_from_routes:generate`) — there's nothing to commit.
+After adding a route to `EXPORTED_ROUTES`, just refresh the page (or run `docker compose exec legacy-rails bin/rake js_from_routes:generate`) — there's nothing to commit.
 
 ## Default theme
 

@@ -25,7 +25,7 @@ jobs:
             -o /tmp/languages.yml
 
           UPSTREAM_SHA=$(git hash-object /tmp/languages.yml)
-          LOCAL_SHA=$(git hash-object config/languages.yml)
+          LOCAL_SHA=$(git hash-object legacy/rails/config/languages.yml)
 
           echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
           echo "local_sha=${LOCAL_SHA}" >> "$GITHUB_OUTPUT"
@@ -34,7 +34,7 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            cp /tmp/languages.yml config/languages.yml
+            cp /tmp/languages.yml legacy/rails/config/languages.yml
           fi
 
       - name: Check for existing PR
@@ -63,7 +63,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git checkout -B auto/update-linguist
-          git add config/languages.yml
+          git add legacy/rails/config/languages.yml
           git commit -m "Update Linguist languages.yml to latest upstream"
           git push --force origin auto/update-linguist
 
@@ -75,7 +75,7 @@ jobs:
           if [ "${{ steps.existing_pr.outputs.pr_exists }}" = "true" ]; then
             echo "Existing PR #${{ steps.existing_pr.outputs.pr_number }} updated via force-push."
           else
-            PR_BODY="## Summary"$'\n'"- Updates \`config/languages.yml\` to the latest version from [github-linguist/linguist](https://github.com/github-linguist/linguist)"$'\n\n'"This PR was automatically created by the **Update Linguist** workflow."
+            PR_BODY="## Summary"$'\n'"- Updates \`legacy/rails/config/languages.yml\` to the latest version from [github-linguist/linguist](https://github.com/github-linguist/linguist)"$'\n\n'"This PR was automatically created by the **Update Linguist** workflow."
             gh pr create \
               --title "Update Linguist languages.yml to latest upstream" \
               --head "auto/update-linguist" \

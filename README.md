@@ -14,9 +14,48 @@
 
 <p align="center">The free, open source, WakaTime-compatible coding time tracker from Hack Club.</p>
 
-## Local development
+## Repository layout
 
-Please read [DEVELOPMENT.md](DEVELOPMENT.md) for instructions on setting up and running the project locally.
+```text
+apps/api       Rust API
+apps/web       SvelteKit web application
+legacy/rails   legacy Rails reference
+infra          PostgreSQL and ClickHouse initialization
+tools          conformance and benchmark tooling
+```
+
+Docker Compose at the repository root is the single entry point for the complete stack.
+
+## Rust and SvelteKit development
+
+The rewritten runtime uses Rust, SvelteKit, PostgreSQL and ClickHouse:
+
+```sh
+docker compose up -d postgres clickhouse api web
+```
+
+The SvelteKit application is available at `http://localhost:5173`. The Rust API is available at `http://localhost:3002` and Swagger UI is available at `http://localhost:3002/api-docs`.
+
+The development user is `testuser` and its API key is `dev-api-key-12345`.
+
+Generate the typed frontend client while the API is running:
+
+```sh
+cd apps/web
+bun run generate:api
+```
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for storage and correctness decisions. See [BENCHMARKS.md](BENCHMARKS.md) for conformance, throughput and resource results.
+
+## Rails reference
+
+The Rails service remains available for conformance and migration work:
+
+```sh
+docker compose up -d legacy-postgres legacy-rails
+```
+
+Read [DEVELOPMENT.md](DEVELOPMENT.md) for the legacy workflow.
 
 ## Installer repo
 

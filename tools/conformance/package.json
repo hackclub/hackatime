@@ -1,0 +1,19 @@
+{
+  "name": "hackatime-conformance",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capture": "bun run src/cli.ts capture",
+    "compare": "bun run src/cli.ts compare",
+    "seed": "bun run src/cli.ts seed",
+    "verify": "bun run src/cli.ts verify",
+    "benchmark": "bun run src/cli.ts benchmark",
+    "benchmark:clickhouse": "bun run src/clickhouse-schema-benchmark.ts",
+    "verify:clickhouse-corrections": "bun run src/clickhouse-corrections.ts",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "latest"
+  }
+}

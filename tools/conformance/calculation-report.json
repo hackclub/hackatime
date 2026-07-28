@@ -1,0 +1,130 @@
+{
+  "passed": true,
+  "expected": {
+    "all": {
+      "heartbeatCount": 48,
+      "userCount": 1,
+      "totalSeconds": 2820
+    },
+    "language:rust": {
+      "heartbeatCount": 24,
+      "userCount": 1,
+      "totalSeconds": 1440
+    },
+    "operating-system:linux": {
+      "heartbeatCount": 48,
+      "userCount": 1,
+      "totalSeconds": 2820
+    },
+    "project:alpha": {
+      "heartbeatCount": 24,
+      "userCount": 1,
+      "totalSeconds": 1380
+    },
+    "start-date": {
+      "heartbeatCount": 36,
+      "userCount": 1,
+      "totalSeconds": 2100
+    },
+    "end-date": {
+      "heartbeatCount": 37,
+      "userCount": 1,
+      "totalSeconds": 2160
+    },
+    "start-and-end-date": {
+      "heartbeatCount": 25,
+      "userCount": 1,
+      "totalSeconds": 1440
+    },
+    "category:ai-coding": {
+      "heartbeatCount": 4,
+      "userCount": 1,
+      "totalSeconds": 180
+    }
+  },
+  "reference": {
+    "all": {
+      "heartbeatCount": 48,
+      "userCount": 1,
+      "totalSeconds": 2820
+    },
+    "language:rust": {
+      "heartbeatCount": 24,
+      "userCount": 1,
+      "totalSeconds": 1440
+    },
+    "operating-system:linux": {
+      "heartbeatCount": 48,
+      "userCount": 1,
+      "totalSeconds": 2820
+    },
+    "project:alpha": {
+      "heartbeatCount": 24,
+      "userCount": 1,
+      "totalSeconds": 1380
+    },
+    "start-date": {
+      "heartbeatCount": 36,
+      "userCount": 1,
+      "totalSeconds": 2100
+    },
+    "end-date": {
+      "heartbeatCount": 37,
+      "userCount": 1,
+      "totalSeconds": 2160
+    },
+    "start-and-end-date": {
+      "heartbeatCount": 25,
+      "userCount": 1,
+      "totalSeconds": 1440
+    },
+    "category:ai-coding": {
+      "heartbeatCount": 4,
+      "userCount": 1,
+      "totalSeconds": 180
+    }
+  },
+  "candidate": {
+    "all": {
+      "heartbeatCount": 48,
+      "userCount": 1,
+      "totalSeconds": 2820
+    },
+    "language:rust": {
+      "heartbeatCount": 24,
+      "userCount": 1,
+      "totalSeconds": 1440
+    },
+    "operating-system:linux": {
+      "heartbeatCount": 48,
+      "userCount": 1,
+      "totalSeconds": 2820
+    },
+    "project:alpha": {
+      "heartbeatCount": 24,
+      "userCount": 1,
+      "totalSeconds": 1380
+    },
+    "start-date": {
+      "heartbeatCount": 36,
+      "userCount": 1,
+      "totalSeconds": 2100
+    },
+    "end-date": {
+      "heartbeatCount": 37,
+      "userCount": 1,
+      "totalSeconds": 2160
+    },
+    "start-and-end-date": {
+      "heartbeatCount": 25,
+      "userCount": 1,
+      "totalSeconds": 1440
+    },
+    "category:ai-coding": {
+      "heartbeatCount": 4,
+      "userCount": 1,
+      "totalSeconds": 180
+    }
+  },
+  "mismatches": []
+}

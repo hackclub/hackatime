@@ -1,0 +1,2399 @@
+---
+openapi: 3.0.1
+info:
+  title: Hackatime API
+  version: v1
+  description: |
+    Hackatime's API gives access to coding activity data.
+
+    We support the WakaTime spec, allowing you to use existing plugins and tools.
+paths:
+  "/api/hackatime/v1/users/{id}/heartbeats":
+    post:
+      summary: Push heartbeats (WakaTime compatible)
+      tags:
+      - WakaTime Compatibility
+      description: Endpoint used by WakaTime plugins to send heartbeat data to the
+        server. This is the core endpoint for tracking time.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID or "current" (recommended). The authenticated user is
+          resolved from the API token, not this path segment.
+        required: true
+        schema:
+          type: string
+      responses:
+        '202':
+          description: accepted
+        '400':
+          description: no data provided
+        '422':
+          description: heartbeat rejected
+        '401':
+          description: unauthorized
+        '403':
+          description: account pending deletion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              description: Array of heartbeats. The single (non-bulk) variant only
+                processes the first element of the array.
+              items:
+                type: object
+                properties:
+                  entity:
+                    type: string
+                    example: app/models/user.rb
+                    description: File path or entity being tracked
+                  type:
+                    type: string
+                    example: file
+                    description: Entity type, e.g. "file"
+                  time:
+                    type: number
+                    example: 1710946200.0
+                    description: Unix timestamp (seconds, float)
+                  project:
+                    type: string
+                    example: hackatime
+                  branch:
+                    type: string
+                    example: main
+                  ai_model:
+                    type: string
+                    example: gpt/5.3-codex
+                  ai_session:
+                    type: string
+                    example: session-123
+                  ai_subscription_plan:
+                    type: string
+                    example: pro
+                  ai_input_tokens:
+                    type: integer
+                    format: int64
+                    example: 1200
+                  ai_output_tokens:
+                    type: integer
+                    format: int64
+                    example: 350
+                  ai_prompt_length:
+                    type: integer
+                    example: 240
+                  ai_line_changes:
+                    type: integer
+                    example: 18
+                  human_line_changes:
+                    type: integer
+                    example: 7
+                  language:
+                    type: string
+                    example: Ruby
+                  is_write:
+                    type: boolean
+                    example: true
+                  lineno:
+                    type: integer
+                    example: 42
+                  cursorpos:
+                    type: integer
+                    example: 12
+                  lines:
+                    type: integer
+                    example: 350
+                  category:
+                    type: string
+                    example: coding
+                  created_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T15:30:00Z'
+                  dependencies:
+                    type: array
+                    items:
+                      type: string
+                      example: rails
+                    description: May also be sent as a string
+                  editor:
+                    type: string
+                    example: VS Code
+                  line_additions:
+                    type: integer
+                    example: 8
+                  line_deletions:
+                    type: integer
+                    example: 3
+                  machine:
+                    type: string
+                    example: Orpheus-MacBook-Pro
+                  operating_system:
+                    type: string
+                    example: Mac
+                  project_root_count:
+                    type: integer
+                    example: 4
+                  user_agent:
+                    type: string
+                    example: wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0
+                  plugin:
+                    type: string
+                    example: vscode/1.96.0 vscode-wakatime/24.6.0
+                    description: Accepted but not persisted
+  "/api/hackatime/v1/users/{id}/heartbeats.bulk":
+    post:
+      summary: Push heartbeats in bulk (WakaTime compatible)
+      tags:
+      - WakaTime Compatibility
+      description: Bulk variant of the heartbeat ingest endpoint, used by WakaTime
+        clients via the ".bulk" format extension. Resolves to the same controller
+        action (push_heartbeats) which detects params["format"] == "bulk". Accepts
+        up to 100 heartbeats per request and returns a per-heartbeat array of [attributes_or_error,
+        status_code] pairs.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID or "current" (recommended). The authenticated user is
+          resolved from the API token, not this path segment.
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: created
+        '400':
+          description: no data or too many heartbeats
+        '401':
+          description: unauthorized
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              description: 'Array of heartbeats (max 100). May be sent as a top-level
+                JSON array, a text/plain JSON array or wrapped as { hackatime: { heartbeats:
+                [...] } }.'
+              items:
+                type: object
+                properties:
+                  entity:
+                    type: string
+                    example: app/models/user.rb
+                  type:
+                    type: string
+                    example: file
+                  time:
+                    type: number
+                    example: 1710946200.0
+                  project:
+                    type: string
+                    example: hackatime
+                  branch:
+                    type: string
+                    example: main
+                  ai_model:
+                    type: string
+                    example: gpt/5.3-codex
+                  ai_session:
+                    type: string
+                    example: session-123
+                  ai_subscription_plan:
+                    type: string
+                    example: pro
+                  ai_input_tokens:
+                    type: integer
+                    format: int64
+                    example: 1200
+                  ai_output_tokens:
+                    type: integer
+                    format: int64
+                    example: 350
+                  ai_prompt_length:
+                    type: integer
+                    example: 240
+                  ai_line_changes:
+                    type: integer
+                    example: 18
+                  human_line_changes:
+                    type: integer
+                    example: 7
+                  language:
+                    type: string
+                    example: Ruby
+                  is_write:
+                    type: boolean
+                    example: true
+                  lineno:
+                    type: integer
+                    example: 42
+                  cursorpos:
+                    type: integer
+                    example: 12
+                  lines:
+                    type: integer
+                    example: 350
+                  category:
+                    type: string
+                    example: coding
+                  created_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T15:30:00Z'
+                  dependencies:
+                    type: array
+                    items:
+                      type: string
+                      example: rails
+                  editor:
+                    type: string
+                    example: VS Code
+                  line_additions:
+                    type: integer
+                    example: 8
+                  line_deletions:
+                    type: integer
+                    example: 3
+                  machine:
+                    type: string
+                    example: Orpheus-MacBook-Pro
+                  operating_system:
+                    type: string
+                    example: Mac
+                  project_root_count:
+                    type: integer
+                    example: 4
+                  user_agent:
+                    type: string
+                    example: wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0
+                  plugin:
+                    type: string
+                    example: vscode/1.96.0 vscode-wakatime/24.6.0
+  "/api/hackatime/v1/users/{id}/statusbar/today":
+    get:
+      summary: Get status bar today
+      tags:
+      - WakaTime Compatibility
+      description: Returns the total coding time for today. Used by editor plugins
+        to display the status bar widget.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID or "current"
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      grand_total:
+                        type: object
+                        properties:
+                          total_seconds:
+                            type: number
+                            example: 7200.0
+                          text:
+                            type: string
+                            example: 2h 30m / 4h goal
+                      goal:
+                        type: object
+                        nullable: true
+                        properties:
+                          target_seconds:
+                            type: number
+                            example: 14400
+                          tracked_seconds:
+                            type: number
+                            example: 9000
+                          completion_percent:
+                            type: number
+                            example: 62
+                          complete:
+                            type: boolean
+                            example: false
+        '401':
+          description: unauthorized
+  "/api/hackatime/v1/users/current/stats/last_7_days":
+    get:
+      summary: Get last 7 days stats
+      tags:
+      - WakaTime Compatibility
+      description: Returns coding statistics for the last 7 days. Used by some WakaTime
+        dashboards.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      username:
+                        type: string
+                        example: U0266FRGP
+                      user_id:
+                        type: string
+                        example: U0266FRGP
+                      start:
+                        type: string
+                        format: date_time
+                        example: '2024-03-13T00:00:00Z'
+                      end:
+                        type: string
+                        format: date_time
+                        example: '2024-03-20T23:59:59Z'
+                      status:
+                        type: string
+                        example: ok
+                      total_seconds:
+                        type: number
+                        example: 25200
+                      daily_average:
+                        type: number
+                        example: 3600.0
+                      days_including_holidays:
+                        type: integer
+                        example: 7
+                      range:
+                        type: string
+                        example: last_7_days
+                      human_readable_range:
+                        type: string
+                        example: Last 7 Days
+                      human_readable_total:
+                        type: string
+                        example: 7 hrs 0 mins
+                      human_readable_daily_average:
+                        type: string
+                        example: 1 hrs 0 mins
+                      is_coding_activity_visible:
+                        type: boolean
+                        example: true
+                      is_other_usage_visible:
+                        type: boolean
+                        example: true
+                      editors:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: VS Code
+                            total_seconds:
+                              type: integer
+                              example: 25200
+                            percent:
+                              type: number
+                              example: 100.0
+                            digital:
+                              type: string
+                              example: '7:00:00'
+                            text:
+                              type: string
+                              example: 7 hrs 0 mins
+                            hours:
+                              type: integer
+                              example: 7
+                            minutes:
+                              type: integer
+                              example: 0
+                            seconds:
+                              type: integer
+                              example: 0
+                      languages:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: Ruby
+                            total_seconds:
+                              type: integer
+                              example: 18000
+                            percent:
+                              type: number
+                              example: 71.43
+                            digital:
+                              type: string
+                              example: '5:00:00'
+                            text:
+                              type: string
+                              example: 5 hrs 0 mins
+                            hours:
+                              type: integer
+                              example: 5
+                            minutes:
+                              type: integer
+                              example: 0
+                            seconds:
+                              type: integer
+                              example: 0
+                      machines:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: Orpheus-MacBook-Pro
+                            total_seconds:
+                              type: integer
+                              example: 25200
+                            percent:
+                              type: number
+                              example: 100.0
+                            digital:
+                              type: string
+                              example: '7:00:00'
+                            text:
+                              type: string
+                              example: 7 hrs 0 mins
+                            hours:
+                              type: integer
+                              example: 7
+                            minutes:
+                              type: integer
+                              example: 0
+                            seconds:
+                              type: integer
+                              example: 0
+                      projects:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: hackatime
+                            total_seconds:
+                              type: integer
+                              example: 21600
+                            percent:
+                              type: number
+                              example: 85.71
+                            digital:
+                              type: string
+                              example: '6:00:00'
+                            text:
+                              type: string
+                              example: 6 hrs 0 mins
+                            hours:
+                              type: integer
+                              example: 6
+                            minutes:
+                              type: integer
+                              example: 0
+                            seconds:
+                              type: integer
+                              example: 0
+                      operating_systems:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: Mac
+                            total_seconds:
+                              type: integer
+                              example: 25200
+                            percent:
+                              type: number
+                              example: 100.0
+                            digital:
+                              type: string
+                              example: '7:00:00'
+                            text:
+                              type: string
+                              example: 7 hrs 0 mins
+                            hours:
+                              type: integer
+                              example: 7
+                            minutes:
+                              type: integer
+                              example: 0
+                            seconds:
+                              type: integer
+                              example: 0
+                      categories:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: coding
+                            total_seconds:
+                              type: integer
+                              example: 25200
+                            percent:
+                              type: number
+                              example: 100.0
+                            digital:
+                              type: string
+                              example: '7:00:00'
+                            text:
+                              type: string
+                              example: 7 hrs 0 mins
+                            hours:
+                              type: integer
+                              example: 7
+                            minutes:
+                              type: integer
+                              example: 0
+                            seconds:
+                              type: integer
+                              example: 0
+        '401':
+          description: unauthorized
+  "/api/summary":
+    get:
+      summary: Get WakaTime-compatible summary
+      tags:
+      - WakaTime Compatibility
+      description: 'Returns a summary of coding activity in a format compatible with
+        WakaTime clients. This endpoint does NOT authenticate any API token: access
+        is gated solely by the target user (identified by user_id/user) having allow_public_stats_lookup
+        enabled. No caller credentials are required or verified.'
+      parameters:
+      - name: start
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Start date (YYYY-MM-DD). Requires "end"/"to" to be set as well
+          to form an explicit range.
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Alias for "start". Used when "start" is absent.
+      - name: end
+        in: query
+        schema:
+          type: string
+          format: date
+        description: End date (YYYY-MM-DD). Requires "start"/"from" to be set as well
+          to form an explicit range.
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Alias for "end". Used when "end" is absent.
+      - name: interval
+        in: query
+        description: 'Interval keyword. One of: today, yesterday, week, 7_days, last_7_days,
+          month, 30_days, last_30_days, 6_months, last_6_months, year, 12_months,
+          last_12_months, last_year, any, all_time. Defaults to all_time when neither
+          interval nor range is given; unknown values fall back to today.'
+        schema:
+          type: string
+      - name: range
+        in: query
+        description: Fallback interval keyword used when "interval" is absent. Accepts
+          the same values as "interval".
+        schema:
+          type: string
+      - name: user_id
+        in: query
+        required: true
+        description: User identifier (slack_uid, username, hca_id or numeric ID)
+        schema:
+          type: string
+      - name: user
+        in: query
+        description: 'Deprecated: use user_id instead. Kept for backwards compatibility.'
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    nullable: true
+                    example: U0266FRGP
+                  from:
+                    type: string
+                    format: date_time
+                    example: '2023-01-01T00:00:00Z'
+                  to:
+                    type: string
+                    format: date_time
+                    example: '2023-01-31T23:59:59Z'
+                  projects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          example: hackatime
+                        total:
+                          type: number
+                          example: 21600.0
+                  languages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          example: Ruby
+                        total:
+                          type: number
+                          example: 18000.0
+                  editors:
+                    type: object
+                    nullable: true
+                  operating_systems:
+                    type: object
+                    nullable: true
+                  machines:
+                    type: object
+                    nullable: true
+                  categories:
+                    type: object
+                    nullable: true
+                  branches:
+                    type: object
+                    nullable: true
+                  entities:
+                    type: object
+                    nullable: true
+                  labels:
+                    type: object
+                    nullable: true
+        '400':
+          description: invalid date range
+        '404':
+          description: user not found
+        '403':
+          description: user has disabled public stats
+  "/api/v1/authenticated/me":
+    get:
+      summary: Get current user info
+      tags:
+      - OAuth2-specific
+      description: Returns detailed information about the currently authenticated
+        user. Requires an OAuth2 access token (Bearer header).
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 42
+                  emails:
+                    type: array
+                    items:
+                      type: string
+                      example: orpheus@hackclub.com
+                  slack_id:
+                    type: string
+                    nullable: true
+                    example: U0266FRGP
+                  github_username:
+                    type: string
+                    nullable: true
+                    example: orpheus
+                  trust_factor:
+                    type: object
+                    properties:
+                      trust_level:
+                        type: string
+                        example: blue
+                      trust_value:
+                        type: integer
+                        example: 0
+        '401':
+          description: 'unauthorized : Returned when the OAuth access token is missing
+            or invalid.'
+  "/api/v1/authenticated/hours":
+    get:
+      summary: Get hours
+      tags:
+      - OAuth2-specific
+      description: Returns the total coding hours for the authenticated user. Requires
+        an OAuth2 access token (Bearer header).
+      security:
+      - Bearer: []
+      parameters:
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Start date (YYYY-MM-DD)
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date
+        description: End date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  start_date:
+                    type: string
+                    format: date
+                    example: '2024-03-13'
+                  end_date:
+                    type: string
+                    format: date
+                    example: '2024-03-20'
+                  total_seconds:
+                    type: number
+                    example: 153000.0
+        '401':
+          description: 'unauthorized : Returned when the OAuth access token is missing
+            or invalid (empty body) or when the authenticated user is banned (`trust_level
+            == "red"`) via the `ensure_no_ban` before_action (which responds with
+            a `{ "error": "Unauthorized" }` body).'
+  "/api/v1/authenticated/streak":
+    get:
+      summary: Get streak
+      tags:
+      - OAuth2-specific
+      description: Returns the current streak information (days coded in a row). Requires
+        an OAuth2 access token (Bearer header).
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  streak_days:
+                    type: integer
+                    example: 5
+        '401':
+          description: 'unauthorized : Returned when the OAuth access token is missing
+            or invalid.'
+  "/api/v1/authenticated/projects":
+    get:
+      summary: Get projects
+      tags:
+      - OAuth2-specific
+      description: Returns a list of projects associated with the authenticated user.
+        Requires an OAuth2 access token (Bearer header).
+      security:
+      - Bearer: []
+      parameters:
+      - name: include_archived
+        in: query
+        description: Include archived projects (true/false)
+        schema:
+          type: boolean
+      - name: projects
+        in: query
+        description: Comma-separated list of project names
+        schema:
+          type: string
+      - name: since
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Project discovery start time (ISO 8601)
+      - name: until
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Project discovery end time (ISO 8601)
+      - name: until_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Alias for until
+      - name: start
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Stats start time (ISO 8601)
+      - name: end
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Stats end time (ISO 8601)
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Alias for start
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Alias for end
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: hackatime
+                        total_seconds:
+                          type: number
+                          example: 3600.0
+                        most_recent_heartbeat:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-20T15:30:00Z'
+                        languages:
+                          type: array
+                          items:
+                            type: string
+                            example: Ruby
+                        archived:
+                          type: boolean
+                          example: false
+        '401':
+          description: 'unauthorized : Returned when the OAuth access token is missing
+            or invalid.'
+  "/api/v1/authenticated/api_keys":
+    get:
+      summary: Get API keys
+      tags:
+      - OAuth2-specific
+      description: 'Returns the API keys for the authenticated user. Requires an OAuth2
+        access token (Bearer header). Warning: This returns sensitive information.'
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+        '401':
+          description: 'unauthorized : Returned when the OAuth access token is missing
+            or invalid.'
+  "/api/v1/authenticated/heartbeats/latest":
+    get:
+      summary: Get latest heartbeat
+      tags:
+      - OAuth2-specific
+      description: 'Returns the absolutely latest heartbeat processed for the user.
+        Requires an OAuth2 access token (Bearer header). When the user has no non-test
+        heartbeat, the response is `{ "heartbeat": null }`.'
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: object
+                  title: Latest heartbeat
+                  properties:
+                    id:
+                      type: integer
+                      example: 987654
+                    created_at:
+                      type: string
+                      format: date_time
+                      example: '2024-03-20T15:30:00Z'
+                    time:
+                      type: number
+                      example: 1710948600.0
+                    category:
+                      type: string
+                      example: coding
+                    project:
+                      type: string
+                      example: hackatime
+                    language:
+                      type: string
+                      example: Ruby
+                    editor:
+                      type: string
+                      example: VS Code
+                    operating_system:
+                      type: string
+                      example: Mac
+                    machine:
+                      type: string
+                      example: Orpheus-MacBook-Pro
+                    entity:
+                      type: string
+                      example: app/models/user.rb
+                  required:
+                  - id
+                  - time
+                - type: object
+                  title: No heartbeats yet
+                  description: Returned when the user has no non-test heartbeat.
+                  properties:
+                    heartbeat:
+                      type: object
+                      nullable: true
+                      example:
+                  required:
+                  - heartbeat
+        '401':
+          description: 'unauthorized : Returned when the OAuth access token is missing
+            or invalid.'
+  "/api/v1/badge/{user_id}/{project}":
+    get:
+      summary: Generate a shields.io coding-time badge for a project
+      tags:
+      - Badges
+      description: |
+        Redirects (307) to an img.shields.io badge URL showing the total coding
+        time a user has logged on a project. The endpoint is public (no auth) but
+        only works for users who have not disabled public stats lookup.
+
+        `user_id` is matched, in order, against the user's Slack UID, then
+        username, then (only when the value is all digits) the internal numeric
+        ID. `project` may be a raw project name (e.g. `hackatime`) or an
+        `owner/repo` pair (e.g. `hackclub/hackatime`) which is resolved to a
+        project name via the user's repo mappings.
+
+        Any additional query parameters not consumed below (e.g. `style`, `logo`,
+        `logoColor`, `labelColor`) are passed straight through to shields.io.
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        description: 'User identifier: Slack UID, username or numeric internal ID.'
+        schema:
+          type: string
+      - name: project
+        in: path
+        required: true
+        description: Project name (e.g. "hackatime") or "owner/repo" (e.g. "hackclub/hackatime").
+        schema:
+          type: string
+      - name: label
+        in: query
+        required: false
+        description: 'Left-hand text of the badge. Default: "hackatime".'
+        schema:
+          type: string
+      - name: color
+        in: query
+        required: false
+        description: 'Badge color passed to shields.io (any shields.io-accepted color).
+          Default: "blue".'
+        schema:
+          type: string
+      - name: aliases
+        in: query
+        required: false
+        description: Comma-separated list of additional project names whose coding
+          time is summed into the total.
+        schema:
+          type: string
+      responses:
+        '307':
+          description: redirect to the shields.io badge image
+        '404':
+          description: project not found
+        '403':
+          description: user has disabled public stats lookup
+        '400':
+          description: project has no countable coding time
+  "/api/v1/currently_hacking":
+    get:
+      summary: List users currently hacking
+      tags:
+      - Currently Hacking
+      description: |
+        Returns the set of users who have logged a direct-entry coding heartbeat
+        in the last 5 minutes, along with the project each is currently working
+        on (if its repo mapping is not archived). The endpoint is public (no
+        authentication required) and the result is cached for 5 minutes.
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Number of users currently hacking.
+                    example: 1
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        display_name:
+                          type: string
+                          nullable: true
+                          example: Orpheus
+                        avatar_url:
+                          type: string
+                          nullable: true
+                          example: https://hackatime.hackclub.com/images/athena.png
+                        country_code:
+                          type: string
+                          nullable: true
+                          example: US
+                        working_on:
+                          type: object
+                          nullable: true
+                          description: The project the user is currently working on
+                            or null.
+                          properties:
+                            project_name:
+                              type: string
+                              example: hackatime
+                            repo_url:
+                              type: string
+                              nullable: true
+                              example: https://github.com/hackclub/hackatime
+                      required:
+                      - display_name
+                      - avatar_url
+                      - country_code
+                      - working_on
+                required:
+                - count
+                - users
+  "/api/v1/leaderboard/daily":
+    get:
+      summary: Get daily leaderboard
+      tags:
+      - Leaderboard
+      description: Returns the daily leaderboard of coding time. Public, no authentication
+        required. The leaderboard is cached and regenerated periodically.
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period:
+                    type: string
+                    example: daily
+                  start_date:
+                    type: string
+                    format: date
+                    example: '2024-03-20'
+                  date_range:
+                    type: string
+                    example: Wed, Mar 20, 2024
+                  generated_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T10:00:00Z'
+                  entries:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/LeaderboardEntry"
+        '503':
+          description: 'service unavailable : Leaderboard is being generated'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/v1/leaderboard/weekly":
+    get:
+      summary: Get weekly leaderboard
+      tags:
+      - Leaderboard
+      description: Returns the weekly leaderboard of coding time (last 7 days). Public,
+        no authentication required.
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period:
+                    type: string
+                    example: last_7_days
+                  start_date:
+                    type: string
+                    format: date
+                    example: '2024-03-13'
+                  date_range:
+                    type: string
+                    example: Mar 13 - Mar 20, 2024
+                  generated_at:
+                    type: string
+                    format: date_time
+                    example: '2024-03-20T10:00:00Z'
+                  entries:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/LeaderboardEntry"
+        '503':
+          description: 'service unavailable : Leaderboard is being generated'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/v1/my/heartbeats/most_recent":
+    get:
+      summary: Get most recent heartbeat
+      tags:
+      - My Data
+      description: Returns the most recent heartbeat for the authenticated user. Useful
+        for checking if the user is currently active. Authenticate with your API key
+        as a Bearer token in the `Authorization` header (HTTP Basic auth with the
+        API key is also accepted).
+      security:
+      - Bearer: []
+      parameters:
+      - name: source_type
+        in: query
+        description: Filter by source type (e.g. "direct_entry"). If omitted, results
+          exclude heartbeats with source_type "test_entry" by default.
+        schema:
+          type: string
+      - name: editor
+        in: query
+        description: Filter by editor name (e.g. "VSCode"). Matched case-insensitively.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  has_heartbeat:
+                    type: boolean
+                    description: Whether a matching heartbeat was found.
+                    example: true
+                  heartbeat:
+                    type: object
+                    nullable: true
+                    description: The most recent matching heartbeat or null when none
+                      is found.
+                  editor:
+                    type: string
+                    nullable: true
+                    description: Editor of the matching heartbeat or null.
+                    example: VS Code
+                  time_ago:
+                    type: string
+                    nullable: true
+                    description: Human-readable time since the heartbeat (e.g. "5
+                      minutes ago") or null.
+                    example: 5 minutes ago
+                required:
+                - has_heartbeat
+                - heartbeat
+                - editor
+                - time_ago
+        '401':
+          description: 'unauthorized : Returned when the Authorization header is missing
+            or the token does not match a known API key.'
+  "/api/v1/my/heartbeats":
+    get:
+      summary: Get heartbeats
+      tags:
+      - My Data
+      description: Returns a list of heartbeats for the authenticated user within
+        a time range. This is the raw data stream. Authenticate with your API key
+        as a Bearer token in the `Authorization` header (HTTP Basic auth with the
+        API key is also accepted).
+      security:
+      - Bearer: []
+      parameters:
+      - name: start_time
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start time (ISO 8601). Defaults to the beginning of the current
+          day when omitted.
+      - name: end_time
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End time (ISO 8601). Defaults to the end of the current day when
+          omitted.
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  start_time:
+                    type: string
+                    format: date_time
+                    description: Effective start of the queried range.
+                    example: '2024-03-20T00:00:00Z'
+                  end_time:
+                    type: string
+                    format: date_time
+                    description: Effective end of the queried range.
+                    example: '2024-03-20T23:59:59Z'
+                  total_seconds:
+                    type: number
+                    description: Total coding duration in seconds across the returned
+                      heartbeats.
+                    example: 3600.0
+                  heartbeats:
+                    type: array
+                    description: Heartbeats in the range, ordered by time ascending.
+                    items:
+                      "$ref": "#/components/schemas/Heartbeat"
+                required:
+                - start_time
+                - end_time
+                - total_seconds
+                - heartbeats
+        '401':
+          description: 'unauthorized : Returned when the Authorization header is missing
+            or the token does not match a known API key.'
+  "/api/v1/stats":
+    get:
+      summary: Get total coding time
+      tags:
+      - Stats
+      description: 'Returns the total coding time for all users, optionally filtered
+        by user or date range. Authenticated with the shared STATS_API_KEY token (Bearer
+        header or api_key query param) : not tied to any user or admin level. Authentication
+        is skipped entirely in development.'
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Start date (YYYY-MM-DD), defaults to 10 years ago
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date
+        description: End date (YYYY-MM-DD), defaults to today
+      - name: username
+        in: query
+        description: Filter by username (optional)
+        schema:
+          type: string
+      - name: user_email
+        in: query
+        description: Filter by user email (optional)
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            text/plain:
+              schema:
+                type: integer
+                example: 123456
+        '401':
+          description: 'unauthorized : Returned when STATS_API_KEY is unset/blank
+            or the supplied token is missing or incorrect. (Auth is bypassed in the
+            development environment.)'
+          content:
+            text/plain:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: user not found
+          content:
+            text/plain:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: invalid date
+          content:
+            text/plain:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/v1/banned_users/counts":
+    get:
+      summary: Get newly-banned user counts
+      tags:
+      - Stats
+      description: Returns the number of distinct users whose trust level was newly
+        set to "red" (banned/convicted) over the last day, week and month.
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  day:
+                    type: integer
+                    example: 3
+                  week:
+                    type: integer
+                    example: 12
+                  month:
+                    type: integer
+                    example: 48
+                required:
+                - day
+                - week
+                - month
+  "/api/v1/users/{username}/heartbeats/spans":
+    get:
+      summary: Get user heartbeat spans
+      tags:
+      - Stats
+      description: Returns heartbeat spans for a user, useful for visualizations.
+        Accessible anonymously when the target user has public stats lookup enabled;
+        otherwise the requester must be the user (authenticated via the User API Key).
+      parameters:
+      - name: username
+        in: path
+        description: Username, Slack ID or User ID. The literal value "my" resolves
+          the user from the Authorization Bearer token.
+        required: true
+        schema:
+          type: string
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start date/time (ISO 8601), defaults to 10 years ago
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time (ISO 8601), defaults to end of today
+      - name: project
+        in: query
+        description: Filter by single project
+        schema:
+          type: string
+      - name: filter_by_project
+        in: query
+        description: Filter by multiple projects (comma separated). Ignored if project
+          is present.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  spans:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        start_time:
+                          type: number
+                          description: Span start time (epoch seconds)
+                          example: 1717689600.0
+                        end_time:
+                          type: number
+                          description: Span end time (epoch seconds)
+                          example: 1717691820.5
+                        duration:
+                          type: number
+                          description: Span duration (seconds)
+                          example: 2220.5
+        '403':
+          description: 'forbidden : The target user has disabled public stats lookup
+            and the requester is not that user.'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: invalid date
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/v1/users/{username}/trust_factor":
+    get:
+      summary: Get user trust factor
+      tags:
+      - Stats
+      description: 'Returns the (masked) trust level and value for a user. Only the
+        public-facing levels are ever returned: blue (0, unscored), red (1, convicted),
+        green (2, trusted). The internal "yellow" (suspected) level is masked to blue
+        and never exposed.'
+      parameters:
+      - name: username
+        in: path
+        description: Username, Slack ID or User ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trust_level:
+                    type: string
+                    enum:
+                    - blue
+                    - red
+                    - green
+                    example: blue
+                  trust_value:
+                    type: integer
+                    enum:
+                    - 0
+                    - 1
+                    - 2
+                    example: 0
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/v1/users/{username}/projects":
+    get:
+      summary: Get user project names
+      tags:
+      - Stats
+      description: Returns a list of project names for a user from the last 30 days.
+        Accessible anonymously when the target user has public stats lookup enabled.
+      parameters:
+      - name: username
+        in: path
+        description: Username, Slack ID or User ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      type: string
+                      example: hackatime
+        '403':
+          description: 'forbidden : The target user has disabled public stats lookup
+            and the requester is not that user.'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/v1/users/{username}/project/{project_name}":
+    get:
+      summary: Get user project details
+      tags:
+      - Stats
+      description: Returns details for a specific project. Accessible anonymously
+        when the target user has public stats lookup enabled.
+      parameters:
+      - name: username
+        in: path
+        description: Username, Slack ID or User ID
+        required: true
+        schema:
+          type: string
+      - name: project_name
+        in: path
+        description: Project name
+        required: true
+        schema:
+          type: string
+      - name: start
+        in: query
+        schema:
+          type: string
+          format: date_time
+      - name: end
+        in: query
+        schema:
+          type: string
+          format: date_time
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: hackatime
+                  total_seconds:
+                    type: number
+                    example: 14820.5
+                  languages:
+                    type: array
+                    items:
+                      type: string
+                      example: Ruby
+                    example:
+                    - Ruby
+                    - Svelte
+                    - TypeScript
+                  repo_url:
+                    type: string
+                    nullable: true
+                    example: https://github.com/hackclub/hackatime
+                  total_heartbeats:
+                    type: integer
+                    example: 482
+                  first_heartbeat:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    example: '2024-03-20T15:30:00Z'
+                  last_heartbeat:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    example: '2024-06-06T18:45:00Z'
+                  most_recent_heartbeat:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    example: '2024-06-06T18:45:00Z'
+                  archived:
+                    type: boolean
+                    example: false
+        '400':
+          description: 'bad request : Returned when project_name is blank/whitespace-only.'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '403':
+          description: 'forbidden : The target user has disabled public stats lookup
+            and the requester is not that user.'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: 'not found : Returned when the user is not found or no data
+            exists for the requested project.'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/v1/users/{username}/projects/details":
+    get:
+      summary: Get details for multiple projects
+      tags:
+      - Stats
+      description: Returns details for multiple projects or all projects in a time
+        range. Accessible anonymously when the target user has public stats lookup
+        enabled.
+      parameters:
+      - name: username
+        in: path
+        description: Username, Slack ID or User ID
+        required: true
+        schema:
+          type: string
+      - name: projects
+        in: query
+        description: Comma-separated project names
+        schema:
+          type: string
+      - name: since
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start time (ISO 8601) for project discovery
+      - name: until
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End time (ISO 8601) for project discovery
+      - name: until_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End time (ISO 8601) for project discovery
+      - name: start
+        in: query
+        schema:
+          type: string
+          format: date_time
+      - name: end
+        in: query
+        schema:
+          type: string
+          format: date_time
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: hackatime
+                        total_seconds:
+                          type: number
+                          example: 14820.5
+                        languages:
+                          type: array
+                          items:
+                            type: string
+                            example: Ruby
+                          example:
+                          - Ruby
+                          - Svelte
+                          - TypeScript
+                        repo_url:
+                          type: string
+                          nullable: true
+                          example: https://github.com/hackclub/hackatime
+                        total_heartbeats:
+                          type: integer
+                          example: 482
+                        first_heartbeat:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-03-20T15:30:00Z'
+                        last_heartbeat:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-06-06T18:45:00Z'
+                        most_recent_heartbeat:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          example: '2024-06-06T18:45:00Z'
+                        archived:
+                          type: boolean
+                          example: false
+        '403':
+          description: 'forbidden : The target user has disabled public stats lookup
+            and the requester is not that user.'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/v1/users/{username}/stats":
+    get:
+      summary: Get user stats
+      tags:
+      - Stats
+      description: |-
+        Returns detailed coding stats for a specific user, including languages, projects and total time.
+
+        Authentication is OPTIONAL: the endpoint is publicly accessible (no token) whenever the target user has public stats lookup enabled. When a User API Key is supplied it is used to resolve the special username "my" and to grant access to the caller's own private stats.
+
+        When total_seconds=true, the response shape is instead { "total_seconds": <number> }.
+      security:
+      - {}
+      - Bearer: []
+      - ApiKeyAuth: []
+      parameters:
+      - name: username
+        in: path
+        description: Username, Slack ID or User ID. The literal value "my" resolves
+          the current user from the Authorization Bearer token (User API Key).
+        required: true
+        schema:
+          type: string
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start date/time (ISO 8601), defaults to 10 years ago
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time (ISO 8601), defaults to end of today
+      - name: limit
+        in: query
+        description: Limit number of results
+        schema:
+          type: integer
+      - name: features
+        in: query
+        description: Comma-separated list of features to include (e.g., languages,projects).
+          Defaults to languages.
+        schema:
+          type: string
+      - name: filter_by_project
+        in: query
+        description: Filter results by specific project names (comma-separated)
+        schema:
+          type: string
+      - name: filter_by_category
+        in: query
+        description: Filter results by category (comma-separated)
+        schema:
+          type: string
+      - name: boundary_aware
+        in: query
+        description: Use boundary aware calculation (only applied in the total_seconds
+          branch)
+        schema:
+          type: boolean
+      - name: total_seconds
+        in: query
+        description: 'When "true", returns only { total_seconds: <number> } instead
+          of the full stats object'
+        schema:
+          type: boolean
+      - name: no_ai_coding
+        in: query
+        description: 'When "true", excludes the "ai coding" category from totals/summary.
+          Caveat: heartbeats with no category at all (legacy data) are also excluded
+          due to SQL NULL-comparison semantics.'
+        schema:
+          type: boolean
+      - name: test_param
+        in: query
+        description: 'When "true", switches to test mode: forces boundary-aware +
+          valid-timestamps-only and excludes the browsing/meeting/communicating categories
+          (plus "ai coding" when no_ai_coding=true)'
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    allOf:
+                    - "$ref": "#/components/schemas/StatsSummary"
+                    - type: object
+                      properties:
+                        unique_total_seconds:
+                          type: number
+                          description: Only present when features includes "projects"
+                            AND filter_by_project is supplied.
+                          example: 12960.0
+                  trust_factor:
+                    type: object
+                    properties:
+                      trust_level:
+                        type: string
+                        enum:
+                        - blue
+                        - red
+                        - green
+                        example: blue
+                      trust_value:
+                        type: integer
+                        enum:
+                        - 0
+                        - 1
+                        - 2
+                        example: 0
+        '403':
+          description: 'forbidden : User has disabled public stats lookup'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '422':
+          description: invalid date
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/v1/users/lookup_email/{email}":
+    get:
+      summary: Lookup user by email
+      tags:
+      - Users
+      description: Find a user ID by their email address. Useful for integrations
+        that need to map emails to Hackatime users. Requires STATS_API_KEY supplied
+        via the Authorization Bearer header (the api_key query param is NOT accepted
+        for this endpoint).
+      security:
+      - Bearer: []
+      parameters:
+      - name: email
+        in: path
+        description: Email address to lookup
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 42
+                  email:
+                    type: string
+                    example: orpheus@hackclub.com
+        '401':
+          description: 'unauthorized : Returned when STATS_API_KEY is unset/blank
+            or the Authorization Bearer token is missing or incorrect. (Auth is bypassed
+            in the development environment.)'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+                  email:
+                    type: string
+                    example: unknown@example.com
+  "/api/v1/users/lookup_slack_uid/{slack_uid}":
+    get:
+      summary: Lookup user by Slack UID
+      tags:
+      - Users
+      description: Find a user ID by their Slack User ID. Requires STATS_API_KEY supplied
+        via the Authorization Bearer header (the api_key query param is NOT accepted
+        for this endpoint).
+      security:
+      - Bearer: []
+      parameters:
+      - name: slack_uid
+        in: path
+        description: Slack User ID (e.g. U123456)
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 42
+                  slack_uid:
+                    type: string
+                    example: U0266FRGP
+        '401':
+          description: 'unauthorized : Returned when STATS_API_KEY is unset/blank
+            or the Authorization Bearer token is missing or incorrect. (Auth is bypassed
+            in the development environment.)'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+                  slack_uid:
+                    type: string
+                    example: U000000
+components:
+  securitySchemes:
+    Bearer:
+      type: http
+      scheme: bearer
+      description: User API Key from settings, prefixed with "Bearer"
+    ApiKeyAuth:
+      type: apiKey
+      name: api_key
+      in: query
+      description: User API Key from settings
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Unauthorized
+      required:
+      - error
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: orpheus
+        avatar_url:
+          type: string
+          example: https://hackatime.hackclub.com/images/athena.png
+        display_name:
+          type: string
+          example: Orpheus
+        is_admin:
+          type: boolean
+          example: false
+    Heartbeat:
+      type: object
+      description: A single unit of coding activity representing a specific moment
+        in time.
+      properties:
+        id:
+          type: integer
+          example: 1024
+        entity:
+          type: string
+          nullable: true
+          example: "/Users/orpheus/hackatime/app/services/chaos_monkey_service.rb"
+          description: File path or app name being accessed
+        type:
+          type: string
+          nullable: true
+          example: file
+          enum:
+          - file
+          - app
+        category:
+          type: string
+          nullable: true
+          example: coding
+          enum:
+          - advising
+          - ai coding
+          - animating
+          - browsing
+          - building
+          - code reviewing
+          - coding
+          - communicating
+          - configuring
+          - debugging
+          - designing
+          - indexing
+          - learning
+          - manual testing
+          - meeting
+          - notes
+          - planning
+          - researching
+          - running tests
+          - supporting
+          - translating
+          - writing docs
+          - writing tests
+        time:
+          type: number
+          format: float
+          example: 1709251200.0
+          description: Unix timestamp of the activity
+        project:
+          type: string
+          nullable: true
+          example: hackatime
+        branch:
+          type: string
+          nullable: true
+          example: main
+        language:
+          type: string
+          nullable: true
+          example: Ruby
+        is_write:
+          type: boolean
+          nullable: true
+          example: true
+        editor:
+          type: string
+          nullable: true
+          example: VS Code
+        operating_system:
+          type: string
+          nullable: true
+          example: Mac
+        machine:
+          type: string
+          nullable: true
+          example: Orpheus-MacBook-Pro
+        cursorpos:
+          type: integer
+          nullable: true
+          example: 123
+        lineno:
+          type: integer
+          nullable: true
+          example: 42
+        lines:
+          type: integer
+          nullable: true
+          example: 100
+        line_additions:
+          type: integer
+          nullable: true
+          example: 5
+        line_deletions:
+          type: integer
+          nullable: true
+          example: 2
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+          example: 1
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 42
+            username:
+              type: string
+              example: goat_heidi
+            avatar_url:
+              type: string
+              example: https://...
+        total_seconds:
+          type: number
+          example: 14500.5
+          description: Total coding duration in seconds for the period
+    StatsSummary:
+      type: object
+      properties:
+        total_seconds:
+          type: number
+          example: 3600.0
+        daily_average:
+          type: number
+          example: 1800.0
+        languages:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: Ruby
+              total_seconds:
+                type: number
+                example: 2400.0
+              percent:
+                type: number
+                example: 66.6
+        projects:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: hackatime
+              total_seconds:
+                type: number
+                example: 3600.0
+              percent:
+                type: number
+                example: 100.0
+        editors:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: VS Code
+              total_seconds:
+                type: number
+                example: 3600.0
+              percent:
+                type: number
+                example: 100.0
+        streak:
+          type: integer
+          example: 7
+          description: Number of consecutive days the user has coded
+    WakatimeMirror:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 7
+        target_url:
+          type: string
+          example: https://api.wakatime.com/api/v1/users/current/heartbeats
+        last_sync_at:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          example: active
+    ProjectRepoMapping:
+      type: object
+      properties:
+        project_name:
+          type: string
+          example: hackatime
+        repository:
+          type: object
+          properties:
+            url:
+              type: string
+              example: https://github.com/hackclub/hackatime
+            homepage:
+              type: string
+              example: https://hackatime.hackclub.com
+        is_archived:
+          type: boolean
+          example: false
+    Extension:
+      type: object
+      properties:
+        id:
+          type: string
+          example: vscode
+        name:
+          type: string
+          example: VS Code
+        download_url:
+          type: string
+          example: https://marketplace.visualstudio.com/items?itemName=WakaTime.vscode-wakatime
+        version:
+          type: string
+          example: 24.0.0
+    Summary:
+      type: object
+      properties:
+        user_id:
+          type: string
+          nullable: true
+          example: U123456
+        from:
+          type: string
+          format: date-time
+          example: '2023-01-01T00:00:00Z'
+        to:
+          type: string
+          format: date-time
+          example: '2023-01-31T23:59:59Z'
+        projects:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: hackatime
+              total:
+                type: number
+                example: 3600.0
+        languages:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: Ruby
+              total:
+                type: number
+                example: 1200.0
+        editors:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: VS Code
+              total:
+                type: number
+                example: 3600.0
+        operating_systems:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: Mac
+              total:
+                type: number
+                example: 3600.0
+        machines:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: MacBook-Pro
+              total:
+                type: number
+                example: 3600.0
+servers:
+- url: https://{defaultHost}
+  description: Production API
+  variables:
+    defaultHost:
+      default: hackatime.hackclub.com
+- url: http://{localHost}
+  description: Local Development API
+  variables:
+    localHost:
+      default: localhost:3000

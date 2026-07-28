@@ -1,17 +1,32 @@
 version: 2
 updates:
-- package-ecosystem: bundler
-  directory: "/"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-- package-ecosystem: github-actions
-  directory: "/"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
-- package-ecosystem: bun
-  directory: "/"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
+  - package-ecosystem: bundler
+    directory: "/legacy/rails"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: bun
+    directory: "/legacy/rails"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: bun
+    directory: "/apps/web"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: bun
+    directory: "/tools/conformance"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: cargo
+    directory: "/apps/api"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10

@@ -1,0 +1,56 @@
+class Admin::AdminApiKeysController < Admin::BaseController
+  before_action :set_admin_api_key, only: [ :show ]
+  before_action :set_own_admin_api_key, only: [ :destroy ]
+  # Viewers are read-only and must not be able to mint or revoke admin API
+  # keys because creation is a write and a viewer owned key would let them call any
+  # admin-API endpoint that doesn't have its own viewer guard).
+  before_action -> { require_admin_level!(:admin, :superadmin) }, only: [ :new, :create, :destroy ]
+
+  def index
+    @admin_api_keys = AdminApiKey.includes(:user).active.order(created_at: :desc)
+  end
+
+  def show
+    if session[:newkey] == @admin_api_key.id
+      @show_token = true
+      session.delete(:newkey)
+    end
+  end
+
+  def new
+    @admin_api_key = current_user.admin_api_keys.build
+  end
+
+  def create
+    @admin_api_key = current_user.admin_api_keys.build(admin_api_key_params)
+
+    if @admin_api_key.save
+      session[:newkey] = @admin_api_key.id
+      redirect_to admin_admin_api_key_path(@admin_api_key)
+    else
+      render :new, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    @admin_api_key.revoke!
+    redirect_to admin_admin_api_keys_path, notice: "the key has been revoked"
+  end
+
+  private
+
+  def set_admin_api_key
+    @admin_api_key = AdminApiKey.find(params[:id])
+  end
+
+  def set_own_admin_api_key
+    admin_api_keys = current_user.admin_level_ultraadmin? ? AdminApiKey : current_user.admin_api_keys
+    @admin_api_key = admin_api_keys.find_by(id: params[:id])
+    return if @admin_api_key
+    redirect_to admin_admin_api_keys_path, alert: "You can only revoke your own admin API keys."
+  end
+
+  def admin_api_key_params
+    params.require(:admin_api_key).permit(:name)
+  end
+end

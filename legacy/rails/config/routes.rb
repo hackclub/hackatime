@@ -1,0 +1,366 @@
+class AdminLevelConstraint
+  def initialize(*require) = @require = require.map(&:to_s)
+
+  def matches?(request)
+    return false unless request.session[:user_id]
+    user = User.find_by(id: request.session[:user_id])
+    user && @require.include?(user.admin_level)
+  end
+end
+
+Rails.application.routes.draw do
+  # Redirect to localhost from 127.0.0.1 / 0.0.0.0 to use same IP address with Vite server
+  constraints(host: /\A(127\.0\.0\.1|0\.0\.0\.0)\z/) do
+    get "(*path)", to: redirect { |params, req|
+      path = params[:path].to_s
+      query = req.query_string.presence
+      base = "#{req.protocol}localhost:#{req.port}/#{path}"
+      query ? "#{base}?#{query}" : base
+    }
+  end
+
+  get "api-docs", to: "api_docs#show", as: :api_docs
+  get "api-docs/admin", to: "api_docs#admin", as: :admin_api_docs
+  mount Rswag::Api::Engine => "/api-docs"
+  use_doorkeeper { controllers authorizations: "custom_doorkeeper/authorizations" }
+
+  post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application
+  root "static_pages#index"
+
+  resources :extensions, only: [ :index ]
+
+  constraints AdminLevelConstraint.new(:ultraadmin) do
+    mount GoodJob::Engine => "good_job"
+    mount Flipper::UI.app(Flipper) => "flipper", as: :flipper
+  end
+
+  constraints AdminLevelConstraint.new(:superadmin, :ultraadmin) do
+    namespace :admin do
+      resources :admin_users, only: [ :index, :update ] do
+        get :search, on: :collection
+      end
+      resources :oauth_applications, only: [ :index, :show, :edit, :update ] do
+        member do
+          post :toggle_verified
+          post :rotate_secret
+        end
+      end
+    end
+  end
+
+  constraints AdminLevelConstraint.new(:ultraadmin) do
+    namespace :admin do
+      resource :account_merger, only: [ :show ], controller: "account_merger" do
+        get :search_users
+        post :merge
+      end
+    end
+  end
+
+  # Read-only admin surfaces : viewers are allowed.
+  constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer, :ultraadmin) do
+    namespace :admin do
+      get "timeline", to: "timeline#show", as: :timeline
+      get "timeline/search_users", to: "timeline#search_users"
+      get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
+
+      resources :trust_level_audit_logs, only: [ :index, :show ]
+      # Viewers are allowed to LIST/SHOW their own admin api keys, but the
+      # `:create`/`:destroy` actions are gated to admin+ inside the
+      # controller (see Admin::AdminApiKeysController).
+      resources :admin_api_keys, except: [ :edit, :update ]
+    end
+  end
+
+  constraints AdminLevelConstraint.new(:superadmin, :admin, :ultraadmin) do
+    namespace :admin do
+      resources :deletion_requests, only: [ :index, :show, :new, :create ] do
+        get :confirm, on: :collection
+        member do
+          post :approve
+          post :reject
+        end
+      end
+      resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
+        get :search_users, on: :collection
+      end
+    end
+    get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
+  end
+
+  get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
+
+  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+
+  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
+  # Can be used by load balancers and uptime monitors to verify that the app is live.
+  get "up" => "rails/health#show", as: :rails_health_check
+
+  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
+  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
+  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
+
+  resources :static_pages, only: [ :index ] do
+    collection do
+      get :currently_hacking
+      get :currently_hacking_count
+      get :streak
+    end
+  end
+
+  get "/signin", to: "static_pages#signin", as: :signin
+
+  # Auth routes
+  get "/auth/hca", to: "sessions#hca_new", as: :hca_auth
+  get "/auth/hca/callback", to: "sessions#hca_create"
+  get "/auth/slack", to: "sessions#slack_new", as: :slack_auth
+  get "/auth/slack/callback", to: "sessions#slack_create"
+  get "/auth/github", to: "sessions#github_new", as: :github_auth
+  get "/auth/github/callback", to: "sessions#github_create"
+  delete "/auth/github/unlink", to: "sessions#github_unlink", as: :github_unlink
+  post "/auth/email", to: "sessions#email", as: :email_auth
+  post "/auth/email/add", to: "sessions#add_email", as: :add_email_auth
+  post "/auth/email/resend_verification", to: "sessions#resend_email_verification", as: :resend_email_verification_auth
+  delete "/auth/email/unlink", to: "sessions#unlink_email", as: :unlink_email_auth
+  get "/auth/token/:token", to: "sessions#token", as: :auth_token
+  get "/auth/close_window", to: "sessions#close_window", as: :close_window
+  delete "signout", to: "sessions#destroy", as: "signout"
+
+  get "/leaderboard", to: redirect("/leaderboards", status: 301)
+
+  resources :leaderboards, only: [ :index ]
+
+  # Docs routes
+  # Note: llms.txt and llms-full.txt are served as static files from public/
+  # Generate them with: rails docs:generate_llms
+  get "docs", to: "docs#index", as: :docs
+  get "docs/*path", to: "docs#show", as: :doc
+
+  # Nested under users for admin access
+  resources :users, only: [] do
+    get "settings", on: :member, to: "settings/profile#show"
+  end
+
+  constraints AdminLevelConstraint.new(:admin, :superadmin, :ultraadmin) do
+    patch "users/:id/update_trust_level", to: "users#update_trust_level", as: :update_trust_level_user
+  end
+
+  resource :api_key, only: [ :show ], path: "api-key"
+
+  get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
+  get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }
+
+  # Namespace for current user actions
+  get "my/settings", to: "settings/profile#show", as: :my_settings
+
+  # Profile
+  get "my/settings/profile", to: "settings/profile#show", as: :my_settings_profile
+  patch "my/settings/profile/region", to: "settings/profile#update_region", as: :my_settings_profile_region
+  patch "my/settings/profile/display_name", to: "settings/profile#update_display_name", as: :my_settings_profile_display_name
+  patch "my/settings/profile/username", to: "settings/profile#update_username", as: :my_settings_profile_username
+
+  # Setup
+  get "my/settings/setup", to: "settings/setup#show", as: :my_settings_setup
+
+  # Appearance
+  get "my/settings/appearance", to: "settings/appearance#show", as: :my_settings_appearance
+  patch "my/settings/appearance/theme", to: "settings/appearance#update_theme", as: :my_settings_appearance_theme
+
+  # Editors
+  get "my/settings/editors", to: "settings/editors#show", as: :my_settings_editors
+  patch "my/settings/editors", to: "settings/editors#update", as: :my_settings_editors_update
+
+  # Slack & GitHub
+  get "my/settings/slack_github", to: "settings/slack_github#show", as: :my_settings_slack_github
+  patch "my/settings/slack_github", to: "settings/slack_github#update", as: :my_settings_slack_github_update
+
+  # Notifications
+  get "my/settings/notifications", to: "settings/notifications#show", as: :my_settings_notifications
+  patch "my/settings/notifications", to: "settings/notifications#update", as: :my_settings_notifications_update
+
+  # Privacy & Security
+  get "my/settings/privacy", to: "settings/privacy#show", as: :my_settings_privacy
+  patch "my/settings/privacy", to: "settings/privacy#update", as: :my_settings_privacy_update
+  post "my/settings/privacy/rotate_api_key", to: "settings/privacy#rotate_api_key", as: :my_settings_rotate_api_key
+
+  # Goals
+  get "my/settings/goals", to: "settings/goals#show", as: :my_settings_goals
+  post "my/settings/goals", to: "settings/goals#create", as: :my_settings_goals_create
+  patch "my/settings/goals/:goal_id", to: "settings/goals#update", as: :my_settings_goal_update
+  delete "my/settings/goals/:goal_id", to: "settings/goals#destroy", as: :my_settings_goal_destroy
+
+  # Badges
+  get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
+
+  # Imports & Exports
+  get "my/settings/imports_exports", to: "settings/imports_exports#show", as: :my_settings_imports_exports
+
+  # Backward-compat redirects from the old settings categories.
+  get "my/settings/integrations", to: redirect("/my/settings/slack_github")
+  get "my/settings/access", to: redirect("/my/settings/privacy")
+  get "my/settings/data", to: redirect("/my/settings/imports_exports")
+
+  namespace :my do
+    resources :heartbeat_imports, only: [ :create, :show ] do
+      get :wakatime_download_link, on: :collection
+    end
+
+    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
+      member do
+        patch :archive
+        patch :unarchive
+        patch :toggle_share
+      end
+    end
+    resources :heartbeats, only: [] do
+      post :export, on: :collection
+    end
+  end
+
+  get "deletion", to: "deletion_requests#show", as: :deletion
+  post "deletion", to: "deletion_requests#create", as: :create_deletion
+  delete "deletion", to: "deletion_requests#cancel", as: :cancel_deletion
+
+  get "setup", to: "users#setup", as: :setup
+  get "my/wakatime_setup", to: redirect("/setup")
+  get "my/wakatime_setup/step-2", to: redirect("/setup")
+  get "my/wakatime_setup/step-3", to: redirect("/setup")
+  get "my/wakatime_setup/step-4", to: redirect("/setup")
+
+  post "/sailors_log/slack/commands", to: "slack#create"
+
+  get "/hackatime/v1", to: redirect("/", status: 302) # some clients seem to link this as the user's dashboard instead of /api/v1/hackatime
+  # API routes
+  namespace :api do
+    # This is our own API- don't worry about compatibility.
+    namespace :v1 do
+      get "leaderboard", to: "leaderboard#daily"
+      get "leaderboard/daily", to: "leaderboard#daily"
+      get "leaderboard/weekly", to: "leaderboard#weekly"
+
+      get "stats", to: "stats#show"
+      get "badge/:user_id/*project", to: "badges#show"
+
+      get "users/:username/stats", to: "stats#user_stats"
+      get "users/:username/heartbeats/spans", to: "stats#user_spans"
+      get "users/:username/trust_factor", to: "stats#trust_factor"
+      get "users/:username/projects", to: "stats#user_projects"
+      get "users/:username/project/:project_name", to: "stats#user_project"
+      get "users/:username/projects/details", to: "stats#user_projects_details"
+
+      get "users/lookup_email/:email", to: "users#lookup_email", constraints: { email: /[^\/]+/ }
+      get "users/lookup_slack_uid/:slack_uid", to: "users#lookup_slack_uid"
+
+      get "currently_hacking", to: "currently_hacking#index"
+
+      get "banned_users/counts", to: "stats#banned_users_counts"
+
+      # External service Slack OAuth integration
+      post "external/slack/oauth", to: "external_slack#create_user"
+
+      namespace :my do
+        get "heartbeats/most_recent", to: "heartbeats#most_recent"
+        get "heartbeats", to: "heartbeats#index"
+      end
+
+      # oauth authenticated namespace
+      namespace :authenticated do
+        resources :me, only: [ :index ]
+        get "hours", to: "hours#index"
+        get "streak", to: "streak#show"
+        get "projects", to: "projects#index"
+        # get "projects/:name", to: "projects#show", constraints: { name: /.+/ }
+        get "heartbeats/latest", to: "heartbeats#latest"
+        get "api_keys", to: "api_keys#index"
+      end
+    end
+
+    # Admin-only API namespace
+    namespace :admin do
+      namespace :v1 do
+        get "check", to: "admin#check"
+        get "user/info", to: "admin#user_info"
+        get "user/info_batch", to: "admin#user_info_batch"
+        get "user/heartbeats", to: "admin#user_heartbeats"
+        get "user/heartbeat_values", to: "admin#user_heartbeat_values"
+        get "user/get_users_by_ip", to: "admin#get_users_by_ip"
+        get "user/get_users_by_machine", to: "admin#get_users_by_machine"
+        get "user/stats", to: "admin#user_stats"
+        get "user/projects", to: "admin#user_projects"
+        get "user/trust_logs", to: "admin#trust_logs"
+        get "banned_users", to: "admin#banned_users"
+        post "user/get_user_by_email", to: "admin#get_user_by_email"
+        post "user/search_fuzzy", to: "admin#search_users_fuzzy"
+        post "user/convict", to: "admin#user_convict"
+
+        # Admin API Keys management
+        resources :admin_api_keys, only: [ :index, :show, :create, :destroy ]
+
+        resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
+          get :search_users, on: :collection
+        end
+
+        # Trust level audit logs
+        resources :trust_level_audit_logs, only: [ :index, :show ]
+
+        # Deletion requests
+        resources :deletion_requests, only: [ :index, :show ] do
+          member do
+            post :approve
+            post :reject
+          end
+        end
+
+        # Permissions management
+        resources :permissions, only: [ :index ] do
+          patch ":id", to: "permissions#update", as: :update, on: :collection
+        end
+
+        # Timeline
+        get "timeline", to: "timeline#show"
+        get "timeline/search_users", to: "timeline#search_users"
+        get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
+        get "users/:id/visualization/quantized", to: "admin#visualization_quantized"
+        get "alts/candidates", to: "admin#alt_candidates"
+        get "alts/shared_machines", to: "heartbeats#shared_machines"
+        get "users/active", to: "admin#active_users"
+        post "audit_logs/counts", to: "admin#audit_logs_counts"
+        get "heartbeats/by_user_agent_segment", to: "admin#heartbeats_by_user_agent_segment"
+        get "heartbeats/ip_machine_pairs", to: "heartbeats#ip_machine_pairs"
+        get "heartbeats/shared_machines", to: "heartbeats#shared_machines"
+      end
+    end
+
+    # wakatime compatible summary
+    get "summary", to: "summary#index"
+
+    # Everything in this namespace conforms to wakatime.com's API.
+    namespace :hackatime do
+      namespace :v1 do
+        get "/", to: redirect("/", status: 302) # some clients seem to link this as the user's dashboard instead of /api/v1/hackatime
+        get "/users/:id/statusbar/today", to: "hackatime#status_bar_today"
+        post "/users/:id/heartbeats", to: "hackatime#push_heartbeats"
+        get "/users/current/stats/last_7_days", to: "hackatime#stats_last_7_days"
+      end
+    end
+
+    namespace :internal do
+      post "revoke", to: "revocations#create"
+    end
+  end
+
+  get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/og.png", to: "profiles#og_image", as: :profile_og_image, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/project/:project_name", to: "profiles#project", as: :profile_project, constraints: { username: /[A-Za-z0-9_-]+/, project_name: /.+/ }
+
+  # SEO routes
+  get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
+  get "/wakatime-alternative", to: "static_pages#wakatime_alternative"
+
+  # fuck ups
+  match "/400", to: "errors#bad_request", via: :all
+  match "/404", to: "errors#not_found", via: :all
+  match "/422", to: "errors#unprocessable_entity", via: :all
+  match "/500", to: "errors#internal_server_error", via: :all
+  match "/503", to: "errors#service_unavailable", via: :all
+end

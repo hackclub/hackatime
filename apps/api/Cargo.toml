@@ -1,0 +1,34 @@
+[package]
+name = "hackatime"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+
+[dependencies]
+axum = { version = "0.8.9", features = ["macros"] }
+base64 = "0.22.1"
+blake3 = "1.8.2"
+chrono = { version = "0.4.42", features = ["serde"] }
+chrono-tz = "0.10.4"
+clickhouse = { version = "0.15.1", features = ["chrono", "uuid"] }
+dotenvy = "0.15.7"
+moka = { version = "0.12.15", features = ["future"] }
+percent-encoding = "2.3.2"
+regex = "1.12.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.149"
+sqlx = { version = "0.9.0", default-features = false, features = ["chrono", "derive", "postgres", "runtime-tokio"] }
+thiserror = "2.0.18"
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "signal"] }
+tower-http = { version = "0.7.0", features = ["catch-panic", "compression-full", "cors", "request-id", "trace"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
+utoipa = { version = "5.5.0", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum", "vendored"] }
+uuid = { version = "1.24.0", features = ["serde", "v7"] }
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+panic = "abort"
+strip = true

@@ -1,0 +1,30 @@
+{
+  "name": "hackatime-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --host 0.0.0.0",
+    "build": "vite build",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "generate:api": "bun run scripts/generate-api.ts",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@fontsource-variable/spline-sans": "latest",
+    "@sveltejs/adapter-node": "latest",
+    "@sveltejs/kit": "latest",
+    "openapi-fetch": "latest",
+    "svelte": "latest"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "latest",
+    "@tsconfig/svelte": "latest",
+    "@types/node": "latest",
+    "openapi-typescript": "latest",
+    "prettier": "latest",
+    "prettier-plugin-svelte": "latest",
+    "svelte-check": "latest",
+    "typescript": "6.0.3",
+    "vite": "latest"
+  }
+}

@@ -1,15 +1,7 @@
-# See https://git-scm.com/docs/gitattributes for more about git attribute files.
-
-# Mark the database schema as having been generated.
-db/schema.rb linguist-generated
-swagger/* linguist-generated
-
-# Mark any vendored files as having been vendored.
-vendor/* linguist-vendored
-config/credentials/*.yml.enc diff=rails_credentials
-config/credentials.yml.enc diff=rails_credentials
-
-# TWO HOURS. This took 2 HOURS to figure out I hate windows now
-# Just makes stuff easy to run on Windows without it yelling at you!
+legacy/rails/db/schema.rb linguist-generated
+legacy/rails/swagger/** linguist-generated
+legacy/rails/vendor/** linguist-vendored
+legacy/rails/config/credentials/*.yml.enc diff=rails_credentials
+legacy/rails/config/credentials.yml.enc diff=rails_credentials
 *.sh text eol=lf
-bin/* text eol=lf
+legacy/rails/bin/* text eol=lf

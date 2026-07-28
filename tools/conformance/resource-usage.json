@@ -1,0 +1,44 @@
+{
+  "method": {
+    "requestsPerImplementation": 5000,
+    "concurrency": 20,
+    "cpu": "cgroup v2 usage_usec deltas across the full benchmark",
+    "memory": "cgroup v2 memory.current sampled after the full benchmark",
+    "cpuPercentScale": "100 percent is one fully used core"
+  },
+  "rails": {
+    "elapsedSeconds": 52.653222,
+    "application": {
+      "cpuSeconds": 45.370039,
+      "averageCpuPercent": 86.17,
+      "memoryMiB": 325.73
+    },
+    "postgres": {
+      "cpuSeconds": 10.930305,
+      "averageCpuPercent": 20.76,
+      "memoryMiB": 47.76
+    },
+    "stackCpuSeconds": 56.300344,
+    "stackCpuMillisecondsPerRequest": 11.26
+  },
+  "rust": {
+    "elapsedSeconds": 21.981052,
+    "application": {
+      "cpuSeconds": 4.427289,
+      "averageCpuPercent": 20.14,
+      "memoryMiB": 17.73
+    },
+    "clickhouse": {
+      "cpuSeconds": 67.439801,
+      "averageCpuPercent": 306.81,
+      "memoryMiB": 1250.59
+    },
+    "postgres": {
+      "cpuSeconds": 2.774415,
+      "averageCpuPercent": 12.62,
+      "memoryMiB": 59.67
+    },
+    "stackCpuSeconds": 74.641505,
+    "stackCpuMillisecondsPerRequest": 14.928
+  }
+}

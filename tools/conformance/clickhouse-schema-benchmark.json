@@ -1,0 +1,437 @@
+{
+  "generatedAt": "2026-07-28T08:16:49.682Z",
+  "clickhouseVersion": "26.7.1.1315",
+  "inputs": [
+    "current raw schema",
+    "origin/clickhouse raw schema"
+  ],
+  "rowsRequested": 2000000,
+  "replacementVersionsGenerated": 20000,
+  "rowsAfterFinalMerge": 2000000,
+  "users": 40,
+  "iterations": 7,
+  "layouts": [
+    {
+      "name": "plain_bucket_projection",
+      "columns": "\n  id UInt64,\n  user_id Int64,\n  time Float64,\n  project Nullable(String),\n  branch Nullable(String),\n  entity Nullable(String),\n  category Nullable(String),\n  editor Nullable(String),\n  language Nullable(String),\n  machine Nullable(String),\n  operating_system Nullable(String),\n  type Nullable(String),\n  user_agent Nullable(String),\n  ip_address Nullable(String),\n  dependencies Array(String),\n  lineno Nullable(Int32),\n  lines Nullable(Int32),\n  cursorpos Nullable(Int32),\n  line_additions Nullable(Int32),\n  line_deletions Nullable(Int32),\n  project_root_count Nullable(Int32),\n  is_write Nullable(Bool),\n  source_type Int32,\n  ysws_program Int32,\n  ja4_id Nullable(Int32),\n  deleted_at Nullable(Float64),\n  created_at Float64,\n  updated_at Float64,\n  version UInt64,\n      time_bucket_5m UInt32 MATERIALIZED intDiv(toUInt32(time), 300) * 300",
+      "order": "user_id, time_bucket_5m, time, id",
+      "granularity": 4096,
+      "projection": "SELECT * ORDER BY (time_bucket_5m, user_id, time, id)"
+    },
+    {
+      "name": "codec_bucket",
+      "columns": "\n  id UInt64 CODEC(Delta(8), LZ4),\n  user_id Int64 CODEC(T64, ZSTD(1)),\n  time Float64 CODEC(Gorilla(8), ZSTD(1)),\n  project Nullable(String) CODEC(ZSTD(3)),\n  branch Nullable(String) CODEC(ZSTD(3)),\n  entity Nullable(String) CODEC(ZSTD(3)),\n  category LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  editor LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  language LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  machine LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  operating_system LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  type LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  user_agent Nullable(String) CODEC(ZSTD(3)),\n  ip_address Nullable(String) CODEC(ZSTD(1)),\n  dependencies Array(String) CODEC(ZSTD(3)),\n  lineno Nullable(Int32) CODEC(T64, ZSTD(1)),\n  lines Nullable(Int32) CODEC(T64, ZSTD(1)),\n  cursorpos Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_additions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_deletions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  project_root_count Nullable(Int32) CODEC(T64, ZSTD(1)),\n  is_write Nullable(Bool) CODEC(ZSTD(1)),\n  source_type Int32 CODEC(T64, ZSTD(1)),\n  ysws_program Int32 CODEC(T64, ZSTD(1)),\n  ja4_id Nullable(Int32) CODEC(T64, ZSTD(1)),\n  deleted_at Nullable(Float64) CODEC(Gorilla(8), ZSTD(1)),\n  created_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  updated_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  version UInt64 CODEC(T64, ZSTD(1)),\n      time_bucket_5m UInt32 MATERIALIZED intDiv(toUInt32(time), 300) * 300",
+      "order": "user_id, time_bucket_5m, time, id",
+      "granularity": 4096
+    },
+    {
+      "name": "codec_bucket_projection",
+      "columns": "\n  id UInt64 CODEC(Delta(8), LZ4),\n  user_id Int64 CODEC(T64, ZSTD(1)),\n  time Float64 CODEC(Gorilla(8), ZSTD(1)),\n  project Nullable(String) CODEC(ZSTD(3)),\n  branch Nullable(String) CODEC(ZSTD(3)),\n  entity Nullable(String) CODEC(ZSTD(3)),\n  category LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  editor LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  language LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  machine LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  operating_system LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  type LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  user_agent Nullable(String) CODEC(ZSTD(3)),\n  ip_address Nullable(String) CODEC(ZSTD(1)),\n  dependencies Array(String) CODEC(ZSTD(3)),\n  lineno Nullable(Int32) CODEC(T64, ZSTD(1)),\n  lines Nullable(Int32) CODEC(T64, ZSTD(1)),\n  cursorpos Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_additions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_deletions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  project_root_count Nullable(Int32) CODEC(T64, ZSTD(1)),\n  is_write Nullable(Bool) CODEC(ZSTD(1)),\n  source_type Int32 CODEC(T64, ZSTD(1)),\n  ysws_program Int32 CODEC(T64, ZSTD(1)),\n  ja4_id Nullable(Int32) CODEC(T64, ZSTD(1)),\n  deleted_at Nullable(Float64) CODEC(Gorilla(8), ZSTD(1)),\n  created_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  updated_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  version UInt64 CODEC(T64, ZSTD(1)),\n      time_bucket_5m UInt32 MATERIALIZED intDiv(toUInt32(time), 300) * 300",
+      "order": "user_id, time_bucket_5m, time, id",
+      "granularity": 4096,
+      "projection": "SELECT * ORDER BY (time_bucket_5m, user_id, time, id)"
+    },
+    {
+      "name": "codec_time",
+      "columns": "\n  id UInt64 CODEC(Delta(8), LZ4),\n  user_id Int64 CODEC(T64, ZSTD(1)),\n  time Float64 CODEC(Gorilla(8), ZSTD(1)),\n  project Nullable(String) CODEC(ZSTD(3)),\n  branch Nullable(String) CODEC(ZSTD(3)),\n  entity Nullable(String) CODEC(ZSTD(3)),\n  category LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  editor LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  language LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  machine LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  operating_system LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  type LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  user_agent Nullable(String) CODEC(ZSTD(3)),\n  ip_address Nullable(String) CODEC(ZSTD(1)),\n  dependencies Array(String) CODEC(ZSTD(3)),\n  lineno Nullable(Int32) CODEC(T64, ZSTD(1)),\n  lines Nullable(Int32) CODEC(T64, ZSTD(1)),\n  cursorpos Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_additions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_deletions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  project_root_count Nullable(Int32) CODEC(T64, ZSTD(1)),\n  is_write Nullable(Bool) CODEC(ZSTD(1)),\n  source_type Int32 CODEC(T64, ZSTD(1)),\n  ysws_program Int32 CODEC(T64, ZSTD(1)),\n  ja4_id Nullable(Int32) CODEC(T64, ZSTD(1)),\n  deleted_at Nullable(Float64) CODEC(Gorilla(8), ZSTD(1)),\n  created_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  updated_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  version UInt64 CODEC(T64, ZSTD(1))",
+      "order": "user_id, time, id",
+      "granularity": 8192
+    },
+    {
+      "name": "codec_time_projection",
+      "columns": "\n  id UInt64 CODEC(Delta(8), LZ4),\n  user_id Int64 CODEC(T64, ZSTD(1)),\n  time Float64 CODEC(Gorilla(8), ZSTD(1)),\n  project Nullable(String) CODEC(ZSTD(3)),\n  branch Nullable(String) CODEC(ZSTD(3)),\n  entity Nullable(String) CODEC(ZSTD(3)),\n  category LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  editor LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  language LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  machine LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  operating_system LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  type LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  user_agent Nullable(String) CODEC(ZSTD(3)),\n  ip_address Nullable(String) CODEC(ZSTD(1)),\n  dependencies Array(String) CODEC(ZSTD(3)),\n  lineno Nullable(Int32) CODEC(T64, ZSTD(1)),\n  lines Nullable(Int32) CODEC(T64, ZSTD(1)),\n  cursorpos Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_additions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_deletions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  project_root_count Nullable(Int32) CODEC(T64, ZSTD(1)),\n  is_write Nullable(Bool) CODEC(ZSTD(1)),\n  source_type Int32 CODEC(T64, ZSTD(1)),\n  ysws_program Int32 CODEC(T64, ZSTD(1)),\n  ja4_id Nullable(Int32) CODEC(T64, ZSTD(1)),\n  deleted_at Nullable(Float64) CODEC(Gorilla(8), ZSTD(1)),\n  created_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  updated_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  version UInt64 CODEC(T64, ZSTD(1))",
+      "order": "user_id, time, id",
+      "granularity": 8192,
+      "projection": "SELECT * ORDER BY (time, user_id, id)"
+    },
+    {
+      "name": "codec_time_narrow_projection",
+      "columns": "\n  id UInt64 CODEC(Delta(8), LZ4),\n  user_id Int64 CODEC(T64, ZSTD(1)),\n  time Float64 CODEC(Gorilla(8), ZSTD(1)),\n  project Nullable(String) CODEC(ZSTD(3)),\n  branch Nullable(String) CODEC(ZSTD(3)),\n  entity Nullable(String) CODEC(ZSTD(3)),\n  category LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  editor LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  language LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  machine LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  operating_system LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  type LowCardinality(Nullable(String)) CODEC(ZSTD(1)),\n  user_agent Nullable(String) CODEC(ZSTD(3)),\n  ip_address Nullable(String) CODEC(ZSTD(1)),\n  dependencies Array(String) CODEC(ZSTD(3)),\n  lineno Nullable(Int32) CODEC(T64, ZSTD(1)),\n  lines Nullable(Int32) CODEC(T64, ZSTD(1)),\n  cursorpos Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_additions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  line_deletions Nullable(Int32) CODEC(T64, ZSTD(1)),\n  project_root_count Nullable(Int32) CODEC(T64, ZSTD(1)),\n  is_write Nullable(Bool) CODEC(ZSTD(1)),\n  source_type Int32 CODEC(T64, ZSTD(1)),\n  ysws_program Int32 CODEC(T64, ZSTD(1)),\n  ja4_id Nullable(Int32) CODEC(T64, ZSTD(1)),\n  deleted_at Nullable(Float64) CODEC(Gorilla(8), ZSTD(1)),\n  created_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  updated_at Float64 CODEC(Gorilla(8), ZSTD(1)),\n  version UInt64 CODEC(T64, ZSTD(1))",
+      "order": "user_id, time, id",
+      "granularity": 8192,
+      "projection": "SELECT\n      user_id, time, id, version, deleted_at, category, project, language, source_type\n      ORDER BY (time, user_id, id)"
+    }
+  ],
+  "storage": [
+    {
+      "table": "codec_bucket",
+      "rows": 2000000,
+      "bytesOnDisk": 5164169,
+      "compressedBytes": 4799691,
+      "uncompressedBytes": 543841446
+    },
+    {
+      "table": "codec_bucket_projection",
+      "rows": 2000000,
+      "bytesOnDisk": 18487048,
+      "compressedBytes": 4795331,
+      "uncompressedBytes": 543839052
+    },
+    {
+      "table": "codec_time",
+      "rows": 2000000,
+      "bytesOnDisk": 2880322,
+      "compressedBytes": 2576161,
+      "uncompressedBytes": 535813288
+    },
+    {
+      "table": "codec_time_narrow_projection",
+      "rows": 2000000,
+      "bytesOnDisk": 12174885,
+      "compressedBytes": 2573664,
+      "uncompressedBytes": 535812468
+    },
+    {
+      "table": "codec_time_projection",
+      "rows": 2000000,
+      "bytesOnDisk": 15818388,
+      "compressedBytes": 2575271,
+      "uncompressedBytes": 535811008
+    },
+    {
+      "table": "plain_bucket_projection",
+      "rows": 2000000,
+      "bytesOnDisk": 36831502,
+      "compressedBytes": 21704254,
+      "uncompressedBytes": 705028826
+    }
+  ],
+  "results": [
+    {
+      "layout": "plain_bucket_projection",
+      "case": "user total 1 day",
+      "meanMs": 8.183120571426116,
+      "p50Ms": 7.978853000007803,
+      "p95Ms": 9.18493399998988
+    },
+    {
+      "layout": "plain_bucket_projection",
+      "case": "user total 30 days",
+      "meanMs": 14.432850714284411,
+      "p50Ms": 13.518872999993619,
+      "p95Ms": 18.434069000009913
+    },
+    {
+      "layout": "plain_bucket_projection",
+      "case": "project totals 30 days",
+      "meanMs": 14.595290714284472,
+      "p50Ms": 14.267290000003413,
+      "p95Ms": 18.04097499999625
+    },
+    {
+      "layout": "plain_bucket_projection",
+      "case": "language totals 30 days",
+      "meanMs": 11.660946571428212,
+      "p50Ms": 11.613775999998325,
+      "p95Ms": 12.572005000009085
+    },
+    {
+      "layout": "plain_bucket_projection",
+      "case": "project filter 30 days",
+      "meanMs": 12.293352428568012,
+      "p50Ms": 11.450473999997484,
+      "p95Ms": 17.2668479999993
+    },
+    {
+      "layout": "plain_bucket_projection",
+      "case": "arbitrary range",
+      "meanMs": 8.36776928571635,
+      "p50Ms": 8.5196980000037,
+      "p95Ms": 8.679209000008996
+    },
+    {
+      "layout": "plain_bucket_projection",
+      "case": "global total 1 day",
+      "meanMs": 11.050216571425803,
+      "p50Ms": 10.876688999996986,
+      "p95Ms": 12.594924999997602
+    },
+    {
+      "layout": "plain_bucket_projection",
+      "case": "active users 1 day",
+      "meanMs": 9.639715285711905,
+      "p50Ms": 9.47434699999576,
+      "p95Ms": 10.133501999996952
+    },
+    {
+      "layout": "codec_bucket",
+      "case": "user total 1 day",
+      "meanMs": 8.062573857141874,
+      "p50Ms": 7.757721000001766,
+      "p95Ms": 8.919221000003745
+    },
+    {
+      "layout": "codec_bucket",
+      "case": "user total 30 days",
+      "meanMs": 15.273654142854086,
+      "p50Ms": 13.590064000003622,
+      "p95Ms": 19.607038999994984
+    },
+    {
+      "layout": "codec_bucket",
+      "case": "project totals 30 days",
+      "meanMs": 15.609172714287913,
+      "p50Ms": 14.683274000009988,
+      "p95Ms": 21.30186500000127
+    },
+    {
+      "layout": "codec_bucket",
+      "case": "language totals 30 days",
+      "meanMs": 15.79646600000186,
+      "p50Ms": 15.223918999996386,
+      "p95Ms": 19.76060100000177
+    },
+    {
+      "layout": "codec_bucket",
+      "case": "project filter 30 days",
+      "meanMs": 12.809778571428199,
+      "p50Ms": 12.904607999997097,
+      "p95Ms": 14.538172999993549
+    },
+    {
+      "layout": "codec_bucket",
+      "case": "arbitrary range",
+      "meanMs": 8.770690285715059,
+      "p50Ms": 8.824450999993132,
+      "p95Ms": 9.160444000008283
+    },
+    {
+      "layout": "codec_bucket",
+      "case": "global total 1 day",
+      "meanMs": 12.33971842857136,
+      "p50Ms": 12.09224099999119,
+      "p95Ms": 13.472153000009712
+    },
+    {
+      "layout": "codec_bucket",
+      "case": "active users 1 day",
+      "meanMs": 11.144663428569661,
+      "p50Ms": 10.921709999995073,
+      "p95Ms": 12.179122000001371
+    },
+    {
+      "layout": "codec_bucket_projection",
+      "case": "user total 1 day",
+      "meanMs": 9.473662428572425,
+      "p50Ms": 9.289184999986901,
+      "p95Ms": 11.367594000010286
+    },
+    {
+      "layout": "codec_bucket_projection",
+      "case": "user total 30 days",
+      "meanMs": 12.65901728571667,
+      "p50Ms": 12.227381999997306,
+      "p95Ms": 14.343420999997761
+    },
+    {
+      "layout": "codec_bucket_projection",
+      "case": "project totals 30 days",
+      "meanMs": 12.68717028571908,
+      "p50Ms": 12.228072000012617,
+      "p95Ms": 14.839746000012383
+    },
+    {
+      "layout": "codec_bucket_projection",
+      "case": "language totals 30 days",
+      "meanMs": 14.913747857141841,
+      "p50Ms": 16.2313879999856,
+      "p95Ms": 18.351728000008734
+    },
+    {
+      "layout": "codec_bucket_projection",
+      "case": "project filter 30 days",
+      "meanMs": 14.333528285715147,
+      "p50Ms": 12.000080000012531,
+      "p95Ms": 24.394072999988566
+    },
+    {
+      "layout": "codec_bucket_projection",
+      "case": "arbitrary range",
+      "meanMs": 10.333497285711928,
+      "p50Ms": 10.496287000001757,
+      "p95Ms": 13.477503000001889
+    },
+    {
+      "layout": "codec_bucket_projection",
+      "case": "global total 1 day",
+      "meanMs": 13.383655285714278,
+      "p50Ms": 13.163010000003851,
+      "p95Ms": 16.004226999997627
+    },
+    {
+      "layout": "codec_bucket_projection",
+      "case": "active users 1 day",
+      "meanMs": 11.493223714288822,
+      "p50Ms": 11.210253000012017,
+      "p95Ms": 12.510913999998593
+    },
+    {
+      "layout": "codec_time",
+      "case": "user total 1 day",
+      "meanMs": 9.241197428570429,
+      "p50Ms": 8.830210999993142,
+      "p95Ms": 10.96429000000353
+    },
+    {
+      "layout": "codec_time",
+      "case": "user total 30 days",
+      "meanMs": 10.683666285715715,
+      "p50Ms": 10.714698000010685,
+      "p95Ms": 11.563395999997738
+    },
+    {
+      "layout": "codec_time",
+      "case": "project totals 30 days",
+      "meanMs": 12.544904714292247,
+      "p50Ms": 12.340363000010257,
+      "p95Ms": 14.058067999998457
+    },
+    {
+      "layout": "codec_time",
+      "case": "language totals 30 days",
+      "meanMs": 13.087282571430219,
+      "p50Ms": 12.806867999999668,
+      "p95Ms": 15.451270999998087
+    },
+    {
+      "layout": "codec_time",
+      "case": "project filter 30 days",
+      "meanMs": 11.110758857140484,
+      "p50Ms": 10.796408999987761,
+      "p95Ms": 13.26676199999929
+    },
+    {
+      "layout": "codec_time",
+      "case": "arbitrary range",
+      "meanMs": 9.873504714283627,
+      "p50Ms": 9.700769000002765,
+      "p95Ms": 10.916608999992604
+    },
+    {
+      "layout": "codec_time",
+      "case": "global total 1 day",
+      "meanMs": 11.25118142856601,
+      "p50Ms": 11.103941999987,
+      "p95Ms": 11.77731700000004
+    },
+    {
+      "layout": "codec_time",
+      "case": "active users 1 day",
+      "meanMs": 11.017772142854353,
+      "p50Ms": 10.995100999993156,
+      "p95Ms": 13.043279999998049
+    },
+    {
+      "layout": "codec_time_projection",
+      "case": "user total 1 day",
+      "meanMs": 9.606483571426777,
+      "p50Ms": 9.748569000003044,
+      "p95Ms": 11.24485299999651
+    },
+    {
+      "layout": "codec_time_projection",
+      "case": "user total 30 days",
+      "meanMs": 10.456751428575703,
+      "p50Ms": 10.713408000010531,
+      "p95Ms": 11.240703000003123
+    },
+    {
+      "layout": "codec_time_projection",
+      "case": "project totals 30 days",
+      "meanMs": 13.597754428572703,
+      "p50Ms": 13.444972999990568,
+      "p95Ms": 15.658903000003193
+    },
+    {
+      "layout": "codec_time_projection",
+      "case": "language totals 30 days",
+      "meanMs": 15.67239628571094,
+      "p50Ms": 14.135699999998906,
+      "p95Ms": 20.399606999999378
+    },
+    {
+      "layout": "codec_time_projection",
+      "case": "project filter 30 days",
+      "meanMs": 12.087443428571403,
+      "p50Ms": 11.553536000006716,
+      "p95Ms": 15.361730999997235
+    },
+    {
+      "layout": "codec_time_projection",
+      "case": "arbitrary range",
+      "meanMs": 9.150229428570517,
+      "p50Ms": 8.835770999998203,
+      "p95Ms": 10.698027999998885
+    },
+    {
+      "layout": "codec_time_projection",
+      "case": "global total 1 day",
+      "meanMs": 10.434986999996388,
+      "p50Ms": 10.249883999989834,
+      "p95Ms": 11.522475000005215
+    },
+    {
+      "layout": "codec_time_projection",
+      "case": "active users 1 day",
+      "meanMs": 10.580029714285047,
+      "p50Ms": 10.88540899999498,
+      "p95Ms": 11.224812999993446
+    },
+    {
+      "layout": "codec_time_narrow_projection",
+      "case": "user total 1 day",
+      "meanMs": 10.217136285716801,
+      "p50Ms": 9.818759000001592,
+      "p95Ms": 11.94635900000867
+    },
+    {
+      "layout": "codec_time_narrow_projection",
+      "case": "user total 30 days",
+      "meanMs": 12.182512857144632,
+      "p50Ms": 12.036950000008801,
+      "p95Ms": 15.626352999999654
+    },
+    {
+      "layout": "codec_time_narrow_projection",
+      "case": "project totals 30 days",
+      "meanMs": 11.480439285712366,
+      "p50Ms": 10.819899000009173,
+      "p95Ms": 13.628923999989638
+    },
+    {
+      "layout": "codec_time_narrow_projection",
+      "case": "language totals 30 days",
+      "meanMs": 13.747144428570339,
+      "p50Ms": 13.828727000000072,
+      "p95Ms": 15.242138999994495
+    },
+    {
+      "layout": "codec_time_narrow_projection",
+      "case": "project filter 30 days",
+      "meanMs": 12.977894428574862,
+      "p50Ms": 12.758006000003661,
+      "p95Ms": 13.837056999997003
+    },
+    {
+      "layout": "codec_time_narrow_projection",
+      "case": "arbitrary range",
+      "meanMs": 8.83422657142676,
+      "p50Ms": 8.249144999994314,
+      "p95Ms": 12.766826999999466
+    },
+    {
+      "layout": "codec_time_narrow_projection",
+      "case": "global total 1 day",
+      "meanMs": 10.94721585714017,
+      "p50Ms": 10.949479999995674,
+      "p95Ms": 11.489345000009052
+    },
+    {
+      "layout": "codec_time_narrow_projection",
+      "case": "active users 1 day",
+      "meanMs": 10.622031428572623,
+      "p50Ms": 10.199853000012808,
+      "p95Ms": 13.032999999995809
+    }
+  ]
+}
