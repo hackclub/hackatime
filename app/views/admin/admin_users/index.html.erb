@@ -38,12 +38,12 @@
                 </td>
                 <td class="py-3 px-4 text-muted"><%= user.slack_uid || 'N/A' %></td>
                 <td class="py-3 px-4">
-                  <% if user.id != @current_user_id %>
+                  <% if current_user.can_change_admin_level_of?(user, "superadmin") %>
                     <div class="flex gap-2">
                       <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red hover:bg-red text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Demote #{user.display_name} to Superadmin?" } %>
                       <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-surface-100 hover:bg-surface-100 text-surface-content text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s admin privileges?" } %>
                     </div>
-                  <% else %>
+                  <% elsif user.id == @current_user_id %>
                     <span class="text-muted text-sm">Cannot modify yourself</span>
                   <% end %>
                 </td>
@@ -83,13 +83,13 @@
                 </td>
                 <td class="py-3 px-4 text-muted"><%= user.slack_uid || 'N/A' %></td>
                 <td class="py-3 px-4">
-                  <% if user.id != @current_user_id %>
+                  <% if current_user.can_change_admin_level_of?(user, "admin") %>
                     <div class="flex gap-2">
                       <%= button_to '→ Admin', admin_admin_user_path(user, admin_level: 'admin'), method: :patch, class: 'px-3 py-1 bg-yellow hover:bg-yellow text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Demote #{user.display_name} to Admin?" } %>
                       <%= button_to '→ Viewer', admin_admin_user_path(user, admin_level: 'viewer'), method: :patch, class: 'px-3 py-1 bg-blue hover:bg-blue text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Demote #{user.display_name} to Viewer?" } %>
                       <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-surface-100 hover:bg-surface-100 text-surface-content text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s admin privileges?" } %>
                     </div>
-                  <% else %>
+                  <% elsif user.id == @current_user_id %>
                     <span class="text-muted text-sm">Cannot modify yourself</span>
                   <% end %>
                 </td>
@@ -126,11 +126,13 @@
                 </td>
                 <td class="py-3 px-4 text-muted"><%= user.slack_uid || 'N/A' %></td>
                 <td class="py-3 px-4">
-                  <div class="flex gap-2">
-                    <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red hover:bg-red text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Promote #{user.display_name} to Superadmin?" } %>
-                    <%= button_to '→ Viewer', admin_admin_user_path(user, admin_level: 'viewer'), method: :patch, class: 'px-3 py-1 bg-blue hover:bg-blue text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Demote #{user.display_name} to Viewer?" } %>
-                    <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-surface-100 hover:bg-surface-100 text-surface-content text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s admin privileges?" } %>
-                  </div>
+                  <% if current_user.can_change_admin_level_of?(user, "superadmin") %>
+                    <div class="flex gap-2">
+                      <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red hover:bg-red text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Promote #{user.display_name} to Superadmin?" } %>
+                      <%= button_to '→ Viewer', admin_admin_user_path(user, admin_level: 'viewer'), method: :patch, class: 'px-3 py-1 bg-blue hover:bg-blue text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Demote #{user.display_name} to Viewer?" } %>
+                      <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-surface-100 hover:bg-surface-100 text-surface-content text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s admin privileges?" } %>
+                    </div>
+                  <% end %>
                 </td>
               </tr>
             <% end %>
@@ -165,11 +167,13 @@
                 </td>
                 <td class="py-3 px-4 text-muted"><%= user.slack_uid || 'N/A' %></td>
                 <td class="py-3 px-4">
-                  <div class="flex gap-2">
-                    <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red hover:bg-red text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Promote #{user.display_name} to Superadmin?" } %>
-                    <%= button_to '→ Admin', admin_admin_user_path(user, admin_level: 'admin'), method: :patch, class: 'px-3 py-1 bg-yellow hover:bg-yellow text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Promote #{user.display_name} to Admin?" } %>
-                    <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-surface-100 hover:bg-surface-100 text-surface-content text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s viewer privileges?" } %>
-                  </div>
+                  <% if current_user.can_change_admin_level_of?(user, "superadmin") %>
+                    <div class="flex gap-2">
+                      <%= button_to '→ Superadmin', admin_admin_user_path(user, admin_level: 'superadmin'), method: :patch, class: 'px-3 py-1 bg-red hover:bg-red text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Promote #{user.display_name} to Superadmin?" } %>
+                      <%= button_to '→ Admin', admin_admin_user_path(user, admin_level: 'admin'), method: :patch, class: 'px-3 py-1 bg-yellow hover:bg-yellow text-on-primary text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Promote #{user.display_name} to Admin?" } %>
+                      <%= button_to '→ Default', admin_admin_user_path(user, admin_level: 'default'), method: :patch, class: 'px-3 py-1 bg-surface-100 hover:bg-surface-100 text-surface-content text-sm font-medium rounded transition-colors cursor-pointer', data: { confirm: "Remove #{user.display_name}'s viewer privileges?" } %>
+                    </div>
+                  <% end %>
                 </td>
               </tr>
             <% end %>
