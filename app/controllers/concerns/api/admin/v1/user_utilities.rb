@@ -6,7 +6,7 @@ module Api
         include DateParsing
 
         HEARTBEAT_RESPONSE_COLUMNS = [
-          *%i[id time lineno cursorpos is_write project language entity branch category editor machine user_agent ip_address lines source_type],
+          *%i[id time created_at lineno cursorpos is_write project language entity branch category dependencies editor machine operating_system type project_root_count user_agent line_additions line_deletions ip_address lines source_type],
           :ja4_id
         ].freeze
 
