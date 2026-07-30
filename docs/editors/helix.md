@@ -1,4 +1,7 @@
-# Helix & Hackatime Setup
+---
+sidebar: { icon: "/images/editor-icons/helix-32.webp" }
+---
+# Helix
 
 ![Helix](/images/editor-icons/helix-128.png)
 

@@ -156,12 +156,12 @@
         >
           Start tracking
         </Link>
-        <Link
+        <a
           href="/docs"
           class="px-7 py-3.5 bg-surface border border-surface-200 text-surface-content rounded-md font-semibold text-base hover:border-primary hover:text-primary transition-colors"
         >
           Read the docs
-        </Link>
+        </a>
       </div>
 
       {#if hoursTracked > 0 || usersTracked > 0}

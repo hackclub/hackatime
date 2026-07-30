@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  // @ts-expect-error d3-shape is present via LayerChart, but this app does not ship its type declarations.
   import { arc as d3arc, pie as d3pie } from "d3-shape";
+  import type { PieArcDatum } from "d3-shape";
   import { PieChart } from "layerchart";
   import { secondsToDisplay, CHART_COLORS as FALLBACK_COLORS } from "./utils";
 
@@ -51,10 +51,10 @@
   const colorForIndex = (i: number) => colors[i % colors.length];
 
   const staticArcs = $derived.by(() => {
-    const arc = d3arc().innerRadius(0).outerRadius(50);
+    const arc = d3arc<PieArcDatum<ChartDatum>>().innerRadius(0).outerRadius(50);
     return d3pie<ChartDatum>()
       .value((d: ChartDatum) => d.value)(data)
-      .map((a: { data: ChartDatum }) => ({
+      .map((a) => ({
         path: arc(a) || "",
         color: colorForIndex(data.indexOf(a.data)),
       }));

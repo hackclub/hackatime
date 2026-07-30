@@ -85,8 +85,8 @@ RUN --mount=type=cache,target=/rails/node_modules/.vite \
     --mount=type=cache,target=/root/.cache \
     SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
-# Generate static llms.txt files for LLM consumption
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails docs:generate_llms
+# Build Blume into public/ so Rails serves the docs on the application domain.
+RUN bun run build:docs
 
 # Final stage for app image
 FROM base

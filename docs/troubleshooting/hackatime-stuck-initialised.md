@@ -1,4 +1,4 @@
-# Hackatime Stuck "Initialised" - Hackatime VS Code Extension - Windows
+# VS Code stuck on initialising
 
 If the Hackatime VS Code extension is stuck on "Initialising" on Windows, your antivirus or Windows Security may be quarantining the Wakatime executable.
 
