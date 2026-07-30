@@ -133,6 +133,7 @@ Rails.application.routes.draw do
   # Docs routes
   # Note: llms.txt and llms-full.txt are served as static files from public/
   # Generate them with: rails docs:generate_llms
+  post "docs/feedback", to: "documentation_feedbacks#create"
   get "docs", to: "docs#index", as: :docs
   get "docs/*path", to: "docs#show", as: :doc
 

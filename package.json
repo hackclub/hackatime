@@ -2,6 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:docs": "blume build",
     "check": "bun run check:svelte && tsc -p tsconfig.node.json",
     "check:svelte": "svelte-check --tsconfig ./tsconfig.svelte-check.json",
     "format:svelte": "prettier --write \"app/javascript/**/*.svelte\"",
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^25.9.5",
+    "blume": "^1.2.0",
     "knip": "^6.29.0",
     "prettier": "^3.9.6",
     "prettier-plugin-svelte": "^3.5.2"

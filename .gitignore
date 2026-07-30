@@ -55,6 +55,8 @@ public/vite-ssr
 public/vite-test
 
 .vite
+.blume
+/dist
 
 pg-dump*
 

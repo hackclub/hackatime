@@ -185,6 +185,7 @@ class User < ApplicationRecord
 
   has_many :heartbeats
   has_many :goals, dependent: :destroy
+  has_many :documentation_feedbacks, dependent: :destroy
   has_many :email_addresses, dependent: :destroy
   has_many :email_verification_requests, dependent: :destroy
   has_many :sign_in_tokens, dependent: :destroy
