@@ -53,7 +53,7 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("documentation feedback by ip", limit: 20, period: 1.hour) do |req|
-    req.ip if req.post? && req.path == "/docs/feedback"
+    req.ip if req.post? && req.path.match?(%r{\A/docs/feedback/?\z})
   end
 
   Rack::Attack.throttle("auth requests", limit: 5, period: 1.minute) do |req|

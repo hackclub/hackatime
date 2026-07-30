@@ -2,7 +2,7 @@ class CreateDocumentationFeedbacks < ActiveRecord::Migration[8.1]
   def change
     create_table :documentation_feedbacks do |t|
       t.references :user, null: true, foreign_key: { on_delete: :cascade }
-      t.string :visitor_token
+      t.uuid :visitor_token
       t.boolean :helpful, null: false
       t.string :path, null: false
       t.string :title, null: false

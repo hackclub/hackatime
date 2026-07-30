@@ -122,7 +122,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_30_191404) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
-    t.string "visitor_token"
+    t.uuid "visitor_token"
     t.index ["user_id", "path"], name: "index_doc_feedback_on_user_and_path", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["user_id"], name: "index_documentation_feedbacks_on_user_id"
     t.index ["visitor_token", "path"], name: "index_doc_feedback_on_visitor_and_path", unique: true, where: "(visitor_token IS NOT NULL)"

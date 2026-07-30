@@ -5,11 +5,11 @@ class DocumentationFeedbacksControllerTest < ActionDispatch::IntegrationTest
     payload = feedback_payload(visitor_token: SecureRandom.uuid)
 
     assert_difference("DocumentationFeedback.count", 1) do
-      post "/docs/feedback", params: payload, as: :json
+      post_feedback payload
     end
     assert_response :created
 
-    post "/docs/feedback", params: payload.merge(helpful: false), as: :json
+    post_feedback payload.merge(helpful: false)
 
     assert_response :no_content
     assert_equal false, DocumentationFeedback.last.helpful
@@ -21,7 +21,7 @@ class DocumentationFeedbacksControllerTest < ActionDispatch::IntegrationTest
     visitor_token = SecureRandom.uuid
 
     assert_difference("DocumentationFeedback.count", 1) do
-      post "/docs/feedback", params: feedback_payload(visitor_token: visitor_token), as: :json
+      post_feedback feedback_payload(visitor_token: visitor_token)
     end
 
     feedback = DocumentationFeedback.last
@@ -30,7 +30,7 @@ class DocumentationFeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_nil feedback.visitor_token
 
     assert_no_difference("DocumentationFeedback.count") do
-      post "/docs/feedback", params: feedback_payload(visitor_token: visitor_token, helpful: false), as: :json
+      post_feedback feedback_payload(visitor_token: visitor_token, helpful: false)
     end
 
     assert_response :no_content
@@ -39,13 +39,40 @@ class DocumentationFeedbacksControllerTest < ActionDispatch::IntegrationTest
 
   test "rejects invalid feedback" do
     assert_no_difference("DocumentationFeedback.count") do
-      post "/docs/feedback", params: feedback_payload(path: "/not-docs"), as: :json
+      post_feedback feedback_payload(path: "/not-docs")
     end
 
     assert_response :unprocessable_entity
   end
 
+  test "rejects non-boolean feedback" do
+    [ "no", "true", 1, nil ].each do |helpful|
+      assert_no_difference("DocumentationFeedback.count") do
+        post_feedback feedback_payload(helpful: helpful)
+      end
+      assert_response :unprocessable_entity
+    end
+  end
+
+  test "rejects requests without same-origin JSON" do
+    payload = feedback_payload
+
+    post "/docs/feedback", params: payload, headers: { "Origin" => "https://example.com" }, as: :json
+    assert_response :forbidden
+
+    post "/docs/feedback", params: payload, headers: same_origin_headers
+    assert_response :forbidden
+  end
+
   private
+
+  def post_feedback(payload)
+    post "/docs/feedback", params: payload, headers: same_origin_headers, as: :json
+  end
+
+  def same_origin_headers
+    { "Origin" => "http://www.example.com" }
+  end
 
   def feedback_payload(overrides = {})
     {

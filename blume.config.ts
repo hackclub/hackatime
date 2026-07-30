@@ -45,6 +45,7 @@ export default defineConfig({
           fetch("/docs/feedback", {
             method: "POST",
             credentials: "same-origin",
+            keepalive: true,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               helpful: event.detail.props.helpful === "yes",
