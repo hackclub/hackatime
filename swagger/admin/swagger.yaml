@@ -1802,30 +1802,14 @@ paths:
                         time:
                           type: number
                           example: 1710946200.0
-                        lineno:
-                          type: integer
-                          example: 42
-                          description: Coalesced to 0 when null
-                        cursorpos:
-                          type: integer
-                          example: 12
-                          description: Coalesced to 0 when null
-                        is_write:
-                          type: boolean
-                          nullable: true
-                          example: true
+                        created_at:
+                          type: string
+                          format: date_time
+                          example: '2024-03-20T15:30:00Z'
                         project:
                           type: string
                           nullable: true
                           example: hackatime
-                        language:
-                          type: string
-                          nullable: true
-                          example: Ruby
-                        entity:
-                          type: string
-                          nullable: true
-                          example: app/models/user.rb
                         branch:
                           type: string
                           nullable: true
@@ -1834,18 +1818,73 @@ paths:
                           type: string
                           nullable: true
                           example: coding
+                        dependencies:
+                          type: array
+                          nullable: true
+                          items:
+                            type: string
+                          example:
+                          - rails
+                          - sidekiq
                         editor:
                           type: string
                           nullable: true
                           example: VS Code
+                        entity:
+                          type: string
+                          nullable: true
+                          example: app/models/user.rb
+                        language:
+                          type: string
+                          nullable: true
+                          example: Ruby
                         machine:
                           type: string
                           nullable: true
                           example: Orpheus-MacBook-Pro
+                        operating_system:
+                          type: string
+                          nullable: true
+                          example: Mac
+                        type:
+                          type: string
+                          nullable: true
+                          example: file
                         user_agent:
                           type: string
                           nullable: true
                           example: wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0
+                        line_additions:
+                          type: integer
+                          nullable: true
+                          example: 8
+                        line_deletions:
+                          type: integer
+                          nullable: true
+                          example: 3
+                        lineno:
+                          type: integer
+                          nullable: true
+                          example: 42
+                        lines:
+                          type: integer
+                          nullable: true
+                          example: 350
+                        cursorpos:
+                          type: integer
+                          nullable: true
+                          example: 12
+                        project_root_count:
+                          type: integer
+                          nullable: true
+                          example: 4
+                        is_write:
+                          type: boolean
+                          nullable: true
+                          example: true
+                        source_type:
+                          type: string
+                          example: direct_entry
                         ip_address:
                           type: string
                           nullable: true
@@ -1861,13 +1900,6 @@ paths:
                               type: string
                               nullable: true
                               example: Go net/http
-                        lines:
-                          type: integer
-                          nullable: true
-                          example: 350
-                        source_type:
-                          type: string
-                          example: direct_entry
                   total_count:
                     type: integer
                     example: 15234

@@ -165,17 +165,26 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
                 properties: {
                   id: { type: :integer, example: 987654 },
                   time: { type: :number, example: 1710946200.0 },
-                  lineno: { type: :integer, example: 42, description: 'Coalesced to 0 when null' },
-                  cursorpos: { type: :integer, example: 12, description: 'Coalesced to 0 when null' },
-                  is_write: { type: :boolean, nullable: true, example: true },
+                  created_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' },
                   project: { type: :string, nullable: true, example: 'hackatime' },
-                  language: { type: :string, nullable: true, example: 'Ruby' },
-                  entity: { type: :string, nullable: true, example: 'app/models/user.rb' },
                   branch: { type: :string, nullable: true, example: 'main' },
                   category: { type: :string, nullable: true, example: 'coding' },
+                  dependencies: { type: :array, nullable: true, items: { type: :string }, example: [ 'rails', 'sidekiq' ] },
                   editor: { type: :string, nullable: true, example: 'VS Code' },
+                  entity: { type: :string, nullable: true, example: 'app/models/user.rb' },
+                  language: { type: :string, nullable: true, example: 'Ruby' },
                   machine: { type: :string, nullable: true, example: 'Orpheus-MacBook-Pro' },
+                  operating_system: { type: :string, nullable: true, example: 'Mac' },
+                  type: { type: :string, nullable: true, example: 'file' },
                   user_agent: { type: :string, nullable: true, example: 'wakatime/v1.115.2 (darwin-24.6.0) go1.23 vscode/1.96.0' },
+                  line_additions: { type: :integer, nullable: true, example: 8 },
+                  line_deletions: { type: :integer, nullable: true, example: 3 },
+                  lineno: { type: :integer, nullable: true, example: 42 },
+                  lines: { type: :integer, nullable: true, example: 350 },
+                  cursorpos: { type: :integer, nullable: true, example: 12 },
+                  project_root_count: { type: :integer, nullable: true, example: 4 },
+                  is_write: { type: :boolean, nullable: true, example: true },
+                  source_type: { type: :string, example: 'direct_entry' },
                   ip_address: { type: :string, nullable: true, example: '203.0.113.7' },
                   ja4: {
                     type: :object,
@@ -184,9 +193,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
                       fingerprint: { type: :string, example: 't13d1516h2_8daaf6152771_02713d6af862' },
                       name: { type: :string, nullable: true, example: 'Go net/http' }
                     }
-                  },
-                  lines: { type: :integer, nullable: true, example: 350 },
-                  source_type: { type: :string, example: 'direct_entry' }
+                  }
                 }
               }
             },
@@ -201,6 +208,12 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
           u.heartbeats.create!(
             entity: 'app/models/user.rb',
             time: Time.current.to_f,
+            dependencies: [ 'rails', 'sidekiq' ],
+            operating_system: 'Mac',
+            type: 'file',
+            project_root_count: 4,
+            line_additions: 8,
+            line_deletions: 3,
             source_type: :direct_entry,
             ja4: Ja4.create!(fingerprint: 't13d1516h2_8daaf6152771_02713d6af862', name: 'Go net/http')
           )
@@ -217,7 +230,19 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
         let(:limit) { 10 }
         let(:offset) { 0 }
         run_test! do |response|
-          expect(JSON.parse(response.body).dig('heartbeats', 0, 'ja4')).to eq(
+          heartbeat = JSON.parse(response.body).dig('heartbeats', 0)
+          expect(heartbeat).to include(
+            'created_at' => be_present,
+            'dependencies' => [ 'rails', 'sidekiq' ],
+            'operating_system' => 'Mac',
+            'type' => 'file',
+            'project_root_count' => 4,
+            'line_additions' => 8,
+            'line_deletions' => 3,
+            'lineno' => nil,
+            'cursorpos' => nil
+          )
+          expect(heartbeat.fetch('ja4')).to eq(
             'fingerprint' => 't13d1516h2_8daaf6152771_02713d6af862',
             'name' => 'Go net/http'
           )
