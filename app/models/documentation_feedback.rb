@@ -2,7 +2,7 @@ class DocumentationFeedback < ApplicationRecord
   belongs_to :user, optional: true
 
   validates :helpful, inclusion: { in: [ true, false ] }
-  validates :path, presence: true, length: { maximum: 255 }, format: { with: %r{\A/docs(?:/|\z)} }
+  validates :path, presence: true, length: { maximum: 255 }, format: { with: %r{\A/docs(?:/[^\r\n]*)?\z} }
   validates :title, presence: true, length: { maximum: 255 }
   validates :visitor_token,
     format: { with: %r{\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z}i },
