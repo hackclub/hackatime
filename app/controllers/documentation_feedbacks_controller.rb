@@ -1,6 +1,4 @@
 class DocumentationFeedbacksController < ApplicationController
-  skip_before_action :verify_authenticity_token
-
   def create
     return head :forbidden unless same_origin_json_request?
     return render_invalid_feedback unless [ true, false ].include?(params[:helpful])
@@ -21,7 +19,10 @@ class DocumentationFeedbacksController < ApplicationController
   private
 
   def canonical_path
-    params.require(:path).sub(%r{/+\z}, "").presence || "/"
+    path = params.require(:path)
+    end_index = path.bytesize
+    end_index -= 1 while end_index.positive? && path.getbyte(end_index - 1) == 47
+    path.byteslice(0, end_index).presence || "/"
   end
 
   def feedback_attributes
@@ -36,6 +37,10 @@ class DocumentationFeedbacksController < ApplicationController
 
   def same_origin_json_request?
     request.media_type == "application/json" && request.origin == request.base_url
+  end
+
+  def verified_request?
+    same_origin_json_request? || super
   end
 
   def render_invalid_feedback

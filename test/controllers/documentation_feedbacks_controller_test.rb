@@ -9,7 +9,7 @@ class DocumentationFeedbacksControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :created
 
-    post_feedback payload.merge(helpful: false)
+    post_feedback payload.merge(path: "#{payload[:path]}///", helpful: false)
 
     assert_response :no_content
     assert_equal false, DocumentationFeedback.last.helpful
