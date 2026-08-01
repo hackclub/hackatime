@@ -1,8 +1,7 @@
 ---
+title: Obsidian
 sidebar: { icon: "/images/editor-icons/obsidian-32.webp" }
 ---
-# Obsidian
-
 ![Obsidian](/images/editor-icons/obsidian-128.png)
 
 Follow these steps to start tracking your coding time in Obsidian with Hackatime.

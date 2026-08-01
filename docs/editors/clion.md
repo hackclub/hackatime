@@ -1,8 +1,7 @@
 ---
+title: CLion
 sidebar: { icon: "/images/editor-icons/clion-32.webp" }
 ---
-# CLion
-
 ![CLion](/images/editor-icons/clion-128.png)
 
 Follow these steps to start tracking your coding time in CLion with Hackatime.

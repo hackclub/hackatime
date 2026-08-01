@@ -1,8 +1,7 @@
 ---
+title: Terminal
 sidebar: { icon: "/images/editor-icons/terminal-32.webp" }
 ---
-# Terminal
-
 ![Terminal](/images/editor-icons/terminal-128.png)
 
 Follow these steps to start tracking your coding time in Terminal with Hackatime.

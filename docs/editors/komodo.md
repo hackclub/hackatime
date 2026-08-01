@@ -1,8 +1,7 @@
 ---
+title: Komodo
 sidebar: { icon: "/images/editor-icons/komodo-32.webp" }
 ---
-# Komodo
-
 ![Komodo](/images/editor-icons/komodo-128.png)
 
 Follow these steps to start tracking your coding time in Komodo with Hackatime.

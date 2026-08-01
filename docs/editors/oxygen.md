@@ -1,8 +1,7 @@
 ---
+title: Oxygen
 sidebar: { icon: "/images/editor-icons/oxygen-32.webp" }
 ---
-# Oxygen
-
 ![Oxygen](/images/editor-icons/oxygen-128.png)
 
 Follow these steps to start tracking your coding time in Oxygen with Hackatime.

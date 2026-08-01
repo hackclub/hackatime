@@ -1,8 +1,7 @@
 ---
+title: Coda
 sidebar: { icon: "/images/editor-icons/coda-32.webp" }
 ---
-# Coda
-
 ![Coda](/images/editor-icons/coda-128.png)
 
 Follow these steps to start tracking your coding time in Coda with Hackatime.

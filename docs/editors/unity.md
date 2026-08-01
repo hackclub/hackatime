@@ -1,8 +1,7 @@
 ---
+title: Unity
 sidebar: { icon: "/images/editor-icons/unity-32.webp" }
 ---
-# Unity
-
 ![Unity](/images/editor-icons/unity-128.png)
 
 Let's set up Unity to count how much time you spend making games!

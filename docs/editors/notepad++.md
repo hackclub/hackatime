@@ -1,8 +1,7 @@
 ---
+title: Notepad++
 sidebar: { icon: "/images/editor-icons/notepad++-32.webp" }
 ---
-# Notepad++
-
 ![Notepad++](/images/editor-icons/notepad++-128.png)
 
 Follow these steps to start tracking your coding time in Notepad++ with Hackatime.

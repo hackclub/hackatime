@@ -1,8 +1,7 @@
 ---
+title: Roblox Studio
 sidebar: { icon: "/images/editor-icons/roblox-studio-32.webp" }
 ---
-# Roblox Studio
-
 ![Roblox Studio](/images/editor-icons/roblox-studio-128.png)
 
 This guide will walk you through setting up **Hackatime** to automatically track your game development time in **Roblox Studio**.

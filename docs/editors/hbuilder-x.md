@@ -1,8 +1,7 @@
 ---
+title: HBuilder X
 sidebar: { icon: "/images/editor-icons/hbuilder-x-32.webp" }
 ---
-# HBuilder X
-
 ![HBuilder X](/images/editor-icons/hbuilder-x-128.png)
 
 Follow these steps to start tracking your coding time in HBuilder X with Hackatime.

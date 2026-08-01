@@ -1,8 +1,7 @@
 ---
+title: DBeaver
 sidebar: { icon: "/images/editor-icons/dbeaver-32.webp" }
 ---
-# DBeaver
-
 ![DBeaver](/images/editor-icons/dbeaver-128.png)
 
 Follow these steps to start tracking your coding time in DBeaver with Hackatime.

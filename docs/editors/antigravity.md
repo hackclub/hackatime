@@ -1,8 +1,7 @@
 ---
+title: Antigravity
 sidebar: { icon: "/images/editor-icons/antigravity-32.webp" }
 ---
-# Antigravity
-
 Antigravity is a VSCode fork from Google with built-in AI features for code assistance and generation.
 
 ## Setup

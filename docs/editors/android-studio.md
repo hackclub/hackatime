@@ -1,8 +1,7 @@
 ---
+title: Android Studio
 sidebar: { icon: "/images/editor-icons/android-studio-32.webp" }
 ---
-# Android Studio
-
 ![Android Studio](/images/editor-icons/android-studio-128.png)
 
 Let's set up Android Studio to count how much time you spend making Android apps!

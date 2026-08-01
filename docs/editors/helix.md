@@ -1,8 +1,7 @@
 ---
+title: Helix
 sidebar: { icon: "/images/editor-icons/helix-32.webp" }
 ---
-# Helix
-
 ![Helix](/images/editor-icons/helix-128.png)
 
 Follow these steps to start tracking your coding in Helix with Hackatime:

@@ -1,4 +1,6 @@
-# Advanced setup
+---
+title: Advanced setup
+---
 
 Want to make Hackatime work better for you? Here are some extra things you can set up.
 

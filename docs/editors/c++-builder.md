@@ -1,8 +1,7 @@
 ---
+title: C++ Builder
 sidebar: { icon: "/images/editor-icons/c++-builder-32.webp" }
 ---
-# C++ Builder
-
 ![C++ Builder](/images/editor-icons/c++-builder-128.png)
 
 Follow these steps to start tracking your coding time in C++ Builder with Hackatime.

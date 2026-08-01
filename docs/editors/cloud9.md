@@ -1,8 +1,7 @@
 ---
+title: Cloud9
 sidebar: { icon: "/images/editor-icons/cloud9-32.webp" }
 ---
-# Cloud9
-
 ![Cloud9](/images/editor-icons/cloud9-128.png)
 
 Follow these steps to start tracking your coding time in Cloud9 with Hackatime.

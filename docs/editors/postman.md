@@ -1,8 +1,7 @@
 ---
+title: Postman
 sidebar: { icon: "/images/editor-icons/postman-32.webp" }
 ---
-# Postman
-
 ![Postman](/images/editor-icons/postman-128.png)
 
 Follow these steps to start tracking your activity in Postman with Hackatime.

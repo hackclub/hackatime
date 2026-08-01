@@ -1,8 +1,7 @@
 ---
+title: RustRover
 sidebar: { icon: "/images/editor-icons/rustrover-32.webp" }
 ---
-# RustRover
-
 ![RustRover](/images/editor-icons/rustrover-128.png)
 
 Follow these steps to start tracking your coding time in RustRover with Hackatime.

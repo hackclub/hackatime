@@ -1,4 +1,6 @@
-# Install an editor plugin
+---
+title: Install an editor plugin
+---
 
 Here's how to add WakaTime plugins to your code editor so Hackatime can track your coding time.
 

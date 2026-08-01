@@ -1,8 +1,7 @@
 ---
+title: Jupyter
 sidebar: { icon: "/images/editor-icons/jupyter-32.webp" }
 ---
-# Jupyter
-
 ![Jupyter](/images/editor-icons/jupyter-128.png)
 
 Follow these steps to start tracking your coding time in Jupyter with Hackatime.

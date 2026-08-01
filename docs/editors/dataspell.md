@@ -1,8 +1,7 @@
 ---
+title: DataSpell
 sidebar: { icon: "/images/editor-icons/dataspell-32.webp" }
 ---
-# DataSpell
-
 ![DataSpell](/images/editor-icons/dataspell-128.png)
 
 Follow these steps to start tracking your coding time in DataSpell with Hackatime.

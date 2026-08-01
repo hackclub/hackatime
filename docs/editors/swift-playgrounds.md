@@ -1,8 +1,7 @@
 ---
+title: Swift Playgrounds
 sidebar: { icon: "/images/editor-icons/swift-playgrounds-32.webp" }
 ---
-# Swift Playgrounds
-
 // TODO: CHANGE EDITOR ICON
 ![iPad](/images/editor-icons/swift-playgrounds-128.png)
 

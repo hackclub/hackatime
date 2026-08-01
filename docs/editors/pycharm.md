@@ -1,8 +1,7 @@
 ---
+title: PyCharm
 sidebar: { icon: "/images/editor-icons/pycharm-32.webp" }
 ---
-# PyCharm
-
 ![PyCharm](/images/editor-icons/pycharm-128.png)
 
 Let's set up PyCharm to count how much time you spend writing Python code!

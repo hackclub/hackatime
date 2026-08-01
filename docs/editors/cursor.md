@@ -1,8 +1,7 @@
 ---
+title: Cursor
 sidebar: { icon: "/images/editor-icons/cursor-32.webp" }
 ---
-# Cursor
-
 ![Cursor](/images/editor-icons/cursor-128.png)
 
 Let's set up Cursor (the AI code editor) to count how much time you spend coding!

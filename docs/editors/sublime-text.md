@@ -1,8 +1,7 @@
 ---
+title: Sublime Text
 sidebar: { icon: "/images/editor-icons/sublime-text-32.webp" }
 ---
-# Sublime Text
-
 ![Sublime Text](/images/editor-icons/sublime-text-128.png)
 
 Let's set up Sublime Text to count how much time you spend coding!

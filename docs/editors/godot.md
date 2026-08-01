@@ -1,8 +1,7 @@
 ---
+title: Godot
 sidebar: { icon: "/images/editor-icons/godot-32.webp" }
 ---
-# Godot
-
 ![Godot](/images/editor-icons/godot-128.png)
 
 Follow these steps to start tracking your game development in Godot with Hackatime:

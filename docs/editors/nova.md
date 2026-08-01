@@ -1,8 +1,7 @@
 ---
+title: Nova
 sidebar: { icon: "/images/editor-icons/nova-32.webp" }
 ---
-# Nova
-
 ![Nova](/images/editor-icons/nova-128.png)
 
 Follow these steps to start tracking your coding time in Nova with Hackatime.

@@ -1,8 +1,7 @@
 ---
+title: Vim
 sidebar: { icon: "/images/editor-icons/vim-32.webp" }
 ---
-# Vim
-
 ![Vim](/images/editor-icons/vim-128.png)
 
 Let's set up Vim to count how much time you spend coding!

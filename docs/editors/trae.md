@@ -1,8 +1,7 @@
 ---
+title: Trae
 sidebar: { icon: "/images/editor-icons/trae-32.webp" }
 ---
-# Trae
-
 ![Trae](/images/editor-icons/trae-128.png)
 
 Follow these steps to start tracking your coding time in Trae with Hackatime.

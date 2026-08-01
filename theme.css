@@ -10,11 +10,6 @@
   display: none;
 }
 
-/* Legacy docs include the same H1 Blume infers and renders as the page title. */
-.prose > h1 + h1 {
-  display: none;
-}
-
 /* Keep the article close to the sidebar instead of centering it in the wide
    middle grid column on large screens. */
 @media (min-width: 64rem) {

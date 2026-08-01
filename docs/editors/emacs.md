@@ -1,8 +1,7 @@
 ---
+title: Emacs
 sidebar: { icon: "/images/editor-icons/emacs-32.webp" }
 ---
-# Emacs
-
 ![Emacs](/images/editor-icons/emacs-128.png)
 
 Follow these steps to start tracking your coding time in Emacs with Hackatime.

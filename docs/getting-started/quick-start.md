@@ -1,4 +1,6 @@
-# Quick start
+---
+title: Quick start
+---
 
 Get up and running with Hackatime in under 5 minutes! Start tracking your coding time across 40+ editors with our free, open source time tracker built by Hack Club.
 

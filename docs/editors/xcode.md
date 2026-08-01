@@ -1,8 +1,7 @@
 ---
+title: Xcode
 sidebar: { icon: "/images/editor-icons/xcode-32.webp" }
 ---
-# Xcode
-
 ![Xcode](/images/editor-icons/xcode-128.png)
 
 Follow these steps to start tracking your coding time in Xcode with Hackatime.

@@ -1,8 +1,7 @@
 ---
+title: SlickEdit
 sidebar: { icon: "/images/editor-icons/slickedit-32.webp" }
 ---
-# SlickEdit
-
 ![SlickEdit](/images/editor-icons/slickedit-128.png)
 
 Follow these steps to start tracking your coding time in SlickEdit with Hackatime.

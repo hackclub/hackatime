@@ -1,8 +1,7 @@
 ---
+title: Rider
 sidebar: { icon: "/images/editor-icons/rider-32.webp" }
 ---
-# Rider
-
 ![Rider](/images/editor-icons/rider-128.png)
 
 Follow these steps to start tracking your coding time in Rider with Hackatime.

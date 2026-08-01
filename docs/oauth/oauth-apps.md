@@ -1,4 +1,6 @@
-# OAuth apps
+---
+title: OAuth apps
+---
 
 Build integrations with Hackatime using OAuth 2.0. Create an OAuth app to let users authorize your application to access their Hackatime data.
 

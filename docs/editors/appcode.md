@@ -1,8 +1,7 @@
 ---
+title: AppCode
 sidebar: { icon: "/images/editor-icons/appcode-32.webp" }
 ---
-# AppCode
-
 ![AppCode](/images/editor-icons/appcode-128.png)
 
 Follow these steps to start tracking your coding time in AppCode with Hackatime.

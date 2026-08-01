@@ -1,8 +1,7 @@
 ---
+title: NetBeans
 sidebar: { icon: "/images/editor-icons/netbeans-32.webp" }
 ---
-# NetBeans
-
 ![NetBeans](/images/editor-icons/netbeans-128.png)
 
 Follow these steps to start tracking your coding time in NetBeans with Hackatime.
