@@ -29,7 +29,7 @@ The setup page handles all configuration automatically - no manual editing requi
 
 ## Step 3: Install WakaTime plugin
 
-Hackatime works with **any WakaTime plugin**. Visit our [editor documentation](https://hackatime.hackclub.com/docs#supported-editors) for instructions on how to install a WakaTime plugin for your specific editor.
+Hackatime works with **any WakaTime plugin**. Visit our [editor documentation](https://hackatime.hackclub.com/docs#editor-guides) for instructions on how to install a WakaTime plugin for your specific editor.
 
 ## Step 4: Configure plugin to use Hackatime
 
@@ -87,7 +87,7 @@ Just run the automated setup script on the [Hackatime Setup Page](https://hackat
 
 **Is Hackatime really free?** Yes! Hackatime is completely free with no premium features or paywalls. It's [open source](https://github.com/hackclub/hackatime) and maintained by Hack Club.
 
-**Which editors work with Hackatime?** All [70+ editors](../#supported-editors) that support WakaTime work with Hackatime, including [VS Code](../editors/vs-code), [IntelliJ IDEA](../editors/intellij-idea), [Sublime Text](../editors/sublime-text), [Vim](../editors/vim), [Neovim](../editors/neovim), [PyCharm](../editors/pycharm), and many more.
+**Which editors work with Hackatime?** All [70+ editors](../#editor-guides) that support WakaTime work with Hackatime, including [VS Code](../editors/vs-code), [IntelliJ IDEA](../editors/intellij-idea), [Sublime Text](../editors/sublime-text), [Vim](../editors/vim), [Neovim](../editors/neovim), [PyCharm](../editors/pycharm), and many more.
 
 **How is Hackatime different from WakaTime?** Hackatime is free, open source, privacy-focused, and includes unique features like leaderboards for Hack Club members.
 

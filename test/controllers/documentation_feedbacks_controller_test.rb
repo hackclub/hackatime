@@ -54,6 +54,19 @@ class DocumentationFeedbacksControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "rejects non-string feedback fields" do
+    [
+      { path: [] },
+      { title: 1 },
+      { visitor_token: {} }
+    ].each do |attributes|
+      assert_no_difference("DocumentationFeedback.count") do
+        post_feedback feedback_payload(attributes)
+      end
+      assert_response :unprocessable_entity
+    end
+  end
+
   test "rejects requests without same-origin JSON" do
     payload = feedback_payload
 

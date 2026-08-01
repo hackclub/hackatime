@@ -5,6 +5,7 @@ interface ThemeMetadata {
   color_scheme: "dark" | "light";
   preview: {
     darker: string;
+    dark: string;
     primary: string;
     content: string;
   };
@@ -42,8 +43,6 @@ const docsThemes = Object.fromEntries(
         "--blume-border": theme.docs.border,
         "--blume-accent": theme.preview.primary,
         "--blume-accent-foreground": theme.docs.accent_foreground,
-        "--blume-action": theme.preview.primary,
-        "--blume-action-foreground": theme.docs.accent_foreground,
         "--blume-code-background": theme.docs.code_background,
       },
     },
@@ -101,10 +100,9 @@ export default defineConfig({
     },
   ],
   theme: {
-    accent: "#d7ff6a",
-    action: "#d7ff6a",
-    background: "#101312",
-    mode: "dark",
+    accent: defaultTheme.preview.primary,
+    background: defaultTheme.preview.dark,
+    mode: defaultTheme.color_scheme,
     radius: "lg",
   },
   deployment: {

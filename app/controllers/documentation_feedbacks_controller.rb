@@ -1,7 +1,7 @@
 class DocumentationFeedbacksController < ApplicationController
   def create
     return head :forbidden unless same_origin_json_request?
-    return render_invalid_feedback unless [ true, false ].include?(params[:helpful])
+    return render_invalid_feedback unless valid_feedback_types?
 
     key = identity.merge(path: canonical_path)
     feedback = DocumentationFeedback.find_by(key)
@@ -17,6 +17,13 @@ class DocumentationFeedbacksController < ApplicationController
   end
 
   private
+
+  def valid_feedback_types?
+    [ true, false ].include?(params[:helpful]) &&
+      params[:path].is_a?(String) &&
+      params[:title].is_a?(String) &&
+      (current_user || params[:visitor_token].is_a?(String))
+  end
 
   def canonical_path
     path = params.require(:path)

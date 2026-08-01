@@ -17,7 +17,7 @@ Before you start, make sure you have:
 
 ## Step 2: Add WakaTime plugin
 
-After doing the automated setup, install the WakaTime plugin for your editor. Visit our [editor documentation](https://hackatime.hackclub.com/docs#supported-editors) for instructions on how to install a WakaTime plugin for your specific editor.
+After doing the automated setup, install the WakaTime plugin for your editor. Visit our [editor documentation](https://hackatime.hackclub.com/docs#editor-guides) for instructions on how to install a WakaTime plugin for your specific editor.
 
 ## Already have the plugin installed?
 
