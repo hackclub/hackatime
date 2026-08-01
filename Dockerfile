@@ -44,20 +44,24 @@ RUN apt-get update -qq && \
     tar && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Shared build packages for the parallel Ruby and JavaScript dependency stages.
+# Install only the compiler toolchain needed by native gems.
 FROM ruby-base AS build-base
 
-# Install packages needed to build gems and convert the bundled web font into a
-# TTF that librsvg/Pango can rasterize for generated OG images. PostgreSQL and
-# SQLite use the lockfile's precompiled gems, so their development headers are
-# not needed here.
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git nodejs woff2 && \
+    apt-get install --no-install-recommends -y g++ gcc make && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Install Git and the font conversion tool independently so native gem
+# compilation does not wait for unrelated build packages.
+FROM ruby-base AS frontend-base
+
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y git woff2 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install JavaScript dependencies independently so BuildKit can run this stage
 # in parallel with the Ruby dependency stage.
-FROM build-base AS javascript-dependencies
+FROM frontend-base AS javascript-dependencies
 
 COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
@@ -72,8 +76,8 @@ RUN cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wgh
 # Prepare the runtime concurrently with dependency and asset compilation.
 FROM runtime-base AS prepared-runtime
 
-COPY --from=build-base /usr/bin/git /usr/bin/git
-COPY --from=build-base /usr/lib/git-core /usr/lib/git-core
+COPY --from=frontend-base /usr/bin/git /usr/bin/git
+COPY --from=frontend-base /usr/lib/git-core /usr/lib/git-core
 COPY --from=javascript-dependencies /rails/vendor/fonts/spline-sans-latin-wght-normal.ttf \
     /usr/local/share/fonts/spline-sans/spline-sans-latin-wght-normal.ttf
 
@@ -90,22 +94,17 @@ FROM build-base AS ruby-dependencies
 COPY Gemfile Gemfile.lock ./
 RUN --mount=type=cache,target=/root/.bundle/cache \
     --mount=type=cache,target=/usr/local/bundle/ruby/4.0.0/cache \
-    BUNDLER_VERSION="$(tail -n 1 Gemfile.lock)" && \
-    gem install bundler --version "$BUNDLER_VERSION" && \
+    BUNDLER_VERSION="$(awk 'END { print $1 }' Gemfile.lock)" && \
+    gem list --installed bundler --version "$BUNDLER_VERSION" && \
     bundle "_${BUNDLER_VERSION}_" install && \
-    rm -rf "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
-    bundle exec bootsnap precompile --gemfile
+    rm -rf "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git
 
 # Copy application source without persisting build-only dependencies in its
 # layers. Rails and Blume consume those dependencies through read-only mounts.
-FROM build-base AS application-source
+FROM ruby-base AS application-source
 
 COPY --from=javascript-dependencies /rails/vendor/fonts /rails/vendor/fonts
 COPY --exclude=blume.config.ts --exclude=docs . .
-
-# Precompile bootsnap code for faster boot times
-RUN --mount=type=bind,from=ruby-dependencies,source=/usr/local/bundle,target=/usr/local/bundle \
-    bundle exec bootsnap precompile app/ lib/
 
 # Build Blume from only its inputs so Rails application changes neither
 # invalidate nor delay documentation generation.
