@@ -8,7 +8,7 @@
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=4.0.5
+ARG RUBY_VERSION=4.0.6
 ARG BUN_VERSION=1.3.10
 
 FROM docker.io/oven/bun:$BUN_VERSION-slim AS bun
@@ -35,6 +35,7 @@ FROM ruby-base AS runtime-base
 # Install base packages
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
+    curl \
     fontconfig \
     libjemalloc2 \
     libvips \
