@@ -1,5 +1,7 @@
-# Trae Setup Guide
-
+---
+title: Trae
+sidebar: { icon: "/images/editor-icons/trae-32.webp" }
+---
 ![Trae](/images/editor-icons/trae-128.png)
 
 Follow these steps to start tracking your coding time in Trae with Hackatime.
@@ -8,11 +10,11 @@ Follow these steps to start tracking your coding time in Trae with Hackatime.
 
 Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
 
-## Step 2: Run the Setup Script
+## Step 2: Run the setup script
 
 Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
 
-## Step 3: Install Trae Plugin
+## Step 3: Install Trae plugin
 
 Follow the detailed plugin installation instructions on the [WakaTime Trae page](https://wakatime.com/trae).
 
@@ -24,6 +26,6 @@ The WakaTime plugin will automatically use your Hackatime configuration after ru
 - **Plugin not working?** Try restarting Trae after installation
 - **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 
-## Next Steps
+## Next steps
 
 Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!

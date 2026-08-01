@@ -1,26 +1,28 @@
-# Set Up Hackatime with Unreal Engine 4.27
-
+---
+title: Unreal Engine 4
+sidebar: { icon: "/images/editor-icons/unreal-engine-4-32.webp" }
+---
 ![Unreal Engine 4](/images/editor-icons/unreal-engine-4-128.png)
 
 This guide will walk you through setting up **Hackatime** to automatically track your game development time in **Unreal Engine 4.27**. This currently only supports Windows systems.
 
 ---
 
-## Step 1: Log In to Your Hackatime Account
+## Step 1: Log in to your Hackatime account
 
 First, make sure you have a **Hackatime account** and are logged in. If you don't have an account, you can create one at [hackatime.hackclub.com](https://hackatime.hackclub.com).
 
-## Step 2: Download UE4 WakatimeIntegration Plugin
+## Step 2: Download UE4 WakatimeIntegration plugin
 
 Visit the [GitHub page](https://github.com/ZXMushroom63/WakatimeIntegration) and download the [latest release](https://github.com/ZXMushroom63/WakatimeIntegration/releases/latest). The file name should be something like `WakatimeIntegration.zip`
 
-## Step 3: Install UE4 WakatimeIntegration Plugin
+## Step 3: Install UE4 WakatimeIntegration plugin
 
 1. First, extract `WakatimeIntegration.zip`
 2. Inside should be a single folder called `WakatimeIntegration` containing a `.uplugin` file among others.
 3. Copy or move this folder to your Unreal Engine 4.27's plugins folder. The default location is `C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\`
 
-## Step 4: Configure API Credentials
+## Step 4: Configure API credentials
 
 1. Startup the editor and load into a project
 2. Open the Plugins window (`Edit->Plugins...`) and enable `WakatimeIntegration`.

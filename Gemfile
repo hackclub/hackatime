@@ -83,9 +83,6 @@ gem "maxminddb"
 # Country codes
 gem "countries"
 
-# Markdown parsing — only used in DocsController, so don't autoload it.
-gem "redcarpet", require: false
-
 gem "ruby_identicon"
 
 # Feature flags

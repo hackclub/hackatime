@@ -1,18 +1,20 @@
-# How to Track Time in PyCharm
-
+---
+title: PyCharm
+sidebar: { icon: "/images/editor-icons/pycharm-32.webp" }
+---
 ![PyCharm](/images/editor-icons/pycharm-128.png)
 
 Let's set up PyCharm to count how much time you spend writing Python code!
 
-## Step 1: Make a Hackatime Account
+## Step 1: Make a Hackatime account
 
 Go to [Hackatime](https://hackatime.hackclub.com) and make an account. Then log in.
 
-## Step 2: Get Your Settings Ready
+## Step 2: Get your settings ready
 
 Click this link to the [setup page](https://hackatime.hackclub.com/setup). It will set up your account so it works with PyCharm.
 
-## Step 3: Add the Plugin to PyCharm
+## Step 3: Add the plugin to PyCharm
 
 1. Open PyCharm
 2. Go to **File** → **Settings** (on Mac: **PyCharm** → **Settings** or press Cmd+,)
@@ -24,7 +26,7 @@ Click this link to the [setup page](https://hackatime.hackclub.com/setup). It wi
 
 That's it! The plugin will use your settings from Step 2.
 
-## If Something Goes Wrong
+## If something goes wrong
 
 **Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
@@ -32,6 +34,6 @@ That's it! The plugin will use your settings from Step 2.
 
 **Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-help channel.
 
-## What Happens Next
+## What happens next
 
 Start writing Python code! Your time will show up on your [Hackatime page](https://hackatime.hackclub.com) in a few minutes.

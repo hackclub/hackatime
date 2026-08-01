@@ -1,20 +1,22 @@
-# How to Track Time in Vim
-
+---
+title: Vim
+sidebar: { icon: "/images/editor-icons/vim-32.webp" }
+---
 ![Vim](/images/editor-icons/vim-128.png)
 
 Let's set up Vim to count how much time you spend coding!
 
-## Step 1: Make a Hackatime Account
+## Step 1: Make a Hackatime account
 
 Go to [Hackatime](https://hackatime.hackclub.com) and make an account. Then log in.
 
-## Step 2: Get Your Settings Ready
+## Step 2: Get your settings ready
 
 Click this link to the [setup page](https://hackatime.hackclub.com/setup). It will set up your account so it works with Vim.
 
-## Step 3: Add the Plugin to Vim
+## Step 3: Add the plugin to Vim
 
-### Easy Way (with vim-plug)
+### Easy way (with vim-plug)
 
 1. Add this line to your `.vimrc` file:
 
@@ -25,7 +27,7 @@ Click this link to the [setup page](https://hackatime.hackclub.com/setup). It wi
 2. Save the file and restart Vim
 3. Type `:PlugInstall` in Vim and press Enter
 
-### Simple Way (copy and paste)
+### Simple way (copy and paste)
 
 Copy and paste this into your terminal:
 
@@ -35,7 +37,7 @@ echo "Plugin 'wakatime/vim-wakatime'" >> ~/.vimrc && vim +PluginInstall
 
 That's it! The plugin will use your settings from Step 2.
 
-## If Something Goes Wrong
+## If something goes wrong
 
 **Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
@@ -45,6 +47,6 @@ That's it! The plugin will use your settings from Step 2.
 
 **Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-help channel.
 
-## What Happens Next
+## What happens next
 
 Start coding! Your time will show up on your [Hackatime page](https://hackatime.hackclub.com) in a few minutes.

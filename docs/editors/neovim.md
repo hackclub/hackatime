@@ -1,5 +1,7 @@
-# Neovim Setup Guide
-
+---
+title: Neovim
+sidebar: { icon: "/images/editor-icons/neovim-32.webp" }
+---
 ![Neovim](/images/editor-icons/neovim-128.png)
 
 Follow these steps to start tracking your coding time in Neovim with Hackatime.
@@ -8,17 +10,17 @@ Follow these steps to start tracking your coding time in Neovim with Hackatime.
 
 Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
 
-## Step 2: Run the Setup Script
+## Step 2: Run the setup script
 
 Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
 
-## Step 3: Install Neovim Plugin
+## Step 3: Install Neovim plugin
 
 Follow the detailed plugin installation instructions on the [WakaTime Neovim page](https://wakatime.com/neovim).
 
 The WakaTime plugin will automatically use your Hackatime configuration after running the setup script.
 
-## Step 4: Initialize the Project
+## Step 4: Initialize the project
 
 Hackatime only tracks time for files within a git repository. Make sure your project folder contains a `.git` folder (i.e., run `git init` or `git clone` your project first).
 
@@ -28,6 +30,6 @@ Hackatime only tracks time for files within a git repository. Make sure your pro
 - **Plugin not working?** Try restarting Neovim after installation
 - **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 
-## Next Steps
+## Next steps
 
 Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!

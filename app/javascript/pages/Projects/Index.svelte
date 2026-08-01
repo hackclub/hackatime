@@ -255,7 +255,7 @@
         <div
           class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
         >
-          {#each Array.from( { length: skeletonCount }, ) as _unused, index (index)}
+          {#each Array.from( { length: skeletonCount } ) as _unused, index (index)}
             <div
               class="min-h-36 rounded-2xl border border-surface-200 bg-dark p-5"
             >

@@ -131,10 +131,7 @@ Rails.application.routes.draw do
   resources :leaderboards, only: [ :index ]
 
   # Docs routes
-  # Note: llms.txt and llms-full.txt are served as static files from public/
-  # Generate them with: rails docs:generate_llms
-  get "docs", to: "docs#index", as: :docs
-  get "docs/*path", to: "docs#show", as: :doc
+  post "docs/feedback", to: "documentation_feedbacks#create", format: false
 
   # Nested under users for admin access
   resources :users, only: [] do

@@ -1,0 +1,36 @@
+@import "@fontsource-variable/spline-sans";
+
+:root {
+  --blume-font-display: "Spline Sans Variable", "Spline Sans", sans-serif;
+  --blume-font-body: "Spline Sans Variable", "Spline Sans", sans-serif;
+  --blume-content-width: 46rem;
+}
+
+[data-blume-theme-toggle] {
+  display: none;
+}
+
+/* Keep the article close to the sidebar instead of centering it in the wide
+   middle grid column on large screens. */
+@media (min-width: 64rem) {
+  [data-blume-doc-grid] > main > .max-w-content {
+    margin-inline: 0;
+  }
+}
+
+/* Blume's defaults are intentionally spacious; Hackatime's short setup guides
+   scan better with a tighter rhythm between each step. */
+.prose :where(h2) {
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose :where(h3) {
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose :where(p, ul, ol) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}

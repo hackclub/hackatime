@@ -15,6 +15,8 @@ fi
 
 # Build Vite SSR bundle now that source code is mounted
 if [ -f /app/package.json ]; then
+  cd /app && bun run build:docs || \
+    echo "Warning: Blume docs build failed; the Rails docs fallback will be used"
   cd /app && bin/vite build --ssr 2>/dev/null || \
     echo "Warning: Vite SSR build failed; will retry on next container start"
 fi

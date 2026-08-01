@@ -1,18 +1,20 @@
-# How to Track Time in Unity
-
+---
+title: Unity
+sidebar: { icon: "/images/editor-icons/unity-32.webp" }
+---
 ![Unity](/images/editor-icons/unity-128.png)
 
 Let's set up Unity to count how much time you spend making games!
 
-## Step 1: Make a Hackatime Account
+## Step 1: Make a Hackatime account
 
 Go to **[Hackatime](https://hackatime.hackclub.com)** and make an account. Then log in.
 
-## Step 2: Get Your Settings Ready
+## Step 2: Get your settings ready
 
 Click this link to the **[setup page](https://hackatime.hackclub.com/setup)**. It will set up your account so it works with Unity.
 
-## Step 3: Add the Plugin to Unity
+## Step 3: Add the plugin to Unity
 
 There are a few different Unity plugins. But most of them do not work with the Hackatime API. In light of this, **[Daniel-George](https://github.com/Daniel-Geo)** created a fork of **[Vladfaust's plugin](https://github.com/vladfaust/unity-wakatime)** to work with Hackatime. Here are the instructions:
 
@@ -46,7 +48,7 @@ After installing, you will need to grab your Hackatime API key and paste it into
 - EditorSceneManager.newSceneCreated
 
 
-## If Something Goes Wrong
+## If something goes wrong
 
 **Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
@@ -56,7 +58,7 @@ After installing, you will need to grab your Hackatime API key and paste it into
 
 **Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-help channel.
 
-## What Happens Next
+## What happens next
 
 Start making your game! Your time will show up on your [Hackatime page](https://hackatime.hackclub.com) in a few minutes.
 

@@ -1,5 +1,7 @@
-# Godot & Hackatime Setup
-
+---
+title: Godot
+sidebar: { icon: "/images/editor-icons/godot-32.webp" }
+---
 ![Godot](/images/editor-icons/godot-128.png)
 
 Follow these steps to start tracking your game development in Godot with Hackatime:
@@ -24,7 +26,7 @@ This will set some environment variables and tell Hackatime where to "phone home
 
 Download the Godot binary! If you're on Linux and know what you're doing, make sure to check your distro's package manager for any special builds.
 
-## 4: Create a New Godot Project
+## 4: Create a new Godot project
 
 ![Create New Project](/images/setup/godot-new-project.png)
 
@@ -32,7 +34,7 @@ If you'd like to be able to run your game in browser, choose the **Mobile** rend
 
 ## 5: Install Godot Super WakaTime
 
-### Via Asset Library (Recommended)
+### Via asset library (recommended)
 
 1. Open Godot Engine
 2. Create or open a project  
@@ -47,7 +49,7 @@ If you'd like to be able to run your game in browser, choose the **Mobile** rend
 
 **Ignore any warnings that appear during installation.**
 
-### Alternative: Manual Installation
+### Alternative: Manual installation
 
 1. Download the latest release from [Godot Super-Wakatime GitHub](https://github.com/BudzioT/Godot_Super-Wakatime)
 2. Extract the `addons/godot_super-wakatime` folder to your project's `addons` directory
@@ -63,7 +65,7 @@ If you'd like to be able to run your game in browser, choose the **Mobile** rend
 
 **Important:** You need to install Godot Super WakaTime for every project (it's a Godot limitation)
 
-## All Done!
+## All done!
 
 After you're finished, make sure to check **[hackatime.hackclub.com](https://hackatime.hackclub.com)** after a little while and ensure you're logging progress!
 

@@ -1,18 +1,20 @@
-# How to Track Time in Android Studio
-
+---
+title: Android Studio
+sidebar: { icon: "/images/editor-icons/android-studio-32.webp" }
+---
 ![Android Studio](/images/editor-icons/android-studio-128.png)
 
 Let's set up Android Studio to count how much time you spend making Android apps!
 
-## Step 1: Make a Hackatime Account
+## Step 1: Make a Hackatime account
 
 Go to [Hackatime](https://hackatime.hackclub.com) and make an account. Then log in.
 
-## Step 2: Get Your Settings Ready
+## Step 2: Get your settings ready
 
 Click this link to the [setup page](https://hackatime.hackclub.com/setup). It will set up your account so it works with Android Studio.
 
-## Step 3: Add the Plugin to Android Studio
+## Step 3: Add the plugin to Android Studio
 
 1. Open Android Studio
 2. Go to **File** → **Settings** (on Mac: **Android Studio** → **Preferences**)
@@ -24,7 +26,7 @@ Click this link to the [setup page](https://hackatime.hackclub.com/setup). It wi
 
 That's it! The plugin will use your settings from Step 2.
 
-## If Something Goes Wrong
+## If something goes wrong
 
 **Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
@@ -32,6 +34,6 @@ That's it! The plugin will use your settings from Step 2.
 
 **Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-help channel.
 
-## What Happens Next
+## What happens next
 
 Start building your Android app! Your time will show up on your [Hackatime page](https://hackatime.hackclub.com) in a few minutes.

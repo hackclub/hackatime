@@ -1,8 +1,10 @@
-# Advanced Setup Stuff
+---
+title: Advanced setup
+---
 
 Want to make Hackatime work better for you? Here are some extra things you can set up.
 
-## Connect Your GitHub Projects
+## Connect your GitHub projects
 
 Link your coding projects to GitHub so they show up better on leaderboards:
 
@@ -16,7 +18,7 @@ This helps because:
 - Other people can see what you're building
 - Your GitHub activity connects to your coding time
 
-## Set Your Time Zone
+## Set your time zone
 
 Make sure your daily stats are right by setting your time zone:
 
@@ -24,9 +26,9 @@ Make sure your daily stats are right by setting your time zone:
 2. Pick your time zone from the list
 3. Save it
 
-## What We Track (And What We Don't)
+## What we track (and what we don't)
 
-### What Hackatime Sees
+### What Hackatime sees
 
 Hackatime only tracks:
 
@@ -35,7 +37,7 @@ Hackatime only tracks:
 - **What editor you use** (like VS Code or Vim)
 - **How long you code**
 
-### What Hackatime Never Sees
+### What Hackatime never sees
 
 Hackatime **never** tracks:
 
@@ -44,7 +46,7 @@ Hackatime **never** tracks:
 - Screenshots of your screen
 - Anything you type on your keyboard
 
-## Hide Files You Don't Want Tracked
+## Hide files you don't want tracked
 
 You can tell WakaTime to ignore certain files. Make a file called `.wakatime-project` in your project folder:
 
@@ -63,7 +65,7 @@ This will ignore:
 - Any `.log` files
 - The `temp` folder
 
-## Only Track Certain Projects
+## Only track certain projects
 
 If you only want to track projects that have a `.wakatime-project` file:
 
@@ -72,6 +74,6 @@ If you only want to track projects that have a `.wakatime-project` file:
 include_only_with_project_file = true
 ```
 
-## Need Help?
+## Need help?
 
 Having trouble with setup? Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)!

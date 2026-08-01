@@ -1,5 +1,7 @@
-# Figma Setup Guide
-
+---
+title: Figma
+sidebar: { icon: "/images/editor-icons/figma-32.webp" }
+---
 ![Figma](/images/editor-icons/figma-128.png)
 
 Follow these steps to start tracking your design work in Figma with Hackatime.
@@ -8,7 +10,7 @@ Follow these steps to start tracking your design work in Figma with Hackatime.
 
 Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
 
-## Step 2: Install the Extension
+## Step 2: Install the extension
 
 Visit the [GitHub page](https://github.com/SkyfallWasTaken/figma-wakatime) and install the extension on Chrome or Firefox.
 
