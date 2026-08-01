@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.19
 # check=error=true;skip=SecretsUsedInArgOrEnv
 
 # This Dockerfile is designed for production, not development. Use with Kamal or build'n'run by hand:
@@ -39,8 +39,8 @@ ENV RAILS_ENV="production" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development"
 
-# Throw-away build stage to reduce size of final image
-FROM base AS build
+# Shared build packages for the parallel Ruby and JavaScript dependency stages.
+FROM base AS build-base
 
 # Install packages needed to build gems and convert the bundled web font into a
 # TTF that librsvg/Pango can rasterize for generated OG images.
@@ -48,7 +48,10 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git pkg-config libpq-dev libyaml-dev nodejs woff2 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Install npm dependencies for Vite.
+# Install JavaScript dependencies independently so BuildKit can run this stage
+# in parallel with the Ruby dependency stage.
+FROM build-base AS javascript-dependencies
+
 COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
 RUN --mount=type=cache,target=/root/.bun/install/cache \
@@ -58,16 +61,26 @@ RUN cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wgh
     woff2_decompress /tmp/spline-sans-latin-wght-normal.woff2 && \
     install -Dm644 /tmp/spline-sans-latin-wght-normal.ttf vendor/fonts/spline-sans-latin-wght-normal.ttf
 
-# Install application gems
+# Install gems independently from JavaScript dependencies.
+FROM build-base AS ruby-dependencies
+
 COPY Gemfile Gemfile.lock ./
 RUN --mount=type=cache,target=/root/.bundle/cache \
     --mount=type=cache,target=/usr/local/bundle/ruby/4.0.0/cache \
-    bundle install && \
+    BUNDLER_VERSION="$(tail -n 1 Gemfile.lock)" && \
+    gem install bundler --version "$BUNDLER_VERSION" && \
+    bundle "_${BUNDLER_VERSION}_" install && \
     rm -rf "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile
 
-# Copy application code
-COPY . .
+# Combine dependencies with application source, excluding Blume-only inputs so
+# documentation edits do not invalidate Rails asset compilation.
+FROM build-base AS app-source
+
+COPY --from=javascript-dependencies /rails/node_modules /rails/node_modules
+COPY --from=javascript-dependencies /rails/vendor/fonts /rails/vendor/fonts
+COPY --from=ruby-dependencies "${BUNDLE_PATH}" "${BUNDLE_PATH}"
+COPY --exclude=blume.config.ts --exclude=docs . .
 
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
@@ -77,16 +90,29 @@ RUN bundle exec bootsnap precompile app/ lib/
 # These files are gitignored and regenerated on every build.
 RUN SECRET_KEY_BASE_DUMMY=1 JS_FROM_ROUTES_FORCE=true ./bin/rake js_from_routes:generate
 
+# Build Blume independently from Rails assets so both builds run concurrently.
+FROM app-source AS docs-assets
+
+COPY blume.config.ts ./
+COPY docs docs
+RUN bun run build:docs
+
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY.
 # Tailwind is built via the Vite plugin (see app/javascript/entrypoints/application.css),
 # so no separate tailwindcss:build step is needed.
+FROM app-source AS rails-assets
+
 RUN --mount=type=cache,target=/rails/node_modules/.vite \
     --mount=type=cache,target=/root/.bun/install/cache \
     --mount=type=cache,target=/root/.cache \
     SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
-# Build Blume into public/ so Rails serves the docs on the application domain.
-RUN bun run build:docs && rm -rf .blume dist
+# Combine generated assets and remove build-only JavaScript dependencies before
+# the application is copied into the runtime image.
+FROM rails-assets AS build
+
+COPY --from=docs-assets /rails/public /rails/public
+RUN rm -rf node_modules
 
 # Final stage for app image
 FROM base

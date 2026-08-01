@@ -5,6 +5,9 @@ import { defineConfig } from "vite";
 import RubyPlugin from "vite-plugin-ruby";
 
 export default defineConfig({
+  ssr: {
+    noExternal: true,
+  },
   server: {
     hmr: {
       host: "localhost",
