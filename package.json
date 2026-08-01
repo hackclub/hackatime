@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:docs": "rm -rf public/docs public/_astro public/blume-search.json public/docs.md public/docs.mdx public/agent-readability.json public/llms.txt public/llms-full.txt && bun x --bun blume build && cp -R dist/docs dist/_astro public/ && cp dist/blume-search.json dist/docs.md dist/docs.mdx dist/agent-readability.json dist/llms.txt dist/llms-full.txt public/",
+    "build:docs": "rm -rf public/docs public/og/docs public/og/docs.png public/_astro public/blume-search.json public/docs.md public/docs.mdx public/docs-sitemap.xml public/agent-readability.json public/llms.txt public/llms-full.txt && bun x --bun blume build && mkdir -p public/og && cp -R dist/docs dist/_astro public/ && cp -R dist/og/. public/og/ && cp dist/sitemap.xml public/docs-sitemap.xml && cp dist/blume-search.json dist/docs.md dist/docs.mdx dist/agent-readability.json dist/llms.txt dist/llms-full.txt public/",
     "check": "bun run check:svelte && tsc -p tsconfig.node.json",
     "check:svelte": "svelte-check --config ./svelte.config.js --tsconfig ./tsconfig.svelte-check.json",
     "format:svelte": "prettier --write \"app/javascript/**/*.svelte\"",

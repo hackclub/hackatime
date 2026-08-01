@@ -26,6 +26,9 @@ const bun = (globalThis as typeof globalThis & { Bun: BunRuntime }).Bun;
 const themes = bun.YAML.parse(
   await bun.file(new URL("./config/themes.yml", import.meta.url)).text(),
 ) as ThemeMetadata[];
+const defaultTheme = themes.find((theme) => theme.value === "neon");
+if (!defaultTheme) throw new Error("The default Neon theme is missing");
+
 const docsThemes = Object.fromEntries(
   themes.map((theme) => [
     theme.value,
@@ -137,10 +140,20 @@ export default defineConfig({
     ],
   },
   seo: {
-    og: { enabled: false },
+    og: {
+      enabled: true,
+      palette: {
+        accent: defaultTheme.preview.primary,
+        background: defaultTheme.preview.darker,
+        foreground: defaultTheme.preview.content,
+        muted: defaultTheme.docs.muted_foreground,
+        border: defaultTheme.docs.border,
+      },
+    },
     rss: { enabled: false },
-    sitemap: false,
+    sitemap: true,
     robots: false,
     structuredData: true,
+    x: { handle: "@hackclub" },
   },
 });

@@ -68,7 +68,10 @@ pg-dump*
 /public/docs
 /public/docs.md
 /public/docs.mdx
+/public/docs-sitemap.xml
 /public/_astro
+/public/og/docs
+/public/og/docs.png
 # Downloaded GeoLite2 database (updated automatically by UpdateGeolite2DatabaseJob)
 /db/geo/*.mmdb
 
