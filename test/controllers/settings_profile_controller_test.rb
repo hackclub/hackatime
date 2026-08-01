@@ -12,6 +12,7 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to my_settings_appearance_path
     assert_equal "nord", user.reload.theme
+    assert_equal "nord", cookies[:hackatime_theme]
   end
 
   test "region update normalizes blank country code to nil" do

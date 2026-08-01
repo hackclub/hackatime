@@ -1,33 +1,13 @@
 @import "@fontsource-variable/spline-sans";
 
-:root,
-:root[data-theme="dark"] {
-  --blume-background: #101312;
-  --blume-foreground: #e8eee9;
-  --blume-muted: #171c1a;
-  --blume-muted-foreground: #a4b0aa;
-  --blume-border: #2b3532;
-  --blume-accent: #d7ff6a;
-  --blume-accent-foreground: #13160d;
-  --blume-action: #d7ff6a;
-  --blume-action-foreground: #13160d;
-  --blume-code-background: #050505;
+:root {
   --blume-font-display: "Spline Sans Variable", "Spline Sans", sans-serif;
   --blume-font-body: "Spline Sans Variable", "Spline Sans", sans-serif;
   --blume-content-width: 46rem;
 }
 
-:root[data-theme="light"] {
-  --blume-background: #eff1f5;
-  --blume-foreground: #4c4f69;
-  --blume-muted: #e6e9ef;
-  --blume-muted-foreground: #5c5f77;
-  --blume-border: #ccd0da;
-  --blume-accent: #1e66f5;
-  --blume-accent-foreground: #ffffff;
-  --blume-action: #1e66f5;
-  --blume-action-foreground: #ffffff;
-  --blume-code-background: #dce0e8;
+[data-blume-theme-toggle] {
+  display: none;
 }
 
 /* Legacy docs include the same H1 Blume infers and renders as the page title. */

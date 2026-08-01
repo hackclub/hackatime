@@ -13,6 +13,12 @@
     info: "#5bc0de"
     success: "#33d6a6"
     warning: "#f1c40f"
+  docs:
+    muted: "#3a292d"
+    muted_foreground: "#6e6468"
+    border: "#5a3f44"
+    accent_foreground: "#ffffff"
+    code_background: "#1f1617"
 
 - value: neon
   label: Neon
@@ -28,6 +34,12 @@
     info: "#6fd7ff"
     success: "#7dfc6a"
     warning: "#ffd166"
+  docs:
+    muted: "#171c1a"
+    muted_foreground: "#8f9b95"
+    border: "#2b3532"
+    accent_foreground: "#13160d"
+    code_background: "#050505"
 
 - value: catppuccin_mocha
   label: Catppuccin Mocha
@@ -43,6 +55,12 @@
     info: "#89b4fa"
     success: "#a6e3a1"
     warning: "#f9e2af"
+  docs:
+    muted: "#313244"
+    muted_foreground: "#a6adc8"
+    border: "#585b70"
+    accent_foreground: "#1e1e2e"
+    code_background: "#11111b"
 
 - value: catppuccin_iced_latte
   label: Catppuccin Iced Latte
@@ -58,6 +76,12 @@
     info: "#209fb5"
     success: "#40a02b"
     warning: "#df8e1d"
+  docs:
+    muted: "#e6e9ef"
+    muted_foreground: "#5c5f77"
+    border: "#ccd0da"
+    accent_foreground: "#ffffff"
+    code_background: "#ffffff"
 
 - value: gruvbox_dark
   label: Gruvbox Dark
@@ -73,6 +97,12 @@
     info: "#83a598"
     success: "#b8bb26"
     warning: "#fabd2f"
+  docs:
+    muted: "#3c3836"
+    muted_foreground: "#a89984"
+    border: "#665c54"
+    accent_foreground: "#1d2021"
+    code_background: "#1d2021"
 
 - value: github_dark
   label: GitHub Dark
@@ -88,6 +118,12 @@
     info: "#79b8ff"
     success: "#34d058"
     warning: "#ffab70"
+  docs:
+    muted: "#2b3036"
+    muted_foreground: "#959da5"
+    border: "#444d56"
+    accent_foreground: "#ffffff"
+    code_background: "#1b1f23"
 
 - value: github_light
   label: GitHub Light
@@ -103,6 +139,12 @@
     info: "#0366d6"
     success: "#28a745"
     warning: "#e36209"
+  docs:
+    muted: "#f6f8fa"
+    muted_foreground: "#6a737d"
+    border: "#d1d5da"
+    accent_foreground: "#ffffff"
+    code_background: "#f6f8fa"
 
 - value: nord
   label: Nord
@@ -118,6 +160,12 @@
     info: "#81a1c1"
     success: "#a3be8c"
     warning: "#ebcb8b"
+  docs:
+    muted: "#434c5e"
+    muted_foreground: "#d8dee9"
+    border: "#5e6878"
+    accent_foreground: "#2e3440"
+    code_background: "#2e3440"
 
 - value: rose
   label: Rose Pine
@@ -133,6 +181,12 @@
     info: "#9ccfd8"
     success: "#31748f"
     warning: "#f6c177"
+  docs:
+    muted: "#26233a"
+    muted_foreground: "#908caa"
+    border: "#3d3b52"
+    accent_foreground: "#191724"
+    code_background: "#191724"
 
 - value: rose_pine_dawn
   label: Rose Pine Dawn
@@ -148,6 +202,12 @@
     info: "#56949f"
     success: "#286983"
     warning: "#a35a00"
+  docs:
+    muted: "#f2e9e1"
+    muted_foreground: "#5e5977"
+    border: "#cecacd"
+    accent_foreground: "#fffaf3"
+    code_background: "#ffffff"
 
 - value: amoled
   label: AMOLED
@@ -163,3 +223,9 @@
     info: "#448aff"
     success: "#00e676"
     warning: "#ffea00"
+  docs:
+    muted: "#0a0a0a"
+    muted_foreground: "#616161"
+    border: "#1e1e1e"
+    accent_foreground: "#000000"
+    code_background: "#0a0a0a"
