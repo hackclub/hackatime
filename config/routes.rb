@@ -132,8 +132,6 @@ Rails.application.routes.draw do
 
   # Docs routes
   post "docs/feedback", to: "documentation_feedbacks#create", format: false
-  get "docs", to: "docs#index", as: :docs
-  get "docs/*path", to: "docs#show", as: :doc
 
   # Nested under users for admin access
   resources :users, only: [] do

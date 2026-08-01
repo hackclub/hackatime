@@ -40,9 +40,6 @@ module JsFromRoutes
 
     leaderboards
 
-    docs
-    doc
-
     settings_user
     my_settings
     my_settings_profile
