@@ -66,3 +66,5 @@ pg-dump-all-*
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+/buildkitd.toml
+/docker-container-buildkitd.toml
