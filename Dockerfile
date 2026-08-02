@@ -10,8 +10,8 @@
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 ARG RUBY_VERSION=4.0.6
 
-# Use the exact canary exercised by the paired soak rather than allowing the
-# moving canary-slim tag to change between builds.
+# Canary is a YMMV thing, so we pin to a known-good version
+# TODO: update to Bun 1.4 stable when it's released
 FROM docker.io/oven/bun:canary-slim@sha256:a7bb5914f0fbc281199f03a901b3f2797abd4604ba1371e3808ac5ab789de7bb AS bun
 
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS ruby-base
