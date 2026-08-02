@@ -115,7 +115,10 @@ jobs:
         run: bin/rails zeitwerk:check
 
   docker_build:
+    if: github.event_name == 'pull_request'
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -133,8 +136,39 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
-          push: false
           load: false
+          push: false
+
+  publish_image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish production image
+        uses: useblacksmith/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          load: false
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
 
   test:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -250,3 +284,115 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [scan_ruby, scan_js, lint, frontend, zeitwerk, publish_image, test, test_system]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    environment: production
+    timeout-minutes: 20
+
+    steps:
+      - name: Deploy immutable image through Coolify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_APPLICATION_UUID: ${{ secrets.COOLIFY_APPLICATION_UUID }}
+          IMAGE_NAME: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+
+          : "${COOLIFY_URL:?Set the COOLIFY_URL production environment secret}"
+          : "${COOLIFY_API_TOKEN:?Set the COOLIFY_API_TOKEN production environment secret}"
+          : "${COOLIFY_APPLICATION_UUID:?Set the COOLIFY_APPLICATION_UUID production environment secret}"
+
+          coolify_url="${COOLIFY_URL%/}"
+          api_url="${coolify_url}/api/v1"
+          authorization="Authorization: Bearer ${COOLIFY_API_TOKEN}"
+
+          latest_main_sha="$(curl --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 60 \
+            --retry 3 --retry-all-errors \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'Accept: application/vnd.github+json' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/commits/main" | jq -er '.sha')"
+
+          if [ "$latest_main_sha" != "$IMAGE_TAG" ]; then
+            echo "::notice::Skipping stale deployment of ${IMAGE_TAG}; main is ${latest_main_sha}."
+            exit 0
+          fi
+
+          application="$(curl --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 60 \
+            --retry 3 --retry-all-errors \
+            --header "$authorization" \
+            "${api_url}/applications/${COOLIFY_APPLICATION_UUID}")"
+
+          if [ "$(jq -r '.build_pack' <<<"$application")" != "dockerimage" ]; then
+            echo "::error::COOLIFY_APPLICATION_UUID must identify a Docker Image application."
+            exit 1
+          fi
+
+          update_payload="$(jq -cn \
+            --arg image "$IMAGE_NAME" \
+            --arg tag "$IMAGE_TAG" \
+            '{docker_registry_image_name: $image, docker_registry_image_tag: $tag}')"
+
+          curl --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 60 \
+            --retry 3 --retry-all-errors \
+            --request PATCH \
+            --header "$authorization" \
+            --header 'Content-Type: application/json' \
+            --data "$update_payload" \
+            --output /dev/null \
+            "${api_url}/applications/${COOLIFY_APPLICATION_UUID}"
+
+          deploy_payload="$(jq -cn --arg uuid "$COOLIFY_APPLICATION_UUID" '{uuid: $uuid}')"
+          deploy_response="$(curl --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 60 \
+            --request POST \
+            --header "$authorization" \
+            --header 'Content-Type: application/json' \
+            --data "$deploy_payload" \
+            "${api_url}/deploy")"
+          deployment_uuid="$(jq -er '.deployments[0].deployment_uuid' <<<"$deploy_response")"
+
+          echo "Coolify deployment queued: ${deployment_uuid}"
+          deadline=$((SECONDS + 900))
+
+          while (( SECONDS < deadline )); do
+            deployment="$(curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 --max-time 60 \
+              --retry 3 --retry-all-errors \
+              --header "$authorization" \
+              "${api_url}/deployments/${deployment_uuid}")"
+            status="$(jq -er '.status' <<<"$deployment")"
+            echo "Coolify deployment status: ${status}"
+
+            case "$status" in
+              queued|in_progress)
+                ;;
+              finished)
+                exit 0
+                ;;
+              failed|cancelled-by-user)
+                echo "::error::Coolify deployment ${deployment_uuid} ended with status ${status}."
+                exit 1
+                ;;
+              *)
+                echo "::error::Unknown Coolify deployment status: ${status}"
+                exit 1
+                ;;
+            esac
+
+            sleep 5
+          done
+
+          echo "::error::Coolify deployment ${deployment_uuid} did not finish within 15 minutes."
+          exit 1
