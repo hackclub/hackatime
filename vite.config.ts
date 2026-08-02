@@ -5,6 +5,10 @@ import { defineConfig } from "vite";
 import RubyPlugin from "vite-plugin-ruby";
 
 export default defineConfig({
+  cacheDir: process.env.VITE_CACHE_DIR,
+  ssr: {
+    noExternal: true,
+  },
   server: {
     hmr: {
       host: "localhost",
