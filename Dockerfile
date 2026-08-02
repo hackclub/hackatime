@@ -123,9 +123,16 @@ RUN --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,ta
 # reuse the compiled JavaScript and CSS.
 FROM application-source AS rails-assets
 
-RUN --mount=type=bind,from=ruby-dependencies,source=/usr/local/bundle,target=/usr/local/bundle \
+# Preserve the production eager-load Bootsnap cache that the Rails-wrapped Vite
+# build previously generated. Active Storage initializes its R2 client during
+# eager loading, so use loopback-only placeholders in a network-isolated step.
+RUN --network=none \
+    --mount=type=bind,from=ruby-dependencies,source=/usr/local/bundle,target=/usr/local/bundle \
     --mount=type=cache,target=/root/.cache \
     export SECRET_KEY_BASE_DUMMY=1 JS_FROM_ROUTES_FORCE=true && \
+    AWS_EC2_METADATA_DISABLED=true \
+      S3_BUCKET=dummy S3_ACCESS_KEY_ID=dummy S3_SECRET_ACCESS_KEY=dummy S3_ENDPOINT=http://127.0.0.1 \
+      ./bin/rails runner "Rails.application.eager_load!" && \
     VITE_RUBY_SKIP_ASSETS_PRECOMPILE_EXTENSION=true \
       ./bin/rake js_from_routes:generate assets:precompile
 
