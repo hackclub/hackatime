@@ -118,30 +118,45 @@ COPY docs docs
 RUN --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,target=/rails/node_modules,rw \
     bun run build:docs
 
-# Precompiling assets for production without requiring secret RAILS_MASTER_KEY.
-# Tailwind is built via the Vite plugin (see app/javascript/entrypoints/application.css),
-# so no separate tailwindcss:build step is needed.
+# Generate the Rails-owned assets and route helpers without requiring secret
+# RAILS_MASTER_KEY. Keeping this separate from Vite lets backend-only changes
+# reuse the compiled JavaScript and CSS.
 FROM application-source AS rails-assets
 
 RUN --mount=type=bind,from=ruby-dependencies,source=/usr/local/bundle,target=/usr/local/bundle \
-    --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,target=/rails/node_modules,rw \
-    --mount=type=cache,target=/rails/node_modules/.vite-client \
-    --mount=type=cache,target=/rails/node_modules/.vite-ssr \
-    --mount=type=cache,target=/root/.bun/install/cache \
     --mount=type=cache,target=/root/.cache \
     export SECRET_KEY_BASE_DUMMY=1 JS_FROM_ROUTES_FORCE=true && \
     VITE_RUBY_SKIP_ASSETS_PRECOMPILE_EXTENSION=true \
-      ./bin/rake js_from_routes:generate assets:precompile && \
-    (VITE_CACHE_DIR=node_modules/.vite-client ./bin/vite build & \
+      ./bin/rake js_from_routes:generate assets:precompile
+
+# Build Vite from only the files that can affect its output. Tailwind scans
+# Rails controllers, helpers, and views in addition to the JavaScript source.
+FROM ruby-base AS frontend-assets
+
+COPY app/javascript app/javascript
+COPY app/assets/tailwind app/assets/tailwind
+COPY app/controllers app/controllers
+COPY app/helpers app/helpers
+COPY app/views app/views
+COPY config/vite.json config/vite.json
+COPY vite.config.ts ./
+COPY --from=rails-assets /rails/app/javascript/api app/javascript/api
+
+RUN --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,target=/rails/node_modules,rw \
+    --mount=type=cache,target=/rails/node_modules/.vite-client \
+    --mount=type=cache,target=/rails/node_modules/.vite-ssr \
+    --mount=type=cache,target=/root/.bun/install/cache \
+    (VITE_CACHE_DIR=node_modules/.vite-client bun x --bun vite build & \
       client_pid=$!; \
-      VITE_CACHE_DIR=node_modules/.vite-ssr ./bin/vite build --ssr & \
+      VITE_CACHE_DIR=node_modules/.vite-ssr bun x --bun vite build --ssr & \
       ssr_pid=$!; \
       wait "$client_pid" && \
       wait "$ssr_pid")
 
-# Combine generated Rails and documentation assets.
+# Combine generated Rails, Vite, and documentation assets.
 FROM rails-assets AS build
 
+COPY --from=frontend-assets /rails/public /rails/public
 COPY --from=docs-assets /rails/public /rails/public
 
 # Final stage for app image
