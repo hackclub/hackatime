@@ -115,14 +115,13 @@ jobs:
         run: bin/rails zeitwerk:check
 
   docker_build:
-    if: github.event_name == 'pull_request'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        dockerfile: [Dockerfile, Dockerfile.dev]
+        dockerfile: ${{ fromJSON(github.event_name == 'pull_request' && '["Dockerfile", "Dockerfile.dev"]' || '["Dockerfile.dev"]') }}
 
     steps:
       - name: Checkout code
