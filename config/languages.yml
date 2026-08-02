@@ -719,6 +719,16 @@ BlitzMax:
   tm_scope: source.blitzmax
   ace_mode: text
   language_id: 35
+Blueprint:
+  type: markup
+  color: "#3584E4"
+  extensions:
+  - ".blp"
+  aliases:
+  - blp
+  tm_scope: source.blueprint
+  ace_mode: text
+  language_id: 765545512
 Bluespec:
   type: programming
   color: "#12223c"
@@ -838,7 +848,7 @@ C#:
   codemirror_mode: clike
   codemirror_mime_type: text/x-csharp
   tm_scope: source.cs
-  color: "#178600"
+  color: "#7355dd"
   aliases:
   - csharp
   - cake
@@ -1117,10 +1127,8 @@ Carbon:
   color: "#222222"
   extensions:
   - ".carbon"
-  ace_mode: golang
-  codemirror_mode: go
-  codemirror_mime_type: text/x-go
-  tm_scope: source.v
+  ace_mode: text
+  tm_scope: source.carbon
   language_id: 55627273
 CartoCSS:
   type: programming
@@ -2664,6 +2672,8 @@ Git Config:
   filenames:
   - ".gitconfig"
   - ".gitmodules"
+  - ".tgitconfig"
+  - config.worktree
   ace_mode: ini
   codemirror_mode: properties
   codemirror_mime_type: text/x-properties
@@ -2726,6 +2736,18 @@ Glyph Bitmap Distribution Format:
   tm_scope: source.bdf
   ace_mode: text
   language_id: 997665271
+Gno:
+  type: programming
+  color: "#226c57"
+  aliases:
+  - gnolang
+  extensions:
+  - ".gno"
+  tm_scope: source.gno
+  ace_mode: golang
+  codemirror_mode: go
+  codemirror_mime_type: text/x-go
+  language_id: 279301301
 Gnuplot:
   type: programming
   color: "#f0a9f0"
@@ -3374,6 +3396,7 @@ Ignore List:
   - ".atomignore"
   - ".babelignore"
   - ".bzrignore"
+  - ".ckignore"
   - ".coffeelintignore"
   - ".cvsignore"
   - ".dockerignore"
@@ -3387,6 +3410,7 @@ Ignore List:
   - ".nodemonignore"
   - ".npmignore"
   - ".prettierignore"
+  - ".rgignore"
   - ".stylelintignore"
   - ".vercelignore"
   - ".vscodeignore"
@@ -3560,6 +3584,7 @@ JSON:
   - ".htmlhintrc"
   - ".imgbotconfig"
   - ".nycrc"
+  - ".secrets.baseline"
   - ".tern-config"
   - ".tern-project"
   - ".watchmanconfig"
