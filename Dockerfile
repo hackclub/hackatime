@@ -9,22 +9,19 @@
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 ARG RUBY_VERSION=4.0.6
-ARG BUN_VERSION=1.3.14
 
-FROM docker.io/oven/bun:$BUN_VERSION-slim AS bun-build
-
-# Keep production SSR on the exact canary runtime exercised by the paired soak
-# rather than allowing the moving canary-slim tag to change between builds.
-FROM docker.io/oven/bun:canary-slim@sha256:a7bb5914f0fbc281199f03a901b3f2797abd4604ba1371e3808ac5ab789de7bb AS bun-runtime
+# Use the exact canary exercised by the paired soak rather than allowing the
+# moving canary-slim tag to change between builds.
+FROM docker.io/oven/bun:canary-slim@sha256:a7bb5914f0fbc281199f03a901b3f2797abd4604ba1371e3808ac5ab789de7bb AS bun
 
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS ruby-base
 
 # Rails app lives here
 WORKDIR /rails
 
-# Use stable Bun for dependency installation and asset compilation. Keeping it
-# on the common build parent lets the expensive apt installs below run in parallel.
-COPY --from=bun-build /usr/local/bin/bun /usr/local/bin/bun
+# Keeping Bun on the common parent makes the same pinned binary available to
+# dependency installation, asset compilation, and the production SSR runtime.
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
 # Set production environment
 ENV RAILS_ENV="production" \
@@ -149,10 +146,6 @@ COPY --from=docs-assets /rails/public /rails/public
 
 # Final stage for app image
 FROM prepared-runtime
-
-# The SSR-only runtime uses the pinned, soak-tested canary binary. Build inputs
-# and generated assets continue to use the stable BUN_VERSION above.
-COPY --from=bun-runtime /usr/local/bin/bun /usr/local/bin/bun
 
 # Copy built artifacts: gems, application
 COPY --from=ruby-dependencies "${BUNDLE_PATH}" "${BUNDLE_PATH}"
