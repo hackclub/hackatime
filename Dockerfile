@@ -139,6 +139,7 @@ COPY app/controllers app/controllers
 COPY app/helpers app/helpers
 COPY app/views app/views
 COPY config/vite.json config/vite.json
+COPY package.json ./
 COPY vite.config.ts ./
 COPY --from=rails-assets /rails/app/javascript/api app/javascript/api
 
