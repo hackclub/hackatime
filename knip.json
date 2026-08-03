@@ -15,7 +15,9 @@
     "app/assets/**/*.css"
   ],
   "ignoreDependencies": [
-    "@js-from-routes/client"
+    "@js-from-routes/client",
+    "@img/sharp-libvips-linux-arm64",
+    "@img/sharp-libvips-linux-x64"
   ],
   "tags": [
     "-lintignore"
