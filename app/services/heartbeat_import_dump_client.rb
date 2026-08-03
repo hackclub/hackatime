@@ -52,8 +52,6 @@ class HeartbeatImportDumpClient
     Array(request_json(method: :get, path: "/users/current/user_agents")["data"]).map { normalize_user_agent(_1) }
   end
 
-  def self.base_url_for(source_kind) = BASE_URLS.fetch(source_kind.to_s)
-
   def self.valid_wakatime_download_url?(download_url)
     uri = URI.parse(download_url.to_s)
     uri.scheme == "https" && uri.host == WAKATIME_DOWNLOAD_HOST && uri.path.present?

@@ -40,12 +40,6 @@ class HeartbeatImportService
       skipped_count: total_count - imported_count, errors: errors + [ e.message ] }
   end
 
-  def self.count_heartbeats(file_content)
-    total_count = 0
-    Oj.saj_parse(HeartbeatSaxHandler.new { |_hb| total_count += 1 }, file_content)
-    total_count
-  end
-
   class HeartbeatSaxHandler < Oj::Saj
     def initialize(&block)
       @block = block
