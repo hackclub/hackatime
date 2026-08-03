@@ -34,9 +34,14 @@
 /node_modules/
 /.blume/
 /dist/
+/app/javascript/api/
 /app/assets/builds/*
 !/app/assets/builds/.keep
 /public/assets
+/public/vite/
+/public/vite-ssr/
+/public/vite-dev/
+/public/vite-test/
 /public/_astro/
 /public/docs/
 /public/og/docs/
