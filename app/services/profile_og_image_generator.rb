@@ -38,6 +38,8 @@ class ProfileOgImageGenerator
 
   def call
     require "vips" # we do it here so that CI doesn't need to install vips
+    # This process-wide loader only receives SVG from our ERB template.
+    Vips.block("VipsForeignLoadSvgBuffer", false) if Vips.respond_to?(:block)
     png = Vips::Image.svgload_buffer(svg, scale: 2).resize(0.5).write_to_buffer(".png[compression=3,filter=0]")
     Result.new(png:, fingerprint:, filename: "profile-og-#{user.id}-v#{TEMPLATE_VERSION}.png")
   end
