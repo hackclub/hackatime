@@ -15,10 +15,6 @@ module DashboardData
     dashboard_stats.today_stats_data
   end
 
-  def dashboard_filters
-    DashboardStats::FILTERS
-  end
-
   def dashboard_stats
     @dashboard_stats ||= DashboardStats.new(user: current_user, params: params)
   end
