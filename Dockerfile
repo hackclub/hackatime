@@ -39,9 +39,6 @@ RUN apt-get update -qq && \
     curl \
     fontconfig \
     libjemalloc2 \
-    libvips \
-    sqlite3 \
-    libpq5 \
     tar && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
@@ -64,25 +61,46 @@ RUN apt-get update -qq && \
 # in parallel with the Ruby dependency stage.
 FROM frontend-base AS javascript-dependencies
 
+ARG TARGETARCH
+
 COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun i --frozen-lockfile && \
-    mkdir -p node_modules/.vite-client node_modules/.vite-ssr
+RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
+    --mount=type=cache,target=/root/.bun/install/cache \
+    rm -rf .deps/patches && \
+    cp package.json bun.lock bunfig.toml .deps/ && \
+    cp -a patches .deps/patches && \
+    cd .deps && \
+    bun i --frozen-lockfile --linker=isolated && \
+    cd .. && \
+    touch .deps-ready
 
-RUN cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
+RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
+    ln -s .deps/node_modules node_modules && \
+    cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
     woff2_decompress /tmp/spline-sans-latin-wght-normal.woff2 && \
     install -Dm644 /tmp/spline-sans-latin-wght-normal.ttf vendor/fonts/spline-sans-latin-wght-normal.ttf
+
+# Sharp ships one libvips binary with its codecs. Ruby Vips loads the same ABI.
+FROM javascript-dependencies AS libvips
+
+RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
+    mkdir /libvips && \
+    cp node_modules/@img/sharp-libvips-linux-*/lib/libvips-cpp.so.* /libvips/libvips-cpp.so
 
 # Prepare the runtime concurrently with dependency and asset compilation.
 FROM runtime-base AS prepared-runtime
 
+ENV LD_LIBRARY_PATH="/usr/local/lib"
+
 COPY --from=frontend-base /usr/bin/git /usr/bin/git
 COPY --from=frontend-base /usr/lib/git-core /usr/lib/git-core
+COPY --from=libvips /libvips/libvips-cpp.so /usr/local/lib/libvips-cpp.so
 COPY --from=javascript-dependencies /rails/vendor/fonts/spline-sans-latin-wght-normal.ttf \
     /usr/local/share/fonts/spline-sans/spline-sans-latin-wght-normal.ttf
 
-RUN fc-cache -f /usr/local/share/fonts/spline-sans && \
+RUN ln -s libvips-cpp.so /usr/local/lib/libvips.so.42 && \
+    fc-cache -f /usr/local/share/fonts/spline-sans && \
     groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
     git config --system http.timeout 30 && \
@@ -111,37 +129,75 @@ COPY --exclude=blume.config.ts --exclude=docs . .
 # invalidate nor delay documentation generation.
 FROM ruby-base AS docs-assets
 
+ARG TARGETARCH
+
 COPY package.json blume.config.ts theme.css ./
 COPY config/themes.yml config/themes.yml
 COPY public public
 COPY docs docs
-RUN --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,target=/rails/node_modules,rw \
+COPY --from=javascript-dependencies /rails/.deps-ready /rails/.deps-ready
+RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
+    ln -s .deps/node_modules node_modules && \
     bun run build:docs
 
-# Precompiling assets for production without requiring secret RAILS_MASTER_KEY.
-# Tailwind is built via the Vite plugin (see app/javascript/entrypoints/application.css),
-# so no separate tailwindcss:build step is needed.
-FROM application-source AS rails-assets
+# Generate route helpers before the two asset branches start.
+FROM application-source AS route-helpers
 
-RUN --mount=type=bind,from=ruby-dependencies,source=/usr/local/bundle,target=/usr/local/bundle \
-    --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,target=/rails/node_modules,rw \
-    --mount=type=cache,target=/rails/node_modules/.vite-client \
-    --mount=type=cache,target=/rails/node_modules/.vite-ssr \
-    --mount=type=cache,target=/root/.bun/install/cache \
-    --mount=type=cache,target=/root/.cache \
+RUN --network=none \
+    --mount=type=bind,from=ruby-dependencies,source=/usr/local/bundle,target=/usr/local/bundle \
     export SECRET_KEY_BASE_DUMMY=1 JS_FROM_ROUTES_FORCE=true && \
-    VITE_RUBY_SKIP_ASSETS_PRECOMPILE_EXTENSION=true \
-      ./bin/rake js_from_routes:generate assets:precompile && \
-    (VITE_CACHE_DIR=node_modules/.vite-client ./bin/vite build & \
+    AWS_EC2_METADATA_DISABLED=true \
+      S3_BUCKET=dummy S3_ACCESS_KEY_ID=dummy S3_SECRET_ACCESS_KEY=dummy S3_ENDPOINT=http://127.0.0.1 \
+      ./bin/rake js_from_routes:generate
+
+# Build Rails assets in one Rails process. Save its Bootsnap cache in the image
+# so production does not compile the same Ruby files again at boot.
+FROM route-helpers AS rails-assets
+
+RUN --network=none \
+    --mount=type=bind,from=ruby-dependencies,source=/usr/local/bundle,target=/usr/local/bundle \
+    --mount=type=cache,target=/root/.cache/bootsnap \
+    export SECRET_KEY_BASE_DUMMY=1 BOOTSNAP_CACHE_DIR=/root/.cache/bootsnap \
+      VITE_RUBY_SKIP_ASSETS_PRECOMPILE_EXTENSION=true && \
+    AWS_EC2_METADATA_DISABLED=true \
+      S3_BUCKET=dummy S3_ACCESS_KEY_ID=dummy S3_SECRET_ACCESS_KEY=dummy S3_ENDPOINT=http://127.0.0.1 \
+      ./bin/rails runner 'Rails.application.eager_load!; Rails.application.load_tasks; Rake::Task["assets:precompile"].invoke' && \
+    rm -rf tmp/cache/bootsnap && \
+    cp -a "$BOOTSNAP_CACHE_DIR/bootsnap" tmp/cache/bootsnap
+
+# Build Vite from only the files that can affect its output. Tailwind scans
+# Rails controllers, helpers, and views in addition to the JavaScript source.
+FROM ruby-base AS frontend-assets
+
+ARG TARGETARCH
+
+COPY app/javascript app/javascript
+COPY app/assets/tailwind app/assets/tailwind
+COPY app/controllers app/controllers
+COPY app/helpers app/helpers
+COPY app/views app/views
+COPY config/vite.json config/vite.json
+COPY package.json ./
+COPY svelte.config.js ./
+COPY tsconfig.json tsconfig.node.json ./
+COPY vite.config.ts ./
+COPY --from=route-helpers /rails/app/javascript/api app/javascript/api
+COPY --from=javascript-dependencies /rails/.deps-ready /rails/.deps-ready
+
+RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
+    --mount=type=cache,target=/root/.bun/install/cache \
+    ln -s .deps/node_modules node_modules && \
+    (VITE_CACHE_DIR=node_modules/.vite-client bun x --bun vite build & \
       client_pid=$!; \
-      VITE_CACHE_DIR=node_modules/.vite-ssr ./bin/vite build --ssr & \
+      VITE_CACHE_DIR=node_modules/.vite-ssr bun x --bun vite build --ssr & \
       ssr_pid=$!; \
       wait "$client_pid" && \
       wait "$ssr_pid")
 
-# Combine generated Rails and documentation assets.
+# Combine generated Rails, Vite, and documentation assets.
 FROM rails-assets AS build
 
+COPY --from=frontend-assets /rails/public /rails/public
 COPY --from=docs-assets /rails/public /rails/public
 
 # Final stage for app image
@@ -149,7 +205,7 @@ FROM prepared-runtime
 
 # Copy built artifacts: gems, application
 COPY --from=ruby-dependencies "${BUNDLE_PATH}" "${BUNDLE_PATH}"
-COPY --from=build --exclude=db --exclude=log --exclude=storage --exclude=tmp /rails /rails
+COPY --from=build --exclude=db --exclude=log --exclude=spec --exclude=storage --exclude=test --exclude=tmp /rails /rails
 COPY --from=build --chown=1000:1000 /rails/db /rails/db
 COPY --from=build --chown=1000:1000 /rails/log /rails/log
 COPY --from=build --chown=1000:1000 /rails/storage /rails/storage

@@ -4,7 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import RubyPlugin from "vite-plugin-ruby";
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
+  build: {
+    sourcemap: isSsrBuild,
+  },
   cacheDir: process.env.VITE_CACHE_DIR,
   ssr: {
     noExternal: true,
@@ -25,4 +28,4 @@ export default defineConfig({
     tailwindcss(),
     RubyPlugin(),
   ],
-});
+}));
