@@ -64,7 +64,7 @@ FROM frontend-base AS javascript-dependencies
 COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun i --frozen-lockfile && \
+    bun i --frozen-lockfile --linker=isolated && \
     mkdir -p node_modules/.vite-client node_modules/.vite-ssr
 
 RUN cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
