@@ -59,7 +59,7 @@ class InertiaController < ApplicationController
     if current_user
       links += [
         inertia_link("Projects", my_projects_path, active: request.path.start_with?("/my/projects"), inertia: true),
-        inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true),
+        inertia_link("Docs", "/docs", active: request.path.start_with?("/docs")),
         inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true),
         inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings"), inertia: true),
         inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications"), inertia: true),
@@ -67,7 +67,7 @@ class InertiaController < ApplicationController
       ]
     else
       links += [
-        inertia_link("Docs", docs_path, active: helpers.current_page?(docs_path) || request.path.start_with?("/docs"), inertia: true),
+        inertia_link("Docs", "/docs", active: request.path.start_with?("/docs")),
         inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
       ]
     end
@@ -166,20 +166,5 @@ class InertiaController < ApplicationController
     } if current_user&.can_view_query_stats?
 
     props
-  end
-
-  def currently_hacking_props
-    data = Cache::CurrentlyHackingJob.perform_now
-    users = (data[:users] || []).map do |u|
-      proj = data[:active_projects]&.dig(u.id)
-      {
-        id: u.id,
-        display_name: u.display_name,
-        slack_uid: u.slack_uid,
-        avatar_url: u.avatar_url,
-        active_project: proj && { name: proj.project_name, repo_url: proj.repo_url }
-      }
-    end
-    { count: users.size, users: users, interval: 30_000 }
   end
 end

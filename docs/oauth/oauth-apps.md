@@ -1,4 +1,6 @@
-# OAuth Apps
+---
+title: OAuth apps
+---
 
 Build integrations with Hackatime using OAuth 2.0. Create an OAuth app to let users authorize your application to access their Hackatime data.
 
@@ -6,7 +8,7 @@ Build integrations with Hackatime using OAuth 2.0. Create an OAuth app to let us
 
 Hackatime uses [OAuth 2.0](https://oauth.net/2/) (powered by Doorkeeper) to let third-party applications access user data on their behalf. This is the recommended way to build integrations -- users authorize your app through a consent screen and you receive an access token to make API requests.
 
-## Creating an OAuth App
+## Creating an OAuth app
 
 1. Sign in to your Hackatime account
 2. Go to [My OAuth Apps](https://hackatime.hackclub.com/oauth/applications)
@@ -46,11 +48,11 @@ scope=profile+read
 - Apps with the `admin` scope must be **confidential** (server-side clients that can keep a secret).
 - Only staff can authorize an app that requests `admin`. Regular users are denied.
 
-## Authorization Flow
+## Authorization flow
 
 Hackatime supports the standard **Authorization Code** flow. PKCE (Proof Key for Code Exchange) is also supported for public clients.
 
-### Step 1: Redirect Users to Authorize
+### Step 1: Redirect users to authorize
 
 Send users to the authorization endpoint:
 
@@ -78,7 +80,7 @@ https://hackatime.hackclub.com/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect
 
 The user sees a consent screen showing your app name and the permissions you are requesting. If your app is not verified, a warning is displayed to the user.
 
-### Step 2: Handle the Callback
+### Step 2: Handle the callback
 
 After the user authorizes (or denies), they are redirected to your `redirect_uri` with a `code` parameter:
 
@@ -88,7 +90,7 @@ https://example.com/auth/callback?code=AUTHORIZATION_CODE&state=random_string
 
 If the user denies authorization, the callback includes an `error` parameter instead.
 
-### Step 3: Exchange the Code for a Token
+### Step 3: Exchange the code for a token
 
 Make a `POST` request to the token endpoint to exchange the authorization code for an access token:
 
@@ -122,7 +124,7 @@ POST https://hackatime.hackclub.com/oauth/token
 
 Access tokens currently expire after 1 year. Use the `refresh_token` to get a new access token without re-prompting the user for consent (see [Refreshing Tokens](#refreshing-tokens) below).
 
-### Step 4: Make API Requests
+### Step 4: Make API requests
 
 Use the access token in the `Authorization` header:
 
@@ -161,7 +163,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 The token acts as the authorizing staff member: permissions follow their `admin_level` (viewer is read-oriented; admin+ can write where the Admin API allows). Existing Admin API keys (`hka_…`) continue to work for scripts and CI.
 
-## OAuth-Authenticated API Endpoints
+## OAuth-authenticated API endpoints
 
 All endpoints below require a valid OAuth access token in the `Authorization: Bearer <token>` header.
 
@@ -264,9 +266,21 @@ Requires the `heartbeats` scope. Returns the user's most recent heartbeat.
 }
 ```
 
-## Revoking Access
+### GET /api/v1/authenticated/api_keys
 
-### As a User
+Returns the user's Hackatime API key (creates one if none exists).
+
+**Response:**
+
+```json
+{
+  "token": "abc123..."
+}
+```
+
+## Revoking access
+
+### As a user
 
 Users can revoke access to your app at any time:
 
@@ -289,7 +303,7 @@ POST https://hackatime.hackclub.com/oauth/revoke
 | `client_id` | Yes | Your app's UID |
 | `client_secret` | Yes (confidential apps) | Your app's secret |
 
-## PKCE for Public Clients
+## PKCE for public clients
 
 If your app cannot securely store a client secret (mobile apps, desktop apps, SPAs), use PKCE:
 
@@ -300,7 +314,7 @@ If your app cannot securely store a client secret (mobile apps, desktop apps, SP
 
 You can also leave the **Confidential** checkbox unchecked and omit the `client_secret` in your token requests.
 
-## App Verification
+## App verification
 
 New OAuth apps are marked as **unverified**. Unverified apps trigger a warning on the consent screen telling users the app has not been reviewed. To get your app verified, shoot Mahad a DM on the Slack! Verified apps:
 

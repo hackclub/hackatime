@@ -83,8 +83,6 @@ class Settings::BaseController < InertiaController
     end
   end
 
-  def options_props = base_options.merge(goals: goal_options)
-
   BASE_OPTION_BUILDERS = {
     countries: -> { ISO3166::Country.all.map { |c| { label: c.common_name, value: c.alpha2 } }.sort_by { |c| c[:label] } },
     # see .timezone_options below; a user's current zone, if outside the list,

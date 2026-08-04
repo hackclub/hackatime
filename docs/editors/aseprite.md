@@ -1,18 +1,20 @@
-# How to Track Time in Aseprite
-
+---
+title: Aseprite
+sidebar: { icon: "/images/editor-icons/aseprite-32.webp" }
+---
 ![Aseprite](/images/editor-icons/aseprite-128.png)
 
 Let's set up Aseprite to count how much time you spend making art!
 
-## Step 1: Make a Hackatime Account
+## Step 1: Make a Hackatime account
 
 Go to **[Hackatime](https://hackatime.hackclub.com)** and make an account. Then log in.
 
-## Step 2: Get Your Settings Ready
+## Step 2: Get your settings ready
 
 Click this link to the **[setup page](https://hackatime.hackclub.com/setup)**. It will set up your account so it works with Aseprite.
 
-## Step 3: Add the Plugin to Aseprite
+## Step 3: Add the plugin to Aseprite
 
 We will be using a community plugin to connect Aseprite to your hackatime. Thanks to the creator: **[espcaa](https://github.com/espcaa)** who created this plugin to work with Hackatime. Here are the instructions:
 
@@ -33,13 +35,13 @@ After installing, you will need to grab your Hackatime API key and manually add 
    api_key = YOUR_HACKATIME_API_KEY
    ```
 
-### Naming Your Projects
+### Naming your projects
 To ensure your canvas displays correctly on the Hackatime dashboard: 
 * Go to **Home > ☰ > Set Project Name** 
 * You'll need to do this each time you start a project for it to track correctly on Hackatime.
 
 
-## If Something Goes Wrong
+## If something goes wrong
 
 **Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
@@ -47,7 +49,7 @@ To ensure your canvas displays correctly on the Hackatime dashboard:
 
 **Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-help channel.
 
-## What Happens Next
+## What happens next
 
 Start drawing! Your time will show up on your [Hackatime page](https://hackatime.hackclub.com) in a few minutes.
 

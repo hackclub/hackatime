@@ -2,30 +2,6 @@
   import { onMount } from "svelte";
   import type { Component, Snippet } from "svelte";
 
-  let {
-    open = $bindable(false),
-    title,
-    description = "",
-    maxWidth = "",
-    bodyClass = "",
-    onContentClick,
-    hasBody = false,
-    hasActions = false,
-    body,
-    actions,
-  }: {
-    open?: boolean;
-    title: string;
-    description?: string;
-    maxWidth?: string;
-    bodyClass?: string;
-    onContentClick?: (event: MouseEvent) => void;
-    hasBody?: boolean;
-    hasActions?: boolean;
-    body?: Snippet;
-    actions?: Snippet;
-  } = $props();
-
   type InnerProps = {
     open?: boolean;
     title: string;
@@ -38,6 +14,19 @@
     body?: Snippet;
     actions?: Snippet;
   };
+
+  let {
+    open = $bindable(false),
+    title,
+    description = "",
+    maxWidth = "",
+    bodyClass = "",
+    onContentClick,
+    hasBody = false,
+    hasActions = false,
+    body,
+    actions,
+  }: InnerProps = $props();
 
   let Inner = $state<Component<InnerProps> | null>(null);
 

@@ -10,6 +10,7 @@ class ApplicationController < ActionController::Base
   before_action :set_cache_headers
 
   around_action :switch_time_zone, if: :current_user
+  after_action :persist_theme_cookie, if: :current_user
 
   def switch_time_zone(&block)
     Time.use_zone(current_user.timezone, &block)
@@ -45,6 +46,17 @@ class ApplicationController < ActionController::Base
 
   def user_signed_in?
     !!current_user
+  end
+
+  def persist_theme_cookie
+    return if cookies[:hackatime_theme] == current_user.theme
+
+    cookies.permanent[:hackatime_theme] = {
+      value: current_user.theme,
+      httponly: false,
+      same_site: :lax,
+      secure: Rails.env.production?
+    }
   end
 
   def safe_return_url(url)

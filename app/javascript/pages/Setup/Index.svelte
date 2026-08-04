@@ -164,7 +164,7 @@
           <TwoChoiceCard
             label="No terminal (manual setup)"
             sublabel="Follow the editor guides in our docs"
-            onclick={() => router.visit("/docs")}
+            onclick={() => window.location.assign("/docs")}
           />
         </TwoChoiceLayout>
       {:else if step === "terminal-command"}

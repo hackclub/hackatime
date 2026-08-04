@@ -1,4 +1,6 @@
-# Hackatime Quick Start Guide - Free Time Tracker
+---
+title: Quick start
+---
 
 Get up and running with Hackatime in under 5 minutes! Start tracking your coding time across 40+ editors with our free, open source time tracker built by Hack Club.
 
@@ -6,14 +8,14 @@ Get up and running with Hackatime in under 5 minutes! Start tracking your coding
 
 **Hackatime** is a **free and open source** alternative to WakaTime that automatically tracks your coding time across all your favorite editors and IDEs. It works with **every existing WakaTime editor plugin** by simply configuring your `~/.wakatime.cfg` file to point to Hackatime's servers instead of WakaTime's.
 
-## Step 1: Create Your Account
+## Step 1: Create your account
 
 Visit [hackatime.hackclub.com](https://hackatime.hackclub.com) and sign up using:
 
 - Your Hack Club Slack account (recommended)
 - Email address
 
-## Step 2: Run Automated Setup
+## Step 2: Run automated setup
 
 🚀 **Visit the [Hackatime Setup Page](https://hackatime.hackclub.com/setup)** - this will:
 
@@ -25,11 +27,11 @@ Visit [hackatime.hackclub.com](https://hackatime.hackclub.com) and sign up using
 
 The setup page handles all configuration automatically - no manual editing required!
 
-## Step 3: Install WakaTime Plugin
+## Step 3: Install WakaTime plugin
 
-Hackatime works with **any WakaTime plugin**. Visit our [editor documentation](https://hackatime.hackclub.com/docs#supported-editors) for instructions on how to install a WakaTime plugin for your specific editor.
+Hackatime works with **any WakaTime plugin**. Visit our [editor documentation](https://hackatime.hackclub.com/docs#editor-guides) for instructions on how to install a WakaTime plugin for your specific editor.
 
-## Step 4: Configure Plugin to Use Hackatime
+## Step 4: Configure plugin to use Hackatime
 
 **If you used the setup page**: Your `~/.wakatime.cfg` is already configured! The WakaTime plugin will automatically use Hackatime.
 
@@ -42,7 +44,7 @@ api_key = YOUR_API_KEY_HERE
 heartbeat_rate_limit_seconds = 30
 ```
 
-## Step 5: Start Coding!
+## Step 5: Start coding!
 
 That's it! Open your editor and start coding. Your time will be automatically tracked and appear on your [Hackatime dashboard](https://hackatime.hackclub.com).
 
@@ -54,7 +56,7 @@ Check that it's working:
 2. Visit your [dashboard](https://hackatime.hackclub.com)
 3. You should see your coding activity appear
 
-## Features You Get
+## Features you get
 
 - ⏱️ **Automatic time tracking** - no manual timers
 - 📊 **Language & project insights** - see what you code most
@@ -81,11 +83,11 @@ Just run the automated setup script on the [Hackatime Setup Page](https://hackat
 
 ---
 
-## Frequently Asked Questions
+## Frequently asked questions
 
 **Is Hackatime really free?** Yes! Hackatime is completely free with no premium features or paywalls. It's [open source](https://github.com/hackclub/hackatime) and maintained by Hack Club.
 
-**Which editors work with Hackatime?** All [70+ editors](../#supported-editors) that support WakaTime work with Hackatime, including [VS Code](../editors/vs-code), [IntelliJ IDEA](../editors/intellij-idea), [Sublime Text](../editors/sublime-text), [Vim](../editors/vim), [Neovim](../editors/neovim), [PyCharm](../editors/pycharm), and many more.
+**Which editors work with Hackatime?** All [70+ editors](../#editor-guides) that support WakaTime work with Hackatime, including [VS Code](../editors/vs-code), [IntelliJ IDEA](../editors/intellij-idea), [Sublime Text](../editors/sublime-text), [Vim](../editors/vim), [Neovim](../editors/neovim), [PyCharm](../editors/pycharm), and many more.
 
 **How is Hackatime different from WakaTime?** Hackatime is free, open source, privacy-focused, and includes unique features like leaderboards for Hack Club members.
 

@@ -6,7 +6,7 @@
 # docker run -d -e RAILS_MASTER_KEY=<value from config/master.key> --name harbor-worker harbor-worker
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=4.0.5
+ARG RUBY_VERSION=4.0.6
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
@@ -18,7 +18,6 @@ RUN apt-get update -qq && \
     curl \
     libjemalloc2 \
     libvips \
-    sqlite3 \
     libpq5 \
     tar \
     vim \
@@ -29,7 +28,7 @@ RUN apt-get update -qq && \
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development"
+    BUNDLE_WITHOUT="development:test"
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build

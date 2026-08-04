@@ -1,5 +1,7 @@
-# Postman Setup Guide
-
+---
+title: Postman
+sidebar: { icon: "/images/editor-icons/postman-32.webp" }
+---
 ![Postman](/images/editor-icons/postman-128.png)
 
 Follow these steps to start tracking your activity in Postman with Hackatime.
@@ -8,11 +10,11 @@ Follow these steps to start tracking your activity in Postman with Hackatime.
 
 Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
 
-## Step 2: Run the Setup Script
+## Step 2: Run the setup script
 
 Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
 
-## Step 3: Install Postman Plugin
+## Step 3: Install Postman plugin
 
 Follow the detailed plugin installation instructions on the [WakaTime Postman page](https://wakatime.com/postman).
 
@@ -24,6 +26,6 @@ The WakaTime plugin will automatically use your Hackatime configuration after ru
 - **Plugin not working?** Try restarting Postman after installation
 - **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 
-## Next Steps
+## Next steps
 
 Once configured, your activity time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy collaborating!

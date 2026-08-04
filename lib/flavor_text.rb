@@ -152,10 +152,6 @@ class FlavorText
     ]
   end
 
-  def self.rare_compliment
-    [ "Don't let your dreams be memes!" ]
-  end
-
   def self.motto
     [
       "track your time before it tracks you!",
