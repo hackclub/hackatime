@@ -50,7 +50,19 @@ module OauthAuthentication
       if @user
         attrs = { hca_scopes: hca_data["scopes"], hca_id: identity["id"], hca_access_token: access_token }
         attrs[:country_code] = country_code_from_ip(ip_address) if @user.country_code.blank?
-        @user.update(attrs)
+        @user.update!(attrs)
+
+        if @user.slack_uid.blank? && identity["slack_id"].present?
+          begin
+            @user.update!(slack_uid: identity["slack_id"])
+          rescue ActiveRecord::RecordNotUnique
+            @user.reload
+          rescue ActiveRecord::RecordInvalid => e
+            raise unless e.record.errors.of_kind?(:slack_uid, :taken)
+
+            @user.reload
+          end
+        end
       else
         ActiveRecord::Base.transaction do
           @user = User.create!(
@@ -61,6 +73,7 @@ module OauthAuthentication
           EmailAddress.create!(email: identity["primary_email"], user: @user) if identity["primary_email"].present?
         end
       end
+      SlackProfileSyncJob.perform_later(@user.id) if @user.slack_uid.present?
       @user
     end
 
