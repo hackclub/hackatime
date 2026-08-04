@@ -65,7 +65,7 @@ COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun i --frozen-lockfile --linker=isolated && \
-    mkdir -p node_modules/.vite-client node_modules/.vite-ssr
+    mkdir -p node_modules/.vite-client node_modules/.vite-ssr node_modules/.vite-temp
 
 RUN cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
     woff2_decompress /tmp/spline-sans-latin-wght-normal.woff2 && \
@@ -166,9 +166,10 @@ COPY tsconfig.json tsconfig.node.json ./
 COPY vite.config.ts ./
 COPY --from=route-helpers /rails/app/javascript/api app/javascript/api
 
-RUN --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,target=/rails/node_modules,rw \
+RUN --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,target=/rails/node_modules \
     --mount=type=cache,target=/rails/node_modules/.vite-client \
     --mount=type=cache,target=/rails/node_modules/.vite-ssr \
+    --mount=type=tmpfs,target=/rails/node_modules/.vite-temp \
     --mount=type=cache,target=/root/.bun/install/cache \
     (VITE_CACHE_DIR=node_modules/.vite-client bun x --bun vite build & \
       client_pid=$!; \
