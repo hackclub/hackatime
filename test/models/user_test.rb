@@ -1,4 +1,5 @@
 require "test_helper"
+require "webmock/minitest"
 
 class UserTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
@@ -121,6 +122,92 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "new_slack", user.reload.slack_username
     assert_equal "Custom Name", user.display_name_override
     assert_equal "Custom Name", user.display_name
+  end
+
+  test "slack profile sync prefers the workspace token over the user's Slack token" do
+    user = User.create!(timezone: "UTC", slack_uid: "U_HCA", slack_access_token: "personal-token")
+    original_token = ENV["SLACK_USER_OAUTH_TOKEN"]
+    ENV["SLACK_USER_OAUTH_TOKEN"] = "workspace-token"
+    request = stub_request(:get, "https://slack.com/api/users.info?user=U_HCA")
+      .with(headers: { "Authorization" => "Bearer workspace-token" })
+      .to_return(body: {
+        ok: true,
+        user: {
+          name: "hca-user",
+          profile: { image_192: "https://example.com/hca-avatar.png" }
+        }
+      }.to_json)
+
+    user.update_from_slack
+    user.save!
+
+    assert_requested request
+    assert_equal "https://example.com/hca-avatar.png", user.reload.slack_avatar_url
+  ensure
+    ENV["SLACK_USER_OAUTH_TOKEN"] = original_token
+  end
+
+  test "HCA authentication fills a missing Slack ID on an existing account" do
+    user = User.create!(timezone: "UTC", hca_id: "hca-existing")
+    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: {
+        identity: { id: "hca-existing", slack_id: "U_FROM_HCA" },
+        scopes: %w[email slack_id]
+      }.to_json)
+
+    authenticated_user = nil
+    assert_enqueued_with(job: SlackProfileSyncJob, args: [ user.id ]) do
+      authenticated_user = User.from_hca_token("code", "https://example.com/auth/hca/callback")
+    end
+
+    assert_equal user, authenticated_user
+    assert_equal "U_FROM_HCA", user.reload.slack_uid
+  end
+
+  test "HCA authentication does not replace an existing Slack ID" do
+    user = User.create!(
+      timezone: "UTC",
+      hca_id: "hca-linked",
+      slack_uid: "U_LINKED",
+      slack_synced_at: 1.hour.ago
+    )
+    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: {
+        identity: { id: "hca-linked", slack_id: "U_DIFFERENT" },
+        scopes: %w[email slack_id]
+      }.to_json)
+
+    authenticated_user = nil
+    assert_enqueued_with(job: SlackProfileSyncJob, args: [ user.id ]) do
+      authenticated_user = User.from_hca_token("code", "https://example.com/auth/hca/callback")
+    end
+
+    assert_equal user, authenticated_user
+    assert_equal "U_LINKED", user.reload.slack_uid
+  end
+
+  test "HCA authentication does not claim a Slack ID linked to another account" do
+    user = User.create!(timezone: "UTC", hca_id: "hca-unlinked")
+    User.create!(timezone: "UTC", slack_uid: "U_ALREADY_LINKED")
+    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: {
+        identity: { id: "hca-unlinked", slack_id: "U_ALREADY_LINKED" },
+        scopes: %w[email slack_id]
+      }.to_json)
+
+    authenticated_user = User.from_hca_token("code", "https://example.com/auth/hca/callback")
+
+    assert_equal user, authenticated_user
+    assert_nil user.reload.slack_uid
   end
 
   test "creating a user with an email address queues a welcome email" do

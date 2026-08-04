@@ -1,6 +1,15 @@
 module SlackIntegration
   extend ActiveSupport::Concern
 
+  class RateLimitedError < StandardError
+    attr_reader :retry_after
+
+    def initialize(retry_after)
+      @retry_after = [ retry_after.to_i, 1 ].max
+      super("Slack profile API rate limit exceeded")
+    end
+  end
+
   STATUS_EMOJI_BUCKETS = [
     [ 30.minutes,  %w[thinking cat-on-the-laptop loading-tumbleweed rac-yap] ],
     [ 1.hour,      %w[working-parrot meow_code] ],
@@ -15,12 +24,16 @@ module SlackIntegration
 
   def raw_slack_user_info
     return nil unless slack_uid.present?
-    return nil unless slack_access_token.present?
+    access_token = ENV["SLACK_USER_OAUTH_TOKEN"].presence || slack_access_token.presence
+    return nil unless access_token
 
-    @slack_user_info ||= HTTP.auth("Bearer #{slack_access_token}")
+    response = HTTP.auth("Bearer #{access_token}")
       .get("https://slack.com/api/users.info?user=#{slack_uid}")
+    raise RateLimitedError, response.headers["Retry-After"] if response.status.code == 429
+    return nil unless response.status.success?
 
-    JSON.parse(@slack_user_info.body.to_s).dig("user")
+    data = JSON.parse(response.body.to_s)
+    data["user"] if data["ok"]
   end
 
   def update_from_slack
