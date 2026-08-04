@@ -195,6 +195,9 @@ COPY --from=build --chown=1000:1000 /rails/log /rails/log
 COPY --from=build --chown=1000:1000 /rails/storage /rails/storage
 COPY --from=build --chown=1000:1000 /rails/tmp /rails/tmp
 
+ARG SOURCE_COMMIT=unknown
+ENV SOURCE_COMMIT="${SOURCE_COMMIT}"
+
 USER 1000:1000
 
 # Entrypoint prepares the database.
