@@ -65,7 +65,7 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
     assert_nil user.slack_synced_at
   end
 
-  test "preserves the existing profile when Slack returns an API error" do
+  test "fails visibly and preserves the existing profile when Slack returns an API error" do
     synced_at = 2.days.ago
     user = User.create!(
       timezone: "UTC",
@@ -75,10 +75,13 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
       slack_synced_at: synced_at
     )
     stub_request(:get, "https://slack.com/api/users.info?user=U_API_ERROR")
-      .to_return(status: 500, body: { ok: false, error: "internal_error" }.to_json)
+      .to_return(body: { ok: false, error: "missing_scope" }.to_json)
 
-    SlackProfileSyncJob.perform_now(user.id)
+    error = assert_raises(SlackIntegration::ApiError) do
+      SlackProfileSyncJob.perform_now(user.id)
+    end
 
+    assert_includes error.message, "missing_scope"
     user.reload
     assert_equal "existing-name", user.slack_username
     assert_equal "https://example.com/existing-avatar.png", user.slack_avatar_url

@@ -22,5 +22,6 @@ class SlackProfileSyncJob < ApplicationJob
     retry_job(wait: [ e.retry_after, polynomial_delay ].max.seconds)
   rescue => e
     report_error(e, message: "Failed to update Slack username and avatar for user #{user_id}")
+    raise
   end
 end
