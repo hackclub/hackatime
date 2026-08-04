@@ -252,9 +252,6 @@ Rails.application.routes.draw do
 
       get "banned_users/counts", to: "stats#banned_users_counts"
 
-      # External service Slack OAuth integration
-      post "external/slack/oauth", to: "external_slack#create_user"
-
       namespace :my do
         get "heartbeats/most_recent", to: "heartbeats#most_recent"
         get "heartbeats", to: "heartbeats#index"

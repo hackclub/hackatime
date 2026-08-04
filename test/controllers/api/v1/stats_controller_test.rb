@@ -179,7 +179,60 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "aggregate stats accepts active admin API keys only from the header" do
+    admin_api_key = create_admin_api_key
+
+    get "/api/v1/stats", headers: { "Authorization" => "Bearer #{admin_api_key.token}" }
+    assert_response :success
+
+    get "/api/v1/stats", params: { api_key: admin_api_key.token }
+    assert_response :unauthorized
+  end
+
+  test "aggregate stats rejects revoked admin API keys" do
+    admin_api_key = create_admin_api_key
+    admin_api_key.revoke!
+
+    get "/api/v1/stats", headers: { "Authorization" => "Bearer #{admin_api_key.token}" }
+
+    assert_response :unauthorized
+  end
+
+  test "aggregate stats accepts STATS_API_KEY only while legacy flag is enabled" do
+    previous_stats_api_key = ENV["STATS_API_KEY"]
+    legacy_key = "legacy-stats-#{SecureRandom.hex(8)}"
+    ENV["STATS_API_KEY"] = legacy_key
+    Flipper.disable(:allow_legacy_stats_api_key)
+
+    get "/api/v1/stats", headers: { "Authorization" => "Bearer #{legacy_key}" }
+    assert_response :unauthorized
+    get "/api/v1/stats", params: { api_key: legacy_key }
+    assert_response :unauthorized
+
+    Flipper.enable(:allow_legacy_stats_api_key)
+    get "/api/v1/stats", headers: { "Authorization" => "Bearer #{legacy_key}" }
+    assert_response :success
+    get "/api/v1/stats", params: { api_key: legacy_key }
+    assert_response :success
+
+    admin_api_key = create_admin_api_key
+    get "/api/v1/stats", params: { api_key: admin_api_key.token }
+    assert_response :unauthorized
+  ensure
+    Flipper.disable(:allow_legacy_stats_api_key)
+    ENV["STATS_API_KEY"] = previous_stats_api_key
+  end
+
   private
+
+  def create_admin_api_key
+    user = User.create!(
+      username: "stats_admin_#{SecureRandom.hex(3)}",
+      timezone: "UTC",
+      admin_level: :admin
+    )
+    user.admin_api_keys.create!(name: "Stats integration")
+  end
 
   def create_heartbeat(user:, time:, project:, category:)
     Heartbeat.create!(
