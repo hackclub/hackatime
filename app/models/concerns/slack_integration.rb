@@ -17,6 +17,12 @@ module SlackIntegration
     end
   end
 
+  class EmailConflictError < StandardError
+    def initialize(email)
+      super("Slack email is already linked to another Hackatime account: #{email}")
+    end
+  end
+
   STATUS_EMOJI_BUCKETS = [
     [ 30.minutes,  %w[thinking cat-on-the-laptop loading-tumbleweed rac-yap] ],
     [ 1.hour,      %w[working-parrot meow_code] ],
@@ -49,6 +55,7 @@ module SlackIntegration
     return unless user_data.present?
 
     apply_slack_profile_attributes(user_data)
+    sync_slack_email(user_data.dig("profile", "email"))
     self.slack_synced_at = Time.current
   end
 
@@ -61,6 +68,20 @@ module SlackIntegration
       profile["display_name_normalized"].presence ||
       profile["real_name_normalized"].presence ||
       slack_user["name"].presence
+  end
+
+  def sync_slack_email(raw_email)
+    email = raw_email.to_s.strip.downcase.presence
+    return unless email
+
+    email_address = EmailAddress.find_by(email: email)
+    raise EmailConflictError, email if email_address && email_address.user_id != id
+
+    transaction do
+      email_address ||= email_addresses.create!(email: email, source: :slack)
+      email_addresses.source_slack.where.not(id: email_address.id).update_all(source: :signing_in)
+      email_address.update!(source: :slack) unless email_address.source_slack?
+    end
   end
 
   def update_slack_status
