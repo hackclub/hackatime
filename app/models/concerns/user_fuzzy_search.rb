@@ -18,6 +18,7 @@ module UserFuzzySearch
       candidate_parts = [
         "SELECT id FROM users WHERE slack_uid = :exact",
         "SELECT id FROM users WHERE username ILIKE :contains",
+        "SELECT id FROM users WHERE display_name_override ILIKE :contains",
         "SELECT id FROM users WHERE github_username ILIKE :contains",
         "SELECT id FROM users WHERE slack_username ILIKE :contains",
         "SELECT user_id AS id FROM email_addresses WHERE email ILIKE :contains"
@@ -32,6 +33,10 @@ module UserFuzzySearch
         CASE WHEN users.username ILIKE :ilike_exact THEN 100
              WHEN users.username ILIKE :prefix THEN 50
              WHEN users.username ILIKE :contains THEN 10
+             ELSE 0 END +
+        CASE WHEN users.display_name_override ILIKE :ilike_exact THEN 100
+             WHEN users.display_name_override ILIKE :prefix THEN 50
+             WHEN users.display_name_override ILIKE :contains THEN 10
              ELSE 0 END +
         CASE WHEN users.github_username ILIKE :ilike_exact THEN 100
              WHEN users.github_username ILIKE :prefix THEN 50
