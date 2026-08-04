@@ -312,13 +312,19 @@ RSpec.configure do |config|
           Bearer: {
             type: :http,
             scheme: :bearer,
-            description: 'User API Key from settings, prefixed with "Bearer"'
+            description: 'User or Admin API Key, depending on the endpoint, prefixed with "Bearer"'
           },
           ApiKeyAuth: {
             type: :apiKey,
             name: 'api_key',
             in: :query,
             description: 'User API Key from settings'
+          },
+          LegacyStatsApiKey: {
+            type: :apiKey,
+            name: 'api_key',
+            in: :query,
+            description: 'Legacy STATS_API_KEY, accepted only while the allow_legacy_stats_api_key feature flag is enabled'
           }
         },
         schemas: public_schemas

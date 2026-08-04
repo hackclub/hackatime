@@ -75,6 +75,5 @@ RSpec.configure do |config|
 
   config.before(:suite) do
     Rails.application.load_seed
-    ENV['STATS_API_KEY'] = 'dev-api-key-12345'
   end
 end
