@@ -1,6 +1,13 @@
 module SlackIntegration
   extend ActiveSupport::Concern
 
+  class ApiError < StandardError
+    def initialize(error, status: nil)
+      details = [ status && "HTTP #{status}", error ].compact.join(": ")
+      super("Slack profile API request failed: #{details}")
+    end
+  end
+
   class RateLimitedError < StandardError
     attr_reader :retry_after
 
@@ -30,10 +37,11 @@ module SlackIntegration
     response = HTTP.auth("Bearer #{access_token}")
       .get("https://slack.com/api/users.info?user=#{slack_uid}")
     raise RateLimitedError, response.headers["Retry-After"] if response.status.code == 429
-    return nil unless response.status.success?
 
     data = JSON.parse(response.body.to_s)
-    data["user"] if data["ok"]
+    raise ApiError.new(data["error"] || "unexpected response", status: response.status.code) unless response.status.success? && data["ok"]
+
+    data.fetch("user")
   end
 
   def update_from_slack
