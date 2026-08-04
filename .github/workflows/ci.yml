@@ -130,7 +130,7 @@ jobs:
       - name: Setup Blacksmith Builder
         uses: useblacksmith/setup-docker-builder@v2
         with:
-          cache-key: hackatime/v2/${{ matrix.dockerfile }}
+          cache-key: hackatime/v3/${{ matrix.dockerfile }}
           nofallback: true
 
       - name: Build ${{ matrix.dockerfile }}
@@ -155,7 +155,7 @@ jobs:
       - name: Setup Blacksmith Builder
         uses: useblacksmith/setup-docker-builder@v2
         with:
-          cache-key: hackatime/v2/Dockerfile
+          cache-key: hackatime/v3/Dockerfile
           nofallback: true
 
       - name: Log in to GitHub Container Registry
@@ -168,6 +168,7 @@ jobs:
       - name: Build and publish production image
         uses: useblacksmith/build-push-action@v2
         with:
+          build-args: SOURCE_COMMIT=${{ github.sha }}
           context: "{{defaultContext}}"
           file: Dockerfile
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

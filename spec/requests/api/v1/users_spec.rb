@@ -4,15 +4,14 @@ RSpec.describe 'Api::V1::Users', type: :request do
   path '/api/v1/users/lookup_email/{email}' do
     get('Lookup user by email') do
       tags 'Users'
-      description 'Find a user ID by their email address. Useful for integrations that need to map emails to Hackatime users. Requires STATS_API_KEY supplied via the Authorization Bearer header (the api_key query param is NOT accepted for this endpoint).'
+      description 'Find a user ID by their email address. Useful for integrations that need to map emails to Hackatime users. Requires an active Admin API Key supplied via the Authorization Bearer header (the api_key query param is NOT accepted for this endpoint). During migration, STATS_API_KEY is also accepted when the allow_legacy_stats_api_key Flipper flag is enabled.'
       security [ Bearer: [] ]
       produces 'application/json'
 
       parameter name: :email, in: :path, type: :string, description: 'Email address to lookup'
 
       response(200, 'successful') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
-        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:email) { 'test@example.com' }
         schema type: :object,
           properties: {
@@ -27,8 +26,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
         end
       end
 
-      response(401, 'unauthorized — Returned when STATS_API_KEY is unset/blank or the Authorization Bearer token is missing or incorrect. (Auth is bypassed in the development environment.)') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
+      response(401, 'unauthorized — Returned when the Admin API Key is missing, revoked, or incorrect. (Auth is bypassed in the development environment.)') do
         let(:Authorization) { "Bearer wrong-token" }
         let(:email) { 'orpheus@hackclub.com' }
         schema '$ref' => '#/components/schemas/Error'
@@ -36,8 +34,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
       end
 
       response(404, 'not found') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
-        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:email) { 'unknown@example.com' }
         schema type: :object,
           properties: {
@@ -52,15 +49,14 @@ RSpec.describe 'Api::V1::Users', type: :request do
   path '/api/v1/users/lookup_slack_uid/{slack_uid}' do
     get('Lookup user by Slack UID') do
       tags 'Users'
-      description 'Find a user ID by their Slack User ID. Requires STATS_API_KEY supplied via the Authorization Bearer header (the api_key query param is NOT accepted for this endpoint).'
+      description 'Find a user ID by their Slack User ID. Requires an active Admin API Key supplied via the Authorization Bearer header (the api_key query param is NOT accepted for this endpoint). During migration, STATS_API_KEY is also accepted when the allow_legacy_stats_api_key Flipper flag is enabled.'
       security [ Bearer: [] ]
       produces 'application/json'
 
       parameter name: :slack_uid, in: :path, type: :string, description: 'Slack User ID (e.g. U123456)'
 
       response(200, 'successful') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
-        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:slack_uid) { 'TEST123456' }
         schema type: :object,
           properties: {
@@ -70,8 +66,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
         run_test!
       end
 
-      response(401, 'unauthorized — Returned when STATS_API_KEY is unset/blank or the Authorization Bearer token is missing or incorrect. (Auth is bypassed in the development environment.)') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
+      response(401, 'unauthorized — Returned when the Admin API Key is missing, revoked, or incorrect. (Auth is bypassed in the development environment.)') do
         let(:Authorization) { "Bearer wrong-token" }
         let(:slack_uid) { 'TEST123456' }
         schema '$ref' => '#/components/schemas/Error'
@@ -79,8 +74,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
       end
 
       response(404, 'not found') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
-        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:slack_uid) { 'U000000' }
         schema type: :object,
           properties: {

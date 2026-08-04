@@ -2,6 +2,7 @@ class ApplicationController < ActionController::Base
   include ErrorReporting
   include RenderHelpers
   include AuthHelpers
+  include AdminApiKeyAuthentication
 
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user
@@ -86,15 +87,25 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  # Authenticates requests using the shared STATS_API_KEY env var (used by
-  # internal/admin-style API endpoints). Token may come from an Authorization
-  # header ("Bearer <token>") or, when allowed, an `api_key` query param.
-  def authenticate_legacy_stats_api_key!(allow_query_param: true, message: "Unauthorized")
+  # Authenticates stats integrations with an AdminApiKey. STATS_API_KEY remains
+  # available as a temporary fallback while the Flipper flag is enabled.
+  def authenticate_stats_api_key!(allow_query_param: true, message: "Unauthorized")
+    header_token = request.headers["Authorization"]&.split(" ")&.last
+    if header_token.present?
+      return if auth_admin_api_key(header_token)
+      return if valid_legacy_stats_api_key?(header_token)
+    elsif allow_query_param
+      return if valid_legacy_stats_api_key?(params[:api_key])
+    end
+
+    render_unauthorized(message)
+  end
+
+  def valid_legacy_stats_api_key?(token)
+    return false unless Flipper.enabled?(:allow_legacy_stats_api_key)
+
     expected = ENV["STATS_API_KEY"]
-    return render_unauthorized(message) if expected.blank?
-    token = request.headers["Authorization"]&.split(" ")&.last
-    token ||= params[:api_key] if allow_query_param
-    render_unauthorized(message) unless token.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
+    token.present? && expected.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
   end
 
   def oauth_bearer_user(required_scopes = [])

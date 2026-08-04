@@ -2,9 +2,10 @@ module Api
   module Admin
     class ApplicationController < ActionController::API
       include ActionController::HttpAuthentication::Token::ControllerMethods
+      include AdminApiKeyAuthentication
       include RenderHelpers
 
-      ADMIN_API_LEVELS = %w[admin superadmin viewer ultraadmin].freeze
+      ADMIN_API_LEVELS = AdminApiKeyAuthentication::ADMIN_API_LEVELS
 
       before_action :authenticate_admin!
       before_action :set_paper_trail_whodunnit
@@ -17,17 +18,6 @@ module Api
         end
       end
       alias_method :authenticate_admin_api_key!, :authenticate_admin!
-
-      def auth_admin_api_key(token)
-        key = AdminApiKey.active.includes(:user).find_by(token: token) or return false
-        u = key.user
-        unless admin_api_user?(u)
-          key.revoke!
-          return false
-        end
-        @admin_api_key, @current_user = key, u
-        true
-      end
 
       def auth_oauth_admin(token)
         t = Doorkeeper::AccessToken.by_token(token)
@@ -43,7 +33,6 @@ module Api
         true
       end
 
-      def admin_api_user?(u) = u&.admin_level.in?(ADMIN_API_LEVELS)
       def current_user = @current_user
       def current_admin_api_key = @admin_api_key
       def current_oauth_token = @oauth_token

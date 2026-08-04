@@ -297,7 +297,7 @@ class User < ApplicationRecord
   def format_extension_text(duration)
     case hackatime_extension_text_type
     when "simple_text"
-      return "Start coding to track your time" if duration.zero?
+      return "Start coding!" if duration.zero?
       ::ApplicationController.helpers.short_time_simple(duration)
     when "clock_emoji"
       ::ApplicationController.helpers.time_in_emoji(duration)

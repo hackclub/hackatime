@@ -4,8 +4,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
   path '/api/v1/stats' do
     get('Get total coding time') do
       tags 'Stats'
-      description 'Returns the total coding time for all users, optionally filtered by user or date range. Authenticated with the shared STATS_API_KEY token (Bearer header or api_key query param) — not tied to any user or admin level. Authentication is skipped entirely in development.'
-      security [ Bearer: [], ApiKeyAuth: [] ]
+      description 'Returns the total coding time for all users, optionally filtered by user or date range. Requires an active Admin API Key supplied via the Bearer header. Admin API Keys are never accepted in the api_key query param. During migration, STATS_API_KEY is accepted via the Bearer header or api_key query param only when the allow_legacy_stats_api_key Flipper flag is enabled. Authentication is skipped entirely in development.'
+      security [ { Bearer: [] }, { LegacyStatsApiKey: [] } ]
       produces 'text/plain'
 
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD), defaults to 10 years ago'
@@ -14,9 +14,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
       parameter name: :user_email, in: :query, type: :string, description: 'Filter by user email (optional)'
 
       response(200, 'successful') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
-        let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { "dev-api-key-12345" }
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:api_key) { nil }
         let(:start_date) { '2023-01-01' }
         let(:end_date) { '2023-12-31' }
         let(:username) { nil }
@@ -28,8 +27,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         end
       end
 
-      response(401, 'unauthorized — Returned when STATS_API_KEY is unset/blank or the supplied token is missing or incorrect. (Auth is bypassed in the development environment.)') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
+      response(401, 'unauthorized — Returned when the Admin API Key is missing, revoked, or incorrect. (Auth is bypassed in the development environment.)') do
         let(:Authorization) { "Bearer wrong-token" }
         let(:api_key) { nil }
         let(:start_date) { '2023-01-01' }
@@ -41,9 +39,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
       end
 
       response(404, 'user not found') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
-        let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { "dev-api-key-12345" }
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:api_key) { nil }
         let(:start_date) { '2023-01-01' }
         let(:end_date) { '2023-12-31' }
         let(:username) { 'non_existent_user' }
@@ -53,9 +50,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
       end
 
       response(422, 'invalid date') do
-        before { ENV['STATS_API_KEY'] = 'dev-api-key-12345' }
-        let(:Authorization) { "Bearer dev-api-key-12345" }
-        let(:api_key) { "dev-api-key-12345" }
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:api_key) { nil }
         let(:start_date) { 'invalid-date' }
         let(:end_date) { '2023-12-31' }
         let(:username) { nil }

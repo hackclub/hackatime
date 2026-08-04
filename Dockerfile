@@ -61,31 +61,20 @@ RUN apt-get update -qq && \
 # in parallel with the Ruby dependency stage.
 FROM frontend-base AS javascript-dependencies
 
-ARG TARGETARCH
-
 COPY package.json bun.lock bunfig.toml ./
 COPY patches patches
-RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
-    --mount=type=cache,target=/root/.bun/install/cache \
-    rm -rf .deps/patches && \
-    cp package.json bun.lock bunfig.toml .deps/ && \
-    cp -a patches .deps/patches && \
-    cd .deps && \
+RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun i --frozen-lockfile --linker=isolated && \
-    cd .. && \
-    touch .deps-ready
+    mkdir -p node_modules/.vite-client node_modules/.vite-ssr node_modules/.vite-temp
 
-RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
-    ln -s .deps/node_modules node_modules && \
-    cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
+RUN cp node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
     woff2_decompress /tmp/spline-sans-latin-wght-normal.woff2 && \
     install -Dm644 /tmp/spline-sans-latin-wght-normal.ttf vendor/fonts/spline-sans-latin-wght-normal.ttf
 
 # Sharp ships one libvips binary with its codecs. Ruby Vips loads the same ABI.
 FROM javascript-dependencies AS libvips
 
-RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
-    mkdir /libvips && \
+RUN mkdir /libvips && \
     cp node_modules/@img/sharp-libvips-linux-*/lib/libvips-cpp.so.* /libvips/libvips-cpp.so
 
 # Prepare the runtime concurrently with dependency and asset compilation.
@@ -129,15 +118,11 @@ COPY --exclude=blume.config.ts --exclude=docs . .
 # invalidate nor delay documentation generation.
 FROM ruby-base AS docs-assets
 
-ARG TARGETARCH
-
 COPY package.json blume.config.ts theme.css ./
 COPY config/themes.yml config/themes.yml
 COPY public public
 COPY docs docs
-COPY --from=javascript-dependencies /rails/.deps-ready /rails/.deps-ready
-RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
-    ln -s .deps/node_modules node_modules && \
+RUN --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,target=/rails/node_modules,rw \
     bun run build:docs
 
 # Generate route helpers before the two asset branches start.
@@ -169,8 +154,6 @@ RUN --network=none \
 # Rails controllers, helpers, and views in addition to the JavaScript source.
 FROM ruby-base AS frontend-assets
 
-ARG TARGETARCH
-
 COPY app/javascript app/javascript
 COPY app/assets/tailwind app/assets/tailwind
 COPY app/controllers app/controllers
@@ -182,11 +165,12 @@ COPY svelte.config.js ./
 COPY tsconfig.json tsconfig.node.json ./
 COPY vite.config.ts ./
 COPY --from=route-helpers /rails/app/javascript/api app/javascript/api
-COPY --from=javascript-dependencies /rails/.deps-ready /rails/.deps-ready
 
-RUN --mount=type=cache,id=hackatime-javascript-dependencies-${TARGETARCH},target=/rails/.deps \
+RUN --mount=type=bind,from=javascript-dependencies,source=/rails/node_modules,target=/rails/node_modules \
+    --mount=type=cache,target=/rails/node_modules/.vite-client \
+    --mount=type=cache,target=/rails/node_modules/.vite-ssr \
+    --mount=type=tmpfs,target=/rails/node_modules/.vite-temp \
     --mount=type=cache,target=/root/.bun/install/cache \
-    ln -s .deps/node_modules node_modules && \
     (VITE_CACHE_DIR=node_modules/.vite-client bun x --bun vite build & \
       client_pid=$!; \
       VITE_CACHE_DIR=node_modules/.vite-ssr bun x --bun vite build --ssr & \
@@ -210,6 +194,9 @@ COPY --from=build --chown=1000:1000 /rails/db /rails/db
 COPY --from=build --chown=1000:1000 /rails/log /rails/log
 COPY --from=build --chown=1000:1000 /rails/storage /rails/storage
 COPY --from=build --chown=1000:1000 /rails/tmp /rails/tmp
+
+ARG SOURCE_COMMIT=unknown
+ENV SOURCE_COMMIT="${SOURCE_COMMIT}"
 
 USER 1000:1000
 
