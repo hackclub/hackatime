@@ -191,6 +191,7 @@
       action={updatePath}
       method="patch"
       class="relative z-20 mt-4 space-y-3 border-t border-surface-200/40 pt-4"
+      onSuccess={onCancelEdit}
     >
       <input
         type="url"

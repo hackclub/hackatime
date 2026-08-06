@@ -33,7 +33,8 @@ class My::ProjectRepoMappingsController < InertiaController
       redirect_back fallback_location: my_projects_path,
                     inertia: { errors: {
                       repo_url: @project_repo_mapping.errors[:repo_url].to_sentence,
-                      repo_url_project_name: @project_repo_mapping.project_name
+                      repo_url_project_name: @project_repo_mapping.project_name,
+                      repo_url_value: @project_repo_mapping.repo_url
                     } }
     end
   end

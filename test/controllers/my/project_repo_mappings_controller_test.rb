@@ -110,6 +110,8 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to my_projects_path(show_archived: true)
     assert_includes session[:inertia_errors][:repo_url], "We only support GitHub repositories"
+    assert_equal mapping.project_name, session[:inertia_errors][:repo_url_project_name]
+    assert_equal "https://example.com/owner/repo", session[:inertia_errors][:repo_url_value]
   end
 
   private
