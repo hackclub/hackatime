@@ -39,6 +39,67 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
     assert_not_nil user.slack_synced_at
   end
 
+  test "reconciles the Slack email without preserving the previous email for sign-in" do
+    user = User.create!(timezone: "UTC", slack_uid: "U_EMAIL_SYNC")
+    old_email = user.email_addresses.create!(email: "old@example.com", source: :slack)
+    stub_request(:get, "https://slack.com/api/users.info?user=U_EMAIL_SYNC")
+      .with(headers: { "Authorization" => "Bearer workspace-token" })
+      .to_return(body: {
+        ok: true,
+        user: {
+          name: "email-sync",
+          profile: { email: "New@Example.com" }
+        }
+      }.to_json)
+
+    SlackProfileSyncJob.perform_now(user.id)
+
+    assert_not EmailAddress.exists?(old_email.id)
+    assert_predicate user.email_addresses.find_by!(email: "new@example.com"), :source_slack?
+  end
+
+  test "promotes an already-linked sign-in email when Slack changes to it" do
+    user = User.create!(timezone: "UTC", slack_uid: "U_EXISTING_EMAIL_SYNC")
+    old_email = user.email_addresses.create!(email: "old@example.com", source: :slack)
+    new_email = user.email_addresses.create!(email: "new@example.com", source: :signing_in)
+    stub_request(:get, "https://slack.com/api/users.info?user=U_EXISTING_EMAIL_SYNC")
+      .to_return(body: {
+        ok: true,
+        user: {
+          name: "existing-email-sync",
+          profile: { email: "new@example.com" }
+        }
+      }.to_json)
+
+    SlackProfileSyncJob.perform_now(user.id)
+
+    assert_not EmailAddress.exists?(old_email.id)
+    assert_predicate new_email.reload, :source_slack?
+  end
+
+  test "does not claim a Slack email linked to another account" do
+    user = User.create!(timezone: "UTC", slack_uid: "U_EMAIL_CONFLICT")
+    old_email = user.email_addresses.create!(email: "old@example.com", source: :slack)
+    other_user = User.create!(timezone: "UTC")
+    other_email = other_user.email_addresses.create!(email: "taken@example.com", source: :signing_in)
+    stub_request(:get, "https://slack.com/api/users.info?user=U_EMAIL_CONFLICT")
+      .to_return(body: {
+        ok: true,
+        user: {
+          name: "email-conflict",
+          profile: { email: "taken@example.com" }
+        }
+      }.to_json)
+
+    assert_raises(SlackIntegration::EmailConflictError) do
+      SlackProfileSyncJob.perform_now(user.id)
+    end
+
+    assert_predicate old_email.reload, :source_slack?
+    assert_equal other_user, other_email.reload.user
+    assert_nil user.reload.slack_synced_at
+  end
+
   test "retries Slack rate limits without changing the existing profile" do
     user = User.create!(
       timezone: "UTC",
