@@ -143,4 +143,25 @@ RSpec.describe 'Api::V1::Badges', type: :request do
       end
     end
   end
+
+  it 'supports project names containing dots' do
+    badge_user = User.create!(
+      slack_uid: "UDOTTED#{SecureRandom.hex(4)}",
+      timezone: 'UTC',
+      allow_public_stats_lookup: true
+    )
+    repository = Repository.create!(
+      url: 'https://github.com/pimlico/pimlico.dev',
+      host: 'github.com',
+      owner: 'pimlico',
+      name: 'pimlico.dev'
+    )
+    badge_user.project_repo_mappings.create!(project_name: 'pimlico.dev', repository: repository)
+    log_time(badge_user, 'pimlico.dev')
+
+    get "/api/v1/badge/#{badge_user.slack_uid}/pimlico/pimlico.dev"
+
+    expect(response).to have_http_status(:temporary_redirect)
+    expect(response.headers['Location']).to start_with('https://img.shields.io/badge/')
+  end
 end
