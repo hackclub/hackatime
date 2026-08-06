@@ -178,6 +178,38 @@ class UserTest < ActiveSupport::TestCase
     assert_predicate new_email.reload, :source_slack?
   end
 
+  test "Slack authentication restores email changes when the user cannot be saved" do
+    user = User.create!(timezone: "UTC", slack_uid: "U_ORIGINAL")
+    old_email = user.email_addresses.create!(email: "old@example.com", source: :slack)
+    new_email = user.email_addresses.create!(email: "new@example.com", source: :signing_in)
+    User.create!(timezone: "UTC", slack_uid: "U_CONFLICT")
+    stub_request(:post, "https://slack.com/api/oauth.v2.access")
+      .to_return(body: {
+        ok: true,
+        authed_user: {
+          id: "U_CONFLICT",
+          access_token: "slack-token",
+          scope: "users:read,users:read.email"
+        }
+      }.to_json)
+    stub_request(:get, "https://slack.com/api/users.info?user=U_CONFLICT")
+      .with(headers: { "Authorization" => "Bearer slack-token" })
+      .to_return(body: {
+        ok: true,
+        user: {
+          name: "email-change",
+          tz: "UTC",
+          profile: { email: new_email.email }
+        }
+      }.to_json)
+
+    assert_nil User.from_slack_token("code", "https://example.com/auth/slack/callback")
+
+    assert_predicate old_email.reload, :source_slack?
+    assert_predicate new_email.reload, :source_signing_in?
+    assert_equal "U_ORIGINAL", user.reload.slack_uid
+  end
+
   test "HCA authentication fills a missing Slack ID on an existing account" do
     user = User.create!(timezone: "UTC", hca_id: "hca-existing")
     stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
