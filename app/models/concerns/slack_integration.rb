@@ -79,7 +79,7 @@ module SlackIntegration
 
     transaction do
       email_address ||= email_addresses.create!(email: email, source: :slack)
-      email_addresses.source_slack.where.not(id: email_address.id).update_all(source: :signing_in)
+      email_addresses.source_slack.where.not(id: email_address.id).destroy_all
       email_address.update!(source: :slack) unless email_address.source_slack?
     end
   end

@@ -39,7 +39,7 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
     assert_not_nil user.slack_synced_at
   end
 
-  test "reconciles the Slack email while preserving the previous email for sign-in" do
+  test "reconciles the Slack email without preserving the previous email for sign-in" do
     user = User.create!(timezone: "UTC", slack_uid: "U_EMAIL_SYNC")
     old_email = user.email_addresses.create!(email: "old@example.com", source: :slack)
     stub_request(:get, "https://slack.com/api/users.info?user=U_EMAIL_SYNC")
@@ -54,7 +54,7 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
 
     SlackProfileSyncJob.perform_now(user.id)
 
-    assert_predicate old_email.reload, :source_signing_in?
+    assert_not EmailAddress.exists?(old_email.id)
     assert_predicate user.email_addresses.find_by!(email: "new@example.com"), :source_slack?
   end
 
@@ -73,7 +73,7 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
 
     SlackProfileSyncJob.perform_now(user.id)
 
-    assert_predicate old_email.reload, :source_signing_in?
+    assert_not EmailAddress.exists?(old_email.id)
     assert_predicate new_email.reload, :source_slack?
   end
 

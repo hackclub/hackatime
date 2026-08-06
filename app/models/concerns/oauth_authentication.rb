@@ -97,7 +97,7 @@ module OauthAuthentication
         u.email_addresses << email_address unless u.email_addresses.include?(email_address)
       end
 
-      user.email_addresses.source_slack.where.not(email: email).update_all(source: :signing_in)
+      user.email_addresses.source_slack.where.not(email: email).destroy_all
       email_address.source = :slack
       email_address.save! if email_address.persisted?
 
