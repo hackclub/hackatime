@@ -202,7 +202,7 @@ Rails.application.routes.draw do
       get :wakatime_download_link, on: :collection
     end
 
-    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
+    resources :project_repo_mappings, param: :project_name, only: [ :update ], constraints: { project_name: /.+/ } do
       member do
         patch :archive
         patch :unarchive

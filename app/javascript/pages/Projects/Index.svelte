@@ -20,6 +20,7 @@
     to = "",
     total_projects,
     projects_data,
+    errors = {},
   }: {
     page_title: string;
     show_archived: boolean;
@@ -35,6 +36,7 @@
       has_activity: boolean;
       projects: ProjectCardType[];
     };
+    errors?: { repo_url?: string; repo_url_project_name?: string };
   } = $props();
 
   const indexPath = myProjectRepoMappings.index.path();
@@ -349,6 +351,10 @@
                         onArchive={openStatusChangeModal}
                         onShowBrokenInfo={() => (brokenNameModalOpen = true)}
                         editing={editingProjectKey === project.project_key}
+                        repoUrlError={errors.repo_url_project_name ===
+                        project.project_key
+                          ? errors.repo_url
+                          : undefined}
                         bind:repoUrlDraft
                         onCancelEdit={closeMappingEditor}
                       />
