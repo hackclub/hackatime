@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "==> Updating Bun"
+bun upgrade
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "==> Installing Docker and Docker Compose"
+  sudo install -m 0755 -d /etc/apt/keyrings
+  sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+  sudo chmod a+r /etc/apt/keyrings/docker.asc
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" |
+    sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+  sudo apt-get update
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+fi
+
+if ! sudo docker info >/dev/null 2>&1; then
+  echo "==> Starting Docker"
+  if systemctl cat amp-svc-docker-daemon.service >/dev/null 2>&1; then
+    amp orb service restart docker-daemon
+  else
+    amp orb service start docker-daemon --command 'sudo dockerd'
+  fi
+
+  for _ in $(seq 1 30); do
+    sudo docker info >/dev/null 2>&1 && break
+    sleep 1
+  done
+  sudo docker info >/dev/null
+fi
+
+if [ ! -f .env ]; then
+  echo "==> Creating local environment file"
+  cp -- .env.example .env
+fi
+
+echo "==> Building and starting development containers"
+sudo docker compose up -d --build
+
+echo "==> Building Vite client assets"
+sudo docker compose exec -T web bin/vite build
+
+echo "==> Preparing and seeding the development database"
+sudo docker compose exec -T web bin/rails db:prepare db:seed
+
+echo "==> Preparing the test database"
+sudo docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare
+
+echo "==> Ensuring the Hackatime portal service is running"
+amp orb services ensure
