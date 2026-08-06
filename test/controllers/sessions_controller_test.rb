@@ -87,6 +87,38 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal oauth_path, token.continue_param
   end
 
+  test "email auth uses the public URL for the development sign-in link" do
+    original_public_url = ENV["PUBLIC_URL"]
+    ENV["PUBLIC_URL"] = "https://hackatime.example.test/"
+    user = User.create!
+    email = "public-url-test-#{SecureRandom.hex(4)}@example.com"
+    user.email_addresses.create!(email: email)
+    host! "3000-orb-id.e2b.app"
+
+    post email_auth_path, params: { email: email }
+
+    token = SignInToken.last
+    assert_equal "https://hackatime.example.test/auth/token/#{token.token}", session[:dev_magic_link]
+  ensure
+    ENV["PUBLIC_URL"] = original_public_url
+  end
+
+  test "email auth uses the request URL when the public URL is blank" do
+    original_public_url = ENV["PUBLIC_URL"]
+    ENV["PUBLIC_URL"] = ""
+    user = User.create!
+    email = "blank-public-url-test-#{SecureRandom.hex(4)}@example.com"
+    user.email_addresses.create!(email: email)
+    host! "hackatime.local"
+
+    post email_auth_path, params: { email: email }
+
+    token = SignInToken.last
+    assert_equal "http://hackatime.local/auth/token/#{token.token}", session[:dev_magic_link]
+  ensure
+    ENV["PUBLIC_URL"] = original_public_url
+  end
+
   test "email token redirects to continue param after sign in" do
     user = User.create!
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"

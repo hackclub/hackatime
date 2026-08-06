@@ -38,8 +38,14 @@ fi
 echo "==> Building and starting development containers"
 sudo docker compose up -d --build
 
+echo "==> Building Vite client assets"
+sudo docker compose exec -T web bin/vite build
+
 echo "==> Preparing and seeding the development database"
 sudo docker compose exec -T web bin/rails db:prepare db:seed
+
+echo "==> Preparing the test database"
+sudo docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare
 
 echo "==> Ensuring the Hackatime portal service is running"
 amp orb services ensure
