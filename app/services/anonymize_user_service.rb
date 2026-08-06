@@ -15,10 +15,14 @@ class AnonymizeUserService < ApplicationService
 
   def call
     ActiveRecord::Base.transaction do
+      user.lock!
+      first_anonymization = !user.anonymized?
       user.email_addresses.update_all(user_id: user.id, source: EmailAddress.sources[:preserved_for_deletion])
       user.update!(ANONYMIZE_FIELDS.index_with { nil }.merge(
         slack_scopes: [], hca_scopes: [],
-        username: "deleted_user_#{user.id}", uses_slack_status: false
+        username: "deleted_user_#{user.id}", uses_slack_status: false,
+        anonymized_at: user.anonymized_at || Time.current,
+        authentication_version: user.authentication_version + (first_anonymization ? 1 : 0)
       ))
       destroy_associated_records
     end

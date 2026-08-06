@@ -37,6 +37,15 @@ class Api::Admin::V1::OauthAdminAuthTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
+  test "rejects oauth admin token for an anonymized user" do
+    token = oauth_token(@admin, "admin")
+    @admin.update!(anonymized_at: Time.current)
+
+    get "/api/admin/v1/check", headers: bearer(token.token)
+
+    assert_response :unauthorized
+  end
+
   test "rejects oauth admin token after application is unverified" do
     t = oauth_token(@admin, "admin")
     @oauth.update!(verified: false)

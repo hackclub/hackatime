@@ -11,10 +11,19 @@ class SlackProfileSyncJob < ApplicationJob
 
   def perform(user_id)
     user = User.find_by(id: user_id)
-    return unless user&.slack_uid.present?
+    return unless user&.authentication_allowed? && !user.pending_deletion? && user.slack_uid.present?
 
-    user.update_from_slack
-    user.save! if user.changed?
+    slack_uid = user.slack_uid
+    user_data = user.raw_slack_user_info
+    return unless user_data.present?
+
+    user.with_lock do
+      return unless user.authentication_allowed? && !user.pending_deletion? && user.slack_uid == slack_uid
+
+      user.apply_slack_profile_attributes(user_data)
+      user.slack_synced_at = Time.current
+      user.save!
+    end
   rescue SlackIntegration::RateLimitedError => e
     raise if executions >= 5
 

@@ -19,5 +19,5 @@ module AdminApiKeyAuthentication
     true
   end
 
-  def admin_api_user?(user) = user&.admin_level.in?(ADMIN_API_LEVELS)
+  def admin_api_user?(user) = user&.authentication_allowed? && user.admin_level.in?(ADMIN_API_LEVELS)
 end

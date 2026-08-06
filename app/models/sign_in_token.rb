@@ -1,7 +1,7 @@
 class SignInToken < ApplicationRecord
   belongs_to :user
 
-  enum :auth_type, { email: 0, slack: 1, program_magic_link: 2 }
+  enum :auth_type, { email: 0, slack: 1, program_magic_link: 2, hca_recovery: 3 }
 
   validates :token, presence: true, uniqueness: true
   validates :auth_type, :expires_at, presence: true

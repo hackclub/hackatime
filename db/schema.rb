@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_152446) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -135,6 +135,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
     t.integer "source"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index "lower((email)::text)", name: "index_email_addresses_on_lower_email", unique: true
     t.index ["email"], name: "index_email_addresses_on_email", unique: true
     t.index ["email"], name: "index_email_addresses_on_email_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id"], name: "index_email_addresses_on_user_id"
@@ -270,6 +271,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at", where: "(finished_at IS NULL)"
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at_all"
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at_unfinished_unperformed", where: "((finished_at IS NULL) AND (performed_at IS NULL))"
+  end
+
+  create_table "hca_identity_conflicts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "email_user_id"
+    t.string "hca_id", null: false
+    t.datetime "last_seen_at", null: false
+    t.integer "occurrences", default: 1, null: false
+    t.string "reason", null: false
+    t.datetime "resolved_at"
+    t.bigint "slack_user_id"
+    t.datetime "updated_at", null: false
+    t.index ["email_user_id"], name: "index_hca_identity_conflicts_on_email_user_id"
+    t.index ["hca_id"], name: "index_active_hca_identity_conflicts_on_hca_id", unique: true, where: "(resolved_at IS NULL)"
+    t.index ["slack_user_id"], name: "index_hca_identity_conflicts_on_slack_user_id"
   end
 
   create_table "heartbeat_import_runs", force: :cascade do |t|
@@ -673,6 +689,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
   create_table "users", force: :cascade do |t|
     t.integer "admin_level", default: 0, null: false
     t.boolean "allow_public_stats_lookup", default: true, null: false
+    t.datetime "anonymized_at"
+    t.integer "authentication_version", default: 1, null: false
     t.string "country_code"
     t.datetime "created_at", null: false
     t.boolean "default_timezone_leaderboard", default: true, null: false
@@ -715,7 +733,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["github_username"], name: "index_users_on_github_username_trgm", opclass: :gin_trgm_ops, using: :gin
-    t.index ["hca_id"], name: "index_users_on_hca_id"
+    t.index ["hca_id"], name: "index_users_on_hca_id_unique", unique: true, where: "(hca_id IS NOT NULL)"
     t.index ["leaderboard_shadowbanned"], name: "index_users_on_leaderboard_shadowbanned", where: "(leaderboard_shadowbanned = true)"
     t.index ["leaderboard_shadowbanned_by_id"], name: "index_users_on_leaderboard_shadowbanned_by_id"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
@@ -766,6 +784,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
   add_foreign_key "goals", "users"
+  add_foreign_key "hca_identity_conflicts", "users", column: "email_user_id", on_delete: :nullify
+  add_foreign_key "hca_identity_conflicts", "users", column: "slack_user_id", on_delete: :nullify
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
   add_foreign_key "heartbeats", "ja4s", on_delete: :nullify

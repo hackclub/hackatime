@@ -18,6 +18,7 @@
     slack,
     github,
     errors,
+    csrf_token,
   }: SlackGithubPageProps = $props();
 
   let unlinkGithubModalOpen = $state(false);
@@ -35,12 +36,12 @@
   >
     <div class="space-y-4">
       {#if !slack.can_enable_status}
-        <a
-          href={sessions.slackNew.path()}
-          class="inline-flex rounded-md border border-surface-200 bg-surface-100 px-3 py-2 text-sm text-surface-content transition-colors hover:bg-surface-200"
-        >
-          Re-authorize with Slack
-        </a>
+        <form method="post" action={sessions.slackNew.path()}>
+          <input type="hidden" name="authenticity_token" value={csrf_token} />
+          <Button type="submit" variant="surface"
+            >Re-authorise with Slack</Button
+          >
+        </form>
       {/if}
 
       <Form

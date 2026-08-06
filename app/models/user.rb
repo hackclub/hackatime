@@ -22,6 +22,7 @@ class User < ApplicationRecord
   before_validation :normalize_display_name_override
   encrypts :slack_access_token, :github_access_token, :hca_access_token
 
+  validates :hca_id, uniqueness: true, allow_nil: true
   validates :slack_uid, uniqueness: true, allow_nil: true
   validates :github_uid, uniqueness: { conditions: -> { where.not(github_access_token: nil) } }, allow_nil: true
   validates :timezone, inclusion: { in: TZInfo::Timezone.all_identifiers }, allow_nil: false
@@ -258,7 +259,9 @@ class User < ApplicationRecord
   def streak_days = @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
   def active_deletion_request = deletion_requests.active.order(created_at: :desc).first
   def pending_deletion? = active_deletion_request.present?
-  def api_access_restricted? = red? || pending_deletion?
+  def anonymized? = anonymized_at.present?
+  def authentication_allowed? = !anonymized?
+  def api_access_restricted? = red? || pending_deletion? || anonymized?
 
   def can_request_deletion?
     return false if pending_deletion?

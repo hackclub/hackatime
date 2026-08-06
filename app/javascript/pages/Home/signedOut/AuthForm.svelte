@@ -2,22 +2,23 @@
   import Button from "../../../components/Button.svelte";
   import HackClubLogo from "../../../components/HackClubLogo.svelte";
   import { sessions } from "../../../api";
-  import Slack from "hcicons-svelte/slack";
 
   let {
     sign_in_email,
     show_dev_tool,
     dev_magic_link,
     csrf_token,
-    redirect_to,
     continue_param,
+    login_hint,
+    pending_hca,
   }: {
     sign_in_email: boolean;
     show_dev_tool: boolean;
     dev_magic_link?: string | null;
     csrf_token: string;
-    redirect_to?: string;
     continue_param?: string | null;
+    login_hint?: string | null;
+    pending_hca?: { email: string } | null;
   } = $props();
 
   const query = $derived(
@@ -26,16 +27,57 @@
   const hcaAuthPath = $derived(
     query ? sessions.hcaNew.path(query) : sessions.hcaNew.path(),
   );
-  const slackAuthPath = $derived(
-    query ? sessions.slackNew.path(query) : sessions.slackNew.path(),
-  );
-  const emailAuthPath = sessions.email.path();
-
   let isSigningIn = $state(false);
 </script>
 
 <div class="w-full max-w-md space-y-4">
-  {#if sign_in_email}
+  {#if pending_hca}
+    <div class="rounded-2xl border border-surface-200 bg-surface p-6 space-y-4">
+      <div>
+        <p class="font-medium">Continue as {pending_hca.email}</p>
+        <p class="text-sm text-secondary">
+          Create a new account or prove ownership of an older Hackatime account.
+        </p>
+      </div>
+      <form method="post" action={sessions.hcaAccount.path()}>
+        <input type="hidden" name="authenticity_token" value={csrf_token} />
+        <Button type="submit" class="w-full">Create new account</Button>
+      </form>
+      <form method="post" action={sessions.slackNew.path()}>
+        <input type="hidden" name="authenticity_token" value={csrf_token} />
+        <Button type="submit" variant="surface" class="w-full"
+          >Recover with Slack</Button
+        >
+      </form>
+      <form
+        method="post"
+        action={sessions.hcaRecovery.path()}
+        class="space-y-2"
+      >
+        <input type="hidden" name="authenticity_token" value={csrf_token} />
+        <label for="old-email" class="text-sm"
+          >Email used on your old Hackatime account</label
+        >
+        <input
+          id="old-email"
+          type="email"
+          name="email"
+          required
+          class="w-full bg-surface text-surface-content rounded-xl py-3 px-4 border border-surface-200"
+        />
+        <Button type="submit" variant="surface" class="w-full"
+          >Email recovery link</Button
+        >
+      </form>
+      <form method="post" action={sessions.hcaCancel.path()}>
+        <input type="hidden" name="_method" value="delete" />
+        <input type="hidden" name="authenticity_token" value={csrf_token} />
+        <Button type="submit" variant="dark" class="w-full"
+          >Cancel and restart</Button
+        >
+      </form>
+    </div>
+  {:else if sign_in_email}
     <div
       class="rounded-2xl border border-surface-200 bg-surface p-8 text-center space-y-2"
     >
@@ -54,71 +96,46 @@
       {/if}
     </div>
   {:else}
-    <a
-      href={hcaAuthPath}
-      onclick={() => (isSigningIn = true)}
-      class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-primary text-on-primary font-medium hover:opacity-90 transition-all"
+    <form
+      method="post"
+      action={hcaAuthPath}
+      onsubmit={() => (isSigningIn = true)}
+      class="space-y-3"
     >
-      {#if isSigningIn}
-        <svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          ></circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-      {:else}
-        <HackClubLogo class="h-5 w-5" />
-      {/if}
-      <span>Sign in with Hack Club</span>
-    </a>
-
-    <a
-      href={slackAuthPath}
-      class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-surface border border-surface-200 text-surface-content font-medium hover:bg-surface-100 transition-all"
-    >
-      <Slack size={20} />
-      <span>Sign in with Slack</span>
-    </a>
-
-    <div class="flex items-center gap-4 py-1">
-      <div class="flex-1 h-px bg-surface-200"></div>
-      <span class="text-xs text-muted uppercase tracking-wider">or</span>
-      <div class="flex-1 h-px bg-surface-200"></div>
-    </div>
-
-    <form method="post" action={emailAuthPath} data-turbo="false">
       <input type="hidden" name="authenticity_token" value={csrf_token} />
-      {#if redirect_to}
-        <input type="hidden" name="redirect_to" value={redirect_to} />
-      {/if}
-      {#if continue_param}
-        <input type="hidden" name="continue" value={continue_param} />
-      {/if}
-      <div class="flex gap-2">
-        <input
-          type="email"
-          name="email"
-          placeholder="you@email.com"
-          required
-          class="flex-1 bg-surface text-surface-content placeholder-muted rounded-xl py-3.5 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all border border-surface-200 focus:border-primary text-sm"
-        />
-        <Button
-          type="submit"
-          unstyled
-          class="px-5 py-3.5 bg-surface border border-primary text-primary rounded-xl hover:bg-primary hover:text-on-primary transition-all text-sm font-medium"
-        >
-          Send link
-        </Button>
-      </div>
+      <input
+        type="email"
+        name="login_hint"
+        value={login_hint || ""}
+        placeholder="Your Hack Club Account email"
+        class="w-full bg-surface text-surface-content rounded-xl py-3.5 px-4 border border-surface-200"
+      />
+      <p class="text-xs text-secondary">
+        We'll hand this email to Hack Club Account. Hackatime does not send a
+        sign-in link.
+      </p>
+      <Button type="submit" class="w-full gap-3 py-3.5" disabled={isSigningIn}>
+        {#if isSigningIn}
+          <svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        {:else}
+          <HackClubLogo class="h-5 w-5" />
+        {/if}
+        <span>Sign in with Hack Club</span>
+      </Button>
     </form>
   {/if}
 </div>

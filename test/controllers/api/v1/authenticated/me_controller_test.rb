@@ -20,6 +20,16 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
+  test "index rejects anonymized users with an existing OAuth token" do
+    user = User.create!(timezone: "UTC")
+    access_token = create_oauth_access_token(user)
+    user.update!(anonymized_at: Time.current, authentication_version: 1)
+
+    get "/api/v1/authenticated/me", headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :unauthorized
+  end
+
   private
 
   def create_oauth_access_token(user, scopes: "profile")

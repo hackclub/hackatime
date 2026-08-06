@@ -1,6 +1,25 @@
 require "test_helper"
 
 class AnonymizeUserServiceTest < ActiveSupport::TestCase
+  test "anonymization records its timestamp and increments authentication version once" do
+    user = User.create!(username: "versioned_#{SecureRandom.hex(4)}")
+    original_authentication_version = user.authentication_version
+
+    AnonymizeUserService.call(user)
+    user.reload
+    original_anonymized_at = user.anonymized_at
+
+    assert_not_nil original_anonymized_at
+    assert_equal original_authentication_version + 1, user.authentication_version
+
+    travel 1.minute do
+      AnonymizeUserService.call(user)
+    end
+
+    assert_equal original_anonymized_at, user.reload.anonymized_at
+    assert_equal original_authentication_version + 1, user.authentication_version
+  end
+
   test "anonymization clears profile identity fields" do
     user = User.create!(
       username: "anon_#{SecureRandom.hex(4)}",

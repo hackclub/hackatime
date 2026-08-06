@@ -20,7 +20,7 @@
     onLogout: () => void;
   } = $props();
 
-  const loginPath = sessions.slackNew.path();
+  const loginPath = "/signin";
   const isBrowser = typeof window !== "undefined";
 
   const handleNavLinkClick = () => {

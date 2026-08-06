@@ -2,6 +2,17 @@ require "test_helper"
 require "stringio"
 
 class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationTest
+  test "anonymized user api key is rejected" do
+    user = User.create!(timezone: "UTC", anonymized_at: Time.current)
+    api_key = user.api_keys.create!(name: "primary")
+
+    post "/api/hackatime/v1/users/current/heartbeats",
+      params: { entity: "src/main.rb", time: Time.current.to_f, type: "file" }.to_json,
+      headers: { "Authorization" => "Bearer #{api_key.token}", "CONTENT_TYPE" => "text/plain" }
+
+    assert_response :unauthorized
+  end
+
   test "single text plain heartbeat normalizes hash payloads" do
     user = User.create!(timezone: "UTC")
     api_key = user.api_keys.create!(name: "primary")

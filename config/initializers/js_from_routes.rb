@@ -29,6 +29,9 @@ module JsFromRoutes
     signin
     signout
     hca_auth
+    hca_account
+    hca_recovery
+    hca_cancel
     slack_auth
     github_auth
     github_unlink

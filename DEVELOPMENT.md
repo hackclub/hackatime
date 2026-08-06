@@ -30,7 +30,7 @@ ENCRYPTION_DETERMINISTIC_KEY=32characterrandomstring12345678902
 ENCRYPTION_KEY_DERIVATION_SALT=16charssalt1234
 ```
 
-Visit <https://hca.dinosaurbbq.org>, log in with an email address, then enable Developer Mode in HCA settings. After that, navigate to the "Developers' Corner" and "app yourself up", specifying a callback URL of `http://localhost:3000/auth/hca/callback` and minimum scopes of `email`, `slack_id`, and `verification_status`. 
+Visit <https://hca.dinosaurbbq.org>, log in with an email address, then enable Developer Mode in HCA settings. After that, navigate to the "Developers' Corner" and "app yourself up", specifying a callback URL of `http://localhost:3000/auth/hca/callback` and minimum scopes of `openid`, `email`, and `slack_id`.
 
 Then, fill out the following fields in your `.env` file:
 
@@ -38,6 +38,8 @@ Then, fill out the following fields in your `.env` file:
 # Hack Club Account
 HCA_CLIENT_ID=<hca_client_id>
 HCA_CLIENT_SECRET=<hca_client_secret>
+# Optional when PUBLIC_URL is set; must exactly match the callback registered in HCA.
+HCA_REDIRECT_URI=http://localhost:3000/auth/hca/callback
 ```
 
 Start the containers:

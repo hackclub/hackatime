@@ -27,12 +27,17 @@ class StaticPagesController < InertiaController
   def signin
     return redirect_to root_path if current_user
 
+    pending = session[:pending_hca]
+    pending = nil unless pending.is_a?(Hash) && pending["created_at"].to_i > 10.minutes.ago.to_i
+    session.delete(:pending_hca) unless pending
     render inertia: "Auth/SignIn", props: {
       sign_in_email: params[:sign_in_email].present?,
       show_dev_tool: Rails.env.development?,
       dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
       csrf_token: form_authenticity_token,
-      continue_param: params[:continue].presence
+      continue_param: params[:continue].presence,
+      login_hint: params[:login_hint].presence,
+      pending_hca: pending && { email: pending["email"] }
     }
   end
 

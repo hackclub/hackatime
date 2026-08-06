@@ -4,7 +4,8 @@ class AdminLevelConstraint
   def matches?(request)
     return false unless request.session[:user_id]
     user = User.find_by(id: request.session[:user_id])
-    user && @require.include?(user.admin_level)
+    session_version = request.session[:authentication_version] || 0
+    user&.authentication_allowed? && user.authentication_version == session_version.to_i && @require.include?(user.admin_level)
   end
 end
 
@@ -90,11 +91,12 @@ Rails.application.routes.draw do
 
   get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
 
-  if Rails.env.development?
-    mount LetterOpenerWeb::Engine, at: "/letter_opener"
+  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+  if Rails.env.local?
     get "/__dev", to: "dev#index", as: :dev
     get "/__dev/log-me-in/:email", to: "dev#log_me_in", as: :dev_log_me_in,
       constraints: { email: /[^\/]+/ }, format: false
+    get "/__dev/log-me-in-user/:id", to: "dev#log_me_in_user", as: :test_log_me_in_user if Rails.env.test?
     get "/__dev/log-me-out", to: "dev#log_me_out", as: :dev_log_me_out
   end
 
@@ -117,10 +119,14 @@ Rails.application.routes.draw do
   get "/signin", to: "static_pages#signin", as: :signin
 
   # Auth routes
-  get "/auth/hca", to: "sessions#hca_new", as: :hca_auth
+  post "/auth/hca", to: "sessions#hca_new", as: :hca_auth
   get "/auth/hca/callback", to: "sessions#hca_create"
-  get "/auth/slack", to: "sessions#slack_new", as: :slack_auth
+  post "/auth/hca/account", to: "sessions#hca_account", as: :hca_account
+  post "/auth/hca/recovery", to: "sessions#hca_recovery", as: :hca_recovery
+  delete "/auth/hca/pending", to: "sessions#hca_cancel", as: :hca_cancel
+  post "/auth/slack", to: "sessions#slack_new", as: :slack_auth
   get "/auth/slack/callback", to: "sessions#slack_create"
+  get "/auth/failure", to: "sessions#failure", as: :auth_failure
   get "/auth/github", to: "sessions#github_new", as: :github_auth
   get "/auth/github/callback", to: "sessions#github_create"
   delete "/auth/github/unlink", to: "sessions#github_unlink", as: :github_unlink

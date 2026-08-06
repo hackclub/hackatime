@@ -2,17 +2,20 @@ module OauthAuthentication
   extend ActiveSupport::Concern
   include ErrorReporting
 
+  class HcaIdentityConflictError < StandardError
+    attr_reader :hca_id, :reason, :email_user_id, :slack_user_id
+
+    def initialize(hca_id:, reason:, email_user_id: nil, slack_user_id: nil)
+      @hca_id = hca_id
+      @reason = reason
+      @email_user_id = email_user_id
+      @slack_user_id = slack_user_id
+      super(reason)
+    end
+  end
+
   class_methods do
     include ErrorReporting
-
-    def hca_authorize_url(redirect_uri)
-      URI.parse("#{HCAService.host}/oauth/authorize?#{{
-        redirect_uri:,
-        client_id: ENV["HCA_CLIENT_ID"],
-        response_type: "code",
-        scope: "email slack_id verification_status"
-      }.to_query}")
-    end
 
     def slack_authorize_url(redirect_uri, state: nil, close_window: false, continue_param: nil)
       state ||= { token: SecureRandom.hex(24), close_window: close_window, continue: continue_param }.to_json
@@ -33,51 +36,137 @@ module OauthAuthentication
       }.to_query}")
     end
 
-    def from_hca_token(code, redirect_uri, ip_address = nil)
-      response = HTTP.post("#{HCAService.host}/oauth/token", form: {
-        client_id: ENV["HCA_CLIENT_ID"], client_secret: ENV["HCA_CLIENT_SECRET"],
-        redirect_uri: redirect_uri, code: code, grant_type: "authorization_code"
-      })
-      access_token = JSON.parse(response.body.to_s)["access_token"]
-      return nil if access_token.nil?
+    def from_hca_identity(subject:, email:, slack_uid: nil, country_code: nil, retrying: false)
+      email = email.to_s.strip.downcase
+      slack_uid = slack_uid.presence
+      return nil if subject.blank? || email.blank?
 
-      hca_data = ::HCAService.me(access_token)
-      identity = hca_data["identity"]
-      @user = User.find_by_hca_id(identity["id"]) if identity["id"].present?
-      @user ||= User.find_by_slack_uid(identity["slack_id"]) if identity["slack_id"].present?
-      @user ||= EmailAddress.find_by(email: identity["primary_email"])&.user if identity["primary_email"].present?
+      user = transaction do
+        subject_user = lock.find_by(hca_id: subject)
+        if subject_user
+          raise_hca_conflict!(subject:, reason: "anonymized", email_user: subject_user) unless subject_user.authentication_allowed?
 
-      if @user
-        attrs = { hca_scopes: hca_data["scopes"], hca_id: identity["id"], hca_access_token: access_token }
-        attrs[:country_code] = country_code_from_ip(ip_address) if @user.country_code.blank?
-        @user.update!(attrs)
+          record_known_hca_conflict!(subject_user, subject:, email:, slack_uid:)
+          sync_known_hca_user!(subject_user, email:, slack_uid:, country_code:)
+          next subject_user
+        end
 
-        if @user.slack_uid.blank? && identity["slack_id"].present?
-          begin
-            @user.update!(slack_uid: identity["slack_id"])
-          rescue ActiveRecord::RecordNotUnique
-            @user.reload
-          rescue ActiveRecord::RecordInvalid => e
-            raise unless e.record.errors.of_kind?(:slack_uid, :taken)
+        email_address = EmailAddress.lock.find_by("LOWER(email) = ?", email)
+        email_user = email_address&.user
+        slack_user = lock.find_by(slack_uid: slack_uid) if slack_uid
 
-            @user.reload
+        if email_address&.source_preserved_for_deletion? || email_user&.anonymized? || slack_user&.anonymized?
+          raise_hca_conflict!(subject:, reason: "anonymized", email_user:, slack_user:)
+        end
+
+        candidates = [ email_user, slack_user ].compact.uniq
+        if candidates.many?
+          raise_hca_conflict!(subject:, reason: "split_identity", email_user:, slack_user:)
+        end
+
+        candidate = candidates.first
+        next nil unless candidate
+
+        # Email and Slack lookups can reach the same legacy user through
+        # different rows. Reload it under lock before deciding whether this
+        # subject may claim it so concurrent HCA callbacks cannot overwrite
+        # one another's subject.
+        candidate.lock!
+
+        reason =
+          if !candidate.authentication_allowed?
+            "anonymized"
+          elsif candidate.hca_id.present?
+            "subject_already_linked"
+          elsif candidate.admin_level != "default"
+            "elevated_account"
+          elsif candidate.pending_deletion?
+            "pending_deletion"
+          elsif slack_uid && candidate.slack_uid.present? && candidate.slack_uid != slack_uid
+            "slack_identity_mismatch"
           end
-        end
-      else
-        ActiveRecord::Base.transaction do
-          @user = User.create!(
-            hca_id: identity["id"], slack_uid: identity["slack_id"],
-            hca_scopes: hca_data["scopes"], hca_access_token: access_token,
-            country_code: country_code_from_ip(ip_address)
-          )
-          EmailAddress.create!(email: identity["primary_email"], user: @user) if identity["primary_email"].present?
-        end
+        raise_hca_conflict!(subject:, reason:, email_user:, slack_user:) if reason
+
+        candidate.update!(
+          hca_id: subject,
+          slack_uid: candidate.slack_uid || slack_uid,
+          country_code: candidate.country_code || country_code,
+          hca_access_token: nil,
+          hca_scopes: []
+        )
+        attach_hca_email!(candidate, email)
+        candidate
       end
-      SlackProfileSyncJob.perform_later(@user.id) if @user.slack_uid.present?
-      @user
+
+      SlackProfileSyncJob.perform_later(user.id) if user&.slack_uid.present?
+      user
+    rescue ActiveRecord::RecordNotUnique
+      raise if retrying
+
+      from_hca_identity(subject:, email:, slack_uid:, country_code:, retrying: true)
     end
 
-    def from_slack_token(code, redirect_uri, ip_address = nil)
+    def create_from_hca_identity!(subject:, email:, slack_uid: nil, country_code: nil)
+      existing_user = from_hca_identity(subject:, email:, slack_uid:, country_code:)
+      return existing_user if existing_user
+
+      user = transaction do
+        created_user = create!(
+          hca_id: subject,
+          slack_uid: slack_uid.presence,
+          country_code:,
+          hca_access_token: nil,
+          hca_scopes: []
+        )
+        created_user.email_addresses.create!(email:, source: :hca)
+        created_user
+      end
+      SlackProfileSyncJob.perform_later(user.id) if user.slack_uid.present?
+      user
+    rescue ActiveRecord::RecordNotUnique
+      from_hca_identity(subject:, email:, slack_uid:, country_code:) || raise
+    end
+
+    def sync_known_hca_user!(user, email:, slack_uid:, country_code:)
+      claimed_slack_user = lock.find_by(slack_uid: slack_uid) if slack_uid
+      attributes = {
+        country_code: user.country_code || country_code,
+        hca_access_token: nil,
+        hca_scopes: []
+      }
+      attributes[:slack_uid] = slack_uid if user.slack_uid.blank? && claimed_slack_user.nil?
+      user.update!(attributes)
+      attach_hca_email!(user, email)
+    end
+
+    def attach_hca_email!(user, email)
+      email_address = EmailAddress.find_by("LOWER(email) = ?", email)
+      user.email_addresses.create!(email:, source: :hca) unless email_address
+    end
+
+    def record_known_hca_conflict!(user, subject:, email:, slack_uid:)
+      email_user = EmailAddress.find_by("LOWER(email) = ?", email)&.user
+      slack_user = find_by(slack_uid: slack_uid) if slack_uid
+      return unless [ email_user, slack_user ].compact.any? { |claim_user| claim_user != user } || (slack_uid && user.slack_uid.present? && user.slack_uid != slack_uid)
+
+      HCAIdentityConflict.record!(HcaIdentityConflictError.new(
+        hca_id: subject,
+        reason: "known_subject_claim_drift",
+        email_user_id: email_user&.id,
+        slack_user_id: slack_user&.id
+      ))
+    end
+
+    def raise_hca_conflict!(subject:, reason:, email_user: nil, slack_user: nil)
+      raise HcaIdentityConflictError.new(
+        hca_id: subject,
+        reason:,
+        email_user_id: email_user&.id,
+        slack_user_id: slack_user&.id
+      )
+    end
+
+    def exchange_slack_code(code, redirect_uri)
       response = HTTP.post("https://slack.com/api/oauth.v2.access", form: {
         client_id: ENV["SLACK_CLIENT_ID"], client_secret: ENV["SLACK_CLIENT_SECRET"],
         code: code, redirect_uri: redirect_uri
@@ -90,28 +179,44 @@ module OauthAuthentication
       user_data = JSON.parse(user_response.body.to_s)
       return nil unless user_data["ok"]
 
-      slack_user = user_data["user"] || {}
-      email = (slack_user["profile"] || {})["email"]&.downcase
-      email_address = EmailAddress.find_or_initialize_by(email: email)
-      user = email_address.user || User.find_or_initialize_by(slack_uid: data.dig("authed_user", "id")).tap do |u|
-        u.email_addresses << email_address unless u.email_addresses.include?(email_address)
-      end
-
-      user.email_addresses.source_slack.where.not(email: email).update_all(source: :signing_in)
-      email_address.source = :slack
-      email_address.save! if email_address.persisted?
-
-      user.slack_uid = data.dig("authed_user", "id")
-      user.apply_slack_profile_attributes(slack_user)
-      user.parse_and_set_timezone(slack_user["tz"])
-      user.slack_access_token = data["authed_user"]["access_token"]
-      user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
-      user.country_code = country_code_from_ip(ip_address) if user.country_code.blank?
-      user.save!
-      user
-    rescue => e
-      report_error(e, message: "Error creating user from Slack data: #{e.message}")
+      {
+        uid: data.dig("authed_user", "id"),
+        access_token: data.dig("authed_user", "access_token"),
+        scopes: data.dig("authed_user", "scope").to_s.split(/,\s*/),
+        profile: user_data["user"] || {}
+      }
+    rescue JSON::ParserError, HTTP::Error => e
+      report_error(e, message: "Slack OAuth exchange failed")
       nil
+    end
+
+    def connect_slack_identity!(user, identity)
+      slack_uid = identity&.dig(:uid)
+      return false unless user && slack_uid.present?
+
+      user.with_lock do
+        return false unless user.authentication_allowed?
+        return false if user.pending_deletion?
+        return false if user.slack_uid.present? && user.slack_uid != slack_uid
+        return false if where(slack_uid:).where.not(id: user.id).exists?
+
+        slack_user = identity[:profile]
+        user.slack_uid ||= slack_uid
+        user.apply_slack_profile_attributes(slack_user)
+        user.parse_and_set_timezone(slack_user["tz"]) if slack_user["tz"].present?
+        user.slack_access_token = identity[:access_token]
+        user.slack_scopes = identity[:scopes]
+        user.save!
+        true
+      end
+    rescue ActiveRecord::RecordNotUnique
+      user.reload
+      false
+    rescue ActiveRecord::RecordInvalid => e
+      raise unless e.record == user && e.record.errors.of_kind?(:slack_uid, :taken)
+
+      user.reload
+      false
     end
 
     def country_code_from_ip(ip_address)

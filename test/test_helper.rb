@@ -33,15 +33,13 @@ end
 
 module SystemTestAuthHelper
   def sign_in_as(user)
-    token = user.sign_in_tokens.create!(auth_type: :email)
-    visit auth_token_path(token: token.token)
+    visit test_log_me_in_user_path(id: user.id)
   end
 end
 
 module IntegrationTestAuthHelper
   def sign_in_as(user)
-    token = user.sign_in_tokens.create!(auth_type: :email)
-    get auth_token_path(token: token.token)
+    get test_log_me_in_user_path(id: user.id)
     assert_equal user.id, session[:user_id]
   end
 end

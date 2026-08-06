@@ -6,8 +6,15 @@ class ProcessAccountDeletionsJob < ApplicationJob
       Rails.logger.info "kerblamming ##{deletion_request.user_id}"
 
       begin
-        AnonymizeUserService.call(deletion_request.user)
-        deletion_request.complete!
+        completed = deletion_request.with_lock do
+          deletion_request.reload
+          next false unless deletion_request.approved? && deletion_request.scheduled_deletion_at <= Time.current
+
+          AnonymizeUserService.call(deletion_request.user)
+          deletion_request.complete!
+          true
+        end
+        next unless completed
 
         Rails.logger.info "kerblamed account ##{deletion_request.user_id}"
       rescue StandardError => e

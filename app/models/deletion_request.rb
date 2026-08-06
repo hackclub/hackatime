@@ -21,8 +21,23 @@ class DeletionRequest < ApplicationRecord
             scheduled_deletion_at: Time.current + 30.days)
   end
 
-  def cancel! = update!(status: :cancelled, cancelled_at: Time.current)
-  def complete! = update!(status: :completed, completed_at: Time.current)
+  def cancel!
+    with_lock do
+      return false unless pending? || approved?
+
+      update!(status: :cancelled, cancelled_at: Time.current)
+    end
+    true
+  end
+
+  def complete!
+    with_lock do
+      raise ActiveRecord::RecordInvalid.new(self) unless approved?
+
+      update!(status: :completed, completed_at: Time.current)
+    end
+  end
+
   def can_be_cancelled? = pending? || approved?
 
   def days_until_deletion
