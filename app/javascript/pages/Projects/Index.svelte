@@ -20,6 +20,7 @@
     to = "",
     total_projects,
     projects_data,
+    errors = {},
   }: {
     page_title: string;
     show_archived: boolean;
@@ -34,6 +35,11 @@
       total_time_label: string;
       has_activity: boolean;
       projects: ProjectCardType[];
+    };
+    errors?: {
+      repo_url?: string;
+      repo_url_project_name?: string;
+      repo_url_value?: string;
     };
   } = $props();
 
@@ -62,6 +68,13 @@
     description: string;
     confirmLabel: string;
   } | null>(null);
+
+  $effect(() => {
+    if (errors.repo_url && errors.repo_url_project_name) {
+      editingProjectKey = errors.repo_url_project_name;
+      repoUrlDraft = errors.repo_url_value || "";
+    }
+  });
 
   const skeletonCount = $derived(
     Math.min(
@@ -349,6 +362,10 @@
                         onArchive={openStatusChangeModal}
                         onShowBrokenInfo={() => (brokenNameModalOpen = true)}
                         editing={editingProjectKey === project.project_key}
+                        repoUrlError={errors.repo_url_project_name ===
+                        project.project_key
+                          ? errors.repo_url
+                          : undefined}
                         bind:repoUrlDraft
                         onCancelEdit={closeMappingEditor}
                       />
