@@ -151,6 +151,16 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "user_stats rejects anonymized owner OAuth token when public stats disabled" do
+    user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false,
+      anonymized_at: Time.current)
+    access_token = create_oauth_access_token(user, scopes: "profile read")
+
+    get "/api/v1/users/#{user.username}/stats", headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :forbidden
+  end
+
   test "user_stats rejects owner OAuth token without read scope when public stats disabled" do
     user = User.create!(username: "private_#{SecureRandom.hex(3)}", timezone: "UTC", allow_public_stats_lookup: false)
     access_token = create_oauth_access_token(user, scopes: "profile")

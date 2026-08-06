@@ -42,7 +42,20 @@ class ApplicationController < ActionController::Base
   end
 
   def current_user
-    @current_user ||= User.find_by(id: session[:user_id]) if session[:user_id]
+    return @current_user if defined?(@current_user)
+
+    @current_user = resolve_session_user
+  end
+
+  def resolve_session_user
+    return unless session[:user_id]
+
+    user = User.find_by(id: session[:user_id])
+    session_version = session[:authentication_version] || 0
+    return user if user&.authentication_allowed? && user.authentication_version == session_version.to_i
+
+    reset_session
+    nil
   end
 
   def user_signed_in?
@@ -62,8 +75,14 @@ class ApplicationController < ActionController::Base
 
   def safe_return_url(url)
     return nil if url.blank?
-    return nil unless url.start_with?("/") && !url.start_with?("//")
+    return nil if url.match?(/[\\\x00-\x1F\x7F]/)
+
+    uri = URI.parse(url)
+    return nil if uri.scheme || uri.host || !uri.path.start_with?("/") || uri.path.start_with?("//")
+
     url
+  rescue URI::InvalidURIError
+    nil
   end
 
   # Build a return_data hash from a continue URL, extracting known query

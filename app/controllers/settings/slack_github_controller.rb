@@ -31,6 +31,7 @@ class Settings::SlackGithubController < Settings::BaseController
     channel_ids = enabled_sailors_logs.pluck(:slack_channel_id)
 
     {
+      csrf_token: form_authenticity_token,
       user: user_props(keys: %i[uses_slack_status]),
       slack: {
         can_enable_status: can_enable_slack_status,

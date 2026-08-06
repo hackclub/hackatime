@@ -1,12 +1,17 @@
 require "test_helper"
 require "uri"
+require "webmock/minitest"
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
     ActiveRecord::FixtureSet.reset_cache
+    OmniAuth.config.test_mode = true
+    OmniAuth.config.mock_auth[:hca] = hca_auth_hash
   end
 
-  # -- HCA: hca_new stores continue in session --
+  teardown { OmniAuth.config.mock_auth[:hca] = nil }
+
+  # -- HCA: request phase preserves a safe continuation --
 
   test "hca_new stores continue path for oauth authorize" do
     continue_query = {
@@ -17,36 +22,140 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
       state: "a254695483383bd70ee41424b75d638a869e5d6769e11b50"
     }
     continue_path = "/oauth/authorize?#{Rack::Utils.build_query(continue_query)}"
+    user = User.create!(hca_id: "ident!test-user")
+    user.email_addresses.create!(email: "hca-test@example.com", source: :hca)
 
-    get hca_auth_path(continue: continue_path)
+    post hca_auth_path(continue: continue_path)
+    follow_redirect!
 
-    assert_equal continue_path, session.dig(:return_data, "url")
-    assert_response :redirect
-    assert_redirected_to %r{/oauth/authorize}
+    assert_redirected_to continue_path
+    assert_equal user.id, session[:user_id]
+    assert_equal "hca", session[:auth_provider]
   end
 
   test "hca_new rejects external continue URL" do
-    get hca_auth_path(continue: "https://evil.example.com/phish")
+    user = User.create!(hca_id: "ident!test-user")
+    user.email_addresses.create!(email: "hca-test@example.com", source: :hca)
 
-    assert_nil session.dig(:return_data, "url")
-    assert_response :redirect
-    assert_redirected_to %r{/oauth/authorize}
+    post hca_auth_path(continue: "https://evil.example.com/phish")
+    follow_redirect!
+
+    assert_redirected_to root_path
+    assert_equal user.id, session[:user_id]
   end
 
   test "hca_new rejects javascript continue URL" do
-    get hca_auth_path(continue: "javascript:alert(1)")
+    user = User.create!(hca_id: "ident!test-user")
+    user.email_addresses.create!(email: "hca-test@example.com", source: :hca)
 
-    assert_nil session.dig(:return_data, "url")
-    assert_response :redirect
-    assert_redirected_to %r{/oauth/authorize}
+    post hca_auth_path(continue: "javascript:alert(1)")
+    follow_redirect!
+
+    assert_redirected_to root_path
+    assert_equal user.id, session[:user_id]
   end
 
   test "hca_new rejects protocol-relative continue URL" do
-    get hca_auth_path(continue: "//evil.example.com/phish")
+    user = User.create!(hca_id: "ident!test-user")
+    user.email_addresses.create!(email: "hca-test@example.com", source: :hca)
 
-    assert_nil session.dig(:return_data, "url")
-    assert_response :redirect
-    assert_redirected_to %r{/oauth/authorize}
+    post hca_auth_path(continue: "//evil.example.com/phish")
+    follow_redirect!
+
+    assert_redirected_to root_path
+    assert_equal user.id, session[:user_id]
+  end
+
+  test "HCA callback rejects an unverified email" do
+    OmniAuth.config.mock_auth[:hca] = hca_auth_hash(email_verified: false)
+
+    post hca_auth_path
+    follow_redirect!
+
+    assert_redirected_to signin_path
+    assert_nil session[:user_id]
+    assert_nil session[:pending_hca]
+  end
+
+  test "HCA callback rejects a malformed subject" do
+    OmniAuth.config.mock_auth[:hca] = hca_auth_hash(subject: "not-an-hca-subject")
+
+    post hca_auth_path
+    follow_redirect!
+
+    assert_redirected_to signin_path
+    assert_nil session[:user_id]
+    assert_nil session[:pending_hca]
+  end
+
+  test "unknown HCA identity requires an explicit account choice" do
+    OmniAuth.config.mock_auth[:hca] = hca_auth_hash(subject: "ident!new-user", email: "new-user@example.com")
+
+    post hca_auth_path
+    follow_redirect!
+
+    assert_redirected_to signin_path
+    assert_nil session[:user_id]
+    assert_equal "ident!new-user", session.dig(:pending_hca, "subject")
+
+    assert_difference -> { User.where(hca_id: "ident!new-user").count }, 1 do
+      post hca_account_path
+    end
+
+    user = User.find_by!(hca_id: "ident!new-user")
+    assert_redirected_to setup_path
+    assert_equal user.id, session[:user_id]
+    assert_equal "hca", session[:auth_provider]
+    assert user.email_addresses.source_hca.exists?(email: "new-user@example.com")
+  end
+
+  test "HCA email recovery links the pending subject only in the initiating browser" do
+    legacy_user = User.create!
+    legacy_user.email_addresses.create!(email: "legacy-recovery@example.com", source: :signing_in)
+    OmniAuth.config.mock_auth[:hca] = hca_auth_hash(subject: "ident!recovered", email: "new-hca@example.com")
+
+    post hca_auth_path
+    follow_redirect!
+    post hca_recovery_path, params: { email: "legacy-recovery@example.com" }
+    token = legacy_user.sign_in_tokens.hca_recovery.last
+
+    assert_not_nil token
+    assert_equal "ident!recovered", token.return_data["hca_subject"]
+
+    other_browser = open_session
+    other_browser.get auth_token_path(token: token.token)
+    other_browser.assert_redirected_to signin_path
+    assert_nil other_browser.session[:user_id]
+    assert_nil token.reload.used_at
+
+    get auth_token_path(token: token.token)
+
+    assert_equal legacy_user.id, session[:user_id]
+    assert_equal "ident!recovered", legacy_user.reload.hca_id
+    assert token.reload.used_at.present?
+  end
+
+  test "HCA callback records and denies split legacy identities" do
+    email_user = User.create!
+    email_user.email_addresses.create!(email: "split-controller@example.com", source: :signing_in)
+    slack_user = User.create!(slack_uid: "U_CONTROLLER_SPLIT")
+    OmniAuth.config.mock_auth[:hca] = hca_auth_hash(
+      subject: "ident!controller-split",
+      email: "split-controller@example.com",
+      slack_id: "U_CONTROLLER_SPLIT"
+    )
+
+    assert_difference -> { HCAIdentityConflict.count }, 1 do
+      post hca_auth_path
+      follow_redirect!
+    end
+
+    assert_redirected_to signin_path
+    assert_nil session[:user_id]
+    conflict = HCAIdentityConflict.last
+    assert_equal "split_identity", conflict.reason
+    assert_equal email_user.id, conflict.email_user_id
+    assert_equal slack_user.id, conflict.slack_user_id
   end
 
   # -- Signin: preserves continue param --
@@ -69,132 +178,179 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_inertia_prop "continue_param", nil
   end
 
-  # -- Email auth: persists continue into sign-in token --
+  # -- Legacy email entry points hand off to HCA --
 
-  test "email auth stores continue param in sign-in token" do
-    user = User.create!
+  test "email auth redirects to HCA sign in with a login hint and safe continuation" do
     email = "continue-test-#{SecureRandom.hex(4)}@example.com"
-    user.email_addresses.create!(email: email)
-
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
 
     post email_auth_path, params: { email: email, continue: oauth_path }
 
     assert_response :redirect
-
-    token = SignInToken.last
-    assert_not_nil token
-    assert_equal oauth_path, token.continue_param
+    assert_redirected_to signin_path(login_hint: email, continue: oauth_path)
+    assert_no_difference -> { SignInToken.count } do
+      follow_redirect!
+    end
+    assert_inertia_prop "login_hint", email
+    assert_inertia_prop "continue_param", oauth_path
   end
 
-  test "email auth uses the public URL for the development sign-in link" do
-    original_public_url = ENV["PUBLIC_URL"]
-    ENV["PUBLIC_URL"] = "https://hackatime.example.test/"
-    user = User.create!
-    email = "public-url-test-#{SecureRandom.hex(4)}@example.com"
-    user.email_addresses.create!(email: email)
-    host! "3000-orb-id.e2b.app"
+  test "email auth normalizes the HCA login hint" do
+    post email_auth_path, params: { email: "  Person@Example.COM  " }
 
-    post email_auth_path, params: { email: email }
-
-    token = SignInToken.last
-    assert_equal "https://hackatime.example.test/auth/token/#{token.token}", session[:dev_magic_link]
-  ensure
-    ENV["PUBLIC_URL"] = original_public_url
+    assert_redirected_to signin_path(login_hint: "person@example.com")
   end
 
-  test "email auth uses the request URL when the public URL is blank" do
-    original_public_url = ENV["PUBLIC_URL"]
-    ENV["PUBLIC_URL"] = ""
-    user = User.create!
-    email = "blank-public-url-test-#{SecureRandom.hex(4)}@example.com"
-    user.email_addresses.create!(email: email)
-    host! "hackatime.local"
+  test "email auth drops an unsafe continuation" do
+    post email_auth_path, params: { email: "person@example.com", continue: "https://evil.example/phish" }
 
-    post email_auth_path, params: { email: email }
-
-    token = SignInToken.last
-    assert_equal "http://hackatime.local/auth/token/#{token.token}", session[:dev_magic_link]
-  ensure
-    ENV["PUBLIC_URL"] = original_public_url
+    assert_redirected_to signin_path(login_hint: "person@example.com")
   end
 
-  test "email token redirects to continue param after sign in" do
+  test "legacy standalone sign-in tokens cannot create a session" do
     user = User.create!
-    oauth_path = "/oauth/authorize?client_id=test&response_type=code"
-    sign_in_token = user.sign_in_tokens.create!(
-      auth_type: :email,
-      continue_param: oauth_path
-    )
+    %i[email slack program_magic_link].each do |auth_type|
+      sign_in_token = user.sign_in_tokens.create!(auth_type:)
 
-    get auth_token_path(token: sign_in_token.token)
+      get auth_token_path(token: sign_in_token.token)
 
-    assert_response :redirect
-    assert_redirected_to oauth_path
-    assert_equal user.id, session[:user_id]
-  end
-
-  test "email token falls back to root when no continue param" do
-    user = User.create!
-    sign_in_token = user.sign_in_tokens.create!(auth_type: :email)
-
-    get auth_token_path(token: sign_in_token.token)
-
-    assert_response :redirect
-    assert_redirected_to root_path
-    assert_equal user.id, session[:user_id]
-  end
-
-  test "email token rejects external continue URL" do
-    user = User.create!
-    sign_in_token = user.sign_in_tokens.create!(
-      auth_type: :email,
-      continue_param: "https://evil.example.com/phish"
-    )
-
-    get auth_token_path(token: sign_in_token.token)
-
-    assert_response :redirect
-    assert_redirected_to root_path
-    assert_equal user.id, session[:user_id]
-  end
-
-  test "email token rejects protocol-relative continue URL" do
-    user = User.create!
-    sign_in_token = user.sign_in_tokens.create!(
-      auth_type: :email,
-      continue_param: "//evil.example.com/phish"
-    )
-
-    get auth_token_path(token: sign_in_token.token)
-
-    assert_response :redirect
-    assert_redirected_to root_path
+      assert_redirected_to root_path
+      assert_nil session[:user_id]
+      assert_nil sign_in_token.reload.used_at
+    end
   end
 
   test "slack_new stores oauth nonce and embeds it in state" do
-    get slack_auth_path(close_window: true, continue: "/projects")
+    user = User.create!(hca_id: "ident!test-user", slack_uid: "U_TEST")
+    user.email_addresses.create!(email: "hca-test@example.com", source: :hca)
+    post hca_auth_path
+    follow_redirect!
+
+    post slack_auth_path
 
     assert_response :redirect
-    assert_not_nil session[:slack_oauth_state_nonce]
+    assert_not_nil session[:slack_oauth_state]
 
     redirect_query = Rack::Utils.parse_nested_query(URI.parse(response.redirect_url).query)
     state = JSON.parse(redirect_query["state"])
 
-    assert_equal session[:slack_oauth_state_nonce], state["token"]
-    assert_equal true, state["close_window"]
-    assert_equal "/projects", state["continue"]
+    assert_equal session[:slack_oauth_state], redirect_query["state"]
+    assert_equal "integration", state["purpose"]
+    assert_equal user.id, state["user_id"]
+  end
+
+  test "Slack cannot start a standalone login" do
+    post slack_auth_path
+
+    assert_redirected_to signin_path
+    assert_nil session[:slack_oauth_state]
+    assert_nil session[:user_id]
+  end
+
+  test "Slack integration requires a recent HCA authentication" do
+    user = User.create!(hca_id: "ident!test-user", slack_uid: "U_TEST")
+    user.email_addresses.create!(email: "hca-test@example.com", source: :hca)
+    post hca_auth_path
+    follow_redirect!
+
+    travel 31.minutes do
+      post slack_auth_path
+    end
+
+    assert_redirected_to signin_path
+    assert_nil session[:slack_oauth_state]
+    assert_equal user.id, session[:user_id]
+  end
+
+  test "Slack integration cannot switch the signed-in user" do
+    user = User.create!(hca_id: "ident!test-user", slack_uid: "U_EXPECTED")
+    user.email_addresses.create!(email: "hca-test@example.com", source: :hca)
+    post hca_auth_path
+    follow_redirect!
+    post slack_auth_path
+    state = session[:slack_oauth_state]
+    stub_slack_identity("U_OTHER")
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: state }
+
+    assert_redirected_to signin_path
+    assert_equal user.id, session[:user_id]
+    assert_equal "U_EXPECTED", user.reload.slack_uid
+    assert_nil user.slack_access_token
+  end
+
+  test "Slack integration can attach an unclaimed Slack identity to the signed-in HCA user" do
+    user = User.create!(hca_id: "ident!test-user")
+    user.email_addresses.create!(email: "hca-test@example.com", source: :hca)
+    post hca_auth_path
+    follow_redirect!
+    post slack_auth_path
+    state = session[:slack_oauth_state]
+    stub_slack_identity("U_NEW_INTEGRATION")
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: state }
+
+    assert_redirected_to my_settings_path
+    assert_equal user.id, session[:user_id]
+    assert_equal "U_NEW_INTEGRATION", user.reload.slack_uid
+    assert_equal "slack-access-token", user.slack_access_token
+  end
+
+  test "Slack recovery can link only after an unmatched HCA login" do
+    legacy_user = User.create!(slack_uid: "U_RECOVERY")
+    OmniAuth.config.mock_auth[:hca] = hca_auth_hash(subject: "ident!slack-recovered", email: "slack-recovered@example.com")
+    post hca_auth_path
+    follow_redirect!
+    assert_equal "ident!slack-recovered", session.dig(:pending_hca, "subject")
+
+    post slack_auth_path
+    state = session[:slack_oauth_state]
+    stub_slack_identity("U_RECOVERY")
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: state }
+
+    assert_redirected_to root_path
+    assert_equal legacy_user.id, session[:user_id]
+    assert_equal "ident!slack-recovered", legacy_user.reload.hca_id
+    assert_equal "hca", session[:auth_provider]
+  end
+
+  test "Slack recovery rejects a Slack account that differs from the HCA claim" do
+    legacy_user = User.create!(slack_uid: "U_RECOVERY_OTHER")
+    OmniAuth.config.mock_auth[:hca] = hca_auth_hash(
+      subject: "ident!slack-mismatch",
+      email: "slack-mismatch@example.com",
+      slack_id: "U_HCA_CLAIM"
+    )
+    post hca_auth_path
+    follow_redirect!
+    post slack_auth_path
+    state = session[:slack_oauth_state]
+    stub_slack_identity("U_RECOVERY_OTHER")
+
+    assert_difference -> { HCAIdentityConflict.count }, 1 do
+      get "/auth/slack/callback", params: { code: "oauth-code", state: state }
+    end
+
+    assert_redirected_to signin_path
+    assert_nil session[:user_id]
+    assert_nil legacy_user.reload.hca_id
+    assert_equal "recovery_conflict", HCAIdentityConflict.last.reason
   end
 
   test "slack_create rejects oauth callback with mismatched state nonce" do
-    get slack_auth_path
-    expected_nonce = session[:slack_oauth_state_nonce]
+    user = User.create!(hca_id: "ident!test-user", slack_uid: "U_TEST")
+    user.email_addresses.create!(email: "hca-test@example.com", source: :hca)
+    post hca_auth_path
+    follow_redirect!
+    post slack_auth_path
+    expected_state = session[:slack_oauth_state]
 
-    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: "wrong-#{expected_nonce}" }.to_json }
+    get "/auth/slack/callback", params: { code: "oauth-code", state: "wrong-#{expected_state}" }
 
     assert_response :redirect
     assert_redirected_to root_path
-    assert_nil session[:slack_oauth_state_nonce]
+    assert_nil session[:slack_oauth_state]
   end
 
   test "github_new stores oauth nonce and passes it in redirect state" do
@@ -421,5 +577,33 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     assert_equal admin.id, session[:user_id]
     assert_nil session[:impersonater_user_id]
+  end
+
+  private
+
+  def stub_slack_identity(uid)
+    stub_request(:post, "https://slack.com/api/oauth.v2.access")
+      .to_return(body: {
+        ok: true,
+        authed_user: { id: uid, access_token: "slack-access-token", scope: "users.profile:read" }
+      }.to_json)
+    stub_request(:get, "https://slack.com/api/users.info?user=#{uid}")
+      .to_return(body: { ok: true, user: { id: uid, profile: {} } }.to_json)
+  end
+
+  def hca_auth_hash(subject: "ident!test-user", email: "hca-test@example.com", slack_id: nil, email_verified: true)
+    OmniAuth::AuthHash.new(
+      provider: "hca",
+      uid: subject,
+      info: { email:, email_verified: },
+      extra: {
+        raw_info: {
+          "sub" => subject,
+          "email" => email,
+          "email_verified" => email_verified,
+          "slack_id" => slack_id
+        }.compact
+      }
+    )
   end
 end

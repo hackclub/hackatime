@@ -21,11 +21,10 @@ class DeletionRequestsController < InertiaController
 
   def cancel
     @deletion_request = current_user.active_deletion_request
-    if @deletion_request&.can_be_cancelled?
-      @deletion_request.cancel!
+    if @deletion_request&.cancel!
       redirect_to my_settings_path, notice: "Your deletion request has been cancelled!"
     else
-      redirect_to deletion_path
+      redirect_to my_settings_path, alert: "Your deletion request could not be cancelled."
     end
   end
 

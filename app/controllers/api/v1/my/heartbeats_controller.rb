@@ -52,7 +52,7 @@ class Api::V1::My::HeartbeatsController < ApplicationController
     return render_unauthorized unless valid_key.present?
 
     @current_user = valid_key.user
-    render_unauthorized unless @current_user
+    render_unauthorized unless @current_user&.authentication_allowed?
   end
 
   def current_user = @current_user

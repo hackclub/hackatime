@@ -95,4 +95,29 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
 
     assert_not_requested :get, /slack\.com/
   end
+
+  test "does not restore Slack profile data when anonymization finishes during the request" do
+    user = User.create!(timezone: "UTC", slack_uid: "U_DELETION_RACE")
+    stub_request(:get, "https://slack.com/api/users.info?user=U_DELETION_RACE")
+      .to_return do
+        AnonymizeUserService.call(user)
+        {
+          body: {
+            ok: true,
+            user: {
+              name: "deleted-name",
+              profile: { image_192: "https://example.com/deleted-avatar.png" }
+            }
+          }.to_json
+        }
+      end
+
+    SlackProfileSyncJob.perform_now(user.id)
+
+    user.reload
+    assert user.anonymized?
+    assert_nil user.slack_uid
+    assert_nil user.slack_username
+    assert_nil user.slack_avatar_url
+  end
 end

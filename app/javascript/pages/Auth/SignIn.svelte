@@ -13,12 +13,16 @@
     dev_magic_link,
     csrf_token,
     continue_param,
+    login_hint,
+    pending_hca,
   }: {
     sign_in_email: boolean;
     show_dev_tool: boolean;
     dev_magic_link?: string | null;
     csrf_token: string;
     continue_param?: string | null;
+    login_hint?: string | null;
+    pending_hca?: { email: string } | null;
   } = $props();
 </script>
 
@@ -47,8 +51,9 @@
         {show_dev_tool}
         {dev_magic_link}
         {csrf_token}
-        redirect_to="signin"
         {continue_param}
+        {login_hint}
+        {pending_hca}
       />
 
       <div class="text-center mt-4">

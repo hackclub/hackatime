@@ -1,75 +1,42 @@
 require "test_helper"
 
 class EmailLoginTest < ActionDispatch::IntegrationTest
-  test "full email sign-in flow creates token and signs user in" do
-    user = User.create!(timezone: "UTC")
+  test "email sign-in entry point moves the user to HCA without creating a token" do
     email = "login-flow-#{SecureRandom.hex(4)}@example.com"
-    user.email_addresses.create!(email: email, source: :signing_in)
 
-    assert_difference -> { SignInToken.count }, 1 do
+    assert_no_difference -> { SignInToken.count } do
       post email_auth_path, params: { email: email }
     end
 
-    assert_response :redirect
-
-    token = SignInToken.last
-    assert_equal user.id, token.user_id
-
-    get auth_token_path(token: token.token)
-
-    assert_response :redirect
-    assert_redirected_to root_path
-    assert_equal user.id, session[:user_id]
+    assert_redirected_to signin_path(login_hint: email)
+    assert_nil session[:user_id]
   end
 
-  test "email sign-in is case-insensitive" do
-    user = User.create!(timezone: "UTC")
-    email = "case-test-#{SecureRandom.hex(4)}@example.com"
-    user.email_addresses.create!(email: email, source: :signing_in)
+  test "email sign-in passes a normalized email to HCA as a login hint" do
+    post email_auth_path, params: { email: "  Legacy@Example.COM " }
 
-    post email_auth_path, params: { email: email.upcase }
-
-    assert_response :redirect
-
-    token = SignInToken.last
-    assert_equal user.id, token.user_id
+    assert_redirected_to signin_path(login_hint: "legacy@example.com")
   end
 
-  test "email sign-in with continue param preserves redirect" do
-    user = User.create!(timezone: "UTC")
-    email = "continue-#{SecureRandom.hex(4)}@example.com"
-    user.email_addresses.create!(email: email, source: :signing_in)
+  test "email sign-in preserves a safe continuation for the HCA flow" do
     continue_path = "/oauth/authorize?client_id=test&response_type=code"
 
-    post email_auth_path, params: { email: email, continue: continue_path }
+    post email_auth_path, params: { email: "legacy@example.com", continue: continue_path }
 
-    token = SignInToken.last
-    assert_equal continue_path, token.continue_param
-
-    get auth_token_path(token: token.token)
-
-    assert_response :redirect
-    assert_redirected_to continue_path
-    assert_equal user.id, session[:user_id]
+    assert_redirected_to signin_path(login_hint: "legacy@example.com", continue: continue_path)
   end
 
-  test "email sign-in token can only be used once" do
+  test "legacy email sign-in token cannot create a session" do
     user = User.create!(timezone: "UTC")
     email = "once-#{SecureRandom.hex(4)}@example.com"
     user.email_addresses.create!(email: email, source: :signing_in)
 
-    post email_auth_path, params: { email: email }
-    token = SignInToken.last
-
-    get auth_token_path(token: token.token)
-    assert_equal user.id, session[:user_id]
-
-    delete signout_path
-    assert_nil session[:user_id]
+    token = user.sign_in_tokens.create!(auth_type: :email)
 
     get auth_token_path(token: token.token)
     assert_redirected_to root_path
     assert_nil session[:user_id]
+    assert_nil token.reload.used_at
   end
 
   test "expired email token does not sign user in" do

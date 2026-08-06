@@ -198,7 +198,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     return render_unauthorized unless valid_key.present?
 
     @user = valid_key.user
-    render_unauthorized unless @user
+    render_unauthorized unless @user&.authentication_allowed?
   end
 
   # allow either heartbeat or heartbeats

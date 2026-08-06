@@ -30,18 +30,14 @@ if Rails.env.development? || Rails.env.test?
     key.token = 'dev-admin-api-key-12345'
   end
 
-  # Create a sign-in token that doesn't expire
-  token = test_user.sign_in_tokens.find_or_create_by(token: 'testing-token') do |t|
-    t.expires_at = 1.year.from_now
-    t.auth_type = :email
-  end
+  # Standalone sign-in tokens were retired in favour of HCA.
+  test_user.sign_in_tokens.where(token: 'testing-token').delete_all
 
   puts "Created test user:"
   puts "  Username: #{test_user.display_name}"
   puts "  Email: #{email.email}"
   puts "  API Key: #{api_key.token}"
   puts "  Admin API Key: #{admin_api_key.token}"
-  puts "  Sign-in Token: #{token.token}"
 
   # Create sample heartbeats for last 7 days with variety of data
   if test_user.heartbeats.count < 50

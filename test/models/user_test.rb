@@ -84,6 +84,14 @@ class UserTest < ActiveSupport::TestCase
     assert user.api_access_restricted?
   end
 
+  test "anonymized users cannot authenticate or access APIs" do
+    user = User.create!(timezone: "UTC", anonymized_at: Time.current)
+
+    assert user.anonymized?
+    assert_not user.authentication_allowed?
+    assert user.api_access_restricted?
+  end
+
   test "display name override takes precedence over synced provider names" do
     user = User.create!(
       timezone: "UTC",
@@ -148,19 +156,15 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "HCA authentication fills a missing Slack ID on an existing account" do
-    user = User.create!(timezone: "UTC", hca_id: "hca-existing")
-    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
-      .to_return(body: { access_token: "hca-token" }.to_json)
-    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
-      .with(headers: { "Authorization" => "Bearer hca-token" })
-      .to_return(body: {
-        identity: { id: "hca-existing", slack_id: "U_FROM_HCA" },
-        scopes: %w[email slack_id]
-      }.to_json)
+    user = User.create!(timezone: "UTC", hca_id: "ident!hca-existing")
 
     authenticated_user = nil
     assert_enqueued_with(job: SlackProfileSyncJob, args: [ user.id ]) do
-      authenticated_user = User.from_hca_token("code", "https://example.com/auth/hca/callback")
+      authenticated_user = User.from_hca_identity(
+        subject: "ident!hca-existing",
+        email: "hca-existing@example.com",
+        slack_uid: "U_FROM_HCA"
+      )
     end
 
     assert_equal user, authenticated_user
@@ -170,22 +174,18 @@ class UserTest < ActiveSupport::TestCase
   test "HCA authentication does not replace an existing Slack ID" do
     user = User.create!(
       timezone: "UTC",
-      hca_id: "hca-linked",
+      hca_id: "ident!hca-linked",
       slack_uid: "U_LINKED",
       slack_synced_at: 1.hour.ago
     )
-    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
-      .to_return(body: { access_token: "hca-token" }.to_json)
-    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
-      .with(headers: { "Authorization" => "Bearer hca-token" })
-      .to_return(body: {
-        identity: { id: "hca-linked", slack_id: "U_DIFFERENT" },
-        scopes: %w[email slack_id]
-      }.to_json)
 
     authenticated_user = nil
     assert_enqueued_with(job: SlackProfileSyncJob, args: [ user.id ]) do
-      authenticated_user = User.from_hca_token("code", "https://example.com/auth/hca/callback")
+      authenticated_user = User.from_hca_identity(
+        subject: "ident!hca-linked",
+        email: "hca-linked@example.com",
+        slack_uid: "U_DIFFERENT"
+      )
     end
 
     assert_equal user, authenticated_user
@@ -193,21 +193,145 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "HCA authentication does not claim a Slack ID linked to another account" do
-    user = User.create!(timezone: "UTC", hca_id: "hca-unlinked")
+    user = User.create!(timezone: "UTC", hca_id: "ident!hca-unlinked")
     User.create!(timezone: "UTC", slack_uid: "U_ALREADY_LINKED")
-    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
-      .to_return(body: { access_token: "hca-token" }.to_json)
-    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
-      .with(headers: { "Authorization" => "Bearer hca-token" })
-      .to_return(body: {
-        identity: { id: "hca-unlinked", slack_id: "U_ALREADY_LINKED" },
-        scopes: %w[email slack_id]
-      }.to_json)
 
-    authenticated_user = User.from_hca_token("code", "https://example.com/auth/hca/callback")
+    authenticated_user = User.from_hca_identity(
+      subject: "ident!hca-unlinked",
+      email: "hca-unlinked@example.com",
+      slack_uid: "U_ALREADY_LINKED"
+    )
 
     assert_equal user, authenticated_user
     assert_nil user.reload.slack_uid
+  end
+
+  test "known HCA subject remains authoritative when its current email belongs to another account" do
+    subject_user = User.create!(timezone: "UTC", hca_id: "ident!email-drift", slack_uid: "U_EMAIL_DRIFT")
+    email_user = User.create!(timezone: "UTC")
+    email_user.email_addresses.create!(email: "drifted@example.com", source: :signing_in)
+
+    authenticated_user = nil
+    assert_difference -> { HCAIdentityConflict.count }, 1 do
+      authenticated_user = User.from_hca_identity(
+        subject: "ident!email-drift",
+        email: "drifted@example.com",
+        slack_uid: "U_EMAIL_DRIFT"
+      )
+    end
+
+    assert_equal subject_user, authenticated_user
+    assert_equal email_user, EmailAddress.find_by!(email: "drifted@example.com").user
+    assert_not subject_user.email_addresses.exists?(email: "drifted@example.com")
+
+    conflict = HCAIdentityConflict.find_by!(hca_id: "ident!email-drift")
+    assert_equal "known_subject_claim_drift", conflict.reason
+    assert_equal email_user.id, conflict.email_user_id
+    assert_equal subject_user.id, conflict.slack_user_id
+  end
+
+  test "HCA authentication links a Slack-matched legacy account when the HCA email differs" do
+    user = User.create!(timezone: "UTC", slack_uid: "U_MATCHED")
+    user.email_addresses.create!(email: "old-slack-email@example.com", source: :slack)
+
+    authenticated_user = User.from_hca_identity(
+      subject: "ident!different-email",
+      email: "current-hca-email@example.com",
+      slack_uid: "U_MATCHED"
+    )
+
+    assert_equal user, authenticated_user
+    assert_equal "ident!different-email", user.reload.hca_id
+    assert user.email_addresses.exists?(email: "old-slack-email@example.com")
+    assert user.email_addresses.source_hca.exists?(email: "current-hca-email@example.com")
+  end
+
+  test "HCA authentication rejects split email and Slack candidates" do
+    email_user = User.create!(timezone: "UTC")
+    email_user.email_addresses.create!(email: "split@example.com", source: :signing_in)
+    slack_user = User.create!(timezone: "UTC", slack_uid: "U_SPLIT")
+
+    error = assert_raises(OauthAuthentication::HcaIdentityConflictError) do
+      User.from_hca_identity(
+        subject: "ident!split",
+        email: "split@example.com",
+        slack_uid: "U_SPLIT"
+      )
+    end
+
+    assert_equal "split_identity", error.reason
+    assert_equal email_user.id, error.email_user_id
+    assert_equal slack_user.id, error.slack_user_id
+    assert_nil email_user.reload.hca_id
+    assert_nil slack_user.reload.hca_id
+  end
+
+  test "HCA authentication rejects a legacy candidate already linked to another subject" do
+    user = User.create!(timezone: "UTC", hca_id: "ident!existing")
+    user.email_addresses.create!(email: "already-linked@example.com", source: :hca)
+
+    error = assert_raises(OauthAuthentication::HcaIdentityConflictError) do
+      User.from_hca_identity(
+        subject: "ident!different",
+        email: "already-linked@example.com"
+      )
+    end
+
+    assert_equal "subject_already_linked", error.reason
+    assert_equal "ident!existing", user.reload.hca_id
+  end
+
+  test "HCA authentication returns nil when no legacy identity matches" do
+    assert_nil User.from_hca_identity(
+      subject: "ident!unmatched",
+      email: "unmatched@example.com",
+      slack_uid: "U_UNMATCHED"
+    )
+  end
+
+  test "HCA authentication rejects anonymized identity candidates" do
+    user = User.create!(timezone: "UTC", anonymized_at: Time.current)
+    user.email_addresses.create!(email: "preserved@example.com", source: :preserved_for_deletion)
+
+    error = assert_raises(OauthAuthentication::HcaIdentityConflictError) do
+      User.from_hca_identity(subject: "ident!deleted", email: "preserved@example.com")
+    end
+
+    assert_equal "anonymized", error.reason
+    assert_nil user.reload.hca_id
+  end
+
+  test "Slack integration does not restore identity after a stale user is anonymized" do
+    user = User.create!(timezone: "UTC", hca_id: "ident!slack-race")
+    stale_user = User.find(user.id)
+    AnonymizeUserService.call(user)
+
+    connected = User.connect_slack_identity!(stale_user, {
+      uid: "U_AFTER_DELETION",
+      access_token: "slack-access-token",
+      scopes: [ "users:read" ],
+      profile: { "name" => "restored" }
+    })
+
+    assert_not connected
+    assert_nil user.reload.slack_uid
+    assert_nil user.slack_access_token
+  end
+
+  test "Slack integration rejects users with a pending deletion" do
+    user = User.create!(timezone: "UTC", hca_id: "ident!slack-pending-deletion")
+    DeletionRequest.create_for_user!(user)
+
+    connected = User.connect_slack_identity!(user, {
+      uid: "U_PENDING_DELETION",
+      access_token: "slack-access-token",
+      scopes: [ "users:read" ],
+      profile: { "name" => "pending" }
+    })
+
+    assert_not connected
+    assert_nil user.reload.slack_uid
+    assert_nil user.slack_access_token
   end
 
   test "creating a user with an email address queues a welcome email" do

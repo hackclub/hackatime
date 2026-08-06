@@ -55,11 +55,22 @@ example, request host), or for external links. API-only controllers may inherit
 ### Browser identity
 
 [`ApplicationController#current_user`](../app/controllers/application_controller.rb)
-is exactly `User.find_by(id: session[:user_id])`. HCA, Slack, and single-use
-email-link sign-in converge on a `User`; successful login resets the session
-before assigning that ID. Slack and GitHub callback state is consumed and
-compared with `secure_compare`; HCA currently does not use an OAuth state
-nonce. Continuation URLs must be local paths (not `//...`). See
+resolves `session[:user_id]` only while the stored authentication version still
+matches the user and the account has not been anonymized. HCA OpenID Connect,
+through OmniAuth, is the browser sign-in authority. Its authorization-code flow
+requires state, nonce, PKCE, an RS256 ID token, a verified email and a stable
+`ident!` subject. Successful login resets the session before assigning the user
+and authentication version. The HCA cutover starts authentication versions at
+one, so browser sessions created by older releases are rejected. HCA access,
+refresh and ID tokens are not persisted.
+
+Slack OAuth is separate: after an unmatched HCA login it may prove ownership of
+a legacy account, or after a recent HCA login it may refresh Slack integration
+scopes for the same Slack identity. It cannot establish a standalone session or
+switch users. Email links may likewise prove recovery only when tied to the
+pending HCA subject and initiating browser; legacy standalone sign-in links are
+rejected. GitHub remains a signed-in integration. Continuation URLs must be
+local paths (not `//...`). See
 [`SessionsController`](../app/controllers/sessions_controller.rb).
 
 [`EmailAddress`](../app/models/email_address.rb) owns normalized, globally

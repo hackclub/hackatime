@@ -1,48 +1,63 @@
 class SessionsController < ApplicationController
-  def hca_new
-    session[:return_data] = build_return_data(params[:continue]) if params[:continue].present?
-    Rails.logger.info("Sessions return data: #{session[:return_data]}")
-    redirect_uri = url_for(action: :hca_create, only_path: false)
+  HCA_AUTHENTICATION_MAX_AGE = 30.minutes
 
-    redirect_to User.hca_authorize_url(redirect_uri),
-      host: "https://auth.hackclub.com",
-      allow_other_host: "https://auth.hackclub.com"
-  end
+  rescue_from OauthAuthentication::HcaIdentityConflictError, with: :handle_hca_identity_conflict
+
+  def hca_new = failure
 
   def hca_create
-    return if handle_oauth_error("HCA", redirect_path: root_path, alert_label: "Hack Club Auth")
+    auth = request.env["omniauth.auth"]
+    info = auth&.dig("info") || {}
+    claims = auth&.dig("extra", "raw_info") || {}
+    subject = auth&.dig("uid").to_s
+    email = (claims["email"] || info["email"]).to_s.strip.downcase
+    verified = claims["email_verified"] == true || info["email_verified"] == true
+    continuation = safe_return_url(request.env.dig("omniauth.params", "continue"))
+    return failure unless auth&.dig("provider") == "hca" && verified && subject.match?(/\Aident![A-Za-z0-9_-]+\z/) && email.present?
 
-    redirect_uri = url_for(action: :hca_create, only_path: false)
-    @user = User.from_hca_token(params[:code], redirect_uri, client_ip)
+    identity = { "subject" => subject, "email" => email, "slack_uid" => claims["slack_id"].presence, "created_at" => Time.current.to_i, "continue" => continuation }.compact
+    user = User.from_hca_identity(subject:, email:, slack_uid: identity["slack_uid"])
+    return establish_hca_session(user, continuation:) if user
 
-    if @user&.persisted?
-      preserved_return_data = session[:return_data]
-      reset_session
-      session[:user_id] = @user.id
-      session[:return_data] = preserved_return_data if preserved_return_data
-      notice = "Successfully signed in with Hack Club Auth! Welcome!"
+    session[:pending_hca] = identity
+    redirect_to signin_path, notice: "Choose how to finish setting up your Hackatime account."
+  end
 
-      if @user.previously_new_record?
-        redirect_to setup_path, notice: notice
-      elsif session[:return_data]&.dig("url").present?
-        redirect_to session[:return_data].delete("url"), notice: notice
-      else
-        redirect_to root_path, notice: notice
-      end
-    else
-      redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
+  def hca_account
+    pending = pending_hca_identity
+    return failure unless pending
+
+    user = User.create_from_hca_identity!(subject: pending["subject"], email: pending["email"], slack_uid: pending["slack_uid"], country_code: User.country_code_from_ip(client_ip))
+    establish_hca_session(user, continuation: pending["continue"], onboarding: true)
+  end
+
+  def hca_recovery
+    pending = pending_hca_identity
+    if pending && (email_address = EmailAddress.find_by("LOWER(email) = ?", params[:email].to_s.strip.downcase)) && !email_address.source_preserved_for_deletion? && email_address.user.authentication_allowed? && email_address.user.hca_id.blank? && email_address.user.admin_level == "default" && !email_address.user.pending_deletion?
+      token = email_address.user.sign_in_tokens.create!(auth_type: :hca_recovery, return_data: { "hca_subject" => pending["subject"] })
+      LoopsMailer.hca_recovery_email(email_address.email, token.token).deliver_later
     end
+    redirect_to signin_path, notice: "If that account is eligible, we've sent recovery instructions."
+  end
+
+  def hca_cancel
+    session.delete(:pending_hca)
+    redirect_to signin_path
   end
 
   def slack_new
+    pending = pending_hca_identity
+    purpose = pending ? "recovery" : "integration"
+    return redirect_to(signin_path, alert: "Sign in with Hack Club Account again first.") if purpose == "integration" && !recent_hca_authentication?
+
     redirect_uri = url_for(action: :slack_create, only_path: false)
     oauth_nonce = SecureRandom.hex(24)
-    session[:slack_oauth_state_nonce] = oauth_nonce
     state_payload = {
       token: oauth_nonce,
-      close_window: params[:close_window].present?,
-      continue: params[:continue]
+      purpose: purpose,
+      user_id: (current_user.id if purpose == "integration")
     }.to_json
+    session[:slack_oauth_state] = state_payload
 
     Rails.logger.info "Starting Slack OAuth flow with redirect URI: #{redirect_uri}"
     redirect_to User.slack_authorize_url(redirect_uri, state: state_payload),
@@ -54,34 +69,30 @@ class SessionsController < ApplicationController
     return if handle_oauth_error("Slack", redirect_path: root_path, alert_label: "Slack")
 
     redirect_uri = url_for(action: :slack_create, only_path: false)
-    slack_state = parse_slack_state(params[:state])
-    unless valid_oauth_state?(provider: "Slack", session_key: :slack_oauth_state_nonce, received_nonce: slack_state&.dig("token"))
+    unless valid_oauth_state?(provider: "Slack", session_key: :slack_oauth_state, received_nonce: params[:state])
       return redirect_to(root_path, alert: "Failed to authenticate with Slack")
     end
+    slack_state = parse_slack_state(params[:state])
+    return failure unless slack_state
 
-    @user = User.from_slack_token(params[:code], redirect_uri, client_ip)
+    identity = User.exchange_slack_code(params[:code], redirect_uri)
+    return failure unless identity
 
-    if @user&.persisted?
-      reset_session
-      session[:user_id] = @user.id
-      notice = "Successfully signed in with Slack! Welcome!"
-
-      continue_url = safe_return_url(slack_state&.dig("continue").presence)
-
-      if slack_state&.dig("close_window")
-        redirect_to close_window_path
-      elsif @user.previously_new_record?
-        session[:return_data] = build_return_data(continue_url)
-        redirect_to setup_path, notice: notice
-      elsif continue_url.present?
-        redirect_to continue_url, notice: notice # codeql[rb/url-redirection]
-      else
-        redirect_to root_path, notice: notice
-      end
+    if slack_state["purpose"] == "integration"
+      return failure unless current_user&.id == slack_state["user_id"].to_i && recent_hca_authentication?
+      return failure unless User.connect_slack_identity!(current_user, identity)
+      redirect_to my_settings_path, notice: "Successfully re-authorised Slack."
     else
-      report_message("Failed to create/update user from Slack data")
-      redirect_to root_path, alert: "Failed to sign in with Slack"
+      pending = pending_hca_identity
+      user = User.find_by(slack_uid: identity[:uid])
+      return failure unless pending && user
+      bind_recovered_hca!(user, pending, proven_slack_uid: identity[:uid])
+      establish_hca_session(user, continuation: pending["continue"])
     end
+  end
+
+  def failure
+    redirect_to signin_path, alert: "Authentication failed. Please try again."
   end
 
   def close_window = render(:close_window, layout: false)
@@ -130,19 +141,10 @@ class SessionsController < ApplicationController
   end
 
   def email
-    email = params[:email].downcase
-    continue_param = params[:continue]
-
-    if Rails.env.production?
-      HandleEmailSigninJob.perform_later(email, continue_param, client_ip)
-    else
-      token = HandleEmailSigninJob.perform_now(email, continue_param, client_ip)
-      public_url = ENV["PUBLIC_URL"].presence || root_url
-      session[:dev_magic_link] = URI.join(public_url, auth_token_path(token)).to_s
-    end
-
-    redirect_path = params[:redirect_to] == "signin" ? signin_path(sign_in_email: true) : root_path(sign_in_email: true)
-    redirect_to redirect_path, notice: "Check your email for a sign-in link!"
+    redirect_to signin_path(
+      login_hint: params[:email].to_s.strip.downcase.presence,
+      continue: safe_return_url(params[:continue])
+    ), notice: "Email sign-in has moved to Hack Club Account."
   end
 
   def add_email
@@ -231,20 +233,13 @@ class SessionsController < ApplicationController
     valid_token = SignInToken.where(token: params[:token], used_at: nil)
                             .where("expires_at > ?", Time.current).first
 
-    if valid_token
-      valid_token.mark_used!
-      reset_session
-      session[:user_id] = valid_token.user_id
-      continue_url = safe_return_url(valid_token.continue_param)
-      session[:return_data] = (valid_token.return_data || {}).merge(build_return_data(continue_url))
-      if continue_url.present?
-        redirect_to continue_url, notice: "Successfully signed in!" # codeql[rb/url-redirection]
-      else
-        redirect_to root_path, notice: "Successfully signed in!"
-      end
-    else
-      redirect_to root_path, alert: "Invalid or expired link"
-    end
+    return redirect_to(root_path, alert: "Invalid or expired link") unless valid_token&.hca_recovery?
+
+    pending = pending_hca_identity
+    return redirect_to(signin_path, alert: "Restart recovery in this browser.") unless pending && valid_token.return_data&.dig("hca_subject") == pending["subject"]
+    return redirect_to(signin_path, alert: "This recovery link has expired or was already used.") unless consume_hca_recovery_token!(valid_token, pending)
+
+    establish_hca_session(valid_token.user, continuation: pending["continue"])
   end
 
   def impersonate
@@ -262,13 +257,17 @@ class SessionsController < ApplicationController
     return redirect_to(root_path, alert: "nice try, you cant do that") if blocked
 
     session[:impersonater_user_id] ||= current_user.id
+    session[:impersonater_authentication_version] ||= current_user.authentication_version
     session[:user_id] = user.id
+    session[:authentication_version] = user.authentication_version
     redirect_to root_path, notice: "Impersonating #{user.display_name}"
   end
 
   def stop_impersonating
     session[:user_id] = session[:impersonater_user_id]
+    session[:authentication_version] = session[:impersonater_authentication_version]
     session[:impersonater_user_id] = nil
+    session[:impersonater_authentication_version] = nil
     redirect_to root_path, notice: "Stopped impersonating"
   end
 
@@ -280,6 +279,73 @@ class SessionsController < ApplicationController
   private
 
   def client_ip = request.headers["CF-Connecting-IP"].presence || request.remote_ip
+
+  def pending_hca_identity
+    pending = session[:pending_hca]
+    unless pending.is_a?(Hash) && pending["created_at"].to_i > 10.minutes.ago.to_i
+      session.delete(:pending_hca)
+      return
+    end
+
+    pending
+  end
+
+  def recent_hca_authentication?
+    current_user.present? &&
+      session[:auth_provider] == "hca" &&
+      session[:authenticated_at].to_i > HCA_AUTHENTICATION_MAX_AGE.ago.to_i
+  end
+
+  def consume_hca_recovery_token!(token, pending)
+    SignInToken.transaction do
+      token.lock!
+      return false if token.used_at? || token.expires_at <= Time.current || token.return_data&.dig("hca_subject") != pending["subject"]
+
+      bind_recovered_hca!(token.user, pending)
+      token.mark_used!
+    end
+    true
+  end
+
+  def establish_hca_session(user, continuation: nil, onboarding: false)
+    return failure unless user&.authentication_allowed?
+
+    return_data = build_return_data(continuation)
+    reset_session
+    session[:user_id] = user.id
+    session[:authentication_version] = user.authentication_version
+    session[:auth_provider] = "hca"
+    session[:authenticated_at] = Time.current.to_i
+    session[:return_data] = return_data if return_data.present?
+    return redirect_to(setup_path, notice: "Account created successfully.") if onboarding
+    return redirect_to(continuation, notice: "Successfully signed in!") if safe_return_url(continuation) # codeql[rb/url-redirection]
+
+    redirect_to root_path, notice: "Successfully signed in!"
+  end
+
+  def bind_recovered_hca!(user, pending, proven_slack_uid: nil)
+    User.transaction do
+      user.lock!
+      subject_owner = User.lock.find_by(hca_id: pending["subject"])
+      email_owner = EmailAddress.lock.find_by("LOWER(email) = ?", pending["email"])&.user
+      claim_slack_owner = User.lock.find_by(slack_uid: pending["slack_uid"]) if pending["slack_uid"].present?
+      conflicting_claim = [ subject_owner, email_owner, claim_slack_owner ].compact.any? { |owner| owner != user }
+      slack_proof_mismatch = proven_slack_uid.present? && pending["slack_uid"].present? && proven_slack_uid != pending["slack_uid"]
+      if !user.authentication_allowed? || user.hca_id.present? && user.hca_id != pending["subject"] || user.admin_level != "default" || user.pending_deletion? || conflicting_claim || slack_proof_mismatch
+        User.raise_hca_conflict!(subject: pending["subject"], reason: "recovery_conflict", email_user: email_owner, slack_user: claim_slack_owner)
+      end
+
+      attributes = { hca_id: pending["subject"], hca_access_token: nil, hca_scopes: [] }
+      attributes[:slack_uid] = proven_slack_uid if proven_slack_uid.present? && User.where(slack_uid: proven_slack_uid).where.not(id: user.id).none?
+      user.update!(attributes)
+      User.attach_hca_email!(user, pending["email"])
+    end
+  end
+
+  def handle_hca_identity_conflict(error)
+    HCAIdentityConflict.record!(error)
+    redirect_to signin_path, alert: "We couldn't safely link this Hack Club Account. Please contact support."
+  end
 
   def parse_slack_state(raw_state)
     JSON.parse(raw_state)

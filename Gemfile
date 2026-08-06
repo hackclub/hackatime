@@ -57,7 +57,9 @@ gem "ruby-vips", "~> 2.3", require: false
 gem "dotenv-rails"
 
 # Authentication
-# gem "oauth2"
+gem "omniauth", "~> 2.1"
+gem "omniauth_openid_connect", "~> 0.8"
+gem "omniauth-rails_csrf_protection", "~> 1.0"
 
 # Added from the code block
 gem "http"

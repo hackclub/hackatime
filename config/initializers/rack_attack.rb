@@ -57,7 +57,7 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("auth requests", limit: 5, period: 1.minute) do |req|
-    req.ip if req.path.in?([ "/login", "/signup", "/auth", "/sessions" ]) && req.post?
+    req.ip if req.post? && (req.path.start_with?("/auth/") || req.path.in?([ "/login", "/signup", "/auth", "/sessions" ]))
   end
 
   Rack::Attack.throttle("api requests", limit: 10000, period: 1.hour) do |req|

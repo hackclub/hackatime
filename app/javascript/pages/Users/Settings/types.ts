@@ -260,6 +260,7 @@ export type EditorsPageProps = SettingsCommonProps & {
 };
 
 export type SlackGithubPageProps = SettingsCommonProps & {
+  csrf_token: string;
   user: Pick<UserProps, "uses_slack_status">;
   slack: SlackProps;
   github: GithubProps;

@@ -16,8 +16,10 @@ module Api
           render json: { error: "Unauthorized" }, status: :unauthorized if current_user&.api_access_restricted?
         end
 
-        def ensure_no_pending_deletion
-          render json: { error: "Unauthorized" }, status: :unauthorized if current_user&.pending_deletion?
+        def ensure_profile_access_allowed
+          return if current_user&.authentication_allowed? && !current_user.pending_deletion?
+
+          render json: { error: "Unauthorized" }, status: :unauthorized
         end
       end
     end

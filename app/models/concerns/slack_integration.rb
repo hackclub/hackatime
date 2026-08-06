@@ -53,7 +53,7 @@ module SlackIntegration
   end
 
   # Assigns slack_username and slack_avatar_url from a Slack `user` payload.
-  # Shared by SlackIntegration#update_from_slack and OauthAuthentication.from_slack_token.
+  # Shared by SlackIntegration#update_from_slack and the Slack connection flow.
   def apply_slack_profile_attributes(slack_user)
     profile = slack_user["profile"] || {}
     self.slack_avatar_url = profile["image_192"] || profile["image_72"]
