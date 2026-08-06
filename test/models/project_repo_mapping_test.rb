@@ -36,37 +36,17 @@ class ProjectRepoMappingTest < ActiveSupport::TestCase
     assert_predicate mapping, :valid?
   end
 
-  test "inaccessible GitHub repository URLs are invalid" do
+  test "nonexistent GitHub repository URLs are invalid" do
     user = User.create!(github_access_token: "github-token")
-    stub_request(:get, "https://api.github.com/repos/example/missing")
-      .to_return(
-        status: 404,
-        body: '{"message":"Not Found"}',
-        headers: { "X-OAuth-Scopes" => "repo, user:email" }
-      )
+    stub_request(:get, "https://api.github.com/repos/hackcl/hackatime")
+      .to_return(status: 404, body: '{"message":"Not Found"}')
     mapping = user.project_repo_mappings.build(
       project_name: "missing",
-      repo_url: "https://github.com/example/missing"
+      repo_url: "https://github.com/hackcl/hackatime"
     )
 
     assert_not mapping.valid?
     assert_includes mapping.errors[:repo_url], "does not exist or is not accessible"
-  end
-
-  test "a private repository hidden from a limited token is not treated as nonexistent" do
-    user = User.create!(github_access_token: "github-token")
-    stub_request(:get, "https://api.github.com/repos/example/private")
-      .to_return(
-        status: 404,
-        body: '{"message":"Not Found"}',
-        headers: { "X-OAuth-Scopes" => "user:email" }
-      )
-    mapping = user.project_repo_mappings.build(
-      project_name: "private",
-      repo_url: "https://github.com/example/private"
-    )
-
-    assert_predicate mapping, :valid?
   end
 
   test "temporary GitHub failures do not mark repository URLs as nonexistent" do

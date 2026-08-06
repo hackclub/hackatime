@@ -23,7 +23,7 @@ module RepoHost
 
       case response.status.code
       when 200 then true
-      when 404 then github_repo_scope?(response) ? false : nil
+      when 404 then false
       else
         Rails.logger.warn "[#{self.class.name}] Could not verify #{owner}/#{repo}: #{response.status}"
         nil
@@ -58,10 +58,6 @@ module RepoHost
     end
 
     private
-
-    def github_repo_scope?(response)
-      response.headers["X-OAuth-Scopes"].to_s.split(",").map(&:strip).include?("repo")
-    end
 
     def api_headers
       self.class.api_headers_for(user.github_access_token)
