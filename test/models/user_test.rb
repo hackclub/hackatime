@@ -206,6 +206,30 @@ class UserTest < ActiveSupport::TestCase
     assert_nil user.reload.slack_uid
   end
 
+  test "known HCA subject remains authoritative when its current email belongs to another account" do
+    subject_user = User.create!(timezone: "UTC", hca_id: "ident!email-drift", slack_uid: "U_EMAIL_DRIFT")
+    email_user = User.create!(timezone: "UTC")
+    email_user.email_addresses.create!(email: "drifted@example.com", source: :signing_in)
+
+    authenticated_user = nil
+    assert_difference -> { HCAIdentityConflict.count }, 1 do
+      authenticated_user = User.from_hca_identity(
+        subject: "ident!email-drift",
+        email: "drifted@example.com",
+        slack_uid: "U_EMAIL_DRIFT"
+      )
+    end
+
+    assert_equal subject_user, authenticated_user
+    assert_equal email_user, EmailAddress.find_by!(email: "drifted@example.com").user
+    assert_not subject_user.email_addresses.exists?(email: "drifted@example.com")
+
+    conflict = HCAIdentityConflict.find_by!(hca_id: "ident!email-drift")
+    assert_equal "known_subject_claim_drift", conflict.reason
+    assert_equal email_user.id, conflict.email_user_id
+    assert_equal subject_user.id, conflict.slack_user_id
+  end
+
   test "HCA authentication links a Slack-matched legacy account when the HCA email differs" do
     user = User.create!(timezone: "UTC", slack_uid: "U_MATCHED")
     user.email_addresses.create!(email: "old-slack-email@example.com", source: :slack)
