@@ -82,5 +82,6 @@ public/vite
 
 target.txt
 
-.amp/
+.amp/*
+!.amp/services.yaml
 plans/

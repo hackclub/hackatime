@@ -137,7 +137,8 @@ class SessionsController < ApplicationController
       HandleEmailSigninJob.perform_later(email, continue_param, client_ip)
     else
       token = HandleEmailSigninJob.perform_now(email, continue_param, client_ip)
-      session[:dev_magic_link] = auth_token_url(token)
+      public_url = ENV["PUBLIC_URL"].presence || root_url
+      session[:dev_magic_link] = URI.join(public_url, auth_token_path(token)).to_s
     end
 
     redirect_path = params[:redirect_to] == "signin" ? signin_path(sign_in_email: true) : root_path(sign_in_email: true)

@@ -1,5 +1,5 @@
 services:
-  web:
+  web: &web
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -18,8 +18,23 @@ services:
       - POSTGRES_PASSWORD=secureorpheus123
       - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command: ["sleep", "infinity"]
+
+  portal:
+    <<: *web
+    profiles:
+      - portal
+    ports:
+      - "3001:3000"
+    environment:
+      - RAILS_ENV=development
+      - DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
+      - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
+      - PUBLIC_URL=${PUBLIC_URL:-}
+    entrypoint: []
+    command: ["bin/rails", "server", "-b", "0.0.0.0", "-p", "3000", "-P", "/tmp/portal-server.pid"]
 
   db:
     image: postgres:16
@@ -29,6 +44,11 @@ services:
       - POSTGRES_PASSWORD=secureorpheus123
       - POSTGRES_USER=postgres
       - POSTGRES_DB=app_development
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app_development"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
     ports:
       - "5432:5432"
 

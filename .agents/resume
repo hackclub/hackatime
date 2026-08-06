@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! sudo docker info >/dev/null 2>&1; then
+  if systemctl cat amp-svc-docker-daemon.service >/dev/null 2>&1; then
+    amp orb service restart docker-daemon
+  else
+    amp orb service start docker-daemon --command 'sudo dockerd'
+  fi
+
+  for _ in $(seq 1 8); do
+    sudo docker info >/dev/null 2>&1 && break
+    sleep 1
+  done
+fi
+
+sudo docker info >/dev/null
+sudo docker compose up -d
+amp orb services ensure

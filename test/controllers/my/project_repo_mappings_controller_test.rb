@@ -99,6 +99,21 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate mapping.reload, :archived?
   end
 
+  test "update returns validation errors to the projects page" do
+    user = User.create!(timezone: "UTC", github_uid: "123")
+    mapping = user.project_repo_mappings.create!(project_name: "alpha")
+
+    sign_in_as(user)
+    patch my_project_repo_mapping_path(project_name: mapping.project_name),
+          params: { project_repo_mapping: { repo_url: "https://example.com/owner/repo" } },
+          headers: { "HTTP_REFERER" => my_projects_url(show_archived: true) }
+
+    assert_redirected_to my_projects_path(show_archived: true)
+    assert_includes session[:inertia_errors][:repo_url], "We only support GitHub repositories"
+    assert_equal mapping.project_name, session[:inertia_errors][:repo_url_project_name]
+    assert_equal "https://example.com/owner/repo", session[:inertia_errors][:repo_url_value]
+  end
+
   private
 
   def create_project_heartbeats(user, project_name)

@@ -18,6 +18,69 @@ We do development using docker-compose. Run `docker compose ps` to see if the de
 - **Zeitwerk**: `docker compose exec web bin/rails zeitwerk:check` (autoloader check)
 - **Swagger**: `docker compose exec web bin/rails rswag:specs:swaggerize` (generate API docs)
 
+## Bug Fixes
+
+Always reproduce a reported bug before changing code. Confirm the failure using the narrowest reliable reproduction and record the current behaviour so the fix can be verified against it. If reproduction is impossible because required data, credentials or services are unavailable, state that clearly before proceeding.
+
+After fixing the bug, rerun the original reproduction as well as the regression test. Test externally visible behaviour and durable state rather than private implementation details. Prefer real models and database behaviour over mocks.
+
+## Engineering Decisions
+
+Start with the smallest correct change in the current owner. Before editing, identify the source of truth and the invariant being protected. Read [the architecture guide](docs/architecture.md) when a change crosses subsystem boundaries.
+
+### Rails ownership ladder
+
+Put behaviour in the narrowest layer that naturally owns it:
+
+1. **Controller**: HTTP concerns, authentication, authorisation, strong parameters and response selection.
+2. **Model**: invariants, state transitions and behaviour owned by persisted data.
+3. **Scope or query object**: reusable data retrieval. Introduce a query object only when scopes stop composing clearly.
+4. **Job**: delayed or retryable execution. Jobs must be idempotent.
+5. **Service object**: an operation that genuinely coordinates multiple models, external systems or transaction boundaries.
+6. **Concern**: a cohesive capability, not a place to hide unrelated model or controller size.
+
+Do not create a service object merely to make a controller or model shorter. Extract an operation only when it has a coherent responsibility that does not naturally belong to one model.
+
+### Correctness rules
+
+- Use database constraints for integrity and model validations for useful feedback.
+- Put related writes in a transaction. Do not make network calls inside that transaction.
+- Enqueue external side effects after commit where practical.
+- Make GoodJob jobs safe to retry without duplicate records, notifications or state transitions.
+- Treat caches, dashboard rollups and summaries as derived data. Identify and update the source of truth rather than repairing derived output.
+- Check authorisation separately from authentication.
+- Use bang methods when failure must abort the operation.
+- Do not use callbacks for workflows spanning multiple models or external systems.
+- Rescue only errors the code can meaningfully handle and rescue the narrowest exception class possible. Log enough context and re-raise unexpected failures. Never report success after a partial write.
+- Check query count and eager loading when rendering collections.
+- Store timestamps in UTC. For calendar boundaries and presentation, use `Time.current` or `Date.current` inside the user's `Time.use_zone(user.timezone)` context. Background jobs that calculate user-local calendar boundaries must establish that context explicitly.
+- Use `Process.clock_gettime(Process::CLOCK_MONOTONIC)` rather than wall-clock time to measure elapsed execution time.
+
+### When to zoom out
+
+Zoom out only when there is evidence that the current ownership boundary prevents a correct implementation. Evidence includes:
+
+- The same business rule must change in three or more places.
+- Two modules disagree about the source of truth.
+- A correct operation cannot be made atomic within the current boundary.
+- Callbacks, jobs or cache refreshes repeatedly compensate for unclear ownership.
+- A collection of booleans represents an undocumented state machine.
+- Retry, concurrency or ordering bugs recur because state is implicit.
+- A public contract repeatedly leaks internal implementation details.
+- Tests require extensive stubbing because responsibilities cannot be exercised independently.
+
+Do not re-architect merely because a class is long but cohesive, a method gained one branch, two snippets look similar, an abstraction feels inelegant or a hypothetical future caller might need flexibility. Do not add an abstraction with only one caller unless it creates a clear ownership boundary or protects a critical invariant.
+
+Use this escalation order:
+
+1. Fix the bug in the existing owner.
+2. Strengthen the owner's invariant or API.
+3. Remove proven duplication around that invariant.
+4. Extract one coherent responsibility.
+5. Rework the subsystem boundary only when the earlier steps cannot make it correct.
+
+Before a broad redesign, state the invariant, why the current owner cannot protect it, the smallest viable new boundary, migration and rollback risks and how behaviour will be preserved. Get user agreement on the plan unless the redesign is required to resolve an active correctness or security issue.
+
 ## CI/Testing Requirements
 
 Before marking any task complete, you MUST check `config/ci.rb` and manually run the checks in that file which are relevant to your changes (with `docker compose exec`.)
@@ -35,7 +98,24 @@ Skip running checks which aren't relevant to your changes. However, at the very 
 - **Start containers**: `docker compose up -d` (must be running before using `exec`)
 - **Interactive shell**: `docker compose exec web /bin/bash`
 - **Initial setup**: `docker compose exec web bin/rails db:create db:schema:load db:seed`
+- **Reset test database**: `docker compose exec web env RAILS_ENV=test bin/rails db:drop db:create db:schema:load`
 - **Cleanup**: Run commands with the `--remove-orphans` flag to remove unused containers and images
+
+### Amp portal server
+
+The Amp portal runs Rails in the dedicated `portal` Compose profile while the `web` container remains available for commands. Keep the portal process attached to `docker compose up`; do not change it back to `docker compose exec`, because stopping the outer exec process can orphan Puma inside the container. Use `amp orb service restart hackatime` after changing the portal service configuration.
+
+Orb setup prebuilds the Vite client bundle so the first portal request does not block on a build. After changing frontend source, run `docker compose exec web bin/vite build` before asking the user to review the portal; otherwise their first request can spend several seconds compiling assets.
+
+## Development Authentication
+
+Development-only endpoints are available to bypass OAuth when working locally or in an Amp orb:
+
+- `GET /__dev` lists the available development endpoints.
+- `GET /__dev/log-me-in/<email>` signs the browser in as the local user with that email. Use `/__dev/log-me-in/test@example.com` for the seeded development user.
+- `GET /__dev/log-me-out` signs the browser out.
+
+These endpoints are only available in the development environment.
 
 ## Git Practices
 
@@ -43,12 +123,24 @@ Skip running checks which aren't relevant to your changes. However, at the very 
 - **NEVER use `git add .`** - always add files individually to avoid accidentally committing unwanted files
 - Use `git add <specific-file>` or `git add <directory>/` for targeted commits
 
+## Pull Requests
+
+- Always use the GitHub PR template at `.github/pull_request_template.md` when creating a PR.
+- Write PR titles and descriptions in British English.
+- Never use em dashes or en dashes.
+- Never use Oxford commas.
+- Do not list commands you ran in the PR description.
+- Do not mention tests passing in the PR description.
+- Bias towards including screenshots or other media, particularly for visual changes.
+- Keep descriptions short and simple while still explaining the problem and the useful parts of the change. Avoid waffle.
+
 ## Code Style (rubocop-rails-omakase)
 
 - **Naming**: snake_case files/methods/vars, PascalCase classes, 2-space indent
 - **Controllers**: Inherit `ApplicationController`, use `before_action`, strong params with `.permit()`
-- **Models**: Inherit `ApplicationRecord`, extensive use of concerns/enums/scopes
-- **Error Handling**: `rescue => e` + `Rails.logger.error`, graceful degradation in jobs
+- **Models**: Inherit `ApplicationRecord`; keep domain behaviour with the model that owns the data; use enums and composable scopes where they clarify the domain
+- **Concerns**: Use concerns only for cohesive capabilities with a clear name, not as miscellaneous storage
+- **Error Handling**: Rescue specific failures that can be handled meaningfully; log context and let unexpected failures surface
 - **Imports**: Use `include` for concerns, `helper_method` for view access
 - **API**: Namespace under `api/v1/`, structured JSON responses with status codes
 - **Jobs**: GoodJob with 4 priority queues, inherit from `ApplicationJob`, concurrency control for cache jobs

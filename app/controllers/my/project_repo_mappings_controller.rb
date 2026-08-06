@@ -2,8 +2,8 @@ class My::ProjectRepoMappingsController < InertiaController
   layout "inertia", only: [ :index, :show ]
 
   before_action :ensure_current_user
-  before_action :require_github_oauth, only: [ :edit, :update ]
-  before_action :set_project_repo_mapping_for_edit, only: [ :edit, :update ]
+  before_action :require_github_oauth, only: [ :update ]
+  before_action :set_project_repo_mapping_for_edit, only: [ :update ]
   before_action :set_project_repo_mapping, only: [ :archive, :unarchive, :toggle_share ]
 
   def index
@@ -24,16 +24,18 @@ class My::ProjectRepoMappingsController < InertiaController
     }
   end
 
-  def edit; end
-
   def update
     @project_repo_mapping.project_name = params[:project_name] if @project_repo_mapping.new_record?
 
     if @project_repo_mapping.update(project_repo_mapping_params)
       redirect_to my_projects_path, notice: "Repository mapping updated successfully."
     else
-      flash.now[:alert] = @project_repo_mapping.errors.full_messages.join(", ")
-      render :edit, status: :unprocessable_entity
+      redirect_back fallback_location: my_projects_path,
+                    inertia: { errors: {
+                      repo_url: @project_repo_mapping.errors[:repo_url].to_sentence,
+                      repo_url_project_name: @project_repo_mapping.project_name,
+                      repo_url_value: @project_repo_mapping.repo_url
+                    } }
     end
   end
 
