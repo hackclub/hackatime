@@ -90,7 +90,13 @@ Rails.application.routes.draw do
 
   get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
 
-  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+  if Rails.env.development?
+    mount LetterOpenerWeb::Engine, at: "/letter_opener"
+    get "/__dev", to: "dev#index", as: :dev
+    get "/__dev/log-me-in/:email", to: "dev#log_me_in", as: :dev_log_me_in,
+      constraints: { email: /[^\/]+/ }, format: false
+    get "/__dev/log-me-out", to: "dev#log_me_out", as: :dev_log_me_out
+  end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.

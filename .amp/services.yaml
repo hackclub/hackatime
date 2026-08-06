@@ -1,0 +1,7 @@
+services:
+  hackatime:
+    command: sudo docker compose exec -T -e PORT=$PORT web bin/rails server -b 0.0.0.0 -p $PORT
+    port: 3000
+    portal:
+      title: Hackatime
+      description: Use /__dev/log-me-in/test@example.com to sign in as the seeded development user.
