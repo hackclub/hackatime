@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
-    "@types/node": "^25.9.5",
+    "@types/node": "^26.1.2",
     "knip": "^6.29.0",
     "prettier": "^3.9.6",
     "prettier-plugin-svelte": "^3.5.2"
