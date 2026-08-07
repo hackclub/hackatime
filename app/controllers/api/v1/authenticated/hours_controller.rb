@@ -16,6 +16,12 @@ module Api
             total_seconds: total_seconds
           }
         end
+
+        private
+
+        def required_doorkeeper_scopes
+          [ :read ]
+        end
       end
     end
   end

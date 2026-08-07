@@ -113,36 +113,21 @@ end
 # Use the test user if we have one, otherwise fall back to User ID 1 (for other envs or if test user logic changes)
 app_owner = test_user || User.find_by(id: 1)
 
-OauthApplication.find_or_create_by(
+OauthApplication.find_or_create_by(uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ").update!(
   name: "Hackatime Desktop",
   owner: app_owner,
   redirect_uri: "hackatime://auth/callback",
-  uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ",
-  scopes: [ "profile" ],
+  scopes: [ "profile", "read", "heartbeats" ],
   confidential: false,
 )
 
 if test_user && defined?(Doorkeeper)
-  app = OauthApplication.find_by(name: "Hackatime Desktop")
+  app = OauthApplication.find_by(uid: "BPr5VekIV-xuQ2ZhmxbGaahJ3XVd7gM83pql-HYGYxQ")
 
-  existing_token = Doorkeeper::AccessToken.find_by(token: 'dev-api-key-12345')
-
-  if existing_token
-    existing_token.update_columns(
-      application_id: app.id,
-      resource_owner_id: test_user.id,
-      expires_in: nil,
-      scopes: 'profile'
-    )
-  else
-    token = Doorkeeper::AccessToken.find_or_create_by(
-      application_id: app.id,
-      resource_owner_id: test_user.id
-    ) do |t|
-      t.expires_in = nil
-      t.scopes = 'profile'
-    end
-
-    token.update_column(:token, 'dev-api-key-12345')
-  end
+  token = Doorkeeper::AccessToken.find_or_initialize_by(token: 'dev-api-key-12345')
+  token.application_id = app.id
+  token.resource_owner_id = test_user.id
+  token.expires_in = nil
+  token.scopes = 'profile read heartbeats'
+  token.save!(validate: false)
 end

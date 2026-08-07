@@ -158,5 +158,7 @@ en:
         title: "OAuth authorization required"
     scopes:
       profile: Access your basic profile info (user ID, emails, Slack ID, GitHub username)
-      read: View your Hackatime stats, projects, heartbeats, and coding activity
+      read: Access your Hackatime stats, projects, and streak
+      heartbeats: Access all your raw heartbeats (may include sensitive data)
       admin: Access the Admin API on your behalf (user management, trust actions, heartbeats, and other internal tools)
+      api_key: "SENSITIVE: Access your Hackatime API key, which can be used to fully impersonate you and get all your heartbeat data"

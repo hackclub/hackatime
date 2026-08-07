@@ -5,7 +5,7 @@ Doorkeeper.configure do
   application_class "OauthApplication"
 
   default_scopes "profile"
-  optional_scopes "read", "admin"
+  optional_scopes "read", "heartbeats", "admin", "api_key"
   enforce_configured_scopes
 
   resource_owner_authenticator do
@@ -29,7 +29,9 @@ Doorkeeper.configure do
 
   enable_application_owner confirmation: false
 
-  access_token_expires_in 16.years
+  access_token_expires_in 1.year
+
+  use_refresh_token
 
   reuse_access_token
 

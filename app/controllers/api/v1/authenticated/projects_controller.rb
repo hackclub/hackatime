@@ -18,6 +18,10 @@ module Api
 
         private
 
+        def required_doorkeeper_scopes
+          [ :read ]
+        end
+
         def project_stats_query
           @project_stats_query ||= ProjectStatsQuery.new(
             user: current_user,

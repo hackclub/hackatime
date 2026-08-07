@@ -25,6 +25,12 @@ module Api
             render json: { heartbeat: nil }
           end
         end
+
+        private
+
+        def required_doorkeeper_scopes
+          [ :heartbeats ]
+        end
       end
     end
   end
