@@ -223,6 +223,7 @@ Rails.application.routes.draw do
   get "deletion", to: "deletion_requests#show", as: :deletion
   post "deletion", to: "deletion_requests#create", as: :create_deletion
   delete "deletion", to: "deletion_requests#cancel", as: :cancel_deletion
+  get "deletion/hca/callback", to: "deletion_requests#hca_callback", as: :hca_deletion_callback
 
   get "setup", to: "users#setup", as: :setup
   get "my/wakatime_setup", to: redirect("/setup")

@@ -5,13 +5,26 @@ module OauthAuthentication
   class_methods do
     include ErrorReporting
 
-    def hca_authorize_url(redirect_uri)
+    def hca_authorize_url(redirect_uri, state: nil, prompt: nil, scope: "email slack_id verification_status")
       URI.parse("#{HCAService.host}/oauth/authorize?#{{
         redirect_uri:,
         client_id: ENV["HCA_CLIENT_ID"],
         response_type: "code",
-        scope: "email slack_id verification_status"
-      }.to_query}")
+        scope:,
+        state:,
+        prompt:
+      }.compact.to_query}")
+    end
+
+    def hca_id_from_token(code, redirect_uri)
+      response = HTTP.post("#{HCAService.host}/oauth/token", form: {
+        client_id: ENV["HCA_CLIENT_ID"], client_secret: ENV["HCA_CLIENT_SECRET"],
+        redirect_uri:, code:, grant_type: "authorization_code"
+      })
+      access_token = JSON.parse(response.body.to_s)["access_token"]
+      return if access_token.nil?
+
+      HCAService.me(access_token).dig("identity", "id")
     end
 
     def slack_authorize_url(redirect_uri, state: nil, close_window: false, continue_param: nil)
