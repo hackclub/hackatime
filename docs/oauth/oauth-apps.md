@@ -15,7 +15,7 @@ Hackatime uses [OAuth 2.0](https://oauth.net/2/) (powered by Doorkeeper) to let 
 3. Click **New Application**
 4. Fill in the form:
    - **Name** -- a human-readable name for your app (shown on the consent screen)
-   - **Redirect URIs** -- one URI per line where users are sent after authorizing (e.g. `https://orpheus.gg/auth/callback`)
+   - **Redirect URIs** -- one URI per line where users are sent after authorizing (e.g. `https://example.com/auth/callback`)
    - **Scopes** -- the permissions your app needs (see [Scopes](#scopes) below)
    - **Confidential** -- check this if your app can keep a client secret safe (server-side apps). Leave unchecked for native/mobile/SPA apps.
 5. Click **Submit**
