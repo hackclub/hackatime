@@ -2,8 +2,7 @@ module Api
   module V1
     module Authenticated
       class StreakController < ApplicationController
-        skip_before_action :doorkeeper_authorize!
-        before_action -> { doorkeeper_authorize! :read }, prepend: true
+        require_oauth_scope :read
 
         def show
           render json: {
