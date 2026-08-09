@@ -185,8 +185,20 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     get "/api/v1/stats", headers: { "Authorization" => "Bearer #{admin_api_key.token}" }
     assert_response :success
 
+    get "/api/v1/stats", headers: { "Authorization" => "bearer #{admin_api_key.token}" }
+    assert_response :success
+
     get "/api/v1/stats", params: { api_key: admin_api_key.token }
     assert_response :unauthorized
+  end
+
+  test "aggregate stats rejects valid admin API keys under non-Bearer schemes" do
+    admin_api_key = create_admin_api_key
+
+    [ "Basic #{admin_api_key.token}", "Token #{admin_api_key.token}", admin_api_key.token ].each do |authorization|
+      get "/api/v1/stats", headers: { "Authorization" => authorization }
+      assert_response :unauthorized
+    end
   end
 
   test "aggregate stats rejects revoked admin API keys" do
@@ -212,8 +224,25 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     Flipper.enable(:allow_legacy_stats_api_key)
     get "/api/v1/stats", headers: { "Authorization" => "Bearer #{legacy_key}" }
     assert_response :success
+    get "/api/v1/stats", headers: { "Authorization" => "bearer #{legacy_key}" }
+    assert_response :success
     get "/api/v1/stats", params: { api_key: legacy_key }
     assert_response :success
+
+    [ "Basic #{legacy_key}", "Token #{legacy_key}", legacy_key, "Bearer\t#{legacy_key}" ].each do |authorization|
+      get "/api/v1/stats", headers: { "Authorization" => authorization }
+      assert_response :unauthorized
+    end
+
+    [ "", " ", "Token malformed" ].each do |authorization|
+      get "/api/v1/stats",
+        params: { api_key: legacy_key },
+        headers: { "Authorization" => authorization }
+      assert_response :unauthorized
+    end
+
+    get "/api/v1/users/lookup_email/nobody@example.com", params: { api_key: legacy_key }
+    assert_response :unauthorized
 
     admin_api_key = create_admin_api_key
     get "/api/v1/stats", params: { api_key: admin_api_key.token }

@@ -707,9 +707,11 @@ paths:
       tags:
       - OAuth2-specific
       description: Returns detailed information about the currently authenticated
-        user. Requires an OAuth2 access token (Bearer header).
+        user. Requires an OAuth2 access token with the `profile` scope in the Bearer
+        header.
       security:
-      - Bearer: []
+      - OAuth2:
+        - profile
       responses:
         '200':
           description: successful
@@ -743,6 +745,8 @@ paths:
                       trust_value:
                         type: integer
                         example: 0
+        '403':
+          description: insufficient scope
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
@@ -752,9 +756,10 @@ paths:
       tags:
       - OAuth2-specific
       description: Returns the total coding hours for the authenticated user. Requires
-        an OAuth2 access token (Bearer header).
+        an OAuth2 access token with the `read` scope in the Bearer header.
       security:
-      - Bearer: []
+      - OAuth2:
+        - read
       parameters:
       - name: start_date
         in: query
@@ -787,6 +792,8 @@ paths:
                   total_seconds:
                     type: number
                     example: 153000.0
+        '403':
+          description: insufficient scope
         '401':
           description: 'unauthorized — Returned when the OAuth access token is missing
             or invalid (empty body), or when the authenticated user is banned (`trust_level
@@ -798,9 +805,10 @@ paths:
       tags:
       - OAuth2-specific
       description: Returns the current streak information (days coded in a row). Requires
-        an OAuth2 access token (Bearer header).
+        an OAuth2 access token with the `read` scope in the Bearer header.
       security:
-      - Bearer: []
+      - OAuth2:
+        - read
       responses:
         '200':
           description: successful
@@ -812,6 +820,8 @@ paths:
                   streak_days:
                     type: integer
                     example: 5
+        '403':
+          description: insufficient scope
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
@@ -821,9 +831,10 @@ paths:
       tags:
       - OAuth2-specific
       description: Returns a list of projects associated with the authenticated user.
-        Requires an OAuth2 access token (Bearer header).
+        Requires an OAuth2 access token with the `read` scope in the Bearer header.
       security:
-      - Bearer: []
+      - OAuth2:
+        - read
       parameters:
       - name: include_archived
         in: query
@@ -909,6 +920,8 @@ paths:
                         archived:
                           type: boolean
                           example: false
+        '403':
+          description: insufficient scope
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
@@ -941,10 +954,12 @@ paths:
       tags:
       - OAuth2-specific
       description: 'Returns the absolutely latest heartbeat processed for the user.
-        Requires an OAuth2 access token (Bearer header). When the user has no non-test
-        heartbeat, the response is `{ "heartbeat": null }`.'
+        Requires an OAuth2 access token with the `read` scope in the Bearer header.
+        When the user has no non-test heartbeat, the response is `{ "heartbeat": null
+        }`.'
       security:
-      - Bearer: []
+      - OAuth2:
+        - read
       responses:
         '200':
           description: successful
@@ -999,6 +1014,8 @@ paths:
                       example:
                   required:
                   - heartbeat
+        '403':
+          description: insufficient scope
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
@@ -2054,6 +2071,16 @@ paths:
                     example: U000000
 components:
   securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: "/oauth/authorize"
+          tokenUrl: "/oauth/token"
+          scopes:
+            profile: Read profile information
+            read: Read coding activity data
+            admin: Access administrative operations
     Bearer:
       type: http
       scheme: bearer

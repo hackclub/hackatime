@@ -2,6 +2,8 @@ module Api
   module V1
     module Authenticated
       class StreakController < ApplicationController
+        require_oauth_scope :read
+
         def show
           render json: {
             streak_days: current_user.streak_days

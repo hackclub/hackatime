@@ -91,12 +91,15 @@ class ApplicationController < ActionController::Base
   # Authenticates stats integrations with an AdminApiKey. STATS_API_KEY remains
   # available as a temporary fallback while the Flipper flag is enabled.
   def authenticate_stats_api_key!(allow_query_param: true, message: "Unauthorized")
-    header_token = request.headers["Authorization"]&.split(" ")&.last
-    if header_token.present?
-      return if auth_admin_api_key(header_token)
-      return if valid_legacy_stats_api_key?(header_token)
-    elsif allow_query_param
-      return if valid_legacy_stats_api_key?(params[:api_key])
+    authorization = request.headers["Authorization"]
+    if authorization.nil?
+      return if allow_query_param && valid_legacy_stats_api_key?(params[:api_key])
+    elsif authorization.match?(/\ABearer +\S+\z/i)
+      scheme, header_token = authorization_credentials
+      if bearer_scheme?(scheme)
+        return if auth_admin_api_key(header_token)
+        return if valid_legacy_stats_api_key?(header_token)
+      end
     end
 
     render_unauthorized(message)
