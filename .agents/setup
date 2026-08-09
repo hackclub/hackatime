@@ -38,6 +38,13 @@ fi
 echo "==> Building and starting development containers"
 sudo docker compose up -d --build
 
+echo "==> Trusting the mounted repository inside the web container"
+sudo docker compose exec -T web sh -c '
+  repo_root=$(pwd)
+  git config --global --get-all safe.directory | grep -Fqx "$repo_root" ||
+    git config --global --add safe.directory "$repo_root"
+'
+
 echo "==> Building Vite client assets"
 sudo docker compose exec -T web bin/vite build
 
