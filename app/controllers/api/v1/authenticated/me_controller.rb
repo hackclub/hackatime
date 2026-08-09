@@ -2,6 +2,8 @@ module Api
   module V1
     module Authenticated
       class MeController < ApplicationController
+        skip_before_action :doorkeeper_authorize!
+        before_action -> { doorkeeper_authorize! :profile }, prepend: true
         skip_before_action :ensure_api_access_allowed, only: :index
         before_action :ensure_no_pending_deletion, only: :index
 

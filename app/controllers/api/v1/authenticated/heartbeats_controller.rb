@@ -2,6 +2,9 @@ module Api
   module V1
     module Authenticated
       class HeartbeatsController < ApplicationController
+        skip_before_action :doorkeeper_authorize!
+        before_action -> { doorkeeper_authorize! :read }, prepend: true
+
         def latest
           heartbeat = current_user.heartbeats
                                   .where.not(source_type: :test_entry)

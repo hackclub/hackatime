@@ -2,6 +2,9 @@ module Api
   module V1
     module Authenticated
       class HoursController < ApplicationController
+        skip_before_action :doorkeeper_authorize!
+        before_action -> { doorkeeper_authorize! :read }, prepend: true
+
         def index
           start_date = params[:start_date]&.to_date || 7.days.ago.to_date
           end_date = params[:end_date]&.to_date || Date.current
