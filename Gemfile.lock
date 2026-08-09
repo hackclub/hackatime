@@ -240,7 +240,7 @@ GEM
     jmespath (1.6.2)
     js_from_routes (4.0.2)
       railties (>= 5.1, < 9)
-    json (2.21.1)
+    json (2.21.2)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
