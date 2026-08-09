@@ -4,6 +4,21 @@ set -euo pipefail
 echo "==> Updating Bun"
 bun upgrade
 
+gh_min_version="2.97.0"
+gh_version="$(/usr/bin/gh --version 2>/dev/null | awk 'NR == 1 { print $3 }' || true)"
+if [ -z "$gh_version" ] || ! dpkg --compare-versions "$gh_version" ge "$gh_min_version"; then
+  echo "==> Installing GitHub CLI from its official repository"
+  keyring="$(mktemp)"
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o "$keyring"
+  sudo install -m 0755 -d /etc/apt/keyrings /etc/apt/sources.list.d
+  sudo install -m 0644 "$keyring" /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  rm -f "$keyring"
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |
+    sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+  sudo apt-get update
+  sudo apt-get install -y gh
+fi
+
 if ! command -v docker >/dev/null 2>&1; then
   echo "==> Installing Docker and Docker Compose"
   sudo install -m 0755 -d /etc/apt/keyrings
