@@ -182,22 +182,10 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   def check_lockout = (render_forbidden("Account pending deletion") if @user&.pending_deletion?)
 
   def set_user
-    api_header = request.headers["Authorization"]
-    raw_token = api_header&.split(" ")&.last
-    api_token = case api_header&.split(" ")&.first
-    when "Bearer" then raw_token
-    when "Basic" then Base64.decode64(raw_token)
-    end
-    api_token ||= params[:api_key] if params[:api_key].present?
-    return render_unauthorized unless api_token.present?
-
-    # Sanitize api_token to handle invalid UTF-8 sequences
-    api_token = api_token.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
-
-    valid_key = ApiKey.find_by(token: api_token)
-    return render_unauthorized unless valid_key.present?
-
-    @user = valid_key.user
+    @user = api_user_from_credentials(
+      api_key_sources: %i[bearer basic query],
+      allow_restricted: true
+    )
     render_unauthorized unless @user
   end
 

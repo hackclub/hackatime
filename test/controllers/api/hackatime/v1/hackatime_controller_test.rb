@@ -385,4 +385,62 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
 
     assert_response :bad_request
   end
+
+  test "status bar accepts API keys with Basic authentication" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current/statusbar/today",
+      headers: { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
+
+    assert_response :success
+  end
+
+  test "status bar accepts API keys from the query string" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current/statusbar/today", params: { api_key: api_key.token }
+
+    assert_response :success
+  end
+
+  test "status bar does not accept OAuth access tokens" do
+    user = User.create!(timezone: "UTC")
+    access_token = create_oauth_access_token(user)
+
+    get "/api/hackatime/v1/users/current/statusbar/today",
+      headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :unauthorized
+  end
+
+  test "malformed authorization header does not fall through to query API key" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current/statusbar/today",
+      params: { api_key: api_key.token },
+      headers: { "Authorization" => "Bearer" }
+
+    assert_response :unauthorized
+  end
+
+  private
+
+  def create_oauth_access_token(user)
+    application = user.oauth_applications.create!(
+      name: "Test App",
+      redirect_uri: "https://example.com/callback",
+      scopes: "profile read",
+      confidential: true
+    )
+
+    Doorkeeper::AccessToken.create!(
+      application: application,
+      resource_owner_id: user.id,
+      scopes: "profile read",
+      expires_in: 16.years
+    )
+  end
 end
