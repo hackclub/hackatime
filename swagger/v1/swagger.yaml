@@ -1206,9 +1206,9 @@ paths:
       tags:
       - My Data
       description: Returns the most recent heartbeat for the authenticated user. Useful
-        for checking if the user is currently active. Authenticate with your API key
-        as a Bearer token in the `Authorization` header (HTTP Basic auth with the
-        API key is also accepted).
+        for checking if the user is currently active. Authenticate with an OAuth access
+        token with the `read` scope or an API key as a Bearer token in the `Authorization`
+        header (HTTP Basic auth with the API key is also accepted).
       security:
       - Bearer: []
       parameters:
@@ -1257,17 +1257,17 @@ paths:
                 - editor
                 - time_ago
         '401':
-          description: unauthorized — Returned when the Authorization header is missing
-            or the token does not match a known API key.
+          description: unauthorized — Returned when the Authorization header is missing,
+            the OAuth token lacks the read scope, or the token is invalid.
   "/api/v1/my/heartbeats":
     get:
       summary: Get heartbeats
       tags:
       - My Data
       description: Returns a list of heartbeats for the authenticated user within
-        a time range. This is the raw data stream. Authenticate with your API key
-        as a Bearer token in the `Authorization` header (HTTP Basic auth with the
-        API key is also accepted).
+        a time range. This is the raw data stream. Authenticate with an OAuth access
+        token with the `read` scope or an API key as a Bearer token in the `Authorization`
+        header (HTTP Basic auth with the API key is also accepted).
       security:
       - Bearer: []
       parameters:
@@ -1319,8 +1319,8 @@ paths:
                 - total_seconds
                 - heartbeats
         '401':
-          description: unauthorized — Returned when the Authorization header is missing
-            or the token does not match a known API key.
+          description: unauthorized — Returned when the Authorization header is missing,
+            the OAuth token lacks the read scope, or the token is invalid.
   "/api/v1/stats":
     get:
       summary: Get total coding time

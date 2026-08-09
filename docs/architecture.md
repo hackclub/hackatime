@@ -81,8 +81,10 @@ profile synchronization.
   `profile` (default), `read`, and `admin`; validate token acceptability and
   required scopes, then load the resource owner. Ordinary OAuth/API access is
   denied for convicted or pending-deletion users via `api_access_restricted?`.
-  See [`doorkeeper.rb`](../config/initializers/doorkeeper.rb) and
-  `ApplicationController#oauth_bearer_user`.
+  Controllers that support ordinary user credentials declare their accepted
+  API-key sources and OAuth scopes through
+  [`UserApiAuthentication`](../app/controllers/concerns/user_api_authentication.rb).
+  See [`doorkeeper.rb`](../config/initializers/doorkeeper.rb).
 * Admin API credentials are either active `AdminApiKey`s or acceptable
   Doorkeeper `admin` tokens. OAuth admin access additionally requires a
   confidential, verified, admin-scoped application. The API boundary is

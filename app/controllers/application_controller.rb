@@ -3,6 +3,7 @@ class ApplicationController < ActionController::Base
   include RenderHelpers
   include AuthHelpers
   include AdminApiKeyAuthentication
+  include UserApiAuthentication
 
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user
@@ -106,20 +107,6 @@ class ApplicationController < ActionController::Base
 
     expected = ENV["STATS_API_KEY"]
     token.present? && expected.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
-  end
-
-  def oauth_bearer_user(required_scopes = [])
-    @oauth_bearer_users ||= {}
-    @oauth_bearer_users[required_scopes] ||= begin
-      scheme, raw_token = request.headers["Authorization"].to_s.split(/\s+/, 2)
-      if scheme&.casecmp?("Bearer") && raw_token.present?
-        token = Doorkeeper::AccessToken.by_token(raw_token)
-        if token&.acceptable?(required_scopes)
-          user = User.find_by(id: token.resource_owner_id)
-          user unless user&.api_access_restricted?
-        end
-      end
-    end
   end
 
   def enforce_lockout
