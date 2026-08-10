@@ -12,7 +12,7 @@ class WakatimeUserAgentParserTest < Minitest::Test
     result = WakatimeUserAgentParser.parse(user_agent)
     assert_equal "macos", result[:os]
     assert_equal "vscode", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_without_a_runtime_token
@@ -40,7 +40,7 @@ class WakatimeUserAgentParserTest < Minitest::Test
     result = WakatimeUserAgentParser.parse(user_agent)
     assert_equal "macos", result[:os]
     assert_equal "github-desktop", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_Figma
@@ -48,7 +48,7 @@ class WakatimeUserAgentParserTest < Minitest::Test
     result = WakatimeUserAgentParser.parse(user_agent)
     assert_equal "macos", result[:os]
     assert_equal "figma", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_Terminal
@@ -56,7 +56,7 @@ class WakatimeUserAgentParserTest < Minitest::Test
     result = WakatimeUserAgentParser.parse(user_agent)
     assert_equal "macos", result[:os]
     assert_equal "terminal", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_vim
@@ -64,7 +64,7 @@ class WakatimeUserAgentParserTest < Minitest::Test
     result = WakatimeUserAgentParser.parse(user_agent)
     assert_equal "macos", result[:os]
     assert_equal "vim", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_Windows
@@ -72,7 +72,7 @@ class WakatimeUserAgentParserTest < Minitest::Test
     result = WakatimeUserAgentParser.parse(user_agent)
     assert_equal "windows", result[:os]
     assert_equal "vscode", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_with_Cursor
@@ -80,7 +80,7 @@ class WakatimeUserAgentParserTest < Minitest::Test
     result = WakatimeUserAgentParser.parse(user_agent)
     assert_equal "macos", result[:os]
     assert_equal "cursor", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_separates_ai_model_from_claude_code_editor
@@ -613,7 +613,7 @@ class WakatimeUserAgentParserTest < Minitest::Test
     result = WakatimeUserAgentParser.parse(user_agent)
     assert_equal "linux", result[:os]
     assert_equal "firefox", result[:editor]
-    assert_nil result[:error]
+    assert_nil result[:err]
   end
 
   def test_parse_user_agent_uses_plugin_fallback_and_skips_middleware
