@@ -1,0 +1,59 @@
+diff --git a/dist/components/ChartChildren/ChartChildren.base.svelte b/dist/components/ChartChildren/ChartChildren.base.svelte
+index f9883073675235ca656226322484142c428ad931..97642652b27ac74caf97bf581353172382cc6f15 100644
+--- a/dist/components/ChartChildren/ChartChildren.base.svelte
++++ b/dist/components/ChartChildren/ChartChildren.base.svelte
+@@ -36,5 +36,6 @@
+   import { asAny } from '../../utils/types.js';
+   import { getObjectOrNull } from '../../utils/common.js';
++  import Legend from '../Legend.svelte';
+ 
+   const context = getChartContext<TData, XScale, YScale>();
+   const settings = getSettings();
+@@ -197,9 +198,7 @@
+   {#if typeof legend === 'function'}
+     {@render legend(snippetProps)}
+   {:else if legend}
+-    {#await import('../Legend.svelte') then { default: Legend }}
+-      <Legend placement="bottom" {...getObjectOrNull(legend)} {...props.legend} />
+-    {/await}
++    <Legend placement="bottom" {...getObjectOrNull(legend)} {...props.legend} />
+   {/if}
+ 
+   {#if typeof tooltip === 'function'}
+diff --git a/dist/components/Chart/Chart.base.svelte b/dist/components/Chart/Chart.base.svelte
+index 11df6da4ccbb9fe7b87c456321677803401354db..2551336c09b82042a77ffc8a73dc89c28d994696 100644
+--- a/dist/components/Chart/Chart.base.svelte
++++ b/dist/components/Chart/Chart.base.svelte
+@@ -465,7 +465,7 @@
+     class={['lc-root-container', className]}
+     {...restProps}
+   >
+-    {#key chartState.isMounted}
++    {#key ssr || chartState.isMounted}
+       {#if transform && TransformContext}
+         <!-- Lazy-load TransformContext only when transform is enabled -->
+         {@const {
+diff --git a/dist/components/charts/PieChart/PieChart.base.svelte b/dist/components/charts/PieChart/PieChart.base.svelte
+index 62198a1924b1d00471c72c90d979d2dcc6247e4f..6ab55af4e475efe3f2c671d7dc76891292b2a43b 100644
+--- a/dist/components/charts/PieChart/PieChart.base.svelte
++++ b/dist/components/charts/PieChart/PieChart.base.svelte
+@@ -56,7 +56,7 @@
+     props = {},
+     profile = false,
+     tooltipContext = true,
+-    marks,
++    marks: marksProp,
+     tooltip: tooltipProp,
+     pie,
+     arc,
+@@ -223,8 +223,8 @@
+   }}
+ >
+   {#snippet marks(snippetProps: any)}
+-    {#if typeof marks === 'function'}
+-      {@render marks(snippetProps)}
++    {#if typeof marksProp === 'function'}
++      {@render marksProp(snippetProps)}
+     {:else}
+       <Group {...getGroupProps()}>
+         <!-- Use `series` instead of `visibleSeries` since data is filtered (legend) instead of series -->
