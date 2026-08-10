@@ -2,6 +2,7 @@
   import { Chart, Tooltip } from "layerchart/svg";
   import {
     secondsToDisplay,
+    secondsToCompactDisplay,
     formatUtcDayMonth,
     formatWeekRange,
   } from "../../../utils";
@@ -59,12 +60,26 @@
   const getVal = (d: TimelineDatum | null | undefined, k: string) =>
     typeof d?.[k] === "number" ? (d[k] as number) : 0;
 
-  const stackTop = (context: any, seriesKey: string, d: TimelineDatum) =>
-    Math.max(...(context.series.getStackValue(seriesKey, d) ?? [0, 0]));
+  const maxWeekTotal = $derived(
+    Math.max(
+      0,
+      ...data.map((row) =>
+        chartSeries.reduce(
+          (total, series) => total + getVal(row, series.key),
+          0,
+        ),
+      ),
+    ),
+  );
 
-  const stackHeight = (context: any, seriesKey: string, d: TimelineDatum) => {
-    const [start, end] = context.series.getStackValue(seriesKey, d) ?? [0, 0];
-    return Math.abs(context.yScale(start) - context.yScale(end));
+  const stackBounds = (seriesKey: string, row: TimelineDatum) => {
+    let start = 0;
+    for (const series of chartSeries) {
+      const end = start + getVal(row, series.key);
+      if (series.key === seriesKey) return [start, end] as const;
+      start = end;
+    }
+    return [0, 0] as const;
   };
 
   const roundedTopRectPath = (
@@ -115,6 +130,7 @@
         {data}
         x="week"
         valueAxis="y"
+        yDomain={[0, maxWeekTotal]}
         bandPadding={0.4}
         series={chartSeries}
         seriesLayout="stack"
@@ -123,7 +139,7 @@
         padding={{ top: 4, right: 4, left: 20, bottom: 20 }}
         props={{
           xAxis: { tickSpacing: 48 },
-          yAxis: { format: secondsToDisplay },
+          yAxis: { format: secondsToCompactDisplay },
           tooltip: { root: { motion: "none" } },
         }}
       >
@@ -158,7 +174,9 @@
                   text-anchor="end"
                   class="lc-text lc-axis-tick-label text-[10px] stroke-surface-100 [stroke-width:2px] font-light [paint-order:stroke]"
                 >
-                  <tspan class="lc-text-tspan">{secondsToDisplay(tick)}</tspan>
+                  <tspan class="lc-text-tspan"
+                    >{secondsToCompactDisplay(tick)}</tspan
+                  >
                 </text>
               </g>
             {/each}
@@ -205,11 +223,12 @@
           {#each context.series.visibleSeries as series (series.key)}
             {@const seriesData = splitSeriesData(context, series.key)}
             {#each seriesData.square as row (row.week)}
+              {@const [start, end] = stackBounds(series.key, row)}
               <rect
                 x={context.xScale(row.week)}
-                y={context.yScale(stackTop(context, series.key, row))}
+                y={context.yScale(end)}
                 width={(context.xScale as any).bandwidth()}
-                height={stackHeight(context, series.key, row)}
+                height={Math.abs(context.yScale(start) - context.yScale(end))}
                 fill={series.color}
                 stroke="black"
                 stroke-width={1}
@@ -217,10 +236,13 @@
               />
             {/each}
             {#each seriesData.rounded as row (row.week)}
+              {@const [start, end] = stackBounds(series.key, row)}
               {@const x = context.xScale(row.week)}
-              {@const y = context.yScale(stackTop(context, series.key, row))}
+              {@const y = context.yScale(end)}
               {@const width = (context.xScale as any).bandwidth()}
-              {@const height = stackHeight(context, series.key, row)}
+              {@const height = Math.abs(
+                context.yScale(start) - context.yScale(end),
+              )}
               <path
                 d={roundedTopRectPath(x, y, width, height)}
                 fill={series.color}
