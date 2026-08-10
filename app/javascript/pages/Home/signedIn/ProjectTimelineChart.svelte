@@ -66,6 +66,22 @@
     const [start, end] = context.series.getStackValue(seriesKey, d) ?? [0, 0];
     return Math.abs(context.yScale(start) - context.yScale(end));
   };
+
+  const splitSeriesData = (context: any, seriesKey: string) => {
+    const square: TimelineDatum[] = [];
+    const rounded: TimelineDatum[] = [];
+
+    for (const row of data) {
+      if (getVal(row, seriesKey) <= 0) continue;
+
+      const topSeries = [...context.series.visibleSeries]
+        .reverse()
+        .find((series) => getVal(row, series.key) > 0);
+      (topSeries?.key === seriesKey ? rounded : square).push(row);
+    }
+
+    return { square, rounded };
+  };
 </script>
 
 <div
@@ -93,21 +109,35 @@
         }}
       >
         {#snippet marks({ context })}
-          {#each context.series.visibleSeries as series, i (series.key)}
-            <Rect
-              {data}
-              x="week"
-              y={(d) => stackTop(context, series.key, d)}
-              width={() => context.xScale.bandwidth?.() ?? 0}
-              height={(d) => stackHeight(context, series.key, d)}
-              fill={series.color}
-              stroke="black"
-              strokeWidth={1}
-              corners={i === context.series.visibleSeries.length - 1
-                ? [4, 4, 0, 0]
-                : undefined}
-              class="lc-bar lc-bars-bar"
-            />
+          {#each context.series.visibleSeries as series (series.key)}
+            {@const seriesData = splitSeriesData(context, series.key)}
+            {#if seriesData.square.length > 0}
+              <Rect
+                data={seriesData.square}
+                x="week"
+                y={(d) => stackTop(context, series.key, d)}
+                width={() => context.xScale.bandwidth?.() ?? 0}
+                height={(d) => stackHeight(context, series.key, d)}
+                fill={series.color}
+                stroke="black"
+                strokeWidth={1}
+                class="lc-bar lc-bars-bar"
+              />
+            {/if}
+            {#if seriesData.rounded.length > 0}
+              <Rect
+                data={seriesData.rounded}
+                x="week"
+                y={(d) => stackTop(context, series.key, d)}
+                width={() => context.xScale.bandwidth?.() ?? 0}
+                height={(d) => stackHeight(context, series.key, d)}
+                fill={series.color}
+                stroke="black"
+                strokeWidth={1}
+                corners={[4, 4, 0, 0]}
+                class="lc-bar lc-bars-bar"
+              />
+            {/if}
           {/each}
         {/snippet}
         {#snippet tooltip({ context })}
