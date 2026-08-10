@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Chart, Rect, Tooltip } from "layerchart/svg";
+  import { Chart, Tooltip } from "layerchart/svg";
   import {
     secondsToDisplay,
     formatUtcDayMonth,
@@ -67,6 +67,25 @@
     return Math.abs(context.yScale(start) - context.yScale(end));
   };
 
+  const roundedTopRectPath = (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => {
+    const radius = Math.min(4, width / 2, height / 2);
+    return [
+      `M${x + radius},${y}`,
+      `h${width - radius * 2}`,
+      `a${radius},${radius} 0 0 1 ${radius},${radius}`,
+      `v${height - radius}`,
+      `h${-width}`,
+      `v${-(height - radius)}`,
+      `a${radius},${radius} 0 0 1 ${radius},${-radius}`,
+      "z",
+    ].join(" ");
+  };
+
   const splitSeriesData = (context: any, seriesKey: string) => {
     const square: TimelineDatum[] = [];
     const rounded: TimelineDatum[] = [];
@@ -111,33 +130,31 @@
         {#snippet marks({ context })}
           {#each context.series.visibleSeries as series (series.key)}
             {@const seriesData = splitSeriesData(context, series.key)}
-            {#if seriesData.square.length > 0}
-              <Rect
-                data={seriesData.square}
-                x="week"
-                y={(d) => stackTop(context, series.key, d)}
-                width={() => context.xScale.bandwidth?.() ?? 0}
-                height={(d) => stackHeight(context, series.key, d)}
+            {#each seriesData.square as row (row.week)}
+              <rect
+                x={context.xScale(row.week)}
+                y={context.yScale(stackTop(context, series.key, row))}
+                width={(context.xScale as any).bandwidth()}
+                height={stackHeight(context, series.key, row)}
                 fill={series.color}
                 stroke="black"
-                strokeWidth={1}
-                class="lc-bar lc-bars-bar"
+                stroke-width={1}
+                class="lc-rect lc-bar lc-bars-bar"
               />
-            {/if}
-            {#if seriesData.rounded.length > 0}
-              <Rect
-                data={seriesData.rounded}
-                x="week"
-                y={(d) => stackTop(context, series.key, d)}
-                width={() => context.xScale.bandwidth?.() ?? 0}
-                height={(d) => stackHeight(context, series.key, d)}
+            {/each}
+            {#each seriesData.rounded as row (row.week)}
+              {@const x = context.xScale(row.week)}
+              {@const y = context.yScale(stackTop(context, series.key, row))}
+              {@const width = (context.xScale as any).bandwidth()}
+              {@const height = stackHeight(context, series.key, row)}
+              <path
+                d={roundedTopRectPath(x, y, width, height)}
                 fill={series.color}
                 stroke="black"
-                strokeWidth={1}
-                corners={[4, 4, 0, 0]}
-                class="lc-bar lc-bars-bar"
+                stroke-width={1}
+                class="lc-rect lc-bar lc-bars-bar"
               />
-            {/if}
+            {/each}
           {/each}
         {/snippet}
         {#snippet tooltip({ context })}
