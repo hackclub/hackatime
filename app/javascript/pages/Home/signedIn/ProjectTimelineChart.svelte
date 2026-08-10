@@ -90,7 +90,7 @@
   <h2 class="mb-4 text-lg font-semibold text-surface-content/90">
     Project Timeline
   </h2>
-  {#if data.length > 0}
+  {#if data.length > 0 && chartSeries.length > 0}
     <div class="h-[350px]">
       <Chart
         {data}
