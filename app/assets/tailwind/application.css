@@ -501,6 +501,29 @@ html[data-theme="rose_pine_dawn"] {
   transform: translateX(-50%);
 }
 
+/* Keep the SSR legend stable until LayerChart's async chart stylesheet loads. */
+.hackatime-pie-chart .lc-legend-swatch-group,
+.hackatime-pie-chart .lc-legend-swatch-button {
+  display: flex;
+  align-items: center;
+}
+
+.hackatime-pie-chart .lc-legend-swatch-group {
+  gap: 0.25rem 1rem;
+}
+
+.hackatime-pie-chart .lc-legend-swatch-button {
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.hackatime-pie-chart .lc-legend-swatch {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+}
+
 .lc-tooltip-container[data-variant="default"] {
   background-color: color-mix(
     in oklab,
