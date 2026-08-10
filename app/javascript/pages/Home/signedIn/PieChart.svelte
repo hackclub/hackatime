@@ -44,6 +44,7 @@
     {#if data.length > 0}
       <PieChart
         {data}
+        ssr={true}
         width={CHART_WIDTH}
         height={CHART_HEIGHT}
         class="hackatime-pie-chart"
@@ -55,6 +56,8 @@
         props={{
           svg: {
             class: "h-full w-full",
+            role: "img",
+            "aria-label": title,
             viewBox: `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`,
             preserveAspectRatio: "xMidYMid meet",
           },
