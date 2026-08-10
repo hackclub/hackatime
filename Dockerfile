@@ -196,7 +196,7 @@ COPY --from=build --chown=1000:1000 /rails/storage /rails/storage
 COPY --from=build --chown=1000:1000 /rails/tmp /rails/tmp
 
 ARG SOURCE_COMMIT=unknown
-ENV SOURCE_COMMIT="${SOURCE_COMMIT}"
+RUN printf '%s\n' "$SOURCE_COMMIT" > REVISION
 
 USER 1000:1000
 

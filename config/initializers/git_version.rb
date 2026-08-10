@@ -1,4 +1,9 @@
-source_commit = ENV["SOURCE_COMMIT"].presence
+revision_path = Rails.root.join("REVISION") # this used to be SOURCE_COMMIT, but Coolify overrides it as HEAD
+source_commit = if revision_path.file?
+  revision_path.read.strip.presence
+else
+  ENV["SOURCE_COMMIT"].presence
+end
 
 if source_commit
   git_hash = source_commit
