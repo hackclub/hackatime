@@ -62,6 +62,7 @@ RUN apt-get update -qq && \
 FROM frontend-base AS javascript-dependencies
 
 COPY package.json bun.lock bunfig.toml ./
+COPY patches patches
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun i --frozen-lockfile --linker=isolated && \
     mkdir -p node_modules/.vite-client node_modules/.vite-ssr node_modules/.vite-temp
