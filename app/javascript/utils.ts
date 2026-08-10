@@ -28,13 +28,6 @@ export const secondsToDetailedDisplay = (seconds: number) => {
   return parts.join(" ") || "0s";
 };
 
-export const secondsToCompactDisplay = (seconds?: number) => {
-  if (!seconds) return "0m";
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return hours > 0 ? `${hours}h` : `${minutes}m`;
-};
-
 export const durationInWords = (seconds: number): string => {
   if (seconds < 60) return "less than a minute";
   const hours = Math.floor(seconds / 3600);

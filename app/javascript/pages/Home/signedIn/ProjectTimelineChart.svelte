@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { BarChart, Tooltip } from "layerchart";
+  import { Chart, Rect, Tooltip } from "layerchart/svg";
   import {
     secondsToDisplay,
-    secondsToCompactDisplay,
     formatUtcDayMonth,
     formatWeekRange,
   } from "../../../utils";
@@ -59,6 +58,14 @@
   type TimelineDatum = Record<string, string | number>;
   const getVal = (d: TimelineDatum | null | undefined, k: string) =>
     typeof d?.[k] === "number" ? (d[k] as number) : 0;
+
+  const stackTop = (context: any, seriesKey: string, d: TimelineDatum) =>
+    Math.max(...(context.series.getStackValue(seriesKey, d) ?? [0, 0]));
+
+  const stackHeight = (context: any, seriesKey: string, d: TimelineDatum) => {
+    const [start, end] = context.series.getStackValue(seriesKey, d) ?? [0, 0];
+    return Math.abs(context.yScale(start) - context.yScale(end));
+  };
 </script>
 
 <div
@@ -69,48 +76,73 @@
   </h2>
   {#if data.length > 0}
     <div class="h-[350px]">
-      <BarChart
+      <Chart
         {data}
         x="week"
+        valueAxis="y"
+        bandPadding={0.4}
         series={chartSeries}
         seriesLayout="stack"
+        tooltipContext={{ mode: "band" }}
+        highlight={{ area: true }}
         padding={{ top: 4, right: 4, left: 20, bottom: 20 }}
         props={{
-          yAxis: { format: secondsToCompactDisplay },
-          tooltip: { root: { motion: false } },
+          xAxis: { tickSpacing: 48 },
+          yAxis: { format: secondsToDisplay },
+          tooltip: { root: { motion: "none" } },
         }}
       >
-        <svelte:fragment slot="tooltip">
-          <Tooltip.Root let:data>
-            {#if data}
-              <Tooltip.Header value={data.weekRange ?? data.week} />
-              <Tooltip.List>
-                {@const items = [...chartSeries]
-                  .reverse()
-                  .filter((s) => getVal(data, s.key) > 0)}
-                {#each items as s}
-                  <Tooltip.Item
-                    label={s.label ?? s.key}
-                    value={getVal(data, s.key)}
-                    color={s.color}
-                    format={secondsToDisplay}
-                    valueAlign="right"
-                  />
-                {/each}
-                {#if items.length > 1}
-                  <Tooltip.Separator />
-                  <Tooltip.Item
-                    label="total"
-                    value={items.reduce((t, s) => t + getVal(data, s.key), 0)}
-                    format={secondsToDisplay}
-                    valueAlign="right"
-                  />
-                {/if}
-              </Tooltip.List>
-            {/if}
+        {#snippet marks({ context })}
+          {#each context.series.visibleSeries as series, i (series.key)}
+            <Rect
+              {data}
+              x="week"
+              y={(d) => stackTop(context, series.key, d)}
+              width={() => context.xScale.bandwidth?.() ?? 0}
+              height={(d) => stackHeight(context, series.key, d)}
+              fill={series.color}
+              stroke="black"
+              strokeWidth={1}
+              corners={i === context.series.visibleSeries.length - 1
+                ? [4, 4, 0, 0]
+                : undefined}
+              class="lc-bar lc-bars-bar"
+            />
+          {/each}
+        {/snippet}
+        {#snippet tooltip({ context })}
+          <Tooltip.Root {context}>
+            {#snippet children({ data })}
+              {#if data}
+                <Tooltip.Header value={data.weekRange ?? data.week} />
+                <Tooltip.List>
+                  {@const items = [...chartSeries]
+                    .reverse()
+                    .filter((s) => getVal(data, s.key) > 0)}
+                  {#each items as s}
+                    <Tooltip.Item
+                      label={s.label ?? s.key}
+                      value={getVal(data, s.key)}
+                      color={s.color}
+                      format={secondsToDisplay}
+                      valueAlign="right"
+                    />
+                  {/each}
+                  {#if items.length > 1}
+                    <Tooltip.Separator />
+                    <Tooltip.Item
+                      label="total"
+                      value={items.reduce((t, s) => t + getVal(data, s.key), 0)}
+                      format={secondsToDisplay}
+                      valueAlign="right"
+                    />
+                  {/if}
+                </Tooltip.List>
+              {/if}
+            {/snippet}
           </Tooltip.Root>
-        </svelte:fragment>
-      </BarChart>
+        {/snippet}
+      </Chart>
     </div>
   {/if}
 </div>
