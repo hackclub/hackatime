@@ -3,7 +3,6 @@
 @source "../../../app/views/**/*.{erb,html}";
 @source "../../../app/helpers/**/*.rb";
 @source "../../../app/controllers/**/*.rb";
-@source "../../../node_modules/layerchart/dist/**/*.{svelte,js}";
 @import "./main.css";
 @import "./nav.css";
 
@@ -468,4 +467,32 @@ html[data-theme="rose_pine_dawn"] {
 .interval-selector-button:hover {
   background-color: var(--color-primary);
   opacity: 0.9;
+}
+
+.hackatime-pie-chart,
+.hackatime-pie-chart .lc-tooltip-context,
+.hackatime-pie-chart .lc-tooltip-context-container,
+.hackatime-pie-chart .lc-layout-svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.lc-tooltip-container[data-variant="default"] {
+  background-color: color-mix(
+    in oklab,
+    var(--color-surface-300) 90%,
+    transparent
+  );
+}
+
+html[data-theme="catppuccin_iced_latte"]
+  .lc-tooltip-container[data-variant="default"],
+html[data-theme="github_light"] .lc-tooltip-container[data-variant="default"],
+html[data-theme="rose_pine_dawn"]
+  .lc-tooltip-container[data-variant="default"] {
+  background-color: color-mix(
+    in oklab,
+    var(--color-surface-100) 90%,
+    transparent
+  );
 }
