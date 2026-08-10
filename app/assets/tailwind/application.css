@@ -7,9 +7,13 @@
 @import "./main.css";
 @import "./nav.css";
 
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
   @apply flex min-h-screen;
-  -webkit-font-smoothing: antialiased;
 }
 
 main {
