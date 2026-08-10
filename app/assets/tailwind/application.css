@@ -477,6 +477,30 @@ html[data-theme="rose_pine_dawn"] {
   height: 100% !important;
 }
 
+.hackatime-pie-chart {
+  min-width: 0;
+  position: relative;
+}
+
+.hackatime-pie-chart .lc-tooltip-context,
+.hackatime-pie-chart .lc-tooltip-context-container,
+.hackatime-pie-chart .lc-layout-svg {
+  position: absolute;
+}
+
+.hackatime-pie-chart .lc-layout-svg {
+  inset: 0;
+}
+
+.hackatime-pie-chart .lc-legend-container[data-placement="bottom"] {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  max-width: 100%;
+  min-width: 0;
+  transform: translateX(-50%);
+}
+
 .lc-tooltip-container[data-variant="default"] {
   background-color: color-mix(
     in oklab,
