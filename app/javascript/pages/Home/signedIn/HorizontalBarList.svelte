@@ -34,7 +34,7 @@
           </div>
           <div class="flex-1 relative">
             <div
-              class="bg-primary rounded-md h-6 flex items-center justify-end px-3 transition-all duration-500 ease-out"
+              class="bg-primary rounded-md h-6 flex items-center justify-end px-3"
               style={`width:${Math.max(barWidth(seconds), 15)}%`}
             >
               <span class="text-xs font-mono text-on-primary whitespace-nowrap">

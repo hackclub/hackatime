@@ -20,6 +20,19 @@ index f9883073675235ca656226322484142c428ad931..97642652b27ac74caf97bf5813531723
    {/if}
  
    {#if typeof tooltip === 'function'}
+diff --git a/dist/components/Chart/Chart.base.svelte b/dist/components/Chart/Chart.base.svelte
+index 11df6da4ccbb9fe7b87c456321677803401354db..2551336c09b82042a77ffc8a73dc89c28d994696 100644
+--- a/dist/components/Chart/Chart.base.svelte
++++ b/dist/components/Chart/Chart.base.svelte
+@@ -465,7 +465,7 @@
+     class={['lc-root-container', className]}
+     {...restProps}
+   >
+-    {#key chartState.isMounted}
++    {#key ssr || chartState.isMounted}
+       {#if transform && TransformContext}
+         <!-- Lazy-load TransformContext only when transform is enabled -->
+         {@const {
 diff --git a/dist/components/charts/PieChart/PieChart.base.svelte b/dist/components/charts/PieChart/PieChart.base.svelte
 index 62198a1924b1d00471c72c90d979d2dcc6247e4f..6ab55af4e475efe3f2c671d7dc76891292b2a43b 100644
 --- a/dist/components/charts/PieChart/PieChart.base.svelte
