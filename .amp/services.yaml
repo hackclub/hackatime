@@ -1,7 +1,7 @@
 services:
   hackatime:
-    command: sudo docker compose up -d db && sudo env PUBLIC_URL="$PUBLIC_URL" docker compose --profile portal up --no-deps portal
+    command: sudo docker compose up -d db && sudo docker build -t repo-portal-production . && (sudo docker rm -f repo-portal-production >/dev/null 2>&1 || true) && exec sudo docker run --rm --name repo-portal-production --network repo_default -p 3001:80 --env-file .env -e RAILS_ENV=production -e PORT=80 -e PUBLIC_URL="$PUBLIC_URL" -e POOL_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development -e DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development -e SAILORS_LOG_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development -e S3_ENDPOINT=http://127.0.0.1 -e S3_BUCKET=dummy -e S3_ACCESS_KEY_ID=dummy -e S3_SECRET_ACCESS_KEY=dummy -e MAXMIND_ACCOUNT_ID= -e MAXMIND_LICENSE_KEY= repo-portal-production
     port: 3001
     portal:
       title: Hackatime
-      description: Use /__dev/log-me-in/test@example.com to sign in as the seeded development user.
+      description: Production Rails, production Vite assets and Inertia SSR against the seeded local database.
