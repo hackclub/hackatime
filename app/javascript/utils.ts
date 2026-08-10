@@ -17,6 +17,13 @@ export const secondsToDisplay = (seconds?: number) => {
   return hours > 0 ? (minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`) : `${minutes}m`;
 };
 
+export const secondsToCompactDisplay = (seconds?: number) => {
+  if (!seconds) return "0m";
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return hours > 0 ? `${hours}h` : `${minutes}m`;
+};
+
 export const secondsToDetailedDisplay = (seconds: number) => {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
