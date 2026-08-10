@@ -71,3 +71,11 @@ sudo docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare
 
 echo "==> Ensuring the Hackatime portal service is running"
 amp orb services ensure
+
+echo "==> Disabling thread ID trailer"
+mkdir -p "$HOME/.config/amp"
+cat > "$HOME/.config/amp/settings.json" <<'EOF'
+{
+  "amp.git.commit.ampThread.enabled": false
+}
+EOF
