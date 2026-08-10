@@ -30,6 +30,13 @@ if ! command -v docker >/dev/null 2>&1; then
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 
+setup_user="$(id -un)"
+getent group docker >/dev/null || sudo groupadd --system docker
+if ! id -nG "$setup_user" | tr ' ' '\n' | grep -Fqx docker; then
+  echo "==> Granting $setup_user access to Docker"
+  sudo usermod -aG docker "$setup_user"
+fi
+
 if ! sudo docker info >/dev/null 2>&1; then
   echo "==> Starting Docker"
   if systemctl cat amp-svc-docker-daemon.service >/dev/null 2>&1; then

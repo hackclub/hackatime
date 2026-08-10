@@ -103,7 +103,8 @@ COPY Gemfile Gemfile.lock ./
 RUN --mount=type=cache,target=/root/.bundle/cache \
     --mount=type=cache,target=/usr/local/bundle/ruby/4.0.0/cache \
     BUNDLER_VERSION="$(awk 'END { print $1 }' Gemfile.lock)" && \
-    gem list --installed bundler --version "$BUNDLER_VERSION" && \
+    (gem list --installed bundler --version "$BUNDLER_VERSION" || \
+      gem install bundler --version "$BUNDLER_VERSION" --no-document) && \
     bundle "_${BUNDLER_VERSION}_" install && \
     rm -rf "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git
 
