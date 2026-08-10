@@ -44,7 +44,6 @@
     {#if data.length > 0}
       <PieChart
         {data}
-        ssr={true}
         width={CHART_WIDTH}
         height={CHART_HEIGHT}
         class="hackatime-pie-chart"
