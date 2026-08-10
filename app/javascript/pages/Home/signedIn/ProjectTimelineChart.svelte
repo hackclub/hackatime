@@ -127,6 +127,80 @@
           tooltip: { root: { motion: "none" } },
         }}
       >
+        {#snippet grid({ context })}
+          <g class="lc-group-g lc-grid lc-grid-y">
+            {#each (context.yScale as any).ticks(5) as tick (tick)}
+              <line
+                x1={0}
+                x2={context.width}
+                y1={context.yScale(tick)}
+                y2={context.yScale(tick)}
+                class="lc-line lc-grid-y-rule lc-grid-y-line stroke-surface-content/10"
+              />
+            {/each}
+          </g>
+        {/snippet}
+        {#snippet axis({ context })}
+          <g class="lc-group-g lc-axis placement-left">
+            {#each (context.yScale as any).ticks(5) as tick (tick)}
+              <g class="lc-group-g lc-axis-tick-group">
+                <line
+                  x1={-4}
+                  x2={0}
+                  y1={context.yScale(tick)}
+                  y2={context.yScale(tick)}
+                  class="lc-line lc-axis-tick stroke-surface-content/50"
+                />
+                <text
+                  x={-4}
+                  y={context.yScale(tick)}
+                  dy="3.5px"
+                  text-anchor="end"
+                  class="lc-text lc-axis-tick-label text-[10px] stroke-surface-100 [stroke-width:2px] font-light [paint-order:stroke]"
+                >
+                  <tspan class="lc-text-tspan">{secondsToDisplay(tick)}</tspan>
+                </text>
+              </g>
+            {/each}
+          </g>
+          <g class="lc-group-g lc-axis placement-bottom">
+            {#each context.xScale
+              .domain()
+              .filter((_, index) => context.width >= 400 || index % 3 === 0) as tick (tick)}
+              {@const x =
+                context.xScale(tick) + (context.xScale as any).bandwidth() / 2}
+              <g class="lc-group-g lc-axis-tick-group">
+                <line
+                  x1={x}
+                  x2={x}
+                  y1={context.height}
+                  y2={context.height + 4}
+                  class="lc-line lc-axis-tick stroke-surface-content/50"
+                />
+                <text
+                  {x}
+                  y={context.height + 4}
+                  dy="11px"
+                  text-anchor="middle"
+                  class="lc-text lc-axis-tick-label text-[10px] stroke-surface-100 [stroke-width:2px] font-light [paint-order:stroke]"
+                >
+                  <tspan class="lc-text-tspan">{tick}</tspan>
+                </text>
+              </g>
+            {/each}
+          </g>
+        {/snippet}
+        {#snippet rule({ context })}
+          <g class="lc-group-g lc-rule-g">
+            <line
+              x1={0}
+              x2={context.width}
+              y1={context.yScale(0)}
+              y2={context.yScale(0)}
+              class="lc-line lc-rule-y-line stroke-surface-content/50"
+            />
+          </g>
+        {/snippet}
         {#snippet marks({ context })}
           {#each context.series.visibleSeries as series (series.key)}
             {@const seriesData = splitSeriesData(context, series.key)}
