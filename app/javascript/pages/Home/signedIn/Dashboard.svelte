@@ -5,7 +5,7 @@
   import PieChart from "./PieChart.svelte";
   import ProjectTimelineChart from "./ProjectTimelineChart.svelte";
   import CodingRhythm from "./CodingRhythm.svelte";
-  import ProductivityToday from "./ProductivityToday.svelte";
+  import CodingTimeCard from "./CodingTimeCard.svelte";
   import AiCodingMeter from "./AiCodingMeter.svelte";
   import IntervalSelect from "./IntervalSelect.svelte";
   import MultiSelect from "./MultiSelect.svelte";
@@ -166,7 +166,10 @@
     {/if}
 
     {#if activityGraph}
-      <ProductivityToday {activityGraph} />
+      <CodingTimeCard
+        {activityGraph}
+        periodAverage={data.coding_time_average}
+      />
     {/if}
     {#if data.coding_category_stats}
       <AiCodingMeter stats={data.coding_category_stats} />

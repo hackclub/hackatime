@@ -25,6 +25,27 @@
   const TOP = 26;
   const CELL = 17;
   const STEP = 22;
+  const INTENSITY_CLASSES = [
+    "fill-primary/10",
+    "fill-primary/15",
+    "fill-primary/20",
+    "fill-primary/25",
+    "fill-primary/30",
+    "fill-primary/35",
+    "fill-primary/40",
+    "fill-primary/45",
+    "fill-primary/50",
+    "fill-primary/55",
+    "fill-primary/60",
+    "fill-primary/65",
+    "fill-primary/70",
+    "fill-primary/75",
+    "fill-primary/80",
+    "fill-primary/85",
+    "fill-primary/90",
+    "fill-primary/95",
+    "fill-primary",
+  ] as const;
 
   const slots = $derived(
     DAYS.flatMap((day, dayIndex) =>
@@ -39,6 +60,16 @@
   const maxSeconds = $derived(
     Math.max(...slots.map((slot) => slot.seconds), 0),
   );
+  const intensityCeiling = $derived.by(() => {
+    const positiveSeconds = slots
+      .map((slot) => slot.seconds)
+      .filter((seconds) => seconds > 0)
+      .sort((a, b) => a - b);
+    return (
+      positiveSeconds[Math.round((positiveSeconds.length - 1) * 0.9)] ||
+      maxSeconds
+    );
+  });
 
   let tooltip = $state<{ label: string; x: number; y: number } | null>(null);
   let hideTimer: ReturnType<typeof setTimeout> | undefined;
@@ -62,12 +93,12 @@
   }
 
   function intensityClass(seconds: number) {
-    if (seconds === 0 || maxSeconds === 0) return "fill-surface-200/35";
-    const ratio = seconds / maxSeconds;
-    if (ratio >= 0.8) return "fill-primary";
-    if (ratio >= 0.55) return "fill-primary/75";
-    if (ratio >= 0.3) return "fill-primary/55";
-    return "fill-primary/30";
+    if (seconds === 0 || intensityCeiling === 0) return "fill-surface-200/35";
+    const ratio = Math.min(seconds / intensityCeiling, 1);
+    const index = Math.round(
+      Math.pow(ratio, 2) * (INTENSITY_CLASSES.length - 1),
+    );
+    return INTENSITY_CLASSES[index];
   }
 
   function showTooltip(
