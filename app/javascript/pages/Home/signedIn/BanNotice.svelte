@@ -29,7 +29,7 @@
       <a
         href="https://hackclub.slack.com/team/U091HC53CE8"
         target="_blank"
-        class="underline">Fraud Department</a
+        class="underline">Fraud Squad</a
       > on Slack. We do not respond in any other channel, DM or thread.
     </p>
     <p class="mb-0">
