@@ -66,8 +66,8 @@ module DashboardData
       PG::TextDecoder::Array.new.decode(value.to_s)
     end
 
-    def weekly_project_stats(user:, scope:, week_count: 12)
-      ranges = week_ranges(user.timezone, week_count: week_count)
+    def weekly_project_stats(user:, scope:)
+      ranges = week_ranges(user.timezone)
       result = ranges.to_h { |week_key, *_| [ week_key, {} ] }
 
       relation_sql = scope.with_valid_timestamps
@@ -214,9 +214,9 @@ module DashboardData
       }
     end
 
-    def week_ranges(timezone, week_count: 12)
+    def week_ranges(timezone)
       Time.use_zone(timezone) do
-        (0...week_count).map do |week_offset|
+        (0..11).map do |week_offset|
           week_start = week_offset.weeks.ago.beginning_of_week
           [ week_start.to_date.iso8601, week_start.to_f, week_offset.weeks.ago.end_of_week.to_f ]
         end

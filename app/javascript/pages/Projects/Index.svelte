@@ -85,7 +85,7 @@
 
   const PROJECT_CARD_MIN_WIDTH = 280;
   const PROJECT_GRID_GAP = 20;
-  const PROJECT_ROW_ESTIMATE = 300;
+  const PROJECT_ROW_ESTIMATE = 208;
 
   let projectGridContainer: HTMLDivElement | undefined = $state();
   let projectColumnCount = $state(1);

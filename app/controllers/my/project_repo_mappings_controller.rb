@@ -116,8 +116,6 @@ class My::ProjectRepoMappingsController < InertiaController
     key
   end
 
-  def project_momentum_cache_key = "user_#{current_user.id}_project_momentum_#{current_user.timezone}_v1"
-
   def sanitized_cache_date(value) = value.to_s.gsub(/[^0-9-]/, "")[0, 10].presence
 
   # Builds the data needed for either projects_payload or rollup_projects_payload:
@@ -141,18 +139,12 @@ class My::ProjectRepoMappingsController < InertiaController
       hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
       { durations: hb.group(:project).duration_seconds, total_time: hb.duration_seconds }
     end
-    momentum = Rails.cache.fetch(project_momentum_cache_key, expires_in: 1.minute) do
-      project_momentum_from_scope(current_user.heartbeats)
-    end
 
     projects = cached[:durations].filter_map do |project_key, duration|
       next if duration <= 0
       next if archived_names.key?(project_key) != archived
 
-      project_summary_payload(
-        project_key, duration, mappings_by_name[project_key], latest_user_commit_at_by_repo_id,
-        momentum[project_key]
-      )
+      project_summary_payload(project_key, duration, mappings_by_name[project_key], latest_user_commit_at_by_repo_id)
     end.sort_by { |project| -project[:duration_seconds] }
 
     build_projects_payload(projects)
@@ -173,16 +165,14 @@ class My::ProjectRepoMappingsController < InertiaController
   def rollup_projects_path? = selected_interval.blank? && params[:from].blank? && params[:to].blank?
 
   def rollup_projects_payload(archived:)
-    all_rollups = DashboardRollup
-      .where(user_id: current_user.id, dimension: [ DashboardRollup::PROJECT_DETAILS_DIMENSION, DashboardData::Snapshots::WEEKLY_PROJECT_DIMENSION ])
+    rollups = DashboardRollup
+      .where(user_id: current_user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true)
       .to_a
-    rollups = all_rollups.select { |row| row.dimension == DashboardRollup::PROJECT_DETAILS_DIMENSION && row.bucket_value_present? }
 
     DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds) if DashboardRollup.dirty?(current_user.id) || rollups.empty?
     return InertiaRails.defer { projects_payload(archived: archived) } if rollups.empty?
 
     mappings_by_name, archived_names, latest_user_commit_at_by_repo_id = projects_context(archived: archived)
-    momentum = project_momentum_from_rollups(all_rollups)
 
     projects = rollups.filter_map do |rollup|
       project_key = rollup.bucket
@@ -192,16 +182,13 @@ class My::ProjectRepoMappingsController < InertiaController
       duration = rollup.total_seconds.to_i
       next if duration <= 0
 
-      project_summary_payload(
-        project_key, duration, mappings_by_name[project_key], latest_user_commit_at_by_repo_id,
-        momentum[project_key]
-      )
+      project_summary_payload(project_key, duration, mappings_by_name[project_key], latest_user_commit_at_by_repo_id)
     end.sort_by { |project| -project[:duration_seconds] }
 
     build_projects_payload(projects)
   end
 
-  def project_summary_payload(project_key, duration, mapping, latest_user_commit_at_by_repo_id, momentum)
+  def project_summary_payload(project_key, duration, mapping, latest_user_commit_at_by_repo_id)
     display_name = project_key.presence || "Unknown"
     broken = broken_project_name?(project_key, display_name)
     url_safe = !broken && project_key.present?
@@ -216,7 +203,6 @@ class My::ProjectRepoMappingsController < InertiaController
       duration_percent: 0,
       repo_url: mapping&.repo_url,
       repository: repository_payload(mapping&.repository, latest_user_commit_at_by_repo_id),
-      momentum:,
       broken_name: broken,
       manage_enabled: current_user.github_uid.present? && url_safe
     }
@@ -232,64 +218,6 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def format_duration(seconds) = helpers.short_time_detailed(seconds).presence || "0m"
-
-  def project_momentum_from_scope(scope)
-    weekly = DashboardData::Snapshots.weekly_project_stats(user: current_user, scope: scope, week_count: 8)
-    last_active = scope.with_valid_timestamps.where.not(project: [ nil, "" ], time: nil).group(:project).maximum(:time)
-    build_project_momentum(weekly: weekly, last_active: last_active)
-  end
-
-  def project_momentum_from_rollups(rollups)
-    week_keys = DashboardData::Snapshots.week_ranges(current_user.timezone, week_count: 8).map(&:first)
-    weekly = week_keys.to_h { |week_key| [ week_key, {} ] }
-    last_active = {}
-
-    rollups.each do |rollup|
-      if rollup.dimension == DashboardData::Snapshots::WEEKLY_PROJECT_DIMENSION
-        week_key, project = JSON.parse(rollup.bucket_value)
-        weekly[week_key][project] = rollup.total_seconds if weekly.key?(week_key)
-      elsif rollup.dimension == DashboardRollup::PROJECT_DETAILS_DIMENSION
-        last_active[rollup.bucket] = rollup.source_max_heartbeat_time
-      end
-    end
-
-    build_project_momentum(weekly: weekly, last_active: last_active)
-  end
-
-  def build_project_momentum(weekly:, last_active:)
-    weeks = weekly.keys.first(8).reverse
-    projects = weeks.flat_map { |week| weekly.fetch(week, {}).keys }.concat(last_active.keys).uniq
-
-    projects.index_with do |project|
-      seconds = weeks.map { |week| weekly.dig(week, project).to_i }
-      comparison_seconds = seconds.first(4).sum
-      current_seconds = seconds.last(4).sum
-      trend, change_percent = momentum_trend(current_seconds, comparison_seconds)
-      active_at = last_active[project] && Time.zone.at(last_active[project])
-
-      {
-        weeks: weeks.zip(seconds).map { |week, duration| { week:, duration_seconds: duration } },
-        current_seconds:,
-        current_label: format_duration(current_seconds),
-        comparison_seconds:,
-        trend:,
-        change_percent:,
-        last_active_at: active_at&.iso8601,
-        last_active_label: active_at ? "#{helpers.time_ago_in_words(active_at)} ago" : nil
-      }
-    end
-  end
-
-  def momentum_trend(current, comparison)
-    return [ current.positive? ? "new" : "steady", nil ] if comparison.zero?
-
-    change = current - comparison
-    percent = ((change.to_f / comparison) * 100).round
-    return [ "increasing", percent ] if change >= 30.minutes && percent >= 20
-    return [ "decreasing", percent ] if change <= -30.minutes && percent <= -20
-
-    [ "steady", percent ]
-  end
 
   def project_card_id(project_key)
     raw_key = project_key.nil? ? "__nil__" : "str:#{project_key}"
