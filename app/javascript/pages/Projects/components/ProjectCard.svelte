@@ -8,6 +8,7 @@
   import Terminal from "hcicons-svelte/terminal";
   import Web from "hcicons-svelte/web";
   import Button from "../../../components/Button.svelte";
+  import ProjectMomentum from "./ProjectMomentum.svelte";
   import { myProjectRepoMappings } from "../../../api";
   import type { ProjectCard } from "../types";
 
@@ -90,6 +91,10 @@
       >
         {project.repository.description}
       </p>
+    {/if}
+
+    {#if project.momentum}
+      <ProjectMomentum momentum={project.momentum} />
     {/if}
 
     <div class="relative z-20 flex flex-wrap items-center gap-2">

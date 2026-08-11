@@ -55,6 +55,39 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
   end
 
+  test "index includes eight week project momentum from rollups" do
+    travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+      user = User.create!(timezone: "UTC")
+      user.project_repo_mappings.create!(project_name: "alpha")
+
+      8.times do |week_offset|
+        heartbeat_count = week_offset < 4 ? 31 : 16
+        started_at = Time.current.beginning_of_week - week_offset.weeks + 9.hours
+        heartbeat_count.times do |index|
+          Heartbeat.create!(
+            user: user,
+            project: "alpha",
+            category: "coding",
+            time: (started_at + index * 2.minutes).to_f,
+            source_type: :test_entry
+          )
+        end
+      end
+      DashboardRollupRefreshService.new(user: user).call
+
+      sign_in_as(user)
+      get my_projects_path
+
+      momentum = inertia_page.dig("props", "projects_data", "projects", 0, "momentum")
+      assert_equal 8, momentum["weeks"].size
+      assert_equal 4.hours, momentum["current_seconds"]
+      assert_equal 2.hours, momentum["comparison_seconds"]
+      assert_equal "increasing", momentum["trend"]
+      assert_equal 100, momentum["change_percent"]
+      assert_equal "1 day ago", momentum["last_active_label"]
+    end
+  end
+
   test "index supports archived view state" do
     user = User.create!(timezone: "UTC")
     user.project_repo_mappings.create!(project_name: "alpha")

@@ -18,6 +18,7 @@ class ProjectsTest < ApplicationSystemTestCase
 
     assert_text "active-project"
     assert_no_text "archived-project"
+    assert_selector "svg[aria-label^='Eight week coding momentum']", count: 1
 
     click_on "Archived"
     assert_text "archived-project"
