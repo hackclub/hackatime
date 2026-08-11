@@ -356,6 +356,24 @@ class DashboardStatsTest < ActiveSupport::TestCase
     end
   end
 
+  test "coding category meter data remains available for a singular category filter" do
+    with_memory_cache_store do
+      Rails.cache.clear
+      user = User.create!(timezone: "UTC")
+      create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "ai coding")
+      create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "ai coding")
+
+      stats = build_stats(user, params: { category: "ai coding" })
+      def stats.rollups_available? = false
+
+      result = stats.filterable_dashboard_data
+
+      assert_equal true, result["singular_category"]
+      assert_nil result["category_stats"]
+      assert_equal({ "ai coding" => 60 }, result[:coding_category_stats])
+    end
+  end
+
   test "top operating system uses the same display buckets as operating system stats" do
     with_memory_cache_store do
       Rails.cache.clear

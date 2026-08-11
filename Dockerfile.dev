@@ -29,7 +29,6 @@ WORKDIR /app
 
 # Install npm dependencies for Vite.
 COPY package.json bun.lock ./
-COPY patches patches
 RUN bun install
 
 # Make Spline Sans available to librsvg/libvips via fontconfig. Pango does not

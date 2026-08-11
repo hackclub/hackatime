@@ -94,6 +94,7 @@
         {#if dashboard_stats?.filterable_dashboard_data}
           <Dashboard
             data={dashboard_stats.filterable_dashboard_data}
+            activityGraph={dashboard_stats.activity_graph}
             programmingGoalsProgress={dashboard_stats?.programming_goals_progress ||
               []}
             onFiltersChange={refreshDashboardData}

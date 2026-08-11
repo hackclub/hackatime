@@ -60,10 +60,12 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
       stats = dashboard_stats["filterable_dashboard_data"]
       today_stats = dashboard_stats["today_stats"]
       activity_graph = dashboard_stats["activity_graph"]
+      coding_rhythm = stats["coding_rhythm"]
 
       assert_equal 480, stats["total_time"]
       assert_equal 6, stats["total_heartbeats"]
       assert_equal "alpha", stats["top_project"]
+      assert_equal({ "coding" => 360 }, stats["coding_category_stats"])
 
       assert_equal(
         {
@@ -93,6 +95,8 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
       assert_equal "2025-04-14", activity_graph["start_date"]
       assert_equal "2026-04-14", activity_graph["end_date"]
       assert_equal 300, activity_graph["duration_by_date"]["2026-04-13"]
+      assert_equal "(GMT+00:00) UTC", coding_rhythm["timezone_label"]
+      assert_equal 420, coding_rhythm["duration_by_slot"]["1-10"]
     end
   end
 
