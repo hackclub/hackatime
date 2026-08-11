@@ -60,6 +60,16 @@
   const maxSeconds = $derived(
     Math.max(...slots.map((slot) => slot.seconds), 0),
   );
+  const intensityCeiling = $derived.by(() => {
+    const positiveSeconds = slots
+      .map((slot) => slot.seconds)
+      .filter((seconds) => seconds > 0)
+      .sort((a, b) => a - b);
+    return (
+      positiveSeconds[Math.round((positiveSeconds.length - 1) * 0.9)] ||
+      maxSeconds
+    );
+  });
 
   let tooltip = $state<{ label: string; x: number; y: number } | null>(null);
   let hideTimer: ReturnType<typeof setTimeout> | undefined;
@@ -83,10 +93,10 @@
   }
 
   function intensityClass(seconds: number) {
-    if (seconds === 0 || maxSeconds === 0) return "fill-surface-200/35";
-    const ratio = seconds / maxSeconds;
+    if (seconds === 0 || intensityCeiling === 0) return "fill-surface-200/35";
+    const ratio = Math.min(seconds / intensityCeiling, 1);
     const index = Math.round(
-      Math.pow(ratio, 1.25) * (INTENSITY_CLASSES.length - 1),
+      Math.pow(ratio, 2) * (INTENSITY_CLASSES.length - 1),
     );
     return INTENSITY_CLASSES[index];
   }
