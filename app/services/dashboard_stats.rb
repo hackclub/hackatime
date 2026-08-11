@@ -147,7 +147,8 @@ class DashboardStats
       grouped_durations: FILTERS.index_with { |field|
         rollup_rows_by_dimension.fetch(field.to_s, []).to_h { |row| [ row.bucket, row.total_seconds ] }
       },
-      weekly_project_stats: rollup_weekly_project_stats(rollup_rows_by_dimension.fetch(WEEKLY_PROJECT_DIMENSION, []))
+      weekly_project_stats: rollup_weekly_project_stats(rollup_rows_by_dimension.fetch(WEEKLY_PROJECT_DIMENSION, [])),
+      coding_rhythm: aggregate_rollup_coding_rhythm
     }
   end
 
@@ -179,6 +180,15 @@ class DashboardStats
   def weekly_project_stats(scope, _timezone = user.timezone) = DashboardData::Snapshots.weekly_project_stats(user: user, scope: scope)
   def week_ranges = DashboardData::Snapshots.week_ranges(user.timezone)
   def today_stats_snapshot(scope) = DashboardData::Snapshots.today_stats_snapshot(user: user, scope: scope)
+
+  def aggregate_rollup_coding_rhythm
+    row = rollup_fragment_row(DashboardRollup::CODING_RHYTHM_DIMENSION)
+    payload = row&.payload
+    return payload if payload.is_a?(Hash) && payload["timezone"] == user.timezone && payload["duration_by_slot"].is_a?(Hash)
+
+    schedule_rollup_refresh(wait: 0.seconds)
+    DashboardData::Snapshots.coding_rhythm_snapshot(user: user, scope: dashboard_heartbeats)
+  end
 
   def aggregate_rollup_stale?(total_row)
     rollups_dirty? ||

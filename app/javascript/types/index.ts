@@ -153,7 +153,12 @@ export type FilterableDashboardData = {
   editor_stats: Record<string, number>;
   operating_system_stats: Record<string, number>;
   category_stats: Record<string, number>;
+  coding_category_stats: Partial<Record<"ai coding" | "coding", number>>;
   weekly_project_stats: Record<string, Record<string, number>>;
+  coding_rhythm: {
+    duration_by_slot: Record<string, number>;
+    timezone_label: string;
+  };
   project: string[];
   language: string[];
   editor: string[];
