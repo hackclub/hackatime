@@ -1,5 +1,7 @@
 <script lang="ts">
   import { arc as d3Arc, pie as d3Pie, type PieArcDatum } from "d3-shape";
+  import { Spring } from "svelte/motion";
+  import { fade } from "svelte/transition";
   import Button from "../../../components/Button.svelte";
   import { secondsToDisplay, CHART_COLORS as FALLBACK_COLORS } from "./utils";
 
@@ -43,6 +45,10 @@
     x: number;
     y: number;
   } | null>(null);
+  let hideTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  const tooltipX = new Spring<number | null>(null);
+  const tooltipY = new Spring<number | null>(null);
 
   const colorFor = (datum: ChartDatum) =>
     colors[data.findIndex((item) => item.name === datum.name) % colors.length];
@@ -72,6 +78,26 @@
     }
   });
 
+  $effect(() => {
+    data;
+
+    if (hideTimeout) clearTimeout(hideTimeout);
+    hideTimeout = undefined;
+    highlightedName = null;
+    tooltip = null;
+
+    return () => {
+      if (hideTimeout) clearTimeout(hideTimeout);
+    };
+  });
+
+  $effect(() => {
+    if (tooltip) {
+      tooltipX.set(tooltip.x, { instant: tooltipX.target === null });
+      tooltipY.set(tooltip.y, { instant: tooltipY.target === null });
+    }
+  });
+
   const tooltipPosition = (event: PointerEvent | FocusEvent) => {
     if (event instanceof PointerEvent) {
       return {
@@ -94,13 +120,18 @@
     datum: ChartDatum,
     color: string,
   ) => {
+    if (hideTimeout) clearTimeout(hideTimeout);
     highlightedName = datum.name;
     tooltip = { datum, color, ...tooltipPosition(event) };
   };
 
   const hideTooltip = () => {
-    highlightedName = null;
-    tooltip = null;
+    if (hideTimeout) clearTimeout(hideTimeout);
+    hideTimeout = setTimeout(() => {
+      hideTimeout = undefined;
+      highlightedName = null;
+      tooltip = null;
+    });
   };
 
   const toggleSelection = (name: string) => {
@@ -132,6 +163,7 @@
               data-pie-slice={arc.datum.name}
               d={arc.path}
               fill={arc.color}
+              class="transition-opacity duration-100"
               opacity={highlightedName === null ||
               highlightedName === arc.datum.name
                 ? 1
@@ -181,9 +213,10 @@
 {#if tooltip}
   <div
     class="pointer-events-none fixed z-50 select-none"
-    style:left={`${tooltip.x}px`}
-    style:top={`${tooltip.y}px`}
+    style:left={`${tooltipX.current ?? tooltip.x}px`}
+    style:top={`${tooltipY.current ?? tooltip.y}px`}
     role="tooltip"
+    transition:fade={{ duration: 100 }}
   >
     <div
       class="lc-tooltip-container flex items-center gap-2 rounded-sm px-2 py-1 text-sm leading-5 shadow-sm backdrop-blur-[2px]"

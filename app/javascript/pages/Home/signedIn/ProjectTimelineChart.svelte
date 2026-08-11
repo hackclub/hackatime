@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tickIncrement, ticks } from "d3-array";
+  import { Spring } from "svelte/motion";
   import { fade } from "svelte/transition";
   import {
     secondsToDisplay,
@@ -110,6 +111,9 @@
   let tooltipWidth = $state(0);
   let tooltipHeight = $state(0);
   let hideTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  const tooltipX = new Spring<number | null>(null);
+  const tooltipY = new Spring<number | null>(null);
 
   const width = $derived(
     Math.max(0, containerWidth - PADDING.left - PADDING.right),
@@ -226,6 +230,17 @@
     if (top < bounds.top + PADDING.top) top = pointerY + 10;
 
     return { left, top };
+  });
+
+  $effect(() => {
+    if (tooltipData) {
+      tooltipX.set(tooltipPosition.left, {
+        instant: tooltipX.target === null,
+      });
+      tooltipY.set(tooltipPosition.top, {
+        instant: tooltipY.target === null,
+      });
+    }
   });
 </script>
 
@@ -396,8 +411,8 @@
               bind:clientWidth={tooltipWidth}
               bind:clientHeight={tooltipHeight}
               class="lc-tooltip-root disablePointerEvents portaled"
-              style:top={`${tooltipPosition.top}px`}
-              style:left={`${tooltipPosition.left}px`}
+              style:top={`${tooltipY.current ?? tooltipPosition.top}px`}
+              style:left={`${tooltipX.current ?? tooltipPosition.left}px`}
               transition:fade={{ duration: 100 }}
             >
               <div class="lc-tooltip-container" data-variant="default">
