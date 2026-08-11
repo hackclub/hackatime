@@ -71,16 +71,15 @@
     );
   });
 
-  let tooltip = $state<{ label: string; x: number; y: number } | null>(null);
+  let tooltip = $state<{
+    slot: string;
+    label: string;
+    x: number;
+    y: number;
+  } | null>(null);
   let hideTimer: ReturnType<typeof setTimeout> | undefined;
   const tooltipX = new Spring<number | null>(null);
   const tooltipY = new Spring<number | null>(null);
-
-  $effect(() => {
-    if (!tooltip) return;
-    tooltipX.set(tooltip.x, { instant: tooltipX.target === null });
-    tooltipY.set(tooltip.y, { instant: tooltipY.target === null });
-  });
 
   function hourLabel(hour: number) {
     if (hour === 0) return "12 AM";
@@ -109,11 +108,16 @@
     const target = event.currentTarget as SVGRectElement;
     const bounds = target.getBoundingClientRect();
     const pointer = event instanceof PointerEvent;
+    const slotKey = `${slot.weekday}-${slot.hour}`;
+    const instant = tooltip === null || tooltip.slot !== slotKey;
     tooltip = {
+      slot: slotKey,
       label: slotLabel(slot.day, slot.hour, slot.seconds),
       x: pointer ? event.clientX + 10 : bounds.left + bounds.width / 2,
       y: pointer ? event.clientY + 10 : bounds.bottom + 8,
     };
+    tooltipX.set(tooltip.x, { instant });
+    tooltipY.set(tooltip.y, { instant });
   }
 
   function hideTooltip() {
