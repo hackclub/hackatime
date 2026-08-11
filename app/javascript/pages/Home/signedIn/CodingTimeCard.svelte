@@ -12,11 +12,9 @@
   let {
     activityGraph,
     periodAverage,
-    selectedTodaySeconds,
   }: {
     activityGraph: ActivityGraphData;
     periodAverage?: PeriodAverage | null;
-    selectedTodaySeconds?: number;
   } = $props();
 
   function shiftDate(date: string, days: number) {
@@ -26,9 +24,7 @@
   }
 
   const todaySeconds = $derived(
-    selectedTodaySeconds ??
-      activityGraph.duration_by_date[activityGraph.end_date] ??
-      0,
+    activityGraph.duration_by_date[activityGraph.end_date] ?? 0,
   );
   const comparisonDates = $derived(
     Array.from({ length: 8 }, (_, index) =>

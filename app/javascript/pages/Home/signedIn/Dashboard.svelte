@@ -169,9 +169,6 @@
       <CodingTimeCard
         {activityGraph}
         periodAverage={data.coding_time_average}
-        selectedTodaySeconds={data.selected_interval === "today"
-          ? data.total_time
-          : undefined}
       />
     {/if}
     {#if data.coding_category_stats}
