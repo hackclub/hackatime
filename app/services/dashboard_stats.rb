@@ -44,13 +44,13 @@ class DashboardStats
     result[:selected_interval] = interval.to_s
     result[:selected_from] = params[:from].to_s
     result[:selected_to] = params[:to].to_s
-    result[:coding_time_average] = coding_time_average(result[:total_time], interval)
+    result[:coding_time_average] = coding_time_average(result[:total_time], interval, filter_options: raw_filter_options)
     FILTERS.each { |field| result["selected_#{field}"] = params[field]&.split(",") || [] }
     result
   end
 
-  def coding_time_average(total_seconds, interval)
-    period = coding_time_average_period(interval)
+  def coding_time_average(total_seconds, interval, filter_options: nil)
+    period = coding_time_average_period(interval, filter_options: filter_options)
     return unless period
 
     start_date, end_date, label = period
@@ -63,7 +63,7 @@ class DashboardStats
     }
   end
 
-  def coding_time_average_period(interval)
+  def coding_time_average_period(interval, filter_options: nil)
     interval = interval.to_s
     return if interval.blank? || interval == "today"
 
@@ -75,17 +75,17 @@ class DashboardStats
         end_date = [ range.end.to_date, Date.current ].min
         [ start_date, end_date, config.fetch(:human_name) ] if start_date <= end_date
       else
-        custom_coding_time_average_period
+        custom_coding_time_average_period(filter_options: filter_options)
       end
     end
   end
 
-  def custom_coding_time_average_period
+  def custom_coding_time_average_period(filter_options: nil)
     from = Date.parse(params[:from]) if params[:from].present?
     to = Date.parse(params[:to]) if params[:to].present?
     return unless from || to
 
-    from ||= first_dashboard_heartbeat_date || to
+    from ||= first_dashboard_heartbeat_date(filter_options: filter_options) || to
     to = [ to || Date.current, Date.current ].min
     return if from > to
 
@@ -101,8 +101,9 @@ class DashboardStats
     nil
   end
 
-  def first_dashboard_heartbeat_date
-    timestamp = dashboard_heartbeats.with_valid_timestamps.minimum(:time)
+  def first_dashboard_heartbeat_date(filter_options: nil)
+    filter_options ||= raw_filter_options(archived: archived_project_names)
+    timestamp = filtered_dashboard_heartbeats(filter_options).with_valid_timestamps.minimum(:time)
     Time.zone.at(timestamp).to_date if timestamp
   end
 
@@ -136,30 +137,35 @@ class DashboardStats
   end
 
   def query_result(raw_filter_options, archived)
-    hb = dashboard_heartbeats
     result = filter_options_result(raw_filter_options, archived)
     h = ApplicationController.helpers
 
     Time.use_zone(user.timezone) do
-      FILTERS.each do |field|
-        next unless params[field].present?
-
-        arr = params[field].split(",")
-        hb = case field
-        when :operating_system then hb.where(field => raw_filter_options.fetch(:operating_system, []).select { |value| arr.include?(h.display_os_name(value)) })
-        when :editor then hb.where(field => raw_filter_options.fetch(:editor, []).select { |value| arr.include?(h.display_editor_name(value)) })
-        when :language then hb.where(field => raw_filter_options.fetch(:language, []).select { |language| arr.include?(language.categorize_language) })
-        else hb.where(field => arr)
-        end
-        result["singular_#{field}"] = arr.length == 1
-      end
-
+      hb = filtered_dashboard_heartbeats(raw_filter_options, result: result)
       hb = hb.filter_by_time_range(params[:interval], params[:from], params[:to])
       snapshot = DashboardData::Snapshots.aggregate_query_snapshot(user: user, scope: hb)
       DashboardData::Snapshots.fill_aggregate_result(result: result, snapshot: snapshot, archived: archived, helpers: h)
     end
 
     result
+  end
+
+  def filtered_dashboard_heartbeats(filter_options, result: nil)
+    helpers = ApplicationController.helpers
+
+    FILTERS.each_with_object(dashboard_heartbeats) do |field, heartbeats|
+      next unless params[field].present?
+
+      selected = params[field].split(",")
+      values = case field
+      when :operating_system then filter_options.fetch(field, []).select { |value| selected.include?(helpers.display_os_name(value)) }
+      when :editor then filter_options.fetch(field, []).select { |value| selected.include?(helpers.display_editor_name(value)) }
+      when :language then filter_options.fetch(field, []).select { |value| selected.include?(value.categorize_language) }
+      else selected
+      end
+      heartbeats.where!(field => values)
+      result["singular_#{field}"] = selected.one? if result
+    end
   end
 
   def rollup_result(raw_filter_options, archived)

@@ -137,6 +137,28 @@ class DashboardStatsTest < ActiveSupport::TestCase
     end
   end
 
+  test "until-only period average starts at first heartbeat matching dashboard filters" do
+    with_memory_cache_store do
+      Rails.cache.clear
+      user = User.create!(timezone: "UTC")
+
+      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+        create_heartbeat_at(user, "2026-01-01 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+        create_heartbeat_at(user, "2026-04-13 09:00:00 UTC", project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
+        create_heartbeat_at(user, "2026-04-13 09:01:00 UTC", project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
+
+        result = build_stats(
+          user,
+          params: { interval: "custom", to: "2026-04-14", project: "beta" }
+        ).filterable_dashboard_data
+
+        assert_equal 60, result[:total_time]
+        assert_equal 2, result.dig(:coding_time_average, :day_count)
+        assert_equal 30.0, result.dig(:coding_time_average, :average_seconds)
+      end
+    end
+  end
+
   test "homepage rollup path falls back to live filter options when filter option rollup is missing" do
     with_memory_cache_store do
       Rails.cache.clear
