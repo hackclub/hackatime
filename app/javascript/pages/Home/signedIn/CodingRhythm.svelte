@@ -25,6 +25,27 @@
   const TOP = 26;
   const CELL = 17;
   const STEP = 22;
+  const INTENSITY_CLASSES = [
+    "fill-primary/10",
+    "fill-primary/15",
+    "fill-primary/20",
+    "fill-primary/25",
+    "fill-primary/30",
+    "fill-primary/35",
+    "fill-primary/40",
+    "fill-primary/45",
+    "fill-primary/50",
+    "fill-primary/55",
+    "fill-primary/60",
+    "fill-primary/65",
+    "fill-primary/70",
+    "fill-primary/75",
+    "fill-primary/80",
+    "fill-primary/85",
+    "fill-primary/90",
+    "fill-primary/95",
+    "fill-primary",
+  ] as const;
 
   const slots = $derived(
     DAYS.flatMap((day, dayIndex) =>
@@ -64,13 +85,10 @@
   function intensityClass(seconds: number) {
     if (seconds === 0 || maxSeconds === 0) return "fill-surface-200/35";
     const ratio = seconds / maxSeconds;
-    if (ratio >= 0.85) return "fill-primary";
-    if (ratio >= 0.7) return "fill-primary/80";
-    if (ratio >= 0.55) return "fill-primary/60";
-    if (ratio >= 0.4) return "fill-primary/45";
-    if (ratio >= 0.25) return "fill-primary/30";
-    if (ratio >= 0.1) return "fill-primary/20";
-    return "fill-primary/10";
+    const index = Math.round(
+      Math.pow(ratio, 1.25) * (INTENSITY_CLASSES.length - 1),
+    );
+    return INTENSITY_CLASSES[index];
   }
 
   function showTooltip(
