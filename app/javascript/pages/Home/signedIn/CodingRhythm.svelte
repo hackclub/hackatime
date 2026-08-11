@@ -64,10 +64,13 @@
   function intensityClass(seconds: number) {
     if (seconds === 0 || maxSeconds === 0) return "fill-surface-200/35";
     const ratio = seconds / maxSeconds;
-    if (ratio >= 0.8) return "fill-primary";
-    if (ratio >= 0.55) return "fill-primary/75";
-    if (ratio >= 0.3) return "fill-primary/55";
-    return "fill-primary/30";
+    if (ratio >= 0.9) return "fill-primary";
+    if (ratio >= 0.75) return "fill-primary/75";
+    if (ratio >= 0.6) return "fill-primary/55";
+    if (ratio >= 0.45) return "fill-primary/35";
+    if (ratio >= 0.3) return "fill-primary/20";
+    if (ratio >= 0.15) return "fill-primary/10";
+    return "fill-primary/5";
   }
 
   function showTooltip(

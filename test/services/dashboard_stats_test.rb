@@ -106,6 +106,37 @@ class DashboardStatsTest < ActiveSupport::TestCase
     end
   end
 
+  test "selected periods include average coding time per elapsed day" do
+    with_memory_cache_store do
+      Rails.cache.clear
+      user = User.create!(timezone: "UTC")
+
+      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+        create_heartbeat_at(user, "2026-04-13 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+        create_heartbeat_at(user, "2026-04-13 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+        create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+
+        result = build_stats(user, params: { interval: "yesterday" }).filterable_dashboard_data
+
+        assert_equal 60, result[:total_time]
+        assert_equal(
+          { average_seconds: 60.0, total_seconds: 60, day_count: 1, period_label: "Yesterday" },
+          result[:coding_time_average]
+        )
+
+        this_month = build_stats(user, params: { interval: "this_month" }).coding_time_average(14.hours, "this_month")
+        assert_equal 14, this_month[:day_count]
+        assert_equal 1.hour, this_month[:average_seconds]
+        assert_equal "This Month", this_month[:period_label]
+
+        high_seas = build_stats(user).coding_time_average(94.hours, "high_seas")
+        assert_equal 94, high_seas[:day_count]
+        assert_equal 1.hour, high_seas[:average_seconds]
+        assert_equal "High Seas", high_seas[:period_label]
+      end
+    end
+  end
+
   test "homepage rollup path falls back to live filter options when filter option rollup is missing" do
     with_memory_cache_store do
       Rails.cache.clear

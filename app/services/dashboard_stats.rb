@@ -44,8 +44,66 @@ class DashboardStats
     result[:selected_interval] = interval.to_s
     result[:selected_from] = params[:from].to_s
     result[:selected_to] = params[:to].to_s
+    result[:coding_time_average] = coding_time_average(result[:total_time], interval)
     FILTERS.each { |field| result["selected_#{field}"] = params[field]&.split(",") || [] }
     result
+  end
+
+  def coding_time_average(total_seconds, interval)
+    period = coding_time_average_period(interval)
+    return unless period
+
+    start_date, end_date, label = period
+    day_count = [ (end_date - start_date).to_i + 1, 1 ].max
+    {
+      average_seconds: total_seconds.to_f / day_count,
+      total_seconds: total_seconds,
+      day_count: day_count,
+      period_label: label
+    }
+  end
+
+  def coding_time_average_period(interval)
+    interval = interval.to_s
+    return if interval.blank? || interval == "today"
+
+    Time.use_zone(user.timezone) do
+      if Heartbeat::RANGES.key?(interval.to_sym)
+        config = Heartbeat::RANGES.fetch(interval.to_sym)
+        range = config.fetch(:calculate).call
+        start_date = range.begin.to_date
+        end_date = [ range.end.to_date, Date.current ].min
+        [ start_date, end_date, config.fetch(:human_name) ] if start_date <= end_date
+      else
+        custom_coding_time_average_period
+      end
+    end
+  end
+
+  def custom_coding_time_average_period
+    from = Date.parse(params[:from]) if params[:from].present?
+    to = Date.parse(params[:to]) if params[:to].present?
+    return unless from || to
+
+    from ||= first_dashboard_heartbeat_date || to
+    to = [ to || Date.current, Date.current ].min
+    return if from > to
+
+    label = if params[:from].present? && params[:to].present?
+      "#{params[:from]} to #{params[:to]}"
+    elsif params[:from].present?
+      "From #{params[:from]}"
+    else
+      "Until #{params[:to]}"
+    end
+    [ from, to, label ]
+  rescue Date::Error
+    nil
+  end
+
+  def first_dashboard_heartbeat_date
+    timestamp = dashboard_heartbeats.with_valid_timestamps.minimum(:time)
+    Time.zone.at(timestamp).to_date if timestamp
   end
 
   def raw_filter_options(archived: [])

@@ -167,6 +167,12 @@ export type FilterableDashboardData = {
   selected_interval: string;
   selected_from: string;
   selected_to: string;
+  coding_time_average: {
+    average_seconds: number;
+    total_seconds: number;
+    day_count: number;
+    period_label: string;
+  } | null;
   selected_project: string[];
   selected_language: string[];
   selected_editor: string[];
