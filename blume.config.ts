@@ -102,6 +102,33 @@ export default defineConfig({
   theme: {
     accent: defaultTheme.preview.primary,
     background: defaultTheme.preview.dark,
+    fonts: {
+      body: {
+        name: "Inter",
+        variants: [
+          {
+            src: "node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
+            weight: "100..900",
+          },
+        ],
+      },
+      display: {
+        name: "Inter Tight",
+        variants: [
+          {
+            src: "node_modules/@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2",
+            weight: "100..900",
+          },
+        ],
+      },
+      mono: {
+        name: "IBM Plex Mono",
+        variants: [400, 500, 600].map((weight) => ({
+          src: `node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-${weight}-normal.woff2`,
+          weight,
+        })),
+      },
+    },
     mode: defaultTheme.color_scheme,
     radius: "lg",
   },
