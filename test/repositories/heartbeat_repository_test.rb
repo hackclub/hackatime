@@ -578,6 +578,16 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     assert_equal({ open_timeout: 2, read_timeout: 2, write_timeout: 2 }, client.timeouts)
   end
 
+  test "persist applies the aggregate deadline and per-request timeout budget" do
+    user = User.create!(timezone: "UTC")
+    client = TimeoutBoundClient.new
+
+    assert_equal [], HeartbeatRepository.new(client:).persist(user_id: user.id, records: [])
+
+    assert_equal 10, client.deadline
+    assert_equal({ open_timeout: 2, read_timeout: 2, write_timeout: 2 }, client.timeouts)
+  end
+
   test "lifecycle admission records controls without calling ClickHouse inside the relational transaction" do
     repository = HeartbeatRepository.new(client: NoClickHouseRequestClient.new)
     source = User.create!(timezone: "UTC")
@@ -679,13 +689,20 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     repository = HeartbeatRepository.new(client: FakeClient.new)
     float_row = { "time" => 1_700_000_000.0 }
     integer_row = { "time" => 1_700_000_000 }
-    historical_payload = HeartbeatRepository::STORAGE_COLUMNS.to_h do |column|
-      [ column, float_row[column] ]
-    end
-    historical_hash = Digest::SHA256.hexdigest(JSON.generate(historical_payload))
 
-    assert_equal historical_hash, repository.send(:payload_hash, float_row)
-    assert_equal historical_hash, repository.send(:payload_hash, integer_row)
+    assert_equal "d79699321bb082571dc3c0cd131e018c03e68da47ba70b1d923f3e8ec02f2853",
+      repository.send(:payload_hash, float_row)
+    assert_equal repository.send(:payload_hash, float_row), repository.send(:payload_hash, integer_row)
+  end
+
+  test "payload hashes preserve fractional Float64 timestamps across JSON reads" do
+    repository = HeartbeatRepository.new(client: FakeClient.new)
+    written = { "time" => 1_700_000_000.125 }
+    reread = JSON.parse(JSON.generate(written))
+
+    assert_equal "630e55cb02b7effed5eeb62dace8669b396ab76f96cae424dc45075f1bbe82df",
+      repository.send(:payload_hash, written)
+    assert_equal repository.send(:payload_hash, written), repository.send(:payload_hash, reread)
   end
 
   test "self transfers are rejected before ClickHouse writes" do

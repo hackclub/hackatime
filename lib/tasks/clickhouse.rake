@@ -501,9 +501,11 @@ namespace :clickhouse do
     abort "The recorded ClickHouse verification is stale" unless
       cutover.verified_through_id == cutover.source_through_id && cutover.verified_at?
 
-    ActiveRecord::Base.connection.execute("TRUNCATE TABLE heartbeats, dashboard_rollups")
-    User.update_all(dashboard_rollup_generation: 0, dashboard_rollup_refreshed_generation: 0)
-    cutover.update!(purged_at: Time.current)
+    begin
+      cutover.purge_postgresql!
+    rescue HeartbeatCutover::PurgeBlocked => error
+      abort error.message
+    end
     puts "Removed all PostgreSQL heartbeat payloads and dashboard rollups"
   end
 end

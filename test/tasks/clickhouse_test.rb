@@ -59,6 +59,78 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
     assert_includes error_output, "Set HEARTBEAT_MUTATIONS_STOPPED=1"
   end
 
+  test "PostgreSQL purge rolls back its payload, rollup and fence changes together" do
+    ENV["CLICKHOUSE_TEST"] = "0"
+    user = User.create!(
+      timezone: "UTC",
+      dashboard_rollup_generation: 4,
+      dashboard_rollup_refreshed_generation: 3
+    )
+    heartbeat = Heartbeat.create!(
+      user:,
+      time: Time.current.to_f,
+      entity: "rollback.rb",
+      source_type: :direct_entry
+    )
+    user.update!(dashboard_rollup_generation: 4, dashboard_rollup_refreshed_generation: 3)
+    rollup = DashboardRollup.create!(
+      user:,
+      dimension: DashboardRollup::TOTAL_DIMENSION,
+      bucket_value: "",
+      bucket_value_present: false,
+      total_seconds: 60
+    )
+    cutover = HeartbeatCutover.create!(
+      id: 1,
+      source_through_id: heartbeat.id,
+      backfilled_through_id: heartbeat.id,
+      verified_through_id: heartbeat.id,
+      verified_at: Time.current
+    )
+    expected_generations = user.reload.values_at(:dashboard_rollup_generation, :dashboard_rollup_refreshed_generation)
+    original_update_all = User.method(:update_all)
+    User.define_singleton_method(:update_all) do |*arguments, **keywords|
+      original_update_all.call(*arguments, **keywords)
+      raise "interrupted after PostgreSQL truncation"
+    end
+
+    error = assert_raises(RuntimeError) { cutover.purge_postgresql! }
+    assert_equal "interrupted after PostgreSQL truncation", error.message
+
+    assert Heartbeat.postgresql_unscoped.exists?(heartbeat.id)
+    assert DashboardRollup.exists?(rollup.id)
+    assert_nil cutover.reload.purged_at
+    assert_equal expected_generations,
+      user.reload.values_at(:dashboard_rollup_generation, :dashboard_rollup_refreshed_generation)
+  ensure
+    User.define_singleton_method(:update_all, original_update_all) if original_update_all
+  end
+
+  test "PostgreSQL purge refuses a heartbeat inserted after its verified boundary" do
+    ENV["CLICKHOUSE_TEST"] = "0"
+    user = User.create!(timezone: "UTC")
+    cutover = HeartbeatCutover.create!(
+      id: 1,
+      source_through_id: 0,
+      backfilled_through_id: 0,
+      verified_through_id: 0,
+      verified_at: Time.current
+    )
+
+    result = HeartbeatIngest.call(
+      user:,
+      mode: :direct,
+      heartbeats: [ { entity: "late.rb", time: Time.current.to_f, type: "file" } ],
+      schedule_rollup_refresh: false
+    )
+    assert_equal 1, result.persisted_count
+
+    error = assert_raises(HeartbeatCutover::PurgeBlocked) { cutover.purge_postgresql! }
+    assert_equal "PostgreSQL received heartbeats after the recorded source boundary", error.message
+    assert_nil cutover.reload.purged_at
+    assert_equal 1, Heartbeat.postgresql_unscoped.where(user_id: user.id).count
+  end
+
   test "migration rejects unknown production history with safe remediation" do
     require_clickhouse_integration!
 

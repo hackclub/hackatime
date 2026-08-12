@@ -3,6 +3,46 @@ require "test_helper"
 class HeartbeatIngestClickHouseConcurrencyTest < ActiveSupport::TestCase
   self.use_transactional_tests = false
 
+  class AmbiguousPayloadInsertClient
+    def initialize(client)
+      @client = client
+      @timed_out = false
+      @hide_store_row = true
+    end
+
+    def insert_json_each_row(table, rows, settings: {})
+      @client.insert_json_each_row(table, rows, settings:)
+      return unless table == "heartbeat_store" && !@timed_out
+
+      @timed_out = true
+      raise Timeout::Error, "payload insert response was lost"
+    end
+
+    def select(sql)
+      if @timed_out && sql.include?("SELECT 1 AS present FROM (")
+        aliases = @client.select("SELECT 1 AS present FROM heartbeat_aliases FINAL LIMIT 1")
+        return aliases.any? ? [ { "present" => 1 } ] : []
+      end
+      if @timed_out && @hide_store_row && sql.include?("FROM heartbeat_store FINAL") &&
+          sql.include?(" AND id = ") && sql.include?(" LIMIT 1")
+        @hide_store_row = false
+        return []
+      end
+
+      @client.select(sql)
+    end
+
+    def expose_store! = @hide_store_row = false
+
+    def method_missing(name, *arguments, **keywords, &block)
+      @client.public_send(name, *arguments, **keywords, &block)
+    end
+
+    def respond_to_missing?(name, include_private = false)
+      @client.respond_to?(name, include_private) || super
+    end
+  end
+
   setup do
     require_clickhouse_integration!
 
@@ -82,6 +122,49 @@ class HeartbeatIngestClickHouseConcurrencyTest < ActiveSupport::TestCase
     expected_aliases = [ store.fetch("fields_hash"), *store.fetch("alias_hashes") ].uniq.length
     assert_equal expected_aliases,
       @client.select("SELECT count() AS count FROM heartbeat_aliases FINAL WHERE active").first.fetch("count").to_i
+  end
+
+  test "a timeout-landed payload insert and fast retry keep one canonical identity" do
+    ambiguous_client = AmbiguousPayloadInsertClient.new(@client)
+    repository = HeartbeatRepository.new(client: ambiguous_client)
+    HeartbeatRepository.instance_variable_set(:@current, repository)
+    heartbeat = { entity: "ambiguous.rb", time: Time.current.to_f, type: "file" }
+
+    first = HeartbeatIngest.call(
+      user: @user,
+      mode: :direct,
+      heartbeats: [ heartbeat ],
+      schedule_rollup_refresh: false
+    )
+    assert_equal 1, first.failed_count
+    assert_instance_of Timeout::Error, first.items.sole.error
+
+    retry_result = HeartbeatIngest.call(
+      user: @user,
+      mode: :direct,
+      heartbeats: [ heartbeat ],
+      schedule_rollup_refresh: false
+    )
+    assert_equal 1, retry_result.persisted_count
+
+    ambiguous_client.expose_store!
+    assert_nothing_raised { repository.reconcile_store(user_id: @user.id) }
+    canonical = @client.select(<<~SQL.squish)
+      SELECT id FROM heartbeat_store FINAL
+      WHERE user_id = #{@user.id} AND canonicalized = true AND duplicate_of IS NULL
+    SQL
+    assert_equal 1, canonical.length
+    assert_equal canonical.sole.fetch("id").to_i, retry_result.items.sole.heartbeat.id
+    %w[heartbeats heartbeats_by_time].each do |table|
+      assert_equal 1, @client.select(<<~SQL.squish).sole.fetch("count").to_i
+        SELECT count() AS count FROM #{table} FINAL WHERE user_id = #{@user.id}
+      SQL
+    end
+    alias_ids = @client.select(<<~SQL.squish).pluck("heartbeat_id").map(&:to_i).uniq
+      SELECT heartbeat_id FROM heartbeat_aliases FINAL
+      WHERE user_id = #{@user.id} AND active
+    SQL
+    assert_equal [ canonical.sole.fetch("id").to_i ], alias_ids
   end
 
   private

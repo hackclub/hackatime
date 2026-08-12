@@ -141,9 +141,11 @@ class HeartbeatIngest
     inserted_by_hash = {}
     if missing_entries.any?
       timestamp = Time.current
-      result = with_heartbeat_unique_by do |unique_by|
-        records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
-        Heartbeat.insert_all(records, unique_by:, returning: Heartbeat.column_names)
+      result = HeartbeatCutover.with_postgresql_ingest_lock do
+        with_heartbeat_unique_by do |unique_by|
+          records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
+          Heartbeat.insert_all(records, unique_by:, returning: Heartbeat.column_names)
+        end
       end
       inserted_by_hash = result.to_a.index_by { |attributes| attributes.fetch("fields_hash") }
         .transform_values { |attributes| Heartbeat.new(attributes) }
@@ -304,12 +306,14 @@ class HeartbeatIngest
     ActiveRecord::Base.logger.silence do
       # Build records inside the retry block so a cutover-time schema refresh
       # recomputes both the conflict target and the time_epoch partition column.
-      with_heartbeat_unique_by do |unique_by|
-        insert_records = records.map do |record|
-          record.except(:clickhouse_fields_hash, :legacy_fields_hash)
-            .merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(record[:time]))
+      HeartbeatCutover.with_postgresql_ingest_lock do
+        with_heartbeat_unique_by do |unique_by|
+          insert_records = records.map do |record|
+            record.except(:clickhouse_fields_hash, :legacy_fields_hash)
+              .merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(record[:time]))
+          end
+          Heartbeat.insert_all(insert_records, unique_by:).length
         end
-        Heartbeat.insert_all(insert_records, unique_by:).length
       end
     end
   end

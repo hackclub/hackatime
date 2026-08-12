@@ -102,6 +102,11 @@ class HeartbeatRepositoryIntegrationTest < ActiveSupport::TestCase
     assert_equal({ recent_count: 3, recent_imported_count: 0 }, Cache::HeartbeatCountsJob.new.send(:calculate))
     assert_equal [ [ "rails" ], [ "redis", nil ] ], repository.for_user(source.id).order(:id).first.dependencies
     assert_equal 3, client.select("SELECT count() AS count FROM heartbeats_by_time FINAL").first.fetch("count").to_i
+    stored_fractional = client.select(<<~SQL.squish).sole
+      SELECT #{HeartbeatRepository::STORE_COLUMNS.join(', ')} FROM heartbeat_store FINAL
+      WHERE user_id = #{source.id} AND id = #{first_response.id}
+    SQL
+    assert_equal stored_fractional.fetch("payload_hash"), repository.send(:payload_hash, stored_fractional)
     assert_equal 150, repository.for_user(source.id).duration_seconds
     assert_equal 150, repository.boundary_aware_duration(
       repository.for_user(source.id),
@@ -114,9 +119,21 @@ class HeartbeatRepositoryIntegrationTest < ActiveSupport::TestCase
     assert_equal 3, repository.for_user(source.id).group(:project, :language).count.values.sum
     assert_equal({ project: [ "migration" ], category: [ "coding" ] },
       repository.filter_options(repository.for_user(source.id), %i[project category]))
-    archived_projects = [ [ source.id, "migration" ] ] +
-      39_999.times.map { |index| [ source.id, "archived-#{index}" ] }
-    assert_equal({ users_tracked: 0, seconds_tracked: 0 },
+    home_user = User.create!(timezone: "UTC")
+    home_result = HeartbeatIngest.call(
+      user: home_user,
+      mode: :direct,
+      heartbeats: [
+        { entity: "archived.rb", project: "archived", time: started_at - 3_700, type: "file" },
+        { entity: "included-1.rb", project: "included", time: started_at - 3_600, type: "file" },
+        { entity: "included-2.rb", project: "included", time: started_at - 3_540, type: "file" }
+      ],
+      schedule_rollup_refresh: false
+    )
+    assert_equal 3, home_result.persisted_count
+    archived_projects = [ [ source.id, "migration" ], [ home_user.id, "archived" ] ] +
+      39_998.times.map { |index| [ source.id, "archived-#{index}" ] }
+    assert_equal({ users_tracked: 1, seconds_tracked: 60 },
       repository.home_stats(archived_projects:))
     assert_equal 150, repository.today_stats(repository.for_user(source.id), timezone: "UTC")
       .fetch(:todays_duration_seconds)
@@ -374,6 +391,13 @@ class HeartbeatRepositoryIntegrationTest < ActiveSupport::TestCase
     assert_equal 0, client.select(<<~SQL.squish).first.fetch("count").to_i
       SELECT count() AS count FROM heartbeat_aliases FINAL WHERE user_id = #{missing_alias_user.id}
     SQL
+    retried = HeartbeatIngest.call(
+      user: missing_alias_user,
+      mode: :direct,
+      heartbeats: [ { entity: "missing-alias.rb", time: started_at, type: "file" } ],
+      schedule_rollup_refresh: false
+    )
+    assert_equal 1, retried.persisted_count
     HeartbeatRepository.instance_variable_set(:@current, repository)
     repository.reconcile_store
     assert_equal 2, client.select(<<~SQL.squish).first.fetch("count").to_i

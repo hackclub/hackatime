@@ -347,6 +347,63 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal 1, user.heartbeats.count
   end
 
+  test "an ingest admitted before purge cannot insert into PostgreSQL after purge" do
+    user = User.create!(timezone: "UTC")
+    cutover = HeartbeatCutover.create!(
+      id: 1,
+      source_through_id: 0,
+      backfilled_through_id: 0,
+      verified_through_id: 0,
+      verified_at: Time.current
+    )
+    ingest = HeartbeatIngest.new(
+      user:,
+      mode: :direct,
+      heartbeats: [ { entity: "delayed.rb", time: Time.current.to_f, type: "file" } ],
+      schedule_rollup_refresh: false
+    )
+    original_normalize = ingest.method(:normalize_direct_heartbeat)
+    ingest.define_singleton_method(:normalize_direct_heartbeat) do |heartbeat, placeholder_state:|
+      cutover.purge_postgresql!
+      original_normalize.call(heartbeat, placeholder_state:)
+    end
+
+    result = ingest.call
+
+    assert_equal 1, result.failed_count
+    assert_equal HeartbeatCutover::POSTGRESQL_WRITE_ERROR, result.items.sole.error.message
+    assert_predicate cutover.reload, :purged_at?
+    assert_equal 0, Heartbeat.postgresql_unscoped.where(user_id: user.id).count
+  end
+
+  test "an import admitted before purge cannot insert into PostgreSQL after purge" do
+    user = User.create!(timezone: "UTC")
+    cutover = HeartbeatCutover.create!(
+      id: 1,
+      source_through_id: 0,
+      backfilled_through_id: 0,
+      verified_through_id: 0,
+      verified_at: Time.current
+    )
+    ingest = HeartbeatIngest.new(
+      user:,
+      mode: :import,
+      heartbeats: [ { entity: "delayed-import.rb", time: Time.current.to_f, type: "file" } ],
+      schedule_rollup_refresh: false
+    )
+    original_normalize = ingest.method(:normalize_imported_heartbeat)
+    ingest.define_singleton_method(:normalize_imported_heartbeat) do |heartbeat, placeholder_state:|
+      cutover.purge_postgresql!
+      original_normalize.call(heartbeat, placeholder_state:)
+    end
+
+    error = assert_raises(RuntimeError) { ingest.call }
+
+    assert_equal HeartbeatCutover::POSTGRESQL_WRITE_ERROR, error.message
+    assert_predicate cutover.reload, :purged_at?
+    assert_equal 0, Heartbeat.postgresql_unscoped.where(user_id: user.id).count
+  end
+
   test "direct heartbeat ingest rebuilds partition attributes inside a schema retry" do
     user = User.create!(timezone: "UTC")
     time = Time.current.to_f

@@ -47,9 +47,7 @@ class HeartbeatRepository
 
   def self.ensure_writes_enabled!
     raise "Heartbeat writes are stopped" if ENV["HEARTBEAT_WRITES_STOPPED"] == "1"
-    if store == "postgresql" && HeartbeatCutover.where.not(purged_at: nil).exists?
-      raise "PostgreSQL heartbeat writes are unavailable after ClickHouse cutover"
-    end
+    HeartbeatCutover.ensure_postgresql_writes_available! if store == "postgresql"
   end
 
   def self.ensure_mutations_enabled!
@@ -1087,9 +1085,19 @@ class HeartbeatRepository
     raise "Heartbeat aliases point to multiple identities" if winner_ids.many?
 
     if winner_ids.one?
-      winner = current_store_row(user_id, winner_ids.sole)
+      winner = current_store_row(user_id, winner_ids.sole, required: false)
+      inserted = winner.nil?
+      unless winner
+        winner = build_store_row(
+          serialized.merge("user_id" => user_id),
+          id: winner_ids.sole,
+          canonicalized: true
+        )
+        insert_store_rows([ winner ])
+      end
+      winner = activate_candidate(winner, hashes:) unless winner.fetch("canonicalized")
       write_aliases(winner, active: winner["deleted_at"].nil?, hashes:)
-      return { row: winner, inserted: false }
+      return { row: winner, inserted: }
     end
 
     candidates = store_rows_for_aliases(user_id, hashes)
@@ -1123,8 +1131,11 @@ class HeartbeatRepository
       rows = serialized.each_with_index.map do |record, index|
         build_store_row(record, id: ids.fetch(index), version:, store_version:, canonicalized: true)
       end
-      insert_store_rows(rows)
+      # Reserve each identity before its payload write. If the payload insert
+      # lands but its response is lost, a retry reuses this alias-owned ID
+      # instead of allocating a second canonical heartbeat.
       insert_new_aliases(rows, version: alias_version)
+      insert_store_rows(rows)
       return rows.map { |row| { row:, inserted: true } }
     end
 
