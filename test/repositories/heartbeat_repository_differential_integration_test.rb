@@ -173,6 +173,32 @@ class HeartbeatRepositoryDifferentialIntegrationTest < ActiveSupport::TestCase
     end
   end
 
+  test "negative legacy timestamps use ClickHouse materialized bucket semantics" do
+    ENV["CLICKHOUSE_TEST"] = "0"
+    user = User.create!(timezone: "UTC")
+    heartbeat = Heartbeat.postgresql_unscoped.create!(
+      user_id: user.id,
+      time: -1.1,
+      entity: "legacy-negative.rb",
+      category: "coding",
+      source_type: :test_entry
+    )
+
+    @repository.backfill([ heartbeat ])
+
+    row = @client.select("SELECT time_second, time_5m FROM heartbeats FINAL WHERE user_id = #{user.id}").sole
+    assert_equal(-2, row.fetch("time_second").to_i)
+    assert_equal 0, row.fetch("time_5m").to_i
+    assert_equal heartbeat.id, @repository.for_user(user.id).with_deleted.where(time: -1.1).sole.id
+  end
+
+  test "invalid numeric filters return no rows instead of a ClickHouse type error" do
+    user = User.create!(timezone: "UTC")
+
+    assert_empty @repository.for_user(user.id).where(id: "not-a-number").to_a
+    assert_empty @repository.for_user(user.id).where(source_type: "not-a-source").to_a
+  end
+
   private
 
   def assert_parity(user, base)

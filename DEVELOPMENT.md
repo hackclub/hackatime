@@ -47,6 +47,8 @@ $ docker compose up -d
 $ docker compose exec web /bin/bash
 ```
 
+The Compose service keeps development data in `hackatime_development` and test data in the separate `hackatime_test` ClickHouse database.
+
 We'll now setup the database. In your container shell, run the following:
 
 ```bash

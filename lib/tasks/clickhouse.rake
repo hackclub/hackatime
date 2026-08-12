@@ -51,7 +51,11 @@ namespace :clickhouse do
     applied = client.select("SELECT DISTINCT version FROM schema_migrations").pluck("version").to_set
     migration_paths = Dir[Rails.root.join("db/clickhouse/*.sql")].sort
     expected_versions = migration_paths.map { |path| File.basename(path, ".sql") }.to_set
-    abort "ClickHouse migration history differs from db/clickhouse" unless (applied - expected_versions).empty?
+    unknown_versions = applied - expected_versions
+    if unknown_versions.any?
+      abort "Unknown ClickHouse migrations: #{unknown_versions.to_a.sort.join(', ')}. " \
+        "Do not delete production history; reset only an explicitly disposable pre-cutover database."
+    end
     migration_paths.each do |path|
       migration_version = File.basename(path, ".sql")
       next if applied.include?(migration_version)
@@ -67,18 +71,6 @@ namespace :clickhouse do
     schema_files.each_key { |name| validate_schema.call(name) }
     recorded_versions = client.select("SELECT DISTINCT version FROM schema_migrations").pluck("version").to_set
     abort "ClickHouse migration history differs from db/clickhouse" unless recorded_versions == expected_versions
-
-    heartbeat_totals = client.select(<<~SQL.squish).first
-      SELECT count() AS row_count, sum(id) AS id_sum, sum(version) AS version_sum
-      FROM heartbeats FINAL
-    SQL
-    mirror_totals = client.select(<<~SQL.squish).first
-      SELECT count() AS row_count, sum(id) AS id_sum, sum(version) AS version_sum
-      FROM heartbeats_by_time FINAL
-    SQL
-    unless heartbeat_totals == mirror_totals
-      abort "ClickHouse by-time mirror does not match the heartbeat table; rebuild and verify it before cutover"
-    end
   end
 
   desc "Backfill PostgreSQL heartbeats into ClickHouse"
@@ -143,15 +135,22 @@ namespace :clickhouse do
       key = [ row.fetch("source_type").to_i, ActiveModel::Type::Boolean.new.cast(row.fetch("deleted")) ]
       [ key, row.slice("count", "min_id", "max_id", "id_sum").transform_values(&:to_i) ]
     end
-    clickhouse = ClickHouse::Client.current.select(<<~SQL.squish).to_h do |row|
-      SELECT source_type, deleted_at IS NOT NULL AS deleted, count() AS count,
-             min(id) AS min_id, max(id) AS max_id, sum(id) AS id_sum
-      FROM heartbeats FINAL GROUP BY source_type, deleted ORDER BY source_type, deleted
-    SQL
-      key = [ row.fetch("source_type").to_i, ActiveModel::Type::Boolean.new.cast(row.fetch("deleted")) ]
-      [ key, row.slice("count", "min_id", "max_id", "id_sum").transform_values(&:to_i) ]
+    clickhouse_aggregates = %w[heartbeats heartbeats_by_time heartbeat_store].to_h do |table|
+      canonical = table == "heartbeat_store" ? "WHERE canonicalized = true AND duplicate_of IS NULL" : ""
+      rows = ClickHouse::Client.current.select(<<~SQL.squish).to_h do |row|
+        SELECT source_type, deleted_at IS NOT NULL AS deleted, count() AS count,
+               min(id) AS min_id, max(id) AS max_id, sum(id) AS id_sum
+        FROM #{table} FINAL #{canonical}
+        GROUP BY source_type, deleted ORDER BY source_type, deleted
+      SQL
+        key = [ row.fetch("source_type").to_i, ActiveModel::Type::Boolean.new.cast(row.fetch("deleted")) ]
+        [ key, row.slice("count", "min_id", "max_id", "id_sum").transform_values(&:to_i) ]
+      end
+      [ table, rows ]
     end
-    abort "Heartbeat aggregate mismatch" unless postgres == clickhouse
+    mismatched_table = clickhouse_aggregates.find { |_table, aggregate| aggregate != postgres }&.first
+    abort "Heartbeat aggregate mismatch in #{mismatched_table}" if mismatched_table
+    clickhouse = clickhouse_aggregates.fetch("heartbeats")
 
     pending = ClickHouse::Client.current.select(<<~SQL.squish).first.fetch("pending").to_i
       SELECT count() AS pending FROM heartbeat_store FINAL
@@ -193,89 +192,41 @@ namespace :clickhouse do
       [ count, digest.hexdigest ]
     end
 
-    range_size = ENV.fetch("VERIFY_RANGE_SIZE", 100_000).to_i
-    cursor = nil
+    range_size = ENV.fetch("VERIFY_RANGE_SIZE", 10_000).to_i
+    cursor = 0
     loop do
-      postgres_scope = Heartbeat.postgresql_unscoped
-      postgres_scope = postgres_scope.where("id > ?", cursor) if cursor
-      postgres_next_ids = postgres_scope.order(:id).limit(range_size).pluck(:id)
-      after_cursor = cursor ? "id > #{cursor} AND" : ""
-      store_next_ids = ClickHouse::Client.current.select(<<~SQL.squish).pluck("id").map(&:to_i)
-        SELECT id FROM heartbeat_store FINAL
-        WHERE #{after_cursor} canonicalized = true AND duplicate_of IS NULL
-        ORDER BY id LIMIT #{range_size}
-      SQL
-      clickhouse_next_ids = ClickHouse::Client.current.select(<<~SQL.squish).pluck("id").map(&:to_i)
-        SELECT id FROM heartbeats FINAL #{cursor ? "WHERE id > #{cursor}" : ""}
-        ORDER BY id LIMIT #{range_size}
-      SQL
-      mirror_next_ids = ClickHouse::Client.current.select(<<~SQL.squish).pluck("id").map(&:to_i)
-        SELECT id FROM heartbeats_by_time FINAL #{cursor ? "WHERE id > #{cursor}" : ""}
-        ORDER BY id LIMIT #{range_size}
-      SQL
-      ids = [ *postgres_next_ids, *store_next_ids, *clickhouse_next_ids, *mirror_next_ids ]
-        .uniq.sort.first(range_size)
-      break if ids.empty?
+      postgres_rows = Heartbeat.postgresql_unscoped.where("id > ?", cursor).order(:id).limit(range_size).to_a
+      break if postgres_rows.empty?
 
-      start_id = cursor ? cursor + 1 : 0
-      end_id = ids.last
-      postgres_ids = Heartbeat.postgresql_unscoped.where(id: start_id..end_id).order(:id).pluck(:id)
-      store_ids = ClickHouse::Client.current.select(<<~SQL.squish).pluck("id").map(&:to_i)
-        SELECT id FROM heartbeat_store FINAL
-        WHERE canonicalized = true AND duplicate_of IS NULL
-          AND id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-      SQL
-      clickhouse_ids = ClickHouse::Client.current.select(<<~SQL.squish).pluck("id").map(&:to_i)
-        SELECT id FROM heartbeats FINAL
-        WHERE id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-      SQL
-      mirror_ids = ClickHouse::Client.current.select(<<~SQL.squish).pluck("id").map(&:to_i)
-        SELECT id FROM heartbeats_by_time FINAL
-        WHERE id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-      SQL
+      start_id = postgres_rows.first.id
+      end_id = postgres_rows.last.id
+      repository = HeartbeatRepository.current
+      identity_rows = repository.verification_rows(
+        "heartbeat_store",
+        postgres_rows,
+        columns: HeartbeatRepository::STORE_COLUMNS
+      )
+      heartbeat_rows = repository.verification_rows("heartbeats", postgres_rows, columns: storage_columns)
+      mirror_rows = repository.verification_rows("heartbeats_by_time", postgres_rows, columns: storage_columns)
+      postgres_ids = postgres_rows.map(&:id)
+      store_ids = identity_rows.pluck("id").map(&:to_i)
+      clickhouse_ids = heartbeat_rows.pluck("id").map(&:to_i)
+      mirror_ids = mirror_rows.pluck("id").map(&:to_i)
       unless [ postgres_ids, store_ids, clickhouse_ids, mirror_ids ].uniq.one?
         abort "Heartbeat ID mismatch for IDs #{start_id}-#{end_id}"
       end
 
-      postgres_rows = Heartbeat.postgresql_unscoped.where(id: start_id..end_id).order(:id).find_each
       postgres_fingerprint = fingerprint.call(postgres_rows, :postgresql, columns)
-      clickhouse_fingerprint = fingerprint.call(
-        ClickHouse::Client.current.each_json_each_row(<<~SQL.squish),
-          SELECT #{columns.join(', ')} FROM heartbeats FINAL
-          WHERE id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-        SQL
-        :clickhouse,
-        columns
-      )
-      mirror_fingerprint = fingerprint.call(
-        ClickHouse::Client.current.each_json_each_row(<<~SQL.squish),
-          SELECT #{columns.join(', ')} FROM heartbeats_by_time FINAL
-          WHERE id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-        SQL
-        :clickhouse,
-        columns
-      )
+      clickhouse_fingerprint = fingerprint.call(heartbeat_rows, :clickhouse, columns)
+      mirror_fingerprint = fingerprint.call(mirror_rows, :clickhouse, columns)
       abort "Heartbeat row mismatch for IDs #{start_id}-#{end_id}" unless postgres_fingerprint == clickhouse_fingerprint
       abort "Heartbeat by-time mirror mismatch for IDs #{start_id}-#{end_id}" unless clickhouse_fingerprint == mirror_fingerprint
 
-      store_fingerprint = fingerprint.call(
-        ClickHouse::Client.current.each_json_each_row(<<~SQL.squish),
-          SELECT #{columns.join(', ')} FROM heartbeat_store FINAL
-          WHERE canonicalized = true AND duplicate_of IS NULL
-            AND id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-        SQL
-        :clickhouse,
-        columns
-      )
+      store_fingerprint = fingerprint.call(identity_rows, :clickhouse, columns)
       abort "Canonical heartbeat store mismatch for IDs #{start_id}-#{end_id}" unless postgres_fingerprint == store_fingerprint
 
-      identity_rows = ClickHouse::Client.current.select(<<~SQL.squish)
-        SELECT #{HeartbeatRepository::STORE_COLUMNS.join(', ')} FROM heartbeat_store FINAL
-        WHERE canonicalized = true AND duplicate_of IS NULL
-          AND id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-      SQL
       invalid_payload = identity_rows.find do |row|
-        row.fetch("payload_hash") != HeartbeatRepository.current.send(:payload_hash, row)
+        row.fetch("payload_hash") != repository.send(:payload_hash, row)
       end
       abort "Canonical heartbeat payload hash mismatch for ID #{invalid_payload['id']}" if invalid_payload
 
@@ -285,7 +236,7 @@ namespace :clickhouse do
         end
       end
       aliases = identity_keys.group_by(&:first).flat_map do |user_id, keys|
-        HeartbeatRepository.current.send(:alias_rows, user_id, keys.pluck(1).uniq)
+        repository.send(:alias_rows, user_id, keys.pluck(1).uniq)
       end
       aliases_by_key = aliases.index_by { |row| [ row.fetch("user_id").to_i, row.fetch("fields_hash") ] }
       identity_keys.each do |user_id, fields_hash, row|
@@ -297,7 +248,7 @@ namespace :clickhouse do
         end
       end
       target_keys = aliases.map { |row| [ row.fetch("user_id").to_i, row.fetch("heartbeat_id").to_i ] }.uniq
-      targets = target_keys.each_slice(5_000).flat_map do |keys|
+      targets = target_keys.each_slice(HeartbeatRepository::QUERY_BATCH_SIZE).flat_map do |keys|
         tuples = keys.map { |user_id, id| "(#{user_id}, #{id})" }.join(", ")
         ClickHouse::Client.current.select(<<~SQL.squish)
           SELECT user_id, id, fields_hash, alias_hashes, deleted_at FROM heartbeat_store FINAL
@@ -313,37 +264,16 @@ namespace :clickhouse do
         abort "Heartbeat alias points to invalid canonical state for ID #{key.last}" unless valid
       end
 
-      clickhouse_storage_fingerprint = fingerprint.call(
-        ClickHouse::Client.current.each_json_each_row(<<~SQL.squish),
-          SELECT #{storage_columns.join(', ')} FROM heartbeats FINAL
-          WHERE id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-        SQL
-        :clickhouse,
-        storage_columns
-      )
-      mirror_storage_fingerprint = fingerprint.call(
-        ClickHouse::Client.current.each_json_each_row(<<~SQL.squish),
-          SELECT #{storage_columns.join(', ')} FROM heartbeats_by_time FINAL
-          WHERE id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-        SQL
-        :clickhouse,
-        storage_columns
-      )
+      clickhouse_storage_fingerprint = fingerprint.call(heartbeat_rows, :clickhouse, storage_columns)
+      mirror_storage_fingerprint = fingerprint.call(mirror_rows, :clickhouse, storage_columns)
       unless clickhouse_storage_fingerprint == mirror_storage_fingerprint
         abort "Heartbeat by-time version mismatch for IDs #{start_id}-#{end_id}"
       end
 
-      clickhouse_versions = ClickHouse::Client.current.select(<<~SQL.squish).map do |row|
-        SELECT id, version FROM heartbeats FINAL
-        WHERE id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-      SQL
+      clickhouse_versions = heartbeat_rows.map do |row|
         [ row.fetch("id").to_i, row.fetch("version").to_i ]
       end
-      store_versions = ClickHouse::Client.current.select(<<~SQL.squish).map do |row|
-        SELECT id, version FROM heartbeat_store FINAL
-        WHERE canonicalized = true AND duplicate_of IS NULL
-          AND id BETWEEN #{start_id} AND #{end_id} ORDER BY id
-      SQL
+      store_versions = identity_rows.map do |row|
         [ row.fetch("id").to_i, row.fetch("version").to_i ]
       end
       abort "Canonical heartbeat version mismatch for IDs #{start_id}-#{end_id}" unless clickhouse_versions == store_versions
@@ -560,12 +490,9 @@ namespace :clickhouse do
     abort "The recorded ClickHouse verification is stale" unless
       cutover.verified_through_id == cutover.source_through_id && cutover.verified_at?
 
-    connection = ActiveRecord::Base.connection
-    connection.drop_table(:heartbeats, if_exists: true)
-    connection.drop_table(:heartbeat_identities, if_exists: true)
-    connection.drop_table(:dashboard_rollups, if_exists: true)
+    ActiveRecord::Base.connection.execute("TRUNCATE TABLE heartbeats, dashboard_rollups")
     User.update_all(dashboard_rollup_generation: 0, dashboard_rollup_refreshed_generation: 0)
     cutover.update!(purged_at: Time.current)
-    puts "Removed all PostgreSQL heartbeat storage"
+    puts "Removed all PostgreSQL heartbeat payloads and dashboard rollups"
   end
 end

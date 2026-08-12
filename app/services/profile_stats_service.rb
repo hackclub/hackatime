@@ -20,15 +20,16 @@ class ProfileStatsService
   end
 
   # Minimal payload used by the OG image generator.
-  def og_stats
+  def og_stats(activity_graph: nil)
     return nil unless user
 
     fdd = stats.filterable_dashboard_data
     return nil if fdd.blank?
 
+    activity_graph ||= stats.activity_graph_data
     {
       total_time_all: fdd[:total_time].to_i,
-      total_time_week: week_seconds(stats.activity_graph_data),
+      total_time_week: week_seconds(activity_graph),
       top_language: fdd["top_language"]
     }
   end

@@ -6,6 +6,7 @@ class HeartbeatRow
     ai_subscription_plan ai_input_tokens ai_output_tokens ai_prompt_length ai_line_changes
     human_line_changes deleted_at created_at updated_at
   ].freeze
+  ATTRIBUTES = [ *COLUMNS, "fields_hash" ].freeze
   INTEGER_COLUMNS = %w[
     id user_id lineno lines cursorpos line_additions line_deletions project_root_count ysws_program
     ja4_id ai_input_tokens ai_output_tokens ai_prompt_length ai_line_changes human_line_changes
@@ -34,12 +35,12 @@ class HeartbeatRow
   end
 
   def initialize(attributes)
-    @attributes = attributes.stringify_keys.slice(*COLUMNS).to_h do |column, value|
+    @attributes = attributes.stringify_keys.slice(*ATTRIBUTES).to_h do |column, value|
       [ column, self.class.deserialize(column, value) ]
     end
   end
 
-  COLUMNS.each { |column| define_method(column) { attributes[column] } }
+  ATTRIBUTES.each { |column| define_method(column) { attributes[column] } }
 
   def as_json(options = nil) = attributes.as_json(options)
 

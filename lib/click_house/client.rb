@@ -10,11 +10,20 @@ module ClickHouse
     DEFAULT_SETTINGS = {
       defer_partition_pruning_after_final: 0,
       do_not_merge_across_partitions_select_final: 1,
-      materialized_views_ignore_errors: 0
+      input_format_json_read_numbers_as_strings: 1,
+      materialized_views_ignore_errors: 0,
+      output_format_json_quote_64bit_floats: 0,
+      output_format_json_quote_64bit_integers: 0
     }.freeze
+    DEFAULT_TIMEOUTS = { open_timeout: 5, read_timeout: 60, write_timeout: 60 }.freeze
 
     def self.current
-      @current ||= new(ENV.fetch("CLICKHOUSE_URL"))
+      url = if Rails.env.test? && ENV["CLICKHOUSE_TEST_URL"].present?
+        ENV.fetch("CLICKHOUSE_TEST_URL")
+      else
+        ENV.fetch("CLICKHOUSE_URL")
+      end
+      @current ||= new(url)
     end
 
     def initialize(url)
@@ -25,6 +34,7 @@ module ClickHouse
       @uri.path = "/"
       @uri.user = @uri.password = nil
       @connection_key = "click_house_connection_#{object_id}".to_sym
+      @timeout_key = "click_house_timeouts_#{object_id}".to_sym
     end
 
     def select(sql, params: {}, settings: {})
@@ -66,6 +76,18 @@ module ClickHouse
 
     def identifier(value)
       "`#{value.to_s.gsub('`', '``')}`"
+    end
+
+    def with_timeouts(open_timeout:, read_timeout:, write_timeout:)
+      previous = Thread.current[@timeout_key]
+      Thread.current[@timeout_key] = { open_timeout:, read_timeout:, write_timeout: }
+      http = connection
+      apply_timeouts(http)
+      yield
+    ensure
+      Thread.current[@timeout_key] = previous
+      current = Thread.current[@connection_key] || http
+      apply_timeouts(current) if current
     end
 
     private
@@ -110,14 +132,22 @@ module ClickHouse
     end
 
     def connection
-      Thread.current[@connection_key] ||= Net::HTTP.start(
+      http = Thread.current[@connection_key] ||= Net::HTTP.start(
         @uri.host,
         @uri.port,
         use_ssl: @uri.scheme == "https",
-        open_timeout: 5,
-        read_timeout: 60,
-        write_timeout: 60
+        **current_timeouts
       )
+      apply_timeouts(http)
+      http
+    end
+
+    def apply_timeouts(http)
+      current_timeouts.each { |name, value| http.public_send("#{name}=", value) }
+    end
+
+    def current_timeouts
+      Thread.current[@timeout_key] || DEFAULT_TIMEOUTS
     end
 
     def close_connection

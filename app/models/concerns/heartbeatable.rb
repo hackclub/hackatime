@@ -91,16 +91,29 @@ module Heartbeatable
     end
 
     def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
+      return {} if user_ids.empty?
+
+      start_date = [ start_date, 31.days.ago ].max
+      requested_user_ids = user_ids
+      cache_prefix = exclude_browser_time ? "user_streak_without_browser_v4" : "user_streak_v4"
+      cache_date = start_date.to_date.iso8601
+      cache_keys = user_ids.index_with { |id| "#{cache_prefix}_#{cache_date}_#{id}" }
+      cached = Rails.cache.read_multi(*cache_keys.values)
+      user_ids = user_ids.reject { |id| cached.key?(cache_keys.fetch(id)) }
+      return requested_user_ids.index_with { |id| cached.fetch(cache_keys.fetch(id)) } if user_ids.empty?
+
       if HeartbeatRepository.clickhouse?
-        return HeartbeatRepository.current.daily_streaks(
+        fresh = HeartbeatRepository.current.daily_streaks(
           user_ids,
           start_date:,
           exclude_browser_time:
         )
+        fresh.each { |id, streak| Rails.cache.write(cache_keys.fetch(id), streak, expires_in: 1.hour) }
+        return requested_user_ids.index_with do |id|
+          cached.fetch(cache_keys.fetch(id), fresh.fetch(id, 0))
+        end
       end
 
-      return {} if user_ids.empty?
-      start_date = [ start_date, 31.days.ago ].max
       timeout = heartbeat_timeout_duration.to_i
       day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone)"
       streak_diff_sql = <<~SQL.squish
@@ -152,7 +165,7 @@ module Heartbeatable
          }
        end
 
-      result = user_ids.index_with(0)
+      result = requested_user_ids.index_with { |id| cached.fetch(cache_keys.fetch(id), 0) }
 
       daily_durations.each do |user_id, data|
         current_date = data[:current_date]
@@ -175,6 +188,7 @@ module Heartbeatable
         end
 
         result[user_id] = streak
+        Rails.cache.write(cache_keys.fetch(user_id), streak, expires_in: 1.hour)
       end
 
       result

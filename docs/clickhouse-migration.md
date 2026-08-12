@@ -1,14 +1,26 @@
 # ClickHouse heartbeat cutover
 
-Hackatime stores heartbeat data only in ClickHouse after cutover. PostgreSQL keeps relational product data, monotonic heartbeat ID/version sequences, advisory locks and coarse transfer, deletion and JA4 workflow status. The supported server is ClickHouse OSS `26.7.3.19`, the latest 26.7 patch release.
+Hackatime stores heartbeat data only in ClickHouse after cutover. PostgreSQL keeps relational product data, monotonic heartbeat ID/version sequences, advisory locks and coarse transfer, deletion and JA4 workflow status. The supported server is ClickHouse OSS `26.7.3.19`.
 
-`HEARTBEAT_STORE` defaults to `clickhouse`. Set it identically on web and worker processes and use `postgresql` explicitly only for the backfill phase.
+`HEARTBEAT_STORE` deliberately defaults to `postgresql`, so merging this release cannot switch an unprovisioned production environment. Set it explicitly and identically on every web and worker process. Keep `postgresql` through provisioning, migration and backfill, then set `clickhouse` only at the fenced cutover.
 
 ## Provisioning
 
 Provision one ClickHouse server with persistent storage, TLS and a least-privilege application account. Back it up to storage outside that server and test the restore runbook before cutover. Heartbeat-backed features are unavailable while the server is down, so monitor disk health, backup freshness and restore readiness. Replication can be added later if that availability trade-off changes, but it is not part of this deployment.
 
 Before cutover, set and load-test per-query and per-user memory, concurrency and execution-time limits for the server's available RAM. Configure external sort and group-by spill thresholds, disk free-space and MergeTree part alerts and a tested off-node backup schedule. Record the accepted RPO and RTO: lifecycle controls can be replayed after a stale restore, but ordinary heartbeats newer than the restored backup cannot be recreated from PostgreSQL.
+
+The Ruby client controls the JSON compatibility settings required by this schema: numbers encoded as strings are accepted on input and 64-bit integers/floats are emitted as JSON numbers. The exact server build is a compatibility gate, not an instruction to ignore security releases. For an upgrade, restore a recent backup into an isolated candidate server, change the pinned image and version guard together, run `clickhouse:migrate`, the real ClickHouse integration/differential/concurrency/task test leg and a production-sized read/write benchmark, then perform a canary restore and rollback drill before replacing production. Do not bypass the version guard on an untested build.
+
+Development and test use separate `hackatime_development` and `hackatime_test` databases. GitHub's `test_clickhouse` job starts the pinned server, applies the ClickHouse schema and runs the API ingestion, integration, differential, concurrency and task suites with `CLICKHOUSE_INTEGRATION=1` and `CLICKHOUSE_TEST=1`; these are required by the deploy job and cannot silently skip.
+
+### Coolify deployment layout
+
+Run ClickHouse as a separate Coolify service, not inside either Rails application. Pin the image to `clickhouse/clickhouse-server:26.7.3.19`, mount persistent storage at `/var/lib/clickhouse` and keep ports 8123/9000 private to the Coolify network. Give Rails a least-privilege user and a URL such as `http://hackatime-clickhouse:8123/hackatime`; use TLS if traffic leaves the private host/network. Do not expose the default user or either native port publicly.
+
+On a machine with about 192 GiB RAM, start conservatively: reserve at least 32 GiB for the kernel/filesystem cache and other services, cap ClickHouse below the remainder, then load-test before increasing it. Configure per-query/per-user memory and concurrency, `max_execution_time`, external sort/group-by spill thresholds and disk/part alerts in the ClickHouse user profile. Repository defaults do not replace production quotas. Keep web and worker as separate Coolify applications with the same `CLICKHOUSE_URL`, `HEARTBEAT_STORE` and fence values.
+
+Create an off-node backup schedule before backfill. Alert on backup age and failure, retain PostgreSQL lifecycle controls at least as long as the oldest restorable ClickHouse backup and complete one restore plus `clickhouse:replay_lifecycle_controls` drill. Record the ordinary-heartbeat RPO, expected restore time and how long Rails remains unavailable during recovery.
 
 The schema has four authoritative objects:
 
@@ -17,7 +29,7 @@ The schema has four authoritative objects:
 - `heartbeats` is the user-first query layout.
 - `heartbeats_by_time` is the time-first query layout.
 
-`fields_hash` belongs only to the canonical store and alias index. It is user-independent because the alias primary key already includes the user; this lets account transfers deduplicate without changing the query payload. Historical user-specific and import hashes remain ClickHouse aliases. The hash is not a query-table column or sorting key. PostgreSQL advisory locks serialize admission for one user but do not persist heartbeat data. Materialized views are not part of the delivery correctness boundary.
+`fields_hash` is stored only in the canonical store and alias index. It is user-independent because the alias primary key already includes the user; this lets account transfers deduplicate without changing the query payload. Historical user-specific and import hashes remain ClickHouse aliases. The accepted-ingest API still returns the request-compatible identity hash. The hash is not a query-table column or sorting key. PostgreSQL advisory locks serialize admission for one user but do not persist heartbeat data. Materialized views are not part of the delivery correctness boundary.
 
 All four tables use non-replicated `ReplacingMergeTree` engines. A bounded local deduplication log makes synchronous retries with stable insert tokens idempotent without ClickHouse Keeper. Canonical versions and delivery acknowledgements remain the recovery boundary if an insert's outcome stays unknown after all retries.
 
@@ -27,6 +39,8 @@ Apply relational and ClickHouse migrations from one release process:
 HEARTBEAT_STORE=postgresql bin/rails db:migrate
 HEARTBEAT_STORE=postgresql bin/rake clickhouse:migrate
 ```
+
+In Coolify, first deploy this release to web and worker with `HEARTBEAT_STORE=postgresql` and both fence values `0`. Run the two migration commands once from a one-off terminal/release command. Confirm `SELECT version()` returns the pinned build and that all four tables exist before starting backfill. An “Unknown ClickHouse migrations” error must be investigated; only an explicitly disposable pre-cutover database may be reset.
 
 ## Online backfill
 
@@ -38,6 +52,8 @@ The first pass records an upper ID boundary and durable progress in `heartbeat_c
 HEARTBEAT_STORE=postgresql HEARTBEAT_MUTATIONS_STOPPED=1 \
   bin/rake clickhouse:backfill
 ```
+
+The repository groups every payload insert by destination month before applying its 10,000-row cap. This keeps historical backfill, transfer, deletion and repair below ClickHouse's partition-per-insert limit rather than raising the server safety limit. Verification reads PostgreSQL rows in ID order but looks up ClickHouse rows by each layout's full sorting-key tuple, so it does not repeatedly scan a bare global ID range.
 
 Keep the mutation fence enabled through purge. PostgreSQL can continue accepting append-only heartbeats during the first pass because the final pass captures IDs above the first boundary. The task rejects an incomplete lifecycle queue, so do not set the fence until existing controls have completed.
 
@@ -61,9 +77,15 @@ HEARTBEAT_STORE=clickhouse HEARTBEAT_WRITES_STOPPED=1 HEARTBEAT_MUTATIONS_STOPPE
   bin/rake clickhouse:purge_postgres
 ```
 
-The purge drains delivery and reruns payload, alias and query-layout verification before dropping PostgreSQL heartbeat storage. Do not reopen either fence if canonical rows, aliases, delivery acknowledgements or either query layout disagree. Only after purge succeeds should the release set both fence variables back to `0` and reopen traffic.
+The purge drains delivery and reruns payload, alias and query-layout verification before truncating PostgreSQL heartbeat payloads and dashboard rollups. It intentionally leaves the now-empty tables represented in Rails schema history; remove them with an explicit Rails migration in a later release after the operational rollback window expires. Do not reopen either fence if canonical rows, aliases, delivery acknowledgements or either query layout disagree. Only after purge succeeds should the release set both fence variables back to `0` and reopen traffic.
 
-This is the irreversible commit point. There is no observation window in which ClickHouse accepts new heartbeats and PostgreSQL remains a lossless rollback target: new ClickHouse rows are intentionally not copied back to PostgreSQL. Before purge, rollback means keeping both fences enabled and switching reads back to the still-complete PostgreSQL table. After purge, rollback means restoring ClickHouse. The purge also drops PostgreSQL dashboard rollup storage. ClickHouse-mode dashboard, profile and homepage reads use exact ClickHouse queries and do not rebuild those rollups.
+This is the irreversible commit point. There is no observation window in which ClickHouse accepts new heartbeats and PostgreSQL remains a lossless rollback target: new ClickHouse rows are intentionally not copied back to PostgreSQL. Before purge, rollback means keeping both fences enabled and switching reads back to the still-complete PostgreSQL table. After purge, rollback means restoring ClickHouse. ClickHouse-mode dashboard, profile and homepage reads use exact ClickHouse queries and do not rebuild PostgreSQL rollups. Initial ClickHouse dashboard data is deferred and expensive repeated global/profile/streak reads retain short application-cache boundaries.
+
+The final write fence is the only ingestion interruption. Keep the online backfill phase unfenced for ordinary writes, schedule the final fence for a low-traffic window and rely on normal client retries for rejected heartbeats. In Coolify, apply stricter fence values before switching the store; never temporarily reopen a fence on one application. Verify the environment reported by both web and worker containers before running the final backfill. Reopen both only after purge and smoke checks.
+
+Account deletion applies ClickHouse tombstones synchronously before relational anonymisation can succeed, with the durable job retained for retry. Account merge commits its durable transfer control with the relational merge and the queued idempotent transfer then moves the heartbeats. Until that job completes, the source no longer accepts writes, the surviving account may temporarily omit the transferred activity and global source activity can remain visible. This bounded asynchronous merge behavior is not used for account deletion, where privacy requires synchronous tombstones.
+
+ClickHouse requests made while PostgreSQL admission locks are held use deliberately short budgets: ordinary ingest makes one attempt with a two-second network timeout and lifecycle mutations make at most two attempts with five-second network timeouts. An unknown ingest result is safe to retry because canonical identity and insert tokens are stable, while the delivery job repairs incomplete layouts. These budgets bound PostgreSQL connection pressure during ClickHouse degradation; tune application concurrency and ClickHouse quotas against this failure mode before cutover.
 
 ## Recovery
 

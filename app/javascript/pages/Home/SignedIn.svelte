@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from "@inertiajs/svelte";
+  import { Deferred, router } from "@inertiajs/svelte";
   import type {
     ActivityGraphData,
     FilterableDashboardData,
@@ -10,7 +10,9 @@
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
   import SetupNotice from "./signedIn/SetupNotice.svelte";
   import TodaySentence from "./signedIn/TodaySentence.svelte";
+  import TodaySentenceSkeleton from "./signedIn/TodaySentenceSkeleton.svelte";
   import Dashboard from "./signedIn/Dashboard.svelte";
+  import DashboardSkeleton from "./signedIn/DashboardSkeleton.svelte";
 
   let {
     flavor_text,
@@ -23,7 +25,7 @@
     trust_level_red: boolean;
     show_wakatime_setup_notice: boolean;
     github_uid_blank: boolean;
-    dashboard_stats: {
+    dashboard_stats?: {
       filterable_dashboard_data: FilterableDashboardData;
       activity_graph: ActivityGraphData;
       today_stats: TodayStats;
@@ -66,14 +68,30 @@
     <GitHubLinkBanner />
   {/if}
 
-  <div class="flex flex-col gap-8">
-    <TodaySentence {...dashboard_stats.today_stats} />
+  <Deferred data="dashboard_stats">
+    {#snippet fallback()}
+      <div class="flex flex-col gap-8">
+        <TodaySentenceSkeleton />
+        <DashboardSkeleton />
+      </div>
+    {/snippet}
 
-    <Dashboard
-      data={dashboard_stats.filterable_dashboard_data}
-      activityGraph={dashboard_stats.activity_graph}
-      programmingGoalsProgress={dashboard_stats.programming_goals_progress}
-      onFiltersChange={refreshDashboardData}
-    />
-  </div>
+    {#snippet children({ reloading })}
+      <div class="flex flex-col gap-8" class:opacity-60={reloading}>
+        {#if dashboard_stats?.today_stats}
+          <TodaySentence {...dashboard_stats.today_stats} />
+        {/if}
+
+        {#if dashboard_stats?.filterable_dashboard_data}
+          <Dashboard
+            data={dashboard_stats.filterable_dashboard_data}
+            activityGraph={dashboard_stats.activity_graph}
+            programmingGoalsProgress={dashboard_stats.programming_goals_progress ||
+              []}
+            onFiltersChange={refreshDashboardData}
+          />
+        {/if}
+      </div>
+    {/snippet}
+  </Deferred>
 </div>

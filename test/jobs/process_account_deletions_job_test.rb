@@ -40,7 +40,7 @@ class ProcessAccountDeletionsJobTest < ActiveSupport::TestCase
     assert_nil HeartbeatDeletion.find_by(user_id: request.user_id)
   end
 
-  test "ClickHouse account deletion remains approved until ClickHouse acknowledges it" do
+  test "ClickHouse account deletion is acknowledged before anonymization completes" do
     repository = DeletionRepository.new
     use_clickhouse(repository)
     request = ready_request
@@ -48,11 +48,6 @@ class ProcessAccountDeletionsJobTest < ActiveSupport::TestCase
     ProcessAccountDeletionsJob.perform_now
 
     deletion = HeartbeatDeletion.find_by!(user_id: request.user_id)
-    assert request.reload.approved?
-    assert deletion.pending?
-
-    HeartbeatDeletionJob.new.perform(deletion.id)
-
     assert request.reload.completed?
     assert deletion.reload.completed?
     assert_equal [ request.user_id ], repository.deleted_user_ids
@@ -67,12 +62,11 @@ class ProcessAccountDeletionsJobTest < ActiveSupport::TestCase
     ProcessAccountDeletionsJob.perform_now
     deletion = HeartbeatDeletion.find_by!(user_id: request.user_id)
 
-    assert_raises(ClickHouse::Client::Error) { HeartbeatDeletionJob.new.perform(deletion.id) }
     assert request.reload.approved?
     assert deletion.reload.failed?
 
     repository.fail_deletion = false
-    HeartbeatDeletionJob.new.perform(deletion.id)
+    ProcessAccountDeletionsJob.perform_now
 
     assert request.reload.completed?
     assert deletion.reload.completed?
@@ -88,7 +82,7 @@ class ProcessAccountDeletionsJobTest < ActiveSupport::TestCase
       completed_at: Time.current
     )
 
-    HeartbeatDeletionJob.new.perform(deletion.id)
+    ProcessAccountDeletionsJob.perform_now
 
     assert request.reload.completed?
     assert_empty repository.deleted_user_ids

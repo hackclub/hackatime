@@ -28,7 +28,6 @@ class HeartbeatDeletionJob < ApplicationJob
       )
       deletion.update!(status: :completed, completed_at: Time.current, last_error: nil)
     end
-    DeletionRequest.ready_for_deletion.where(user_id: deletion.user_id).find_each(&:complete!)
   rescue => error
     deletion&.update!(status: :failed, last_error: "#{error.class}: #{error.message}".truncate(1_000))
     raise

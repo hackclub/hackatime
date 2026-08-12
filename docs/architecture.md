@@ -107,7 +107,7 @@ trust conviction requires superadmin+.
 ## 3. Heartbeat ingestion and duration semantics
 
 Non-deleted ClickHouse heartbeat rows are authoritative activity when
-`HEARTBEAT_STORE=clickhouse`, which is the default after cutover.
+`HEARTBEAT_STORE=clickhouse`, which production sets explicitly after cutover.
 [`HeartbeatRepository`](../app/repositories/heartbeat_repository.rb) owns all
 ClickHouse reads, exact timestamp filtering, canonical persistence and
 replacement writes. `heartbeat_store` owns full payload and lifecycle state;
@@ -184,11 +184,14 @@ restore, timezone changes, and project archive changes schedule refreshes.
 [`ProfileStatsService`](../app/services/profile_stats_service.rb) is a thin
 projection of `DashboardStats`, including OG-image totals. It has no independent
 authoritative statistic. With ClickHouse enabled these product surfaces query
-the repository directly; project durations, filter options, activity graphs and
-streaks are not cached. The PostgreSQL rollup refresh job is disabled. Homepage
-totals use one exact ClickHouse query, with archived project pairs supplied from
-relational metadata. Change shared duration/snapshot logic below both
-dashboard and profile rather than patching profile output independently.
+the repository directly and the PostgreSQL rollup refresh job is disabled.
+Expensive repeated reads retain bounded disposable caches: the filterable
+dashboard payload and profile heatmap for five minutes, streaks for one hour,
+Sailors Log project durations for five minutes and global homepage flavour text
+for ten seconds. Homepage totals use one exact ClickHouse query, with archived
+project pairs supplied from relational metadata. Change shared duration/snapshot
+logic below both dashboard and profile rather than patching profile output
+independently.
 
 ## 5. Projects, repositories and repo hosts
 

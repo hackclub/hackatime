@@ -15,6 +15,10 @@ class HeartbeatRepository
   BROWSER_EDITORS = Heartbeatable::BROWSER_EDITORS
   VALID_TIME_MAX = 253_402_300_799
   INSERT_RETRY_LIMIT = 5
+  INGEST_INSERT_RETRY_LIMIT = 1
+  INGEST_TIMEOUT = 2
+  MUTATION_INSERT_RETRY_LIMIT = 2
+  MUTATION_TIMEOUT = 5
   QUERY_BATCH_SIZE = 1_000
   INSERT_BATCH_SIZE = 10_000
   PARTITIONED_INSERTS = {
@@ -27,7 +31,7 @@ class HeartbeatRepository
   def self.clickhouse?
     return ENV["CLICKHOUSE_TEST"] == "1" if Rails.env.test?
 
-    ENV.fetch("HEARTBEAT_STORE", "clickhouse") == "clickhouse"
+    ENV.fetch("HEARTBEAT_STORE", "postgresql") == "clickhouse"
   end
 
   def self.current
@@ -44,6 +48,7 @@ class HeartbeatRepository
 
   def initialize(client: ClickHouse::Client.current)
     @client = client
+    @mutation_retry_key = "heartbeat_repository_mutation_retry_#{object_id}".to_sym
   end
 
   def all(with_deleted: false)
@@ -273,7 +278,7 @@ class HeartbeatRepository
     select = fields.map do |field|
       validate_column!(field.to_s)
       column = identifier(field)
-      "arraySort(groupUniqArrayIf(#{column}, #{column} IS NOT NULL AND notEmpty(#{column}))) AS #{identifier("#{field}_values")}"
+      "arraySort(groupUniqArrayIf(#{column}, #{column} IS NOT NULL AND notEmpty(trimBoth(#{column})))) AS #{identifier("#{field}_values")}"
     end
     row = @client.select(scope.sql(select:, order: [])).first
     fields.index_with { |field| row.fetch("#{field}_values", []) }
@@ -409,6 +414,31 @@ class HeartbeatRepository
       SQL
     end
     rows.to_h { |row| [ row.fetch("user_id").to_i, row.fetch("latest_ip_address") ] }
+  end
+
+  def project_durations_by_user(user_ids)
+    return {} if user_ids.empty?
+
+    user_ids.map { |id| Integer(id) }.uniq.each_slice(QUERY_BATCH_SIZE).each_with_object({}) do |ids, result|
+      rows = @client.select(<<~SQL.squish)
+        SELECT user_id, project, toInt64(round(COALESCE(sum(diff), 0))) AS duration
+        FROM (
+          SELECT user_id, project,
+                 least(greatest(time - lagInFrame(time, 1, time) OVER (
+                   PARTITION BY user_id, project ORDER BY time, id
+                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+                 ), 0), #{Heartbeat.heartbeat_timeout_duration.to_i}) AS diff
+          FROM heartbeats FINAL
+          WHERE deleted_at IS NULL AND project IS NOT NULL
+            AND time >= 0 AND time <= #{VALID_TIME_MAX}
+            AND user_id IN (#{ids.join(', ')})
+        ) GROUP BY user_id, project
+      SQL
+      rows.each do |row|
+        result[row.fetch("user_id").to_i] ||= {}
+        result[row.fetch("user_id").to_i][row.fetch("project")] = row.fetch("duration").to_i
+      end
+    end
   end
 
   def ip_machine_pairs(since:, limit:, inclusive: false)
@@ -555,16 +585,18 @@ class HeartbeatRepository
 
   def persist(user_id:, records:)
     outcomes = nil
-    ActiveRecord::Base.transaction do
-      ensure_user_accepts_heartbeats!(user_id)
-      records.filter_map { |record| record.stringify_keys["ja4_id"] }.uniq.sort.each do |ja4_id|
-        lock_ja4_changes(ja4_id)
-        raise ActiveRecord::RecordNotFound, "JA4 was deleted during heartbeat ingestion" unless Ja4.exists?(ja4_id)
+    with_clickhouse_timeouts(timeout: INGEST_TIMEOUT, retry_limit: INGEST_INSERT_RETRY_LIMIT) do
+      ActiveRecord::Base.transaction do
+        ensure_user_accepts_heartbeats!(user_id)
+        records.filter_map { |record| record.stringify_keys["ja4_id"] }.uniq.sort.each do |ja4_id|
+          lock_ja4_changes(ja4_id)
+          raise ActiveRecord::RecordNotFound, "JA4 was deleted during heartbeat ingestion" unless Ja4.exists?(ja4_id)
+        end
+
+        outcomes = persist_records(user_id, records)
+
+        deliver_store_rows(outcomes.pluck(:row).uniq { |row| [ row.fetch("user_id"), row.fetch("id") ] })
       end
-
-      outcomes = persist_records(user_id, records)
-
-      deliver_store_rows(outcomes.pluck(:row).uniq { |row| [ row.fetch("user_id"), row.fetch("id") ] })
     end
     outcomes
   rescue
@@ -578,7 +610,7 @@ class HeartbeatRepository
       old_hash = row.fetch("fields_hash")
       row.merge("fields_hash" => canonical_fields_hash(heartbeat.attributes), "alias_hashes" => [ old_hash ])
     end
-    existing = store_rows_by_ids(serialized.pluck("id"))
+    existing = store_rows_by_keys(serialized.map { |row| [ row.fetch("user_id"), row.fetch("id") ] })
     existing_by_id = existing.index_by { |row| row.fetch("id").to_i }
     serialized.each do |row|
       current = existing_by_id[row.fetch("id").to_i]
@@ -628,29 +660,18 @@ class HeartbeatRepository
     self.class.ensure_mutations_enabled!
 
     [ from_user_id, to_user_id ].sort.each { |user_id| lock_user_writes(user_id) }
-    reconcile_user_nullifications([ from_user_id, to_user_id ])
-    lock_user_ja4_changes([ from_user_id, to_user_id ])
     blocked = HeartbeatDeletion.where(user_id: [ from_user_id, to_user_id ]).exists? ||
-      pending_transfer?(from_user_id) || pending_transfer?(to_user_id) ||
-      pending_nullification?([ from_user_id, to_user_id ])
+      pending_transfer?(from_user_id) || pending_transfer?(to_user_id)
     raise "A heartbeat operation is already recorded for one of these users" if blocked
 
-    count = 0
-    canonicalize_user_store(from_user_id) do |rows|
-      count += rows.count { |row| row["deleted_at"].nil? }
-    end
-    canonicalize_user_store(to_user_id) { nil }
-    transfer = HeartbeatTransfer.create!(from_user_id:, to_user_id:, heartbeat_count: count)
-    transfer
+    HeartbeatTransfer.create!(from_user_id:, to_user_id:, heartbeat_count: 0)
   end
 
   def prepare_deletion(user_id)
     self.class.ensure_writes_enabled!
     self.class.ensure_mutations_enabled!
     lock_user_writes(user_id)
-    reconcile_user_nullifications([ user_id ])
-    lock_user_ja4_changes([ user_id ])
-    if pending_transfer?(user_id) || pending_nullification?([ user_id ])
+    if pending_transfer?(user_id)
       raise "A heartbeat operation is already recorded for this user"
     end
 
@@ -666,10 +687,10 @@ class HeartbeatRepository
 
   def transfer_rows(transfer, reconcile_nullifications: true)
     self.class.ensure_mutations_enabled!
-    ActiveRecord::Base.transaction do
-      [ transfer.from_user_id, transfer.to_user_id ].sort.each { |user_id| lock_user_writes(user_id) }
-      canonicalize_user_store(transfer.to_user_id, deliver: false) { nil }
-      canonicalize_user_store(transfer.from_user_id, deliver: false) do |source_rows|
+    with_mutation_timeouts do
+      lock_user_ids = [ transfer.from_user_id, transfer.to_user_id ].sort
+      canonicalize_user_store(transfer.to_user_id, deliver: false, lock_user_ids:) { nil }
+      canonicalize_user_store(transfer.from_user_id, deliver: false, lock_user_ids:) do |source_rows|
         transfer_batch(transfer, source_rows)
       end
       transfer.update!(copied_at: Time.current) unless transfer.copied_at?
@@ -682,49 +703,56 @@ class HeartbeatRepository
   def soft_delete_user(user_id, version: nil, deleted_at: Time.current, nullifications_through: nil)
     self.class.ensure_mutations_enabled!
     version ||= next_version
-    ActiveRecord::Base.transaction do
-      lock_user_writes(user_id)
-      raise "Heartbeat transfer is pending for user #{user_id}" if pending_transfer?(user_id)
-
+    with_mutation_timeouts do
       after_id = 0
       loop do
-        rows = store_rows_for_user(user_id, after_id:, limit: QUERY_BATCH_SIZE)
-        break if rows.empty?
+        finished = false
+        ActiveRecord::Base.transaction do
+          lock_user_writes(user_id)
+          raise "Heartbeat transfer is pending for user #{user_id}" if pending_transfer?(user_id)
 
-        nullifications = HeartbeatJa4Nullification.where(
-          ja4_id: rows.filter_map { |row| row["ja4_id"] }.uniq
-        )
-        if nullifications_through
-          nullifications = nullifications.where(clickhouse_version: ..Integer(nullifications_through))
-        end
-        nullified_ja4_ids = nullifications.pluck(:ja4_id).to_set
-        pending, canonical = rows.partition { |row| !row.fetch("canonicalized") }
-        store_version = next_version
-        insert_store_rows(pending.map do |row|
-          attributes = {
-            "canonicalized" => true,
-            "duplicate_of" => 0,
-            "deleted_at" => serialized_time(deleted_at),
-            "version" => [ row.fetch("version").to_i, Integer(version) ].max
-          }
-          attributes["ja4_id"] = nil if nullified_ja4_ids.include?(row["ja4_id"].to_i)
-          replace_store_row(row, attributes, store_version:)
-        end)
-        replacements = canonical.filter_map do |row|
-          next if row["duplicate_of"]
-          attributes = { "deleted_at" => serialized_time(deleted_at) }
-          attributes["ja4_id"] = nil if nullified_ja4_ids.include?(row["ja4_id"].to_i)
-          transition_store_row(
-            row,
-            version:,
-            attributes:,
-            store_version:
+          rows = store_rows_for_user(user_id, after_id:, limit: QUERY_BATCH_SIZE)
+          if rows.empty?
+            finished = true
+            next
+          end
+
+          nullifications = HeartbeatJa4Nullification.where(
+            ja4_id: rows.filter_map { |row| row["ja4_id"] }.uniq
           )
+          if nullifications_through
+            nullifications = nullifications.where(clickhouse_version: ..Integer(nullifications_through))
+          end
+          nullified_ja4_ids = nullifications.pluck(:ja4_id).to_set
+          pending, canonical = rows.partition { |row| !row.fetch("canonicalized") }
+          store_version = next_version
+          insert_store_rows(pending.map do |row|
+            attributes = {
+              "canonicalized" => true,
+              "duplicate_of" => 0,
+              "deleted_at" => serialized_time(deleted_at),
+              "version" => [ row.fetch("version").to_i, Integer(version) ].max
+            }
+            attributes["ja4_id"] = nil if nullified_ja4_ids.include?(row["ja4_id"].to_i)
+            replace_store_row(row, attributes, store_version:)
+          end)
+          replacements = canonical.filter_map do |row|
+            next if row["duplicate_of"]
+            attributes = { "deleted_at" => serialized_time(deleted_at) }
+            attributes["ja4_id"] = nil if nullified_ja4_ids.include?(row["ja4_id"].to_i)
+            transition_store_row(
+              row,
+              version:,
+              attributes:,
+              store_version:
+            )
+          end
+          insert_store_rows(changed_store_rows(replacements, rows))
+          write_aliases_for_rows(replacements)
+          deliver_store_rows(replacements)
+          after_id = rows.last.fetch("id").to_i
         end
-        insert_store_rows(changed_store_rows(replacements, rows))
-        write_aliases_for_rows(replacements)
-        deliver_store_rows(replacements)
-        after_id = rows.last.fetch("id").to_i
+        break if finished
       end
     end
   end
@@ -732,26 +760,28 @@ class HeartbeatRepository
   def change_deleted(heartbeat_id:, user_id:, deleted:)
     self.class.ensure_writes_enabled!
     self.class.ensure_mutations_enabled!
-    ActiveRecord::Base.transaction do
-      ensure_user_accepts_heartbeats!(user_id)
-      reconcile_user_nullifications([ user_id ])
-      record = current_store_row(user_id, heartbeat_id)
-      aliases = identity_hashes(record)
-      if !deleted
-        conflicts = alias_rows(user_id, aliases).select do |row|
-          row.fetch("active") && row.fetch("heartbeat_id").to_i != heartbeat_id.to_i
+    with_mutation_timeouts do
+      ActiveRecord::Base.transaction do
+        ensure_user_accepts_heartbeats!(user_id)
+        reconcile_user_nullifications([ user_id ])
+        record = current_store_row(user_id, heartbeat_id)
+        aliases = identity_hashes(record)
+        if !deleted
+          conflicts = alias_rows(user_id, aliases).select do |row|
+            row.fetch("active") && row.fetch("heartbeat_id").to_i != heartbeat_id.to_i
+          end
+          raise ActiveRecord::RecordNotUnique, "A heartbeat with this identity already exists" if conflicts.any?
         end
-        raise ActiveRecord::RecordNotUnique, "A heartbeat with this identity already exists" if conflicts.any?
+        deleted_at = deleted ? Time.current : nil
+        replacement = transition_store_row(
+          record,
+          version: next_version,
+          attributes: { "deleted_at" => deleted_at && serialized_time(deleted_at) }
+        )
+        insert_store_rows(changed_store_rows([ replacement ], [ record ]))
+        write_aliases(replacement, active: !deleted)
+        deliver_store_rows([ replacement ])
       end
-      deleted_at = deleted ? Time.current : nil
-      replacement = transition_store_row(
-        record,
-        version: next_version,
-        attributes: { "deleted_at" => deleted_at && serialized_time(deleted_at) }
-      )
-      insert_store_rows(changed_store_rows([ replacement ], [ record ]))
-      write_aliases(replacement, active: !deleted)
-      deliver_store_rows([ replacement ])
     end
   rescue
     HeartbeatDeliveryJob.perform_later(user_id)
@@ -759,6 +789,18 @@ class HeartbeatRepository
   end
 
   def nullify_ja4(ja4_id, version:, allow_transfer: false, user_ids: nil, superseded_deletion: :raise)
+    with_mutation_timeouts do
+      perform_ja4_nullification(
+        ja4_id,
+        version:,
+        allow_transfer:,
+        user_ids:,
+        superseded_deletion:
+      )
+    end
+  end
+
+  def perform_ja4_nullification(ja4_id, version:, allow_transfer:, user_ids:, superseded_deletion:)
     self.class.ensure_mutations_enabled!
     unless %i[raise skip].include?(superseded_deletion)
       raise ArgumentError, "Unknown superseded deletion behavior: #{superseded_deletion}"
@@ -914,6 +956,10 @@ class HeartbeatRepository
   end
 
   def reconcile_store(limit: 1_000, user_id: nil)
+    with_mutation_timeouts { reconcile_store_rows(limit:, user_id:) }
+  end
+
+  def reconcile_store_rows(limit:, user_id:)
     conditions = [
       "canonicalized = false OR (canonicalized = true AND duplicate_of IS NULL AND " \
         "(heartbeats_version < version OR heartbeats_by_time_version < version))"
@@ -1122,20 +1168,28 @@ class HeartbeatRepository
     end
   end
 
-  def canonicalize_user_store(user_id, deliver: true)
+  def canonicalize_user_store(user_id, deliver: true, lock_user_ids: [ user_id ])
     after_id = 0
     loop do
-      rows = store_rows_for_user(user_id, after_id:, limit: QUERY_BATCH_SIZE)
-      break if rows.empty?
+      finished = false
+      ActiveRecord::Base.transaction do
+        lock_user_ids.each { |locked_user_id| lock_user_writes(locked_user_id) }
+        rows = store_rows_for_user(user_id, after_id:, limit: QUERY_BATCH_SIZE)
+        if rows.empty?
+          finished = true
+          next
+        end
 
-      current = rows.map do |row|
-        row.fetch("canonicalized") ? row : activate_candidate(row)
-      end.reject { |row| row["duplicate_of"] }
-        .uniq { |row| [ row.fetch("user_id").to_i, row.fetch("id").to_i ] }
-      write_aliases_for_rows(current)
-      current = deliver_store_rows(current) if deliver
-      yield current
-      after_id = rows.last.fetch("id").to_i
+        current = rows.map do |row|
+          row.fetch("canonicalized") ? row : activate_candidate(row)
+        end.reject { |row| row["duplicate_of"] }
+          .uniq { |row| [ row.fetch("user_id").to_i, row.fetch("id").to_i ] }
+        write_aliases_for_rows(current)
+        current = deliver_store_rows(current) if deliver
+        yield current
+        after_id = rows.last.fetch("id").to_i
+      end
+      break if finished
     end
   end
 
@@ -1252,12 +1306,20 @@ class HeartbeatRepository
   def verify_visible_versions!(table, rows)
     visible = rows.each_slice(QUERY_BATCH_SIZE).flat_map do |batch|
       tuples = batch.map do |row|
-        bucket = row.fetch("time").to_f.floor.div(300) * 300
-        "(#{quote(row.fetch('user_id'))}, #{bucket}, #{quote(row.fetch('time'))}, #{quote(row.fetch('id'))})"
+        second = row.fetch("time").to_f.floor
+        bucket = five_minute_bucket(row.fetch("time"))
+        if table == "heartbeats"
+          "(#{quote(row.fetch('user_id'))}, #{bucket}, #{second}, #{quote(row.fetch('time'))}, #{quote(row.fetch('id'))})"
+        else
+          "(#{bucket}, #{second}, #{quote(row.fetch('user_id'))}, #{quote(row.fetch('time'))}, #{quote(row.fetch('id'))})"
+        end
       end
+      key = table == "heartbeats" ?
+        "(user_id, time_5m, time_second, time, id)" :
+        "(time_5m, time_second, user_id, time, id)"
       @client.select(<<~SQL.squish)
         SELECT user_id, id, version FROM #{table} FINAL
-        WHERE (user_id, time_5m, time, id) IN (#{tuples.join(', ')})
+        WHERE #{key} IN (#{tuples.join(', ')})
       SQL
     end.to_h do |row|
       [ [ row.fetch("user_id").to_i, row.fetch("id").to_i ], row.fetch("version").to_i ]
@@ -1265,7 +1327,41 @@ class HeartbeatRepository
     expected = rows.to_h do |row|
       [ [ row.fetch("user_id").to_i, row.fetch("id").to_i ], row.fetch("version").to_i ]
     end
-    raise "ClickHouse #{table} did not expose the delivered heartbeat versions" unless visible == expected
+    delivered = expected.all? { |key, version| visible.fetch(key, -1) >= version }
+    raise "ClickHouse #{table} did not expose the delivered heartbeat versions" unless delivered
+  end
+
+  def verification_rows(table, records, columns:)
+    records.each_slice(QUERY_BATCH_SIZE).flat_map do |batch|
+      tuples = batch.map do |record|
+        id = record_value(record, "id")
+        user_id = record_value(record, "user_id")
+        time = record_value(record, "time")
+        second = time.to_f.floor
+        bucket = five_minute_bucket(time)
+        case table
+        when "heartbeat_store"
+          "(#{quote(user_id)}, #{quote(id)})"
+        when "heartbeats"
+          "(#{quote(user_id)}, #{bucket}, #{second}, #{quote(time)}, #{quote(id)})"
+        when "heartbeats_by_time"
+          "(#{bucket}, #{second}, #{quote(user_id)}, #{quote(time)}, #{quote(id)})"
+        else
+          raise ArgumentError, "Unknown heartbeat table: #{table}"
+        end
+      end
+      key = case table
+      when "heartbeat_store" then "(user_id, id)"
+      when "heartbeats" then "(user_id, time_5m, time_second, time, id)"
+      when "heartbeats_by_time" then "(time_5m, time_second, user_id, time, id)"
+      end
+      canonical = table == "heartbeat_store" ? "canonicalized = true AND duplicate_of IS NULL AND " : ""
+      @client.select(<<~SQL.squish)
+        SELECT #{columns.join(', ')} FROM #{table} FINAL
+        WHERE #{canonical}#{key} IN (#{tuples.join(', ')})
+        ORDER BY id
+      SQL
+    end
   end
 
   def activate_candidate(candidate, hashes: identity_hashes(candidate))
@@ -1405,7 +1501,8 @@ class HeartbeatRepository
       SystemCallError, OpenSSL::SSL::SSLError => error
       attempts += 1
       retryable = !error.is_a?(ClickHouse::Client::Error) || error.message.match?(RETRYABLE_INSERT_ERROR)
-      raise unless retryable && attempts < INSERT_RETRY_LIMIT
+      retry_limit = Thread.current[@mutation_retry_key] || INSERT_RETRY_LIMIT
+      raise unless retryable && attempts < retry_limit
 
       sleep(rand * 0.02 * (2**attempts))
       retry
@@ -1447,11 +1544,12 @@ class HeartbeatRepository
     end
   end
 
-  def store_rows_by_ids(ids)
-    return [] if ids.empty?
+  def store_rows_by_keys(keys)
+    return [] if keys.empty?
 
-    ids.each_slice(QUERY_BATCH_SIZE).flat_map do |batch|
-      store_rows("id IN (#{batch.map { |id| quote(id) }.join(', ')})", order: "id, user_id")
+    keys.each_slice(QUERY_BATCH_SIZE).flat_map do |batch|
+      tuples = batch.map { |user_id, id| "(#{quote(user_id)}, #{quote(id)})" }
+      store_rows("(user_id, id) IN (#{tuples.join(', ')})", order: "id, user_id")
     end
   end
 
@@ -1515,6 +1613,36 @@ class HeartbeatRepository
 
   def payload_hash(row)
     Digest::SHA256.hexdigest(JSON.generate(STORAGE_COLUMNS.to_h { |column| [ column, row[column] ] }))
+  end
+
+  def five_minute_bucket(value)
+    second = value.to_f.floor
+    (second / 300.0).truncate * 300
+  end
+
+  def record_value(record, column)
+    record.respond_to?(:attributes) ? record.attributes.fetch(column) : record.fetch(column)
+  end
+
+  def with_mutation_timeouts(&block)
+    with_clickhouse_timeouts(timeout: MUTATION_TIMEOUT, retry_limit: MUTATION_INSERT_RETRY_LIMIT, &block)
+  end
+
+  def with_clickhouse_timeouts(timeout:, retry_limit:, &block)
+    return yield unless @client.respond_to?(:with_timeouts)
+
+    previous_retry_limit = Thread.current[@mutation_retry_key]
+    Thread.current[@mutation_retry_key] = retry_limit
+    begin
+      @client.with_timeouts(
+        open_timeout: timeout,
+        read_timeout: timeout,
+        write_timeout: timeout,
+        &block
+      )
+    ensure
+      Thread.current[@mutation_retry_key] = previous_retry_limit
+    end
   end
 
   def time_bucket(value) = "intDiv(toInt64(floor(#{quote(time_value(value))})), 300) * 300"
@@ -1640,6 +1768,8 @@ class HeartbeatRepository
 
   class Scope
     include Enumerable
+
+    INVALID_VALUE = Object.new.freeze
 
     attr_reader :repository, :conditions, :group_values, :order_values, :limit_value, :offset_value,
       :select_values
@@ -1864,9 +1994,11 @@ class HeartbeatRepository
       name = field.to_s
       repository.validate_column!(name)
       value = relation_values(value, field)
-      value = SOURCE_TYPES.fetch(value.to_s, value) if field.to_sym == :source_type && (value.is_a?(String) || value.is_a?(Symbol))
+      value = normalize_value(value, field)
       expression = repository.identifier(name)
       sql = case value
+      when INVALID_VALUE
+        "0"
       when Range
         clauses = []
         clauses << "#{expression} >= #{repository.quote(time_value(value.begin, field))}" if value.begin
@@ -1876,14 +2008,20 @@ class HeartbeatRepository
         end
         clauses.join(" AND ")
       when Array
-        values = value.map { |item| field.to_sym == :source_type ? SOURCE_TYPES.fetch(item.to_s, item) : item }
-        nil_present = values.delete(nil)
-        clauses = []
-        clauses << "#{expression} IS NULL" if nil_present
-        clauses << "#{expression} IN (#{values.map { |item| repository.quote(item) }.join(', ')})" if values.any?
-        clauses = [ "0" ] if clauses.empty?
-        joined = clauses.join(" OR ")
-        negate ? "NOT (#{joined})" : "(#{joined})"
+        values = value
+        invalid_present = values.delete(INVALID_VALUE)
+        if negate && invalid_present
+          "0"
+        else
+          nil_present = values.include?(nil)
+          values.delete(nil)
+          clauses = []
+          clauses << "#{expression} IS NULL" if nil_present
+          clauses << "#{expression} IN (#{values.map { |item| repository.quote(item) }.join(', ')})" if values.any?
+          clauses = [ "0" ] if clauses.empty?
+          joined = clauses.join(" OR ")
+          negate ? "NOT (#{joined})" : "(#{joined})"
+        end
       when nil
         "#{expression} IS #{negate ? 'NOT ' : ''}NULL"
       else
@@ -1902,6 +2040,29 @@ class HeartbeatRepository
 
       column = field.to_sym == :user_id ? :id : value.select_values.first || field
       value.pluck(column)
+    end
+
+    def normalize_value(value, field)
+      return value.map { |item| normalize_value(item, field) } if value.is_a?(Array)
+      if value.is_a?(Range)
+        first = value.begin.nil? ? nil : normalize_value(value.begin, field)
+        last = value.end.nil? ? nil : normalize_value(value.end, field)
+        return INVALID_VALUE if first.equal?(INVALID_VALUE) || last.equal?(INVALID_VALUE)
+
+        return Range.new(first, last, value.exclude_end?)
+      end
+      return value if value.nil?
+
+      name = field.to_s
+      if field.to_sym == :source_type
+        return SOURCE_TYPES[value.to_s] if SOURCE_TYPES.key?(value.to_s)
+        return Integer(value, exception: false) if value.to_s.match?(/\A\d+\z/)
+
+        return INVALID_VALUE
+      end
+      return value unless HeartbeatRow::INTEGER_COLUMNS.include?(name)
+
+      value.is_a?(Integer) ? value : Integer(value, exception: false) || INVALID_VALUE
     end
 
     def bind_sql(sql, binds)

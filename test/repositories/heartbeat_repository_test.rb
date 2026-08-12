@@ -53,6 +53,29 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     end
   end
 
+  class TimeoutBoundClient < FakeClient
+    attr_reader :attempts, :timeouts
+
+    def initialize
+      super
+      @attempts = 0
+    end
+
+    def with_timeouts(**timeouts)
+      @timeouts = timeouts
+      yield
+    end
+
+    def insert_json_each_row(*)
+      @attempts += 1
+      raise Timeout::Error, "timed out"
+    end
+  end
+
+  class NoClickHouseRequestClient < FakeClient
+    def select(*) = raise("unexpected ClickHouse request")
+  end
+
   class FailingExecuteClient < FakeClient
     def initialize(fail_on:)
       super()
@@ -63,6 +86,17 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
       super
       raise ClickHouse::Client::Error, "temporarily unavailable" if queries.length == @fail_on
     end
+  end
+
+  test "PostgreSQL remains the default outside the test override" do
+    previous = ENV.delete("HEARTBEAT_STORE")
+    original_env = Rails.method(:env)
+    Rails.define_singleton_method(:env) { ActiveSupport::StringInquirer.new("production") }
+
+    assert_not HeartbeatRepository.clickhouse?
+  ensure
+    Rails.define_singleton_method(:env, original_env) if original_env
+    ENV["HEARTBEAT_STORE"] = previous if previous
   end
 
   test "scope uses five-minute buckets before the full-precision timestamp" do
@@ -76,6 +110,47 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     assert_includes sql, "`time` >= 1700000000.125"
     assert_includes sql, "`time` < 1700000001.875"
     assert_includes sql, "ORDER BY `time` ASC, `id` ASC"
+  end
+
+  test "negative timestamp buckets match ClickHouse intDiv semantics" do
+    repository = HeartbeatRepository.new(client: FakeClient.new)
+    row = { "user_id" => 42, "id" => 7, "time" => -1.1, "version" => 3 }
+    visible = [ row.slice("user_id", "id", "version") ]
+    client = FakeClient.new([ visible, visible ])
+
+    verification_repository = HeartbeatRepository.new(client:)
+    verification_repository.send(:verify_visible_versions!, "heartbeats", [ row ])
+    verification_repository.send(:verify_visible_versions!, "heartbeats_by_time", [ row ])
+
+    assert_includes client.queries.first, "(42, 0, -2, -1.1, 7)"
+    assert_includes client.queries.first, "(user_id, time_5m, time_second, time, id)"
+    assert_includes client.queries.second, "(0, -2, 42, -1.1, 7)"
+    assert_includes client.queries.second, "(time_5m, time_second, user_id, time, id)"
+    assert_includes repository.all.where(time: -1.1).to_sql,
+      "time_5m = intDiv(toInt64(floor(-1.1)), 300) * 300"
+  end
+
+  test "delivery verification accepts a newer concurrent visible version" do
+    row = { "user_id" => 42, "id" => 7, "time" => 1_700_000_000.125, "version" => 3 }
+    visible = row.slice("user_id", "id").merge("version" => 4)
+
+    assert_nothing_raised do
+      HeartbeatRepository.new(client: FakeClient.new([ [ visible ] ]))
+        .send(:verify_visible_versions!, "heartbeats", [ row ])
+    end
+  end
+
+  test "invalid numeric filters retain empty Active Record semantics" do
+    repository = HeartbeatRepository.new(client: FakeClient.new)
+
+    assert_includes repository.all.where(id: "not-a-number").to_sql, "WHERE deleted_at IS NULL AND 0"
+    assert_includes repository.all.where(source_type: "not-a-source").to_sql, "WHERE deleted_at IS NULL AND 0"
+    assert_includes repository.all.where(ja4_id: "not-a-number").to_sql, "WHERE deleted_at IS NULL AND 0"
+    assert_includes repository.all.where(id: [ nil, "not-a-number" ]).to_sql, "(`id` IS NULL)"
+    assert_includes repository.all.not(id: "not-a-number").to_sql, "WHERE deleted_at IS NULL AND 0"
+    assert_includes repository.all.not(id: [ 42, "not-a-number" ]).to_sql, "WHERE deleted_at IS NULL AND 0"
+    assert_includes repository.all.where(id: "42", source_type: "direct_entry").to_sql, "`id` = 42"
+    assert_includes repository.all.where(id: "42", source_type: "direct_entry").to_sql, "`source_type` = 0"
   end
 
   test "global time ranges use the by-time table while user ranges use the base table" do
@@ -427,6 +502,52 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     assert client.attempted_settings.all? { |settings| settings[:wait_for_async_insert] == 1 }
   end
 
+  test "mutations use a short ClickHouse timeout and two total insert attempts" do
+    client = TimeoutBoundClient.new
+    repository = HeartbeatRepository.new(client:)
+    row = { "user_id" => 42, "id" => 7, "time" => Time.utc(2026, 8, 12).to_f, "version" => 3 }
+
+    assert_raises(Timeout::Error) do
+      repository.send(:with_mutation_timeouts) do
+        repository.send(:insert_rows, "heartbeats", [ row ])
+      end
+    end
+
+    assert_equal 2, client.attempts
+    assert_equal({ open_timeout: 5, read_timeout: 5, write_timeout: 5 }, client.timeouts)
+  end
+
+  test "ingest bounds time holding PostgreSQL locks and does not retry inserts" do
+    client = TimeoutBoundClient.new
+    repository = HeartbeatRepository.new(client:)
+    row = { "user_id" => 42, "id" => 7, "time" => Time.utc(2026, 8, 12).to_f, "version" => 3 }
+
+    assert_raises(Timeout::Error) do
+      repository.send(:with_clickhouse_timeouts, timeout: HeartbeatRepository::INGEST_TIMEOUT,
+        retry_limit: HeartbeatRepository::INGEST_INSERT_RETRY_LIMIT) do
+        repository.send(:insert_rows, "heartbeats", [ row ])
+      end
+    end
+
+    assert_equal 1, client.attempts
+    assert_equal({ open_timeout: 2, read_timeout: 2, write_timeout: 2 }, client.timeouts)
+  end
+
+  test "lifecycle admission records controls without calling ClickHouse inside the relational transaction" do
+    repository = HeartbeatRepository.new(client: NoClickHouseRequestClient.new)
+    source = User.create!(timezone: "UTC")
+    target = User.create!(timezone: "UTC")
+    deleted_user = User.create!(timezone: "UTC")
+
+    transfer = ActiveRecord::Base.transaction do
+      repository.prepare_transfer(from_user_id: source.id, to_user_id: target.id)
+    end
+    deletion = ActiveRecord::Base.transaction { repository.prepare_deletion(deleted_user.id) }
+
+    assert_equal [ source.id, target.id ], [ transfer.from_user_id, transfer.to_user_id ]
+    assert_equal deleted_user.id, deletion.user_id
+  end
+
   test "delivery verification keeps tuple queries below the server query-size limit" do
     user_id = 4_294_967_500
     first_id = 1_700_000_000_000_000
@@ -445,6 +566,16 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
 
     assert_equal 2, client.queries.length
     assert client.queries.all? { |query| query.bytesize < 262_144 }
+    assert client.queries.all? { |query| query.include?("(user_id, time_5m, time_second, time, id)") }
+  end
+
+  test "backfill identity lookup uses the canonical store primary key" do
+    client = FakeClient.new([ [] ])
+    repository = HeartbeatRepository.new(client:)
+
+    assert_empty repository.send(:store_rows_by_keys, [ [ 42, 7 ], [ 43, 8 ] ])
+
+    assert_includes client.queries.sole, "(user_id, id) IN ((42, 7), (43, 8))"
   end
 
   test "visualization selects line and cursor pixels independently" do

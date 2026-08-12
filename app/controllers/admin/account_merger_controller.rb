@@ -71,7 +71,7 @@ class Admin::AccountMergerController < InertiaController
           from_user_id: newer_user.id,
           to_user_id: older_user.id
         )
-        results << "#{transfer.heartbeat_count} heartbeats queued to move"
+        results << "heartbeats queued to move"
       else
         results << "#{Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)} heartbeats moved"
       end

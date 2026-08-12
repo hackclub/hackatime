@@ -25,8 +25,9 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = user.heartbeats.order(id: :desc).first
     assert_equal user.id, heartbeat.user_id
+    assert_match(/\A[0-9a-f]{32}\z/, JSON.parse(response.body).fetch("fields_hash"))
     assert_equal "vscode/1.0.0", heartbeat.user_agent
     assert_equal "coding", heartbeat.category
     assert_equal [ "rails", "pg" ], heartbeat.dependencies
@@ -53,21 +54,25 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    assert_equal ja4, Heartbeat.order(:id).last.ja4.fingerprint
+    heartbeat = user.heartbeats.order(id: :desc).first
+    assert_equal ja4, Ja4.find(heartbeat.ja4_id).fingerprint
   end
 
   test "single heartbeat resolves <<LAST_LANGUAGE>> from existing heartbeats" do
     user = User.create!(timezone: "UTC")
     api_key = user.api_keys.create!(name: "primary")
-    # Seed a prior heartbeat with a known language
-    user.heartbeats.create!(
-      entity: "src/old.rb",
-      type: "file",
-      category: "coding",
-      time: 1.hour.ago.to_f,
-      language: "Ruby",
-      project: "hackatime",
-      source_type: :direct_entry
+    HeartbeatIngest.call(
+      user:,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "src/old.rb",
+        type: "file",
+        category: "coding",
+        time: 1.hour.ago.to_f,
+        language: "Ruby",
+        project: "hackatime"
+      } ],
+      schedule_rollup_refresh: false
     )
 
     payload = {
@@ -89,7 +94,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = user.heartbeats.order(id: :desc).first
     assert_equal "Ruby", heartbeat.language
   end
 
@@ -127,7 +132,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :created
-    heartbeats = Heartbeat.order(:id).last(2)
+    heartbeats = user.heartbeats.order(id: :desc).limit(2).to_a.reverse
     assert_equal "Python", heartbeats.first.language
     assert_equal "Python", heartbeats.last.language
   end
@@ -155,7 +160,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = user.heartbeats.order(id: :desc).first
     assert_equal "Ruby", heartbeat.language
   end
 
@@ -191,7 +196,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = user.heartbeats.order(id: :desc).first
     assert_equal "src/main.rb", heartbeat.entity
     assert_equal "hackatime", heartbeat.project
     assert_equal "gpt/5.6", heartbeat.ai_model
@@ -232,7 +237,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :created
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = user.heartbeats.order(id: :desc).first
     assert_equal "src/first.rb", heartbeat.entity
     assert_equal "hackatime", heartbeat.project
     assert_equal "session-456", heartbeat.ai_session
@@ -263,7 +268,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
         }
     end
     assert_response :accepted
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = user.heartbeats.order(id: :desc).first
 
     log_output = StringIO.new
     previous_logger = Rails.logger
@@ -311,7 +316,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :created
-    heartbeat = Heartbeat.order(:id).last
+    heartbeat = user.heartbeats.order(id: :desc).first
     assert_equal user.id, heartbeat.user_id
     assert_equal "zed/1.0.0", heartbeat.user_agent
     assert_equal "coding", heartbeat.category

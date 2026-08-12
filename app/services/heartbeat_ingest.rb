@@ -395,7 +395,8 @@ class HeartbeatIngest
       records:
     )
     persisted = unique_entries.zip(outcomes).to_h do |entry, outcome|
-      [ entry.fetch(:fields_hash), heartbeat_from_store(outcome.fetch(:row)) ]
+      fields_hash = entry.fetch(:fields_hash)
+      [ fields_hash, heartbeat_from_store(outcome.fetch(:row), fields_hash:) ]
     end
     inserted_hashes = unique_entries.zip(outcomes).filter_map do |entry, outcome|
       entry.fetch(:fields_hash) if outcome.fetch(:inserted)
@@ -423,8 +424,9 @@ class HeartbeatIngest
     outcomes.count { |outcome| outcome.fetch(:inserted) }
   end
 
-  def heartbeat_from_store(row)
+  def heartbeat_from_store(row, fields_hash: nil)
     attributes = row.slice(*HeartbeatRepository::STORAGE_COLUMNS).except("version")
+    attributes["fields_hash"] = fields_hash if fields_hash
     HeartbeatRepository.current.deserialize_dependencies!(attributes)
     HeartbeatRow.new(attributes)
   end

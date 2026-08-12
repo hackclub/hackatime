@@ -11,7 +11,7 @@ CI.run do
   step "Setup: Vite assets", "env RAILS_ENV=test bin/vite build"
   step "Setup: ClickHouse", "env RAILS_ENV=test bin/rake clickhouse:migrate"
   step "Tests: Rails", "env RAILS_ENV=test bin/rails test"
-  step "Tests: ClickHouse", "env RAILS_ENV=test CLICKHOUSE_INTEGRATION=1 bin/rails test test/repositories/heartbeat_repository_integration_test.rb test/repositories/heartbeat_repository_differential_integration_test.rb test/services/heartbeat_ingest_clickhouse_concurrency_test.rb test/tasks/clickhouse_test.rb"
+  step "Tests: ClickHouse", "env RAILS_ENV=test CLICKHOUSE_INTEGRATION=1 CLICKHOUSE_TEST=1 bin/rails test test/controllers/api/hackatime/v1/hackatime_controller_test.rb test/repositories/heartbeat_repository_integration_test.rb test/repositories/heartbeat_repository_differential_integration_test.rb test/services/heartbeat_ingest_clickhouse_concurrency_test.rb test/tasks/clickhouse_test.rb"
   step "Tests: System", "env RAILS_ENV=test bin/rails test:system"
   step "Tests: Seeds", "env RAILS_ENV=test CLICKHOUSE_TEST=1 bin/rails db:seed:replant"
 

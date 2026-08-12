@@ -59,6 +59,20 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
     assert_includes error_output, "Set HEARTBEAT_MUTATIONS_STOPPED=1"
   end
 
+  test "migration rejects unknown production history with safe remediation" do
+    skip "Set CLICKHOUSE_INTEGRATION=1 to run" unless ENV["CLICKHOUSE_INTEGRATION"] == "1"
+
+    setup_clickhouse_database
+    @client.insert_json_each_row("schema_migrations", [ { version: "999_removed_history" } ])
+
+    _output, error_output = capture_io do
+      error = assert_raises(SystemExit) { Rake::Task["clickhouse:migrate"].tap(&:reenable).invoke }
+      assert_equal 1, error.status
+    end
+    assert_includes error_output, "Unknown ClickHouse migrations: 999_removed_history"
+    assert_includes error_output, "Do not delete production history"
+  end
+
   test "two-pass backfill verifies the fenced PostgreSQL boundary" do
     skip "Set CLICKHOUSE_INTEGRATION=1 to run" unless ENV["CLICKHOUSE_INTEGRATION"] == "1"
 

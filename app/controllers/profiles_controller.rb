@@ -98,8 +98,10 @@ class ProfilesController < InertiaController
   end
 
   def ensure_profile_og_image!
-    stats = public_profile_og_stats
     heatmap = public_profile_og_heatmap
+    stats = public_profile_og_stats(
+      activity_graph: ({ duration_by_date: heatmap } if HeartbeatRepository.clickhouse?)
+    )
     stats_status = if !@user.allow_public_stats_lookup then :private
     elsif stats.blank? then :not_computed
     else :available
@@ -119,9 +121,9 @@ class ProfilesController < InertiaController
     result
   end
 
-  def public_profile_og_stats
+  def public_profile_og_stats(activity_graph: nil)
     return nil unless @user.allow_public_stats_lookup
-    stats = ProfileStatsService.new(@user).og_stats
+    stats = ProfileStatsService.new(@user).og_stats(activity_graph:)
     return nil if stats.blank?
 
     h = ApplicationController.helpers
@@ -136,11 +138,16 @@ class ProfilesController < InertiaController
     return nil unless @user.allow_public_stats_lookup
 
     if HeartbeatRepository.clickhouse?
-      snapshot = DashboardData::Snapshots.activity_graph_snapshot(
-        user: @user,
-        scope: @user.heartbeats_excluding_archived_projects
-      )
-      return snapshot.fetch(:duration_by_date)
+      return Rails.cache.fetch(
+        [ "profile_og_heatmap:v1", @user.id, @user.timezone ],
+        expires_in: 5.minutes
+      ) do
+        snapshot = DashboardData::Snapshots.activity_graph_snapshot(
+          user: @user,
+          scope: @user.heartbeats_excluding_archived_projects
+        )
+        snapshot.fetch(:duration_by_date)
+      end
     end
 
     rollup = DashboardRollup.find_by(user_id: @user.id, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)

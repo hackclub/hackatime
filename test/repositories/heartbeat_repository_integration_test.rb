@@ -86,6 +86,8 @@ class HeartbeatRepositoryIntegrationTest < ActiveSupport::TestCase
     )
 
     assert_equal 3, result.persisted_count
+    first_response = result.items.first.heartbeat
+    assert_equal Heartbeat.generate_fields_hash(first_response.attributes), first_response.fields_hash
     original_timestamps = repository.for_user(source.id).order(:id).pluck(:id, :created_at, :updated_at)
     assert_equal 3, repository.for_user(source.id).count
     assert_equal [ started_at, started_at + 30.375, started_at + 300 ],

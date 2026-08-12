@@ -16,8 +16,9 @@ class AnonymizeUserService < ApplicationService
   def call
     HeartbeatRepository.ensure_writes_enabled!
     HeartbeatRepository.ensure_mutations_enabled!
+    delete_clickhouse_heartbeats if HeartbeatRepository.clickhouse?
+
     ActiveRecord::Base.transaction do
-      HeartbeatRepository.current.prepare_deletion(user.id) if HeartbeatRepository.clickhouse?
       user.email_addresses.update_all(user_id: user.id, source: EmailAddress.sources[:preserved_for_deletion])
       user.update!(ANONYMIZE_FIELDS.index_with { nil }.merge(
         slack_scopes: [], hca_scopes: [],
@@ -34,6 +35,22 @@ class AnonymizeUserService < ApplicationService
   private
 
   attr_reader :user
+
+  def delete_clickhouse_heartbeats
+    repository = HeartbeatRepository.current
+    deletion = ActiveRecord::Base.transaction { repository.prepare_deletion(user.id) }
+    return if deletion.completed?
+
+    repository.soft_delete_user(
+      deletion.user_id,
+      version: deletion.clickhouse_version,
+      deleted_at: deletion.created_at
+    )
+    deletion.update!(status: :completed, completed_at: Time.current, last_error: nil)
+  rescue => error
+    deletion&.update!(status: :failed, last_error: "#{error.class}: #{error.message}".truncate(1_000))
+    raise
+  end
 
   def destroy_associated_records
     user.api_keys.destroy_all

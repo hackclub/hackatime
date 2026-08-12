@@ -47,6 +47,31 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert_equal 0, Heartbeat.daily_streaks_for_users([ user.id ], exclude_browser_time: true)[user.id]
   end
 
+  test "ClickHouse streak caches do not mix requested history windows" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    user = User.create!(timezone: "UTC")
+    calls = []
+    repository = Object.new
+    repository.define_singleton_method(:daily_streaks) do |user_ids, start_date:, exclude_browser_time:|
+      calls << [ user_ids, start_date.to_date, exclude_browser_time ]
+      user_ids.index_with { start_date.to_date == 8.days.ago.to_date ? 8 : 31 }
+    end
+    previous_setting = ENV["CLICKHOUSE_TEST"]
+    previous_repository = HeartbeatRepository.instance_variable_get(:@current)
+    ENV["CLICKHOUSE_TEST"] = "1"
+    HeartbeatRepository.instance_variable_set(:@current, repository)
+
+    assert_equal 8, Heartbeat.daily_streaks_for_users([ user.id ], start_date: 8.days.ago).fetch(user.id)
+    assert_equal 31, Heartbeat.daily_streaks_for_users([ user.id ], start_date: 31.days.ago).fetch(user.id)
+    assert_equal 8, Heartbeat.daily_streaks_for_users([ user.id ], start_date: 8.days.ago).fetch(user.id)
+    assert_equal 2, calls.length
+  ensure
+    Rails.cache = original_cache
+    ENV["CLICKHOUSE_TEST"] = previous_setting
+    HeartbeatRepository.instance_variable_set(:@current, previous_repository)
+  end
+
   test "attributed_durations_by sums to total duration when every heartbeat has the field" do
     user = User.create!(timezone: "UTC")
     base = Time.current.to_i.to_f

@@ -79,7 +79,7 @@ class StaticPagesController < InertiaController
       trust_level_red: current_user&.trust_level == "red",
       show_wakatime_setup_notice: !!@show_wakatime_setup_notice,
       github_uid_blank: current_user&.github_uid.blank?,
-      dashboard_stats: dashboard_stats_payload
+      dashboard_stats: dashboard_stats_prop
     }
   end
 
@@ -113,5 +113,11 @@ class StaticPagesController < InertiaController
     Rails.cache.fetch("user_#{current_user.id}_programming_goals_progress_#{current_user.timezone}_#{goals_hash}", expires_in: 1.minute) do
       ProgrammingGoalsProgressService.new(user: current_user, goals: goals).call
     end
+  end
+
+  def dashboard_stats_prop
+    return dashboard_stats_payload unless HeartbeatRepository.clickhouse?
+
+    InertiaRails.defer { dashboard_stats_payload }
   end
 end
