@@ -15,6 +15,9 @@
     "app/assets/**/*.css"
   ],
   "ignoreDependencies": [
+    "@fontsource-variable/inter",
+    "@fontsource-variable/inter-tight",
+    "@fontsource/ibm-plex-mono",
     "@js-from-routes/client",
     "@img/sharp-libvips-linux-arm64",
     "@img/sharp-libvips-linux-x64"
