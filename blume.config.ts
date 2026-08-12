@@ -147,6 +147,7 @@ export default defineConfig({
   seo: {
     og: {
       enabled: true,
+      logo: "/images/hackatime-icon.svg",
       palette: {
         accent: defaultTheme.preview.primary,
         background: defaultTheme.preview.darker,
