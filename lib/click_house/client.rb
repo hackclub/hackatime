@@ -1,5 +1,6 @@
 require "json"
 require "net/http"
+require "stringio"
 require "timeout"
 require "uri"
 
@@ -18,11 +19,7 @@ module ClickHouse
     DEFAULT_TIMEOUTS = { open_timeout: 5, read_timeout: 60, write_timeout: 60 }.freeze
 
     def self.current
-      url = if Rails.env.test? && ENV["CLICKHOUSE_TEST_URL"].present?
-        ENV.fetch("CLICKHOUSE_TEST_URL")
-      else
-        ENV.fetch("CLICKHOUSE_URL")
-      end
+      url = Rails.env.test? ? ENV.fetch("CLICKHOUSE_TEST_URL") : ENV.fetch("CLICKHOUSE_URL")
       @current ||= new(url)
     end
 
@@ -35,6 +32,7 @@ module ClickHouse
       @uri.user = @uri.password = nil
       @connection_key = "click_house_connection_#{object_id}".to_sym
       @timeout_key = "click_house_timeouts_#{object_id}".to_sym
+      @deadline_key = "click_house_deadline_#{object_id}".to_sym
     end
 
     def select(sql, params: {}, settings: {})
@@ -47,6 +45,10 @@ module ClickHouse
         query: request_parameters(params:, settings:)
       )
       JSON.parse(response)
+    end
+
+    def select_with_external_data(sql, tables:, settings: {})
+      JSON.parse(external_data_request(sql, tables:, settings:)).fetch("data")
     end
 
     def execute(sql, settings: {})
@@ -90,7 +92,43 @@ module ClickHouse
       apply_timeouts(current) if current
     end
 
+    def with_deadline(seconds)
+      previous = Thread.current[@deadline_key]
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + Float(seconds)
+      Thread.current[@deadline_key] = previous ? [ previous, deadline ].min : deadline
+      yield
+    ensure
+      Thread.current[@deadline_key] = previous
+      current = Thread.current[@connection_key]
+      apply_timeouts(current) if current
+    end
+
     private
+
+    def external_data_request(sql, tables:, settings:)
+      uri = @uri.dup
+      query = request_parameters(settings:).merge(query: "#{sql.rstrip} FORMAT JSON")
+      form = tables.map do |name, definition|
+        name = identifier_name(name)
+        rows = definition.fetch(:rows)
+        query["#{name}_format"] = "JSONEachRow"
+        query["#{name}_structure"] = definition.fetch(:structure)
+        body = rows.map { |row| JSON.generate(serialize_json_value(row)) }.join("\n") << "\n"
+        [ name, StringIO.new(body), { filename: "#{name}.jsonl", content_type: "application/octet-stream" } ]
+      end
+      uri.query = URI.encode_www_form({ database: @database }.merge(query))
+      request = Net::HTTP::Post.new(uri)
+      request.basic_auth(@username, @password)
+      request.set_form(form, "multipart/form-data")
+
+      response = connection.request(request)
+      return response.body if response.is_a?(Net::HTTPSuccess)
+
+      raise Error, "ClickHouse returned HTTP #{response.code}: #{response.body.to_s.squish.truncate(1_000)}"
+    rescue Timeout::Error, SocketError, IOError, EOFError, SystemCallError, OpenSSL::SSL::SSLError
+      close_connection
+      raise
+    end
 
     def stream_request(body, query: {})
       uri = @uri.dup
@@ -147,7 +185,14 @@ module ClickHouse
     end
 
     def current_timeouts
-      Thread.current[@timeout_key] || DEFAULT_TIMEOUTS
+      timeouts = Thread.current[@timeout_key] || DEFAULT_TIMEOUTS
+      deadline = Thread.current[@deadline_key]
+      return timeouts unless deadline
+
+      remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      raise Timeout::Error, "ClickHouse operation deadline exceeded" unless remaining.positive?
+
+      timeouts.transform_values { |value| [ value, remaining ].min }
     end
 
     def close_connection
@@ -182,6 +227,13 @@ module ClickHouse
       when Hash then value.transform_values { |item| serialize_json_value(item) }
       else value
       end
+    end
+
+    def identifier_name(value)
+      value = value.to_s
+      raise ArgumentError, "invalid external table name" unless value.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/)
+
+      value
     end
 
     def exact_decimal(value)

@@ -283,6 +283,7 @@ jobs:
           CLICKHOUSE_URL: http://default:clickhouse@localhost:8123/hackatime_test
           CLICKHOUSE_TEST_URL: http://default:clickhouse@localhost:8123/hackatime_test
           CLICKHOUSE_INTEGRATION: "1"
+          CLICKHOUSE_REQUIRED: "1"
           CLICKHOUSE_TEST: "1"
         run: |
           bin/rails test \

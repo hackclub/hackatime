@@ -3,6 +3,21 @@ require "test_helper"
 class HeartbeatIngestTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
 
+  class ImportBatchRepository
+    attr_reader :batch_sizes
+
+    def initialize
+      @batch_sizes = []
+    end
+
+    def serialize_attributes(attributes) = attributes.stringify_keys
+
+    def persist(user_id:, records:)
+      @batch_sizes << records.length
+      records.map { { inserted: true, row: { "user_id" => user_id } } }
+    end
+  end
+
   setup do
     Rails.cache.clear
     clear_enqueued_jobs
@@ -827,6 +842,29 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
 
     heartbeat = user.heartbeats.order(:id).last
     assert_equal "wakapi_import", heartbeat.source_type
+  end
+
+  test "ClickHouse imports persist in bounded transactions" do
+    previous_repository = HeartbeatRepository.instance_variable_get(:@current)
+    repository = ImportBatchRepository.new
+    HeartbeatRepository.instance_variable_set(:@current, repository)
+    user = User.create!(timezone: "UTC")
+    records = (HeartbeatIngest::CLICKHOUSE_IMPORT_BATCH_SIZE * 2 + 1).times.map do |index|
+      {
+        fields_hash: Digest::MD5.hexdigest("request-#{index}"),
+        clickhouse_fields_hash: Digest::MD5.hexdigest("canonical-#{index}"),
+        legacy_fields_hash: nil,
+        time: 1_700_000_000.0 + index
+      }
+    end
+
+    persisted = HeartbeatIngest.new(user:, mode: :import, heartbeats: [])
+      .send(:persist_clickhouse_import, records)
+
+    assert_equal records.length, persisted
+    assert_equal [ 1_000, 1_000, 1 ], repository.batch_sizes
+  ensure
+    HeartbeatRepository.instance_variable_set(:@current, previous_repository)
   end
 
   test "the cutover write fence rejects direct and imported heartbeats" do

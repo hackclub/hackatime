@@ -17,6 +17,7 @@ class HeartbeatRepository
   INSERT_RETRY_LIMIT = 5
   INGEST_INSERT_RETRY_LIMIT = 1
   INGEST_TIMEOUT = 2
+  INGEST_DEADLINE = 10
   MUTATION_INSERT_RETRY_LIMIT = 2
   MUTATION_TIMEOUT = 5
   QUERY_BATCH_SIZE = 1_000
@@ -28,11 +29,17 @@ class HeartbeatRepository
   }.freeze
   RETRYABLE_INSERT_ERROR = /(?:UNKNOWN_STATUS_OF_INSERT|TIMEOUT_EXCEEDED|NETWORK_ERROR|SOCKET_TIMEOUT)/
 
-  def self.clickhouse?
-    return ENV["CLICKHOUSE_TEST"] == "1" if Rails.env.test?
+  def self.store
+    if Rails.env.test?
+      return ENV["CLICKHOUSE_TEST"] == "1" ? "clickhouse" : "postgresql"
+    end
 
-    ENV.fetch("HEARTBEAT_STORE", "postgresql") == "clickhouse"
+    ENV.fetch("HEARTBEAT_STORE", "postgresql").tap do |store|
+      raise ArgumentError, "HEARTBEAT_STORE must be postgresql or clickhouse" unless %w[postgresql clickhouse].include?(store)
+    end
   end
+
+  def self.clickhouse? = store == "clickhouse"
 
   def self.current
     @current ||= new
@@ -40,6 +47,9 @@ class HeartbeatRepository
 
   def self.ensure_writes_enabled!
     raise "Heartbeat writes are stopped" if ENV["HEARTBEAT_WRITES_STOPPED"] == "1"
+    if store == "postgresql" && HeartbeatCutover.where.not(purged_at: nil).exists?
+      raise "PostgreSQL heartbeat writes are unavailable after ClickHouse cutover"
+    end
   end
 
   def self.ensure_mutations_enabled!
@@ -552,15 +562,16 @@ class HeartbeatRepository
   end
 
   def home_stats(archived_projects: [])
-    exclusions = archived_projects.map do |user_id, project|
-      "(#{quote(Integer(user_id))}, #{quote(project.to_s)})"
-    end
-    archive_filter = if exclusions.empty?
+    archive_join = if archived_projects.empty?
       ""
     else
-      "AND (user_id, ifNull(project, '')) NOT IN (#{exclusions.join(', ')})"
+      <<~SQL.squish
+        LEFT ANTI JOIN archived_projects AS archived
+          ON heartbeats.user_id = archived.user_id
+          AND ifNull(heartbeats.project, '') = archived.project
+      SQL
     end
-    row = @client.select(<<~SQL.squish).first
+    sql = <<~SQL.squish
       SELECT countIf(total_seconds > 0) AS users_tracked,
              toInt64(round(COALESCE(sum(total_seconds), 0))) AS seconds_tracked
       FROM (
@@ -572,11 +583,20 @@ class HeartbeatRepository
                    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
                  ), 0), #{Heartbeat.heartbeat_timeout_duration.to_i}) AS diff
           FROM heartbeats FINAL
+          #{archive_join}
           WHERE deleted_at IS NULL AND time >= 0 AND time <= #{VALID_TIME_MAX}
-            #{archive_filter}
         ) GROUP BY user_id
       )
     SQL
+    row = if archived_projects.empty?
+      @client.select(sql).first
+    else
+      rows = archived_projects.map { |user_id, project| { "user_id" => Integer(user_id), "project" => project.to_s } }
+      @client.select_with_external_data(
+        sql,
+        tables: { "archived_projects" => { structure: "user_id UInt64, project String", rows: } }
+      ).first
+    end
     {
       users_tracked: row.fetch("users_tracked").to_i,
       seconds_tracked: row.fetch("seconds_tracked").to_i
@@ -585,7 +605,11 @@ class HeartbeatRepository
 
   def persist(user_id:, records:)
     outcomes = nil
-    with_clickhouse_timeouts(timeout: INGEST_TIMEOUT, retry_limit: INGEST_INSERT_RETRY_LIMIT) do
+    with_clickhouse_timeouts(
+      timeout: INGEST_TIMEOUT,
+      retry_limit: INGEST_INSERT_RETRY_LIMIT,
+      deadline: INGEST_DEADLINE
+    ) do
       ActiveRecord::Base.transaction do
         ensure_user_accepts_heartbeats!(user_id)
         records.filter_map { |record| record.stringify_keys["ja4_id"] }.uniq.sort.each do |ja4_id|
@@ -664,7 +688,7 @@ class HeartbeatRepository
       pending_transfer?(from_user_id) || pending_transfer?(to_user_id)
     raise "A heartbeat operation is already recorded for one of these users" if blocked
 
-    HeartbeatTransfer.create!(from_user_id:, to_user_id:, heartbeat_count: 0)
+    HeartbeatTransfer.create!(from_user_id:, to_user_id:)
   end
 
   def prepare_deletion(user_id)
@@ -1612,7 +1636,10 @@ class HeartbeatRepository
   end
 
   def payload_hash(row)
-    Digest::SHA256.hexdigest(JSON.generate(STORAGE_COLUMNS.to_h { |column| [ column, row[column] ] }))
+    payload = STORAGE_COLUMNS.to_h { |column| [ column, row[column] ] }
+    # ClickHouse emits an integral Float64 as a JSON integer; writes originate as Floats.
+    payload["time"] = payload["time"].to_f unless payload["time"].nil?
+    Digest::SHA256.hexdigest(JSON.generate(payload))
   end
 
   def five_minute_bucket(value)
@@ -1628,18 +1655,25 @@ class HeartbeatRepository
     with_clickhouse_timeouts(timeout: MUTATION_TIMEOUT, retry_limit: MUTATION_INSERT_RETRY_LIMIT, &block)
   end
 
-  def with_clickhouse_timeouts(timeout:, retry_limit:, &block)
+  def with_clickhouse_timeouts(timeout:, retry_limit:, deadline: nil, &block)
     return yield unless @client.respond_to?(:with_timeouts)
 
     previous_retry_limit = Thread.current[@mutation_retry_key]
     Thread.current[@mutation_retry_key] = retry_limit
     begin
-      @client.with_timeouts(
-        open_timeout: timeout,
-        read_timeout: timeout,
-        write_timeout: timeout,
-        &block
-      )
+      with_timeouts = proc do
+        @client.with_timeouts(
+          open_timeout: timeout,
+          read_timeout: timeout,
+          write_timeout: timeout,
+          &block
+        )
+      end
+      if deadline && @client.respond_to?(:with_deadline)
+        @client.with_deadline(deadline, &with_timeouts)
+      else
+        with_timeouts.call
+      end
     ensure
       Thread.current[@mutation_retry_key] = previous_retry_limit
     end

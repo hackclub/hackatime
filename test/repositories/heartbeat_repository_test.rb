@@ -2,10 +2,11 @@ require "test_helper"
 
 class HeartbeatRepositoryTest < ActiveSupport::TestCase
   class FakeClient
-    attr_reader :inserts, :queries
+    attr_reader :external_tables, :inserts, :queries
 
     def initialize(results = [])
       @results = results
+      @external_tables = []
       @inserts = []
       @queries = []
     end
@@ -24,6 +25,12 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
 
     def execute(sql)
       @queries << sql
+    end
+
+    def select_with_external_data(sql, tables:, settings: {})
+      @queries << sql
+      @external_tables << [ tables, settings ]
+      @results.shift || []
     end
 
     def insert_json_each_row(table, rows, settings: {})
@@ -54,7 +61,7 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
   end
 
   class TimeoutBoundClient < FakeClient
-    attr_reader :attempts, :timeouts
+    attr_reader :attempts, :deadline, :timeouts
 
     def initialize
       super
@@ -63,6 +70,11 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
 
     def with_timeouts(**timeouts)
       @timeouts = timeouts
+      yield
+    end
+
+    def with_deadline(seconds)
+      @deadline = seconds
       yield
     end
 
@@ -97,6 +109,37 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
   ensure
     Rails.define_singleton_method(:env, original_env) if original_env
     ENV["HEARTBEAT_STORE"] = previous if previous
+  end
+
+  test "production rejects invalid heartbeat stores" do
+    previous_store = ENV["HEARTBEAT_STORE"]
+    previous_test = ENV.delete("CLICKHOUSE_TEST")
+    original_env = Rails.method(:env)
+    Rails.define_singleton_method(:env) { ActiveSupport::StringInquirer.new("production") }
+    ENV["HEARTBEAT_STORE"] = "clickhosue"
+
+    error = assert_raises(ArgumentError) { HeartbeatRepository.clickhouse? }
+    assert_equal "HEARTBEAT_STORE must be postgresql or clickhouse", error.message
+  ensure
+    Rails.define_singleton_method(:env, original_env) if original_env
+    previous_store ? ENV["HEARTBEAT_STORE"] = previous_store : ENV.delete("HEARTBEAT_STORE")
+    ENV["CLICKHOUSE_TEST"] = previous_test if previous_test
+  end
+
+  test "PostgreSQL ingest is rejected after durable purge" do
+    previous_test = ENV["CLICKHOUSE_TEST"]
+    ENV["CLICKHOUSE_TEST"] = "0"
+    HeartbeatCutover.create!(
+      id: 1,
+      source_through_id: 0,
+      backfilled_through_id: 0,
+      purged_at: Time.current
+    )
+
+    error = assert_raises(RuntimeError) { HeartbeatRepository.ensure_writes_enabled! }
+    assert_equal "PostgreSQL heartbeat writes are unavailable after ClickHouse cutover", error.message
+  ensure
+    previous_test ? ENV["CLICKHOUSE_TEST"] = previous_test : ENV.delete("CLICKHOUSE_TEST")
   end
 
   test "scope uses five-minute buckets before the full-precision timestamp" do
@@ -524,12 +567,14 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
 
     assert_raises(Timeout::Error) do
       repository.send(:with_clickhouse_timeouts, timeout: HeartbeatRepository::INGEST_TIMEOUT,
-        retry_limit: HeartbeatRepository::INGEST_INSERT_RETRY_LIMIT) do
+        retry_limit: HeartbeatRepository::INGEST_INSERT_RETRY_LIMIT,
+        deadline: HeartbeatRepository::INGEST_DEADLINE) do
         repository.send(:insert_rows, "heartbeats", [ row ])
       end
     end
 
     assert_equal 1, client.attempts
+    assert_equal 10, client.deadline
     assert_equal({ open_timeout: 2, read_timeout: 2, write_timeout: 2 }, client.timeouts)
   end
 
@@ -613,17 +658,34 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
       "groupUniqArrayIf(language, language IS NOT NULL AND notEmpty(trimBoth(language)))"
   end
 
-  test "home stats stay in ClickHouse and exclude archived user projects" do
+  test "home stats use bounded external data for archived user projects" do
     client = FakeClient.new([ [ { "users_tracked" => 2, "seconds_tracked" => 360 } ] ])
+    archived_projects = 40_000.times.map { |index| [ index + 1, "project-#{index}" ] }
 
     result = HeartbeatRepository.new(client:).home_stats(
-      archived_projects: [ [ 42, "archived" ], [ 43, "other" ] ]
+      archived_projects:
     )
 
     assert_equal({ users_tracked: 2, seconds_tracked: 360 }, result)
     assert_includes client.queries.sole, "FROM heartbeats FINAL"
-    assert_includes client.queries.sole,
-      "(user_id, ifNull(project, '')) NOT IN ((42, 'archived'), (43, 'other'))"
+    assert_includes client.queries.sole, "LEFT ANTI JOIN archived_projects AS archived"
+    assert_operator client.queries.sole.bytesize, :<, 262_144
+    external_table = client.external_tables.sole.first.fetch("archived_projects")
+    assert_equal "user_id UInt64, project String", external_table.fetch(:structure)
+    assert_equal 40_000, external_table.fetch(:rows).length
+  end
+
+  test "payload hashes preserve integral Float64 timestamps across JSON reads" do
+    repository = HeartbeatRepository.new(client: FakeClient.new)
+    float_row = { "time" => 1_700_000_000.0 }
+    integer_row = { "time" => 1_700_000_000 }
+    historical_payload = HeartbeatRepository::STORAGE_COLUMNS.to_h do |column|
+      [ column, float_row[column] ]
+    end
+    historical_hash = Digest::SHA256.hexdigest(JSON.generate(historical_payload))
+
+    assert_equal historical_hash, repository.send(:payload_hash, float_row)
+    assert_equal historical_hash, repository.send(:payload_hash, integer_row)
   end
 
   test "self transfers are rejected before ClickHouse writes" do
@@ -635,11 +697,38 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     end
     assert_not HeartbeatTransfer.new(
       from_user_id: user.id,
-      to_user_id: user.id,
-      heartbeat_count: 0
+      to_user_id: user.id
     ).valid?
     assert_includes ActiveRecord::Base.connection.check_constraints(:heartbeat_transfers).map(&:name),
       "heartbeat_transfers_distinct_users"
+  end
+
+  test "pending transfers block both users and completed transfers permanently block only the source" do
+    source = User.create!(timezone: "UTC")
+    target = User.create!(timezone: "UTC")
+    repository = HeartbeatRepository.new(client: FakeClient.new)
+    transfer = ActiveRecord::Base.transaction do
+      repository.prepare_transfer(from_user_id: source.id, to_user_id: target.id)
+    end
+
+    [ source, target ].each do |user|
+      assert_raises(ActiveRecord::RecordNotFound) do
+        ActiveRecord::Base.transaction { repository.send(:ensure_user_accepts_heartbeats!, user.id) }
+      end
+    end
+
+    transfer.update!(status: :completed, completed_at: Time.current)
+    assert_nothing_raised do
+      ActiveRecord::Base.transaction { repository.send(:ensure_user_accepts_heartbeats!, target.id) }
+    end
+    assert_raises(ActiveRecord::RecordNotFound) do
+      ActiveRecord::Base.transaction { repository.send(:ensure_user_accepts_heartbeats!, source.id) }
+    end
+  end
+
+  test "JA4 nullification jobs serialize by lifecycle control" do
+    assert_equal "heartbeat_ja4_nullification_42",
+      HeartbeatJa4NullificationJob.new(42).good_job_concurrency_key
   end
 
   test "the cutover write fence rejects lifecycle admission" do

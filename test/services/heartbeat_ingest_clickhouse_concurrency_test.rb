@@ -4,7 +4,7 @@ class HeartbeatIngestClickHouseConcurrencyTest < ActiveSupport::TestCase
   self.use_transactional_tests = false
 
   setup do
-    skip "Set CLICKHOUSE_INTEGRATION=1 to run" unless ENV["CLICKHOUSE_INTEGRATION"] == "1"
+    require_clickhouse_integration!
 
     @previous_repository = HeartbeatRepository.instance_variable_get(:@current)
     @previous_test_setting = ENV["CLICKHOUSE_TEST"]

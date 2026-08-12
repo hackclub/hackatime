@@ -25,12 +25,6 @@ namespace :clickhouse do
       "heartbeat_store" => [ "012_create_heartbeat_store.sql", "heartbeat_store" ],
       "heartbeat_aliases" => [ "013_create_heartbeat_aliases.sql", "heartbeat_aliases" ]
     }
-    object_exists = lambda do |name|
-      client.select(<<~SQL.squish).first.fetch("object_count").to_i.positive?
-        SELECT count() AS object_count FROM system.tables
-        WHERE database = currentDatabase() AND name = '#{name}'
-      SQL
-    end
     validate_schema = lambda do |name|
       file, canonical_name = schema_files.fetch(name)
       reference_name = "_hackatime_schema_reference_#{name}"
@@ -61,9 +55,6 @@ namespace :clickhouse do
       next if applied.include?(migration_version)
 
       schema_statements.call(path).each { |statement| client.execute(statement) }
-      schema_files.each_key do |name|
-        validate_schema.call(name) if object_exists.call(name)
-      end
       client.insert_json_each_row("schema_migrations", [ { version: migration_version } ])
       puts "Applied ClickHouse migration #{migration_version}"
     end
@@ -100,6 +91,25 @@ namespace :clickhouse do
     abort "Backfill blocked: #{invalid_unsigned} heartbeats exceed unsigned ClickHouse types" if invalid_unsigned.positive?
     non_finite_times = Heartbeat.postgresql_unscoped.where("time::text IN ('NaN', 'Infinity', '-Infinity')").count
     abort "Backfill blocked: #{non_finite_times} heartbeats have non-finite timestamps" if non_finite_times.positive?
+    invalid_time_buckets = Heartbeat.postgresql_unscoped.where(
+      "time < ? OR time >= ?",
+      -(2**63),
+      2**63
+    ).count
+    if invalid_time_buckets.positive?
+      abort "Backfill blocked: #{invalid_time_buckets} heartbeats exceed ClickHouse Int64 time buckets"
+    end
+    datetime_min = Time.utc(1900, 1, 1)
+    datetime_max = Time.utc(2300, 1, 1)
+    invalid_datetimes = Heartbeat.postgresql_unscoped.where(
+      "created_at < :min OR created_at >= :max OR updated_at < :min OR updated_at >= :max " \
+        "OR deleted_at < :min OR deleted_at >= :max",
+      min: datetime_min,
+      max: datetime_max
+    ).count
+    if invalid_datetimes.positive?
+      abort "Backfill blocked: #{invalid_datetimes} heartbeats exceed ClickHouse DateTime64(6) range"
+    end
 
     migrated = 0
     puts "Backfilling heartbeat IDs #{after_id + 1} through #{through_id}"
@@ -182,6 +192,7 @@ namespace :clickhouse do
           row
         end
         attributes = attributes.slice(*fingerprint_columns)
+        attributes["time"] = attributes["time"].to_f unless attributes["time"].nil?
         %w[created_at updated_at deleted_at].each do |column|
           attributes[column] = normalize_time.call(attributes[column])
         end

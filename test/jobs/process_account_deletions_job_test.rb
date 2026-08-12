@@ -58,18 +58,24 @@ class ProcessAccountDeletionsJobTest < ActiveSupport::TestCase
     repository.fail_deletion = true
     use_clickhouse(repository)
     request = ready_request
+    request.user.update!(profile_bio: "Identifying biography")
+    original_username = request.user.username
 
     ProcessAccountDeletionsJob.perform_now
     deletion = HeartbeatDeletion.find_by!(user_id: request.user_id)
 
     assert request.reload.approved?
     assert deletion.reload.failed?
+    assert_equal original_username, request.user.reload.username
+    assert_equal "Identifying biography", request.user.profile_bio
 
     repository.fail_deletion = false
     ProcessAccountDeletionsJob.perform_now
 
     assert request.reload.completed?
     assert deletion.reload.completed?
+    assert_equal "deleted_user_#{request.user_id}", request.user.reload.username
+    assert_nil request.user.profile_bio
   end
 
   test "completed ClickHouse deletion reconciles an unacknowledged request" do
@@ -94,8 +100,7 @@ class ProcessAccountDeletionsJobTest < ActiveSupport::TestCase
     target = User.create!(timezone: "UTC")
     HeartbeatTransfer.create!(
       from_user_id: request.user_id,
-      to_user_id: target.id,
-      heartbeat_count: 0
+      to_user_id: target.id
     )
     original_username = request.user.username
 

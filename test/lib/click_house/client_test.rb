@@ -117,4 +117,38 @@ class ClickHouse::ClientTest < ActiveSupport::TestCase
     end
     assert_equal [ 5, 60, 60 ], actual
   end
+
+  test "operation deadlines cap every request timeout" do
+    client = ClickHouse::Client.new("http://default:@clickhouse:8123/hackatime_test")
+
+    client.with_deadline(1) do
+      timeouts = client.send(:current_timeouts)
+      assert_operator timeouts.fetch(:open_timeout), :<=, 1
+      assert_operator timeouts.fetch(:read_timeout), :<=, 1
+      assert_operator timeouts.fetch(:write_timeout), :<=, 1
+    end
+    assert_equal ClickHouse::Client::DEFAULT_TIMEOUTS, client.send(:current_timeouts)
+
+    assert_raises(Timeout::Error) do
+      client.with_deadline(0) { client.send(:current_timeouts) }
+    end
+  end
+
+  test "test connections fail closed without a dedicated ClickHouse URL" do
+    previous_url = ENV.delete("CLICKHOUSE_TEST_URL")
+    previous_client = ClickHouse::Client.instance_variable_get(:@current)
+    ClickHouse::Client.instance_variable_set(:@current, nil)
+
+    assert_raises(KeyError) { ClickHouse::Client.current }
+  ensure
+    ENV["CLICKHOUSE_TEST_URL"] = previous_url if previous_url
+    ClickHouse::Client.instance_variable_set(:@current, previous_client)
+  end
+
+  test "external table names are restricted to identifiers" do
+    client = ClickHouse::Client.new("http://default:@clickhouse:8123/hackatime_test")
+
+    assert_equal "archived_projects", client.send(:identifier_name, "archived_projects")
+    assert_raises(ArgumentError) { client.send(:identifier_name, "archived; DROP TABLE heartbeats") }
+  end
 end

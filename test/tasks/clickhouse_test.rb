@@ -60,7 +60,7 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
   end
 
   test "migration rejects unknown production history with safe remediation" do
-    skip "Set CLICKHOUSE_INTEGRATION=1 to run" unless ENV["CLICKHOUSE_INTEGRATION"] == "1"
+    require_clickhouse_integration!
 
     setup_clickhouse_database
     @client.insert_json_each_row("schema_migrations", [ { version: "999_removed_history" } ])
@@ -73,8 +73,55 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
     assert_includes error_output, "Do not delete production history"
   end
 
+  test "migration upgrades a database with multiple pending schema changes" do
+    require_clickhouse_integration!
+
+    setup_clickhouse_database
+    %w[heartbeats heartbeats_by_time].each do |table|
+      @client.execute("ALTER TABLE #{table} ADD COLUMN time_epoch Int64 DEFAULT 0")
+      @client.execute("ALTER TABLE #{table} ADD COLUMN time_hour Int64 DEFAULT 0")
+    end
+    @client.execute("TRUNCATE TABLE schema_migrations")
+    applied = %w[
+      001_create_heartbeats
+      009_create_heartbeats_by_time
+      010_drop_heartbeats_by_time_ingest
+      012_create_heartbeat_store
+      013_create_heartbeat_aliases
+    ].map { |version| { version: } }
+    @client.insert_json_each_row("schema_migrations", applied)
+
+    invoke_task("migrate")
+
+    %w[heartbeats heartbeats_by_time].each do |table|
+      columns = @client.select("DESCRIBE TABLE #{table}").pluck("name")
+      assert_not_includes columns, "time_epoch"
+      assert_not_includes columns, "time_hour"
+    end
+    expected = Dir[Rails.root.join("db/clickhouse/*.sql")].map { |path| File.basename(path, ".sql") }.sort
+    assert_equal expected, @client.select("SELECT DISTINCT version FROM schema_migrations").pluck("version").sort
+  end
+
+  test "backfill rejects finite times outside ClickHouse Int64 buckets" do
+    require_clickhouse_integration!
+
+    setup_clickhouse_database
+    ENV["HEARTBEAT_STORE"] = "postgresql"
+    ENV["CLICKHOUSE_TEST"] = "0"
+    ENV["HEARTBEAT_MUTATIONS_STOPPED"] = "1"
+    user = User.create!(timezone: "UTC")
+    heartbeat = Heartbeat.create!(user:, time: Time.current.to_f, entity: "extreme.rb", source_type: :direct_entry)
+    heartbeat.update_column(:time, (2**63).to_f)
+
+    _output, error_output = capture_io do
+      error = assert_raises(SystemExit) { Rake::Task["clickhouse:backfill"].tap(&:reenable).invoke }
+      assert_equal 1, error.status
+    end
+    assert_includes error_output, "heartbeats exceed ClickHouse Int64 time buckets"
+  end
+
   test "two-pass backfill verifies the fenced PostgreSQL boundary" do
-    skip "Set CLICKHOUSE_INTEGRATION=1 to run" unless ENV["CLICKHOUSE_INTEGRATION"] == "1"
+    require_clickhouse_integration!
 
     @admin = @previous_client || ClickHouse::Client.new(@previous_clickhouse_url)
     @database = "hackatime_cutover_test_#{Process.pid}"
@@ -92,7 +139,8 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
 
     invoke_task("migrate")
     user = User.create!(timezone: "UTC")
-    first = Heartbeat.create!(user:, time: Time.current.to_f, entity: "first.rb", source_type: :direct_entry)
+    started_at = Time.current.to_i.to_f
+    first = Heartbeat.create!(user:, time: started_at, entity: "first.rb", source_type: :direct_entry)
 
     invoke_task("backfill")
     cutover = HeartbeatCutover.find(1)
@@ -100,7 +148,7 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
     assert_equal first.id, cutover.backfilled_through_id
     assert_equal 1, client.select("SELECT count() AS count FROM heartbeats FINAL").sole.fetch("count").to_i
 
-    second = Heartbeat.create!(user:, time: Time.current.to_f + 30, entity: "second.rb", source_type: :direct_entry)
+    second = Heartbeat.create!(user:, time: started_at + 30, entity: "second.rb", source_type: :direct_entry)
     invoke_task("backfill")
     assert_equal first.id, cutover.reload.source_through_id
     assert_equal 1, client.select("SELECT count() AS count FROM heartbeats FINAL").sole.fetch("count").to_i
@@ -116,17 +164,28 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
     assert_equal second.id, cutover.reload.verified_through_id
     assert_predicate cutover, :verified_at?
 
-    Heartbeat.create!(user:, time: Time.current.to_f + 60, entity: "late.rb", source_type: :direct_entry)
+    late = Heartbeat.create!(user:, time: started_at + 60, entity: "late.rb", source_type: :direct_entry)
     Rake::Task["clickhouse:verify"].reenable
     _output, error_output = capture_io do
       error = assert_raises(SystemExit) { Rake::Task["clickhouse:verify"].invoke }
       assert_equal 1, error.status
     end
     assert_includes error_output, "PostgreSQL received heartbeats after the recorded source boundary"
+
+    late.destroy!
+    user.update!(dashboard_rollup_generation: 4, dashboard_rollup_refreshed_generation: 3)
+    ENV["HEARTBEAT_STORE"] = "clickhouse"
+    ENV["CLICKHOUSE_TEST"] = "1"
+    output, = invoke_task("purge_postgres")
+
+    assert_includes output, "Removed all PostgreSQL heartbeat payloads and dashboard rollups"
+    assert_equal 0, Heartbeat.postgresql_unscoped.count
+    assert_predicate cutover.reload, :purged_at?
+    assert_equal [ 0, 0 ], user.reload.values_at(:dashboard_rollup_generation, :dashboard_rollup_refreshed_generation)
   end
 
   test "recovery replays completed lifecycle controls over a stale ClickHouse restore" do
-    skip "Set CLICKHOUSE_INTEGRATION=1 to run" unless ENV["CLICKHOUSE_INTEGRATION"] == "1"
+    require_clickhouse_integration!
 
     setup_clickhouse_database
     ENV["HEARTBEAT_STORE"] = "clickhouse"

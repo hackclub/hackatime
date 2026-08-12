@@ -9,6 +9,7 @@ class HeartbeatIngest
   # client bugs (uptime-like numbers, literal years, ms/µs/ns-scaled epochs).
   EPOCH_SANE_MIN = 1_000_000_000
   EPOCH_SANE_MAX = 2_000_000_000
+  CLICKHOUSE_IMPORT_BATCH_SIZE = 1_000
 
   # The heartbeats dedup unique index changes from (fields_hash) to
   # (fields_hash, time_epoch) during the hypertable migration.
@@ -417,11 +418,10 @@ class HeartbeatIngest
         "alias_hashes" => [ record[:fields_hash], record[:legacy_fields_hash] ].compact.uniq
       )
     end
-    outcomes = HeartbeatRepository.current.persist(
-      user_id: @user.id,
-      records: serialized
-    )
-    outcomes.count { |outcome| outcome.fetch(:inserted) }
+    serialized.each_slice(CLICKHOUSE_IMPORT_BATCH_SIZE).sum do |batch|
+      HeartbeatRepository.current.persist(user_id: @user.id, records: batch)
+        .count { |outcome| outcome.fetch(:inserted) }
+    end
   end
 
   def heartbeat_from_store(row, fields_hash: nil)

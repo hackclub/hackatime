@@ -1,6 +1,13 @@
 class HeartbeatJa4NullificationJob < ApplicationJob
   queue_as :literally_whenever
 
+  include GoodJob::ActiveJobExtensions::Concurrency
+
+  good_job_control_concurrency_with(
+    total_limit: 1,
+    key: -> { "heartbeat_ja4_nullification_#{arguments.first}" }
+  )
+
   retry_on StandardError, wait: ->(executions) { [ executions**2, 60 ].min.seconds }, attempts: :unlimited
 
   def perform(nullification_id = nil)

@@ -36,7 +36,7 @@ class HeartbeatRepositoryIntegrationTest < ActiveSupport::TestCase
   test "ClickHouse preserves exact reads, deletion and retryable transfer semantics" do
     previous_repository = HeartbeatRepository.instance_variable_get(:@current)
     previous_test_setting = ENV["CLICKHOUSE_TEST"]
-    skip "Set CLICKHOUSE_INTEGRATION=1 to run" unless ENV["CLICKHOUSE_INTEGRATION"] == "1"
+    require_clickhouse_integration!
 
     database = "hackatime_test_#{Process.pid}"
     admin = ClickHouse::Client.current
@@ -114,6 +114,10 @@ class HeartbeatRepositoryIntegrationTest < ActiveSupport::TestCase
     assert_equal 3, repository.for_user(source.id).group(:project, :language).count.values.sum
     assert_equal({ project: [ "migration" ], category: [ "coding" ] },
       repository.filter_options(repository.for_user(source.id), %i[project category]))
+    archived_projects = [ [ source.id, "migration" ] ] +
+      39_999.times.map { |index| [ source.id, "archived-#{index}" ] }
+    assert_equal({ users_tracked: 0, seconds_tracked: 0 },
+      repository.home_stats(archived_projects:))
     assert_equal 150, repository.today_stats(repository.for_user(source.id), timezone: "UTC")
       .fetch(:todays_duration_seconds)
     assert_equal 150, repository.daily_durations(

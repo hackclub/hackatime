@@ -3,7 +3,7 @@ require "rake"
 
 class HeartbeatRepositoryDifferentialIntegrationTest < ActiveSupport::TestCase
   setup do
-    skip "Set CLICKHOUSE_INTEGRATION=1 to run" unless ENV["CLICKHOUSE_INTEGRATION"] == "1"
+    require_clickhouse_integration!
 
     @previous_repository = HeartbeatRepository.instance_variable_get(:@current)
     @previous_client = ClickHouse::Client.instance_variable_get(:@current)
