@@ -42,7 +42,7 @@ class Heartbeat < ApplicationRecord
       indexed[attribute] = attributes[attribute] unless attributes[attribute].nil?
     end
     # MD5 preserves historical deduplication keys; it is not used for cryptographic security.
-    # codeql[rb/weak-cryptographic-algorithm]
+    # codeql[rb/weak-sensitive-data-hashing]
     Digest::MD5.hexdigest(indexed.to_json)
   end
 
