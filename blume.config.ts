@@ -109,6 +109,13 @@ export default defineConfig({
     output: "static",
     site: "https://hackatime.hackclub.com",
   },
+  redirects: [
+    {
+      from: "/getting-started/configuration",
+      to: "/configuration",
+      status: 301,
+    },
+  ],
   analytics: {
     scripts: [
       {

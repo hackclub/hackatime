@@ -78,39 +78,56 @@
 
 /* Make the primary navigation easier to scan and easier to target. */
 [data-blume-nav-tree] :where(a, button, summary) {
-  min-height: 2.5rem;
-  color: var(--blume-foreground);
-  font-size: 0.9375rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.25rem;
+  margin-inline: 0;
+  padding-block: 0.375rem;
+  border: 0;
+  border-radius: 0.5rem;
+  color: var(--blume-muted-foreground);
+  font-size: 0.875rem;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.25;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 [data-blume-nav-tree] button,
 [data-blume-nav-tree] summary {
-  font-weight: 650;
+  color: var(--blume-foreground);
+  font-weight: 600;
+}
+
+[data-blume-nav-tree] [data-nav-back] {
+  padding-inline: 0.625rem;
+}
+
+[data-blume-nav-tree] :where(a, button, summary):hover {
+  background: color-mix(in srgb, var(--blume-muted) 72%, transparent);
+  color: var(--blume-foreground);
 }
 
 [data-blume-nav-tree] a[aria-current="page"] {
-  border-inline-start: 2px solid var(--blume-accent);
-  border-radius: 0;
-  background: transparent;
+  background: var(--blume-muted);
+  color: var(--blume-foreground);
   box-shadow: none;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 /* Give landing-page links a strong visual identity without sacrificing
    semantic links or keyboard navigation. */
 [data-blume-card] {
-  min-height: 11rem;
+  min-height: 9.5rem;
   border: 1px solid color-mix(in srgb, var(--blume-foreground) 16%, transparent);
   background: color-mix(in srgb, var(--blume-muted) 64%, var(--blume-background));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--blume-foreground) 10%, transparent),
-    0 0.625rem 1.75rem rgb(0 0 0 / 16%);
+  box-shadow: none;
   transition:
-    transform 180ms ease,
     border-color 180ms ease,
-    box-shadow 180ms ease;
+    background-color 180ms ease;
 }
 
 [data-blume-card] > div {
@@ -190,11 +207,8 @@
 
 @media (hover: hover) {
   [data-blume-card][href]:hover {
-    transform: translateY(-0.1875rem);
     border-color: color-mix(in srgb, var(--blume-accent) 70%, var(--blume-foreground));
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--blume-foreground) 12%, transparent),
-      0 1rem 2.25rem rgb(0 0 0 / 22%);
+    background: color-mix(in srgb, var(--blume-muted) 82%, var(--blume-background));
   }
 }
 
