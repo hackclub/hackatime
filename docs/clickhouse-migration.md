@@ -32,10 +32,10 @@ ClickHouse does not preallocate its container or server limit, but those limits 
 
 | Phase | PostgreSQL `shared_buffers` | ClickHouse container | ClickHouse tracked server | Rails user total | Per query | Rails query concurrency | Sort/group spill |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Backfill and cutover | 64 GiB | 48 GiB | 32 GiB | 28 GiB | 6 GiB | 6 | 2 GiB |
-| After purge and PostgreSQL retuning | 24 GiB target | 48 GiB | 32 GiB | 28 GiB | 6 GiB | 6 | 2 GiB |
+| Backfill and cutover | 64 GiB | 32 GiB | 24 GiB | 8 GiB | 1 GiB | 6 | 256 MiB |
+| After purge and PostgreSQL retuning | 24 GiB target | 32 GiB | 24 GiB | 8 GiB | 1 GiB | 6 | 256 MiB |
 
-The post-purge 24 GiB PostgreSQL value is a starting target, not a claim that the remaining relational workload needs exactly that amount. Measure the non-heartbeat working set and cache misses before applying it. The target PostgreSQL shared pool plus ClickHouse tracked ceiling is 56 GiB, below the current 64 GiB PostgreSQL shared pool alone. Actual total RAM also includes PostgreSQL backend-private memory, ClickHouse allocations not represented by query tracking and reclaimable filesystem cache, so judge the outcome from container/cgroup working set rather than adding only configuration values.
+The post-purge 24 GiB PostgreSQL value is a starting target, not a claim that the remaining relational workload needs exactly that amount. Measure the non-heartbeat working set and cache misses before applying it. The target PostgreSQL shared pool plus ClickHouse tracked ceiling is 48 GiB, below the current 64 GiB PostgreSQL shared pool alone. Actual total RAM also includes PostgreSQL backend-private memory, ClickHouse allocations not represented by query tracking and reclaimable filesystem cache, so judge the outcome from container/cgroup working set rather than adding only configuration values.
 
 Keep 24 logical CPUs available to ClickHouse, throttle the online backfill instead of increasing memory under pressure and require enough NVMe space for the backfill, merges, a repair and at least 35% free space after cutover. Increase a limit only after the production-sized read replay described below proves that the limit, rather than query shape or disk, causes a material latency regression.
 
@@ -65,7 +65,7 @@ services:
     image: clickhouse/clickhouse-server:26.7.3.19
     restart: unless-stopped
     stop_grace_period: 10m
-    mem_limit: 48g
+    mem_limit: 32g
     cpus: "24.0"
     ulimits:
       nofile:
@@ -110,7 +110,7 @@ configs:
   clickhouse_server_config:
     content: |
       <clickhouse>
-        <max_server_memory_usage>34359738368</max_server_memory_usage>
+        <max_server_memory_usage>25769803776</max_server_memory_usage>
         <max_concurrent_queries>20</max_concurrent_queries>
         <backups>
           <allow_concurrent_backups>false</allow_concurrent_backups>
@@ -175,12 +175,12 @@ Replace `APP_PASSWORD` below without printing it into a shared log:
 
 ```sql
 CREATE SETTINGS PROFILE IF NOT EXISTS hackatime_app_profile SETTINGS
-    max_memory_usage = 6442450944 READONLY,
-    max_memory_usage_for_user = 30064771072 READONLY,
+    max_memory_usage = 1073741824 READONLY,
+    max_memory_usage_for_user = 8589934592 READONLY,
     max_concurrent_queries_for_user = 6 READONLY,
     max_execution_time = 60 READONLY,
-    max_bytes_before_external_group_by = 2147483648 READONLY,
-    max_bytes_before_external_sort = 2147483648 READONLY;
+    max_bytes_before_external_group_by = 268435456 READONLY,
+    max_bytes_before_external_sort = 268435456 READONLY;
 
 CREATE USER IF NOT EXISTS hackatime_app
     IDENTIFIED WITH sha256_password BY 'APP_PASSWORD'
@@ -264,7 +264,7 @@ SELECT pg_size_pretty(pg_database_size(current_database())) AS database_size,
        pg_size_pretty(pg_total_relation_size('dashboard_rollups')) AS rollup_size;
 ```
 
-The design benchmark selected the current query layouts and found sampled ClickHouse product queries within a 250 ms p95 budget. It used about 1.75 million rows across six account-size cohorts and did not measure full production cardinality, concurrent traffic or a constrained memory profile. It is evidence for the schema, not proof that this host will meet the memory or no-regression target.
+The design benchmark selected the current query layouts and found sampled ClickHouse product queries within a 250 ms p95 budget. It used about 1.75 million rows across six account-size cohorts and did not measure full production cardinality or concurrent traffic. Its retained `system.query_log` records show a roughly 74 MiB p99 and 83 MiB maximum for ordinary product query shapes. A representative full export of 1.1 million user rows completed under the proposed profile with 590 MiB tracked memory, while the exact homepage aggregation used 78 MiB. The 1 GiB cap is therefore deliberately finite but still has substantial measured headroom. It remains evidence from a sampled workload, not proof that full production cardinality will meet the memory or no-regression target.
 
 After the full backfill, replay production-shaped reads against the production ClickHouse database at the configured limits before the final fence. Include concurrent dashboards, profiles, homepage totals, leaderboards and exports while merges are active. Test ingestion concurrency on an isolated restored copy, not the cutover database: ClickHouse-only test heartbeats would intentionally make production verification fail. A cutover gate passes only when:
 
@@ -294,7 +294,7 @@ ORDER BY max(memory_usage) DESC
 LIMIT 30;
 ```
 
-Per `agent-query-safety`, self-hosted ClickHouse does not provide safe query memory, spill or execution-time defaults. The enforced settings profile is the guardrail. Do not raise it merely because an inefficient or unexpectedly broad query reaches a limit; inspect its scan, sort and grouping shape first.
+Per `agent-query-safety`, self-hosted ClickHouse does not provide safe query memory, spill or execution-time defaults. The enforced settings profile is the guardrail. If a production-shaped query reaches 1 GiB, inspect its scan, sort and grouping shape and chunk or optimise it instead of increasing the global application profile. Grant a larger limit only to a separately controlled operator path after measuring that exact operation.
 
 ## 2. Establish backup and restore evidence
 
@@ -592,4 +592,4 @@ Do not change the Coolify image to `latest` and do not bypass the migration vers
 - **Official:** native S3 backups can be full or incremental, named collections keep credentials out of queries and restore drills are required. See [ClickHouse backup and restore](https://clickhouse.com/docs/concepts/features/backup-restore/overview) and [S3 backup endpoints](https://clickhouse.com/docs/concepts/features/backup-restore/s3-endpoint).
 - **Official:** monitor queries, merges, parts, memory, disk and backups through system tables or the Prometheus endpoint. See [ClickHouse monitoring](https://clickhouse.com/docs/guides/oss/deployment-and-scaling/monitoring/monitoring) and [system tables](https://clickhouse.com/docs/operations/system-tables).
 - **Derived from this implementation:** the fence order, four-table ownership, month-bounded insertion, verification, purge transaction, repair semantics and lifecycle replay commands.
-- **Field starting points:** the 24 CPU/48 GiB container, 32 GiB tracked server, 6 GiB query, 28 GiB Rails user, six-query concurrency, 2 GiB spill, 24 GiB post-purge PostgreSQL target and disk alert thresholds. These are workload-specific hypotheses, not official defaults. Change them only from measured production behavior while preserving headroom.
+- **Field starting points:** the 24 CPU/32 GiB container, 24 GiB tracked server, 1 GiB query, 8 GiB Rails user, six-query concurrency, 256 MiB spill, 24 GiB post-purge PostgreSQL target and disk alert thresholds. These are workload-specific hypotheses, not official defaults. Change them only from measured production behavior while preserving headroom.
