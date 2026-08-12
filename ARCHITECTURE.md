@@ -21,16 +21,16 @@ rebuilt.
 ## 1. Rails request and Inertia/Svelte UI flow
 
 1. Routes dispatch to Rails controllers. Browser controllers inherit
-   [`ApplicationController`](../app/controllers/application_controller.rb),
+   [`ApplicationController`](app/controllers/application_controller.rb),
    which supplies session identity, lockout enforcement, no-store headers,
    error reporting, PaperTrail attribution, and the user's time zone.
 2. Inertia controllers inherit
-   [`InertiaController`](../app/controllers/inertia_controller.rb). It shares
+   [`InertiaController`](app/controllers/inertia_controller.rb). It shares
    layout props (navigation, flash, theme, CSRF token, footer and impersonation
    state) on every Inertia response. Controllers select a page with
    `render inertia: "Directory/Page", props: ...`; server props are the
    request's serialized boundary, not a second model layer.
-3. [`inertia.ts`](../app/javascript/entrypoints/inertia.ts) resolves that name
+3. [`inertia.ts`](app/javascript/entrypoints/inertia.ts) resolves that name
    to `app/javascript/pages/Directory/Page.svelte` and wraps pages in
    `AppLayout.svelte`. Inertia `<Link>`, `<Form>` and `router` calls make later
    visits while Rails still owns routing, authorization, validation and writes.
@@ -40,7 +40,7 @@ rebuilt.
 
 Client route strings come from **js_from_routes**, not controller props or
 hand-built URLs. Add a named route to `EXPORTED_ROUTES` in
-[`js_from_routes.rb`](../config/initializers/js_from_routes.rb), regenerate, and
+[`js_from_routes.rb`](config/initializers/js_from_routes.rb), regenerate, and
 import the controller module from `app/javascript/api`. Call `.path()` with
 path/query parameters. The generated directory is gitignored. The allowlist
 exports named routes and nameless siblings for an already-exported controller;
@@ -54,45 +54,45 @@ example, request host), or for external links. API-only controllers may inherit
 
 ### Browser identity
 
-[`ApplicationController#current_user`](../app/controllers/application_controller.rb)
+[`ApplicationController#current_user`](app/controllers/application_controller.rb)
 is exactly `User.find_by(id: session[:user_id])`. HCA, Slack, and single-use
 email-link sign-in converge on a `User`; successful login resets the session
 before assigning that ID. Slack and GitHub callback state is consumed and
 compared with `secure_compare`; HCA currently does not use an OAuth state
 nonce. Continuation URLs must be local paths (not `//...`). See
-[`SessionsController`](../app/controllers/sessions_controller.rb).
+[`SessionsController`](app/controllers/sessions_controller.rb).
 
-[`EmailAddress`](../app/models/email_address.rb) owns normalized, globally
+[`EmailAddress`](app/models/email_address.rb) owns normalized, globally
 unique login addresses and their provenance. Provider/preserved addresses
 cannot be unlinked, and a user cannot remove their last address. Provider IDs
 and encrypted HCA/Slack/GitHub access tokens live on
-[`User`](../app/models/user.rb); provider concerns own token exchange and remote
+[`User`](app/models/user.rb); provider concerns own token exchange and remote
 profile synchronization.
 
 ### API identities
 
-* [`ApiKey`](../app/models/api_key.rb) is a user credential (UUIDv4 for WakaTime
+* [`ApiKey`](app/models/api_key.rb) is a user credential (UUIDv4 for WakaTime
   compatibility). The Hackatime-compatible controller accepts Bearer, Basic,
   or legacy `api_key` query input, resolves the key's user, then calls the
   ingestion service. It skips CSRF because it is token-authenticated; pending
   deletion blocks writes. See
-  [`HackatimeController`](../app/controllers/api/hackatime/v1/hackatime_controller.rb).
+  [`HackatimeController`](app/controllers/api/hackatime/v1/hackatime_controller.rb).
 * Doorkeeper is a separate delegated-user boundary. Its configured scopes are
   `profile` (default), `read`, and `admin`; validate token acceptability and
   required scopes, then load the resource owner. Ordinary OAuth/API access is
   denied for convicted or pending-deletion users via `api_access_restricted?`.
   Controllers that support ordinary user credentials declare their accepted
   API-key sources and OAuth scopes through
-  [`UserApiAuthentication`](../app/controllers/concerns/user_api_authentication.rb).
-  See [`doorkeeper.rb`](../config/initializers/doorkeeper.rb).
+  [`UserApiAuthentication`](app/controllers/concerns/user_api_authentication.rb).
+  See [`doorkeeper.rb`](config/initializers/doorkeeper.rb).
 * Admin API credentials are either active `AdminApiKey`s or acceptable
   Doorkeeper `admin` tokens. OAuth admin access additionally requires a
   confidential, verified, admin-scoped application. The API boundary is
-  [`Api::Admin::ApplicationController`](../app/controllers/api/admin/application_controller.rb).
+  [`Api::Admin::ApplicationController`](app/controllers/api/admin/application_controller.rb).
 
 ### Admin authorization
 
-Use [`AuthHelpers`](../app/controllers/concerns/auth_helpers.rb) and explicit
+Use [`AuthHelpers`](app/controllers/concerns/auth_helpers.rb) and explicit
 controller/model predicates; hiding a nav link is not authorization. `viewer`
 can enter read-only admin surfaces and use admin API authentication, but general
 browser admin writes require `admin`, `superadmin`, or `ultraadmin`.
@@ -108,14 +108,14 @@ trust conviction requires superadmin+.
 
 Non-deleted ClickHouse heartbeat rows are authoritative activity when
 `HEARTBEAT_STORE=clickhouse`, which production sets explicitly after cutover.
-[`HeartbeatRepository`](../app/repositories/heartbeat_repository.rb) owns all
+[`HeartbeatRepository`](app/repositories/heartbeat_repository.rb) owns all
 ClickHouse reads, exact timestamp filtering, canonical persistence and
 replacement writes. `heartbeat_store` owns full payload and lifecycle state;
 `heartbeat_aliases` owns canonical and legacy hash deduplication. PostgreSQL
 provides only monotonic ID/version allocation, transient advisory locks and
 coarse workflow status for transfer, deletion and JA4 operations. All direct
 and imported writes should flow through
-[`HeartbeatIngest`](../app/services/heartbeat_ingest.rb), which owns:
+[`HeartbeatIngest`](app/services/heartbeat_ingest.rb), which owns:
 
 * accepted input normalization, sane epoch validation/repair, null/control
   cleanup, default categories, language and user-agent inference, source type,
@@ -143,7 +143,7 @@ the canonical store, independently acknowledge both query layouts and
 invalidate rollups. Transfers retain higher-version source tombstones so a
 delayed pre-transfer write cannot resurrect the old owner.
 
-Duration is not stored. [`Heartbeatable`](../app/models/concerns/heartbeatable.rb)
+Duration is not stored. [`Heartbeatable`](app/models/concerns/heartbeatable.rb)
 derives it from ordered heartbeat timestamps. The default timeout is 2 minutes:
 
 * the first heartbeat contributes zero;
@@ -162,7 +162,7 @@ coding, browser activity and the `<<LAST_PROJECT>>` sentinel.
 
 ## 4. Dashboard/profile rollups and cache policy
 
-[`DashboardStats`](../app/services/dashboard_stats.rb) is the read facade. An
+[`DashboardStats`](app/services/dashboard_stats.rb) is the read facade. An
 unfiltered all-time dashboard can use `dashboard_rollups`; filtered/custom time
 ranges query heartbeats. A missing aggregate total falls back to live
 calculation and schedules a refresh. A dirty or stale aggregate total is served
@@ -170,7 +170,7 @@ while refresh is scheduled. Invalid activity-graph/today fragments and
 malformed filter options fall back to live calculation and schedule refresh.
 The assembled filtered dashboard payload has a disposable five-minute cache.
 
-[`DashboardRollupRefreshService`](../app/services/dashboard_rollup_refresh_service.rb)
+[`DashboardRollupRefreshService`](app/services/dashboard_rollup_refresh_service.rb)
 rebuilds totals, dimensions, weekly projects, project details, filter options,
 activity graph and today's stats from the user's non-archived heartbeats. It
 atomically replaces all of one user's rows in a transaction. The refresh job
@@ -181,7 +181,7 @@ another refresh. A recurring sweep recovers dirty generations after cache
 eviction or a process crash. Heartbeat commits, soft-delete/
 restore, timezone changes, and project archive changes schedule refreshes.
 
-[`ProfileStatsService`](../app/services/profile_stats_service.rb) is a thin
+[`ProfileStatsService`](app/services/profile_stats_service.rb) is a thin
 projection of `DashboardStats`, including OG-image totals. It has no independent
 authoritative statistic. With ClickHouse enabled these product surfaces query
 the repository directly and the PostgreSQL rollup refresh job is disabled.
@@ -195,23 +195,23 @@ independently.
 
 ## 5. Projects, repositories and repo hosts
 
-[`ProjectRepoMapping`](../app/models/project_repo_mapping.rb) owns a user's
+[`ProjectRepoMapping`](app/models/project_repo_mapping.rb) owns a user's
 repository association, archive state and sharing state keyed by a heartbeat
 project name. The heartbeat remains authoritative for the project identity and
 a mapping may not exist. Archiving affects dashboard scope and invalidates
 rollups. Ingestion asynchronously attempts mapping for new non-sentinel project
 names; discovery currently searches the linked GitHub user and organizations.
 
-[`Repository`](../app/models/repository.rb) is shared by URL and owns parsed
+[`Repository`](app/models/repository.rb) is shared by URL and owns parsed
 host/owner/name plus synchronized host metadata. Mapping callbacks create/reuse
 it and trigger metadata/commit work. A mapping is user-specific; a repository
 is not. Do not put user preferences on `Repository` or shared host metadata on
 the mapping.
 
 External repository calls belong behind
-[`RepoHost::ServiceFactory`](../app/services/repo_host/service_factory.rb) and
-[`BaseService`](../app/services/repo_host/base_service.rb). Only GitHub is
-supported today; [`GithubService`](../app/services/repo_host/github_service.rb)
+[`RepoHost::ServiceFactory`](app/services/repo_host/service_factory.rb) and
+[`BaseService`](app/services/repo_host/base_service.rb). Only GitHub is
+supported today; [`GithubService`](app/services/repo_host/github_service.rb)
 owns GitHub headers, existence checks, metadata requests and rate-limit/error
 translation. Extending hosts requires factory/host validation and a service
 implementation, plus updating jobs that currently contain GitHub-specific
@@ -220,10 +220,10 @@ currently disabled; do not assume they run.
 
 ## 6. GoodJob, mail and Slack
 
-All jobs inherit [`ApplicationJob`](../app/jobs/application_job.rb), which
+All jobs inherit [`ApplicationJob`](app/jobs/application_job.rb), which
 provides shared error-reporting helpers and discards deserialization and
 concurrency-limit failures.
-[`good_job.rb`](../config/initializers/good_job.rb) is the queue/cron source of
+[`good_job.rb`](config/initializers/good_job.rb) is the queue/cron source of
 truth: development runs async threads, non-development expects external
 workers, and cron is production-only. Choose a queue by latency/ownership; do
 not perform slow remote work in request controllers merely because development
@@ -231,16 +231,16 @@ can execute jobs in-process.
 
 Action Mailer owns message composition/delivery. Production SMTP configuration
 and the `latency_10s` `deliver_later` queue live in
-[`production.rb`](../config/environments/production.rb). Some jobs intentionally
+[`production.rb`](config/environments/production.rb). Some jobs intentionally
 call `deliver_now` *inside an already-queued job*; preserve that boundary unless
 changing retry/queue semantics deliberately.
 
 Slack has three boundaries: OAuth/provider identity in the user concerns,
-signed command ingress in [`SlackController`](../app/controllers/slack_controller.rb),
+signed command ingress in [`SlackController`](app/controllers/slack_controller.rb),
 and queued command/profile/status work. Outside development, commands require a
 valid Slack HMAC signature and timestamp within five minutes. Remote API calls,
 token choice and typed rate-limit behavior live in
-[`SlackIntegration`](../app/models/concerns/slack_integration.rb); controllers
+[`SlackIntegration`](app/models/concerns/slack_integration.rb); controllers
 should authenticate, validate and enqueue.
 
 ## 7. Time zones, transactions and concurrency
