@@ -7,9 +7,14 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
   setup do
     @previous_store = ENV["HEARTBEAT_STORE"]
     @previous_writes_stopped = ENV["HEARTBEAT_WRITES_STOPPED"]
+    @previous_mutations_stopped = ENV["HEARTBEAT_MUTATIONS_STOPPED"]
     @previous_clickhouse_test = ENV["CLICKHOUSE_TEST"]
     @previous_clickhouse_url = ENV["CLICKHOUSE_URL"]
     @previous_batch_size = ENV["BATCH_SIZE"]
+    @previous_table = ENV["TABLE"]
+    @previous_partition = ENV["PARTITION"]
+    @previous_after_user_id = ENV["AFTER_USER_ID"]
+    @previous_after_id = ENV["AFTER_ID"]
     @previous_client = ClickHouse::Client.instance_variable_get(:@current)
     @previous_repository = HeartbeatRepository.instance_variable_get(:@current)
   end
@@ -18,22 +23,40 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
     @admin&.execute("DROP DATABASE IF EXISTS #{@database}") if @database
     restore_env("HEARTBEAT_STORE", @previous_store)
     restore_env("HEARTBEAT_WRITES_STOPPED", @previous_writes_stopped)
+    restore_env("HEARTBEAT_MUTATIONS_STOPPED", @previous_mutations_stopped)
     restore_env("CLICKHOUSE_TEST", @previous_clickhouse_test)
     restore_env("CLICKHOUSE_URL", @previous_clickhouse_url)
     restore_env("BATCH_SIZE", @previous_batch_size)
+    restore_env("TABLE", @previous_table)
+    restore_env("PARTITION", @previous_partition)
+    restore_env("AFTER_USER_ID", @previous_after_user_id)
+    restore_env("AFTER_ID", @previous_after_id)
     ClickHouse::Client.instance_variable_set(:@current, @previous_client)
     HeartbeatRepository.instance_variable_set(:@current, @previous_repository)
-    %w[migrate backfill verify drain_outbox purge_postgres].each do |task|
+    %w[migrate backfill verify drain_outbox repair_query_layouts reseed_postgres_sequences replay_lifecycle_controls purge_postgres].each do |task|
       Rake::Task["clickhouse:#{task}"].reenable
     end
   end
 
   test "PostgreSQL purge requires the application write fence" do
     ENV["HEARTBEAT_STORE"] = "clickhouse"
+    ENV["CLICKHOUSE_TEST"] = "1"
     ENV.delete("HEARTBEAT_WRITES_STOPPED")
 
     error = assert_raises(SystemExit) { capture_io { Rake::Task["clickhouse:purge_postgres"].invoke } }
     assert_equal 1, error.status
+  end
+
+  test "PostgreSQL backfill requires the mutation fence" do
+    ENV["HEARTBEAT_STORE"] = "postgresql"
+    ENV["CLICKHOUSE_TEST"] = "0"
+    ENV.delete("HEARTBEAT_MUTATIONS_STOPPED")
+
+    _output, error_output = capture_io do
+      error = assert_raises(SystemExit) { Rake::Task["clickhouse:backfill"].invoke }
+      assert_equal 1, error.status
+    end
+    assert_includes error_output, "Set HEARTBEAT_MUTATIONS_STOPPED=1"
   end
 
   test "two-pass backfill verifies the fenced PostgreSQL boundary" do
@@ -50,6 +73,7 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
     ENV["CLICKHOUSE_TEST"] = "0"
     ENV["HEARTBEAT_STORE"] = "postgresql"
     ENV["BATCH_SIZE"] = "1"
+    ENV["HEARTBEAT_MUTATIONS_STOPPED"] = "1"
     ENV.delete("HEARTBEAT_WRITES_STOPPED")
 
     invoke_task("migrate")
@@ -87,7 +111,128 @@ class ClickhouseTaskTest < ActiveSupport::TestCase
     assert_includes error_output, "PostgreSQL received heartbeats after the recorded source boundary"
   end
 
+  test "recovery replays completed lifecycle controls over a stale ClickHouse restore" do
+    skip "Set CLICKHOUSE_INTEGRATION=1 to run" unless ENV["CLICKHOUSE_INTEGRATION"] == "1"
+
+    setup_clickhouse_database
+    ENV["HEARTBEAT_STORE"] = "clickhouse"
+    ENV["CLICKHOUSE_TEST"] = "1"
+    ENV.delete("HEARTBEAT_MUTATIONS_STOPPED")
+    ENV.delete("HEARTBEAT_WRITES_STOPPED")
+    repository = HeartbeatRepository.current
+    started_at = Time.utc(2026, 8, 12, 12).to_f
+
+    transfer_source = User.create!(timezone: "UTC")
+    transfer_target = User.create!(timezone: "UTC")
+    transfer_final_target = User.create!(timezone: "UTC")
+    deletion_before_nullification = User.create!(timezone: "UTC")
+    nullification_before_deletion = User.create!(timezone: "UTC")
+    later_ja4 = Ja4.create!(fingerprint: SecureRandom.hex(18))
+    earlier_ja4 = Ja4.create!(fingerprint: SecureRandom.hex(18))
+
+    ingest_heartbeat(repository, transfer_source, "transfer.rb", started_at, ja4: later_ja4)
+    ingest_heartbeat(repository, deletion_before_nullification, "delete-then-ja4.rb", started_at + 1, ja4: later_ja4)
+    ingest_heartbeat(repository, nullification_before_deletion, "ja4-then-delete.rb", started_at + 2, ja4: earlier_ja4)
+
+    payload_tables = %w[heartbeat_store heartbeat_aliases heartbeats heartbeats_by_time]
+    payload_tables.each do |table|
+      @client.execute("CREATE TABLE recovery_backup_#{table} AS #{table}")
+      @client.execute("INSERT INTO recovery_backup_#{table} SELECT * FROM #{table}")
+    end
+
+    transfer = repository.prepare_transfer(from_user_id: transfer_source.id, to_user_id: transfer_target.id)
+    repository.transfer_rows(transfer)
+    transfer.update!(status: :completed, completed_at: Time.current)
+    chained_transfer = repository.prepare_transfer(
+      from_user_id: transfer_target.id,
+      to_user_id: transfer_final_target.id
+    )
+    repository.transfer_rows(chained_transfer)
+    chained_transfer.update!(status: :completed, completed_at: Time.current)
+
+    earlier_nullification = HeartbeatJa4Nullification.create!(ja4_id: earlier_ja4.id)
+    repository.nullify_ja4(earlier_ja4.id, version: earlier_nullification.clickhouse_version)
+    earlier_nullification.update!(completed_at: Time.current)
+    later_deletion = HeartbeatDeletion.create!(user_id: nullification_before_deletion.id)
+    repository.soft_delete_user(
+      later_deletion.user_id,
+      version: later_deletion.clickhouse_version,
+      deleted_at: later_deletion.created_at
+    )
+    later_deletion.update!(status: :completed, completed_at: Time.current)
+
+    earlier_deletion = HeartbeatDeletion.create!(user_id: deletion_before_nullification.id)
+    repository.soft_delete_user(
+      earlier_deletion.user_id,
+      version: earlier_deletion.clickhouse_version,
+      deleted_at: earlier_deletion.created_at
+    )
+    earlier_deletion.update!(status: :completed, completed_at: Time.current)
+    later_nullification = HeartbeatJa4Nullification.create!(ja4_id: later_ja4.id)
+    repository.nullify_ja4(later_ja4.id, version: later_nullification.clickhouse_version)
+    later_nullification.update!(completed_at: Time.current)
+
+    payload_tables.each do |table|
+      @client.execute("TRUNCATE TABLE #{table}")
+      @client.execute("INSERT INTO #{table} SELECT * FROM recovery_backup_#{table}")
+    end
+    assert_equal 1, repository.for_user(transfer_source.id).count
+    assert_equal 1, repository.for_user(deletion_before_nullification.id).count
+    assert_equal 1, repository.for_user(nullification_before_deletion.id).count
+
+    max_id = @client.select("SELECT max(id) AS value FROM heartbeat_store").sole.fetch("value").to_i
+    max_version = @client.select(<<~SQL.squish).sole.fetch("value").to_i
+      SELECT greatest(max(version), max(store_version), max(heartbeats_version),
+        max(heartbeats_by_time_version), max(ja4_nullification_version)) AS value
+      FROM heartbeat_store
+    SQL
+    connection = ActiveRecord::Base.connection
+    connection.execute("SELECT setval('heartbeat_id_allocations_id_seq', 1, true)")
+    connection.execute("SELECT setval('heartbeat_clickhouse_versions_id_seq', 1, true)")
+
+    ENV["HEARTBEAT_WRITES_STOPPED"] = "1"
+    ENV["HEARTBEAT_MUTATIONS_STOPPED"] = "1"
+    2.times { invoke_task("replay_lifecycle_controls") }
+
+    assert_operator repository.next_id, :>, max_id
+    assert_operator repository.next_version, :>, max_version
+
+    assert_equal 0, repository.for_user(transfer_source.id).count
+    assert_equal 0, repository.for_user(transfer_target.id).count
+    assert_equal 1, repository.for_user(transfer_final_target.id).count
+    assert_equal 0, repository.for_user(transfer_final_target.id).where.not(ja4_id: nil).count
+    [ deletion_before_nullification, nullification_before_deletion ].each do |user|
+      assert_equal 0, repository.for_user(user.id).count
+      assert_equal 1, repository.for_user(user.id).with_deleted.count
+      assert_equal 0, repository.for_user(user.id).with_deleted.where.not(ja4_id: nil).count
+    end
+  end
+
   private
+
+  def setup_clickhouse_database
+    @admin = @previous_client || ClickHouse::Client.new(@previous_clickhouse_url)
+    @database = "hackatime_cutover_test_#{Process.pid}_#{SecureRandom.hex(4)}"
+    @admin.execute("CREATE DATABASE #{@database}")
+    @client = ClickHouse::Client.new(@previous_clickhouse_url.sub(%r{/[^/]+\z}, "/#{@database}"))
+    ClickHouse::Client.instance_variable_set(:@current, @client)
+    HeartbeatRepository.instance_variable_set(:@current, HeartbeatRepository.new(client: @client))
+    ENV["CLICKHOUSE_URL"] = @previous_clickhouse_url.sub(%r{/[^/]+\z}, "/#{@database}")
+    ENV["CLICKHOUSE_TEST"] = "0"
+    invoke_task("migrate")
+  end
+
+  def ingest_heartbeat(repository, user, entity, time, ja4: nil)
+    result = HeartbeatIngest.call(
+      user:,
+      mode: :direct,
+      heartbeats: [ { entity:, time:, type: "file" } ],
+      request_context: ja4 ? { ja4: ja4.fingerprint } : {},
+      schedule_rollup_refresh: false
+    )
+    assert_equal 1, result.persisted_count
+    repository.for_user(user.id).sole
+  end
 
   def invoke_task(name)
     Rake::Task["clickhouse:#{name}"].reenable

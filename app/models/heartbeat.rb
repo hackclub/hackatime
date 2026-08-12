@@ -56,6 +56,7 @@ class Heartbeat < ApplicationRecord
 
   def soft_delete
     HeartbeatRepository.ensure_writes_enabled!
+    HeartbeatRepository.ensure_mutations_enabled!
     if HeartbeatRepository.clickhouse?
       HeartbeatRepository.current.change_deleted(heartbeat_id: id, user_id:, deleted: true)
       self.deleted_at = Time.current
@@ -68,6 +69,7 @@ class Heartbeat < ApplicationRecord
 
   def restore
     HeartbeatRepository.ensure_writes_enabled!
+    HeartbeatRepository.ensure_mutations_enabled!
     if HeartbeatRepository.clickhouse?
       HeartbeatRepository.current.change_deleted(heartbeat_id: id, user_id:, deleted: false)
       self.deleted_at = nil

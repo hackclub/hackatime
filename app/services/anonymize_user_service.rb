@@ -15,6 +15,7 @@ class AnonymizeUserService < ApplicationService
 
   def call
     HeartbeatRepository.ensure_writes_enabled!
+    HeartbeatRepository.ensure_mutations_enabled!
     ActiveRecord::Base.transaction do
       HeartbeatRepository.current.prepare_deletion(user.id) if HeartbeatRepository.clickhouse?
       user.email_addresses.update_all(user_id: user.id, source: EmailAddress.sources[:preserved_for_deletion])

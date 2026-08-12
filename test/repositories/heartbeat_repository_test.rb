@@ -320,7 +320,7 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
   test "ClickHouse inserts use stable deduplication tokens" do
     client = FakeClient.new
     repository = HeartbeatRepository.new(client:)
-    rows = [ { "user_id" => 42, "id" => 7, "version" => 3 } ]
+    rows = [ { "user_id" => 42, "id" => 7, "time" => Time.utc(2026, 8, 12).to_f, "version" => 3 } ]
 
     2.times { repository.send(:insert_rows, "heartbeats", rows) }
     repository.send(:insert_rows, "heartbeats", [ rows.sole.merge("version" => 4) ])
@@ -331,19 +331,120 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     assert_not_equal settings[1][:insert_deduplication_token], settings[2][:insert_deduplication_token]
   end
 
+  test "partitioned inserts split months before applying the row limit" do
+    client = FakeClient.new
+    rows = 121.times.map do |index|
+      {
+        "user_id" => 42,
+        "id" => index + 1,
+        "time" => (Time.utc(2016, 1, 1) + index.months).to_f,
+        "version" => 3
+      }
+    end
+
+    HeartbeatRepository.new(client:).send(:insert_rows, "heartbeats", rows)
+
+    assert_equal 121, client.inserts.length
+    assert client.inserts.all? { |_table, batch, _settings| batch.one? }
+    assert_equal 121, client.inserts.map { |insert| insert.last.fetch(:insert_deduplication_token) }.uniq.length
+  end
+
+  test "partitioned inserts keep ten-thousand-row chunks and stable tokens" do
+    client = FakeClient.new
+    rows = 10_001.times.map do |index|
+      { "user_id" => 42, "id" => index + 1, "time" => 1_700_000_000.0, "version" => 3 }
+    end
+    repository = HeartbeatRepository.new(client:)
+
+    2.times { repository.send(:insert_rows, "heartbeats", rows) }
+
+    assert_equal [ 10_000, 1, 10_000, 1 ], client.inserts.map { |insert| insert.second.length }
+    tokens = client.inserts.map { |insert| insert.last.fetch(:insert_deduplication_token) }
+    assert_equal tokens.first(2), tokens.last(2)
+    assert_not_equal tokens.first, tokens.second
+  end
+
+  test "latest IP lookups batch large user lists" do
+    last_id = HeartbeatRepository::QUERY_BATCH_SIZE + 1
+    ids = (1..last_id).to_a
+    client = FakeClient.new([
+      [ { "user_id" => 1, "latest_ip_address" => "203.0.113.1" } ],
+      [ { "user_id" => last_id, "latest_ip_address" => "203.0.113.2" } ]
+    ])
+
+    result = HeartbeatRepository.new(client:).latest_ip_by_user(ids)
+
+    assert_equal({ 1 => "203.0.113.1", last_id => "203.0.113.2" }, result)
+    assert_equal 2, client.queries.length
+    assert_includes client.queries.first, "1, 2, 3"
+    assert_not_includes client.queries.first, last_id.to_s
+    assert_includes client.queries.second, last_id.to_s
+    assert client.queries.all? { |query| query.bytesize < 262_144 }
+  end
+
+  test "daily streak lookups batch users within each timezone" do
+    last_id = HeartbeatRepository::QUERY_BATCH_SIZE + 1
+    ids = (1..last_id).to_a
+    users = ids.map { |id| [ id, "UTC" ] }
+    client = FakeClient.new([ [], [] ])
+    original_where = User.method(:where)
+    User.define_singleton_method(:where) do |conditions|
+      relation = Object.new
+      relation.define_singleton_method(:pluck) { |*| users.select { |id, _timezone| conditions.fetch(:id).include?(id) } }
+      relation
+    end
+
+    result = HeartbeatRepository.new(client:).daily_streaks(
+      ids,
+      start_date: 8.days.ago,
+      exclude_browser_time: false
+    )
+
+    assert_equal 0, result.fetch(1)
+    assert_equal 0, result.fetch(last_id)
+
+    assert_equal 2, client.queries.length
+    assert_includes client.queries.first, "`user_id` IN (1, 2, 3"
+    assert_not_includes client.queries.first, last_id.to_s
+    assert_includes client.queries.second, "`user_id` IN (#{last_id})"
+    assert client.queries.all? { |query| query.bytesize < 262_144 }
+  ensure
+    User.define_singleton_method(:where, original_where) if original_where
+  end
+
   test "ClickHouse insert failures retry with the same synchronous insert token" do
     client = FlakyInsertClient.new
 
     HeartbeatRepository.new(client:).send(
       :insert_rows,
       "heartbeats",
-      [ { "user_id" => 42, "id" => 7, "version" => 3 } ]
+      [ { "user_id" => 42, "id" => 7, "time" => Time.utc(2026, 8, 12).to_f, "version" => 3 } ]
     )
 
     assert_equal 2, client.attempted_settings.length
     assert_equal 1, client.attempted_settings.pluck(:insert_deduplication_token).uniq.length
     assert client.attempted_settings.all? { |settings| settings[:async_insert] == 0 }
     assert client.attempted_settings.all? { |settings| settings[:wait_for_async_insert] == 1 }
+  end
+
+  test "delivery verification keeps tuple queries below the server query-size limit" do
+    user_id = 4_294_967_500
+    first_id = 1_700_000_000_000_000
+    rows = (HeartbeatRepository::QUERY_BATCH_SIZE + 1).times.map do |index|
+      {
+        "user_id" => user_id,
+        "id" => first_id + index,
+        "time" => 1_700_000_000.125 + index,
+        "version" => 3
+      }
+    end
+    visible = rows.map { |row| row.slice("user_id", "id", "version") }
+    client = FakeClient.new([ visible.first(HeartbeatRepository::QUERY_BATCH_SIZE), visible.last(1) ])
+
+    HeartbeatRepository.new(client:).send(:verify_visible_versions!, "heartbeats", rows)
+
+    assert_equal 2, client.queries.length
+    assert client.queries.all? { |query| query.bytesize < 262_144 }
   end
 
   test "visualization selects line and cursor pixels independently" do
@@ -423,8 +524,24 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     ENV["HEARTBEAT_WRITES_STOPPED"] = previous
   end
 
+  test "the online backfill fence blocks lifecycle admission and queued jobs" do
+    previous = ENV["HEARTBEAT_MUTATIONS_STOPPED"]
+    ENV["HEARTBEAT_MUTATIONS_STOPPED"] = "1"
+    repository = HeartbeatRepository.new(client: FakeClient.new)
+
+    assert_raises(RuntimeError) { repository.prepare_transfer(from_user_id: 1, to_user_id: 2) }
+    assert_raises(RuntimeError) { repository.prepare_deletion(1) }
+    assert_raises(RuntimeError) { repository.prepare_ja4_nullification(1) }
+    assert_raises(RuntimeError) { repository.change_deleted(heartbeat_id: 1, user_id: 1, deleted: true) }
+    assert_raises(RuntimeError) { HeartbeatTransferJob.new.perform }
+    assert_raises(RuntimeError) { HeartbeatDeletionJob.new.perform }
+    assert_raises(RuntimeError) { HeartbeatJa4NullificationJob.new.perform }
+  ensure
+    ENV["HEARTBEAT_MUTATIONS_STOPPED"] = previous
+  end
+
   test "store identity lookups are bounded for large batches" do
-    hashes = 5_001.times.map { |index| Digest::MD5.hexdigest(index.to_s) }
+    hashes = (HeartbeatRepository::QUERY_BATCH_SIZE + 1).times.map { |index| Digest::MD5.hexdigest(index.to_s) }
     client = FakeClient.new([ [], [] ])
 
     HeartbeatRepository.new(client:).send(:store_rows_for_aliases, 42, hashes)
@@ -433,6 +550,7 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     assert_includes client.queries.first, hashes.first
     assert_not_includes client.queries.first, hashes.last
     assert_includes client.queries.last, hashes.last
+    assert client.queries.all? { |query| query.bytesize < 262_144 }
   end
 
   test "restoring an identity replaces an inactive alias but not an active alias" do

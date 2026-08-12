@@ -844,6 +844,23 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     ENV["HEARTBEAT_WRITES_STOPPED"] = previous
   end
 
+  test "the online backfill mutation fence permits append-only ingestion" do
+    previous = ENV["HEARTBEAT_MUTATIONS_STOPPED"]
+    ENV["HEARTBEAT_MUTATIONS_STOPPED"] = "1"
+    user = User.create!(timezone: "UTC")
+
+    result = HeartbeatIngest.call(
+      user:,
+      mode: :direct,
+      heartbeats: [ { entity: "backfill.rb", time: Time.current.to_f, type: "file" } ],
+      schedule_rollup_refresh: false
+    )
+
+    assert_equal 1, result.persisted_count
+  ensure
+    ENV["HEARTBEAT_MUTATIONS_STOPPED"] = previous
+  end
+
   private
 
   def create_legacy_imported_heartbeat(user, attributes)

@@ -26,10 +26,13 @@ class LeaderboardUpdateJob < ApplicationJob
     range = LeaderboardDateRange.calculate(date, period)
     timestamp = Time.current
     eligible_users = User.where.not(github_uid: nil).where.not(trust_level: User.trust_levels[:red])
-    data = Heartbeat.where(user_id: eligible_users.select(:id), time: range)
-      .leaderboard_eligible
-      .group(:user_id).duration_seconds
-      .filter { |_, seconds| seconds > 60 }
+    data = eligible_users.in_batches(of: HeartbeatRepository::QUERY_BATCH_SIZE).each_with_object({}) do |users, durations|
+      durations.merge!(
+        Heartbeat.where(user_id: users.pluck(:id), time: range)
+          .leaderboard_eligible
+          .group(:user_id).duration_seconds
+      )
+    end.filter { |_, seconds| seconds > 60 }
 
     streaks = Heartbeat.daily_streaks_for_users(data.keys, start_date: 8.days.ago, exclude_browser_time: true)
     needs_full_history = streaks.select { |_, streak| streak >= 6 }.keys

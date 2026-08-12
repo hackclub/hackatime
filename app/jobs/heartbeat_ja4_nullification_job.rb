@@ -4,6 +4,7 @@ class HeartbeatJa4NullificationJob < ApplicationJob
   retry_on StandardError, wait: ->(executions) { [ executions**2, 60 ].min.seconds }, attempts: :unlimited
 
   def perform(nullification_id = nil)
+    HeartbeatRepository.ensure_mutations_enabled!
     unless nullification_id
       HeartbeatJa4Nullification.where(completed_at: nil).limit(1_000).pluck(:id).each do |id|
         self.class.perform_later(id)

@@ -11,6 +11,7 @@ class HeartbeatTransferJob < ApplicationJob
   retry_on StandardError, wait: ->(executions) { [ executions**2, 60 ].min.seconds }, attempts: :unlimited
 
   def perform(transfer_id = nil)
+    HeartbeatRepository.ensure_mutations_enabled!
     unless transfer_id
       HeartbeatTransfer.where.not(status: :completed).limit(1_000).pluck(:id).each do |id|
         self.class.perform_later(id)

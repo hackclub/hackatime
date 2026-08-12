@@ -13,7 +13,7 @@ CI.run do
   step "Tests: Rails", "env RAILS_ENV=test bin/rails test"
   step "Tests: ClickHouse", "env RAILS_ENV=test CLICKHOUSE_INTEGRATION=1 bin/rails test test/repositories/heartbeat_repository_integration_test.rb test/repositories/heartbeat_repository_differential_integration_test.rb test/services/heartbeat_ingest_clickhouse_concurrency_test.rb test/tasks/clickhouse_test.rb"
   step "Tests: System", "env RAILS_ENV=test bin/rails test:system"
-  step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
+  step "Tests: Seeds", "env RAILS_ENV=test CLICKHOUSE_TEST=1 bin/rails db:seed:replant"
 
   step "Docs: Swagger", "env RAILS_ENV=test bin/rails rswag:specs:swaggerize && git diff --exit-code swagger/"
   step "Docs: Blume", "bun run build:docs"

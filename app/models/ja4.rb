@@ -26,6 +26,7 @@ class Ja4 < ApplicationRecord
       HeartbeatRepository.current.prepare_ja4_nullification(id)
     else
       HeartbeatRepository.ensure_writes_enabled!
+      HeartbeatRepository.ensure_mutations_enabled!
     end
   end
 end

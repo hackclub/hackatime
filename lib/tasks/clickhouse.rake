@@ -84,6 +84,12 @@ namespace :clickhouse do
   desc "Backfill PostgreSQL heartbeats into ClickHouse"
   task backfill: :environment do
     abort "Run backfill with HEARTBEAT_STORE=postgresql" if HeartbeatRepository.clickhouse?
+    abort "Set HEARTBEAT_MUTATIONS_STOPPED=1 on every web and worker process" unless
+      ENV["HEARTBEAT_MUTATIONS_STOPPED"] == "1"
+    unfinished = HeartbeatTransfer.where.not(status: :completed).count +
+      HeartbeatDeletion.where.not(status: :completed).count +
+      HeartbeatJa4Nullification.where(completed_at: nil).count
+    abort "Complete all heartbeat lifecycle controls before backfill (#{unfinished} unfinished)" if unfinished.positive?
 
     batch_size = ENV.fetch("BATCH_SIZE", 10_000).to_i
     current_max_id = Heartbeat.postgresql_unscoped.maximum(:id).to_i
@@ -119,6 +125,8 @@ namespace :clickhouse do
   task verify: :environment do
     abort "Set HEARTBEAT_WRITES_STOPPED=1 on every web and worker process" unless
       ENV["HEARTBEAT_WRITES_STOPPED"] == "1"
+    abort "Set HEARTBEAT_MUTATIONS_STOPPED=1 on every web and worker process" unless
+      ENV["HEARTBEAT_MUTATIONS_STOPPED"] == "1"
     cutover = HeartbeatCutover.find_by(id: 1)
     abort "Run clickhouse:backfill before verification" unless cutover
     abort "ClickHouse backfill has not reached its source boundary" unless
@@ -365,11 +373,18 @@ namespace :clickhouse do
 
   desc "Reconcile the ClickHouse heartbeat store and both query layouts"
   task drain_outbox: :environment do
-    loop do
-      processed = HeartbeatRepository.current.reconcile_store(limit: 5_000)
-      break if processed.zero?
+    mutation_fence = if ENV["HEARTBEAT_WRITES_STOPPED"] == "1"
+      ENV.delete("HEARTBEAT_MUTATIONS_STOPPED")
+    end
+    begin
+      loop do
+        processed = HeartbeatRepository.current.reconcile_store(limit: 5_000)
+        break if processed.zero?
 
-      puts "Reconciled #{processed} ClickHouse heartbeat store rows"
+        puts "Reconciled #{processed} ClickHouse heartbeat store rows"
+      end
+    ensure
+      ENV["HEARTBEAT_MUTATIONS_STOPPED"] = mutation_fence if mutation_fence
     end
   end
 
@@ -378,30 +393,154 @@ namespace :clickhouse do
     repository = HeartbeatRepository.current
     client = ClickHouse::Client.current
     columns = HeartbeatRepository::STORAGE_COLUMNS.join(", ")
-    repair_run_id = SecureRandom.uuid
-    %w[heartbeats heartbeats_by_time].each do |table|
-      sql = <<~SQL.squish
-        INSERT INTO #{table} (#{columns})
-        SELECT #{columns} FROM heartbeat_store FINAL
-        WHERE canonicalized = true AND duplicate_of IS NULL
-        ORDER BY ALL
+    batch_size = ENV.fetch("BATCH_SIZE", HeartbeatRepository::INSERT_BATCH_SIZE).to_i
+    abort "BATCH_SIZE must be positive" unless batch_size.positive?
+
+    tables = ENV["TABLE"] ? [ ENV["TABLE"] ] : %w[heartbeats heartbeats_by_time]
+    abort "TABLE must be heartbeats or heartbeats_by_time" unless
+      (tables - %w[heartbeats heartbeats_by_time]).empty?
+
+    requested_partition = ENV["PARTITION"]&.then { |value| Integer(value) }
+    after_user_id = ENV.fetch("AFTER_USER_ID", 0).to_i
+    after_id = ENV.fetch("AFTER_ID", 0).to_i
+    if (after_user_id.positive? || after_id.positive?) && (!ENV["TABLE"] || !requested_partition)
+      abort "Set TABLE and PARTITION when resuming from AFTER_USER_ID/AFTER_ID"
+    end
+
+    partitions = client.select(<<~SQL.squish).pluck("partition_id").map(&:to_i)
+      SELECT DISTINCT toYYYYMM(created_at) AS partition_id
+      FROM heartbeat_store FINAL
+      WHERE canonicalized = true AND duplicate_of IS NULL
+      ORDER BY partition_id
+    SQL
+    partitions.select! { |partition| partition == requested_partition } if requested_partition
+    abort "No canonical rows exist in ClickHouse partition #{requested_partition}" if requested_partition && partitions.empty?
+
+    tables.each do |table|
+      partitions.each do |partition|
+        cursor_user_id = requested_partition ? after_user_id : 0
+        cursor_id = requested_partition ? after_id : 0
+        loop do
+          rows = client.select(<<~SQL.squish)
+            SELECT #{columns} FROM heartbeat_store FINAL
+            WHERE canonicalized = true AND duplicate_of IS NULL
+              AND toYYYYMM(created_at) = #{partition}
+              AND (user_id, id) > (#{cursor_user_id}, #{cursor_id})
+            ORDER BY user_id, id LIMIT #{batch_size}
+          SQL
+          break if rows.empty?
+
+          repository.insert_rows(table, rows)
+          repository.verify_visible_versions!(table, rows)
+          cursor_user_id = rows.last.fetch("user_id").to_i
+          cursor_id = rows.last.fetch("id").to_i
+          puts "Repaired #{table} through partition #{partition}, user #{cursor_user_id}, heartbeat #{cursor_id}"
+        end
+        after_user_id = after_id = 0
+      end
+    end
+  end
+
+  desc "Advance PostgreSQL heartbeat allocators past every ClickHouse ID and version"
+  task reseed_postgres_sequences: :environment do
+    abort "Set HEARTBEAT_STORE=clickhouse" unless HeartbeatRepository.clickhouse?
+    abort "Set HEARTBEAT_WRITES_STOPPED=1 on every web and worker process" unless
+      ENV["HEARTBEAT_WRITES_STOPPED"] == "1"
+    abort "Set HEARTBEAT_MUTATIONS_STOPPED=1 on every web and worker process" unless
+      ENV["HEARTBEAT_MUTATIONS_STOPPED"] == "1"
+
+    HeartbeatRepository.current.reseed_postgres_sequences!.each do |sequence, value|
+      puts "Advanced #{sequence} through #{value}"
+    end
+  end
+
+  desc "Replay durable PostgreSQL lifecycle controls after restoring a ClickHouse backup"
+  task replay_lifecycle_controls: :environment do
+    abort "Set HEARTBEAT_STORE=clickhouse" unless HeartbeatRepository.clickhouse?
+    abort "Set HEARTBEAT_WRITES_STOPPED=1 on every web and worker process" unless
+      ENV["HEARTBEAT_WRITES_STOPPED"] == "1"
+    abort "Set HEARTBEAT_MUTATIONS_STOPPED=1 on every web and worker process" unless
+      ENV["HEARTBEAT_MUTATIONS_STOPPED"] == "1"
+    scoped_repair_variables = %w[TABLE PARTITION AFTER_USER_ID AFTER_ID].select { |name| ENV[name].present? }
+    abort "Unset #{scoped_repair_variables.join(', ')} before lifecycle recovery" if scoped_repair_variables.any?
+
+    transfers = HeartbeatTransfer.order(:delete_version, :id).to_a
+    deletions = HeartbeatDeletion.order(:clickhouse_version, :id).to_a
+    nullifications = HeartbeatJa4Nullification.order(:clickhouse_version, :id).to_a
+    unfinished = transfers.count { |control| !control.completed? || !control.copied_at? || !control.completed_at? } +
+      deletions.count { |control| !control.completed? || !control.completed_at? } +
+      nullifications.count { |control| !control.completed_at? }
+    abort "Complete all heartbeat lifecycle controls before recovery (#{unfinished} unfinished)" if unfinished.positive?
+
+    Rake::Task["clickhouse:reseed_postgres_sequences"].reenable
+    Rake::Task["clickhouse:reseed_postgres_sequences"].invoke
+
+    mutation_fence = ENV.delete("HEARTBEAT_MUTATIONS_STOPPED")
+    begin
+      repository = HeartbeatRepository.current
+      transfers.each do |transfer|
+        repository.transfer_rows(transfer, reconcile_nullifications: false)
+        puts "Replayed heartbeat transfer #{transfer.id}"
+      end
+      deletions.each do |deletion|
+        repository.soft_delete_user(
+          deletion.user_id,
+          version: deletion.clickhouse_version,
+          deleted_at: deletion.created_at,
+          nullifications_through: deletion.clickhouse_version
+        )
+        puts "Replayed heartbeat deletion #{deletion.id}"
+      end
+      nullifications.each do |nullification|
+        repository.nullify_ja4(
+          nullification.ja4_id,
+          version: nullification.clickhouse_version,
+          superseded_deletion: :skip
+        )
+        puts "Replayed heartbeat JA4 nullification #{nullification.id}"
+      end
+
+      Rake::Task["clickhouse:drain_outbox"].reenable
+      Rake::Task["clickhouse:drain_outbox"].invoke
+      Rake::Task["clickhouse:repair_query_layouts"].reenable
+      Rake::Task["clickhouse:repair_query_layouts"].invoke
+      Rake::Task["clickhouse:drain_outbox"].reenable
+      Rake::Task["clickhouse:drain_outbox"].invoke
+
+      client = ClickHouse::Client.current
+      transfers.map(&:from_user_id).uniq.each_slice(HeartbeatRepository::QUERY_BATCH_SIZE) do |user_ids|
+        active = client.select(<<~SQL.squish).first.fetch("active_rows").to_i
+          SELECT count() AS active_rows FROM heartbeat_store FINAL
+          WHERE canonicalized = true AND duplicate_of IS NULL AND deleted_at IS NULL
+            AND user_id IN (#{user_ids.join(', ')})
+        SQL
+        abort "Recovery left #{active} active heartbeats for transferred users" if active.positive?
+      end
+      deletions.map(&:user_id).uniq.each_slice(HeartbeatRepository::QUERY_BATCH_SIZE) do |user_ids|
+        active = client.select(<<~SQL.squish).first.fetch("active_rows").to_i
+          SELECT count() AS active_rows FROM heartbeat_store FINAL
+          WHERE canonicalized = true AND duplicate_of IS NULL AND deleted_at IS NULL
+            AND user_id IN (#{user_ids.join(', ')})
+        SQL
+        abort "Recovery left #{active} active heartbeats for deleted users" if active.positive?
+      end
+      nullifications.map(&:ja4_id).uniq.each_slice(HeartbeatRepository::QUERY_BATCH_SIZE) do |ja4_ids|
+        retained = client.select(<<~SQL.squish).first.fetch("retained_rows").to_i
+          SELECT count() AS retained_rows FROM heartbeat_store FINAL
+          WHERE duplicate_of IS NULL AND ja4_id IN (#{ja4_ids.join(', ')})
+        SQL
+        abort "Recovery left #{retained} heartbeats with deleted JA4 records" if retained.positive?
+      end
+      pending = client.select(<<~SQL.squish).first.fetch("pending_rows").to_i
+        SELECT count() AS pending_rows FROM heartbeat_store FINAL
+        WHERE canonicalized = false OR (canonicalized = true AND duplicate_of IS NULL AND
+          (heartbeats_version < version OR heartbeats_by_time_version < version))
       SQL
-      token = Digest::SHA256.hexdigest("repair:#{repair_run_id}:#{table}")
-      repository.insert_select(sql, token:)
-      mismatches = client.select(<<~SQL.squish).first.fetch("mismatches").to_i
-        SELECT count() AS mismatches
-        FROM (
-          SELECT user_id, id, version FROM heartbeat_store FINAL
-          WHERE canonicalized = true AND duplicate_of IS NULL
-        ) AS canonical
-        FULL OUTER JOIN (SELECT user_id, id, version FROM #{table} FINAL) AS query_layout
-          USING (user_id, id)
-        WHERE canonical.id IS NULL OR query_layout.id IS NULL
-          OR query_layout.version != canonical.version
-        SETTINGS join_use_nulls = 1
-      SQL
-      abort "#{table} still differs from the canonical store" if mismatches.positive?
-      puts "Repaired #{table} from heartbeat_store"
+      abort "Recovery left #{pending} canonical or delivery rows pending" if pending.positive?
+
+      puts "Replayed and verified all durable heartbeat lifecycle controls"
+    ensure
+      ENV["HEARTBEAT_MUTATIONS_STOPPED"] = mutation_fence
     end
   end
 
@@ -410,6 +549,8 @@ namespace :clickhouse do
     abort "Set HEARTBEAT_STORE=clickhouse" unless HeartbeatRepository.clickhouse?
     abort "Set HEARTBEAT_WRITES_STOPPED=1 on every web and worker process" unless
       ENV["HEARTBEAT_WRITES_STOPPED"] == "1"
+    abort "Set HEARTBEAT_MUTATIONS_STOPPED=1 on every web and worker process" unless
+      ENV["HEARTBEAT_MUTATIONS_STOPPED"] == "1"
 
     Rake::Task["clickhouse:drain_outbox"].reenable
     Rake::Task["clickhouse:drain_outbox"].invoke

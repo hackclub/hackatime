@@ -16,6 +16,9 @@ FileUtils.chdir APP_ROOT do
   system("bundle check") || system!("bundle install")
   system! "bun install --frozen-lockfile"
 
+  puts "\n== Preparing ClickHouse =="
+  system! "bin/rake clickhouse:migrate"
+
   puts "\n== Preparing database =="
   system! "bin/rails db:prepare"
 

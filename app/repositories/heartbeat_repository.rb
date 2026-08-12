@@ -15,8 +15,13 @@ class HeartbeatRepository
   BROWSER_EDITORS = Heartbeatable::BROWSER_EDITORS
   VALID_TIME_MAX = 253_402_300_799
   INSERT_RETRY_LIMIT = 5
-  QUERY_BATCH_SIZE = 5_000
+  QUERY_BATCH_SIZE = 1_000
   INSERT_BATCH_SIZE = 10_000
+  PARTITIONED_INSERTS = {
+    "heartbeats" => "time",
+    "heartbeats_by_time" => "time",
+    "heartbeat_store" => "created_at"
+  }.freeze
   RETRYABLE_INSERT_ERROR = /(?:UNKNOWN_STATUS_OF_INSERT|TIMEOUT_EXCEEDED|NETWORK_ERROR|SOCKET_TIMEOUT)/
 
   def self.clickhouse?
@@ -31,6 +36,10 @@ class HeartbeatRepository
 
   def self.ensure_writes_enabled!
     raise "Heartbeat writes are stopped" if ENV["HEARTBEAT_WRITES_STOPPED"] == "1"
+  end
+
+  def self.ensure_mutations_enabled!
+    raise "Heartbeat mutations are stopped" if ENV["HEARTBEAT_MUTATIONS_STOPPED"] == "1"
   end
 
   def initialize(client: ClickHouse::Client.current)
@@ -201,36 +210,40 @@ class HeartbeatRepository
 
     start_date = [ start_date, 31.days.ago ].max
     result = user_ids.index_with(0)
-    users_by_timezone = User.where(id: user_ids).pluck(:id, :timezone).group_by do |_id, timezone|
+    users_by_timezone = user_ids.each_slice(QUERY_BATCH_SIZE).flat_map do |ids|
+      User.where(id: ids).pluck(:id, :timezone)
+    end.group_by do |_id, timezone|
       TZInfo::Timezone.all_identifiers.include?(timezone) ? timezone : "UTC"
     end
     users_by_timezone.each do |timezone, users|
-      ids = users.map(&:first)
-      day = "toDate(fromUnixTimestamp64Micro(toInt64(round(time * 1000000)), #{quote(timezone)}))"
-      scope = all.where(user_id: ids).where.not(category: "browsing")
-        .where(time: start_date..Time.current).with_valid_timestamps
-      scope = scope.excluding_browser_time if exclude_browser_time
-      base = scope.sql(select: %w[id user_id time])
-      rows = @client.select(<<~SQL.squish).group_by { |row| row.fetch("user_id").to_i }
-        SELECT user_id, day, toInt64(round(COALESCE(sum(diff), 0))) AS duration
-        FROM (
-          SELECT user_id, #{day} AS day,
-                 least(greatest(time - lagInFrame(time, 1, time) OVER (
-                   PARTITION BY user_id, #{day} ORDER BY time, id
-                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-                 ), 0), #{Heartbeat.heartbeat_timeout_duration.to_i}) AS diff
-          FROM (#{base}) heartbeat_rows
-        ) GROUP BY user_id, day ORDER BY user_id, day DESC
-      SQL
-      rows.each do |user_id, days|
-        current_date = Time.current.in_time_zone(timezone).to_date
-        eligible = days.filter_map do |row|
-          date = Date.iso8601(row.fetch("day"))
-          date if date <= current_date && row.fetch("duration").to_i >= 15.minutes
+      users.each_slice(QUERY_BATCH_SIZE) do |user_batch|
+        ids = user_batch.map(&:first)
+        day = "toDate(fromUnixTimestamp64Micro(toInt64(round(time * 1000000)), #{quote(timezone)}))"
+        scope = all.where(user_id: ids).where.not(category: "browsing")
+          .where(time: start_date..Time.current).with_valid_timestamps
+        scope = scope.excluding_browser_time if exclude_browser_time
+        base = scope.sql(select: %w[id user_id time])
+        rows = @client.select(<<~SQL.squish).group_by { |row| row.fetch("user_id").to_i }
+          SELECT user_id, day, toInt64(round(COALESCE(sum(diff), 0))) AS duration
+          FROM (
+            SELECT user_id, #{day} AS day,
+                   least(greatest(time - lagInFrame(time, 1, time) OVER (
+                     PARTITION BY user_id, #{day} ORDER BY time, id
+                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+                   ), 0), #{Heartbeat.heartbeat_timeout_duration.to_i}) AS diff
+            FROM (#{base}) heartbeat_rows
+          ) GROUP BY user_id, day ORDER BY user_id, day DESC
+        SQL
+        rows.each do |user_id, days|
+          current_date = Time.current.in_time_zone(timezone).to_date
+          eligible = days.filter_map do |row|
+            date = Date.iso8601(row.fetch("day"))
+            date if date <= current_date && row.fetch("duration").to_i >= 15.minutes
+          end
+          expected = eligible.first == current_date ? current_date : current_date - 1.day
+          streak = eligible.take_while.with_index { |date, index| date == expected - index.days }.length
+          result[user_id] = streak
         end
-        expected = eligible.first == current_date ? current_date : current_date - 1.day
-        streak = eligible.take_while.with_index { |date, index| date == expected - index.days }.length
-        result[user_id] = streak
       end
     end
     result
@@ -386,13 +399,15 @@ class HeartbeatRepository
   def latest_ip_by_user(user_ids)
     return {} if user_ids.empty?
 
-    rows = @client.select(<<~SQL.squish)
-      SELECT user_id, argMax(ip_address, id) AS latest_ip_address
-      FROM heartbeats FINAL
-      WHERE deleted_at IS NULL AND ip_address IS NOT NULL
-        AND user_id IN (#{user_ids.map { |id| quote(id) }.join(', ')})
-      GROUP BY user_id
-    SQL
+    rows = user_ids.map { |id| Integer(id) }.uniq.each_slice(QUERY_BATCH_SIZE).flat_map do |ids|
+      @client.select(<<~SQL.squish)
+        SELECT user_id, argMax(ip_address, id) AS latest_ip_address
+        FROM heartbeats FINAL
+        WHERE deleted_at IS NULL AND ip_address IS NOT NULL
+          AND user_id IN (#{ids.map { |id| quote(id) }.join(', ')})
+        GROUP BY user_id
+      SQL
+    end
     rows.to_h { |row| [ row.fetch("user_id").to_i, row.fetch("latest_ip_address") ] }
   end
 
@@ -610,6 +625,7 @@ class HeartbeatRepository
   def prepare_transfer(from_user_id:, to_user_id:)
     raise ArgumentError, "Cannot transfer heartbeats to the same user" if from_user_id == to_user_id
     self.class.ensure_writes_enabled!
+    self.class.ensure_mutations_enabled!
 
     [ from_user_id, to_user_id ].sort.each { |user_id| lock_user_writes(user_id) }
     reconcile_user_nullifications([ from_user_id, to_user_id ])
@@ -630,6 +646,7 @@ class HeartbeatRepository
 
   def prepare_deletion(user_id)
     self.class.ensure_writes_enabled!
+    self.class.ensure_mutations_enabled!
     lock_user_writes(user_id)
     reconcile_user_nullifications([ user_id ])
     lock_user_ja4_changes([ user_id ])
@@ -642,11 +659,13 @@ class HeartbeatRepository
 
   def prepare_ja4_nullification(ja4_id)
     self.class.ensure_writes_enabled!
+    self.class.ensure_mutations_enabled!
     lock_ja4_changes(ja4_id)
     HeartbeatJa4Nullification.find_or_create_by!(ja4_id:)
   end
 
-  def transfer_rows(transfer)
+  def transfer_rows(transfer, reconcile_nullifications: true)
+    self.class.ensure_mutations_enabled!
     ActiveRecord::Base.transaction do
       [ transfer.from_user_id, transfer.to_user_id ].sort.each { |user_id| lock_user_writes(user_id) }
       canonicalize_user_store(transfer.to_user_id, deliver: false) { nil }
@@ -654,11 +673,15 @@ class HeartbeatRepository
         transfer_batch(transfer, source_rows)
       end
       transfer.update!(copied_at: Time.current) unless transfer.copied_at?
-      reconcile_user_nullifications([ transfer.from_user_id, transfer.to_user_id ], allow_transfer: true)
+      if reconcile_nullifications
+        reconcile_user_nullifications([ transfer.from_user_id, transfer.to_user_id ], allow_transfer: true)
+      end
     end
   end
 
-  def soft_delete_user(user_id, version: next_version, deleted_at: Time.current)
+  def soft_delete_user(user_id, version: nil, deleted_at: Time.current, nullifications_through: nil)
+    self.class.ensure_mutations_enabled!
+    version ||= next_version
     ActiveRecord::Base.transaction do
       lock_user_writes(user_id)
       raise "Heartbeat transfer is pending for user #{user_id}" if pending_transfer?(user_id)
@@ -668,9 +691,13 @@ class HeartbeatRepository
         rows = store_rows_for_user(user_id, after_id:, limit: QUERY_BATCH_SIZE)
         break if rows.empty?
 
-        nullified_ja4_ids = HeartbeatJa4Nullification
-          .where(ja4_id: rows.filter_map { |row| row["ja4_id"] }.uniq)
-          .pluck(:ja4_id).to_set
+        nullifications = HeartbeatJa4Nullification.where(
+          ja4_id: rows.filter_map { |row| row["ja4_id"] }.uniq
+        )
+        if nullifications_through
+          nullifications = nullifications.where(clickhouse_version: ..Integer(nullifications_through))
+        end
+        nullified_ja4_ids = nullifications.pluck(:ja4_id).to_set
         pending, canonical = rows.partition { |row| !row.fetch("canonicalized") }
         store_version = next_version
         insert_store_rows(pending.map do |row|
@@ -704,6 +731,7 @@ class HeartbeatRepository
 
   def change_deleted(heartbeat_id:, user_id:, deleted:)
     self.class.ensure_writes_enabled!
+    self.class.ensure_mutations_enabled!
     ActiveRecord::Base.transaction do
       ensure_user_accepts_heartbeats!(user_id)
       reconcile_user_nullifications([ user_id ])
@@ -730,7 +758,12 @@ class HeartbeatRepository
     raise
   end
 
-  def nullify_ja4(ja4_id, version:, allow_transfer: false, user_ids: nil)
+  def nullify_ja4(ja4_id, version:, allow_transfer: false, user_ids: nil, superseded_deletion: :raise)
+    self.class.ensure_mutations_enabled!
+    unless %i[raise skip].include?(superseded_deletion)
+      raise ArgumentError, "Unknown superseded deletion behavior: #{superseded_deletion}"
+    end
+
     operation_rows = store_rows_for_ja4(ja4_id) + store_rows(
       "ja4_nullification_version = #{quote(version)} AND duplicate_of IS NULL AND " \
         "(heartbeats_version < version OR heartbeats_by_time_version < version)",
@@ -751,6 +784,8 @@ class HeartbeatRepository
         deletion = HeartbeatDeletion.find_by(user_id:)
         raise "Heartbeat deletion is pending for user #{user_id}" if deletion && !deletion.completed?
         if deletion && deletion.clickhouse_version > version
+          next if superseded_deletion == :skip
+
           raise "Heartbeat deletion version supersedes JA4 nullification for user #{user_id}"
         end
 
@@ -821,6 +856,49 @@ class HeartbeatRepository
 
   def next_ids(count)
     next_sequence_values("heartbeat_id_allocations_id_seq", count)
+  end
+
+  def reseed_postgres_sequences!
+    store_watermarks = @client.select(<<~SQL.squish).sole
+      SELECT max(id) AS max_id,
+             greatest(
+               max(version), max(store_version), max(ja4_nullification_version),
+               max(heartbeats_version), max(heartbeats_by_time_version)
+             ) AS max_version
+      FROM heartbeat_store
+    SQL
+    alias_watermarks = @client.select(<<~SQL.squish).sole
+      SELECT max(heartbeat_id) AS max_id, max(alias_version) AS max_version
+      FROM heartbeat_aliases
+    SQL
+    control_version = [
+      HeartbeatTransfer.maximum(:copy_version),
+      HeartbeatTransfer.maximum(:delete_version),
+      HeartbeatDeletion.maximum(:clickhouse_version),
+      HeartbeatJa4Nullification.maximum(:clickhouse_version)
+    ].compact.max.to_i
+
+    watermarks = {
+      "heartbeat_id_allocations_id_seq" => [
+        store_watermarks.fetch("max_id").to_i,
+        alias_watermarks.fetch("max_id").to_i
+      ].max,
+      "heartbeat_clickhouse_versions_id_seq" => [
+        store_watermarks.fetch("max_version").to_i,
+        alias_watermarks.fetch("max_version").to_i,
+        control_version
+      ].max
+    }
+    watermarks.to_h do |sequence, watermark|
+      result = ActiveRecord::Base.connection.raw_connection.exec_params(<<~SQL.squish, [ sequence, watermark ])
+        SELECT setval(
+          $1::regclass,
+          GREATEST(COALESCE(pg_sequence_last_value($1::regclass), 1), $2::bigint),
+          true
+        )
+      SQL
+      [ sequence, result.getvalue(0, 0).to_i ]
+    end
   end
 
   private def next_sequence_values(sequence, count)
@@ -1296,7 +1374,9 @@ class HeartbeatRepository
   def insert_rows(table, rows)
     return if rows.empty?
 
-    rows.each_slice(INSERT_BATCH_SIZE) { |batch| insert_row_batch(table, batch) }
+    rows.group_by { |row| insert_partition(table, row) }.each_value do |partition_rows|
+      partition_rows.each_slice(INSERT_BATCH_SIZE) { |batch| insert_row_batch(table, batch) }
+    end
   end
 
   def insert_row_batch(table, rows)
@@ -1307,10 +1387,6 @@ class HeartbeatRepository
     with_insert_retry do
       @client.insert_json_each_row(table, rows, settings: insert_settings(token))
     end
-  end
-
-  def insert_select(sql, token:)
-    with_insert_retry { @client.execute(sql, settings: insert_settings(token)) }
   end
 
   def insert_settings(token)
@@ -1333,6 +1409,19 @@ class HeartbeatRepository
 
       sleep(rand * 0.02 * (2**attempts))
       retry
+    end
+  end
+
+  def insert_partition(table, row)
+    case PARTITIONED_INSERTS[table]
+    when "time"
+      timestamp = row.fetch("time").to_f.floor
+      timestamp.between?(0, 4_294_967_295) ? Time.at(timestamp).utc.strftime("%Y%m") : 0
+    when "created_at"
+      value = row.fetch("created_at")
+      value.respond_to?(:strftime) ? value.utc.strftime("%Y%m") : value.to_s.first(7).delete("-")
+    else
+      0
     end
   end
 

@@ -60,6 +60,7 @@ class Admin::AccountMergerController < InertiaController
 
   def perform_merge(older_user, newer_user)
     HeartbeatRepository.ensure_writes_enabled!
+    HeartbeatRepository.ensure_mutations_enabled!
     results = []
     transfer = nil
 

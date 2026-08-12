@@ -55,8 +55,9 @@ if Rails.env.development? || Rails.env.test?
     operating_systems = [ 'Linux', 'macOS', 'Windows' ]
     machines = [ 'dev-machine', 'laptop', 'desktop' ]
 
-    # Clear existing heartbeats to ensure consistent test data
-    test_user.heartbeats.destroy_all
+    # Clear legacy PostgreSQL heartbeats before creating data through the shared ingest path
+    test_user.heartbeats.destroy_all unless HeartbeatRepository.clickhouse?
+    sample_heartbeats = []
 
     # Create heartbeats for the last 7 days
     7.downto(0) do |day|
@@ -72,7 +73,7 @@ if Rails.env.development? || Rails.env.test?
         timestamp = (Time.current - day.days).beginning_of_day + hour.hours + minute.minutes + second.seconds
 
         # Create the heartbeat with varied data
-        test_user.heartbeats.create!(
+        sample_heartbeats << {
           time: timestamp.to_i,
           entity: "test/file_#{rand(1..30)}.#{[ 'rb', 'js', 'ts', 'py', 'go' ].sample}",
           project: projects.sample,
@@ -82,14 +83,14 @@ if Rails.env.development? || Rails.env.test?
           machine: machines.sample,
           category: "coding",
           source_type: :direct_entry
-        )
+        }
       end
     end
 
     # Create a few sequential heartbeats to properly test duration calculation
     base_time = Time.current - 2.days
     10.times do |i|
-      test_user.heartbeats.create!(
+      sample_heartbeats << {
         time: (base_time + i.minutes).to_i,
         entity: "test/sequential_file.rb",
         project: "harbor",
@@ -99,8 +100,16 @@ if Rails.env.development? || Rails.env.test?
         machine: "dev-machine",
         category: "coding",
         source_type: :direct_entry
-      )
+      }
     end
+
+    result = HeartbeatIngest.call(
+      user: test_user,
+      mode: :direct,
+      heartbeats: sample_heartbeats,
+      schedule_rollup_refresh: false
+    )
+    raise "Failed to seed heartbeats: #{result.errors.to_json}" if result.failed_count.positive?
 
     puts "Created comprehensive heartbeat data over the last 7 days for the test user"
   else
