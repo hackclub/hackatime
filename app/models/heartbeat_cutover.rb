@@ -10,9 +10,9 @@ class HeartbeatCutover < ApplicationRecord
     raise POSTGRESQL_WRITE_ERROR if where.not(purged_at: nil).exists?
   end
 
-  def self.with_postgresql_ingest_lock(&block)
+  def self.with_postgresql_ingest_lock
     transaction do
-      cutover = lock.find_by(id: 1)
+      cutover = lock("FOR SHARE").find_by(id: 1)
       raise POSTGRESQL_WRITE_ERROR if cutover&.purged_at?
 
       yield

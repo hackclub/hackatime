@@ -1002,3 +1002,101 @@ class HeartbeatIngestUniqueByFallbackTest < ActiveSupport::TestCase
     assert_equal 2, calls
   end
 end
+
+class HeartbeatCutoverLockConcurrencyTest < ActiveSupport::TestCase
+  self.use_transactional_tests = false
+
+  setup do
+    @previous_clickhouse_test = ENV["CLICKHOUSE_TEST"]
+    ENV["CLICKHOUSE_TEST"] = "0"
+    HeartbeatCutover.delete_all
+    boundary = Heartbeat.postgresql_unscoped.maximum(:id).to_i
+    @cutover = HeartbeatCutover.create!(
+      id: 1,
+      source_through_id: boundary,
+      backfilled_through_id: boundary,
+      verified_through_id: boundary,
+      verified_at: Time.current
+    )
+  end
+
+  teardown do
+    HeartbeatCutover.delete_all
+    @previous_clickhouse_test ? ENV["CLICKHOUSE_TEST"] = @previous_clickhouse_test : ENV.delete("CLICKHOUSE_TEST")
+  end
+
+  test "ingest locks overlap while purge waits for every holder" do
+    entered = Queue.new
+    release = Queue.new
+    holder_done = Queue.new
+    purge_pid = Queue.new
+    purge_done = Queue.new
+    errors = Queue.new
+
+    holders = 2.times.map do
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          HeartbeatCutover.with_postgresql_ingest_lock do
+            entered << true
+            release.pop
+          end
+        end
+      rescue => error
+        errors << error
+      ensure
+        holder_done << true
+      end
+    end
+    2.times { Timeout.timeout(5) { entered.pop } }
+
+    purger = Thread.new do
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        purge_pid << connection.select_value("SELECT pg_backend_pid()")
+        HeartbeatCutover.find(1).purge_postgresql!
+        purge_done << true
+      end
+    rescue => error
+      errors << error
+    end
+
+    pid = Timeout.timeout(5) { purge_pid.pop }
+    assert wait_for_postgresql_lock(pid), "purge did not wait for the shared ingest locks"
+    assert_predicate purge_done, :empty?
+
+    release << true
+    Timeout.timeout(5) { holder_done.pop }
+    assert wait_for_postgresql_lock(pid), "purge stopped waiting while one ingest lock remained"
+    assert_predicate purge_done, :empty?
+
+    release << true
+    Timeout.timeout(5) { holder_done.pop }
+    assert Timeout.timeout(5) { purge_done.pop }
+    holders.each(&:value)
+    purger.value
+    flunk errors.pop.message unless errors.empty?
+    assert_predicate @cutover.reload, :purged_at?
+  ensure
+    2.times { release << true } if release
+    [ *holders, purger ].compact.each do |thread|
+      thread.join(1)
+      thread.kill if thread.alive?
+    end
+  end
+
+  private
+
+  def wait_for_postgresql_lock(pid)
+    Timeout.timeout(5) do
+      loop do
+        waiting = ActiveRecord::Base.connection.select_value(<<~SQL.squish)
+          SELECT wait_event_type = 'Lock' FROM pg_stat_activity WHERE pid = #{Integer(pid)}
+        SQL
+        return true if waiting
+
+        sleep 0.01
+      end
+    end
+  rescue Timeout::Error
+    false
+  end
+end
