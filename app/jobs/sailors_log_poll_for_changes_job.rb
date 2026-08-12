@@ -28,9 +28,13 @@ class SailorsLogPollForChangesJob < ApplicationJob
   def update_sailors_log(sailors_log)
     return [] if sailors_log.user.active_remote_heartbeat_import_run?
 
-    project_durations = DashboardRollup
-      .where(user_id: sailors_log.user.id, dimension: "project", bucket_value_present: true)
-      .pluck(:bucket_value, :total_seconds).to_h
+    project_durations = if HeartbeatRepository.clickhouse?
+      sailors_log.user.heartbeats_excluding_archived_projects.group(:project).duration_seconds
+    else
+      DashboardRollup
+        .where(user_id: sailors_log.user.id, dimension: "project", bucket_value_present: true)
+        .pluck(:bucket_value, :total_seconds).to_h
+    end
 
     if project_durations.empty?
       DashboardRollupRefreshJob.schedule_for(sailors_log.user.id, wait: 0.seconds)

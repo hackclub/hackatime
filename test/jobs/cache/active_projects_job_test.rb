@@ -36,4 +36,27 @@ class Cache::ActiveProjectsJobTest < ActiveSupport::TestCase
 
     assert_empty Cache::ActiveProjectsJob.new.send(:calculate)
   end
+
+  test "ClickHouse chooses the latest project that has an active mapping" do
+    user = User.create!(timezone: "UTC")
+    mapping = ProjectRepoMapping.create!(user:, project_name: "mapped")
+    repository = Object.new
+    repository.define_singleton_method(:latest_direct_heartbeats) do |since:, coding_only:, per_project:|
+      raise unless since && !coding_only && per_project
+
+      [
+        { "user_id" => user.id, "project" => "mapped", "latest_time" => 100.0, "latest_id" => 1 },
+        { "user_id" => user.id, "project" => "unmapped", "latest_time" => 200.0, "latest_id" => 2 }
+      ]
+    end
+    previous = ENV["CLICKHOUSE_TEST"]
+    previous_repository = HeartbeatRepository.instance_variable_get(:@current)
+    ENV["CLICKHOUSE_TEST"] = "1"
+    HeartbeatRepository.instance_variable_set(:@current, repository)
+
+    assert_equal({ user.id => mapping }, Cache::ActiveProjectsJob.new.send(:calculate))
+  ensure
+    ENV["CLICKHOUSE_TEST"] = previous
+    HeartbeatRepository.instance_variable_set(:@current, previous_repository)
+  end
 end

@@ -9,7 +9,9 @@ CI.run do
   step "Setup: Test DB", "env RAILS_ENV=test bin/rails db:create db:schema:load"
   step "Setup: js_from_routes", "env JS_FROM_ROUTES_FORCE=true bin/rake js_from_routes:generate"
   step "Setup: Vite assets", "env RAILS_ENV=test bin/vite build"
+  step "Setup: ClickHouse", "env RAILS_ENV=test bin/rake clickhouse:migrate"
   step "Tests: Rails", "env RAILS_ENV=test bin/rails test"
+  step "Tests: ClickHouse", "env RAILS_ENV=test CLICKHOUSE_INTEGRATION=1 bin/rails test test/repositories/heartbeat_repository_integration_test.rb test/repositories/heartbeat_repository_differential_integration_test.rb test/services/heartbeat_ingest_clickhouse_concurrency_test.rb"
   step "Tests: System", "env RAILS_ENV=test bin/rails test:system"
   step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
 

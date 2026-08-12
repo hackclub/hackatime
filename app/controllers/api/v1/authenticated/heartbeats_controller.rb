@@ -7,7 +7,7 @@ module Api
         def latest
           heartbeat = current_user.heartbeats
                                   .where.not(source_type: :test_entry)
-                                  .order(time: :desc)
+                                  .order(time: :desc, id: :desc)
                                   .first
 
           if heartbeat

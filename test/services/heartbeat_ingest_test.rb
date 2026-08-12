@@ -829,6 +829,21 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "wakapi_import", heartbeat.source_type
   end
 
+  test "the cutover write fence rejects direct and imported heartbeats" do
+    previous = ENV["HEARTBEAT_WRITES_STOPPED"]
+    ENV["HEARTBEAT_WRITES_STOPPED"] = "1"
+    user = User.create!(timezone: "UTC")
+
+    %i[direct import].each do |mode|
+      error = assert_raises(RuntimeError) do
+        HeartbeatIngest.call(user:, mode:, heartbeats: [])
+      end
+      assert_equal "Heartbeat writes are stopped", error.message
+    end
+  ensure
+    ENV["HEARTBEAT_WRITES_STOPPED"] = previous
+  end
+
   private
 
   def create_legacy_imported_heartbeat(user, attributes)

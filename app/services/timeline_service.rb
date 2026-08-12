@@ -18,8 +18,7 @@ class TimelineService
       day_start = date.in_time_zone(user_tz).beginning_of_day.to_f
       day_end = date.in_time_zone(user_tz).end_of_day.to_f
 
-      total_coded_time_seconds = Heartbeat.where(user_id: user.id, deleted_at: nil)
-                                          .where("time >= ? AND time <= ?", day_start, day_end)
+      total_coded_time_seconds = Heartbeat.where(user_id: user.id, deleted_at: nil, time: day_start..day_end)
                                           .duration_seconds
 
       hbs = (heartbeats_by_user_id[user.id] || []).select { |hb| hb.time >= day_start && hb.time <= day_end }
@@ -52,10 +51,13 @@ class TimelineService
 
   def heartbeats_by_user_id
     @heartbeats_by_user_id ||= Heartbeat
-      .where(user_id: users_by_id.keys, deleted_at: nil)
-      .where("time >= ? AND time <= ?", date.beginning_of_day.to_f - 24.hours.to_i, date.end_of_day.to_f + 24.hours.to_i)
+      .where(
+        user_id: users_by_id.keys,
+        deleted_at: nil,
+        time: (date.beginning_of_day.to_f - 24.hours.to_i)..(date.end_of_day.to_f + 24.hours.to_i)
+      )
       .select(:id, :user_id, :time, :entity, :project, :editor, :language)
-      .order(:user_id, :time).to_a.group_by(&:user_id)
+      .order(:user_id, :time, :id).to_a.group_by(&:user_id)
   end
 
   def calculate_spans(user, heartbeats)

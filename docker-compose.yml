@@ -13,12 +13,16 @@ services:
     environment:
       - RAILS_ENV=development
       - DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
+      - CLICKHOUSE_URL=http://default:@clickhouse:8123/hackatime_development
+      - HEARTBEAT_STORE=clickhouse
       - POSTGRES_HOST=db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secureorpheus123
       - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
     depends_on:
       db:
+        condition: service_healthy
+      clickhouse:
         condition: service_healthy
     command: ["sleep", "infinity"]
 
@@ -31,6 +35,8 @@ services:
     environment:
       - RAILS_ENV=development
       - DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
+      - CLICKHOUSE_URL=http://default:@clickhouse:8123/hackatime_development
+      - HEARTBEAT_STORE=clickhouse
       - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
       - PUBLIC_URL=${PUBLIC_URL:-}
     entrypoint: []
@@ -52,7 +58,24 @@ services:
     ports:
       - "5432:5432"
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.7.3.19
+    environment:
+      - CLICKHOUSE_DB=hackatime_development
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    volumes:
+      - hackatime_clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+
 volumes:
   harbor_postgres_data:
+  hackatime_clickhouse_data:
   bundle_cache:
   node_modules:

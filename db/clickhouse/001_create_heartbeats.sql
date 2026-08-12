@@ -1,0 +1,51 @@
+CREATE TABLE IF NOT EXISTS heartbeats
+(
+    id UInt64 CODEC(Delta(8), LZ4),
+    user_id UInt64 CODEC(T64, ZSTD(1)),
+    time Float64 CODEC(Gorilla, ZSTD(1)),
+    time_second Int64 MATERIALIZED toInt64(floor(ifNotFinite(time, 0))),
+    time_5m Int64 MATERIALIZED intDiv(time_second, 300) * 300,
+    project Nullable(String) CODEC(ZSTD(3)),
+    branch Nullable(String) CODEC(ZSTD(3)),
+    entity Nullable(String) CODEC(ZSTD(3)),
+    category LowCardinality(Nullable(String)) CODEC(ZSTD(1)),
+    editor LowCardinality(Nullable(String)) CODEC(ZSTD(1)),
+    language LowCardinality(Nullable(String)) CODEC(ZSTD(1)),
+    machine LowCardinality(Nullable(String)) CODEC(ZSTD(1)),
+    operating_system LowCardinality(Nullable(String)) CODEC(ZSTD(1)),
+    type LowCardinality(Nullable(String)) CODEC(ZSTD(1)),
+    user_agent Nullable(String) CODEC(ZSTD(3)),
+    INDEX user_agent_text user_agent TYPE text(tokenizer = splitByNonAlpha),
+    ip_address Nullable(String) CODEC(ZSTD(1)),
+    dependencies Array(String) CODEC(ZSTD(3)),
+    dependencies_is_null Bool DEFAULT false CODEC(ZSTD(1)),
+    dependencies_json Nullable(String) CODEC(ZSTD(3)),
+    lineno Nullable(Int32) CODEC(T64, ZSTD(1)),
+    lines Nullable(Int32) CODEC(T64, ZSTD(1)),
+    cursorpos Nullable(Int32) CODEC(T64, ZSTD(1)),
+    line_additions Nullable(Int32) CODEC(T64, ZSTD(1)),
+    line_deletions Nullable(Int32) CODEC(T64, ZSTD(1)),
+    project_root_count Nullable(Int32) CODEC(T64, ZSTD(1)),
+    is_write Nullable(Bool) CODEC(ZSTD(1)),
+    source_type UInt8 CODEC(T64, ZSTD(1)),
+    ysws_program UInt8 DEFAULT 0 CODEC(T64, ZSTD(1)),
+    ja4_id Nullable(UInt64) CODEC(T64, ZSTD(1)),
+    ai_model Nullable(String) CODEC(ZSTD(3)),
+    ai_session Nullable(String) CODEC(ZSTD(3)),
+    ai_subscription_plan LowCardinality(Nullable(String)) CODEC(ZSTD(1)),
+    ai_input_tokens Nullable(Int64) CODEC(T64, ZSTD(1)),
+    ai_output_tokens Nullable(Int64) CODEC(T64, ZSTD(1)),
+    ai_prompt_length Nullable(Int32) CODEC(T64, ZSTD(1)),
+    ai_line_changes Nullable(Int32) CODEC(T64, ZSTD(1)),
+    human_line_changes Nullable(Int32) CODEC(T64, ZSTD(1)),
+    deleted_at Nullable(DateTime64(6, 'UTC')) CODEC(Delta(8), ZSTD(1)),
+    created_at DateTime64(6, 'UTC') CODEC(Delta(8), ZSTD(1)),
+    updated_at DateTime64(6, 'UTC') CODEC(Delta(8), ZSTD(1)),
+    version UInt64 CODEC(T64, ZSTD(1))
+)
+ENGINE = ReplacingMergeTree(version)
+PARTITION BY if(time_second BETWEEN 0 AND 4294967295, toYYYYMM(toDateTime(time_second, 'UTC')), 0)
+PRIMARY KEY (user_id, time_5m, time_second)
+ORDER BY (user_id, time_5m, time_second, time, id)
+SETTINGS index_granularity = 8192,
+         deduplicate_merge_projection_mode = 'rebuild'

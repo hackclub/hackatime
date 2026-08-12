@@ -3,7 +3,7 @@ class Api::V1::My::HeartbeatsController < ApplicationController
   before_action :ensure_authenticated!
 
   def most_recent
-    scope = current_user.heartbeats.order(time: :desc)
+    scope = current_user.heartbeats.order(time: :desc, id: :desc)
 
     if params[:source_type].present?
       scope = scope.where(source_type: params[:source_type])
@@ -27,9 +27,8 @@ class Api::V1::My::HeartbeatsController < ApplicationController
     start_time = params[:start_time].present? ? Time.parse(params[:start_time]) : Time.current.beginning_of_day
     end_time = params[:end_time].present? ? Time.parse(params[:end_time]) : Time.current.end_of_day
 
-    heartbeats = current_user.heartbeats
-      .where("time >= ? AND time <= ?", start_time.to_f, end_time.to_f)
-      .order(time: :asc)
+    heartbeats = current_user.heartbeats.where(time: start_time.to_f..end_time.to_f)
+      .order(time: :asc, id: :asc)
 
     render json: {
       start_time: start_time, end_time: end_time,

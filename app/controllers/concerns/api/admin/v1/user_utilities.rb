@@ -83,10 +83,21 @@ module Api
           user = find_user_by_id
           return unless user
 
-          valid = user.heartbeats.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
-
-          lht = valid.maximum(:time)
-          lht /= 1000 if lht && lht > 1000000000000
+          stats = if HeartbeatRepository.clickhouse?
+            HeartbeatRepository.current.normalized_user_stats(user.heartbeats)
+          else
+            valid = user.heartbeats.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
+            last_heartbeat_at = valid.maximum(:time)
+            last_heartbeat_at /= 1000 if last_heartbeat_at && last_heartbeat_at > 1000000000000
+            {
+              "total_heartbeats" => valid.count,
+              "total_coding_time" => valid.duration_seconds || 0,
+              "languages_used" => valid.distinct.pluck(:language).compact.count,
+              "projects_worked_on" => valid.distinct.pluck(:project).compact.count,
+              "days_active" => valid.distinct.count("DATE(to_timestamp(CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END))"),
+              "last_heartbeat_at" => last_heartbeat_at
+            }
+          end
 
           render json: {
             user: {
@@ -104,16 +115,16 @@ module Api
               banned: user.trust_level == "red",
               created_at: user.created_at,
               updated_at: user.updated_at,
-              last_heartbeat_at: lht,
+              last_heartbeat_at: stats.fetch("last_heartbeat_at"),
               email_addresses: user.email_addresses.map(&:email),
               api_keys_count: user.api_keys.count,
-              stats: {
-                total_heartbeats: valid.count,
-                total_coding_time: valid.duration_seconds || 0,
-                languages_used: valid.distinct.pluck(:language).compact.count,
-                projects_worked_on: valid.distinct.pluck(:project).compact.count,
-                days_active: valid.distinct.count("DATE(to_timestamp(CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END))")
-              }
+              stats: stats.slice(
+                "total_heartbeats",
+                "total_coding_time",
+                "languages_used",
+                "projects_worked_on",
+                "days_active"
+              )
             }
           }
         end
@@ -133,7 +144,7 @@ module Api
             end_time = date.end_of_day.utc
           end
 
-          heartbeats = user.heartbeats.where(time: start_time.to_i..end_time.to_i).order(:time)
+          heartbeats = user.heartbeats.where(time: start_time.to_i..end_time.to_i).order(:time, :id)
 
           render json: {
             user_id: user.id,
@@ -184,28 +195,41 @@ module Api
             base_heartbeats = base_heartbeats.where(time: range)
           end
 
-          project_stats = base_heartbeats
-            .select(:project, "COUNT(*) as heartbeat_count", "MIN(time) as first_heartbeat",
-                    "MAX(time) as last_heartbeat",
-                    "ARRAY_AGG(DISTINCT language) FILTER (WHERE language IS NOT NULL) as languages")
-            .group(:project).order(Arel.sql("COUNT(*) DESC"))
-
-          durations = base_heartbeats.group(:project).duration_seconds
+          project_stats = if HeartbeatRepository.clickhouse?
+            HeartbeatRepository.current.project_stats(base_heartbeats)
+          else
+            durations = base_heartbeats.group(:project).duration_seconds
+            base_heartbeats
+              .select(:project, "COUNT(*) as heartbeat_count", "MIN(time) as first_heartbeat",
+                      "MAX(time) as last_heartbeat",
+                      "ARRAY_AGG(DISTINCT language ORDER BY language) FILTER (WHERE language IS NOT NULL) as languages")
+              .group(:project).order(Arel.sql("COUNT(*) DESC")).map do |stat|
+                {
+                  "project" => stat.project,
+                  "heartbeat_count" => stat.heartbeat_count,
+                  "duration" => durations[stat.project] || 0,
+                  "first_heartbeat" => stat.first_heartbeat,
+                  "last_heartbeat" => stat.last_heartbeat,
+                  "languages" => stat.languages || []
+                }
+              end
+          end
           repo_mappings = user.project_repo_mappings
-            .where(project_name: project_stats.map(&:project)).index_by(&:project_name)
+            .where(project_name: project_stats.pluck("project")).index_by(&:project_name)
 
           project_data = project_stats.map do |stat|
-            m = repo_mappings[stat.project]
+            project = stat.fetch("project")
+            mapping = repo_mappings[project]
             {
-              name: stat.project,
-              total_heartbeats: stat.heartbeat_count,
-              total_duration: durations[stat.project] || 0,
-              first_heartbeat: stat.first_heartbeat,
-              last_heartbeat: stat.last_heartbeat,
-              languages: stat.languages || [],
-              repo: m&.repo_url,
-              repo_mapping_id: m&.id,
-              archived: m&.archived? || false
+              name: project,
+              total_heartbeats: stat.fetch("heartbeat_count").to_i,
+              total_duration: stat.fetch("duration").to_i,
+              first_heartbeat: stat.fetch("first_heartbeat").to_f,
+              last_heartbeat: stat.fetch("last_heartbeat").to_f,
+              languages: stat.fetch("languages") || [],
+              repo: mapping&.repo_url,
+              repo_mapping_id: mapping&.id,
+              archived: mapping&.archived? || false
             }
           end
 
@@ -358,9 +382,8 @@ module Api
           query = user.heartbeats
           query = apply_time_range(query) or return
 
-          quoted_column = Heartbeat.connection.quote_column_name(column_name)
           values = query.where.not(column_name => nil).distinct
-                        .order(Arel.sql("#{quoted_column} ASC"))
+                        .order(column_name => :asc)
                         .limit(limit).pluck(column_name).reject(&:empty?)
 
           render json: { user_id: user.id, field: field, values: values, count: values.count }

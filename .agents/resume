@@ -16,4 +16,5 @@ fi
 
 sudo docker info >/dev/null
 sudo docker compose up -d
+sudo docker compose exec -T web bin/rake clickhouse:migrate
 amp orb services ensure

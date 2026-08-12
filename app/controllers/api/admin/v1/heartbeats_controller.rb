@@ -9,6 +9,10 @@ module Api
           lookback_days = (params[:lookback_days] || 30).to_i.clamp(1, 365)
           limit = parse_limit
           cutoff = lookback_days.days.ago.to_i
+          if HeartbeatRepository.clickhouse?
+            pairs = HeartbeatRepository.current.ip_machine_pairs(since: cutoff, limit:)
+            return render json: { pairs: }
+          end
 
           query = <<-SQL
             SELECT
@@ -43,6 +47,7 @@ module Api
               GROUP BY user_id, machine, ip_address
             ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
             WHERE r1.user_id < r2.user_id
+            ORDER BY r1.user_id, r2.user_id, r1.machine, r1.ip_address
             LIMIT ?
           SQL
 
@@ -57,6 +62,10 @@ module Api
           lookback_days = (params[:lookback_days] || 30).to_i.clamp(1, 365)
           limit = parse_limit
           cutoff = lookback_days.days.ago.to_i
+          if HeartbeatRepository.clickhouse?
+            machines = HeartbeatRepository.current.shared_machines(since: cutoff, limit:)
+            return render json: { machines: }
+          end
 
           query = <<-SQL
             SELECT

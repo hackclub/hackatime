@@ -90,15 +90,30 @@ Rails.application.configure do
       class: "Cache::ActiveProjectsJob",
       kwargs: { force_reload: true }
     },
-    cache_minutes_logged: {
-      cron: "* * * * *",
-      class: "Cache::MinutesLoggedJob",
-      kwargs: { force_reload: true }
-    },
     cache_heartbeat_counts: {
       cron: "* * * * *",
       class: "Cache::HeartbeatCountsJob",
       kwargs: { force_reload: true }
+    },
+    deliver_heartbeat_store: {
+      cron: "0 3 * * *",
+      class: "HeartbeatDeliveryJob"
+    },
+    reconcile_heartbeat_transfers: {
+      cron: "* * * * *",
+      class: "HeartbeatTransferJob"
+    },
+    reconcile_heartbeat_deletions: {
+      cron: "* * * * *",
+      class: "HeartbeatDeletionJob"
+    },
+    reconcile_heartbeat_ja4_nullifications: {
+      cron: "* * * * *",
+      class: "HeartbeatJa4NullificationJob"
+    },
+    reconcile_dashboard_rollup_refreshes: {
+      cron: "* * * * *",
+      class: "DashboardRollupRefreshJob"
     },
     weekly_summary_email: {
       cron: "30 18 * * 0",

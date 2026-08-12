@@ -91,14 +91,16 @@ module Heartbeatable
     end
 
     def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
+      if HeartbeatRepository.clickhouse?
+        return HeartbeatRepository.current.daily_streaks(
+          user_ids,
+          start_date:,
+          exclude_browser_time:
+        )
+      end
+
       return {} if user_ids.empty?
       start_date = [ start_date, 31.days.ago ].max
-      cache_prefix = exclude_browser_time ? "user_streak_without_browser_v3" : "user_streak_v3"
-      streak_cache = Rails.cache.read_multi(*user_ids.map { |id| "#{cache_prefix}_#{id}" })
-
-      uncached_users = user_ids.select { |id| streak_cache["#{cache_prefix}_#{id}"].nil? }
-      return user_ids.index_with { |id| streak_cache["#{cache_prefix}_#{id}"] || 0 } if uncached_users.empty?
-
       timeout = heartbeat_timeout_duration.to_i
       day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone)"
       streak_diff_sql = <<~SQL.squish
@@ -108,7 +110,7 @@ module Heartbeatable
         ) as diff
       SQL
       raw_durations = joins(:user)
-        .where(user_id: uncached_users)
+        .where(user_id: user_ids)
         .where.not(category: "browsing")
         .with_valid_timestamps
         .where(time: start_date..Time.current)
@@ -150,9 +152,8 @@ module Heartbeatable
          }
        end
 
-      result = user_ids.index_with { |id| streak_cache["#{cache_prefix}_#{id}"] || 0 }
+      result = user_ids.index_with(0)
 
-      # Then calculate streaks for each user
       daily_durations.each do |user_id, data|
         current_date = data[:current_date]
         days = data[:days]
@@ -174,9 +175,6 @@ module Heartbeatable
         end
 
         result[user_id] = streak
-
-        # Cache the streak for 1 hour
-        Rails.cache.write("#{cache_prefix}_#{user_id}", streak, expires_in: 1.hour)
       end
 
       result
@@ -195,6 +193,8 @@ module Heartbeatable
     end
 
     def attributed_durations_by(scope, field)
+      return HeartbeatRepository.current.attributed_durations(scope, field) if HeartbeatRepository.clickhouse?
+
       scope = scope.with_valid_timestamps
       timeout = heartbeat_timeout_duration.to_i
       field_expr = connection.quote_column_name(field.to_s)
@@ -216,6 +216,8 @@ module Heartbeatable
     end
 
     def duration_seconds(scope = all)
+      return HeartbeatRepository.current.duration_seconds(scope) if HeartbeatRepository.clickhouse?
+
       scope = scope.with_valid_timestamps
       timeout = heartbeat_timeout_duration.to_i
 
@@ -240,6 +242,15 @@ module Heartbeatable
     end
 
     def duration_seconds_boundary_aware(scope, start_time, end_time, excluded_categories: [])
+      if HeartbeatRepository.clickhouse?
+        return HeartbeatRepository.current.boundary_aware_duration(
+          scope,
+          start_time,
+          end_time,
+          excluded_categories:
+        )
+      end
+
       scope = scope.with_valid_timestamps
       base_scope = scope.model.all.with_valid_timestamps
       base_scope = base_scope.where.not("LOWER(category) IN (?)", excluded_categories) if excluded_categories.present?

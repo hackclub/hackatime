@@ -15,11 +15,7 @@ export type NavLink = {
 };
 
 export type AdminLevel =
-  | "default"
-  | "superadmin"
-  | "admin"
-  | "viewer"
-  | "ultraadmin";
+  "default" | "superadmin" | "admin" | "viewer" | "ultraadmin";
 
 export type NavCurrentUser = {
   display_name: string;
@@ -197,7 +193,7 @@ export type ProjectShowProps = {
   interval?: string | null;
   from?: string | null;
   to?: string | null;
-  project_stats?: ProjectStats;
+  project_stats: ProjectStats;
 };
 
 export type PublicProjectShowProps = {

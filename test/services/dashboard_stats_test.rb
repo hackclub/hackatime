@@ -14,7 +14,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
-  test "raw filter options are cached per user" do
+  test "raw filter options reflect new heartbeats" do
     with_memory_cache_store do
       Rails.cache.clear
 
@@ -30,8 +30,8 @@ class DashboardStatsTest < ActiveSupport::TestCase
       second = stats.live_raw_filter_options
 
       assert_equal [ "alpha" ], first.fetch(:project)
-      assert_equal [ "alpha" ], second.fetch(:project)
-      assert_equal [ "ruby" ], second.fetch(:language)
+      assert_equal [ "alpha", "beta" ], second.fetch(:project).sort
+      assert_equal [ "javascript", "ruby" ], second.fetch(:language).sort
     end
   end
 
@@ -268,6 +268,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
         create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
         DashboardRollupRefreshService.new(user: user).call
+        DashboardRollup.clear_dirty(user.id)
 
         stats = build_stats(user)
         def stats.live_today_stats_data = raise("expected rollup-backed today stats path")
@@ -298,6 +299,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
         create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
         DashboardRollupRefreshService.new(user: user).call
+        DashboardRollup.clear_dirty(user.id)
 
         today_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::TODAY_STATS_DIMENSION)
         today_row.update!(payload: today_row.payload.merge("today_date" => "2026-04-13"))
@@ -336,6 +338,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
         create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
         DashboardRollupRefreshService.new(user: user).call
+        DashboardRollup.clear_dirty(user.id)
 
         activity_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
         activity_row.update!(payload: activity_row.payload.merge("end_date" => "2026-04-13"))

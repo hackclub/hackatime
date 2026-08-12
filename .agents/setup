@@ -72,6 +72,7 @@ sudo docker compose exec -T web bin/vite build
 
 echo "==> Preparing and seeding the development database"
 sudo docker compose exec -T web bin/rails db:prepare db:seed
+sudo docker compose exec -T web bin/rake clickhouse:migrate
 
 echo "==> Preparing the test database"
 sudo docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare

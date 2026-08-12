@@ -37,6 +37,10 @@ class WeeklySummaryMailer < ApplicationMailer
   end
 
   def active_days_count(scope)
+    if HeartbeatRepository.clickhouse?
+      return HeartbeatRepository.current.active_days_count(scope, timezone: @timezone_label)
+    end
+
     timezone_sql = ActiveRecord::Base.connection.quote(@timezone_label)
     scope.where.not(time: nil).distinct.count(Arel.sql("DATE(to_timestamp(time) AT TIME ZONE #{timezone_sql})"))
   rescue StandardError

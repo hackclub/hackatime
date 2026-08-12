@@ -18,8 +18,6 @@ class My::ProjectRepoMappingsController < InertiaController
       interval: selected_interval,
       from: params[:from],
       to: params[:to],
-      interval_label: helpers.human_interval_name(selected_interval, from: params[:from], to: params[:to]),
-      total_projects: projects_data.is_a?(Hash) ? projects_data[:projects].size : project_count(archived),
       projects_data: projects_data
     }
   end
@@ -64,7 +62,7 @@ class My::ProjectRepoMappingsController < InertiaController
       interval: selected_interval,
       from: params[:from],
       to: params[:to],
-      project_stats: InertiaRails.defer { project_detail_payload(project_name) }
+      project_stats: project_detail_payload(project_name)
     }
   end
 
@@ -106,18 +104,6 @@ class My::ProjectRepoMappingsController < InertiaController
   def show_archived? = params[:show_archived] == "true"
   def selected_interval = params[:interval]
 
-  def project_durations_cache_key
-    key = "user_#{current_user.id}_project_durations_#{selected_interval}_v3"
-    if selected_interval == "custom"
-      sanitized_from = sanitized_cache_date(params[:from]) || "none"
-      sanitized_to = sanitized_cache_date(params[:to]) || "none"
-      key += "_#{sanitized_from}_#{sanitized_to}"
-    end
-    key
-  end
-
-  def sanitized_cache_date(value) = value.to_s.gsub(/[^0-9-]/, "")[0, 10].presence
-
   # Builds the data needed for either projects_payload or rollup_projects_payload:
   # scoped mappings, archived name set, and latest commit timestamps by repo id.
   def projects_context(archived:)
@@ -135,12 +121,10 @@ class My::ProjectRepoMappingsController < InertiaController
   def projects_payload(archived:)
     mappings_by_name, archived_names, latest_user_commit_at_by_repo_id = projects_context(archived: archived)
 
-    cached = Rails.cache.fetch(project_durations_cache_key, expires_in: 1.minute) do
-      hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
-      { durations: hb.group(:project).duration_seconds, total_time: hb.duration_seconds }
-    end
+    heartbeats = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
+    durations = heartbeats.group(:project).duration_seconds
 
-    projects = cached[:durations].filter_map do |project_key, duration|
+    projects = durations.filter_map do |project_key, duration|
       next if duration <= 0
       next if archived_names.key?(project_key) != archived
 
@@ -151,18 +135,15 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def projects_data_for_index(archived:)
-    return empty_projects_payload unless current_user.heartbeats.exists?
-    return InertiaRails.defer { projects_payload(archived:) } if archived
+    return projects_payload(archived: archived) if archived
     return rollup_projects_payload(archived: archived) if rollup_projects_path?
 
-    InertiaRails.defer { projects_payload(archived: archived) }
+    projects_payload(archived: archived)
   end
 
-  def empty_projects_payload
-    { total_time_seconds: 0, total_time_label: format_duration(0), has_activity: false, projects: [] }
+  def rollup_projects_path?
+    !HeartbeatRepository.clickhouse? && selected_interval.blank? && params[:from].blank? && params[:to].blank?
   end
-
-  def rollup_projects_path? = selected_interval.blank? && params[:from].blank? && params[:to].blank?
 
   def rollup_projects_payload(archived:)
     rollups = DashboardRollup
@@ -170,7 +151,7 @@ class My::ProjectRepoMappingsController < InertiaController
       .to_a
 
     DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds) if DashboardRollup.dirty?(current_user.id) || rollups.empty?
-    return InertiaRails.defer { projects_payload(archived: archived) } if rollups.empty?
+    return projects_payload(archived: archived) if rollups.empty?
 
     mappings_by_name, archived_names, latest_user_commit_at_by_repo_id = projects_context(archived: archived)
 
@@ -240,13 +221,6 @@ class My::ProjectRepoMappingsController < InertiaController
       formatted_languages: repository.formatted_languages,
       last_commit_ago: last_commit_at ? "#{helpers.time_ago_in_words(last_commit_at)} ago" : nil
     }
-  end
-
-  def project_count(archived)
-    archived_names = current_user.project_repo_mappings.archived.pluck(:project_name)
-    hb = current_user.heartbeats.filter_by_time_range(selected_interval, params[:from], params[:to])
-    projects = hb.select(:project).distinct.pluck(:project)
-    projects.count { |proj| archived_names.include?(proj) == archived }
   end
 
   def project_detail_payload(project_name)

@@ -135,6 +135,14 @@ class ProfilesController < InertiaController
   def public_profile_og_heatmap
     return nil unless @user.allow_public_stats_lookup
 
+    if HeartbeatRepository.clickhouse?
+      snapshot = DashboardData::Snapshots.activity_graph_snapshot(
+        user: @user,
+        scope: @user.heartbeats_excluding_archived_projects
+      )
+      return snapshot.fetch(:duration_by_date)
+    end
+
     rollup = DashboardRollup.find_by(user_id: @user.id, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
     duration_by_date = rollup&.payload&.fetch("duration_by_date", nil)
     return nil if duration_by_date.blank?

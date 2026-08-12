@@ -22,6 +22,8 @@ module DashboardData
     end
 
     def project_details_snapshot(scope:)
+      return HeartbeatRepository.current.project_details(scope) if HeartbeatRepository.clickhouse?
+
       timeout = Heartbeat.heartbeat_timeout_duration.to_i
       relation_sql = scope.with_valid_timestamps
         .where.not(project: [ nil, "" ], time: nil)
@@ -68,6 +70,14 @@ module DashboardData
 
     def weekly_project_stats(user:, scope:)
       ranges = week_ranges(user.timezone)
+      if HeartbeatRepository.clickhouse?
+        return HeartbeatRepository.current.weekly_project_stats(
+          scope,
+          timezone: user.timezone,
+          ranges:
+        )
+      end
+
       result = ranges.to_h { |week_key, *_| [ week_key, {} ] }
 
       relation_sql = scope.with_valid_timestamps
@@ -108,6 +118,28 @@ module DashboardData
 
     def today_stats_snapshot(user:, scope:)
       Time.use_zone(user.timezone) do
+        if HeartbeatRepository.clickhouse?
+          snapshot = HeartbeatRepository.current.today_stats(scope, timezone: user.timezone)
+          language_categories = snapshot.fetch(:language_counts)
+            .reject { |language, _| language.blank? }
+            .group_by { |language, _| language.categorize_language }
+            .transform_values { |pairs| pairs.sum { |_, count| count } }
+            .reject { |category, _| category.blank? }
+            .sort_by { |_, count| -count }
+            .map(&:first)
+          editor_keys = snapshot.fetch(:editor_counts)
+            .reject { |editor, _| editor.blank? }
+            .sort_by { |_, count| -count }
+            .map(&:first)
+          return {
+            timezone: user.timezone,
+            today_date: Date.current.iso8601,
+            todays_duration_seconds: snapshot.fetch(:todays_duration_seconds),
+            todays_language_categories: language_categories,
+            todays_editor_keys: editor_keys
+          }
+        end
+
         timeout = Heartbeat.heartbeat_timeout_duration.to_i
         today_sql = scope.today.to_sql
 
@@ -180,6 +212,10 @@ module DashboardData
     end
 
     def coding_rhythm_snapshot(user:, scope:)
+      if HeartbeatRepository.clickhouse?
+        return HeartbeatRepository.current.coding_rhythm(scope, timezone: user.timezone)
+      end
+
       relation_sql = scope.with_valid_timestamps.where.not(time: nil).select(:id, :time).to_sql
       quoted_timezone = Heartbeat.connection.quote(user.timezone)
       local_time_sql = "to_timestamp(time) AT TIME ZONE #{quoted_timezone}"

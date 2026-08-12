@@ -8,8 +8,7 @@ namespace :cache do
       Cache::ActiveUsersGraphDataJob,
       Cache::HomeStatsJob,
       Cache::HeartbeatCountsJob,
-      Cache::ActiveProjectsJob,
-      Cache::MinutesLoggedJob
+      Cache::ActiveProjectsJob
     ]
 
     cache_jobs.each do |job_class|

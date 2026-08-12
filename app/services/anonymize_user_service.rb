@@ -14,7 +14,9 @@ class AnonymizeUserService < ApplicationService
   end
 
   def call
+    HeartbeatRepository.ensure_writes_enabled!
     ActiveRecord::Base.transaction do
+      HeartbeatRepository.current.prepare_deletion(user.id) if HeartbeatRepository.clickhouse?
       user.email_addresses.update_all(user_id: user.id, source: EmailAddress.sources[:preserved_for_deletion])
       user.update!(ANONYMIZE_FIELDS.index_with { nil }.merge(
         slack_scopes: [], hca_scopes: [],
@@ -22,6 +24,7 @@ class AnonymizeUserService < ApplicationService
       ))
       destroy_associated_records
     end
+    DashboardRollupRefreshJob.schedule_for(user.id, wait: 0.seconds) unless HeartbeatRepository.clickhouse?
   rescue StandardError => e
     report_error(e, message: "AnonymizeUserService failed for user #{user.id}", extra: { user_id: user.id })
     raise
@@ -45,7 +48,7 @@ class AnonymizeUserService < ApplicationService
     user.heartbeat_import_runs.destroy_all
     user.project_repo_mappings.destroy_all
     user.goals.destroy_all
-    Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)
+    user.heartbeats.where(deleted_at: nil).update_all(deleted_at: Time.current) unless HeartbeatRepository.clickhouse?
     user.access_grants.destroy_all
     user.access_tokens.destroy_all
   end

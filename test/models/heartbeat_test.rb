@@ -39,7 +39,7 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert_includes Heartbeat.all, heartbeat
   end
 
-  test "daily streak cache is separated for browser-filtered leaderboard streaks" do
+  test "daily streak calculation distinguishes browser-filtered leaderboard streaks" do
     user = User.create!(timezone: "UTC", username: "hb_streak_cache")
     create_heartbeat_sequence(user: user, started_at: 1.day.ago.beginning_of_day + 9.hours, editor: "firefox")
 

@@ -7,7 +7,7 @@ class ProcessAccountDeletionsJob < ApplicationJob
 
       begin
         AnonymizeUserService.call(deletion_request.user)
-        deletion_request.complete!
+        complete_request(deletion_request)
 
         Rails.logger.info "kerblamed account ##{deletion_request.user_id}"
       rescue StandardError => e
@@ -15,5 +15,17 @@ class ProcessAccountDeletionsJob < ApplicationJob
         Rails.logger.error e.backtrace.join("\n")
       end
     end
+  end
+
+  private
+
+  def complete_request(deletion_request)
+    unless HeartbeatRepository.clickhouse?
+      deletion_request.complete!
+      return
+    end
+
+    deletion = HeartbeatDeletion.find_by!(user_id: deletion_request.user_id)
+    deletion_request.complete! if deletion.completed?
   end
 end

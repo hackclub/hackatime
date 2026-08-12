@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Deferred } from "@inertiajs/svelte";
   import Share from "hcicons-svelte/share";
   import Button from "../../components/Button.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
@@ -76,41 +75,7 @@
     />
   </div>
 
-  <Deferred data="project_stats">
-    {#snippet fallback()}
-      <div class="animate-pulse space-y-6">
-        <div class="grid grid-cols-1 gap-4">
-          {#each Array(6) as _}
-            <div class="h-20 rounded-xl bg-darkless"></div>
-          {/each}
-        </div>
-        <div class="h-40 rounded-xl bg-darkless"></div>
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div class="h-64 rounded-xl bg-darkless"></div>
-          <div class="h-64 rounded-xl bg-darkless"></div>
-        </div>
-      </div>
-    {/snippet}
-
-    {#snippet children({ reloading })}
-      <div
-        class="transition-opacity duration-300 ease-out"
-        class:opacity-60={reloading}
-      >
-        {#if project_stats}
-          <ProjectStatsContent {...project_stats} />
-        {:else}
-          <div
-            class="rounded-xl border border-surface-200 bg-dark p-8 text-center"
-          >
-            <p class="text-muted">
-              No activity found for this project in this time range.
-            </p>
-          </div>
-        {/if}
-      </div>
-    {/snippet}
-  </Deferred>
+  <ProjectStatsContent {...project_stats} />
 </div>
 
 <ShareModal

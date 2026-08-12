@@ -1,5 +1,7 @@
 class Ja4 < ApplicationRecord
-  has_many :heartbeats, dependent: :nullify
+  has_many :heartbeats
+
+  before_destroy :prepare_heartbeat_nullification
 
   validates :fingerprint, presence: true
 
@@ -9,5 +11,21 @@ class Ja4 < ApplicationRecord
 
     find_by(fingerprint: normalized_fingerprint) ||
       create_or_find_by!(fingerprint: normalized_fingerprint)
+  end
+
+  def heartbeats
+    return super unless HeartbeatRepository.clickhouse?
+
+    HeartbeatRepository.current.all.where(ja4_id: id)
+  end
+
+  private
+
+  def prepare_heartbeat_nullification
+    if HeartbeatRepository.clickhouse?
+      HeartbeatRepository.current.prepare_ja4_nullification(id)
+    else
+      HeartbeatRepository.ensure_writes_enabled!
+    end
   end
 end

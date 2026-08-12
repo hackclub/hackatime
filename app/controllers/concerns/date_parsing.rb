@@ -22,12 +22,12 @@ module DateParsing
     if params[:start_date].present?
       ts = parse_ts(params[:start_date], :start_date, :start)
       return nil if performed?
-      query = query.where("time >= ?", ts)
+      query = query.where(time: ts..)
     end
     if params[:end_date].present?
       ts = parse_ts(params[:end_date], :end_date, :end)
       return nil if performed?
-      query = query.where("time <= ?", ts)
+      query = query.where(time: ..ts)
     end
     query
   end

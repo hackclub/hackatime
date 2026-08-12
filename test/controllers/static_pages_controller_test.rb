@@ -43,20 +43,9 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_inertia_component "Home/SignedIn"
-      assert_equal [ "dashboard_stats" ], inertia_page.dig("deferredProps", "default")
+      assert_nil inertia_page["deferredProps"]
 
-      get root_path, headers: {
-        "X-Inertia" => "true",
-        "X-Requested-With" => "XMLHttpRequest",
-        "X-Inertia-Version" => inertia_page["version"],
-        "X-Inertia-Partial-Component" => "Home/SignedIn",
-        "X-Inertia-Partial-Data" => "dashboard_stats"
-      }
-
-      assert_response :success
-
-      page = JSON.parse(response.body)
-      dashboard_stats = page.dig("props", "dashboard_stats")
+      dashboard_stats = inertia_page.dig("props", "dashboard_stats")
       stats = dashboard_stats["filterable_dashboard_data"]
       today_stats = dashboard_stats["today_stats"]
       activity_graph = dashboard_stats["activity_graph"]
@@ -109,15 +98,7 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
 
       get root_path(interval: "yesterday")
 
-      get root_path(interval: "yesterday"), headers: {
-        "X-Inertia" => "true",
-        "X-Requested-With" => "XMLHttpRequest",
-        "X-Inertia-Version" => inertia_page["version"],
-        "X-Inertia-Partial-Component" => "Home/SignedIn",
-        "X-Inertia-Partial-Data" => "dashboard_stats"
-      }
-
-      average = JSON.parse(response.body).dig("props", "dashboard_stats", "filterable_dashboard_data", "coding_time_average")
+      average = inertia_page.dig("props", "dashboard_stats", "filterable_dashboard_data", "coding_time_average")
       assert_equal(
         { "average_seconds" => 60.0, "total_seconds" => 60, "day_count" => 1, "period_label" => "Yesterday" },
         average
