@@ -135,10 +135,14 @@ configs:
   clickhouse_admin_config:
     content: |
       <clickhouse>
+        <profiles>
+          <default>
+            <queue_max_wait_ms>10000</queue_max_wait_ms>
+          </default>
+        </profiles>
         <users>
           <clickhouse_admin>
             <named_collection_control>1</named_collection_control>
-            <queue_max_wait_ms>10000</queue_max_wait_ms>
           </clickhouse_admin>
         </users>
       </clickhouse>
