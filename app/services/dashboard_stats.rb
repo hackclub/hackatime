@@ -150,8 +150,8 @@ class DashboardStats
   def filtered_dashboard_heartbeats(filter_options, result: nil)
     helpers = ApplicationController.helpers
 
-    FILTERS.each_with_object(dashboard_heartbeats) do |field, heartbeats|
-      next unless params[field].present?
+    FILTERS.reduce(dashboard_heartbeats) do |heartbeats, field|
+      next heartbeats unless params[field].present?
 
       selected = params[field].split(",")
       values = case field
@@ -160,8 +160,8 @@ class DashboardStats
       when :language then filter_options.fetch(field, []).select { |value| selected.include?(value.categorize_language) }
       else selected
       end
-      heartbeats.where!(field => values)
       result["singular_#{field}"] = selected.one? if result
+      heartbeats.where(field => values)
     end
   end
 

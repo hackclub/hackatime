@@ -92,7 +92,7 @@ class HeartbeatRepositoryIntegrationTest < ActiveSupport::TestCase
     assert_equal 150, repository.for_user(source.id).duration_seconds
     assert_equal 150, repository.boundary_aware_duration(
       repository.for_user(source.id),
-      started_at + 30.375,
+      Time.zone.at(started_at + 30.375),
       started_at + 300
     )
     assert_equal 2, repository.for_user(source.id).where(time: started_at...(started_at + 31)).count
@@ -109,7 +109,12 @@ class HeartbeatRepositoryIntegrationTest < ActiveSupport::TestCase
       start_time: started_at - 1,
       end_time: started_at + 301
     ).sum(&:last)
-    assert_equal source.id, repository.latest_direct_heartbeats(since: started_at - 1).sole.fetch("user_id").to_i
+    since = Time.zone.at(started_at - 1)
+    before = Time.zone.at(started_at + 301)
+    assert_equal source.id, repository.latest_direct_heartbeats(since:).sole.fetch("user_id").to_i
+    assert_equal 1, repository.active_users_by_hour(since:, before:).sole.fetch(:count)
+    assert_empty repository.ip_machine_pairs(since:, limit: 100)
+    assert_empty repository.shared_machines(since:, limit: 100)
     assert_includes client.select("SHOW CREATE TABLE heartbeats").first.fetch("statement"),
       "PRIMARY KEY (user_id, time_5m, time_second)"
     assert_not_includes client.select("SHOW CREATE TABLE heartbeats").first.fetch("statement"), "fields_hash"

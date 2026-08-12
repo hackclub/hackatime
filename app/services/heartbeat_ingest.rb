@@ -406,7 +406,7 @@ class HeartbeatIngest
   def persist_clickhouse_import(records)
     timestamp = Time.current
     serialized = records.map do |record|
-      clickhouse_attributes(
+      HeartbeatRepository.current.serialize_attributes(
         record.except(:clickhouse_fields_hash, :legacy_fields_hash).merge(
           fields_hash: record[:clickhouse_fields_hash],
           created_at: timestamp,
@@ -421,10 +421,6 @@ class HeartbeatIngest
       records: serialized
     )
     outcomes.count { |outcome| outcome.fetch(:inserted) }
-  end
-
-  def clickhouse_attributes(attributes)
-    HeartbeatRepository.current.serialize_attributes(attributes)
   end
 
   def heartbeat_from_store(row)

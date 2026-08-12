@@ -239,9 +239,9 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
       assert_includes sql, "FROM heartbeats_by_time FINAL"
       assert_includes sql, "time_5m >= intDiv(toInt64(floor(1700000000.125)), 300) * 300"
     end
-    assert_includes client.queries[0], "time > '2023-11-14 22:13:20.125000'"
-    assert_includes client.queries[1], "time > '2023-11-14 22:13:20.125000'"
-    assert_includes client.queries[2], "time >= '2023-11-14 22:13:20.125000'"
+    assert_includes client.queries[0], "time > 1700000000.125"
+    assert_includes client.queries[1], "time > 1700000000.125"
+    assert_includes client.queries[2], "time >= 1700000000.125"
   end
 
   test "null dependencies remain distinct from an empty dependency list" do

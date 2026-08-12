@@ -155,7 +155,9 @@ class HeartbeatRepository
     base = scope.unscope(where: :time).with_valid_timestamps
     base = base.where.not("lower(category) IN (?)", excluded_categories) if excluded_categories.any?
     timeout = Heartbeat.heartbeat_timeout_duration.to_i
-    window_start = time_value(start_time) - timeout
+    start_time = time_value(start_time)
+    end_time = time_value(end_time)
+    window_start = start_time - timeout
     window_rows = base.where(time: window_start..end_time).sql(select: %w[id time])
     result = @client.select(<<~SQL.squish).first
       WITH diffs AS (
@@ -362,7 +364,7 @@ class HeartbeatRepository
              argMax(id, tuple(time, id)) AS latest_id
       FROM heartbeats_by_time FINAL
       WHERE deleted_at IS NULL AND source_type = #{SOURCE_TYPES.fetch('direct_entry')}
-        #{category_filter} AND time_5m >= #{time_bucket(since)} AND time > #{quote(since)}
+        #{category_filter} AND time_5m >= #{time_bucket(since)} AND time > #{quote(time_value(since))}
       GROUP BY #{grouping}
     SQL
   end
@@ -374,7 +376,7 @@ class HeartbeatRepository
       FROM heartbeats_by_time FINAL
       WHERE deleted_at IS NULL AND category = 'coding' AND time >= 0 AND time <= #{VALID_TIME_MAX}
         AND time_5m >= #{time_bucket(since)} AND time_5m <= #{time_bucket(before)}
-        AND time > #{quote(since)} AND time < #{quote(before)}
+        AND time > #{quote(time_value(since))} AND time < #{quote(time_value(before))}
       GROUP BY hour ORDER BY hour DESC
     SQL
       { hour: Time.zone.parse(row.fetch("hour")), count: row.fetch("user_count").to_i }
@@ -401,7 +403,7 @@ class HeartbeatRepository
         SELECT user_id, machine, ip_address, min(time) AS first_seen, max(time) AS last_seen
         FROM heartbeats_by_time FINAL
         WHERE deleted_at IS NULL AND machine IS NOT NULL AND ip_address IS NOT NULL
-          AND time_5m >= #{time_bucket(since)} AND time #{time_operator} #{quote(since)}
+          AND time_5m >= #{time_bucket(since)} AND time #{time_operator} #{quote(time_value(since))}
         GROUP BY user_id, machine, ip_address
       )
       SELECT a.user_id AS user_a_id, b.user_id AS user_b_id, a.machine, a.ip_address,
@@ -421,7 +423,7 @@ class HeartbeatRepository
              arraySort(groupUniqArray(user_id)) AS user_ids
       FROM heartbeats_by_time FINAL
       WHERE deleted_at IS NULL AND machine IS NOT NULL
-        AND time_5m >= #{time_bucket(since)} AND time > #{quote(since)}
+        AND time_5m >= #{time_bucket(since)} AND time > #{quote(time_value(since))}
       GROUP BY machine HAVING machine_frequency > 1
       ORDER BY machine_frequency DESC, machine ASC
       LIMIT #{Integer(limit)}
@@ -1588,12 +1590,6 @@ class HeartbeatRepository
         []
       end
       new_scope(conditions: conditions + additions)
-    end
-
-    def where!(...)
-      replacement = where(...)
-      @conditions = replacement.conditions
-      self
     end
 
     def not(first = nil, *binds, **attributes)

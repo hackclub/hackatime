@@ -3,7 +3,10 @@ class HeartbeatDeliveryJob < ApplicationJob
 
   include GoodJob::ActiveJobExtensions::Concurrency
 
-  good_job_control_concurrency_with(total_limit: 1, key: -> { self.class.name })
+  good_job_control_concurrency_with(
+    total_limit: 1,
+    key: -> { "#{self.class.name}:#{arguments.first || 'global'}" }
+  )
 
   retry_on StandardError, wait: ->(executions) { [ executions**2, 60 ].min.seconds }, attempts: :unlimited
 
