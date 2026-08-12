@@ -30,10 +30,10 @@ The Ryzen 9 7950X3D and approximately 188 GiB usable RAM are ample for a startin
 
 ClickHouse does not preallocate its container or server limit, but those limits can still be reached under concurrent queries and merges. Use this staged **field starting budget**, then retain or change it only from production-shaped measurements:
 
-| Phase | PostgreSQL `shared_buffers` | ClickHouse container | ClickHouse tracked server | Rails user total | Per query | Rails query concurrency | Sort/group spill |
+| Phase | PostgreSQL `shared_buffers` | ClickHouse container | ClickHouse tracked server | Rails user total | Per query | Server query slots | Overflow wait |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Backfill and cutover | 64 GiB | 32 GiB | 24 GiB | 8 GiB | 1 GiB | 6 | 256 MiB |
-| After purge and PostgreSQL retuning | 24 GiB target | 32 GiB | 24 GiB | 8 GiB | 1 GiB | 6 | 256 MiB |
+| Backfill and cutover | 64 GiB | 32 GiB | 24 GiB | 8 GiB | 1 GiB | 32 | 2 seconds |
+| After purge and PostgreSQL retuning | 24 GiB target | 32 GiB | 24 GiB | 8 GiB | 1 GiB | 32 | 2 seconds |
 
 The post-purge 24 GiB PostgreSQL value is a starting target, not a claim that the remaining relational workload needs exactly that amount. Measure the non-heartbeat working set and cache misses before applying it. The target PostgreSQL shared pool plus ClickHouse tracked ceiling is 48 GiB, below the current 64 GiB PostgreSQL shared pool alone. Actual total RAM also includes PostgreSQL backend-private memory, ClickHouse allocations not represented by query tracking and reclaimable filesystem cache, so judge the outcome from container/cgroup working set rather than adding only configuration values.
 
@@ -111,7 +111,8 @@ configs:
     content: |
       <clickhouse>
         <max_server_memory_usage>25769803776</max_server_memory_usage>
-        <max_concurrent_queries>20</max_concurrent_queries>
+        <max_concurrent_queries>32</max_concurrent_queries>
+        <concurrent_threads_soft_limit_num>48</concurrent_threads_soft_limit_num>
         <backups>
           <allow_concurrent_backups>false</allow_concurrent_backups>
           <allow_concurrent_restores>false</allow_concurrent_restores>
@@ -137,6 +138,7 @@ configs:
         <users>
           <clickhouse_admin>
             <named_collection_control>1</named_collection_control>
+            <queue_max_wait_ms>10000</queue_max_wait_ms>
           </clickhouse_admin>
         </users>
       </clickhouse>
@@ -177,8 +179,11 @@ Replace `APP_PASSWORD` below without printing it into a shared log:
 CREATE SETTINGS PROFILE IF NOT EXISTS hackatime_app_profile SETTINGS
     max_memory_usage = 1073741824 READONLY,
     max_memory_usage_for_user = 8589934592 READONLY,
-    max_concurrent_queries_for_user = 6 READONLY,
+    max_concurrent_queries_for_user = 64 READONLY,
+    max_threads = 4 READONLY,
+    queue_max_wait_ms = 2000 READONLY,
     max_execution_time = 60 READONLY,
+    timeout_before_checking_execution_speed = 0 READONLY,
     max_bytes_before_external_group_by = 268435456 READONLY,
     max_bytes_before_external_sort = 268435456 READONLY;
 
@@ -252,6 +257,8 @@ Before backfill, retain at least seven representative days of:
 - user-facing p50, p95 and p99 latency for the heartbeat API, dashboard, profiles, homepage and leaderboards;
 - PostgreSQL read latency, cache hit/miss counters, temporary-file bytes and top heartbeat query latency.
 
+Also record `WEB_CONCURRENCY`, `RAILS_MAX_THREADS`, worker execution concurrency and the number of Coolify replicas. Web workers × Rails threads × web replicas bounds the web requests that can submit queries concurrently; excess requests wait or are rejected according to the proxy and application timeout configuration. Workers consume additional query capacity. Do not equate thousands of simultaneous clients with thousands of simultaneously executing ClickHouse queries.
+
 Record the current PostgreSQL configuration and the size that will remain after purge:
 
 ```sql
@@ -266,12 +273,15 @@ SELECT pg_size_pretty(pg_database_size(current_database())) AS database_size,
 
 The design benchmark selected the current query layouts and found sampled ClickHouse product queries within a 250 ms p95 budget. It used about 1.75 million rows across six account-size cohorts and did not measure full production cardinality or concurrent traffic. Its retained `system.query_log` records show a roughly 74 MiB p99 and 83 MiB maximum for ordinary product query shapes. A representative full export of 1.1 million user rows completed under the proposed profile with 590 MiB tracked memory, while the exact homepage aggregation used 78 MiB. The 1 GiB cap is therefore deliberately finite but still has substantial measured headroom. It remains evidence from a sampled workload, not proof that full production cardinality will meet the memory or no-regression target.
 
-After the full backfill, replay production-shaped reads against the production ClickHouse database at the configured limits before the final fence. Include concurrent dashboards, profiles, homepage totals, leaderboards and exports while merges are active. Test ingestion concurrency on an isolated restored copy, not the cutover database: ClickHouse-only test heartbeats would intentionally make production verification fail. A cutover gate passes only when:
+After the full backfill, replay production-shaped reads against the production ClickHouse database at the configured limits before the final fence. Include concurrent dashboards, profiles, homepage totals, leaderboards and exports while merges are active. The current cold signed-in dashboard performs 13 sequential ClickHouse reads, a public profile performs 11 and common stats API calls perform one or two. Exercise that actual fan-out at the expected peak and at twice the expected peak, including a cold-cache burst: application `Rails.cache.fetch` calls do not coalesce concurrent misses. Test ingestion concurrency on an isolated restored copy, not the cutover database: ClickHouse-only test heartbeats would intentionally make production verification fail. A cutover gate passes only when:
 
 - user-facing p95 and p99 show no statistically meaningful regression against the captured PostgreSQL baseline at the same concurrency;
 - no query hits a memory or execution-time limit;
+- no request is rejected with `TOO_MANY_SIMULTANEOUS_QUERIES` at expected peak and overload sheds cleanly rather than exhausting Rails;
 - ClickHouse container working set, host available memory and PostgreSQL latency remain stable during backfill and read load;
 - insert parts and merge backlog return to baseline after the test.
+
+Record burst and sustained rates separately. At the benchmark's roughly 20 ms average query latency, 1,000 one-query API calls are a very different workload from 1,000 cold dashboards that fan out to about 13,000 queries. This single-node plan does not assume the latter will meet the latency target. If that is a required production burst, reduce the dashboard query count, add cache-miss coalescing or add independently tested read capacity before cutover.
 
 Use the Coolify container graphs for cgroup working set and inspect finished ClickHouse queries with:
 
@@ -294,7 +304,11 @@ ORDER BY max(memory_usage) DESC
 LIMIT 30;
 ```
 
-Per `agent-query-safety`, self-hosted ClickHouse does not provide safe query memory, spill or execution-time defaults. The enforced settings profile is the guardrail. If a production-shaped query reaches 1 GiB, inspect its scan, sort and grouping shape and chunk or optimise it instead of increasing the global application profile. Grant a larger limit only to a separately controlled operator path after measuring that exact operation.
+Per `agent-query-safety`, self-hosted ClickHouse does not provide safe query memory, spill or execution-time defaults. The enforced settings profile is the guardrail. The 1 GiB value is a per-query kill-switch, not a reservation: measured ordinary reads used roughly 74–83 MiB. Aggregate application-query memory is separately capped at 8 GiB. Each query may use at most four processing threads and the server fairly shares 48 processing slots across at most 32 running queries.
+
+The per-user query count is intentionally higher than the server count. ClickHouse's server-wide `max_concurrent_queries` supports the bounded `queue_max_wait_ms`; its per-user limit does not and immediately rejects excess work. A short burst can therefore wait up to two seconds for one of the 32 server slots, while sustained overload is rejected instead of consuming the node. This is backpressure, not capacity: normal peak traffic must pass the load gate without relying on the queue. If it does not, first reduce dashboard fan-out, add cache-miss coalescing or move heavy batch work to a separate ClickHouse workload. Do not raise concurrency or memory merely to make the test green.
+
+If a production-shaped query reaches 1 GiB, inspect its scan, sort and grouping shape and chunk or optimise it instead of increasing the global application profile. Grant a larger limit only to a separately controlled operator path after measuring that exact operation.
 
 ## 2. Establish backup and restore evidence
 
@@ -420,7 +434,7 @@ HEARTBEAT_STORE=clickhouse HEARTBEAT_WRITES_STOPPED=1 HEARTBEAT_MUTATIONS_STOPPE
   bin/rake clickhouse:purge_postgres
 ```
 
-The purge drains delivery and reruns payload, alias and query-layout verification before truncating PostgreSQL heartbeat payloads and dashboard rollups. Its final PostgreSQL transaction locks the cutover row, rechecks that the source boundary has not advanced, records `purged_at`, truncates both payload tables and resets rollup generations atomically. A request that acquired the lock first either makes the boundary check abort the purge or is included in an earlier verified boundary; a request that acquires it after purge is refused. An interruption rolls the entire purge back. It intentionally leaves the now-empty tables represented in Rails schema history; remove them with an explicit Rails migration in a later release after the operational rollback window expires. Do not reopen either fence if canonical rows, aliases, delivery acknowledgements or either query layout disagree. Only after purge succeeds should the release set both fence variables back to `0` and reopen traffic.
+The purge drains delivery and reruns payload, alias and query-layout verification before truncating PostgreSQL heartbeat payloads and dashboard rollups. Its final PostgreSQL transaction locks the cutover row, rechecks that the source boundary has not advanced, records `purged_at`, truncates the heartbeat payload table and derived dashboard rollup table and resets rollup generations atomically. A request that acquired the lock first either makes the boundary check abort the purge or is included in an earlier verified boundary; a request that acquires it after purge is refused. An interruption rolls the entire purge back. It intentionally leaves the now-empty tables represented in Rails schema history; remove them with an explicit Rails migration in a later release after the operational rollback window expires. Do not reopen either fence if canonical rows, aliases, delivery acknowledgements or either query layout disagree. Only after purge succeeds should the release set both fence variables back to `0` and reopen traffic.
 
 Confirm the durable state:
 
@@ -468,19 +482,48 @@ If final verification, the ClickHouse deployment or read checks fail **before** 
 2. Set `HEARTBEAT_STORE=postgresql` on every web and worker resource.
 3. Redeploy all components and verify their actual environment.
 4. Confirm PostgreSQL heartbeat counts and baseline reads.
-5. Set both fences back to `0` everywhere and redeploy.
-6. Keep ClickHouse intact for diagnosis; rerun online backfill after fixing the cause.
+5. For a prompt retry, set only `HEARTBEAT_WRITES_STOPPED=0`. Keep `HEARTBEAT_MUTATIONS_STOPPED=1`, redeploy and leave the ClickHouse candidate intact. Ordinary append-only heartbeats can resume and the next fenced pass extends the source boundary; the existing backfill remains resumable.
+6. Fix the cause, repeat the production-shaped load and restore checks and then rerun the online and final-fence steps.
+
+Do not reopen lifecycle mutations and later resume the existing candidate. A transfer, account deletion, JA4 nullification or individual delete/restore can change PostgreSQL rows at or below `backfilled_through_id`, which the ID cursor will not revisit. If business needs require reopening mutations, treat both the ClickHouse candidate and cutover cursor as disposable:
+
+1. Verify every process is back in PostgreSQL mode, then set both fences to `0` and redeploy. Keep the old ClickHouse service and volume untouched for diagnosis; do not run any backfill, verification or purge task against it.
+2. Before retrying, set `HEARTBEAT_MUTATIONS_STOPPED=1` everywhere again, redeploy and complete all lifecycle controls.
+3. Provision a new empty ClickHouse Coolify resource and volume from section 1, using the same database name but a new private host. Point every PostgreSQL-mode web and worker process at that new `CLICKHOUSE_URL`, redeploy, verify connectivity and run `clickhouse:migrate`. Do not delete or recreate the old database in place.
+4. With no cutover task running, reset PostgreSQL progress only after the command below proves the selected ClickHouse target is empty and the old cutover was not purged:
+
+```sh
+HEARTBEAT_STORE=postgresql HEARTBEAT_MUTATIONS_STOPPED=1 bin/rails runner '
+  abort "Expected PostgreSQL mode" unless HeartbeatRepository.store == "postgresql"
+  cutover = HeartbeatCutover.find_by(id: 1)
+  abort "PostgreSQL payloads were already purged" if cutover&.purged_at?
+  source_max = Heartbeat.postgresql_unscoped.maximum(:id).to_i
+  if cutover && source_max < cutover.source_through_id
+    abort "PostgreSQL no longer contains the recorded source boundary"
+  end
+  counts = %w[heartbeat_store heartbeat_aliases heartbeats heartbeats_by_time].to_h do |table|
+    row = ClickHouse::Client.current.select("SELECT count() AS count FROM #{table}").sole
+    [table, row.fetch("count").to_i]
+  end
+  abort "Replacement ClickHouse target is not empty: #{counts.inspect}" if counts.values.any?(&:positive?)
+  cutover&.destroy!
+  puts "Reset disposable pre-cutover progress; start a new online backfill"
+'
+```
+
+5. Run `clickhouse:backfill` from the beginning. Retire the old ClickHouse resource only after the replacement has passed cutover, backup and restore verification.
 
 Do not run `purge_postgres` merely to make a failed cutover progress. After purge there is no PostgreSQL payload rollback.
 
 ## 6. Monitoring and operating the node
 
-Scrape the private Prometheus endpoint at `clickhouse:9363/metrics` from the monitoring stack. Do not assign it a Coolify domain. At minimum, alert on:
+Scrape `/metrics` on private port `9363` using the actual ClickHouse internal DNS name discovered in section 1. Do not assume the host is literally `clickhouse` and do not assign it a Coolify domain. At minimum, alert on:
 
 - container unavailable, restart loop or OOM kill;
 - disk free space below 25% warning or 15% critical (**field starting thresholds**);
 - sustained growth in active parts per partition, background merge backlog or insert throttling;
 - query p95/p99 latency, exception rate, memory-limit errors and queries hitting 60 seconds;
+- `TOO_MANY_SIMULTANEOUS_QUERIES` errors and requests spending a material portion of latency waiting for admission;
 - a non-zero delivery backlog that does not clear after job retries;
 - failed GoodJob delivery, audit, transfer, deletion or JA4 nullification jobs;
 - backup failure, missing daily success and backup age beyond the accepted RPO.
@@ -508,6 +551,10 @@ SELECT user, count() AS active_queries, max(elapsed) AS longest_seconds,
        formatReadableSize(sum(memory_usage)) AS tracked_memory
 FROM system.processes
 GROUP BY user;
+
+SELECT event, value
+FROM system.events
+WHERE event IN ('ConcurrencyControlQueriesDelayed', 'ConcurrencyControlSlotsDelayed');
 
 SELECT count() AS pending
 FROM hackatime.heartbeat_store FINAL
@@ -589,7 +636,8 @@ Do not change the Coolify image to `latest` and do not bypass the migration vers
 - **Official:** Coolify Compose files own service networking, health checks and persistent storage. Internal services should not publish ports. See [Coolify Docker Compose](https://coolify.io/docs/knowledge-base/docker/compose) and [Coolify persistent storage](https://coolify.io/docs/knowledge-base/persistent-storage).
 - **Official:** the ClickHouse image supports explicit users/passwords, init databases and persistent `/var/lib/clickhouse`; `nofile=262144` is the documented container setting. See [Install ClickHouse using Docker](https://clickhouse.com/docs/get-started/setup/self-managed/docker).
 - **Official:** settings profiles, per-user limits and SQL-driven users are supported production controls. See [query-level settings](https://clickhouse.com/docs/operations/settings/query-level), [memory limits](https://clickhouse.com/docs/reference/settings/session-settings/max-memory-usage) and [concurrency limits](https://clickhouse.com/docs/reference/settings/session-settings/max-concurrent).
+- **Official:** the server-wide query limit supports bounded waiting, while per-user concurrency limits reject immediately; capacity must be measured from the production query mix. See [high-concurrency sizing for user-facing analytics](https://clickhouse.com/resources/engineering/high-concurrency-sizing-user-analytics).
 - **Official:** native S3 backups can be full or incremental, named collections keep credentials out of queries and restore drills are required. See [ClickHouse backup and restore](https://clickhouse.com/docs/concepts/features/backup-restore/overview) and [S3 backup endpoints](https://clickhouse.com/docs/concepts/features/backup-restore/s3-endpoint).
 - **Official:** monitor queries, merges, parts, memory, disk and backups through system tables or the Prometheus endpoint. See [ClickHouse monitoring](https://clickhouse.com/docs/guides/oss/deployment-and-scaling/monitoring/monitoring) and [system tables](https://clickhouse.com/docs/operations/system-tables).
 - **Derived from this implementation:** the fence order, four-table ownership, month-bounded insertion, verification, purge transaction, repair semantics and lifecycle replay commands.
-- **Field starting points:** the 24 CPU/32 GiB container, 24 GiB tracked server, 1 GiB query, 8 GiB Rails user, six-query concurrency, 256 MiB spill, 24 GiB post-purge PostgreSQL target and disk alert thresholds. These are workload-specific hypotheses, not official defaults. Change them only from measured production behavior while preserving headroom.
+- **Field starting points:** the 24 CPU/32 GiB container, 24 GiB tracked server, 1 GiB query, 8 GiB Rails user, four threads per query, 32 server query slots with a two-second overflow wait, 256 MiB spill, 24 GiB post-purge PostgreSQL target and disk alert thresholds. These are workload-specific hypotheses, not official defaults. Change them only from measured production behavior while preserving headroom.
