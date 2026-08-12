@@ -1,36 +1,215 @@
-@import "@fontsource-variable/spline-sans";
-
 :root {
-  --blume-font-display: "Spline Sans Variable", "Spline Sans", sans-serif;
-  --blume-font-body: "Spline Sans Variable", "Spline Sans", sans-serif;
-  --blume-content-width: 46rem;
+  --blume-content-width: 48rem;
 }
 
 [data-blume-theme-toggle] {
   display: none;
 }
 
-/* Keep the article close to the sidebar instead of centering it in the wide
-   middle grid column on large screens. */
+/* Keep the article close enough to the sidebar to preserve the reading flow. */
 @media (min-width: 64rem) {
   [data-blume-doc-grid] > main > .max-w-content {
     margin-inline: 0;
   }
 }
 
-/* Blume's defaults are intentionally spacious; Hackatime's short setup guides
-   scan better with a tighter rhythm between each step. */
+/* Documentation text should remain comfortably readable without browser zoom. */
+.prose {
+  color: var(--blume-foreground);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.prose > .text-lg {
+  color: var(--blume-foreground);
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+.prose :where(h1, h2, h3, h4) {
+  font-family: var(--blume-font-display);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.prose :where(h1) {
+  margin-bottom: 1.25rem;
+  font-size: clamp(2.25rem, 5vw, 2.875rem);
+  line-height: 1.08;
+}
+
 .prose :where(h2) {
-  margin-top: 2rem;
-  margin-bottom: 0.75rem;
+  margin-top: 3.5rem;
+  margin-bottom: 1rem;
+  font-size: 1.625rem;
+  line-height: 1.25;
 }
 
 .prose :where(h3) {
-  margin-top: 1.75rem;
-  margin-bottom: 0.5rem;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+
+.prose :where(h4) {
+  color: var(--blume-foreground);
+  font-size: 1.0625rem;
+  line-height: 1.4;
 }
 
 .prose :where(p, ul, ol) {
-  margin-top: 0.75rem;
-  margin-bottom: 0.75rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.prose :where(a:not([data-blume-card])) {
+  text-decoration-style: solid;
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.2em;
+}
+
+.prose :where(pre) {
+  background: var(--blume-code-background) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--blume-foreground) 8%, transparent),
+    0 0.25rem 1rem rgb(0 0 0 / 12%);
+}
+
+/* Make the primary navigation easier to scan and easier to target. */
+[data-blume-nav-tree] :where(a, button, summary) {
+  min-height: 2.5rem;
+  color: var(--blume-foreground);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+[data-blume-nav-tree] button,
+[data-blume-nav-tree] summary {
+  font-weight: 650;
+}
+
+[data-blume-nav-tree] a[aria-current="page"] {
+  border-inline-start: 2px solid var(--blume-accent);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-weight: 650;
+}
+
+/* Give landing-page links a strong visual identity without sacrificing
+   semantic links or keyboard navigation. */
+[data-blume-card] {
+  min-height: 11rem;
+  border: 1px solid color-mix(in srgb, var(--blume-foreground) 16%, transparent);
+  background: color-mix(in srgb, var(--blume-muted) 64%, var(--blume-background));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--blume-foreground) 10%, transparent),
+    0 0.625rem 1.75rem rgb(0 0 0 / 16%);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+[data-blume-card] > div {
+  padding: 1.25rem;
+}
+
+[data-blume-card] > div > div:first-child {
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.625rem;
+}
+
+[data-blume-card] > div > div:first-child > span {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+}
+
+[data-blume-card] > div > div:first-child svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+[data-blume-card] > div > div:last-child {
+  color: var(--blume-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 1) > div > div:first-child {
+  color: #ff9ca5;
+}
+
+.not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 2) > div > div:first-child {
+  color: #ffc470;
+}
+
+.not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 3) > div > div:first-child {
+  color: #9bec8f;
+}
+
+.not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 4) > div > div:first-child {
+  color: #80e8f2;
+}
+
+.not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 5) > div > div:first-child {
+  color: #8db6ff;
+}
+
+.not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 6) > div > div:first-child {
+  color: #b4a4ff;
+}
+
+:root[data-theme="light"] .not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 1) > div > div:first-child {
+  color: #a92335;
+}
+
+:root[data-theme="light"] .not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 2) > div > div:first-child {
+  color: #935000;
+}
+
+:root[data-theme="light"] .not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 3) > div > div:first-child {
+  color: #28752d;
+}
+
+:root[data-theme="light"] .not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 4) > div > div:first-child {
+  color: #006b76;
+}
+
+:root[data-theme="light"] .not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 5) > div > div:first-child {
+  color: #2856a3;
+}
+
+:root[data-theme="light"] .not-prose:has(> [data-blume-card]) > [data-blume-card]:nth-child(6n + 6) > div > div:first-child {
+  color: #6740a6;
+}
+
+@media (hover: hover) {
+  [data-blume-card][href]:hover {
+    transform: translateY(-0.1875rem);
+    border-color: color-mix(in srgb, var(--blume-accent) 70%, var(--blume-foreground));
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--blume-foreground) 12%, transparent),
+      0 1rem 2.25rem rgb(0 0 0 / 22%);
+  }
+}
+
+:where(a, button, summary):focus-visible {
+  outline: 2px solid var(--blume-foreground);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

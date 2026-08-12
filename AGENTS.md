@@ -26,7 +26,7 @@ After fixing the bug, rerun the original reproduction as well as the regression 
 
 ## Engineering Decisions
 
-Start with the smallest correct change in the current owner. Before editing, identify the source of truth and the invariant being protected. Read [the architecture guide](docs/architecture.md) when a change crosses subsystem boundaries.
+Start with the smallest correct change in the current owner. Before editing, identify the source of truth and the invariant being protected. Read [the architecture guide](ARCHITECTURE.md) when a change crosses subsystem boundaries.
 
 ### Rails ownership ladder
 
