@@ -37,7 +37,7 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     end
   end
 
-  class FlakyQuorumClient < FakeClient
+  class FlakyInsertClient < FakeClient
     attr_reader :attempted_settings
 
     def initialize
@@ -47,7 +47,7 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
 
     def insert_json_each_row(table, rows, settings: {})
       @attempted_settings << settings
-      raise ClickHouse::Client::Error, "UNSATISFIED_QUORUM_FOR_PREVIOUS_WRITE" if @attempted_settings.one?
+      raise ClickHouse::Client::Error, "TIMEOUT_EXCEEDED" if @attempted_settings.one?
 
       super
     end
@@ -317,7 +317,7 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     assert_includes client.queries.sole, "WHERE (user_id = 42) AND (canonicalized = false OR"
   end
 
-  test "ClickHouse inserts use quorum and stable deduplication tokens" do
+  test "ClickHouse inserts use stable deduplication tokens" do
     client = FakeClient.new
     repository = HeartbeatRepository.new(client:)
     rows = [ { "user_id" => 42, "id" => 7, "version" => 3 } ]
@@ -326,13 +326,13 @@ class HeartbeatRepositoryTest < ActiveSupport::TestCase
     repository.send(:insert_rows, "heartbeats", [ rows.sole.merge("version" => 4) ])
 
     settings = client.inserts.map(&:last)
-    assert settings.all? { |value| value[:insert_quorum].to_i.positive? && value[:insert_quorum_parallel] == 0 }
+    assert settings.none? { |value| value.key?(:insert_quorum) || value.key?(:insert_quorum_parallel) }
     assert_equal settings[0][:insert_deduplication_token], settings[1][:insert_deduplication_token]
     assert_not_equal settings[1][:insert_deduplication_token], settings[2][:insert_deduplication_token]
   end
 
-  test "ClickHouse quorum conflicts retry with the same synchronous insert token" do
-    client = FlakyQuorumClient.new
+  test "ClickHouse insert failures retry with the same synchronous insert token" do
+    client = FlakyInsertClient.new
 
     HeartbeatRepository.new(client:).send(
       :insert_rows,

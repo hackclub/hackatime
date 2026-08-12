@@ -56,4 +56,5 @@ ENGINE = ReplacingMergeTree(store_version)
 PARTITION BY toYYYYMM(created_at)
 PRIMARY KEY (user_id, id)
 ORDER BY (user_id, id)
-SETTINGS index_granularity = 8192
+SETTINGS index_granularity = 8192,
+         non_replicated_deduplication_window = 10000

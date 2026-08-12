@@ -48,4 +48,5 @@ PARTITION BY if(time_second BETWEEN 0 AND 4294967295, toYYYYMM(toDateTime(time_s
 PRIMARY KEY (user_id, time_5m, time_second)
 ORDER BY (user_id, time_5m, time_second, time, id)
 SETTINGS index_granularity = 8192,
-         deduplicate_merge_projection_mode = 'rebuild'
+         deduplicate_merge_projection_mode = 'rebuild',
+         non_replicated_deduplication_window = 10000

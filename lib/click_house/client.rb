@@ -10,8 +10,7 @@ module ClickHouse
     DEFAULT_SETTINGS = {
       defer_partition_pruning_after_final: 0,
       do_not_merge_across_partitions_select_final: 1,
-      materialized_views_ignore_errors: 0,
-      select_sequential_consistency: 1
+      materialized_views_ignore_errors: 0
     }.freeze
 
     def self.current

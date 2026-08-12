@@ -52,6 +52,17 @@ class HeartbeatRepositoryIntegrationTest < ActiveSupport::TestCase
     HeartbeatRepository.instance_variable_set(:@current, repository)
     ENV["CLICKHOUSE_TEST"] = "1"
 
+    retry_row = {
+      "user_id" => 1,
+      "fields_hash" => "a" * 32,
+      "heartbeat_id" => 1,
+      "active" => true,
+      "alias_version" => 1,
+      "updated_at" => Time.current
+    }
+    2.times { repository.send(:insert_rows, "heartbeat_aliases", [ retry_row ]) }
+    assert_equal 1, client.select("SELECT count() AS count FROM heartbeat_aliases WHERE user_id = 1").sole.fetch("count").to_i
+
     source = User.create!(id: 4_294_967_500, timezone: "UTC")
     target = User.create!(id: 4_294_967_501, timezone: "UTC")
     started_at = Time.current.beginning_of_day.to_f + 3_600.4097862

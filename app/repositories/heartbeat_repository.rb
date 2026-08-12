@@ -17,7 +17,7 @@ class HeartbeatRepository
   INSERT_RETRY_LIMIT = 5
   QUERY_BATCH_SIZE = 5_000
   INSERT_BATCH_SIZE = 10_000
-  RETRYABLE_INSERT_ERROR = /(?:UNSATISFIED_QUORUM|UNKNOWN_STATUS_OF_INSERT|TIMEOUT_EXCEEDED|NETWORK_ERROR|SOCKET_TIMEOUT)/
+  RETRYABLE_INSERT_ERROR = /(?:UNKNOWN_STATUS_OF_INSERT|TIMEOUT_EXCEEDED|NETWORK_ERROR|SOCKET_TIMEOUT)/
 
   def self.clickhouse?
     return ENV["CLICKHOUSE_TEST"] == "1" if Rails.env.test?
@@ -1309,26 +1309,14 @@ class HeartbeatRepository
     end
   end
 
-  def insert_select(sql, token: Digest::SHA256.hexdigest(sql))
+  def insert_select(sql, token:)
     with_insert_retry { @client.execute(sql, settings: insert_settings(token)) }
-  end
-
-  def insert_quorum
-    value = ENV["CLICKHOUSE_INSERT_QUORUM"].presence
-    raise "CLICKHOUSE_INSERT_QUORUM is required in production" if Rails.env.production? && value.nil?
-
-    quorum = Integer(value || 1)
-    raise "CLICKHOUSE_INSERT_QUORUM must be at least 2 in production" if Rails.env.production? && quorum < 2
-
-    quorum
   end
 
   def insert_settings(token)
     {
       async_insert: 0,
       wait_for_async_insert: 1,
-      insert_quorum:,
-      insert_quorum_parallel: 0,
       insert_deduplication_token: token
     }
   end

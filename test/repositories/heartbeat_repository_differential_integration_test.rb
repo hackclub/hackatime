@@ -92,6 +92,26 @@ class HeartbeatRepositoryDifferentialIntegrationTest < ActiveSupport::TestCase
     assert_equal 1, error.status
   end
 
+  test "query-layout repair rebuilds a missing canonical row" do
+    ENV["CLICKHOUSE_TEST"] = "0"
+    user = User.create!(timezone: "UTC")
+    heartbeat = Heartbeat.postgresql_unscoped.create!(
+      user_id: user.id,
+      time: Time.utc(2026, 8, 12, 12).to_f,
+      entity: "repair.rb",
+      category: "coding",
+      source_type: :test_entry
+    )
+    @repository.backfill([ heartbeat ])
+    @client.execute("TRUNCATE TABLE heartbeats_by_time")
+    ClickHouse::Client.instance_variable_set(:@current, @client)
+    Rails.application.load_tasks unless Rake::Task.task_defined?("clickhouse:repair_query_layouts")
+
+    capture_io { Rake::Task["clickhouse:repair_query_layouts"].tap(&:reenable).invoke }
+
+    assert_equal [ heartbeat.id ], @client.select("SELECT id FROM heartbeats_by_time FINAL").pluck("id").map(&:to_i)
+  end
+
   private
 
   def assert_parity(user, base)

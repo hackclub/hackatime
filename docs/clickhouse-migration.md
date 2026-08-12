@@ -6,7 +6,7 @@ Hackatime stores heartbeat data only in ClickHouse after cutover. PostgreSQL kee
 
 ## Provisioning
 
-Provision a replicated ClickHouse cluster with persistent storage, tested backups, TLS and a least-privilege account. Set `CLICKHOUSE_CLUSTER` during schema migration and set `CLICKHOUSE_INSERT_QUORUM` to at least two on every application process. Production migrations create replicated replacing tables, writes use quorum with `insert_quorum_parallel=0` and reads use sequential consistency.
+Provision one ClickHouse server with persistent storage, TLS and a least-privilege application account. Back it up to storage outside that server and test the restore runbook before cutover. Heartbeat-backed features are unavailable while the server is down, so monitor disk health, backup freshness and restore readiness. Replication can be added later if that availability trade-off changes, but it is not part of this deployment.
 
 The schema has four authoritative objects:
 
@@ -16,6 +16,8 @@ The schema has four authoritative objects:
 - `heartbeats_by_time` is the time-first query layout.
 
 `fields_hash` belongs only to the canonical store and alias index. It is user-independent because the alias primary key already includes the user; this lets account transfers deduplicate without changing the query payload. Historical user-specific and import hashes remain ClickHouse aliases. The hash is not a query-table column or sorting key. PostgreSQL advisory locks serialize admission for one user but do not persist heartbeat data. Materialized views are not part of the delivery correctness boundary.
+
+All four tables use non-replicated `ReplacingMergeTree` engines. A bounded local deduplication log makes synchronous retries with stable insert tokens idempotent without ClickHouse Keeper. Canonical versions and delivery acknowledgements remain the recovery boundary if an insert's outcome stays unknown after all retries.
 
 Apply relational and ClickHouse migrations from one release process:
 

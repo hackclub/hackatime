@@ -11,4 +11,5 @@ CREATE TABLE IF NOT EXISTS heartbeat_aliases
 ENGINE = ReplacingMergeTree(alias_version)
 PRIMARY KEY (user_id, fields_hash)
 ORDER BY (user_id, fields_hash)
-SETTINGS index_granularity = 8192
+SETTINGS index_granularity = 8192,
+         non_replicated_deduplication_window = 10000

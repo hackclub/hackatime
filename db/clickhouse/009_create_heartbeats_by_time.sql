@@ -47,4 +47,5 @@ ENGINE = ReplacingMergeTree(version)
 PARTITION BY if(time_second BETWEEN 0 AND 4294967295, toYYYYMM(toDateTime(time_second, 'UTC')), 0)
 PRIMARY KEY (time_5m, time_second, user_id)
 ORDER BY (time_5m, time_second, user_id, time, id)
-SETTINGS index_granularity = 8192
+SETTINGS index_granularity = 8192,
+         non_replicated_deduplication_window = 10000

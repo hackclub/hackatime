@@ -5,52 +5,17 @@ namespace :clickhouse do
     server_version = client.select("SELECT version() AS version").first.fetch("version")
     abort "ClickHouse 26.7.3.19 is required, found #{server_version}" unless server_version == "26.7.3.19"
 
-    cluster = ENV["CLICKHOUSE_CLUSTER"].presence
-    abort "CLICKHOUSE_CLUSTER is required in production" if Rails.env.production? && cluster.nil?
-    abort "Invalid CLICKHOUSE_CLUSTER" if cluster && !cluster.match?(/\A[a-zA-Z0-9_]+\z/)
-    quorum_value = ENV["CLICKHOUSE_INSERT_QUORUM"].presence
-    abort "CLICKHOUSE_INSERT_QUORUM is required in production" if Rails.env.production? && quorum_value.nil?
-    quorum = Integer(quorum_value || 1)
-    abort "CLICKHOUSE_INSERT_QUORUM must be at least 2 in production" if Rails.env.production? && quorum < 2
-    if cluster
-      topology = client.select(<<~SQL.squish).first
-        SELECT uniqExact(shard_num) AS shards, count() AS replicas
-        FROM system.clusters WHERE cluster = '#{cluster}'
-      SQL
-      abort "CLICKHOUSE_CLUSTER must contain exactly one shard" unless topology.fetch("shards").to_i == 1
-      if topology.fetch("replicas").to_i < quorum
-        abort "CLICKHOUSE_CLUSTER has fewer replicas than CLICKHOUSE_INSERT_QUORUM"
-      end
-    end
-    cluster_clause = cluster ? " ON CLUSTER `#{cluster}`" : ""
-    schema_sql = lambda do |ddl|
-      next ddl unless cluster
-
-      ddl = ddl.sub(/\A(CREATE TABLE IF NOT EXISTS [a-zA-Z0-9_]+)/, "\\1#{cluster_clause}")
-        .sub(/\A(DROP VIEW IF EXISTS [a-zA-Z0-9_]+)/, "\\1#{cluster_clause}")
-        .sub(/\A(ALTER TABLE [a-zA-Z0-9_]+)/, "\\1#{cluster_clause}")
-      ddl.gsub(
-        /ENGINE = ReplacingMergeTree\(([^)]+)\)/,
-        "ENGINE = ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/{database}/{table}', '{replica}', \\1)"
-      )
-    end
     schema_statements = lambda do |path|
-      File.read(path).split(/;\s*(?:\n|\z)/).reject(&:blank?).map { |statement| schema_sql.call(statement) }
-    end
-
-    migration_engine = if cluster
-      "ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/{database}/{table}', '{replica}')"
-    else
-      "ReplacingMergeTree"
+      File.read(path).split(/;\s*(?:\n|\z)/).reject(&:blank?)
     end
 
     client.execute(<<~SQL)
-      CREATE TABLE IF NOT EXISTS schema_migrations#{cluster_clause}
+      CREATE TABLE IF NOT EXISTS schema_migrations
       (
           version String,
           applied_at DateTime64(6, 'UTC') DEFAULT now64(6)
       )
-      ENGINE = #{migration_engine}
+      ENGINE = ReplacingMergeTree
       ORDER BY version
     SQL
 
@@ -71,7 +36,7 @@ namespace :clickhouse do
       reference_name = "_hackatime_schema_reference_#{name}"
       ddl = schema_statements.call(Rails.root.join("db/clickhouse", file)).sole
         .sub(/(CREATE (?:MATERIALIZED VIEW|TABLE))(?: IF NOT EXISTS)? #{canonical_name}/, "\\1 #{reference_name}")
-      client.execute("DROP TABLE IF EXISTS #{reference_name}#{cluster_clause}")
+      client.execute("DROP TABLE IF EXISTS #{reference_name}")
       begin
         client.execute(ddl)
         normalize = ->(statement) { statement.sub(/\A(CREATE (?:MATERIALIZED VIEW|TABLE)) [^\s(]+/, "\\1 __object__") }
@@ -79,7 +44,7 @@ namespace :clickhouse do
         expected = normalize.call(client.select("SHOW CREATE TABLE #{reference_name}").first.fetch("statement"))
         abort "ClickHouse object #{name} does not exactly match #{file}" unless actual == expected
       ensure
-        client.execute("DROP TABLE IF EXISTS #{reference_name}#{cluster_clause}")
+        client.execute("DROP TABLE IF EXISTS #{reference_name}")
       end
     end
 
@@ -102,24 +67,6 @@ namespace :clickhouse do
     schema_files.each_key { |name| validate_schema.call(name) }
     recorded_versions = client.select("SELECT DISTINCT version FROM schema_migrations").pluck("version").to_set
     abort "ClickHouse migration history differs from db/clickhouse" unless recorded_versions == expected_versions
-
-    if cluster
-      expected_tables = schema_files.length
-      incomplete_hosts = client.select(<<~SQL.squish)
-        SELECT hostName() AS host, countIf(name IN (#{schema_files.keys.map { |name| "'#{name}'" }.join(', ')})) AS tables
-        FROM clusterAllReplicas('#{cluster}', system.tables)
-        WHERE database = currentDatabase()
-        GROUP BY host HAVING tables != #{expected_tables}
-      SQL
-      abort "ClickHouse heartbeat schema is incomplete on one or more replicas" if incomplete_hosts.any?
-      unhealthy_replicas = client.select(<<~SQL.squish).first.fetch("unhealthy").to_i
-        SELECT countIf(is_readonly OR is_session_expired) AS unhealthy
-        FROM clusterAllReplicas('#{cluster}', system.replicas)
-        WHERE database = currentDatabase()
-          AND table IN (#{schema_files.keys.map { |name| "'#{name}'" }.join(', ')})
-      SQL
-      abort "ClickHouse heartbeat replicas are not writable and connected" if unhealthy_replicas.positive?
-    end
 
     heartbeat_totals = client.select(<<~SQL.squish).first
       SELECT count() AS row_count, sum(id) AS id_sum, sum(version) AS version_sum
@@ -431,15 +378,15 @@ namespace :clickhouse do
     repository = HeartbeatRepository.current
     client = ClickHouse::Client.current
     columns = HeartbeatRepository::STORAGE_COLUMNS.join(", ")
-    generation = client.select("SELECT maxOrNull(store_version) AS version FROM heartbeat_store FINAL")
-      .first.fetch("version", 0).to_i
+    repair_run_id = SecureRandom.uuid
     %w[heartbeats heartbeats_by_time].each do |table|
       sql = <<~SQL.squish
         INSERT INTO #{table} (#{columns})
         SELECT #{columns} FROM heartbeat_store FINAL
         WHERE canonicalized = true AND duplicate_of IS NULL
+        ORDER BY ALL
       SQL
-      token = Digest::SHA256.hexdigest("repair:#{table}:#{generation}")
+      token = Digest::SHA256.hexdigest("repair:#{repair_run_id}:#{table}")
       repository.insert_select(sql, token:)
       mismatches = client.select(<<~SQL.squish).first.fetch("mismatches").to_i
         SELECT count() AS mismatches
