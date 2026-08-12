@@ -2,6 +2,12 @@
   --blume-content-width: 48rem;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
 [data-blume-theme-toggle] {
   display: none;
 }
