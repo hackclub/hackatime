@@ -56,7 +56,6 @@ class DashboardRollupRefreshService < ApplicationService
       DashboardRollup.where(user_id: @user.id).delete_all
       DashboardRollup.insert_all!(records)
     end
-    DashboardRollup.clear_dirty(@user.id)
   end
 
   private

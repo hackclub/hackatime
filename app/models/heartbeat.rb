@@ -25,8 +25,6 @@ class Heartbeat < ApplicationRecord
   # This is to prevent Rails from trying to use STI even though we have a "type" column
   self.inheritance_column = nil
 
-  self.ignored_columns += %w[ysws_program] # unused
-
   belongs_to :user
   belongs_to :ja4, optional: true
 
@@ -43,6 +41,8 @@ class Heartbeat < ApplicationRecord
     ai_indexed_attributes.each do |attribute|
       indexed[attribute] = attributes[attribute] unless attributes[attribute].nil?
     end
+    # MD5 preserves historical deduplication keys; it is not used for cryptographic security.
+    # codeql[rb/weak-sensitive-data-hashing]
     Digest::MD5.hexdigest(indexed.to_json)
   end
 
@@ -55,11 +55,27 @@ class Heartbeat < ApplicationRecord
   end
 
   def soft_delete
+    HeartbeatRepository.ensure_writes_enabled!
+    HeartbeatRepository.ensure_mutations_enabled!
+    if HeartbeatRepository.clickhouse?
+      HeartbeatRepository.current.change_deleted(heartbeat_id: id, user_id:, deleted: true)
+      self.deleted_at = Time.current
+      return self
+    end
+
     update_column(:deleted_at, Time.current)
     DashboardRollupRefreshJob.schedule_for(user_id)
   end
 
   def restore
+    HeartbeatRepository.ensure_writes_enabled!
+    HeartbeatRepository.ensure_mutations_enabled!
+    if HeartbeatRepository.clickhouse?
+      HeartbeatRepository.current.change_deleted(heartbeat_id: id, user_id:, deleted: false)
+      self.deleted_at = nil
+      return self
+    end
+
     update_column(:deleted_at, nil)
     DashboardRollupRefreshJob.schedule_for(user_id)
   end
@@ -79,4 +95,22 @@ class Heartbeat < ApplicationRecord
   end
 
   def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(user_id)
+
+  class << self
+    alias_method :postgresql_all, :all
+    alias_method :postgresql_unscoped, :unscoped
+
+    def all(all_queries: nil)
+      return postgresql_all(all_queries:) unless HeartbeatRepository.clickhouse?
+
+      HeartbeatRepository.current.all
+    end
+
+    def unscoped(&block)
+      return postgresql_unscoped(&block) unless HeartbeatRepository.clickhouse?
+
+      scope = HeartbeatRepository.current.all(with_deleted: true)
+      block ? block.call(scope) : scope
+    end
+  end
 end

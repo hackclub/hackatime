@@ -337,20 +337,15 @@ class UserTest < ActiveSupport::TestCase
     assert_not peer.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "peer")
   end
 
-  test "changing timezone invalidates activity graph caches and schedules a dashboard rollup refresh" do
+  test "changing timezone schedules a dashboard rollup refresh" do
     with_memory_cache_store do
       Rails.cache.clear
 
       user = User.create!(timezone: "UTC")
-      Rails.cache.write(user.activity_graph_cache_key("UTC"), { "2026-04-14" => 60 })
-      Rails.cache.write(user.activity_graph_cache_key("America/New_York"), { "2026-04-14" => 60 })
 
       assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
         user.update!(timezone: "America/New_York")
       end
-
-      assert_not Rails.cache.exist?(user.activity_graph_cache_key("UTC"))
-      assert_not Rails.cache.exist?(user.activity_graph_cache_key("America/New_York"))
     end
   end
 

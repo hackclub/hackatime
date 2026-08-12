@@ -20,7 +20,7 @@ class ProjectStatsService
 
   def total_time = @total_time ||= hb.duration_seconds
 
-  def file_count = hb.select(:entity).distinct.count
+  def file_count = hb.distinct.count(:entity)
 
   def grouped(field, n, normalize: ->(k) { k.to_s }, display: nil)
     result = Heartbeat.attributed_durations_by(hb, field).each_with_object({}) do |(raw, dur), agg|

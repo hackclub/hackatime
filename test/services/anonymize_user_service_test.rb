@@ -68,6 +68,33 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
     assert heartbeat.reload.deleted_at.present?
   end
 
+  test "ClickHouse deletion does not retain a PostgreSQL heartbeat copy" do
+    previous_repository = HeartbeatRepository.instance_variable_get(:@current)
+    previous_test_setting = ENV["CLICKHOUSE_TEST"]
+    user = User.create!(username: "hb_cleanup_#{SecureRandom.hex(4)}")
+    heartbeat = user.heartbeats.create!(
+      entity: "src/app.rb",
+      type: "file",
+      category: "coding",
+      time: Time.current.to_f,
+      project: "anonymize",
+      source_type: :test_entry
+    )
+    ENV["CLICKHOUSE_TEST"] = "1"
+    HeartbeatRepository.instance_variable_set(
+      :@current,
+      HeartbeatRepository.new(client: Class.new { def select(*) = [] }.new)
+    )
+
+    AnonymizeUserService.call(user)
+
+    assert HeartbeatDeletion.exists?(user_id: user.id)
+    assert_nil Heartbeat.postgresql_unscoped.find(heartbeat.id).deleted_at
+  ensure
+    ENV["CLICKHOUSE_TEST"] = previous_test_setting
+    HeartbeatRepository.instance_variable_set(:@current, previous_repository)
+  end
+
   test "anonymization removes legacy encrypted import credentials" do
     user = User.create!(username: "legacy_#{SecureRandom.hex(3)}")
     connection = ActiveRecord::Base.connection

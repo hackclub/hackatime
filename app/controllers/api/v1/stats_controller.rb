@@ -69,7 +69,7 @@ class Api::V1::StatsController < ApplicationController
       summary = WakatimeService.new(**service_params).generate_summary
     else
       if params[:total_seconds] == "true"
-        query = Heartbeat.where(user_id: @user.id).where("time >= ? AND time < ?", start_date.to_f, end_date.to_f)
+        query = Heartbeat.where(user_id: @user.id, time: start_date.to_f...end_date.to_f)
         query = query.where(project: filter_by_projects) if filter_by_projects
         query = query.where(category: filter_by_categories) if filter_by_categories
 

@@ -70,7 +70,9 @@ sudo docker compose exec -T web sh -c '
 echo "==> Building Vite client assets"
 sudo docker compose exec -T web bin/vite build
 
-echo "==> Preparing and seeding the development database"
+echo "==> Preparing ClickHouse and seeding the development database"
+sudo docker compose exec -T clickhouse clickhouse-client --query "CREATE DATABASE IF NOT EXISTS hackatime_test"
+sudo docker compose exec -T web bin/rake clickhouse:migrate
 sudo docker compose exec -T web bin/rails db:prepare db:seed
 
 echo "==> Preparing the test database"

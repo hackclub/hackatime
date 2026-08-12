@@ -77,7 +77,7 @@ module SlackIntegration
 
     return if status_present && status_custom
 
-    current_project = heartbeats.order(time: :desc).first&.project
+    current_project = heartbeats.order(time: :desc, id: :desc).first&.project
     current_project_duration = Time.use_zone(timezone) do
       heartbeats.where(project: current_project)
                 .today

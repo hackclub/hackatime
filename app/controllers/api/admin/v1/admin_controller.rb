@@ -47,6 +47,23 @@ module Api
             return render_error("invalid date")
           end
 
+          if HeartbeatRepository.clickhouse?
+            data = HeartbeatRepository.current.visualization(
+              user_id: user.id,
+              start_time: start_epoch,
+              end_time: end_epoch
+            )
+            days = (start_epoch...end_epoch).step(1.day).map do |epoch|
+              day = Time.at(epoch).utc.to_date
+              {
+                date_timestamp_s: epoch,
+                total_seconds: data.fetch(:daily_totals)[day] || 0,
+                points: data.fetch(:points_by_day)[day] || []
+              }
+            end
+            return render json: { days: }
+          end
+
           quantized_query = <<-SQL
             WITH base_heartbeats AS (
                 SELECT
@@ -137,61 +154,72 @@ module Api
         def alt_candidates
           lookback_days = (params[:lookback_days] || 30).to_i.clamp(1, 365)
           cutoff = lookback_days.days.ago.to_i
+          candidates = if HeartbeatRepository.clickhouse?
+            HeartbeatRepository.current.ip_machine_pairs(since: cutoff, limit: 5_000, inclusive: true)
+          else
+            query = <<-SQL
+              SELECT
+                  r1.user_id AS user_a_id,
+                  r2.user_id AS user_b_id,
+                  r1.machine,
+                  r1.ip_address,
+                  r1.first_seen as user_a_first_seen_on_combo,
+                  r1.last_seen as user_a_last_seen_on_combo,
+                  r2.first_seen as user_b_first_seen_on_combo,
+                  r2.last_seen as user_b_last_seen_on_combo
+              FROM
+                  (
+                      SELECT
+                          user_id,
+                          machine,
+                          ip_address,
+                          MIN(time) as first_seen,
+                          MAX(time) as last_seen
+                      FROM heartbeats
+                      WHERE
+                          user_id IS NOT NULL
+                          AND machine IS NOT NULL
+                          AND ip_address IS NOT NULL
+                          AND deleted_at IS NULL
+                          AND time >= ?
+                      GROUP BY 1, 2, 3
+                  ) r1
+              JOIN
+                  (
+                      SELECT
+                          user_id,
+                          machine,
+                          ip_address,
+                          MIN(time) as first_seen,
+                          MAX(time) as last_seen
+                      FROM heartbeats
+                      WHERE
+                          user_id IS NOT NULL
+                          AND machine IS NOT NULL
+                          AND ip_address IS NOT NULL
+                          AND deleted_at IS NULL
+                          AND time >= ?
+                      GROUP BY 1, 2, 3
+                  ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
+              WHERE
+                  r1.user_id < r2.user_id
+              ORDER BY r1.user_id, r2.user_id, r1.machine, r1.ip_address
+              LIMIT 5000
+            SQL
 
-          query = <<-SQL
-            SELECT
-                r1.user_id AS user_a_id,
-                r2.user_id AS user_b_id,
-                r1.machine,
-                r1.ip_address,
-                r1.first_seen as user_a_first_seen_on_combo,
-                r1.last_seen as user_a_last_seen_on_combo,
-                r2.first_seen as user_b_first_seen_on_combo,
-                r2.last_seen as user_b_last_seen_on_combo
-            FROM
-                (
-                    SELECT
-                        user_id,
-                        machine,
-                        ip_address,
-                        MIN(time) as first_seen,
-                        MAX(time) as last_seen
-                    FROM heartbeats
-                    WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
-                        AND ip_address IS NOT NULL
-                        AND deleted_at IS NULL
-                        AND time >= ?
-                    GROUP BY 1, 2, 3
-                ) r1
-            JOIN
-                (
-                    SELECT
-                        user_id,
-                        machine,
-                        ip_address,
-                        MIN(time) as first_seen,
-                        MAX(time) as last_seen
-                    FROM heartbeats
-                    WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
-                        AND ip_address IS NOT NULL
-                        AND deleted_at IS NULL
-                        AND time >= ?
-                    GROUP BY 1, 2, 3
-                ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
-            WHERE
-                r1.user_id < r2.user_id
-            LIMIT 5000
-          SQL
+            ActiveRecord::Base.connection.exec_query(
+              ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff ])
+            ).to_a
+          end
+          legacy_names = {
+            "user_a_first_seen" => "user_a_first_seen_on_combo",
+            "user_a_last_seen" => "user_a_last_seen_on_combo",
+            "user_b_first_seen" => "user_b_first_seen_on_combo",
+            "user_b_last_seen" => "user_b_last_seen_on_combo"
+          }
+          candidates.map! { |candidate| candidate.transform_keys { |key| legacy_names.fetch(key, key) } }
 
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff ])
-          )
-
-          render json: { candidates: result.to_a }
+          render json: { candidates: }
         end
 
 
@@ -200,7 +228,8 @@ module Api
           return render_error("invalid since parameter") if since_ts < 0
 
           since_ts = [ since_ts, 90.days.ago.to_i ].max
-          render json: { user_ids: Heartbeat.where("time >= ?", since_ts).distinct.limit(50_000).pluck(:user_id) }
+          user_ids = Heartbeat.where(time: since_ts..).distinct.order(:user_id).limit(50_000).pluck(:user_id)
+          render json: { user_ids: }
         end
 
         def audit_logs_counts
@@ -234,10 +263,10 @@ module Api
           query = apply_time_range(query) or return
 
           if ActiveModel::Type::Boolean.new.cast(params[:count_only])
-            return render json: { segment: segment, total_count: query.limit(nil).count }
+            return render json: { segment: segment, total_count: query.count }
           end
 
-          heartbeats = query.order(time: :desc).limit(limit + 1).offset(offset).to_a
+          heartbeats = query.order(time: :desc, id: :desc).limit(limit + 1).offset(offset).to_a
           has_more = heartbeats.size > limit
           heartbeats = heartbeats.first(limit)
 

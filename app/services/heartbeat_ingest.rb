@@ -9,6 +9,7 @@ class HeartbeatIngest
   # client bugs (uptime-like numbers, literal years, ms/µs/ns-scaled epochs).
   EPOCH_SANE_MIN = 1_000_000_000
   EPOCH_SANE_MAX = 2_000_000_000
+  CLICKHOUSE_IMPORT_BATCH_SIZE = 1_000
 
   # The heartbeats dedup unique index changes from (fields_hash) to
   # (fields_hash, time_epoch) during the hypertable migration.
@@ -31,6 +32,8 @@ class HeartbeatIngest
   end
 
   def call
+    HeartbeatRepository.ensure_writes_enabled!
+
     case @mode
     when :direct then ingest_direct
     when :import then ingest_import
@@ -122,10 +125,12 @@ class HeartbeatIngest
       editor: parsed_ua[:editor].presence || attrs[:editor].presence,
       operating_system: parsed_ua[:os].presence || attrs[:operating_system].presence,
       machine: @request_context[:machine].presence || attrs[:machine].presence
-    ).slice(*Heartbeat.column_names.map(&:to_sym))
+    ).slice(*heartbeat_columns.map(&:to_sym))
   end
 
   def persist_direct_heartbeats(entries)
+    return persist_clickhouse_direct(entries) if HeartbeatRepository.clickhouse?
+
     entries_by_hash = entries.group_by { |entry| entry[:fields_hash] }
     hashes = entries_by_hash.keys
     persisted_by_hash = @user.heartbeats.where(fields_hash: hashes).index_by(&:fields_hash)
@@ -136,9 +141,11 @@ class HeartbeatIngest
     inserted_by_hash = {}
     if missing_entries.any?
       timestamp = Time.current
-      result = with_heartbeat_unique_by do |unique_by|
-        records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
-        Heartbeat.insert_all(records, unique_by:, returning: Heartbeat.column_names)
+      result = HeartbeatCutover.with_postgresql_ingest_lock do
+        with_heartbeat_unique_by do |unique_by|
+          records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
+          Heartbeat.insert_all(records, unique_by:, returning: Heartbeat.column_names)
+        end
       end
       inserted_by_hash = result.to_a.index_by { |attributes| attributes.fetch("fields_hash") }
         .transform_values { |attributes| Heartbeat.new(attributes) }
@@ -168,6 +175,13 @@ class HeartbeatIngest
   # Persistence callbacks remain explicit in the record-construction and
   # batch-persistence methods so the actual insert stays multi-row.
   def validated_model_attributes(attrs)
+    if HeartbeatRepository.clickhouse?
+      heartbeat = HeartbeatRow.from_input(attrs)
+      raise ActiveRecord::RecordInvalid if heartbeat.time.nil?
+
+      return heartbeat.attributes
+    end
+
     heartbeat = Heartbeat.new(attrs)
     heartbeat.user = @user
     heartbeat.validate!
@@ -259,6 +273,11 @@ class HeartbeatIngest
       .except("id", "fields_hash", "created_at", "updated_at", "time_epoch")
       .symbolize_keys
     normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
+    normalized[:clickhouse_fields_hash] = import_fields_hash(
+      model_attributes,
+      source: hb,
+      include_user: false
+    )
     normalized[:legacy_fields_hash] = legacy_import_fields_hash(
       hb,
       user_agent_info:,
@@ -271,6 +290,7 @@ class HeartbeatIngest
 
   def flush_import_batch(seen_hashes)
     return 0 if seen_hashes.empty?
+    return persist_clickhouse_import(seen_hashes.values) if HeartbeatRepository.clickhouse?
 
     records = seen_hashes.values
     compatible_hashes = records.flat_map { |record| [ record[:fields_hash], record[:legacy_fields_hash] ] }.compact.uniq
@@ -286,12 +306,14 @@ class HeartbeatIngest
     ActiveRecord::Base.logger.silence do
       # Build records inside the retry block so a cutover-time schema refresh
       # recomputes both the conflict target and the time_epoch partition column.
-      with_heartbeat_unique_by do |unique_by|
-        insert_records = records.map do |record|
-          record.except(:legacy_fields_hash)
-            .merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(record[:time]))
+      HeartbeatCutover.with_postgresql_ingest_lock do
+        with_heartbeat_unique_by do |unique_by|
+          insert_records = records.map do |record|
+            record.except(:clickhouse_fields_hash, :legacy_fields_hash)
+              .merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(record[:time]))
+          end
+          Heartbeat.insert_all(insert_records, unique_by:).length
         end
-        Heartbeat.insert_all(insert_records, unique_by:).length
       end
     end
   end
@@ -328,10 +350,11 @@ class HeartbeatIngest
   # Resolved placeholders are useful metadata, but database-backed resolution
   # can change between identical imports. Keep the raw sentinel in the persisted
   # identity so fields_hash remains a pure function of the dump row.
-  def import_fields_hash(model_attributes, source:)
+  def import_fields_hash(model_attributes, source:, include_user: true)
     hash_attributes = model_attributes.dup
     hash_attributes["language"] = LAST_LANGUAGE_SENTINEL if source[:language] == LAST_LANGUAGE_SENTINEL
     hash_attributes["branch"] = LAST_BRANCH_SENTINEL if source[:branch] == LAST_BRANCH_SENTINEL
+    hash_attributes.delete("user_id") unless include_user
     Heartbeat.generate_fields_hash(hash_attributes)
   end
 
@@ -356,7 +379,61 @@ class HeartbeatIngest
     time_epoch_column? ? UNIQUE_BY_COMPOSITE : UNIQUE_BY_LEGACY
   end
 
-  def time_epoch_column? = Heartbeat.column_names.include?("time_epoch")
+  def time_epoch_column? = !HeartbeatRepository.clickhouse? && Heartbeat.column_names.include?("time_epoch")
+
+  def heartbeat_columns
+    HeartbeatRepository.clickhouse? ? HeartbeatRow::COLUMNS : Heartbeat.column_names
+  end
+
+  def persist_clickhouse_direct(entries)
+    entries_by_hash = entries.group_by { |entry| entry[:fields_hash] }
+    unique_entries = entries_by_hash.values.map(&:first)
+    timestamp = Time.current
+    records = unique_entries.map do |entry|
+      direct_insert_record(entry, timestamp:).merge(
+        "fields_hash" => HeartbeatRepository.current.canonical_fields_hash(entry[:model_attributes]),
+        "alias_hashes" => [ entry[:fields_hash] ]
+      )
+    end
+    outcomes = HeartbeatRepository.current.persist(
+      user_id: @user.id,
+      records:
+    )
+    persisted = unique_entries.zip(outcomes).to_h do |entry, outcome|
+      fields_hash = entry.fetch(:fields_hash)
+      [ fields_hash, heartbeat_from_store(outcome.fetch(:row), fields_hash:) ]
+    end
+    inserted_hashes = unique_entries.zip(outcomes).filter_map do |entry, outcome|
+      entry.fetch(:fields_hash) if outcome.fetch(:inserted)
+    end
+    [ persisted, inserted_hashes ]
+  end
+
+  def persist_clickhouse_import(records)
+    timestamp = Time.current
+    serialized = records.map do |record|
+      HeartbeatRepository.current.serialize_attributes(
+        record.except(:clickhouse_fields_hash, :legacy_fields_hash).merge(
+          fields_hash: record[:clickhouse_fields_hash],
+          created_at: timestamp,
+          updated_at: timestamp
+        )
+      ).merge(
+        "alias_hashes" => [ record[:fields_hash], record[:legacy_fields_hash] ].compact.uniq
+      )
+    end
+    serialized.each_slice(CLICKHOUSE_IMPORT_BATCH_SIZE).sum do |batch|
+      HeartbeatRepository.current.persist(user_id: @user.id, records: batch)
+        .count { |outcome| outcome.fetch(:inserted) }
+    end
+  end
+
+  def heartbeat_from_store(row, fields_hash: nil)
+    attributes = row.slice(*HeartbeatRepository::STORAGE_COLUMNS).except("version")
+    attributes["fields_hash"] = fields_hash if fields_hash
+    HeartbeatRepository.current.deserialize_dependencies!(attributes)
+    HeartbeatRow.new(attributes)
+  end
 
   # The hypertable partition column must arrive populated (TimescaleDB routes to
   # a chunk before row triggers fire). Bulk insert/insert_all bypass model
@@ -451,11 +528,11 @@ class HeartbeatIngest
     context = state[:contexts][project] ||= {}
     unless context.key?(:language)
       context[:language] = @user.heartbeats.where(project: project)
-        .where.not(language: [ nil, "", LAST_LANGUAGE_SENTINEL ]).order(time: :desc).pick(:language)
+        .where.not(language: [ nil, "", LAST_LANGUAGE_SENTINEL ]).order(time: :desc, id: :desc).pick(:language)
     end
     unless context.key?(:branch)
       context[:branch] = @user.heartbeats.where(project: project)
-        .where.not(branch: [ nil, "", LAST_BRANCH_SENTINEL ]).order(time: :desc).pick(:branch)
+        .where.not(branch: [ nil, "", LAST_BRANCH_SENTINEL ]).order(time: :desc, id: :desc).pick(:branch)
     end
     context
   end

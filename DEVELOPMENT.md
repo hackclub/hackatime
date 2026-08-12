@@ -47,10 +47,14 @@ $ docker compose up -d
 $ docker compose exec web /bin/bash
 ```
 
+The Compose service keeps development data in `hackatime_development` and test data in the separate `hackatime_test` ClickHouse database.
+
 We'll now setup the database. In your container shell, run the following:
 
 ```bash
-app# bin/rails db:create db:schema:load db:seed
+app# bin/rails db:create db:schema:load
+app# bin/rake clickhouse:migrate
+app# bin/rails db:seed
 ```
 
 Run the Vite build with SSR (server-side-rendering):

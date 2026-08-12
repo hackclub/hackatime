@@ -6,7 +6,6 @@ class DashboardRollup < ApplicationRecord
   TODAY_STATS_DIMENSION = "today_stats".freeze
   FILTER_OPTIONS_DIMENSION = "filter_options".freeze
   CODING_RHYTHM_DIMENSION = "coding_rhythm".freeze
-  DIRTY_CACHE_KEY_PREFIX = "dashboard_rollup_dirty".freeze
 
   belongs_to :user
 
@@ -20,8 +19,30 @@ class DashboardRollup < ApplicationRecord
   def total_dimension? = dimension == TOTAL_DIMENSION
   def bucket = bucket_value_present ? bucket_value : nil
 
-  def self.dirty_cache_key(user_id) = "#{DIRTY_CACHE_KEY_PREFIX}_#{user_id}"
-  def self.mark_dirty(user_id) = Rails.cache.write(dirty_cache_key(user_id), true, expires_in: 1.day, unless_exist: true)
-  def self.clear_dirty(user_id) = Rails.cache.delete(dirty_cache_key(user_id))
-  def self.dirty?(user_id) = Rails.cache.exist?(dirty_cache_key(user_id))
+  def self.mark_dirty(user_id)
+    User.where(id: user_id).update_all(
+      "dashboard_rollup_generation = dashboard_rollup_generation + 1"
+    ).positive?
+  end
+
+  def self.clear_dirty(user_id)
+    User.where(id: user_id).update_all(
+      "dashboard_rollup_refreshed_generation = dashboard_rollup_generation"
+    )
+  end
+
+  def self.dirty?(user_id)
+    User.where(id: user_id)
+      .where("dashboard_rollup_generation > dashboard_rollup_refreshed_generation")
+      .exists?
+  end
+
+  def self.generation(user_id)
+    User.where(id: user_id).pick(:dashboard_rollup_generation)
+  end
+
+  def self.mark_refreshed(user_id, generation)
+    User.where(id: user_id, dashboard_rollup_generation: generation)
+      .update_all(dashboard_rollup_refreshed_generation: generation)
+  end
 end

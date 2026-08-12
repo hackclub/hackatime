@@ -8,7 +8,7 @@ the linked source when behavior and this summary disagree.
 | Domain | Source of truth | Derived / disposable state |
 | --- | --- | --- |
 | Identity | `users`, `email_addresses`, provider IDs and encrypted provider tokens | Session cookie |
-| Coding activity | Non-deleted `heartbeats` | Durations, dashboard/profile payloads, rollups, leaderboards, streaks, Rails caches |
+| Coding activity | Canonical ClickHouse `heartbeat_store` and `heartbeat_aliases` | Query layouts, durations, dashboard/profile payloads, rollups, leaderboards, streaks, Rails caches |
 | Heartbeat project identity | `heartbeats.project` | Project lists and project statistics |
 | Per-user project settings | `project_repo_mappings` keyed by project name | Discovery retry/coalescing cache keys |
 | Repository identity | Shared `repositories` row (`url`, host, owner, name) | Stars, languages, homepage, commit count, sync timestamps, imported commits |
@@ -106,8 +106,15 @@ trust conviction requires superadmin+.
 
 ## 3. Heartbeat ingestion and duration semantics
 
-Non-deleted [`Heartbeat`](app/models/heartbeat.rb) rows are authoritative
-activity. All direct and imported writes should flow through
+Non-deleted ClickHouse heartbeat rows are authoritative activity when
+`HEARTBEAT_STORE=clickhouse`, which production sets explicitly after cutover.
+[`HeartbeatRepository`](app/repositories/heartbeat_repository.rb) owns all
+ClickHouse reads, exact timestamp filtering, canonical persistence and
+replacement writes. `heartbeat_store` owns full payload and lifecycle state;
+`heartbeat_aliases` owns canonical and legacy hash deduplication. PostgreSQL
+provides only monotonic ID/version allocation, transient advisory locks and
+coarse workflow status for transfer, deletion and JA4 operations. All direct
+and imported writes should flow through
 [`HeartbeatIngest`](app/services/heartbeat_ingest.rb), which owns:
 
 * accepted input normalization, sane epoch validation/repair, null/control
@@ -118,19 +125,23 @@ activity. All direct and imported writes should flow through
 * deduplication and race-safe persistence; and
 * scheduling rollup refresh and best-effort project mapping only after inserts.
 
-`fields_hash` is the persisted identity of a normalized heartbeat and includes
-the user, time and activity metadata listed by
-`Heartbeat.indexed_attributes` (plus present AI attributes). Direct batches
-collapse equal hashes; `insert_all ... unique_by` lets the database settle
-cross-request races, then ingestion fetches the winning row. Import batches
-keep the latest row per hash and also check legacy hashes so normalization
-changes do not duplicate old imports. During the Timescale cutover, uniqueness
-may be `(fields_hash)` or `(fields_hash, time_epoch)`; ingestion detects the
-schema, explicitly sets the partition epoch, refreshes stale schema metadata,
-and retries only outside an open transaction.
+`fields_hash` is the user-independent canonical identity of a normalized
+heartbeat and includes its time and activity metadata listed by
+`Heartbeat.indexed_attributes` (plus present AI attributes). The user remains
+part of the alias primary key, so different accounts can own the same activity
+while account transfers can deduplicate it exactly. Direct batches collapse
+equal hashes. Import batches keep the latest row per hash and also check legacy
+aliases so normalization changes do not duplicate old imports.
+Admission persists a complete candidate before publishing aliases. A process
+that dies at any later point can therefore be repaired entirely from
+ClickHouse. `fields_hash` is intentionally absent from both query layouts and
+their sorting keys.
 
-Soft deletion is implemented by `deleted_at`; the model's default scope hides
-those rows. Use `soft_delete` / `restore`, which also invalidate rollups.
+Soft deletion is implemented by versioned replacement rows with `deleted_at`;
+repository scopes hide those rows. Use `soft_delete` / `restore`, which update
+the canonical store, independently acknowledge both query layouts and
+invalidate rollups. Transfers retain higher-version source tombstones so a
+delayed pre-transfer write cannot resurrect the old owner.
 
 Duration is not stored. [`Heartbeatable`](app/models/concerns/heartbeatable.rb)
 derives it from ordered heartbeat timestamps. The default timeout is 2 minutes:
@@ -149,7 +160,7 @@ Preserve deterministic ordering by `time, id`, timestamp validity filters, and
 the timeout cap when adding reports. Eligibility scopes additionally distinguish
 coding, browser activity and the `<<LAST_PROJECT>>` sentinel.
 
-## 4. Dashboard/profile rollups and caches
+## 4. Dashboard/profile rollups and cache policy
 
 [`DashboardStats`](app/services/dashboard_stats.rb) is the read facade. An
 unfiltered all-time dashboard can use `dashboard_rollups`; filtered/custom time
@@ -157,21 +168,30 @@ ranges query heartbeats. A missing aggregate total falls back to live
 calculation and schedules a refresh. A dirty or stale aggregate total is served
 while refresh is scheduled. Invalid activity-graph/today fragments and
 malformed filter options fall back to live calculation and schedule refresh.
-Short Rails caches (currently 1/5/15 minutes depending on fragment) are also
-disposable.
+The assembled filtered dashboard payload has a disposable five-minute cache.
 
 [`DashboardRollupRefreshService`](app/services/dashboard_rollup_refresh_service.rb)
 rebuilds totals, dimensions, weekly projects, project details, filter options,
 activity graph and today's stats from the user's non-archived heartbeats. It
 atomically replaces all of one user's rows in a transaction. The refresh job
-marks the user dirty before enqueue, coalesces scheduling with a cache key, and
-uses a per-user GoodJob concurrency limit. Heartbeat commits, soft-delete/
+increments a durable generation on the user before enqueue, coalesces scheduling
+with a cache key, and uses a per-user GoodJob concurrency limit. It only marks
+the captured generation refreshed, so a mutation during the query schedules
+another refresh. A recurring sweep recovers dirty generations after cache
+eviction or a process crash. Heartbeat commits, soft-delete/
 restore, timezone changes, and project archive changes schedule refreshes.
 
 [`ProfileStatsService`](app/services/profile_stats_service.rb) is a thin
 projection of `DashboardStats`, including OG-image totals. It has no independent
-authoritative statistic. Change shared duration/snapshot logic below both
-dashboard and profile rather than patching profile output independently.
+authoritative statistic. With ClickHouse enabled these product surfaces query
+the repository directly and the PostgreSQL rollup refresh job is disabled.
+Expensive repeated reads retain bounded disposable caches: the filterable
+dashboard payload and profile heatmap for five minutes, streaks for one hour,
+Sailors Log project durations for five minutes and global homepage flavour text
+for ten seconds. Homepage totals use one exact ClickHouse query, with archived
+project pairs supplied from relational metadata. Change shared duration/snapshot
+logic below both dashboard and profile rather than patching profile output
+independently.
 
 ## 5. Projects, repositories and repo hosts
 
@@ -230,8 +250,8 @@ activity dates) use the validated `User#timezone`. Browser requests run inside
 `Time.use_zone(current_user.timezone)`; services/jobs without that wrapper must
 use `Time.use_zone` explicitly. SQL day grouping converts epochs with the user
 timezone and falls back to UTC only where the reporting code explicitly guards
-invalid legacy data. A timezone change invalidates both old/new activity cache
-keys and rollups.
+invalid legacy data. A timezone change schedules a PostgreSQL rollup refresh;
+ClickHouse-backed activity reads use the current timezone directly.
 
 Use database constraints/upserts for cross-process correctness, transactions
 for multi-row replacement, `after_commit` for derived work, and GoodJob

@@ -3,6 +3,21 @@ require "test_helper"
 class HeartbeatIngestTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
 
+  class ImportBatchRepository
+    attr_reader :batch_sizes
+
+    def initialize
+      @batch_sizes = []
+    end
+
+    def serialize_attributes(attributes) = attributes.stringify_keys
+
+    def persist(user_id:, records:)
+      @batch_sizes << records.length
+      records.map { { inserted: true, row: { "user_id" => user_id } } }
+    end
+  end
+
   setup do
     Rails.cache.clear
     clear_enqueued_jobs
@@ -330,6 +345,63 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
 
     assert_equal 1, user.heartbeats.count
+  end
+
+  test "an ingest admitted before purge cannot insert into PostgreSQL after purge" do
+    user = User.create!(timezone: "UTC")
+    cutover = HeartbeatCutover.create!(
+      id: 1,
+      source_through_id: 0,
+      backfilled_through_id: 0,
+      verified_through_id: 0,
+      verified_at: Time.current
+    )
+    ingest = HeartbeatIngest.new(
+      user:,
+      mode: :direct,
+      heartbeats: [ { entity: "delayed.rb", time: Time.current.to_f, type: "file" } ],
+      schedule_rollup_refresh: false
+    )
+    original_normalize = ingest.method(:normalize_direct_heartbeat)
+    ingest.define_singleton_method(:normalize_direct_heartbeat) do |heartbeat, placeholder_state:|
+      cutover.purge_postgresql!
+      original_normalize.call(heartbeat, placeholder_state:)
+    end
+
+    result = ingest.call
+
+    assert_equal 1, result.failed_count
+    assert_equal HeartbeatCutover::POSTGRESQL_WRITE_ERROR, result.items.sole.error.message
+    assert_predicate cutover.reload, :purged_at?
+    assert_equal 0, Heartbeat.postgresql_unscoped.where(user_id: user.id).count
+  end
+
+  test "an import admitted before purge cannot insert into PostgreSQL after purge" do
+    user = User.create!(timezone: "UTC")
+    cutover = HeartbeatCutover.create!(
+      id: 1,
+      source_through_id: 0,
+      backfilled_through_id: 0,
+      verified_through_id: 0,
+      verified_at: Time.current
+    )
+    ingest = HeartbeatIngest.new(
+      user:,
+      mode: :import,
+      heartbeats: [ { entity: "delayed-import.rb", time: Time.current.to_f, type: "file" } ],
+      schedule_rollup_refresh: false
+    )
+    original_normalize = ingest.method(:normalize_imported_heartbeat)
+    ingest.define_singleton_method(:normalize_imported_heartbeat) do |heartbeat, placeholder_state:|
+      cutover.purge_postgresql!
+      original_normalize.call(heartbeat, placeholder_state:)
+    end
+
+    error = assert_raises(RuntimeError) { ingest.call }
+
+    assert_equal HeartbeatCutover::POSTGRESQL_WRITE_ERROR, error.message
+    assert_predicate cutover.reload, :purged_at?
+    assert_equal 0, Heartbeat.postgresql_unscoped.where(user_id: user.id).count
   end
 
   test "direct heartbeat ingest rebuilds partition attributes inside a schema retry" do
@@ -829,6 +901,61 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "wakapi_import", heartbeat.source_type
   end
 
+  test "ClickHouse imports persist in bounded transactions" do
+    previous_repository = HeartbeatRepository.instance_variable_get(:@current)
+    repository = ImportBatchRepository.new
+    HeartbeatRepository.instance_variable_set(:@current, repository)
+    user = User.create!(timezone: "UTC")
+    records = (HeartbeatIngest::CLICKHOUSE_IMPORT_BATCH_SIZE * 2 + 1).times.map do |index|
+      {
+        fields_hash: Digest::MD5.hexdigest("request-#{index}"),
+        clickhouse_fields_hash: Digest::MD5.hexdigest("canonical-#{index}"),
+        legacy_fields_hash: nil,
+        time: 1_700_000_000.0 + index
+      }
+    end
+
+    persisted = HeartbeatIngest.new(user:, mode: :import, heartbeats: [])
+      .send(:persist_clickhouse_import, records)
+
+    assert_equal records.length, persisted
+    assert_equal [ 1_000, 1_000, 1 ], repository.batch_sizes
+  ensure
+    HeartbeatRepository.instance_variable_set(:@current, previous_repository)
+  end
+
+  test "the cutover write fence rejects direct and imported heartbeats" do
+    previous = ENV["HEARTBEAT_WRITES_STOPPED"]
+    ENV["HEARTBEAT_WRITES_STOPPED"] = "1"
+    user = User.create!(timezone: "UTC")
+
+    %i[direct import].each do |mode|
+      error = assert_raises(RuntimeError) do
+        HeartbeatIngest.call(user:, mode:, heartbeats: [])
+      end
+      assert_equal "Heartbeat writes are stopped", error.message
+    end
+  ensure
+    ENV["HEARTBEAT_WRITES_STOPPED"] = previous
+  end
+
+  test "the online backfill mutation fence permits append-only ingestion" do
+    previous = ENV["HEARTBEAT_MUTATIONS_STOPPED"]
+    ENV["HEARTBEAT_MUTATIONS_STOPPED"] = "1"
+    user = User.create!(timezone: "UTC")
+
+    result = HeartbeatIngest.call(
+      user:,
+      mode: :direct,
+      heartbeats: [ { entity: "backfill.rb", time: Time.current.to_f, type: "file" } ],
+      schedule_rollup_refresh: false
+    )
+
+    assert_equal 1, result.persisted_count
+  ensure
+    ENV["HEARTBEAT_MUTATIONS_STOPPED"] = previous
+  end
+
   private
 
   def create_legacy_imported_heartbeat(user, attributes)
@@ -873,5 +1000,103 @@ class HeartbeatIngestUniqueByFallbackTest < ActiveSupport::TestCase
       end
     end
     assert_equal 2, calls
+  end
+end
+
+class HeartbeatCutoverLockConcurrencyTest < ActiveSupport::TestCase
+  self.use_transactional_tests = false
+
+  setup do
+    @previous_clickhouse_test = ENV["CLICKHOUSE_TEST"]
+    ENV["CLICKHOUSE_TEST"] = "0"
+    HeartbeatCutover.delete_all
+    boundary = Heartbeat.postgresql_unscoped.maximum(:id).to_i
+    @cutover = HeartbeatCutover.create!(
+      id: 1,
+      source_through_id: boundary,
+      backfilled_through_id: boundary,
+      verified_through_id: boundary,
+      verified_at: Time.current
+    )
+  end
+
+  teardown do
+    HeartbeatCutover.delete_all
+    @previous_clickhouse_test ? ENV["CLICKHOUSE_TEST"] = @previous_clickhouse_test : ENV.delete("CLICKHOUSE_TEST")
+  end
+
+  test "ingest locks overlap while purge waits for every holder" do
+    entered = Queue.new
+    release = Queue.new
+    holder_done = Queue.new
+    purge_pid = Queue.new
+    purge_done = Queue.new
+    errors = Queue.new
+
+    holders = 2.times.map do
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          HeartbeatCutover.with_postgresql_ingest_lock do
+            entered << true
+            release.pop
+          end
+        end
+      rescue => error
+        errors << error
+      ensure
+        holder_done << true
+      end
+    end
+    2.times { Timeout.timeout(5) { entered.pop } }
+
+    purger = Thread.new do
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        purge_pid << connection.select_value("SELECT pg_backend_pid()")
+        HeartbeatCutover.find(1).purge_postgresql!
+        purge_done << true
+      end
+    rescue => error
+      errors << error
+    end
+
+    pid = Timeout.timeout(5) { purge_pid.pop }
+    assert wait_for_postgresql_lock(pid), "purge did not wait for the shared ingest locks"
+    assert_predicate purge_done, :empty?
+
+    release << true
+    Timeout.timeout(5) { holder_done.pop }
+    assert wait_for_postgresql_lock(pid), "purge stopped waiting while one ingest lock remained"
+    assert_predicate purge_done, :empty?
+
+    release << true
+    Timeout.timeout(5) { holder_done.pop }
+    assert Timeout.timeout(5) { purge_done.pop }
+    holders.each(&:value)
+    purger.value
+    flunk errors.pop.message unless errors.empty?
+    assert_predicate @cutover.reload, :purged_at?
+  ensure
+    2.times { release << true } if release
+    [ *holders, purger ].compact.each do |thread|
+      thread.join(1)
+      thread.kill if thread.alive?
+    end
+  end
+
+  private
+
+  def wait_for_postgresql_lock(pid)
+    Timeout.timeout(5) do
+      loop do
+        waiting = ActiveRecord::Base.connection.select_value(<<~SQL.squish)
+          SELECT wait_event_type = 'Lock' FROM pg_stat_activity WHERE pid = #{Integer(pid)}
+        SQL
+        return true if waiting
+
+        sleep 0.01
+      end
+    end
+  rescue Timeout::Error
+    false
   end
 end

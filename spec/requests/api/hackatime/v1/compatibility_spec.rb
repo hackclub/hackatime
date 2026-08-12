@@ -57,6 +57,7 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
           description: 'The created heartbeat (the .attributes hash of the first accepted heartbeat).',
           properties: {
             id: { type: :integer, example: 987654 },
+            fields_hash: { type: :string, example: '5d41402abc4b2a76b9719d911017c592', description: 'Stable identity hash for the accepted heartbeat' },
             entity: { type: :string, nullable: true, example: 'app/models/user.rb' },
             type: { type: :string, nullable: true, example: 'file' },
             time: { type: :number, example: 1710946200.0 },

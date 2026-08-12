@@ -223,6 +223,76 @@ jobs:
           bin/rails rswag:specs:swaggerize
           git diff --exit-code swagger/
 
+  test_clickhouse:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_test
+      clickhouse:
+        image: clickhouse/clickhouse-server:26.7.3.19
+        ports:
+          - 8123:8123
+        options: >-
+          --health-cmd "clickhouse-client --password clickhouse --query 'SELECT 1'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+        env:
+          CLICKHOUSE_DB: hackatime_test
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD: clickhouse
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Prepare databases
+        env:
+          RAILS_ENV: test
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          CLICKHOUSE_URL: http://default:clickhouse@localhost:8123/hackatime_test
+          CLICKHOUSE_TEST_URL: http://default:clickhouse@localhost:8123/hackatime_test
+        run: |
+          bin/rails db:create db:schema:load
+          bin/rake clickhouse:migrate
+
+      - name: Run real ClickHouse tests
+        env:
+          RAILS_ENV: test
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          CLICKHOUSE_URL: http://default:clickhouse@localhost:8123/hackatime_test
+          CLICKHOUSE_TEST_URL: http://default:clickhouse@localhost:8123/hackatime_test
+          CLICKHOUSE_INTEGRATION: "1"
+          CLICKHOUSE_REQUIRED: "1"
+          CLICKHOUSE_TEST: "1"
+        run: |
+          bin/rails test \
+            test/controllers/api/hackatime/v1/hackatime_controller_test.rb \
+            test/repositories/heartbeat_repository_integration_test.rb \
+            test/repositories/heartbeat_repository_differential_integration_test.rb \
+            test/services/heartbeat_ingest_clickhouse_concurrency_test.rb \
+            test/tasks/clickhouse_test.rb
+
   test_system:
     runs-on: blacksmith-4vcpu-ubuntu-2404
 
@@ -293,7 +363,7 @@ jobs:
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [scan_ruby, scan_js, lint, frontend, zeitwerk, publish_image, test, test_system]
+    needs: [scan_ruby, scan_js, lint, frontend, zeitwerk, publish_image, test, test_clickhouse, test_system]
     runs-on: ubuntu-latest
     concurrency:
       group: production-deploy

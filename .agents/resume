@@ -16,4 +16,6 @@ fi
 
 sudo docker info >/dev/null
 sudo docker compose up -d
+sudo docker compose exec -T clickhouse clickhouse-client --query "CREATE DATABASE IF NOT EXISTS hackatime_test"
+sudo docker compose exec -T web bin/rake clickhouse:migrate
 amp orb services ensure

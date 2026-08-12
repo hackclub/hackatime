@@ -16,6 +16,13 @@ class WeeklySummaryEmailJob < ApplicationJob
 
   def eligible_users(cutoff)
     users = User.arel_table
+    if HeartbeatRepository.clickhouse?
+      recently_active_ids = Heartbeat.where(time: cutoff.to_f..).distinct.pluck(:user_id)
+      return User.subscribed("weekly_summary")
+        .where(users[:created_at].gteq(cutoff).or(users[:id].in(recently_active_ids)))
+        .where.not(id: DeletionRequest.active.select(:user_id))
+    end
+
     heartbeats = Heartbeat.arel_table
 
     recent_activity_exists = Heartbeat.unscoped

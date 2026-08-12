@@ -219,7 +219,10 @@ class FlavorText
     r << "in the nick of time!" if %w[nick nicholas nickolas].include?(user.display_name)
     r << "just-in time!" if %w[justin justine].include?(user.display_name)
 
-    minutes_logged = Cache::MinutesLoggedJob.perform_now
+    minutes_logged = Rails.cache.fetch("global_minutes_logged:v1", expires_in: 10.seconds) do
+      Heartbeat.coding_only.with_valid_timestamps
+        .where(time: 1.hour.ago..Time.current).duration_seconds / 60
+    end
     r << "in the past hour, #{minutes_logged} minutes have passed" if minutes_logged > 0
 
     r

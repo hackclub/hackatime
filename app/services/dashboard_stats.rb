@@ -1,5 +1,4 @@
 class DashboardStats
-  FILTER_OPTIONS_CACHE_VERSION = "v2".freeze
   WEEKLY_PROJECT_DIMENSION = "weekly_project".freeze
   FILTERS = %i[project language operating_system editor category].freeze
 
@@ -21,6 +20,8 @@ class DashboardStats
   end
 
   def activity_graph_data
+    return live_activity_graph_data if HeartbeatRepository.clickhouse?
+
     row = rollup_fragment_row(DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
     return activity_graph_from_rollup(row) if activity_graph_rollup_valid?(row)
     schedule_rollup_refresh(wait: 0.seconds) if rollups_available?
@@ -28,6 +29,8 @@ class DashboardStats
   end
 
   def today_stats_data
+    return live_today_stats_data if HeartbeatRepository.clickhouse?
+
     row = rollup_fragment_row(DashboardRollup::TODAY_STATS_DIMENSION)
     return today_stats_from_rollup(row) if today_stats_rollup_valid?(row)
     schedule_rollup_refresh(wait: 0.seconds) if rollups_available?
@@ -112,15 +115,9 @@ class DashboardStats
   end
 
   def live_raw_filter_options
-    archive_key = ActiveSupport::Digest.hexdigest(archived_project_names.to_json)
-    cache_keys = FILTERS.index_with { |field| "user_#{user.id}_dashboard_filter_options_#{field}_#{FILTER_OPTIONS_CACHE_VERSION}_#{archive_key}" }
-    reverse_lookup = cache_keys.invert
+    return HeartbeatRepository.current.filter_options(dashboard_heartbeats, FILTERS) if HeartbeatRepository.clickhouse?
 
-    cached = Rails.cache.fetch_multi(*cache_keys.values, expires_in: 15.minutes) do |cache_key|
-      dashboard_heartbeats.distinct.pluck(reverse_lookup.fetch(cache_key)).compact_blank
-    end
-
-    cache_keys.transform_values { |cache_key| cached.fetch(cache_key, []) }
+    FILTERS.index_with { |field| dashboard_heartbeats.distinct.pluck(field).compact_blank }
   end
 
   def rollup_filter_options
@@ -153,8 +150,8 @@ class DashboardStats
   def filtered_dashboard_heartbeats(filter_options, result: nil)
     helpers = ApplicationController.helpers
 
-    FILTERS.each_with_object(dashboard_heartbeats) do |field, heartbeats|
-      next unless params[field].present?
+    FILTERS.reduce(dashboard_heartbeats) do |heartbeats, field|
+      next heartbeats unless params[field].present?
 
       selected = params[field].split(",")
       values = case field
@@ -163,8 +160,8 @@ class DashboardStats
       when :language then filter_options.fetch(field, []).select { |value| selected.include?(value.categorize_language) }
       else selected
       end
-      heartbeats.where!(field => values)
       result["singular_#{field}"] = selected.one? if result
+      heartbeats.where(field => values)
     end
   end
 
@@ -196,7 +193,7 @@ class DashboardStats
   end
 
   def aggregate_rollup_snapshot
-    return unless rollups_available? && rollup_eligible?
+    return unless rollup_eligible? && rollups_available?
 
     total_row = rollup_total_row
     unless total_row
@@ -217,6 +214,8 @@ class DashboardStats
   end
 
   def rollup_eligible?
+    return false if HeartbeatRepository.clickhouse?
+
     params[:interval].blank? && params[:from].blank? && params[:to].blank? &&
       FILTERS.none? { |field| params[field].present? }
   end
@@ -287,10 +286,7 @@ class DashboardStats
   def live_activity_graph_data
     timezone = user.timezone
     start_date, end_date = activity_graph_date_range(timezone)
-    cache_key = [ user.activity_graph_cache_key(timezone), "without_archived_v1", archived_project_names ]
-    durations = Rails.cache.fetch(cache_key, expires_in: 1.minute) do
-      Time.use_zone(timezone) { dashboard_heartbeats.daily_durations(user_timezone: timezone).to_h }
-    end
+    durations = Time.use_zone(timezone) { dashboard_heartbeats.daily_durations(user_timezone: timezone).to_h }
     DashboardData::Snapshots.activity_graph_result(start_date: start_date, end_date: end_date, duration_by_date: durations, timezone: timezone)
   end
 

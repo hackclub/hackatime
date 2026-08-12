@@ -27,6 +27,14 @@ module ActiveSupport
       "sailors_logs"
     ]
 
+    def require_clickhouse_integration!
+      return if ENV["CLICKHOUSE_INTEGRATION"] == "1"
+
+      message = "Set CLICKHOUSE_INTEGRATION=1 to run"
+      flunk message if ENV["CLICKHOUSE_REQUIRED"] == "1"
+      skip message
+    end
+
     # Add more helper methods to be used by all tests here...
   end
 end

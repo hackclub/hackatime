@@ -28,8 +28,9 @@ class HeartbeatExportJob < ApplicationJob
     end
 
     if all_data
-      heartbeats = user.heartbeats.order(time: :asc)
-      first_time, last_time = user.heartbeats.pick(Arel.sql("MIN(time), MAX(time)"))
+      heartbeats = user.heartbeats.order(time: :asc, id: :asc)
+      first_time = user.heartbeats.minimum(:time)
+      last_time = user.heartbeats.maximum(:time)
       if first_time && last_time
         start_date = Time.at(first_time).to_date
         end_date = Time.at(last_time).to_date
@@ -39,9 +40,8 @@ class HeartbeatExportJob < ApplicationJob
     else
       start_date = Date.iso8601(start_date)
       end_date = Date.iso8601(end_date)
-      heartbeats = user.heartbeats
-        .where("time >= ? AND time <= ?", start_date.beginning_of_day.to_f, end_date.end_of_day.to_f)
-        .order(time: :asc)
+      heartbeats = user.heartbeats.where(time: start_date.beginning_of_day.to_f..end_date.end_of_day.to_f)
+        .order(time: :asc, id: :asc)
     end
 
     export_data = build_export_data(heartbeats, start_date, end_date)

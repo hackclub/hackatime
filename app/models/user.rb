@@ -203,6 +203,12 @@ class User < ApplicationRecord
 
   has_many :heartbeat_import_runs, dependent: :destroy
 
+  def heartbeats
+    return super unless HeartbeatRepository.clickhouse?
+
+    HeartbeatRepository.current.for_user(id)
+  end
+
   scope :search_identity, ->(term) {
     term = term.to_s.strip
     return none if term.blank?
@@ -255,7 +261,7 @@ class User < ApplicationRecord
            foreign_key: :resource_owner_id,
            dependent: :delete_all
 
-  def streak_days = @streak_days ||= heartbeats.daily_streaks_for_users([ id ]).values.first
+  def streak_days = @streak_days ||= Heartbeat.daily_streaks_for_users([ id ]).values.first
   def active_deletion_request = deletion_requests.active.order(created_at: :desc).first
   def pending_deletion? = active_deletion_request.present?
   def api_access_restricted? = red? || pending_deletion?
@@ -283,12 +289,10 @@ class User < ApplicationRecord
     compliment_text: 2
   }
 
-  after_update_commit :invalidate_activity_graph_cache, if: :saved_change_to_timezone?
   after_update_commit :schedule_dashboard_rollup_refresh, if: :saved_change_to_timezone?
 
   def flipper_id = "User;#{id}"
   def active_remote_heartbeat_import_run? = heartbeat_import_runs.remote_imports.active_imports.exists?
-  def activity_graph_cache_key(timezone = self.timezone) = "user_#{id}_daily_durations_#{timezone}"
 
   def heartbeats_excluding_archived_projects
     heartbeats.where(project: nil).or(heartbeats.where.not(project: project_repo_mappings.archived.select(:project_name)))
@@ -344,7 +348,7 @@ class User < ApplicationRecord
     email.split("@")&.first.truncate(10) + " (email sign-up)"
   end
 
-  def most_recent_direct_entry_heartbeat = heartbeats.where(source_type: :direct_entry).order(time: :desc).first
+  def most_recent_direct_entry_heartbeat = heartbeats.where(source_type: :direct_entry).order(time: :desc, id: :desc).first
 
   def create_email_signin_token(continue_param: nil) = sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
 
@@ -390,14 +394,6 @@ class User < ApplicationRecord
     end
 
     true
-  end
-
-  def invalidate_activity_graph_cache
-    previous_timezone, current_timezone = previous_changes.fetch("timezone", [ nil, timezone ])
-
-    [ previous_timezone, current_timezone ].compact.uniq.each do |cache_timezone|
-      Rails.cache.delete(activity_graph_cache_key(cache_timezone))
-    end
   end
 
   def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(id, wait: 0.seconds)

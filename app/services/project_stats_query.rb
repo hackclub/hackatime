@@ -113,6 +113,8 @@ class ProjectStatsQuery
   end
 
   def rollup_eligible?
+    return false if HeartbeatRepository.clickhouse?
+
     @params[:projects].blank? &&
       %i[start start_date end end_date].none? { |key| @params[key].present? } &&
       timestamp_value(@default_stats_start).to_f.zero?

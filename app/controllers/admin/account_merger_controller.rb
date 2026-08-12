@@ -35,8 +35,9 @@ class Admin::AccountMergerController < InertiaController
       return merge_error("The NEWER user (right side) must have been created after the OLDER user (left side). #{newer_user.display_name} was created #{newer_user.created_at.to_date} which is before #{older_user.display_name} created #{older_user.created_at.to_date}.")
     end
 
-    merge_results = perform_merge(older_user, newer_user)
-    redirect_to admin_account_merger_path, notice: "Merge complete! #{merge_results}"
+    merge_results, heartbeats_pending = perform_merge(older_user, newer_user)
+    status = heartbeats_pending ? "saved" : "complete"
+    redirect_to admin_account_merger_path, notice: "Merge #{status}! #{merge_results}"
   rescue => e
     Rails.logger.error("Account merge failed and was rolled back: #{e.message}")
     redirect_to admin_account_merger_path, alert: "Merge failed and was rolled back: #{e.message}"
@@ -58,11 +59,22 @@ class Admin::AccountMergerController < InertiaController
   end
 
   def perform_merge(older_user, newer_user)
+    HeartbeatRepository.ensure_writes_enabled!
+    HeartbeatRepository.ensure_mutations_enabled!
     results = []
+    transfer = nil
 
     ActiveRecord::Base.transaction do
       # 1. Move heartbeats from newer to older
-      results << "#{Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)} heartbeats moved"
+      if HeartbeatRepository.clickhouse?
+        transfer = HeartbeatRepository.current.prepare_transfer(
+          from_user_id: newer_user.id,
+          to_user_id: older_user.id
+        )
+        results << "heartbeats queued to move"
+      else
+        results << "#{Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)} heartbeats moved"
+      end
 
       # 2. Transfer API keys from newer to older
       results << "#{transfer_api_keys(older_user:, newer_user:)} API keys transferred"
@@ -94,6 +106,7 @@ class Admin::AccountMergerController < InertiaController
       deleted_records += TrustLevelAuditLog.where(changed_by_id: newer_user.id).delete_all
       deleted_records += DeletionRequest.where(user_id: newer_user.id).delete_all
       deleted_records += LeaderboardEntry.where(user_id: newer_user.id).delete_all
+      deleted_records += DashboardRollup.where(user_id: newer_user.id).delete_all unless HeartbeatRepository.clickhouse?
       deleted_records += Doorkeeper::Application.where(owner_id: newer_user.id, owner_type: "User").destroy_all.count
       Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).delete_all
       Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).delete_all
@@ -107,7 +120,8 @@ class Admin::AccountMergerController < InertiaController
       results << "user ##{newer_user.id} deleted"
     end
 
-    results.join(", ")
+    DashboardRollupRefreshJob.schedule_for(older_user.id, wait: 0.seconds) unless transfer
+    [ results.join(", "), transfer.present? ]
   end
 
   DELETABLE_TABLES = %w[heartbeat_import_sources wakatime_mirrors project_labels].freeze

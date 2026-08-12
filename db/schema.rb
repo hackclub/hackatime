@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_12_192047) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -272,6 +272,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at_unfinished_unperformed", where: "((finished_at IS NULL) AND (performed_at IS NULL))"
   end
 
+  create_table "heartbeat_clickhouse_versions", force: :cascade do |t|
+  end
+
+  create_table "heartbeat_cutovers", force: :cascade do |t|
+    t.bigint "backfilled_through_id", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "purged_at"
+    t.bigint "source_through_id", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "verified_at"
+    t.bigint "verified_through_id"
+  end
+
+  create_table "heartbeat_deletions", force: :cascade do |t|
+    t.bigint "clickhouse_version", default: -> { "nextval('heartbeat_clickhouse_versions_id_seq'::regclass)" }, null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.text "last_error"
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["status"], name: "index_heartbeat_deletions_on_status"
+    t.index ["user_id"], name: "index_heartbeat_deletions_on_user_id", unique: true
+  end
+
+  create_table "heartbeat_id_allocations", force: :cascade do |t|
+  end
+
   create_table "heartbeat_import_runs", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "encrypted_api_key"
@@ -318,7 +346,35 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
     t.index ["user_id"], name: "index_heartbeat_import_sources_on_user_id", unique: true
   end
 
-  create_table "heartbeats", force: :cascade do |t|
+  create_table "heartbeat_ja4_nullifications", force: :cascade do |t|
+    t.bigint "clickhouse_version", default: -> { "nextval('heartbeat_clickhouse_versions_id_seq'::regclass)" }, null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.integer "ja4_id", null: false
+    t.text "last_error"
+    t.datetime "updated_at", null: false
+    t.index ["completed_at"], name: "index_heartbeat_ja4_nullifications_on_completed_at"
+    t.index ["ja4_id"], name: "index_heartbeat_ja4_nullifications_on_ja4_id", unique: true
+  end
+
+  create_table "heartbeat_transfers", force: :cascade do |t|
+    t.datetime "completed_at"
+    t.datetime "copied_at"
+    t.bigint "copy_version", default: -> { "nextval('heartbeat_clickhouse_versions_id_seq'::regclass)" }, null: false
+    t.datetime "created_at", null: false
+    t.bigint "delete_version", default: -> { "nextval('heartbeat_clickhouse_versions_id_seq'::regclass)" }, null: false
+    t.bigint "from_user_id", null: false
+    t.text "last_error"
+    t.integer "status", default: 0, null: false
+    t.bigint "to_user_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["from_user_id"], name: "index_heartbeat_transfers_on_from_user_id"
+    t.index ["status"], name: "index_heartbeat_transfers_on_status"
+    t.index ["to_user_id"], name: "index_heartbeat_transfers_on_to_user_id"
+    t.check_constraint "from_user_id <> to_user_id", name: "heartbeat_transfers_distinct_users"
+  end
+
+  create_table "heartbeats", id: :bigint, default: -> { "nextval('heartbeat_id_allocations_id_seq'::regclass)" }, force: :cascade do |t|
     t.bigint "ai_input_tokens"
     t.integer "ai_line_changes"
     t.string "ai_model"
@@ -675,6 +731,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
     t.boolean "allow_public_stats_lookup", default: true, null: false
     t.string "country_code"
     t.datetime "created_at", null: false
+    t.bigint "dashboard_rollup_generation", default: 0, null: false
+    t.bigint "dashboard_rollup_refreshed_generation", default: 0, null: false
     t.boolean "default_timezone_leaderboard", default: true, null: false
     t.string "deprecated_name"
     t.string "display_name_override"
@@ -716,6 +774,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["github_username"], name: "index_users_on_github_username_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["hca_id"], name: "index_users_on_hca_id"
+    t.index ["id"], name: "index_users_with_dirty_dashboard_rollups", where: "(dashboard_rollup_generation > dashboard_rollup_refreshed_generation)"
     t.index ["leaderboard_shadowbanned"], name: "index_users_on_leaderboard_shadowbanned", where: "(leaderboard_shadowbanned = true)"
     t.index ["leaderboard_shadowbanned_by_id"], name: "index_users_on_leaderboard_shadowbanned_by_id"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true

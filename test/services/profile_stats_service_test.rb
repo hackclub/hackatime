@@ -31,10 +31,11 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
 
     DashboardRollupRefreshService.new(user: user).call
 
-    og = ProfileStatsService.new(user).og_stats
+    activity_graph = { duration_by_date: { Date.current.iso8601 => 123 } }
+    og = ProfileStatsService.new(user).og_stats(activity_graph:)
 
     assert_equal 60, og[:total_time_all]
-    assert og[:total_time_week] >= 60
+    assert_equal 123, og[:total_time_week]
     assert_equal "Ruby", og[:top_language]
   end
 
