@@ -25,7 +25,7 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
     stub_request(:get, "https://slack.com/api/users.info?user=#{user.slack_uid}")
       .to_return(status: 200, body: { ok: true, user: { profile: { display_name: "Sailor" } } }.to_json)
     slack_request = stub_request(:post, "https://slack.com/api/chat.postMessage")
-      .with { |request| JSON.parse(request.body).fetch("text").include?("has now coded *6 hours* on *nixos*") }
+      .with { |request| JSON.parse(request.body).fetch("text").include?("has now coded for *6 hours* on *nixos*") }
       .to_return(status: 200, body: { ok: true }.to_json)
 
     assert_difference -> { sailors_log.notifications.count }, +1 do
