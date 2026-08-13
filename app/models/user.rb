@@ -287,7 +287,7 @@ class User < ApplicationRecord
   after_update_commit :schedule_dashboard_rollup_refresh, if: :saved_change_to_timezone?
 
   def flipper_id = "User;#{id}"
-  def active_remote_heartbeat_import_run? = heartbeat_import_runs.remote_imports.active_imports.exists?
+  def active_heartbeat_import_run? = heartbeat_import_runs.active_imports.exists?
   def activity_graph_cache_key(timezone = self.timezone) = "user_#{id}_daily_durations_#{timezone}"
 
   def heartbeats_excluding_archived_projects

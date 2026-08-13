@@ -10,7 +10,16 @@ class SailorsLogPollForChangesJob < ApplicationJob
   IGNORED_PROJECTS = [ "<<LAST_PROJECT>>", "Unknown" ].freeze
 
   def perform
-    users_who_coded = Heartbeat.with_valid_timestamps.where(time: 10.minutes.ago..).distinct.pluck(:user_id)
+    cutoff = 10.minutes.ago
+    users_who_coded = Heartbeat.with_valid_timestamps
+      .where(
+        "time >= :coding_cutoff OR (source_type = :direct_entry AND created_at >= :arrival_cutoff)",
+        coding_cutoff: cutoff.to_f,
+        direct_entry: Heartbeat.source_types.fetch("direct_entry"),
+        arrival_cutoff: cutoff
+      )
+      .distinct
+      .pluck(:user_id)
     slack_uids = User.where(id: users_who_coded).pluck(:slack_uid)
 
     new_notifs = SailorsLog.includes(:user, :notification_preferences)
@@ -26,7 +35,7 @@ class SailorsLogPollForChangesJob < ApplicationJob
   private
 
   def update_sailors_log(sailors_log)
-    return [] if sailors_log.user.active_remote_heartbeat_import_run?
+    return [] if sailors_log.user.active_heartbeat_import_run?
 
     project_durations = DashboardRollup
       .where(user_id: sailors_log.user.id, dimension: "project", bucket_value_present: true)

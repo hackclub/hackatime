@@ -51,6 +51,33 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
     file&.unlink
   end
 
+  test "run_import advances an existing sailors log baseline without creating notifications" do
+    user = User.create!(timezone: "UTC", slack_uid: "U_IMPORT_BASELINE")
+    sailors_log = SailorsLog.create!(slack_uid: user.slack_uid, projects_summary: { "imported" => 0 })
+    run = user.heartbeat_import_runs.create!(
+      source_kind: :wakatime_dump,
+      state: :queued,
+      encrypted_api_key: "secret"
+    )
+    heartbeats = 31.times.map do |index|
+      {
+        entity: "/tmp/imported.rb", type: "file", time: 1_700_000_000.0 + (index * 120),
+        project: "imported", language: "Ruby", is_write: true
+      }
+    end
+    file = Tempfile.new([ "heartbeats", ".json" ])
+    file.write({ heartbeats: }.to_json)
+    file.close
+
+    assert_no_difference -> { sailors_log.notifications.count } do
+      HeartbeatImportRunner.run_import(import_run_id: run.id, file_path: file.path)
+    end
+
+    assert_equal 3_600, sailors_log.reload.projects_summary.fetch("imported")
+  ensure
+    file&.unlink
+  end
+
   test "run_import does not overwrite a completed run if completion follow-up fails" do
     user = User.create!(timezone: "UTC")
     user.email_addresses.create!(email: "post-complete-#{SecureRandom.hex(4)}@example.com", source: :signing_in)

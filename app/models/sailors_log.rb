@@ -12,6 +12,10 @@ class SailorsLog < ApplicationRecord
   has_many :notifications, class_name: "SailorsLogSlackNotification",
            foreign_key: :slack_uid, primary_key: :slack_uid
 
+  def synchronize_projects_summary!
+    update!(projects_summary: Heartbeat.where(user_id: user.id).group(:project).duration_seconds || {})
+  end
+
   private
 
   def initialize_projects_summary
