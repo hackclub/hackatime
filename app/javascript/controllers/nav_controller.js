@@ -24,7 +24,7 @@ export default class extends Controller {
     }
   }
 
-  clickLink(event) {
+  clickLink() {
     // Close nav when clicking links on mobile
     if (window.innerWidth <= 1024) {
       this.close()
@@ -40,13 +40,15 @@ export default class extends Controller {
 
   connect() {
     // Listen for window resize
-    window.addEventListener('resize', this.resize.bind(this))
-    document.addEventListener('keydown', this.handleKeydown.bind(this))
+    this.boundResize = this.resize.bind(this)
+    this.boundHandleKeydown = this.handleKeydown.bind(this)
+    window.addEventListener('resize', this.boundResize)
+    document.addEventListener('keydown', this.boundHandleKeydown)
   }
 
   disconnect() {
-    window.removeEventListener('resize', this.resize.bind(this))
-    document.removeEventListener('keydown', this.handleKeydown.bind(this))
+    window.removeEventListener('resize', this.boundResize)
+    document.removeEventListener('keydown', this.boundHandleKeydown)
   }
 
   handleKeydown(event) {

@@ -17,7 +17,8 @@ CI.run do
   step "Docs: Blume", "bun run build:docs"
 
   step "Frontend: Typecheck", "bun run check:svelte"
-  step "Frontend: Lint", "bun run format:svelte:check"
+  step "Frontend: Format", "bun run format:svelte:check"
+  step "Frontend: Lint", "bun run lint"
   step "Frontend: Knip", "bun run knip"
 
   if success?

@@ -344,11 +344,11 @@
             <div bind:this={projectGridContainer} class="mt-6">
               <WindowVirtualizer
                 data={projectRows}
-                getKey={(row) => row[0]?.id || "empty-row"}
+                getKey={(row: ProjectCardType[]) => row[0]?.id || "empty-row"}
                 itemSize={PROJECT_ROW_ESTIMATE}
                 bufferSize={1_000}
               >
-                {#snippet children(row)}
+                {#snippet children(row: ProjectCardType[])}
                   <div
                     class="grid gap-5 pb-5"
                     style={`grid-template-columns: repeat(${projectColumnCount}, minmax(0, 1fr));`}

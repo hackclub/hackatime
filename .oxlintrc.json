@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.svelte"],
+      "rules": {
+        "no-unused-expressions": "off"
+      }
+    }
+  ]
+}
