@@ -168,7 +168,7 @@ class WakatimeService
       }
     end
 
-    daily_activity_rows(timezone).each do |row|
+    Heartbeat.daily_activity_summary_rows(scope: @scope, timezone: timezone).each do |row|
       activity = activity_by_date[row.fetch("local_date").to_date]
       duration = row.fetch("duration").to_i
       activity[:total_seconds] += duration
@@ -181,43 +181,6 @@ class WakatimeService
     end
 
     activity_by_date
-  end
-
-  def daily_activity_rows(timezone)
-    quoted_timezone = Heartbeat.connection.quote(timezone)
-    local_date_sql = "(to_timestamp(time) AT TIME ZONE #{quoted_timezone})::date"
-    scope_sql = @scope.with_valid_timestamps
-      .where.not(time: nil)
-      .select(:id, :time, :project, :ai_model, :ai_input_tokens, :ai_output_tokens, :ai_line_changes)
-      .to_sql
-    timeout = Heartbeat.heartbeat_timeout_duration.to_i
-
-    Heartbeat.connection.select_all(<<~SQL.squish)
-      SELECT local_date,
-             project,
-             ai_model,
-             COALESCE(SUM(diff), 0)::integer AS duration,
-             COALESCE(SUM(ai_input_tokens), 0)::bigint AS ai_input_tokens,
-             COUNT(ai_input_tokens)::integer AS ai_input_token_count,
-             COALESCE(SUM(ai_output_tokens), 0)::bigint AS ai_output_tokens,
-             COUNT(ai_output_tokens)::integer AS ai_output_token_count,
-             COALESCE(SUM(ai_line_changes), 0)::bigint AS ai_line_changes
-      FROM (
-        SELECT project,
-               ai_model,
-               ai_input_tokens,
-               ai_output_tokens,
-               ai_line_changes,
-               #{local_date_sql} AS local_date,
-               CASE
-                 WHEN LAG(time) OVER (PARTITION BY #{local_date_sql} ORDER BY time, id) IS NULL THEN 0
-                 ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{local_date_sql} ORDER BY time, id), #{timeout})
-               END AS diff
-        FROM (#{scope_sql}) daily_summary_heartbeats
-      ) daily_durations
-      GROUP BY local_date, project, ai_model
-      ORDER BY local_date, project, ai_model
-    SQL
   end
 
   def build_daily_summary(date, activity, timezone)

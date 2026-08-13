@@ -431,7 +431,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     )
     user.heartbeats.create!(
       category: "coding", entity: "app/third.rb", project: "beta",
-      source_type: :test_entry, time: (start_time + 2.minutes).to_f, type: "file"
+      source_type: :test_entry, time: (start_time + 5.minutes).to_f, type: "file"
     )
 
     get "/api/hackatime/v1/users/current/summaries",
@@ -443,20 +443,20 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal [ "2026-08-10", "2026-08-11" ], payload.fetch("data").map { |day| day.dig("range", "date") }
 
     active_day = payload.fetch("data").first
-    assert_equal 120, active_day.dig("grand_total", "total_seconds")
+    assert_equal 180, active_day.dig("grand_total", "total_seconds")
     assert_equal 100, active_day.dig("grand_total", "ai_input_tokens")
     assert_equal 20, active_day.dig("grand_total", "ai_output_tokens")
     assert_equal [ { "name" => "gpt/5.6", "lines" => 5 } ], active_day.dig("grand_total", "ai_model_breakdown")
     assert_equal(
       [
-        { "name" => "alpha", "total_seconds" => 60, "percent" => 50.0 },
-        { "name" => "beta", "total_seconds" => 60, "percent" => 50.0 }
+        { "name" => "beta", "total_seconds" => 120, "percent" => 66.67 },
+        { "name" => "alpha", "total_seconds" => 60, "percent" => 33.33 }
       ],
       active_day.fetch("projects").map { |project| project.slice("name", "total_seconds", "percent") }
     )
 
     assert_equal 0, payload.fetch("data").second.dig("grand_total", "total_seconds")
-    assert_equal 120, payload.dig("cumulative_total", "seconds")
+    assert_equal 180, payload.dig("cumulative_total", "seconds")
   end
 
   test "summaries reject missing or invalid date ranges" do
