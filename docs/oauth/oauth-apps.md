@@ -2,33 +2,29 @@
 
 Build integrations with Hackatime using OAuth 2.0. Create an OAuth app to let users authorize your application to access their Hackatime data.
 
-## Overview
-
-Hackatime uses [OAuth 2.0](https://oauth.net/2/) (powered by Doorkeeper) to let third-party applications access user data on their behalf. This is the recommended way to build integrations -- users authorize your app through a consent screen and you receive an access token to make API requests.
-
-## Creating an OAuth App
+## Creating an OAuth app
 
 1. Sign in to your Hackatime account
 2. Go to [My OAuth Apps](https://hackatime.hackclub.com/oauth/applications)
 3. Click **New Application**
 4. Fill in the form:
-   - **Name** -- a human-readable name for your app (shown on the consent screen)
-   - **Redirect URIs** -- one URI per line where users are sent after authorizing (e.g. `https://example.com/auth/callback`)
-   - **Scopes** -- the permissions your app needs (see [Scopes](#scopes) below)
-   - **Confidential** -- check this if your app can keep a client secret safe (server-side apps). Leave unchecked for native/mobile/SPA apps.
+   - **Name** - a human-readable name for your app (shown on the consent screen)
+   - **Redirect URIs** - one URI per line where users are sent after authorizing (e.g. `https://sinerider.com/auth/callback`)
+   - **Scopes** - the permissions your app needs (see [Scopes](#scopes) below)
+   - **Confidential** - check this if your app can keep a client secret safe (server-side apps). Leave unchecked for native/mobile/SPA apps.
 5. Click **Submit**
 
-After creation you will see your **Client ID** (UID) and **Client Secret**. Store the secret securely -- you won't be able to view it again.
+After creation you will see your **Client ID** (UID) and **Client Secret**!
 
 ## Scopes
 
-Scopes control what data your app can access. Request only the scopes you need.
+Scopes control what data your app can access. It's a good idea to only request the scopes you need!
 
 | Scope | Description | Granted by Default |
 |-------|-------------|-------------------|
 | `profile` | Access basic profile information (user ID, email addresses, Slack ID, GitHub username, trust factor) | Yes |
 | `read` | View basic info about the user's Hackatime account | No |
-| `admin` | Access the [Admin API](#admin-api-access) on the authorizing admin's behalf | No |
+| `admin` | Access the [Admin API](#admin-api-access) on the authorizing admin's behalf. | No |
 
 If you don't specify any scopes, only the `profile` scope is granted.
 
@@ -42,13 +38,13 @@ scope=profile+read
 
 - Only **admin+** users (`admin`, `superadmin`, `ultraadmin`) can attach the `admin` scope to an OAuth application.
 - Apps with the `admin` scope must be **confidential** (server-side clients that can keep a secret).
-- Only staff can authorize an app that requests `admin`. Regular users are denied.
+- **This scope requires approval from Hack Club HQ to use.** It won't work if you try to use it without permission!
 
-## Authorization Flow
+## Authorization flow
 
 Hackatime supports the standard **Authorization Code** flow. PKCE (Proof Key for Code Exchange) is also supported for public clients.
 
-### Step 1: Redirect Users to Authorize
+### Step 1: Redirect users to authorize endpoint
 
 Send users to the authorization endpoint:
 
@@ -71,22 +67,20 @@ GET https://hackatime.hackclub.com/oauth/authorize
 **Example:**
 
 ```
-https://hackatime.hackclub.com/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=https://example.com/auth/callback&response_type=code&scope=profile+read&state=random_string
+https://hackatime.hackclub.com/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=https://sinerider.com/auth/callback&response_type=code&scope=profile+read&state=random_string
 ```
 
-The user sees a consent screen showing your app name and the permissions you are requesting. If your app is not verified, a warning is displayed to the user.
-
-### Step 2: Handle the Callback
+### Step 2: Handle the callback
 
 After the user authorizes (or denies), they are redirected to your `redirect_uri` with a `code` parameter:
 
 ```
-https://example.com/auth/callback?code=AUTHORIZATION_CODE&state=random_string
+https://sinerider.com/auth/callback?code=AUTHORIZATION_CODE&state=random_string
 ```
 
 If the user denies authorization, the callback includes an `error` parameter instead.
 
-### Step 3: Exchange the Code for a Token
+### Step 3: Exchange the code for a token
 
 Make a `POST` request to the token endpoint to exchange the authorization code for an access token:
 
@@ -117,7 +111,7 @@ POST https://hackatime.hackclub.com/oauth/token
 }
 ```
 
-Access tokens are long-lived (approximately 16 years) so you typically don't need to worry about refreshing them.
+Access tokens are long-lived (approximately 16 years) so you typically don't need to worry about refreshing them. Unless, of course, you want your Hackatime app to keep working after 16 years...
 
 ### Step 4: Make API Requests
 
@@ -137,9 +131,7 @@ GET https://hackatime.hackclub.com/api/admin/v1/check
 Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
 
-The token acts as the authorizing staff member: permissions follow their `admin_level` (viewer is read-oriented; admin+ can write where the Admin API allows). Existing Admin API keys (`hka_…`) continue to work for scripts and CI.
-
-## OAuth-Authenticated API Endpoints
+## OAuth-Authenticated API endpoints
 
 All endpoints below require a valid OAuth access token in the `Authorization: Bearer <token>` header.
 
@@ -152,9 +144,9 @@ Returns information about the authenticated user.
 ```json
 {
   "id": 123,
-  "emails": ["user@example.com"],
-  "slack_id": "U01234ABC",
-  "github_username": "octocat",
+  "emails": ["liam@sinerider.com"],
+  "slack_id": "U059VC0UDEU",
+  "github_username": "liamcal",
   "trust_factor": {
     "trust_level": "green",
     "trust_value": 2
@@ -254,9 +246,9 @@ Returns the user's Hackatime API key (creates one if none exists).
 }
 ```
 
-## Revoking Access
+## Revoking access
 
-### As a User
+### As a user
 
 Users can revoke access to your app at any time:
 
@@ -279,7 +271,7 @@ POST https://hackatime.hackclub.com/oauth/revoke
 | `client_id` | Yes | Your app's UID |
 | `client_secret` | Yes (confidential apps) | Your app's secret |
 
-## PKCE for Public Clients
+## PKCE for public clients
 
 If your app cannot securely store a client secret (mobile apps, desktop apps, SPAs), use PKCE:
 
@@ -290,7 +282,7 @@ If your app cannot securely store a client secret (mobile apps, desktop apps, SP
 
 You can also leave the **Confidential** checkbox unchecked and omit the `client_secret` in your token requests.
 
-## App Verification
+## App verification
 
 New OAuth apps are marked as **unverified**. Unverified apps trigger a warning on the consent screen telling users the app has not been reviewed. To get your app verified, shoot Mahad a DM on the Slack! Verified apps:
 
