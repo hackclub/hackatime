@@ -4,9 +4,10 @@
   "scripts": {
     "build:docs": "rm -rf public/docs public/og/docs public/og/docs.png public/_astro public/blume-search.json public/docs.md public/docs.mdx public/docs-sitemap.xml public/agent-readability.json public/llms.txt public/llms-full.txt && bun x --bun blume build && mkdir -p public/og && cp -R dist/docs dist/_astro public/ && cp -R dist/og/. public/og/ && cp dist/sitemap.xml public/docs-sitemap.xml && cp dist/blume-search.json dist/docs.md dist/docs.mdx dist/agent-readability.json dist/llms.txt dist/llms-full.txt public/",
     "check": "bun run check:svelte && tsc -p tsconfig.node.json",
-    "check:svelte": "svelte-check --config ./svelte.config.js --tsconfig ./tsconfig.svelte-check.json",
-    "format:svelte": "prettier --write \"app/javascript/**/*.svelte\"",
-    "format:svelte:check": "prettier --check \"app/javascript/**/*.svelte\"",
+    "check:svelte": "svelte-check --tsgo --config ./svelte.config.js --tsconfig ./tsconfig.svelte-check.json",
+    "format:svelte": "oxfmt --write \"app/javascript/**/*.svelte\"",
+    "format:svelte:check": "oxfmt --check \"app/javascript/**/*.svelte\"",
+    "lint": "oxlint --import-plugin app/javascript",
     "knip": "knip"
   },
   "dependencies": {
@@ -29,12 +30,11 @@
     "hcicons-svelte": "0.2.2",
     "plur": "^6.0.0",
     "runed": "^0.37.1",
-    "svelte": "^5.56.8",
-    "svelte-check": "^4.7.5",
+    "svelte": "^5.56.9",
+    "svelte-check": "^4.7.6",
     "svelte-hero-icons": "^5.2.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3",
-    "virtua": "^0.49.3",
+    "virtua": "^0.50.1",
     "vite": "^8.2.1",
     "vite-plugin-ruby": "^5.2.2"
   },
@@ -42,9 +42,11 @@
     "@types/canvas-confetti": "^1.9.0",
     "@types/d3-array": "3.2.2",
     "@types/d3-shape": "^3.1.8",
-    "@types/node": "^25.9.5",
+    "@types/node": "^26.2.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "knip": "^6.32.0",
-    "prettier": "^3.9.6",
-    "prettier-plugin-svelte": "^3.5.2"
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }
