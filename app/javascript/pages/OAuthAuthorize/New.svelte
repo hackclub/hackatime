@@ -5,6 +5,15 @@
 <script lang="ts">
   import Button from "../../components/Button.svelte";
   import { customDoorkeeperAuthorizations } from "../../api";
+  import {
+    Check,
+    ExclamationTriangle,
+    Eye,
+    Icon,
+    ShieldCheck,
+    User,
+    type IconSource,
+  } from "svelte-hero-icons";
 
   interface Scope {
     name: string;
@@ -44,15 +53,22 @@
   let authorizing = $state(false);
   let denying = $state(false);
 
-  const warnPath =
-    "M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z";
-  const scopeIcons: Record<string, string> = {
-    profile:
-      "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-    read: "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
-    admin:
-      "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z",
+  const scopeIcons: Record<string, IconSource> = {
+    profile: User,
+    read: Eye,
+    admin: ExclamationTriangle,
   };
+
+  const redirectTarget = $derived.by(() => {
+    if (!form_data.redirect_uri) return "the application";
+
+    try {
+      const origin = new URL(form_data.redirect_uri).origin;
+      return origin === "null" ? form_data.redirect_uri : origin;
+    } catch {
+      return form_data.redirect_uri;
+    }
+  });
 
   const hiddenFields = $derived<[string, string][]>([
     ["authenticity_token", form_data.csrf_token],
@@ -71,163 +87,174 @@
   <title>{page_title}</title>
 </svelte:head>
 
-<div class="flex min-h-screen w-screen items-center justify-center p-4">
-  <div class="w-full max-w-md">
-    <div class="mb-6 text-center">
-      <h1 class="text-2xl font-bold text-surface-content">
-        Authorize application?
+<div class="flex min-h-screen w-screen items-center justify-center px-4 py-4">
+  <div class="w-full max-w-lg">
+    <div class="mb-4">
+      <h1
+        class="text-balance text-center text-xl font-semibold tracking-tight text-surface-content"
+      >
+        Authorize {client_name}?
       </h1>
-      <p class="mt-2 text-sm text-muted">
-        <span class="font-semibold text-primary">{client_name}</span> wants to access
-        your Hackatime account
-      </p>
     </div>
 
-    {#if has_admin_scope}
-      <div
-        class="mb-5 flex items-start gap-3 rounded-xl border-2 border-red bg-red/15 p-4"
-      >
-        <svg
-          class="mt-0.5 h-6 w-6 shrink-0 text-red"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path fill-rule="evenodd" d={warnPath} clip-rule="evenodd" />
-        </svg>
+    <div class="overflow-hidden rounded-xl border border-surface-200 bg-dark">
+      <div class="p-3.5 sm:px-4">
         <div>
-          <p class="text-base font-bold tracking-tight text-red">
-            You're giving access to admin data
+          <p
+            class="text-pretty break-words text-sm font-semibold text-surface-content"
+          >
+            {client_name}
           </p>
-          <p class="mt-1 text-sm font-semibold text-red">
-            This app is requesting full Admin API access on your behalf. It can
-            read and act with your admin privileges (users, trust levels,
-            heartbeats, and other internal tools).
+          <p class="mt-0.5 text-pretty text-xs text-muted">
+            wants to access your Hackatime account
           </p>
         </div>
       </div>
-    {/if}
 
-    {#if !verified}
-      <div
-        class="mb-5 flex items-start gap-3 rounded-xl border border-yellow/30 bg-yellow/10 p-4"
-      >
-        <svg
-          class="mt-0.5 h-5 w-5 shrink-0 text-yellow"
-          fill="currentColor"
-          viewBox="0 0 20 20"
+      {#if has_admin_scope}
+        <div
+          class="flex items-start gap-2.5 border-t border-red/40 bg-red/15 p-3.5 sm:px-4"
         >
-          <path fill-rule="evenodd" d={warnPath} clip-rule="evenodd" />
-        </svg>
-        <div>
-          <p class="text-sm font-medium text-yellow">Unverified application</p>
-          <p class="mt-0.5 text-xs text-yellow/80">
-            This app has not been verified by HQ. Only authorize if you trust
-            the developer.
-          </p>
+          <div
+            class="flex h-7 w-7 shrink-0 items-center justify-center text-red"
+          >
+            <Icon src={ExclamationTriangle} solid size="20" />
+          </div>
+          <div>
+            <p class="text-sm font-bold tracking-tight text-red">
+              You're giving access to admin data
+            </p>
+            <p class="mt-0.5 text-pretty text-xs font-semibold text-red">
+              This app can use your admin privileges to manage users, trust
+              levels, heartbeats and other internal data.
+            </p>
+          </div>
         </div>
-      </div>
-    {/if}
+      {/if}
 
-    {#if scopes.length > 0}
-      <div class="mb-5 rounded-xl border border-surface-200 bg-dark p-5">
-        <p class="mb-3 text-xs font-medium uppercase tracking-wider text-muted">
-          This will allow {client_name} to
-        </p>
-        <ul class="space-y-3">
+      {#if !verified}
+        <div
+          class="flex items-start gap-2.5 border-t border-yellow/30 bg-yellow/10 p-3.5 sm:px-4"
+        >
+          <div
+            class="flex h-7 w-7 shrink-0 items-center justify-center text-yellow"
+          >
+            <Icon src={ExclamationTriangle} solid size="20" />
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-yellow">
+              Unverified application
+            </p>
+            <p class="mt-0.5 text-pretty text-xs text-yellow/80">
+              This app has not been verified by HQ. Only authorize it if you
+              trust the developer.
+            </p>
+          </div>
+        </div>
+      {/if}
+
+      {#if scopes.length > 0}
+        <div class="border-t border-surface-200">
           {#each scopes as scope}
-            <li class="flex items-start gap-3">
-              <div
-                class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10"
-              >
-                <svg
-                  class="h-4 w-4 text-primary"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d={scopeIcons[scope.name] || "M4.5 12.75l6 6 9-13.5"}
-                  />
-                </svg>
-              </div>
-              <p class="text-sm text-surface-content">{scope.description}</p>
-            </li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
-
-    <div class="space-y-2.5">
-      <form
-        action={authorizePath}
-        method="post"
-        data-turbo="false"
-        onsubmit={() => (authorizing = true)}
-      >
-        {#each hiddenFields as [name, value]}
-          <input type="hidden" {name} {value} />
-        {/each}
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          class="w-full"
-          disabled={authorizing || denying}
-        >
-          {#if authorizing}
-            <svg
-              class="mr-2 h-4 w-4 animate-spin"
-              fill="none"
-              viewBox="0 0 24 24"
+            <div
+              class="flex items-start gap-2.5 border-b border-surface-200/70 p-3.5 last:border-b-0 sm:px-4"
             >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              ></path>
-            </svg>
-            Authorizing…
-          {:else}
-            Authorize {client_name}
-          {/if}
-        </Button>
-      </form>
+              <div
+                class="flex h-7 w-7 shrink-0 items-center justify-center text-muted"
+              >
+                <Icon
+                  src={scopeIcons[scope.name] || Check}
+                  size="22"
+                  stroke-width="2"
+                />
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-surface-content">
+                  {scope.name === "profile"
+                    ? "Personal profile data"
+                    : scope.name === "read"
+                      ? "Coding activity"
+                      : scope.name === "admin"
+                        ? "Administrative access"
+                        : scope.name}
+                </p>
+                <p class="mt-0.5 text-pretty text-xs leading-normal text-muted">
+                  {scope.description}
+                </p>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
 
-      <form
-        action={authorizePath}
-        method="post"
-        data-turbo="false"
-        onsubmit={() => (denying = true)}
-      >
-        {#each hiddenFields as [name, value]}
-          <input type="hidden" {name} {value} />
-        {/each}
-        <input type="hidden" name="_method" value="delete" />
-        <Button
-          type="submit"
-          variant="surface"
-          size="lg"
-          class="w-full"
-          disabled={authorizing || denying}
-        >
-          {denying ? "Denying…" : "Deny"}
-        </Button>
-      </form>
+      <div class="border-t border-surface-200 bg-surface/30 p-3.5 sm:p-4">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <form
+            action={authorizePath}
+            method="post"
+            data-turbo="false"
+            onsubmit={() => (denying = true)}
+          >
+            {#each hiddenFields as [name, value]}
+              <input type="hidden" {name} {value} />
+            {/each}
+            <input type="hidden" name="_method" value="delete" />
+            <Button
+              type="submit"
+              variant="surface"
+              size="sm"
+              class="min-h-11 w-full cursor-pointer"
+              disabled={authorizing || denying}
+            >
+              {#if denying}
+                Cancelling…
+              {:else}
+                Cancel
+              {/if}
+            </Button>
+          </form>
+
+          <form
+            action={authorizePath}
+            method="post"
+            data-turbo="false"
+            onsubmit={() => (authorizing = true)}
+          >
+            {#each hiddenFields as [name, value]}
+              <input type="hidden" {name} {value} />
+            {/each}
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              class="min-h-11 w-full cursor-pointer"
+              disabled={authorizing || denying}
+            >
+              {#if authorizing}
+                Authorizing…
+              {:else}
+                Authorize
+              {/if}
+            </Button>
+          </form>
+        </div>
+
+        <p class="mt-3 text-center text-xs text-muted">
+          Authorizing will redirect to
+          <span class="break-all font-semibold text-surface-content"
+            >{redirectTarget}</span
+          >
+        </p>
+      </div>
     </div>
 
-    <p class="mt-5 text-center text-xs text-muted">
-      Authorizing will redirect you to the application
-    </p>
+    {#if verified}
+      <div
+        class="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted"
+      >
+        <Icon src={ShieldCheck} size="18" />
+        Verified by Hack Club HQ
+      </div>
+    {/if}
   </div>
 </div>

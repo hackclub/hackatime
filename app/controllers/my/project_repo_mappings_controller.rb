@@ -2,8 +2,8 @@ class My::ProjectRepoMappingsController < InertiaController
   layout "inertia", only: [ :index, :show ]
 
   before_action :ensure_current_user
-  before_action :require_github_oauth, only: [ :edit, :update ]
-  before_action :set_project_repo_mapping_for_edit, only: [ :edit, :update ]
+  before_action :require_github_oauth, only: [ :update ]
+  before_action :set_project_repo_mapping_for_edit, only: [ :update ]
   before_action :set_project_repo_mapping, only: [ :archive, :unarchive, :toggle_share ]
 
   def index
@@ -24,16 +24,18 @@ class My::ProjectRepoMappingsController < InertiaController
     }
   end
 
-  def edit; end
-
   def update
     @project_repo_mapping.project_name = params[:project_name] if @project_repo_mapping.new_record?
 
     if @project_repo_mapping.update(project_repo_mapping_params)
       redirect_to my_projects_path, notice: "Repository mapping updated successfully."
     else
-      flash.now[:alert] = @project_repo_mapping.errors.full_messages.join(", ")
-      render :edit, status: :unprocessable_entity
+      redirect_back fallback_location: my_projects_path,
+                    inertia: { errors: {
+                      repo_url: @project_repo_mapping.errors[:repo_url].to_sentence,
+                      repo_url_project_name: @project_repo_mapping.project_name,
+                      repo_url_value: @project_repo_mapping.repo_url
+                    } }
     end
   end
 
@@ -43,7 +45,7 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def show
-    project_name = CGI.unescape(params[:project_name])
+    project_name = params[:project_name]
     mapping = current_user.project_repo_mappings.find_by(project_name: project_name)
     first_heartbeat = current_user.heartbeats.where(project: project_name).minimum(:time)
     since_date = first_heartbeat ? Time.at(first_heartbeat).to_date.strftime("%-m/%-d/%Y") : nil
@@ -150,6 +152,7 @@ class My::ProjectRepoMappingsController < InertiaController
 
   def projects_data_for_index(archived:)
     return empty_projects_payload unless current_user.heartbeats.exists?
+    return InertiaRails.defer { projects_payload(archived:) } if archived
     return rollup_projects_payload(archived: archived) if rollup_projects_path?
 
     InertiaRails.defer { projects_payload(archived: archived) }

@@ -31,7 +31,9 @@
   const toggleShare = () => {
     toggling = true;
     router.patch(
-      myProjectRepoMappings.toggleShare.path({ projectName }),
+      myProjectRepoMappings.toggleShare.path({
+        projectName: encodeURIComponent(projectName),
+      }),
       {},
       { preserveScroll: true, onFinish: () => (toggling = false) },
     );

@@ -4,6 +4,9 @@
   import HorizontalBarList from "./HorizontalBarList.svelte";
   import PieChart from "./PieChart.svelte";
   import ProjectTimelineChart from "./ProjectTimelineChart.svelte";
+  import CodingRhythm from "./CodingRhythm.svelte";
+  import CodingTimeCard from "./CodingTimeCard.svelte";
+  import AiCodingMeter from "./AiCodingMeter.svelte";
   import IntervalSelect from "./IntervalSelect.svelte";
   import MultiSelect from "./MultiSelect.svelte";
   import GoalsProgressCard from "./GoalsProgressCard.svelte";
@@ -15,12 +18,20 @@
     onFiltersChange,
     showFilters = true,
     showGoals = true,
+    activityGraph,
   }: {
     data: Record<string, any>;
     programmingGoalsProgress?: ProgrammingGoalProgress[];
     onFiltersChange?: (search: string) => void;
     showFilters?: boolean;
     showGoals?: boolean;
+    activityGraph?: {
+      start_date: string;
+      end_date: string;
+      duration_by_date: Record<string, number>;
+      busiest_day_seconds: number;
+      timezone_label: string;
+    };
   } = $props();
 
   const dict = (k: string) => (data[k] || {}) as Record<string, number>;
@@ -147,5 +158,21 @@
     <div class="lg:col-span-2">
       <ProjectTimelineChart {weeklyStats} />
     </div>
+
+    {#if data.coding_rhythm}
+      <div class="lg:col-span-2">
+        <CodingRhythm data={data.coding_rhythm} />
+      </div>
+    {/if}
+
+    {#if activityGraph}
+      <CodingTimeCard
+        {activityGraph}
+        periodAverage={data.coding_time_average}
+      />
+    {/if}
+    {#if data.coding_category_stats}
+      <AiCodingMeter stats={data.coding_category_stats} />
+    {/if}
   </div>
 </div>

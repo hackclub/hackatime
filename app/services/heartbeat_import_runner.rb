@@ -253,6 +253,7 @@ class HeartbeatImportRunner < ApplicationService
     )
 
     run.clear_sensitive_fields!
+    run.user.sailors_log&.synchronize_projects_summary! if result[:imported_count].positive?
     send_completion_email(run)
   end
 

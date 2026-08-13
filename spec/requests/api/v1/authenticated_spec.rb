@@ -4,8 +4,8 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
   path '/api/v1/authenticated/me' do
     get('Get current user info') do
       tags 'OAuth2-specific'
-      description 'Returns detailed information about the currently authenticated user. Requires an OAuth2 access token (Bearer header).'
-      security [ { Bearer: [] } ]
+      description 'Returns detailed information about the currently authenticated user. Requires an OAuth2 access token with the `profile` scope in the Bearer header.'
+      security [ { OAuth2: [ 'profile' ] } ]
       produces 'application/json'
 
       response(200, 'successful') do
@@ -31,6 +31,13 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
         end
       end
 
+      response(403, 'insufficient scope') do
+        before { Doorkeeper::AccessToken.by_token('dev-api-key-12345').update!(scopes: 'read') }
+
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        run_test!
+      end
+
       response(401, 'unauthorized — Returned when the OAuth access token is missing or invalid.') do
         let(:Authorization) { 'Bearer invalid' }
         run_test!
@@ -41,14 +48,16 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
   path '/api/v1/authenticated/hours' do
     get('Get hours') do
       tags 'OAuth2-specific'
-      description 'Returns the total coding hours for the authenticated user. Requires an OAuth2 access token (Bearer header).'
-      security [ { Bearer: [] } ]
+      description 'Returns the total coding hours for the authenticated user. Requires an OAuth2 access token with the `read` scope in the Bearer header.'
+      security [ { OAuth2: [ 'read' ] } ]
       produces 'application/json'
 
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
       parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
 
       response(200, 'successful') do
+        before { Doorkeeper::AccessToken.by_token('dev-api-key-12345').update!(scopes: 'read') }
+
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:start_date) { 7.days.ago.to_date.to_s }
         let(:end_date) { Date.today.to_s }
@@ -58,6 +67,13 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
             end_date: { type: :string, format: :date, example: '2024-03-20' },
             total_seconds: { type: :number, example: 153000.0 }
           }
+        run_test!
+      end
+
+      response(403, 'insufficient scope') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:start_date) { 7.days.ago.to_date.to_s }
+        let(:end_date) { Date.today.to_s }
         run_test!
       end
 
@@ -73,16 +89,23 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
   path '/api/v1/authenticated/streak' do
     get('Get streak') do
       tags 'OAuth2-specific'
-      description 'Returns the current streak information (days coded in a row). Requires an OAuth2 access token (Bearer header).'
-      security [ { Bearer: [] } ]
+      description 'Returns the current streak information (days coded in a row). Requires an OAuth2 access token with the `read` scope in the Bearer header.'
+      security [ { OAuth2: [ 'read' ] } ]
       produces 'application/json'
 
       response(200, 'successful') do
+        before { Doorkeeper::AccessToken.by_token('dev-api-key-12345').update!(scopes: 'read') }
+
         let(:Authorization) { "Bearer dev-api-key-12345" }
         schema type: :object,
           properties: {
             streak_days: { type: :integer, example: 5 }
           }
+        run_test!
+      end
+
+      response(403, 'insufficient scope') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
         run_test!
       end
 
@@ -96,8 +119,8 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
   path '/api/v1/authenticated/projects' do
     get('Get projects') do
       tags 'OAuth2-specific'
-      description 'Returns a list of projects associated with the authenticated user. Requires an OAuth2 access token (Bearer header).'
-      security [ { Bearer: [] } ]
+      description 'Returns a list of projects associated with the authenticated user. Requires an OAuth2 access token with the `read` scope in the Bearer header.'
+      security [ { OAuth2: [ 'read' ] } ]
       produces 'application/json'
 
       parameter name: :include_archived, in: :query, type: :boolean, description: 'Include archived projects (true/false)'
@@ -111,6 +134,8 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
       parameter name: :end_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Alias for end'
 
       response(200, 'successful') do
+        before { Doorkeeper::AccessToken.by_token('dev-api-key-12345').update!(scopes: 'read') }
+
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:include_archived) { false }
         let(:projects) { nil }
@@ -137,6 +162,20 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
               }
             }
           }
+        run_test!
+      end
+
+      response(403, 'insufficient scope') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:include_archived) { false }
+        let(:projects) { nil }
+        let(:since) { nil }
+        let(:until) { nil }
+        let(:until_date) { nil }
+        let(:start) { nil }
+        let(:end) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
         run_test!
       end
 
@@ -182,12 +221,14 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
   path '/api/v1/authenticated/heartbeats/latest' do
     get('Get latest heartbeat') do
       tags 'OAuth2-specific'
-      description 'Returns the absolutely latest heartbeat processed for the user. Requires an OAuth2 access token (Bearer header). ' \
+      description 'Returns the absolutely latest heartbeat processed for the user. Requires an OAuth2 access token with the `read` scope in the Bearer header. ' \
                   'When the user has no non-test heartbeat, the response is `{ "heartbeat": null }`.'
-      security [ { Bearer: [] } ]
+      security [ { OAuth2: [ 'read' ] } ]
       produces 'application/json'
 
       response(200, 'successful') do
+        before { Doorkeeper::AccessToken.by_token('dev-api-key-12345').update!(scopes: 'read') }
+
         let(:Authorization) { "Bearer dev-api-key-12345" }
         schema oneOf: [
           {
@@ -217,6 +258,11 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
             required: %w[heartbeat]
           }
         ]
+        run_test!
+      end
+
+      response(403, 'insufficient scope') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
         run_test!
       end
 

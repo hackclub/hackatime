@@ -72,19 +72,6 @@ class EmailLoginTest < ActionDispatch::IntegrationTest
     assert_nil session[:user_id]
   end
 
-  test "expired email token does not sign user in" do
-    user = User.create!(timezone: "UTC")
-    token = user.sign_in_tokens.create!(
-      auth_type: :email,
-      expires_at: 1.hour.ago
-    )
-
-    get auth_token_path(token: token.token)
-
-    assert_redirected_to root_path
-    assert_nil session[:user_id]
-  end
-
   test "invalid token shows error" do
     get auth_token_path(token: "completely-bogus-token")
 

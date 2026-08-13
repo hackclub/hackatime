@@ -78,6 +78,20 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
     assert page.dig("props", "error_description").present?
   end
 
+  test "new renders error for invalid client_id without a scope" do
+    sign_in_as(@user)
+    get "/oauth/authorize", params: {
+      client_id: "invalid",
+      redirect_uri: "https://example.com/callback",
+      response_type: "code"
+    }
+
+    assert_response :success
+    page = inertia_page
+    assert_equal "OAuthAuthorize/Error", page["component"]
+    assert page.dig("props", "error_description").present?
+  end
+
   test "show renders OAuthAuthorize/Show with code" do
     sign_in_as(@user)
     get "/oauth/authorize/native", params: { code: "test_code" }

@@ -1,4 +1,4 @@
-FROM ruby:4.0.5
+FROM ruby:4.0.6
 
 # Install system dependencies including Node.js
 RUN apt-get update -qq && \
@@ -21,7 +21,7 @@ RUN apt-get update -qq && \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
 
 # Install Bun
-RUN curl -fsSL https://bun.sh/install | bash && \
+RUN curl -fsSL https://bun.sh/install | bash -s -- canary && \
     mv ~/.bun/bin/bun /usr/local/bin/
 
 # Set working directory
@@ -29,7 +29,6 @@ WORKDIR /app
 
 # Install npm dependencies for Vite.
 COPY package.json bun.lock ./
-COPY patches patches
 RUN bun install
 
 # Make Spline Sans available to librsvg/libvips via fontconfig. Pango does not

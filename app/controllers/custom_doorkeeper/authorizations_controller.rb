@@ -28,8 +28,8 @@ module CustomDoorkeeper
     private
 
     def ensure_admin_scope_allowed!
-      return unless pre_auth&.scopes&.include?(OauthApplication::ADMIN_SCOPE)
       return unless pre_auth.authorizable?
+      return unless pre_auth.scopes.include?(OauthApplication::ADMIN_SCOPE)
 
       application = pre_auth.client.application
 

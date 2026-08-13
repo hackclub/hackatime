@@ -11,3 +11,13 @@ Lapse:
 AsciiDoc:
   extensions:
   - ".ad"
+
+UnrealScript:
+  extensions:
+  - ".uc"
+
+Assembly:
+  extensions:
+  - ".asm"
+  - ".s"
+  - ".S"

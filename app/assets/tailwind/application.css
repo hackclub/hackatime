@@ -3,14 +3,22 @@
 @source "../../../app/views/**/*.{erb,html}";
 @source "../../../app/helpers/**/*.rb";
 @source "../../../app/controllers/**/*.rb";
-@source "../../../node_modules/layerchart/dist/**/*.{svelte,js}";
 @import "./main.css";
 @import "./nav.css";
-@import "./docs.css";
+
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 body {
   @apply flex min-h-screen;
-  -webkit-font-smoothing: antialiased;
 }
 
 main {
@@ -465,4 +473,24 @@ html[data-theme="rose_pine_dawn"] {
 .interval-selector-button:hover {
   background-color: var(--color-primary);
   opacity: 0.9;
+}
+
+.lc-tooltip-container[data-variant="default"] {
+  background-color: color-mix(
+    in oklab,
+    var(--color-surface-300) 90%,
+    transparent
+  );
+}
+
+html[data-theme="catppuccin_iced_latte"]
+  .lc-tooltip-container[data-variant="default"],
+html[data-theme="github_light"] .lc-tooltip-container[data-variant="default"],
+html[data-theme="rose_pine_dawn"]
+  .lc-tooltip-container[data-variant="default"] {
+  background-color: color-mix(
+    in oklab,
+    var(--color-surface-100) 90%,
+    transparent
+  );
 }

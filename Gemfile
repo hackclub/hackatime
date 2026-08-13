@@ -5,8 +5,6 @@ source "https://rubygems.org"
 gem "rails", "~> 8.1.2"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
-# Use sqlite3 as the database for Active Record
-gem "sqlite3", ">= 2.1"
 # Use PostgreSQL as the database for Wakatime
 gem "pg"
 # Use the Puma web server [https://github.com/puma/puma]
@@ -52,7 +50,7 @@ gem "lograge"
 gem "rack-attack"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 1.2"
+gem "image_processing", "~> 2.0"
 gem "ruby-vips", "~> 2.3", require: false
 
 # Use dotenv for environment variables
@@ -82,9 +80,6 @@ gem "maxminddb"
 
 # Country codes
 gem "countries"
-
-# Markdown parsing — only used in DocsController, so don't autoload it.
-gem "redcarpet", require: false
 
 gem "ruby_identicon"
 
@@ -155,7 +150,6 @@ group :production do
   gem "autotuner", "~> 1.0"
 
   gem "solid_cache"
-  gem "solid_cable"
 
   gem "thruster"
 end

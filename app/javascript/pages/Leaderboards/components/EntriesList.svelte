@@ -8,6 +8,10 @@
   } from "../../../types";
   import { sessions } from "../../../api";
 
+  type LeaderboardEntry = NonNullable<
+    LeaderboardEntriesPayload["entries"]
+  >[number];
+
   let {
     entries,
     filteredEntries,
@@ -51,11 +55,11 @@
   {:else}
     <WindowVirtualizer
       data={filteredEntries}
-      getKey={(entry) => entry.user_id}
+      getKey={(entry: LeaderboardEntry) => entry.user_id}
       itemSize={64}
       bufferSize={2_000}
     >
-      {#snippet children(entry)}
+      {#snippet children(entry: LeaderboardEntry)}
         <Row {entry} rank={entryRank.get(entry.user_id) ?? 0} />
       {/snippet}
     </WindowVirtualizer>

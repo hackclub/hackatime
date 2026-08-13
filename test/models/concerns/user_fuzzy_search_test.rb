@@ -13,6 +13,7 @@ require "test_helper"
 #   - rank scoring tiers (id/slack_uid exact = 1000; field exact = 100;
 #     prefix = 50; contains = 10; tiers compound additively)
 #   - case-insensitive ILIKE on username/email fields
+#   - display name overrides are searchable and ranked like other name fields
 #   - case-sensitive equality on slack_uid
 #   - matched_email picks best email (exact > prefix > contains > any)
 #   - matched_email is nil only when the user has zero emails
@@ -112,6 +113,16 @@ class UserFuzzySearchTest < ActiveSupport::TestCase
     u = create_user(username: "MixedCaseUser")
     assert User.fuzzy_ranked_search("mixedcaseuser").any? { |r| r.id == u.id }
     assert User.fuzzy_ranked_search("MIXEDCASEUSER").any? { |r| r.id == u.id }
+  end
+
+  test "display name override is searchable and ranked case-insensitively" do
+    u = create_user(username: "unrelated_username", display_name_override: "Custom Display Name")
+
+    exact = User.fuzzy_ranked_search("custom display name").find { |r| r.id == u.id }
+    substring = User.fuzzy_ranked_search("DISPLAY").find { |r| r.id == u.id }
+
+    assert_operator exact.rank_score, :>=, 100
+    assert_operator substring.rank_score, :>=, 10
   end
 
   # ----- multi-field tiers -----

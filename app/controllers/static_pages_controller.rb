@@ -109,7 +109,8 @@ class StaticPagesController < InertiaController
     goals = current_user.goals.order(:id)
     return [] if goals.blank?
 
-    goals_hash = ActiveSupport::Digest.hexdigest(goals.pluck(:id, :period, :target_seconds, :languages, :projects).to_json)
+    archived_projects = current_user.project_repo_mappings.archived.order(:project_name).pluck(:project_name)
+    goals_hash = ActiveSupport::Digest.hexdigest([ goals.pluck(:id, :period, :target_seconds, :languages, :projects), archived_projects ].to_json)
     Rails.cache.fetch("user_#{current_user.id}_programming_goals_progress_#{current_user.timezone}_#{goals_hash}", expires_in: 1.minute) do
       ProgrammingGoalsProgressService.new(user: current_user, goals: goals).call
     end

@@ -20,6 +20,14 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
             time: { type: :number, example: 1710946200.0, description: 'Unix timestamp (seconds, float)' },
             project: { type: :string, example: 'hackatime' },
             branch: { type: :string, example: 'main' },
+            ai_model: { type: :string, example: 'gpt/5.3-codex' },
+            ai_session: { type: :string, example: 'session-123' },
+            ai_subscription_plan: { type: :string, example: 'pro' },
+            ai_input_tokens: { type: :integer, format: :int64, example: 1200 },
+            ai_output_tokens: { type: :integer, format: :int64, example: 350 },
+            ai_prompt_length: { type: :integer, example: 240 },
+            ai_line_changes: { type: :integer, example: 18 },
+            human_line_changes: { type: :integer, example: 7 },
             language: { type: :string, example: 'Ruby' },
             is_write: { type: :boolean, example: true },
             lineno: { type: :integer, example: 42 },
@@ -54,6 +62,14 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
             time: { type: :number, example: 1710946200.0 },
             project: { type: :string, nullable: true, example: 'hackatime' },
             branch: { type: :string, nullable: true, example: 'main' },
+            ai_model: { type: :string, nullable: true, example: 'gpt/5.3-codex' },
+            ai_session: { type: :string, nullable: true, example: 'session-123' },
+            ai_subscription_plan: { type: :string, nullable: true, example: 'pro' },
+            ai_input_tokens: { type: :integer, format: :int64, nullable: true, example: 1200 },
+            ai_output_tokens: { type: :integer, format: :int64, nullable: true, example: 350 },
+            ai_prompt_length: { type: :integer, nullable: true, example: 240 },
+            ai_line_changes: { type: :integer, nullable: true, example: 18 },
+            human_line_changes: { type: :integer, nullable: true, example: 7 },
             language: { type: :string, nullable: true, example: 'Ruby' },
             is_write: { type: :boolean, nullable: true, example: true },
             lineno: { type: :integer, nullable: true, example: 42 },
@@ -76,6 +92,19 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
         let(:id) { 'current' }
         let(:heartbeats) { [] }
         schema type: :object, properties: { error: { type: :string, example: 'No data provided...' } }
+        run_test!
+      end
+
+      response(422, 'heartbeat rejected') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:id) { 'current' }
+        let(:heartbeats) { [ { entity: 'file.rb', time: 2.hours.from_now.to_f } ] }
+        schema type: :object,
+          properties: {
+            error: { type: :string, example: 'time must not be more than 1 hour in the future' },
+            type: { type: :string, example: 'HeartbeatIngest::InvalidHeartbeatTime' }
+          }
         run_test!
       end
 
@@ -138,6 +167,14 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
             time: { type: :number, example: 1710946200.0 },
             project: { type: :string, example: 'hackatime' },
             branch: { type: :string, example: 'main' },
+            ai_model: { type: :string, example: 'gpt/5.3-codex' },
+            ai_session: { type: :string, example: 'session-123' },
+            ai_subscription_plan: { type: :string, example: 'pro' },
+            ai_input_tokens: { type: :integer, format: :int64, example: 1200 },
+            ai_output_tokens: { type: :integer, format: :int64, example: 350 },
+            ai_prompt_length: { type: :integer, example: 240 },
+            ai_line_changes: { type: :integer, example: 18 },
+            human_line_changes: { type: :integer, example: 7 },
             language: { type: :string, example: 'Ruby' },
             is_write: { type: :boolean, example: true },
             lineno: { type: :integer, example: 42 },

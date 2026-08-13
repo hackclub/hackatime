@@ -1,4 +1,5 @@
 require "test_helper"
+require "webmock/minitest"
 
 class UserTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
@@ -123,6 +124,92 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "Custom Name", user.display_name
   end
 
+  test "slack profile sync prefers the workspace token over the user's Slack token" do
+    user = User.create!(timezone: "UTC", slack_uid: "U_HCA", slack_access_token: "personal-token")
+    original_token = ENV["SLACK_USER_OAUTH_TOKEN"]
+    ENV["SLACK_USER_OAUTH_TOKEN"] = "workspace-token"
+    request = stub_request(:get, "https://slack.com/api/users.info?user=U_HCA")
+      .with(headers: { "Authorization" => "Bearer workspace-token" })
+      .to_return(body: {
+        ok: true,
+        user: {
+          name: "hca-user",
+          profile: { image_192: "https://example.com/hca-avatar.png" }
+        }
+      }.to_json)
+
+    user.update_from_slack
+    user.save!
+
+    assert_requested request
+    assert_equal "https://example.com/hca-avatar.png", user.reload.slack_avatar_url
+  ensure
+    ENV["SLACK_USER_OAUTH_TOKEN"] = original_token
+  end
+
+  test "HCA authentication fills a missing Slack ID on an existing account" do
+    user = User.create!(timezone: "UTC", hca_id: "hca-existing")
+    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: {
+        identity: { id: "hca-existing", slack_id: "U_FROM_HCA" },
+        scopes: %w[email slack_id]
+      }.to_json)
+
+    authenticated_user = nil
+    assert_enqueued_with(job: SlackProfileSyncJob, args: [ user.id ]) do
+      authenticated_user = User.from_hca_token("code", "https://example.com/auth/hca/callback")
+    end
+
+    assert_equal user, authenticated_user
+    assert_equal "U_FROM_HCA", user.reload.slack_uid
+  end
+
+  test "HCA authentication does not replace an existing Slack ID" do
+    user = User.create!(
+      timezone: "UTC",
+      hca_id: "hca-linked",
+      slack_uid: "U_LINKED",
+      slack_synced_at: 1.hour.ago
+    )
+    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: {
+        identity: { id: "hca-linked", slack_id: "U_DIFFERENT" },
+        scopes: %w[email slack_id]
+      }.to_json)
+
+    authenticated_user = nil
+    assert_enqueued_with(job: SlackProfileSyncJob, args: [ user.id ]) do
+      authenticated_user = User.from_hca_token("code", "https://example.com/auth/hca/callback")
+    end
+
+    assert_equal user, authenticated_user
+    assert_equal "U_LINKED", user.reload.slack_uid
+  end
+
+  test "HCA authentication does not claim a Slack ID linked to another account" do
+    user = User.create!(timezone: "UTC", hca_id: "hca-unlinked")
+    User.create!(timezone: "UTC", slack_uid: "U_ALREADY_LINKED")
+    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: {
+        identity: { id: "hca-unlinked", slack_id: "U_ALREADY_LINKED" },
+        scopes: %w[email slack_id]
+      }.to_json)
+
+    authenticated_user = User.from_hca_token("code", "https://example.com/auth/hca/callback")
+
+    assert_equal user, authenticated_user
+    assert_nil user.reload.slack_uid
+  end
+
   test "creating a user with an email address queues a welcome email" do
     email = "welcome-#{SecureRandom.hex(4)}@example.com"
 
@@ -134,20 +221,18 @@ class UserTest < ActiveSupport::TestCase
     end
   end
 
-  test "active remote heartbeat import run only counts remote imports" do
+  test "active heartbeat import run counts all import sources" do
     user = User.create!(timezone: "UTC")
 
-    assert_not user.active_remote_heartbeat_import_run?
+    assert_not user.active_heartbeat_import_run?
 
-    # An active non-remote (dev_upload) import should not count as a remote import.
-    # Use a separate user because the unique index prevents two active imports per user.
     other_user = User.create!(timezone: "UTC")
     other_user.heartbeat_import_runs.create!(
       source_kind: :dev_upload,
       state: :queued,
       source_filename: "dev.json"
     )
-    assert_not other_user.active_remote_heartbeat_import_run?
+    assert other_user.active_heartbeat_import_run?
 
     user.heartbeat_import_runs.create!(
       source_kind: :wakatime_dump,
@@ -155,7 +240,7 @@ class UserTest < ActiveSupport::TestCase
       encrypted_api_key: "secret"
     )
 
-    assert user.active_remote_heartbeat_import_run?
+    assert user.active_heartbeat_import_run?
   end
 
   test "set_leaderboard_shadowban requires privileged actor and reason" do

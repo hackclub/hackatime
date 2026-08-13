@@ -2,6 +2,8 @@ module Api
   module V1
     module Authenticated
       class HeartbeatsController < ApplicationController
+        require_oauth_scope :read
+
         def latest
           heartbeat = current_user.heartbeats
                                   .where.not(source_type: :test_entry)

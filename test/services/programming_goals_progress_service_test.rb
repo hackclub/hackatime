@@ -105,6 +105,21 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "archived projects do not count toward goals" do
+    user = User.create!(timezone: "America/New_York")
+    user.goals.create!(period: "day", target_seconds: 10)
+
+    travel_to Time.utc(2026, 1, 14, 16, 0, 0) do
+      create_heartbeat_pair(user, "2026-01-14 09:00:00", project: "active")
+      create_heartbeat_pair(user, "2026-01-14 09:10:00", project: "archived")
+      user.project_repo_mappings.create!(project_name: "archived").archive!
+
+      progress = ProgrammingGoalsProgressService.new(user: user).call.first
+
+      assert_equal 1, progress[:tracked_seconds]
+    end
+  end
+
   private
 
   def create_heartbeat_pair(user, start_time, language: "Ruby", project: "alpha")

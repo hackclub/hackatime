@@ -90,7 +90,13 @@ Rails.application.routes.draw do
 
   get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
 
-  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+  if Rails.env.development?
+    mount LetterOpenerWeb::Engine, at: "/letter_opener"
+    get "/__dev", to: "dev#index", as: :dev
+    get "/__dev/log-me-in/:email", to: "dev#log_me_in", as: :dev_log_me_in,
+      constraints: { email: /[^\/]+/ }, format: false
+    get "/__dev/log-me-out", to: "dev#log_me_out", as: :dev_log_me_out
+  end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
@@ -131,10 +137,7 @@ Rails.application.routes.draw do
   resources :leaderboards, only: [ :index ]
 
   # Docs routes
-  # Note: llms.txt and llms-full.txt are served as static files from public/
-  # Generate them with: rails docs:generate_llms
-  get "docs", to: "docs#index", as: :docs
-  get "docs/*path", to: "docs#show", as: :doc
+  post "docs/feedback", to: "documentation_feedbacks#create", format: false
 
   # Nested under users for admin access
   resources :users, only: [] do
@@ -205,7 +208,7 @@ Rails.application.routes.draw do
       get :wakatime_download_link, on: :collection
     end
 
-    resources :project_repo_mappings, param: :project_name, only: [ :edit, :update ], constraints: { project_name: /.+/ } do
+    resources :project_repo_mappings, param: :project_name, only: [ :update ], constraints: { project_name: /.+/ } do
       member do
         patch :archive
         patch :unarchive
@@ -239,7 +242,7 @@ Rails.application.routes.draw do
       get "leaderboard/weekly", to: "leaderboard#weekly"
 
       get "stats", to: "stats#show"
-      get "badge/:user_id/*project", to: "badges#show"
+      get "badge/:user_id/*project", to: "badges#show", format: false
 
       get "users/:username/stats", to: "stats#user_stats"
       get "users/:username/heartbeats/spans", to: "stats#user_spans"
@@ -254,9 +257,6 @@ Rails.application.routes.draw do
       get "currently_hacking", to: "currently_hacking#index"
 
       get "banned_users/counts", to: "stats#banned_users_counts"
-
-      # External service Slack OAuth integration
-      post "external/slack/oauth", to: "external_slack#create_user"
 
       namespace :my do
         get "heartbeats/most_recent", to: "heartbeats#most_recent"

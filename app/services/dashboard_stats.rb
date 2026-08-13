@@ -1,5 +1,5 @@
 class DashboardStats
-  FILTER_OPTIONS_CACHE_VERSION = "v1".freeze
+  FILTER_OPTIONS_CACHE_VERSION = "v2".freeze
   WEEKLY_PROJECT_DIMENSION = "weekly_project".freeze
   FILTERS = %i[project language operating_system editor category].freeze
 
@@ -16,7 +16,7 @@ class DashboardStats
     interval = params[:interval]
     return build_filterable_dashboard_data(interval) if rollup_eligible?
 
-    key = [ user ] + FILTERS.map { |field| params[field] } + [ interval.to_s, params[:from], params[:to] ]
+    key = [ user, archived_project_names ] + FILTERS.map { |field| params[field] } + [ interval.to_s, params[:from], params[:to] ]
     Rails.cache.fetch(key, expires_in: 5.minutes) { build_filterable_dashboard_data(interval) }
   end
 
@@ -38,14 +38,73 @@ class DashboardStats
   # Public so tests (and ProfileStatsService) can inspect/override.
 
   def build_filterable_dashboard_data(interval)
-    archived = user.project_repo_mappings.archived.pluck(:project_name)
+    archived = archived_project_names
     raw_filter_options = raw_filter_options(archived: archived)
     result = rollup_result(raw_filter_options, archived) || query_result(raw_filter_options, archived)
     result[:selected_interval] = interval.to_s
     result[:selected_from] = params[:from].to_s
     result[:selected_to] = params[:to].to_s
+    result[:coding_time_average] = coding_time_average(result[:total_time], interval, filter_options: raw_filter_options)
     FILTERS.each { |field| result["selected_#{field}"] = params[field]&.split(",") || [] }
     result
+  end
+
+  def coding_time_average(total_seconds, interval, filter_options: nil)
+    period = coding_time_average_period(interval, filter_options: filter_options)
+    return unless period
+
+    start_date, end_date, label = period
+    day_count = [ (end_date - start_date).to_i + 1, 1 ].max
+    {
+      average_seconds: total_seconds.to_f / day_count,
+      total_seconds: total_seconds,
+      day_count: day_count,
+      period_label: label
+    }
+  end
+
+  def coding_time_average_period(interval, filter_options: nil)
+    interval = interval.to_s
+    return if interval.blank? || interval == "today"
+
+    Time.use_zone(user.timezone) do
+      if Heartbeat::RANGES.key?(interval.to_sym)
+        config = Heartbeat::RANGES.fetch(interval.to_sym)
+        range = config.fetch(:calculate).call
+        start_date = range.begin.to_date
+        end_date = [ range.end.to_date, Date.current ].min
+        [ start_date, end_date, config.fetch(:human_name) ] if start_date <= end_date
+      else
+        custom_coding_time_average_period(filter_options: filter_options)
+      end
+    end
+  end
+
+  def custom_coding_time_average_period(filter_options: nil)
+    from = Date.parse(params[:from]) if params[:from].present?
+    to = Date.parse(params[:to]) if params[:to].present?
+    return unless from || to
+
+    from ||= first_dashboard_heartbeat_date(filter_options: filter_options) || to
+    to = [ to || Date.current, Date.current ].min
+    return if from > to
+
+    label = if params[:from].present? && params[:to].present?
+      "#{params[:from]} to #{params[:to]}"
+    elsif params[:from].present?
+      "From #{params[:from]}"
+    else
+      "Until #{params[:to]}"
+    end
+    [ from, to, label ]
+  rescue Date::Error
+    nil
+  end
+
+  def first_dashboard_heartbeat_date(filter_options: nil)
+    filter_options ||= raw_filter_options(archived: archived_project_names)
+    timestamp = filtered_dashboard_heartbeats(filter_options).with_valid_timestamps.minimum(:time)
+    Time.zone.at(timestamp).to_date if timestamp
   end
 
   def raw_filter_options(archived: [])
@@ -53,11 +112,12 @@ class DashboardStats
   end
 
   def live_raw_filter_options
-    cache_keys = FILTERS.index_with { |field| "user_#{user.id}_dashboard_filter_options_#{field}_#{FILTER_OPTIONS_CACHE_VERSION}" }
+    archive_key = ActiveSupport::Digest.hexdigest(archived_project_names.to_json)
+    cache_keys = FILTERS.index_with { |field| "user_#{user.id}_dashboard_filter_options_#{field}_#{FILTER_OPTIONS_CACHE_VERSION}_#{archive_key}" }
     reverse_lookup = cache_keys.invert
 
     cached = Rails.cache.fetch_multi(*cache_keys.values, expires_in: 15.minutes) do |cache_key|
-      user.heartbeats.distinct.pluck(reverse_lookup.fetch(cache_key)).compact_blank
+      dashboard_heartbeats.distinct.pluck(reverse_lookup.fetch(cache_key)).compact_blank
     end
 
     cache_keys.transform_values { |cache_key| cached.fetch(cache_key, []) }
@@ -77,30 +137,35 @@ class DashboardStats
   end
 
   def query_result(raw_filter_options, archived)
-    hb = user.heartbeats
     result = filter_options_result(raw_filter_options, archived)
     h = ApplicationController.helpers
 
     Time.use_zone(user.timezone) do
-      FILTERS.each do |field|
-        next unless params[field].present?
-
-        arr = params[field].split(",")
-        hb = case field
-        when :operating_system then hb.where(field => raw_filter_options.fetch(:operating_system, []).select { |value| arr.include?(h.display_os_name(value)) })
-        when :editor then hb.where(field => raw_filter_options.fetch(:editor, []).select { |value| arr.include?(h.display_editor_name(value)) })
-        when :language then hb.where(field => raw_filter_options.fetch(:language, []).select { |language| arr.include?(language.categorize_language) })
-        else hb.where(field => arr)
-        end
-        result["singular_#{field}"] = arr.length == 1
-      end
-
+      hb = filtered_dashboard_heartbeats(raw_filter_options, result: result)
       hb = hb.filter_by_time_range(params[:interval], params[:from], params[:to])
       snapshot = DashboardData::Snapshots.aggregate_query_snapshot(user: user, scope: hb)
       DashboardData::Snapshots.fill_aggregate_result(result: result, snapshot: snapshot, archived: archived, helpers: h)
     end
 
     result
+  end
+
+  def filtered_dashboard_heartbeats(filter_options, result: nil)
+    helpers = ApplicationController.helpers
+
+    FILTERS.each_with_object(dashboard_heartbeats) do |field, heartbeats|
+      next unless params[field].present?
+
+      selected = params[field].split(",")
+      values = case field
+      when :operating_system then filter_options.fetch(field, []).select { |value| selected.include?(helpers.display_os_name(value)) }
+      when :editor then filter_options.fetch(field, []).select { |value| selected.include?(helpers.display_editor_name(value)) }
+      when :language then filter_options.fetch(field, []).select { |value| selected.include?(value.categorize_language) }
+      else selected
+      end
+      heartbeats.where!(field => values)
+      result["singular_#{field}"] = selected.one? if result
+    end
   end
 
   def rollup_result(raw_filter_options, archived)
@@ -146,7 +211,8 @@ class DashboardStats
       grouped_durations: FILTERS.index_with { |field|
         rollup_rows_by_dimension.fetch(field.to_s, []).to_h { |row| [ row.bucket, row.total_seconds ] }
       },
-      weekly_project_stats: rollup_weekly_project_stats(rollup_rows_by_dimension.fetch(WEEKLY_PROJECT_DIMENSION, []))
+      weekly_project_stats: rollup_weekly_project_stats(rollup_rows_by_dimension.fetch(WEEKLY_PROJECT_DIMENSION, [])),
+      coding_rhythm: aggregate_rollup_coding_rhythm
     }
   end
 
@@ -169,7 +235,7 @@ class DashboardStats
   def rollup_rows_by_dimension = @rollup_rows_by_dimension ||= rollup_rows.group_by(&:dimension)
   def rollup_fragment_row(dimension) = rollup_rows_by_dimension.fetch(dimension.to_s, []).first
   def rollup_total_row = @rollup_total_row ||= rollup_rows.find(&:total_dimension?)
-  def rollup_source_max_heartbeat_time = rollup_time_fingerprint(user.heartbeats.maximum(:time))
+  def rollup_source_max_heartbeat_time = rollup_time_fingerprint(dashboard_heartbeats.maximum(:time))
   def rollup_time_fingerprint(timestamp) = timestamp.nil? ? nil : (timestamp * 1_000_000).round
   def today_date = Time.use_zone(user.timezone) { Date.current.iso8601 }
   def activity_graph_date_range(timezone) = DashboardData::Snapshots.activity_graph_date_range(timezone)
@@ -179,8 +245,17 @@ class DashboardStats
   def week_ranges = DashboardData::Snapshots.week_ranges(user.timezone)
   def today_stats_snapshot(scope) = DashboardData::Snapshots.today_stats_snapshot(user: user, scope: scope)
 
+  def aggregate_rollup_coding_rhythm
+    row = rollup_fragment_row(DashboardRollup::CODING_RHYTHM_DIMENSION)
+    payload = row&.payload
+    return payload if payload.is_a?(Hash) && payload["timezone"] == user.timezone && payload["duration_by_slot"].is_a?(Hash)
+
+    schedule_rollup_refresh(wait: 0.seconds)
+    DashboardData::Snapshots.coding_rhythm_snapshot(user: user, scope: dashboard_heartbeats)
+  end
+
   def aggregate_rollup_stale?(total_row)
-    DashboardRollup.dirty?(user.id) ||
+    rollups_dirty? ||
       rollup_time_fingerprint(total_row.source_max_heartbeat_time) != rollup_source_max_heartbeat_time
   end
 
@@ -191,6 +266,7 @@ class DashboardStats
   end
 
   def activity_graph_rollup_valid?(row)
+    return false if rollups_dirty?
     payload = row&.payload
     return false unless payload.is_a?(Hash)
     start_date, end_date = activity_graph_date_range(user.timezone)
@@ -199,6 +275,7 @@ class DashboardStats
   end
 
   def today_stats_rollup_valid?(row)
+    return false if rollups_dirty?
     payload = row&.payload
     return false unless payload.is_a?(Hash)
     payload["timezone"] == user.timezone && payload["today_date"] == today_date &&
@@ -210,8 +287,9 @@ class DashboardStats
   def live_activity_graph_data
     timezone = user.timezone
     start_date, end_date = activity_graph_date_range(timezone)
-    durations = Rails.cache.fetch(user.activity_graph_cache_key(timezone), expires_in: 1.minute) do
-      Time.use_zone(timezone) { user.heartbeats.daily_durations(user_timezone: timezone).to_h }
+    cache_key = [ user.activity_graph_cache_key(timezone), "without_archived_v1", archived_project_names ]
+    durations = Rails.cache.fetch(cache_key, expires_in: 1.minute) do
+      Time.use_zone(timezone) { dashboard_heartbeats.daily_durations(user_timezone: timezone).to_h }
     end
     DashboardData::Snapshots.activity_graph_result(start_date: start_date, end_date: end_date, duration_by_date: durations, timezone: timezone)
   end
@@ -224,7 +302,7 @@ class DashboardStats
     )
   end
 
-  def live_today_stats_data = DashboardData::Snapshots.today_stats_display(today_stats_snapshot(user.heartbeats), helpers: ApplicationController.helpers)
+  def live_today_stats_data = DashboardData::Snapshots.today_stats_display(today_stats_snapshot(dashboard_heartbeats), helpers: ApplicationController.helpers)
   def today_stats_from_rollup(row) = DashboardData::Snapshots.today_stats_display(row.payload, helpers: ApplicationController.helpers)
 
   def rollup_weekly_project_stats(rows)
@@ -234,5 +312,13 @@ class DashboardStats
       result[week_key][project] = row.total_seconds if result.key?(week_key)
     end
     result
+  end
+
+  def archived_project_names = @archived_project_names ||= user.project_repo_mappings.archived.order(:project_name).pluck(:project_name)
+  def dashboard_heartbeats = user.heartbeats_excluding_archived_projects
+
+  def rollups_dirty?
+    return @rollups_dirty if defined?(@rollups_dirty)
+    @rollups_dirty = DashboardRollup.dirty?(user.id)
   end
 end

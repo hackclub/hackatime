@@ -13,9 +13,9 @@
     {
       title: "Platform",
       links: [
-        { label: "Documentation", href: "/docs", inertia: true },
+        { label: "Documentation", href: "/docs" },
         { label: "Leaderboards", href: "/leaderboards" },
-        { label: "Editor Setup", href: "/docs/editors/vs-code", inertia: true },
+        { label: "Editor Setup", href: "/docs/editors/vs-code" },
       ],
     },
     {

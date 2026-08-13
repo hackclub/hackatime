@@ -5,9 +5,10 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   before_action :check_lockout, only: [ :push_heartbeats ]
 
   HEARTBEAT_KEYS = %i[
-    branch category created_at cursorpos dependencies editor entity is_write
-    language line_additions line_deletions lineno lines machine operating_system
-    project project_root_count time type user_agent plugin
+    ai_input_tokens ai_line_changes ai_model ai_output_tokens ai_prompt_length ai_session
+    ai_subscription_plan branch category created_at cursorpos editor
+    entity human_line_changes is_write language line_additions line_deletions lineno
+    lines machine operating_system project project_root_count time type user_agent plugin
   ].freeze
 
   MAX_BULK_HEARTBEATS = 100
@@ -15,7 +16,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   def push_heartbeats
     if params["format"] == "bulk"
       # POST /api/hackatime/v1/users/:id/heartbeats.bulk
-      heartbeat_array = heartbeat_bulk_params[:heartbeats]
+      heartbeat_array = heartbeat_bulk_params[:heartbeats] || []
       return render_bad_request("No data provided...") if heartbeat_array.empty?
       if heartbeat_array.size > MAX_BULK_HEARTBEATS
         return render_bad_request("Too many heartbeats in a single request (max #{MAX_BULK_HEARTBEATS})")
@@ -27,8 +28,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       heartbeat_array = Array.wrap(heartbeat_params)
       return render_bad_request("No data provided...") if heartbeat_array.empty? || heartbeat_params.blank?
 
-      new_heartbeat = handle_heartbeat(heartbeat_array)&.first&.first
-      render json: new_heartbeat, status: :accepted
+      response_body, response_status = handle_heartbeat(heartbeat_array).first
+      render json: response_body, status: response_status == 201 ? :accepted : response_status
     end
   end
 
@@ -161,6 +162,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       request_context: {
         ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip,
         machine: request.headers["X-Machine-Name"],
+        user_agent: request.user_agent,
         ja4: request.headers["CF-JA4"]
       }
     )
@@ -180,48 +182,59 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   def check_lockout = (render_forbidden("Account pending deletion") if @user&.pending_deletion?)
 
   def set_user
-    api_header = request.headers["Authorization"]
-    raw_token = api_header&.split(" ")&.last
-    api_token = case api_header&.split(" ")&.first
-    when "Bearer" then raw_token
-    when "Basic" then Base64.decode64(raw_token)
-    end
-    api_token ||= params[:api_key] if params[:api_key].present?
-    return render_unauthorized unless api_token.present?
-
-    # Sanitize api_token to handle invalid UTF-8 sequences
-    api_token = api_token.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
-
-    valid_key = ApiKey.find_by(token: api_token)
-    return render_unauthorized unless valid_key.present?
-
-    @user = valid_key.user
+    @user = api_user_from_credentials(
+      api_key_sources: %i[bearer basic query],
+      allow_restricted: true
+    )
     render_unauthorized unless @user
   end
 
   # allow either heartbeat or heartbeats
   def heartbeat_bulk_params
     if params[:_json].present?
-      { heartbeats: params.permit(_json: [ *HEARTBEAT_KEYS ])[:_json] }
+      { heartbeats: permit_heartbeat_collection(params[:_json]) }
     elsif request.content_type&.include?("text/plain") && request.raw_post.present?
-      parsed_json = JSON.parse(request.raw_post, symbolize_names: true) rescue []
-      { heartbeats: parsed_json.map { |hb| hb.slice(*HEARTBEAT_KEYS) } }
+      { heartbeats: permit_heartbeat_collection(parse_plain_json) }
     else
-      params.require(:hackatime).permit(heartbeats: [ *HEARTBEAT_KEYS ])
+      hackatime = params.require(:hackatime)
+      { heartbeats: permit_heartbeat_collection(hackatime[:heartbeats]) }
     end
   end
 
   def heartbeat_params
     if params[:_json].present?
-      params[:_json].first.permit(*HEARTBEAT_KEYS)
+      permit_heartbeat(params[:_json].first) || {}
     elsif request.content_type&.include?("text/plain") && request.raw_post.present?
-      parsed = JSON.parse(request.raw_post, symbolize_names: true) rescue {}
+      parsed = parse_plain_json
       parsed = [ parsed ] unless parsed.is_a?(Array)
-      parsed.first&.with_indifferent_access&.slice(*HEARTBEAT_KEYS) || {}
+      permit_heartbeat(parsed.first) || {}
     elsif params[:hackatime].present?
-      params.require(:hackatime).permit(*HEARTBEAT_KEYS)
+      permit_heartbeat(params.require(:hackatime)) || {}
     else
-      params.permit(*HEARTBEAT_KEYS)
+      permit_heartbeat(params) || {}
+    end
+  end
+
+  def parse_plain_json
+    JSON.parse(request.raw_post)
+  rescue JSON::ParserError
+    nil
+  end
+
+  def permit_heartbeat_collection(value)
+    return [] unless value.is_a?(Array)
+
+    # Preserve array positions so a malformed item receives its own response
+    # instead of discarding every valid heartbeat in the same CLI bulk upload.
+    value.map { |heartbeat| permit_heartbeat(heartbeat) }
+  end
+
+  def permit_heartbeat(value)
+    case value
+    when ActionController::Parameters
+      value.permit(*HEARTBEAT_KEYS, dependencies: [])
+    when Hash
+      ActionController::Parameters.new(value).permit(*HEARTBEAT_KEYS, dependencies: [])
     end
   end
 end

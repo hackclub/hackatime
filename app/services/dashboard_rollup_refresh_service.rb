@@ -4,7 +4,7 @@ class DashboardRollupRefreshService < ApplicationService
 
   def initialize(user:)
     @user = user
-    @scope = user.heartbeats
+    @scope = user.heartbeats_excluding_archived_projects
   end
 
   def call
@@ -21,7 +21,10 @@ class DashboardRollupRefreshService < ApplicationService
                    payload: DashboardData::Snapshots.activity_graph_snapshot(user: @user, scope: @scope)),
       build_record(dimension: DashboardRollup::TODAY_STATS_DIMENSION, bucket: nil,
                    total_seconds: 0, now:,
-                   payload: DashboardData::Snapshots.today_stats_snapshot(user: @user, scope: @scope))
+                   payload: DashboardData::Snapshots.today_stats_snapshot(user: @user, scope: @scope)),
+      build_record(dimension: DashboardRollup::CODING_RHYTHM_DIMENSION, bucket: nil,
+                   total_seconds: 0, now:,
+                   payload: DashboardData::Snapshots.coding_rhythm_snapshot(user: @user, scope: @scope))
     ]
 
     GROUPED_DIMENSIONS.each do |dimension|

@@ -60,10 +60,12 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
       stats = dashboard_stats["filterable_dashboard_data"]
       today_stats = dashboard_stats["today_stats"]
       activity_graph = dashboard_stats["activity_graph"]
+      coding_rhythm = stats["coding_rhythm"]
 
       assert_equal 480, stats["total_time"]
       assert_equal 6, stats["total_heartbeats"]
       assert_equal "alpha", stats["top_project"]
+      assert_equal({ "coding" => 360 }, stats["coding_category_stats"])
 
       assert_equal(
         {
@@ -93,6 +95,33 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
       assert_equal "2025-04-14", activity_graph["start_date"]
       assert_equal "2026-04-14", activity_graph["end_date"]
       assert_equal 300, activity_graph["duration_by_date"]["2026-04-13"]
+      assert_equal "(GMT+00:00) UTC", coding_rhythm["timezone_label"]
+      assert_equal 420, coding_rhythm["duration_by_slot"]["1-10"]
+    end
+  end
+
+  test "signed in homepage returns the selected period's daily coding average" do
+    travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+      user = User.create!(timezone: "UTC")
+      sign_in_as(user)
+      create_heartbeat(user, "2026-04-13 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      create_heartbeat(user, "2026-04-13 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+
+      get root_path(interval: "yesterday")
+
+      get root_path(interval: "yesterday"), headers: {
+        "X-Inertia" => "true",
+        "X-Requested-With" => "XMLHttpRequest",
+        "X-Inertia-Version" => inertia_page["version"],
+        "X-Inertia-Partial-Component" => "Home/SignedIn",
+        "X-Inertia-Partial-Data" => "dashboard_stats"
+      }
+
+      average = JSON.parse(response.body).dig("props", "dashboard_stats", "filterable_dashboard_data", "coding_time_average")
+      assert_equal(
+        { "average_seconds" => 60.0, "total_seconds" => 60, "day_count" => 1, "period_label" => "Yesterday" },
+        average
+      )
     end
   end
 

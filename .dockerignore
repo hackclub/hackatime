@@ -32,9 +32,27 @@
 
 # Ignore assets.
 /node_modules/
+/.blume/
+/dist/
+/app/javascript/api/
 /app/assets/builds/*
 !/app/assets/builds/.keep
 /public/assets
+/public/vite/
+/public/vite-ssr/
+/public/vite-dev/
+/public/vite-test/
+/public/_astro/
+/public/docs/
+/public/og/docs/
+/public/og/docs.png
+/public/agent-readability.json
+/public/blume-search.json
+/public/docs.md
+/public/docs.mdx
+/public/docs-sitemap.xml
+/public/llms.txt
+/public/llms-full.txt
 
 # Ignore CI service files.
 /.github
@@ -53,3 +71,5 @@ pg-dump-all-*
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+/buildkitd.toml
+/docker-container-buildkitd.toml

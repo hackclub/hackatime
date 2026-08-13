@@ -15,6 +15,24 @@ module RepoHost
       }
     end
 
+    def repository_exists?
+      return nil unless user.github_access_token.present?
+
+      response = self.class.api_client(user.github_access_token)
+        .get("https://api.github.com/repos/#{owner}/#{repo}")
+
+      case response.status.code
+      when 200 then true
+      when 404 then false
+      else
+        Rails.logger.warn "[#{self.class.name}] Could not verify #{owner}/#{repo}: #{response.status}"
+        nil
+      end
+    rescue HTTP::Error, OpenSSL::SSL::SSLError => e
+      report_error(e, message: "[#{self.class.name}] Error verifying #{owner}/#{repo}")
+      nil
+    end
+
     def fetch_repo_metadata
       return nil unless user.github_access_token.present?
 

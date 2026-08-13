@@ -1,5 +1,5 @@
 class ProjectRepoMapping < ApplicationRecord
-  IGNORED_PROJECTS = [ nil, "", "<<LAST PROJECT>>" ]
+  IGNORED_PROJECTS = [ nil, "", "<<LAST_PROJECT>>" ].freeze
 
   belongs_to :user
   belongs_to :repository, optional: true
@@ -13,7 +13,7 @@ class ProjectRepoMapping < ApplicationRecord
     message: "must be a valid repository URL"
   }, if: :repo_url_required?
   validate :repo_host_supported, if: :repo_url_required?
-  validate :repo_url_exists, if: :repo_url_required?
+  validate :repo_url_exists, if: :repo_url_verification_required?
 
   scope :active, -> { where(archived_at: nil) }
   scope :archived, -> { where.not(archived_at: nil) }
@@ -23,11 +23,17 @@ class ProjectRepoMapping < ApplicationRecord
   after_update :sync_repository_if_url_changed, if: :repo_url_required?
 
   def repo_url_required? = repo_url.present?
-  def archive! = update_column(:archived_at, Time.current)
-  def unarchive! = update_column(:archived_at, nil)
+  def archive! = update_archive_status(Time.current)
+  def unarchive! = update_archive_status(nil)
   def archived? = archived_at.present?
 
   private
+
+  def update_archive_status(archived_at)
+    update!(archived_at: archived_at)
+    DashboardRollupRefreshJob.schedule_for(user_id, wait: 0.seconds)
+    true
+  end
 
   def repo_host_supported
     host = RepoHost::ServiceFactory.host_for_url(repo_url)
@@ -36,8 +42,15 @@ class ProjectRepoMapping < ApplicationRecord
     end
   end
 
+  def repo_url_verification_required?
+    repo_url_required? && (new_record? || will_save_change_to_repo_url?)
+  end
+
   def repo_url_exists
-    errors.add(:repo_url, "is not cloneable") unless GitRemote.check_remote_exists(repo_url)
+    return if errors[:repo_url].any?
+
+    exists = RepoHost::ServiceFactory.for_url(user, repo_url).repository_exists?
+    errors.add(:repo_url, "does not exist or is not accessible") if exists == false
   end
 
   def create_repository_and_sync

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
   import Section from "./Section.svelte";
   import Plus from "hcicons-svelte/plus";
 
@@ -33,7 +32,7 @@
     </p>
     <div class="flex flex-wrap justify-center gap-12 max-w-[800px] mx-auto">
       {#each editors as { name, slug }}
-        <Link
+        <a
           href={`/docs/editors/${slug}`}
           class="flex flex-col items-center w-20"
         >
@@ -45,9 +44,12 @@
             />
           </div>
           <span class="text-xs font-medium text-secondary">{name}</span>
-        </Link>
+        </a>
       {/each}
-      <a href="/docs#all-editors" class="flex flex-col items-center w-20 group">
+      <a
+        href="/docs#editor-guides"
+        class="flex flex-col items-center w-20 group"
+      >
         <div class="{tileBox} group-hover:border-primary transition-colors">
           <Plus
             size={32}

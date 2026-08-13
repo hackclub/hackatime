@@ -57,6 +57,19 @@ class ProjectsTest < ApplicationSystemTestCase
     assert_no_text "recent-project"
   end
 
+  test "opens projects whose names contain reserved URL characters" do
+    project_name = "folder/café ?# 100%25"
+    create_project_heartbeats(@user, project_name, started_at: 2.days.ago.noon)
+    DashboardRollupRefreshService.new(user: @user).call
+
+    visit my_projects_path
+    project_link = find(%(a[aria-label="View #{project_name}"]))
+    assert_includes project_link[:href], "folder%2Fcaf%C3%A9%20%3F%23%20100%2525"
+    visit project_link[:href]
+
+    assert_selector "h1", text: project_name, exact_text: true
+  end
+
   private
 
   def create_project_heartbeats(user, project_name, started_at:)

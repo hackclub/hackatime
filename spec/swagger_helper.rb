@@ -309,16 +309,36 @@ RSpec.configure do |config|
       paths: {},
       components: {
         securitySchemes: {
+          OAuth2: {
+            type: :oauth2,
+            flows: {
+              authorizationCode: {
+                authorizationUrl: '/oauth/authorize',
+                tokenUrl: '/oauth/token',
+                scopes: {
+                  profile: 'Read profile information',
+                  read: 'Read coding activity data',
+                  admin: 'Access administrative operations'
+                }
+              }
+            }
+          },
           Bearer: {
             type: :http,
             scheme: :bearer,
-            description: 'User API Key from settings, prefixed with "Bearer"'
+            description: 'User or Admin API Key, depending on the endpoint, prefixed with "Bearer"'
           },
           ApiKeyAuth: {
             type: :apiKey,
             name: 'api_key',
             in: :query,
             description: 'User API Key from settings'
+          },
+          LegacyStatsApiKey: {
+            type: :apiKey,
+            name: 'api_key',
+            in: :query,
+            description: 'Legacy STATS_API_KEY, accepted only while the allow_legacy_stats_api_key feature flag is enabled'
           }
         },
         schemas: public_schemas

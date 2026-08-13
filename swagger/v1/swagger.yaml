@@ -31,6 +31,8 @@ paths:
           description: accepted
         '400':
           description: no data provided
+        '422':
+          description: heartbeat rejected
         '401':
           description: unauthorized
         '403':
@@ -63,6 +65,32 @@ paths:
                   branch:
                     type: string
                     example: main
+                  ai_model:
+                    type: string
+                    example: gpt/5.3-codex
+                  ai_session:
+                    type: string
+                    example: session-123
+                  ai_subscription_plan:
+                    type: string
+                    example: pro
+                  ai_input_tokens:
+                    type: integer
+                    format: int64
+                    example: 1200
+                  ai_output_tokens:
+                    type: integer
+                    format: int64
+                    example: 350
+                  ai_prompt_length:
+                    type: integer
+                    example: 240
+                  ai_line_changes:
+                    type: integer
+                    example: 18
+                  human_line_changes:
+                    type: integer
+                    example: 7
                   language:
                     type: string
                     example: Ruby
@@ -170,6 +198,32 @@ paths:
                   branch:
                     type: string
                     example: main
+                  ai_model:
+                    type: string
+                    example: gpt/5.3-codex
+                  ai_session:
+                    type: string
+                    example: session-123
+                  ai_subscription_plan:
+                    type: string
+                    example: pro
+                  ai_input_tokens:
+                    type: integer
+                    format: int64
+                    example: 1200
+                  ai_output_tokens:
+                    type: integer
+                    format: int64
+                    example: 350
+                  ai_prompt_length:
+                    type: integer
+                    example: 240
+                  ai_line_changes:
+                    type: integer
+                    example: 18
+                  human_line_changes:
+                    type: integer
+                    example: 7
                   language:
                     type: string
                     example: Ruby
@@ -653,9 +707,11 @@ paths:
       tags:
       - OAuth2-specific
       description: Returns detailed information about the currently authenticated
-        user. Requires an OAuth2 access token (Bearer header).
+        user. Requires an OAuth2 access token with the `profile` scope in the Bearer
+        header.
       security:
-      - Bearer: []
+      - OAuth2:
+        - profile
       responses:
         '200':
           description: successful
@@ -689,6 +745,8 @@ paths:
                       trust_value:
                         type: integer
                         example: 0
+        '403':
+          description: insufficient scope
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
@@ -698,9 +756,10 @@ paths:
       tags:
       - OAuth2-specific
       description: Returns the total coding hours for the authenticated user. Requires
-        an OAuth2 access token (Bearer header).
+        an OAuth2 access token with the `read` scope in the Bearer header.
       security:
-      - Bearer: []
+      - OAuth2:
+        - read
       parameters:
       - name: start_date
         in: query
@@ -733,6 +792,8 @@ paths:
                   total_seconds:
                     type: number
                     example: 153000.0
+        '403':
+          description: insufficient scope
         '401':
           description: 'unauthorized — Returned when the OAuth access token is missing
             or invalid (empty body), or when the authenticated user is banned (`trust_level
@@ -744,9 +805,10 @@ paths:
       tags:
       - OAuth2-specific
       description: Returns the current streak information (days coded in a row). Requires
-        an OAuth2 access token (Bearer header).
+        an OAuth2 access token with the `read` scope in the Bearer header.
       security:
-      - Bearer: []
+      - OAuth2:
+        - read
       responses:
         '200':
           description: successful
@@ -758,6 +820,8 @@ paths:
                   streak_days:
                     type: integer
                     example: 5
+        '403':
+          description: insufficient scope
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
@@ -767,9 +831,10 @@ paths:
       tags:
       - OAuth2-specific
       description: Returns a list of projects associated with the authenticated user.
-        Requires an OAuth2 access token (Bearer header).
+        Requires an OAuth2 access token with the `read` scope in the Bearer header.
       security:
-      - Bearer: []
+      - OAuth2:
+        - read
       parameters:
       - name: include_archived
         in: query
@@ -855,6 +920,8 @@ paths:
                         archived:
                           type: boolean
                           example: false
+        '403':
+          description: insufficient scope
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
@@ -887,10 +954,12 @@ paths:
       tags:
       - OAuth2-specific
       description: 'Returns the absolutely latest heartbeat processed for the user.
-        Requires an OAuth2 access token (Bearer header). When the user has no non-test
-        heartbeat, the response is `{ "heartbeat": null }`.'
+        Requires an OAuth2 access token with the `read` scope in the Bearer header.
+        When the user has no non-test heartbeat, the response is `{ "heartbeat": null
+        }`.'
       security:
-      - Bearer: []
+      - OAuth2:
+        - read
       responses:
         '200':
           description: successful
@@ -945,6 +1014,8 @@ paths:
                       example:
                   required:
                   - heartbeat
+        '403':
+          description: insufficient scope
         '401':
           description: unauthorized — Returned when the OAuth access token is missing
             or invalid.
@@ -1152,9 +1223,9 @@ paths:
       tags:
       - My Data
       description: Returns the most recent heartbeat for the authenticated user. Useful
-        for checking if the user is currently active. Authenticate with your API key
-        as a Bearer token in the `Authorization` header (HTTP Basic auth with the
-        API key is also accepted).
+        for checking if the user is currently active. Authenticate with an OAuth access
+        token with the `read` scope or an API key as a Bearer token in the `Authorization`
+        header (HTTP Basic auth with the API key is also accepted).
       security:
       - Bearer: []
       parameters:
@@ -1203,17 +1274,17 @@ paths:
                 - editor
                 - time_ago
         '401':
-          description: unauthorized — Returned when the Authorization header is missing
-            or the token does not match a known API key.
+          description: unauthorized — Returned when the Authorization header is missing,
+            the OAuth token lacks the read scope, or the token is invalid.
   "/api/v1/my/heartbeats":
     get:
       summary: Get heartbeats
       tags:
       - My Data
       description: Returns a list of heartbeats for the authenticated user within
-        a time range. This is the raw data stream. Authenticate with your API key
-        as a Bearer token in the `Authorization` header (HTTP Basic auth with the
-        API key is also accepted).
+        a time range. This is the raw data stream. Authenticate with an OAuth access
+        token with the `read` scope or an API key as a Bearer token in the `Authorization`
+        header (HTTP Basic auth with the API key is also accepted).
       security:
       - Bearer: []
       parameters:
@@ -1265,20 +1336,22 @@ paths:
                 - total_seconds
                 - heartbeats
         '401':
-          description: unauthorized — Returned when the Authorization header is missing
-            or the token does not match a known API key.
+          description: unauthorized — Returned when the Authorization header is missing,
+            the OAuth token lacks the read scope, or the token is invalid.
   "/api/v1/stats":
     get:
       summary: Get total coding time
       tags:
       - Stats
       description: Returns the total coding time for all users, optionally filtered
-        by user or date range. Authenticated with the shared STATS_API_KEY token (Bearer
-        header or api_key query param) — not tied to any user or admin level. Authentication
+        by user or date range. Requires an active Admin API Key supplied via the Bearer
+        header. Admin API Keys are never accepted in the api_key query param. During
+        migration, STATS_API_KEY is accepted via the Bearer header or api_key query
+        param only when the allow_legacy_stats_api_key Flipper flag is enabled. Authentication
         is skipped entirely in development.
       security:
       - Bearer: []
-        ApiKeyAuth: []
+      - LegacyStatsApiKey: []
       parameters:
       - name: start_date
         in: query
@@ -1311,9 +1384,8 @@ paths:
                 type: integer
                 example: 123456
         '401':
-          description: unauthorized — Returned when STATS_API_KEY is unset/blank or
-            the supplied token is missing or incorrect. (Auth is bypassed in the development
-            environment.)
+          description: unauthorized — Returned when the Admin API Key is missing,
+            revoked, or incorrect. (Auth is bypassed in the development environment.)
           content:
             text/plain:
               schema:
@@ -1898,9 +1970,10 @@ paths:
       tags:
       - Users
       description: Find a user ID by their email address. Useful for integrations
-        that need to map emails to Hackatime users. Requires STATS_API_KEY supplied
-        via the Authorization Bearer header (the api_key query param is NOT accepted
-        for this endpoint).
+        that need to map emails to Hackatime users. Requires an active Admin API Key
+        supplied via the Authorization Bearer header (the api_key query param is NOT
+        accepted for this endpoint). During migration, STATS_API_KEY is also accepted
+        when the allow_legacy_stats_api_key Flipper flag is enabled.
       security:
       - Bearer: []
       parameters:
@@ -1925,9 +1998,8 @@ paths:
                     type: string
                     example: orpheus@hackclub.com
         '401':
-          description: unauthorized — Returned when STATS_API_KEY is unset/blank or
-            the Authorization Bearer token is missing or incorrect. (Auth is bypassed
-            in the development environment.)
+          description: unauthorized — Returned when the Admin API Key is missing,
+            revoked, or incorrect. (Auth is bypassed in the development environment.)
           content:
             application/json:
               schema:
@@ -1950,9 +2022,10 @@ paths:
       summary: Lookup user by Slack UID
       tags:
       - Users
-      description: Find a user ID by their Slack User ID. Requires STATS_API_KEY supplied
-        via the Authorization Bearer header (the api_key query param is NOT accepted
-        for this endpoint).
+      description: Find a user ID by their Slack User ID. Requires an active Admin
+        API Key supplied via the Authorization Bearer header (the api_key query param
+        is NOT accepted for this endpoint). During migration, STATS_API_KEY is also
+        accepted when the allow_legacy_stats_api_key Flipper flag is enabled.
       security:
       - Bearer: []
       parameters:
@@ -1977,9 +2050,8 @@ paths:
                     type: string
                     example: U0266FRGP
         '401':
-          description: unauthorized — Returned when STATS_API_KEY is unset/blank or
-            the Authorization Bearer token is missing or incorrect. (Auth is bypassed
-            in the development environment.)
+          description: unauthorized — Returned when the Admin API Key is missing,
+            revoked, or incorrect. (Auth is bypassed in the development environment.)
           content:
             application/json:
               schema:
@@ -1999,15 +2071,32 @@ paths:
                     example: U000000
 components:
   securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: "/oauth/authorize"
+          tokenUrl: "/oauth/token"
+          scopes:
+            profile: Read profile information
+            read: Read coding activity data
+            admin: Access administrative operations
     Bearer:
       type: http
       scheme: bearer
-      description: User API Key from settings, prefixed with "Bearer"
+      description: User or Admin API Key, depending on the endpoint, prefixed with
+        "Bearer"
     ApiKeyAuth:
       type: apiKey
       name: api_key
       in: query
       description: User API Key from settings
+    LegacyStatsApiKey:
+      type: apiKey
+      name: api_key
+      in: query
+      description: Legacy STATS_API_KEY, accepted only while the allow_legacy_stats_api_key
+        feature flag is enabled
   schemas:
     Error:
       type: object

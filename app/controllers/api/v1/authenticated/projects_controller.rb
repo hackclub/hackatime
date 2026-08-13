@@ -2,6 +2,8 @@ module Api
   module V1
     module Authenticated
       class ProjectsController < ApplicationController
+        require_oauth_scope :read
+
         def index
           projects = project_stats_query.project_details.map do |project|
             {

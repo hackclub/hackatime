@@ -7,6 +7,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     api_key = user.api_keys.create!(name: "primary")
 
     payload = {
+      dependencies: [ "rails", "pg" ],
       entity: "src/main.rb",
       plugin: "vscode/1.0.0",
       project: "hackatime",
@@ -28,6 +29,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal user.id, heartbeat.user_id
     assert_equal "vscode/1.0.0", heartbeat.user_agent
     assert_equal "coding", heartbeat.category
+    assert_equal [ "rails", "pg" ], heartbeat.dependencies
   end
 
   test "single heartbeat stores the Cloudflare JA4 header" do
@@ -64,6 +66,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
       category: "coding",
       time: 1.hour.ago.to_f,
       language: "Ruby",
+      project: "hackatime",
       source_type: :direct_entry
     )
 
@@ -156,7 +159,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal "Ruby", heartbeat.language
   end
 
-  test "single heartbeat ignores unknown fields like raw_data and ai_line_changes" do
+  test "single heartbeat ignores unknown fields and preserves AI telemetry" do
     user = User.create!(timezone: "UTC")
     api_key = user.api_keys.create!(name: "primary")
 
@@ -167,6 +170,12 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
       time: Time.current.to_f,
       type: "file",
       raw_data: '{"some": "data"}',
+      ai_model: "gpt/5.6",
+      ai_session: "session-123",
+      ai_subscription_plan: "pro",
+      ai_input_tokens: 1_000,
+      ai_output_tokens: 250,
+      ai_prompt_length: 80,
       ai_line_changes: 5,
       human_line_changes: 10,
       completely_bogus_field: "should be ignored"
@@ -185,9 +194,17 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     heartbeat = Heartbeat.order(:id).last
     assert_equal "src/main.rb", heartbeat.entity
     assert_equal "hackatime", heartbeat.project
+    assert_equal "gpt/5.6", heartbeat.ai_model
+    assert_equal "session-123", heartbeat.ai_session
+    assert_equal "pro", heartbeat.ai_subscription_plan
+    assert_equal 1_000, heartbeat.ai_input_tokens
+    assert_equal 250, heartbeat.ai_output_tokens
+    assert_equal 80, heartbeat.ai_prompt_length
+    assert_equal 5, heartbeat.ai_line_changes
+    assert_equal 10, heartbeat.human_line_changes
   end
 
-  test "bulk heartbeat ignores unknown fields like raw_data and ai_line_changes" do
+  test "bulk heartbeat ignores unknown fields and preserves AI telemetry" do
     user = User.create!(timezone: "UTC")
     api_key = user.api_keys.create!(name: "primary")
 
@@ -199,6 +216,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
         time: Time.current.to_f,
         type: "file",
         raw_data: '{"some": "data"}',
+        ai_session: "session-456",
         ai_line_changes: 3,
         human_line_changes: 7
       }
@@ -217,6 +235,9 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     heartbeat = Heartbeat.order(:id).last
     assert_equal "src/first.rb", heartbeat.entity
     assert_equal "hackatime", heartbeat.project
+    assert_equal "session-456", heartbeat.ai_session
+    assert_equal 3, heartbeat.ai_line_changes
+    assert_equal 7, heartbeat.human_line_changes
   end
 
   test "duplicate heartbeat with different ip returns existing record" do
@@ -259,7 +280,9 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
         }
     end
     assert_response :accepted
-    assert_equal heartbeat.id, JSON.parse(response.body)["id"]
+    response_heartbeat = JSON.parse(response.body)
+    assert_equal heartbeat.id, response_heartbeat.fetch("id")
+    assert_equal "src/main.rb", response_heartbeat.fetch("entity")
     assert_no_match(/RecordNotUnique|duplicate key|unique/i, log_output.string)
   ensure
     Rails.logger = previous_logger if previous_logger
@@ -270,6 +293,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     api_key = user.api_keys.create!(name: "primary")
 
     payload = [ {
+      dependencies: [ "rack", "puma" ],
       entity: "src/main.rb",
       plugin: "zed/1.0.0",
       project: "hackatime",
@@ -291,5 +315,132 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal user.id, heartbeat.user_id
     assert_equal "zed/1.0.0", heartbeat.user_agent
     assert_equal "coding", heartbeat.category
+    assert_equal [ "rack", "puma" ], heartbeat.dependencies
+  end
+
+  test "single heartbeat returns unprocessable entity when ingestion fails" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    assert_no_difference("Heartbeat.count") do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: { entity: "src/main.rb", time: 2026, type: "file" }.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain"
+        }
+    end
+
+    assert_response :unprocessable_entity
+    assert_equal "HeartbeatIngest::InvalidHeartbeatTime", JSON.parse(response.body)["type"]
+  end
+
+  test "bulk text plain heartbeat rejects a non-array payload" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    assert_no_difference("Heartbeat.count") do
+      post "/api/hackatime/v1/users/current/heartbeats.bulk",
+        params: { entity: "src/main.rb", time: Time.current.to_f, type: "file" }.to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain"
+        }
+    end
+
+    assert_response :bad_request
+  end
+
+  test "bulk heartbeat reports non-object array items without discarding valid items" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    assert_difference("Heartbeat.count", 1) do
+      post "/api/hackatime/v1/users/current/heartbeats.bulk",
+        params: [ "not-a-heartbeat", { entity: "src/main.rb", time: Time.current.to_f, type: "file" } ].to_json,
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain"
+        }
+    end
+
+    assert_response :created
+    responses = JSON.parse(response.body).fetch("responses")
+    assert_equal 422, responses.first.last
+    assert_equal 201, responses.last.last
+  end
+
+  test "single text plain heartbeat rejects a scalar payload" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    assert_no_difference("Heartbeat.count") do
+      post "/api/hackatime/v1/users/current/heartbeats",
+        params: "42",
+        headers: {
+          "Authorization" => "Bearer #{api_key.token}",
+          "CONTENT_TYPE" => "text/plain"
+        }
+    end
+
+    assert_response :bad_request
+  end
+
+  test "status bar accepts API keys with Basic authentication" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current/statusbar/today",
+      headers: { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
+
+    assert_response :success
+  end
+
+  test "status bar accepts API keys from the query string" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current/statusbar/today", params: { api_key: api_key.token }
+
+    assert_response :success
+  end
+
+  test "status bar does not accept OAuth access tokens" do
+    user = User.create!(timezone: "UTC")
+    access_token = create_oauth_access_token(user)
+
+    get "/api/hackatime/v1/users/current/statusbar/today",
+      headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :unauthorized
+  end
+
+  test "malformed authorization header does not fall through to query API key" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current/statusbar/today",
+      params: { api_key: api_key.token },
+      headers: { "Authorization" => "Bearer" }
+
+    assert_response :unauthorized
+  end
+
+  private
+
+  def create_oauth_access_token(user)
+    application = user.oauth_applications.create!(
+      name: "Test App",
+      redirect_uri: "https://example.com/callback",
+      scopes: "profile read",
+      confidential: true
+    )
+
+    Doorkeeper::AccessToken.create!(
+      application: application,
+      resource_owner_id: user.id,
+      scopes: "profile read",
+      expires_in: 16.years
+    )
   end
 end

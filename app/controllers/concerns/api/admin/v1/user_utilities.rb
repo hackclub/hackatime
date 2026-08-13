@@ -6,7 +6,7 @@ module Api
         include DateParsing
 
         HEARTBEAT_RESPONSE_COLUMNS = [
-          *%i[id time lineno cursorpos is_write project language entity branch category editor machine user_agent ip_address lines source_type],
+          *%i[id time created_at lineno cursorpos is_write project language entity branch category dependencies editor machine operating_system type project_root_count user_agent line_additions line_deletions ip_address lines source_type],
           :ja4_id
         ].freeze
 
@@ -306,27 +306,34 @@ module Api
 
           total_count = query.count
           source_types = Heartbeat.source_types.invert
-          rows = query.order(time: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
+          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
           ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).index_by(&:id)
-          heartbeats = rows.map do |id, time, lineno, cursorpos, is_write, project, language, entity, branch, category, editor, machine, user_agent, ip_address, lines, source_type, ja4_id|
+          heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id|
             {
               id: id,
               time: time,
-              lineno: lineno || 0,
-              cursorpos: cursorpos || 0,
-              is_write: is_write,
+              created_at: created_at,
               project: project,
-              language: language,
-              entity: entity,
               branch: branch,
               category: category,
+              dependencies: dependencies,
               editor: editor,
+              entity: entity,
+              language: language,
               machine: machine,
+              operating_system: operating_system,
+              type: type,
               user_agent: user_agent,
-              ip_address: ip_address,
-              ja4: ja4s_by_id[ja4_id]&.then { |ja4| { fingerprint: ja4.fingerprint, name: ja4.name } },
+              line_additions: line_additions,
+              line_deletions: line_deletions,
+              lineno: lineno,
               lines: lines,
-              source_type: source_types[source_type] || source_type
+              cursorpos: cursorpos,
+              project_root_count: project_root_count,
+              is_write: is_write,
+              source_type: source_types[source_type] || source_type,
+              ip_address: ip_address,
+              ja4: ja4s_by_id[ja4_id]&.then { |ja4| { fingerprint: ja4.fingerprint, name: ja4.name } }
             }
           end
 

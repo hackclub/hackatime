@@ -11,9 +11,10 @@ class HeartbeatExportJob < ApplicationJob
   )
 
   HEARTBEAT_EXPORT_FIELDS = %i[
-    id entity type category project language editor operating_system machine
-    branch user_agent is_write line_additions line_deletions lineno lines
-    cursorpos dependencies source_type
+    id entity type category project language editor operating_system machine branch
+    user_agent is_write line_additions line_deletions lineno lines cursorpos dependencies
+    source_type ai_model ai_session ai_subscription_plan ai_input_tokens ai_output_tokens
+    ai_prompt_length ai_line_changes human_line_changes
   ].freeze
 
   def perform(user_id, all_data:, start_date: nil, end_date: nil)

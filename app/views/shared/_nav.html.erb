@@ -41,7 +41,7 @@
       <%= link_to 'Leaderboards', leaderboards_path, class: nav_link_class.call(current_page?(leaderboards_path)), data: { action: "click->nav#clickLink" } %>
 
       <% unless current_user %>
-        <%= link_to 'Docs', docs_path, class: nav_link_class.call(current_page?(docs_path) || request.path.start_with?('/docs')), data: { action: "click->nav#clickLink" } %>
+        <%= link_to 'Docs', '/docs', class: nav_link_class.call(request.path.start_with?('/docs')), data: { action: "click->nav#clickLink" } %>
 
         <%= link_to 'Extensions', extensions_path, class: nav_link_class.call(current_page?(extensions_path)), data: { action: "click->nav#clickLink" } %>
       <% end %>
@@ -49,7 +49,7 @@
       <% if current_user %>
         <%= link_to 'Projects', my_projects_path, class: nav_link_class.call(current_page?(my_projects_path)), data: { action: "click->nav#clickLink" } %>
 
-        <%= link_to 'Docs', docs_path, class: nav_link_class.call(current_page?(docs_path) || request.path.start_with?('/docs')), data: { action: "click->nav#clickLink" } %>
+        <%= link_to 'Docs', '/docs', class: nav_link_class.call(request.path.start_with?('/docs')), data: { action: "click->nav#clickLink" } %>
 
         <%= link_to 'Extensions', extensions_path, class: nav_link_class.call(current_page?(extensions_path)), data: { action: "click->nav#clickLink" } %>
 

@@ -1,18 +1,20 @@
-# Set Up Hackatime with Roblox Studio
-
+---
+title: Roblox Studio
+sidebar: { icon: "/images/editor-icons/roblox-studio-32.webp" }
+---
 ![Roblox Studio](/images/editor-icons/roblox-studio-128.png)
 
 This guide will walk you through setting up **Hackatime** to automatically track your game development time in **Roblox Studio**.
 
 ---
 
-## Step 1: Log In to Your Hackatime Account
+## Step 1: Log in to your Hackatime account
 
 First, make sure you have a **Hackatime account** and are logged in. If you don't have an account, you can create one at [hackatime.hackclub.com](https://hackatime.hackclub.com).
 
 ---
 
-## Step 2: Install the Hackatime Roblox Studio Plugin
+## Step 2: Install the Hackatime Roblox Studio plugin
 
 Next, you'll need to install the Hackatime plugin directly within Roblox Studio:
 
@@ -30,7 +32,7 @@ Next, you'll need to install the Hackatime plugin directly within Roblox Studio:
 
 ---
 
-## Step 3: Configure the Plugin with Your API Key
+## Step 3: Configure the plugin with your API key
 
 Now, you'll connect the plugin to your Hackatime account using your unique API key:
 
@@ -50,7 +52,7 @@ Now, you'll connect the plugin to your Hackatime account using your unique API k
 
 ## Troubleshooting
 
-### ERR\_NETWORK: Plugin Cannot Connect to Hackatime
+### ERR\_NETWORK: Plugin cannot connect to Hackatime
 
 If you see an **ERR\_NETWORK** message, it means the plugin can't connect to Hackatime. This is likely due to you not allowing HTTP request from the plugin:
 
@@ -64,13 +66,13 @@ If you see an **ERR\_NETWORK** message, it means the plugin can't connect to Hac
     ![Screenshot showing Allow HTTP Requests enabled](https://github.com/user-attachments/assets/86bea3e2-dbbe-496f-acd4-f5963c208767)
     *Allow HTTP requests*
 
-### Still Stuck?
+### Still stuck?
 
 If you're still experiencing issues, don't hesitate to ask for help in the **#hackatime-help channel** on the [Hack Club Slack](https://hackclub.slack.com).
 
 ---
 
-## What's Next?
+## What's next?
 
 Once the plugin is successfully configured, your Roblox Studio activity time will automatically start appearing on your [Hackatime dashboard](https://hackatime.hackclub.com).
 

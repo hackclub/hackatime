@@ -103,8 +103,7 @@
           rows="4"
           value={application.redirect_uri}
           placeholder="https://example.com/auth/callback"
-          class="{input} font-mono"
-        ></textarea>
+          class="{input} font-mono"></textarea>
         <p class="mt-2 text-xs text-muted">{help_text.redirect_uri}</p>
         {#if allow_blank_redirect_uri}
           <p class="mt-1 text-xs text-muted">{help_text.blank_redirect_uri}</p>

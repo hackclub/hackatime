@@ -6,6 +6,11 @@ module Api
         before_action :doorkeeper_authorize!
         before_action :ensure_api_access_allowed
 
+        def self.require_oauth_scope(scope)
+          skip_before_action :doorkeeper_authorize!
+          before_action -> { doorkeeper_authorize! scope }, prepend: true
+        end
+
         private
 
         def current_user

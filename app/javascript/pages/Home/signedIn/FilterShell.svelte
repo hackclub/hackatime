@@ -3,12 +3,15 @@
   import Button from "../../../components/Button.svelte";
   import type { Snippet } from "svelte";
   import { Icon, ChevronDown } from "svelte-hero-icons";
+  import type { IconSource } from "svelte-hero-icons";
 
   let {
     label,
     displayText,
     placeholderText = false,
     canClear = false,
+    showLabel = true,
+    leadingIcon,
     open = $bindable(false),
     onclear,
     content,
@@ -17,6 +20,8 @@
     displayText: string;
     placeholderText?: boolean;
     canClear?: boolean;
+    showLabel?: boolean;
+    leadingIcon?: IconSource;
     open?: boolean;
     onclear?: () => void;
     content: Snippet;
@@ -24,11 +29,13 @@
 </script>
 
 <div class="filter relative min-w-0">
-  <span
-    class="block text-xs font-medium mb-1.5 text-secondary/80 uppercase tracking-wider"
-  >
-    {label}
-  </span>
+  {#if showLabel}
+    <span
+      class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-secondary/80"
+    >
+      {label}
+    </span>
+  {/if}
 
   <Popover.Root bind:open>
     <div
@@ -42,12 +49,21 @@
             class="m-0 flex min-w-0 flex-1 cursor-pointer select-none items-center justify-between border-0 bg-transparent px-3 py-2.5 text-sm text-surface-content"
             {...props}
           >
-            <span
-              class="truncate font-medium {placeholderText
-                ? 'text-surface-content/60'
-                : ''}"
-            >
-              {displayText}
+            <span class="flex min-w-0 items-center gap-2">
+              {#if leadingIcon}
+                <Icon
+                  src={leadingIcon}
+                  size="16"
+                  class="shrink-0 text-secondary/60"
+                />
+              {/if}
+              <span
+                class="truncate font-medium {placeholderText
+                  ? 'text-surface-content/60'
+                  : ''}"
+              >
+                {displayText}
+              </span>
             </span>
             <Icon
               src={ChevronDown}

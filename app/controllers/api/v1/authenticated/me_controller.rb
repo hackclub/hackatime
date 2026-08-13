@@ -2,6 +2,7 @@ module Api
   module V1
     module Authenticated
       class MeController < ApplicationController
+        require_oauth_scope :profile
         skip_before_action :ensure_api_access_allowed, only: :index
         before_action :ensure_no_pending_deletion, only: :index
 

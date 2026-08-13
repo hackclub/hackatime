@@ -2,6 +2,8 @@ class ApplicationController < ActionController::Base
   include ErrorReporting
   include RenderHelpers
   include AuthHelpers
+  include AdminApiKeyAuthentication
+  include UserApiAuthentication
 
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user
@@ -10,6 +12,7 @@ class ApplicationController < ActionController::Base
   before_action :set_cache_headers
 
   around_action :switch_time_zone, if: :current_user
+  after_action :persist_theme_cookie, if: :current_user
 
   def switch_time_zone(&block)
     Time.use_zone(current_user.timezone, &block)
@@ -47,6 +50,17 @@ class ApplicationController < ActionController::Base
     !!current_user
   end
 
+  def persist_theme_cookie
+    return if cookies[:hackatime_theme] == current_user.theme
+
+    cookies.permanent[:hackatime_theme] = {
+      value: current_user.theme,
+      httponly: false,
+      same_site: :lax,
+      secure: Rails.env.production?
+    }
+  end
+
   def safe_return_url(url)
     return nil if url.blank?
     return nil unless url.start_with?("/") && !url.start_with?("//")
@@ -74,29 +88,28 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  # Authenticates requests using the shared STATS_API_KEY env var (used by
-  # internal/admin-style API endpoints). Token may come from an Authorization
-  # header ("Bearer <token>") or, when allowed, an `api_key` query param.
-  def authenticate_legacy_stats_api_key!(allow_query_param: true, message: "Unauthorized")
-    expected = ENV["STATS_API_KEY"]
-    return render_unauthorized(message) if expected.blank?
-    token = request.headers["Authorization"]&.split(" ")&.last
-    token ||= params[:api_key] if allow_query_param
-    render_unauthorized(message) unless token.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
-  end
-
-  def oauth_bearer_user(required_scopes = [])
-    @oauth_bearer_users ||= {}
-    @oauth_bearer_users[required_scopes] ||= begin
-      scheme, raw_token = request.headers["Authorization"].to_s.split(/\s+/, 2)
-      if scheme&.casecmp?("Bearer") && raw_token.present?
-        token = Doorkeeper::AccessToken.by_token(raw_token)
-        if token&.acceptable?(required_scopes)
-          user = User.find_by(id: token.resource_owner_id)
-          user unless user&.api_access_restricted?
-        end
+  # Authenticates stats integrations with an AdminApiKey. STATS_API_KEY remains
+  # available as a temporary fallback while the Flipper flag is enabled.
+  def authenticate_stats_api_key!(allow_query_param: true, message: "Unauthorized")
+    authorization = request.headers["Authorization"]
+    if authorization.nil?
+      return if allow_query_param && valid_legacy_stats_api_key?(params[:api_key])
+    elsif authorization.match?(/\ABearer +\S+\z/i)
+      scheme, header_token = authorization_credentials
+      if bearer_scheme?(scheme)
+        return if auth_admin_api_key(header_token)
+        return if valid_legacy_stats_api_key?(header_token)
       end
     end
+
+    render_unauthorized(message)
+  end
+
+  def valid_legacy_stats_api_key?(token)
+    return false unless Flipper.enabled?(:allow_legacy_stats_api_key)
+
+    expected = ENV["STATS_API_KEY"]
+    token.present? && expected.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
   end
 
   def enforce_lockout

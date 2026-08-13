@@ -6,11 +6,13 @@ if [ -z "${LD_PRELOAD+x}" ]; then
     export LD_PRELOAD
 fi
 
+if [ "${WORKER:-false}" = "true" ]; then
+  set -- bundle exec good_job start
+fi
+
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare
-  # echo "Warming up caches for production deployment..."
-  # ./bin/rails cache:warmup
 
   # Start the Inertia SSR server in the background if the SSR bundle exists
   SSR_ENTRYPOINT="public/vite-ssr/ssr.js"

@@ -1,7 +1,7 @@
 class Api::V1::StatsController < ApplicationController
   USER_LOOKUP_ACTIONS = [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ].freeze
 
-  before_action :authenticate_legacy_stats_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
+  before_action :authenticate_stats_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
   before_action :set_user, only: USER_LOOKUP_ACTIONS
   before_action :ensure_public_stats_allowed!, only: USER_LOOKUP_ACTIONS
 
@@ -167,10 +167,7 @@ class Api::V1::StatsController < ApplicationController
 
   def set_user
     identifier = params[:username] || params[:username_or_id] || params[:user_id]
-    token = request.headers["Authorization"]&.split(" ")&.last
-    @api_caller_user = ApiKey.find_by(token: token)&.user if token.present?
-    @api_caller_user = nil if @api_caller_user&.api_access_restricted?
-    @api_caller_user ||= oauth_read_bearer_user
+    @api_caller_user = api_user_from_credentials(oauth_scopes: [ "read" ])
 
     if identifier == "my"
       @user = @api_caller_user
@@ -185,8 +182,6 @@ class Api::V1::StatsController < ApplicationController
     return if current_user == @user || @api_caller_user == @user
     render_forbidden("user has disabled public stats")
   end
-
-  def oauth_read_bearer_user = oauth_bearer_user([ "read" ])
 
   def find_by_email(email)
     cache_key = "user_id_by_email/#{email}"

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -113,6 +113,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
     t.index ["status"], name: "index_deletion_requests_on_status"
     t.index ["user_id", "status"], name: "index_deletion_requests_on_user_id_and_status"
     t.index ["user_id"], name: "index_deletion_requests_on_user_id"
+  end
+
+  create_table "documentation_feedbacks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "helpful", null: false
+    t.string "path", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.uuid "visitor_token"
+    t.index ["user_id", "path"], name: "index_doc_feedback_on_user_and_path", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["user_id"], name: "index_documentation_feedbacks_on_user_id"
+    t.index ["visitor_token", "path"], name: "index_doc_feedback_on_visitor_and_path", unique: true, where: "(visitor_token IS NOT NULL)"
+    t.check_constraint "(user_id IS NOT NULL) <> (visitor_token IS NOT NULL)", name: "documentation_feedbacks_have_one_identity"
   end
 
   create_table "email_addresses", force: :cascade do |t|
@@ -305,6 +319,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
   end
 
   create_table "heartbeats", force: :cascade do |t|
+    t.bigint "ai_input_tokens"
+    t.integer "ai_line_changes"
+    t.string "ai_model"
+    t.bigint "ai_output_tokens"
+    t.integer "ai_prompt_length"
+    t.string "ai_session"
+    t.string "ai_subscription_plan"
     t.string "branch"
     t.string "category"
     t.datetime "created_at", null: false
@@ -314,6 +335,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
     t.string "editor"
     t.string "entity"
     t.text "fields_hash"
+    t.integer "human_line_changes"
     t.inet "ip_address"
     t.boolean "is_write"
     t.integer "ja4_id"
@@ -689,6 +711,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
     t.string "username"
     t.boolean "uses_slack_status", default: false, null: false
     t.boolean "weekly_summary_email_enabled", default: true, null: false
+    t.index ["display_name_override"], name: "index_users_on_display_name_override_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
     t.index ["github_uid"], name: "index_users_on_github_uid"
     t.index ["github_username"], name: "index_users_on_github_username_trgm", opclass: :gin_trgm_ops, using: :gin
@@ -739,6 +762,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_232900) do
   add_foreign_key "dashboard_rollups", "users"
   add_foreign_key "deletion_requests", "users"
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
+  add_foreign_key "documentation_feedbacks", "users", on_delete: :cascade
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
   add_foreign_key "goals", "users"

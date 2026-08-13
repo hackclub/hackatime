@@ -6,11 +6,11 @@ class HeartbeatImportService
     total_count = 0
     errors = []
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    heartbeat_batch = {}
+    heartbeat_batch = []
 
     flush = lambda do
       next if heartbeat_batch.empty?
-      result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch.values,
+      result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch,
                                     user_agents_by_id:, schedule_rollup_refresh: false)
       imported_count += result.persisted_count
       errors.concat(result.errors)
@@ -21,13 +21,8 @@ class HeartbeatImportService
       total_count += 1
       on_progress&.call(total_count) if progress_interval.positive? && (total_count % progress_interval).zero?
 
-      begin
-        attrs = HeartbeatIngest.normalize_imported_heartbeat(user:, heartbeat: hb, user_agents_by_id:)
-        heartbeat_batch[attrs[:fields_hash]] = hb
-        flush.call if heartbeat_batch.size >= BATCH_SIZE
-      rescue => e
-        errors << { heartbeat: hb, error: e.message }
-      end
+      heartbeat_batch << hb
+      flush.call if heartbeat_batch.size >= BATCH_SIZE
     end
 
     Oj.saj_parse(handler, file_content)
@@ -43,12 +38,6 @@ class HeartbeatImportService
   rescue => e
     { success: false, error: e.message, imported_count:, total_count:,
       skipped_count: total_count - imported_count, errors: errors + [ e.message ] }
-  end
-
-  def self.count_heartbeats(file_content)
-    total_count = 0
-    Oj.saj_parse(HeartbeatSaxHandler.new { |_hb| total_count += 1 }, file_content)
-    total_count
   end
 
   class HeartbeatSaxHandler < Oj::Saj

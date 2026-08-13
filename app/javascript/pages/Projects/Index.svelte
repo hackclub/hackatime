@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Deferred, Link, router } from "@inertiajs/svelte";
+  import Search from "hcicons-svelte/search";
   import { WindowVirtualizer } from "virtua/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
@@ -19,6 +20,7 @@
     to = "",
     total_projects,
     projects_data,
+    errors = {},
   }: {
     page_title: string;
     show_archived: boolean;
@@ -33,6 +35,11 @@
       total_time_label: string;
       has_activity: boolean;
       projects: ProjectCardType[];
+    };
+    errors?: {
+      repo_url?: string;
+      repo_url_project_name?: string;
+      repo_url_value?: string;
     };
   } = $props();
 
@@ -62,6 +69,13 @@
     confirmLabel: string;
   } | null>(null);
 
+  $effect(() => {
+    if (errors.repo_url && errors.repo_url_project_name) {
+      editingProjectKey = errors.repo_url_project_name;
+      repoUrlDraft = errors.repo_url_value || "";
+    }
+  });
+
   const skeletonCount = $derived(
     Math.min(
       Math.max(Number.isFinite(total_projects) ? total_projects : 0, 4),
@@ -75,6 +89,7 @@
 
   let projectGridContainer: HTMLDivElement | undefined = $state();
   let projectColumnCount = $state(1);
+  let searchQuery = $state("");
 
   const updateProjectColumnCount = () => {
     if (!projectGridContainer) return;
@@ -90,7 +105,10 @@
   };
 
   const projectRows = $derived.by(() => {
-    const projects = projects_data?.projects || [];
+    const query = searchQuery.trim().toLocaleLowerCase();
+    const projects = (projects_data?.projects || []).filter((project) =>
+      project.name.toLocaleLowerCase().includes(query),
+    );
     const rows: ProjectCardType[][] = [];
 
     for (let index = 0; index < projects.length; index += projectColumnCount) {
@@ -154,7 +172,7 @@
       restoring
         ? myProjectRepoMappings.unarchive
         : myProjectRepoMappings.archive
-    ).path({ projectName: project.project_key });
+    ).path({ projectName: encodeURIComponent(project.project_key) });
 
     pendingStatusAction = {
       path,
@@ -213,13 +231,34 @@
     </div>
   </div>
 
-  <div class="sm:max-w-3xs">
-    <IntervalSelect
-      from={from || ""}
-      selected={interval || ""}
-      to={to || ""}
-      onchange={changeInterval}
-    />
+  <div class="flex items-center gap-3">
+    <div class="relative min-w-0 flex-1">
+      <label for="project-search" class="sr-only">Search projects</label>
+      <Search
+        size={24}
+        aria-hidden="true"
+        class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted"
+      />
+      <input
+        id="project-search"
+        name="project-search"
+        type="search"
+        bind:value={searchQuery}
+        placeholder="Search projects"
+        class="h-10 w-full rounded-lg border border-surface-200 bg-input pl-11 pr-4 text-base text-surface-content placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+      />
+    </div>
+
+    <div class="w-44 shrink-0 sm:w-56">
+      <IntervalSelect
+        from={from || ""}
+        selected={interval || ""}
+        to={to || ""}
+        onchange={changeInterval}
+        showLabel={false}
+        showIcon
+      />
+    </div>
   </div>
 
   <Deferred data="projects_data">
@@ -229,7 +268,7 @@
         <div
           class="mt-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5"
         >
-          {#each Array.from( { length: skeletonCount }, ) as _unused, index (index)}
+          {#each Array.from( { length: skeletonCount } ) as _unused, index (index)}
             <div
               class="min-h-36 rounded-2xl border border-surface-200 bg-dark p-5"
             >
@@ -295,15 +334,21 @@
                   : "No active projects match this filter."}
               </p>
             </div>
+          {:else if projectRows.length == 0}
+            <div
+              class="mt-4 rounded-xl border border-surface-200 bg-dark p-8 text-center"
+            >
+              <p class="text-muted">No projects match your search.</p>
+            </div>
           {:else}
             <div bind:this={projectGridContainer} class="mt-6">
               <WindowVirtualizer
                 data={projectRows}
-                getKey={(row) => row[0]?.id || "empty-row"}
+                getKey={(row: ProjectCardType[]) => row[0]?.id || "empty-row"}
                 itemSize={PROJECT_ROW_ESTIMATE}
                 bufferSize={1_000}
               >
-                {#snippet children(row)}
+                {#snippet children(row: ProjectCardType[])}
                   <div
                     class="grid gap-5 pb-5"
                     style={`grid-template-columns: repeat(${projectColumnCount}, minmax(0, 1fr));`}
@@ -317,6 +362,10 @@
                         onArchive={openStatusChangeModal}
                         onShowBrokenInfo={() => (brokenNameModalOpen = true)}
                         editing={editingProjectKey === project.project_key}
+                        repoUrlError={errors.repo_url_project_name ===
+                        project.project_key
+                          ? errors.repo_url
+                          : undefined}
                         bind:repoUrlDraft
                         onCancelEdit={closeMappingEditor}
                       />

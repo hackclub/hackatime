@@ -2,6 +2,8 @@ module Api
   module V1
     module Authenticated
       class HoursController < ApplicationController
+        require_oauth_scope :read
+
         def index
           start_date = params[:start_date]&.to_date || 7.days.ago.to_date
           end_date = params[:end_date]&.to_date || Date.current

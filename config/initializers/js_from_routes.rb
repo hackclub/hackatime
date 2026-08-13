@@ -40,9 +40,6 @@ module JsFromRoutes
 
     leaderboards
 
-    docs
-    doc
-
     settings_user
     my_settings
     my_settings_profile
@@ -70,7 +67,6 @@ module JsFromRoutes
 
     my_projects
     my_project
-    edit_my_project_repo_mapping
     my_project_repo_mapping
     archive_my_project_repo_mapping
     unarchive_my_project_repo_mapping

@@ -1,4 +1,6 @@
-# OAuth Apps
+---
+title: OAuth apps
+---
 
 Build integrations with Hackatime using OAuth 2.0. Create an OAuth app to let users authorize your application to access their Hackatime data.
 
@@ -113,7 +115,7 @@ POST https://hackatime.hackclub.com/oauth/token
 
 Access tokens are long-lived (approximately 16 years) so you typically don't need to worry about refreshing them. Unless, of course, you want your Hackatime app to keep working after 16 years...
 
-### Step 4: Make API Requests
+### Step 4: Make API requests
 
 Use the access token in the `Authorization` header:
 
@@ -131,7 +133,7 @@ GET https://hackatime.hackclub.com/api/admin/v1/check
 Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
 
-## OAuth-Authenticated API endpoints
+## OAuth-authenticated API endpoints
 
 All endpoints below require a valid OAuth access token in the `Authorization: Bearer <token>` header.
 

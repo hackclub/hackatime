@@ -14,9 +14,11 @@ CI.run do
   step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
 
   step "Docs: Swagger", "env RAILS_ENV=test bin/rails rswag:specs:swaggerize && git diff --exit-code swagger/"
+  step "Docs: Blume", "bun run build:docs"
 
   step "Frontend: Typecheck", "bun run check:svelte"
-  step "Frontend: Lint", "bun run format:svelte:check"
+  step "Frontend: Format", "bun run format:svelte:check"
+  step "Frontend: Lint", "bun run lint"
   step "Frontend: Knip", "bun run knip"
 
   if success?

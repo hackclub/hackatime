@@ -185,6 +185,7 @@ class User < ApplicationRecord
 
   has_many :heartbeats
   has_many :goals, dependent: :destroy
+  has_many :documentation_feedbacks, dependent: :destroy
   has_many :email_addresses, dependent: :destroy
   has_many :email_verification_requests, dependent: :destroy
   has_many :sign_in_tokens, dependent: :destroy
@@ -286,13 +287,17 @@ class User < ApplicationRecord
   after_update_commit :schedule_dashboard_rollup_refresh, if: :saved_change_to_timezone?
 
   def flipper_id = "User;#{id}"
-  def active_remote_heartbeat_import_run? = heartbeat_import_runs.remote_imports.active_imports.exists?
+  def active_heartbeat_import_run? = heartbeat_import_runs.active_imports.exists?
   def activity_graph_cache_key(timezone = self.timezone) = "user_#{id}_daily_durations_#{timezone}"
+
+  def heartbeats_excluding_archived_projects
+    heartbeats.where(project: nil).or(heartbeats.where.not(project: project_repo_mappings.archived.select(:project_name)))
+  end
 
   def format_extension_text(duration)
     case hackatime_extension_text_type
     when "simple_text"
-      return "Start coding to track your time" if duration.zero?
+      return "Start coding!" if duration.zero?
       ::ApplicationController.helpers.short_time_simple(duration)
     when "clock_emoji"
       ::ApplicationController.helpers.time_in_emoji(duration)

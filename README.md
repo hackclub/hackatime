@@ -21,3 +21,7 @@ Please read [DEVELOPMENT.md](DEVELOPMENT.md) for instructions on setting up and 
 ## Installer repo
 
 Looking for the installer code? It's over at [hackclub/hackatime-setup](https://github.com/hackclub/hackatime-setup).
+
+## License
+
+Hackatime is licensed under the [MIT License.](https://github.com/hackclub/hackatime/blob/main/LICENSE) Go wild!

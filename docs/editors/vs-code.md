@@ -1,8 +1,10 @@
-# How to Track Time in VS Code
-
+---
+title: VS Code
+sidebar: { icon: "/images/editor-icons/vs-code-32.webp" }
+---
 ![VS Code](/images/editor-icons/vs-code-128.png)
 
-## Automatic Setup
+## Automatic setup
 
 1. Configure your editor by using our [simple installer](https://hackatime.hackclub.com/setup)
 2. Restart VS Code and start coding!
@@ -11,15 +13,15 @@
 
 Let's set up VS Code to count how much time you spend coding!
 
-## Step 1: Make a Hackatime Account
+## Step 1: Make a Hackatime account
 
 Go to [Hackatime](https://hackatime.hackclub.com) and make an account. Then log in.
 
-## Step 2: Get Your Settings Ready
+## Step 2: Get your settings ready
 
 Click this link to the [setup page](https://hackatime.hackclub.com/setup). It will set up your device so it works with Hackatime.
 
-## Step 3: Add the Plugin to VS Code
+## Step 3: Add the plugin to VS Code
 
 1. Open VS Code
 2. Click the squares icon on the left (Extensions)
@@ -31,7 +33,7 @@ Click this link to the [setup page](https://hackatime.hackclub.com/setup). It wi
 
 That's it! The plugin will use your settings from Step 2.
 
-## If Something Goes Wrong
+## If something goes wrong
 
 **Can't see your time?** Go back to the [setup page](https://hackatime.hackclub.com/setup) and try again.
 
@@ -39,6 +41,6 @@ That's it! The plugin will use your settings from Step 2.
 
 **Still having trouble?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) - look for the #hackatime-help channel.
 
-## What Happens Next
+## What happens next
 
 Start coding! Your time will show up on your [Hackatime page](https://hackatime.hackclub.com) in a few minutes.

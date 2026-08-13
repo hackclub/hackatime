@@ -130,8 +130,6 @@ type GoalsOptionsProps = {
   };
 };
 
-type OptionsProps = BaseOptionsProps & GoalsOptionsProps;
-
 type SlackProps = {
   can_enable_status: boolean;
   notification_channels: {
