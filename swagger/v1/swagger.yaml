@@ -275,6 +275,297 @@ paths:
                   plugin:
                     type: string
                     example: vscode/1.96.0 vscode-wakatime/24.6.0
+  "/api/hackatime/v1/users/{id}":
+    get:
+      summary: Get current user (WakaTime compatible)
+      tags:
+      - WakaTime Compatibility
+      description: Returns profile metadata for the user authenticated by the API
+        key.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID or "current" (recommended). The authenticated user is
+          resolved from the API token.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: '42'
+                      username:
+                        type: string
+                        nullable: true
+                        example: orpheus
+                      display_name:
+                        type: string
+                        example: Orpheus
+                      full_name:
+                        type: string
+                        example: Orpheus
+                      photo:
+                        type: string
+                        example: https://example.com/orpheus.png
+                      timezone:
+                        type: string
+                        example: America/New_York
+                      created_at:
+                        type: string
+                        format: date_time
+                      modified_at:
+                        type: string
+                        format: date_time
+                      plan:
+                        type: string
+                        example: free
+                    required:
+                    - id
+                    - display_name
+                    - full_name
+                    - photo
+                    - timezone
+                    - created_at
+                    - modified_at
+                    - plan
+                required:
+                - data
+        '401':
+          description: unauthorized
+  "/api/hackatime/v1/users/{id}/summaries":
+    get:
+      summary: Get daily summaries (WakaTime compatible)
+      tags:
+      - WakaTime Compatibility
+      description: Returns coding activity for an inclusive date range as WakaTime-compatible
+        daily summaries.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID or "current" (recommended). The authenticated user is
+          resolved from the API token.
+        required: true
+        schema:
+          type: string
+      - name: start
+        in: query
+        format: date
+        required: true
+        description: Inclusive start date in YYYY-MM-DD format.
+        schema:
+          type: string
+      - name: end
+        in: query
+        format: date
+        required: true
+        description: Inclusive end date in YYYY-MM-DD format. The range may contain
+          at most 366 days.
+        schema:
+          type: string
+      - name: project
+        in: query
+        required: false
+        description: Only include activity for this project.
+        schema:
+          type: string
+      - name: timezone
+        in: query
+        required: false
+        description: Timezone used to segment days. Defaults to the user's timezone.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        grand_total:
+                          type: object
+                          properties:
+                            total_seconds:
+                              type: integer
+                              example: 7200
+                            hours:
+                              type: integer
+                              example: 2
+                            minutes:
+                              type: integer
+                              example: 0
+                            seconds:
+                              type: integer
+                              example: 0
+                            digital:
+                              type: string
+                              example: '02:00:00'
+                            decimal:
+                              type: string
+                              example: '2.00'
+                            text:
+                              type: string
+                              example: 2h
+                            ai_input_tokens:
+                              type: integer
+                              format: int64
+                              nullable: true
+                              example: 1200
+                            ai_output_tokens:
+                              type: integer
+                              format: int64
+                              nullable: true
+                              example: 350
+                            ai_model_breakdown:
+                              type: array
+                              nullable: true
+                              items:
+                                type: object
+                                properties:
+                                  name:
+                                    type: string
+                                    example: gpt/5.6
+                                  lines:
+                                    type: integer
+                                    example: 18
+                          required:
+                          - total_seconds
+                          - hours
+                          - minutes
+                          - seconds
+                          - digital
+                          - decimal
+                          - text
+                        projects:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                example: hackatime
+                              total_seconds:
+                                type: integer
+                                example: 7200
+                              percent:
+                                type: number
+                                example: 100.0
+                              hours:
+                                type: integer
+                                example: 2
+                              minutes:
+                                type: integer
+                                example: 0
+                              seconds:
+                                type: integer
+                                example: 0
+                              digital:
+                                type: string
+                                example: '02:00:00'
+                              decimal:
+                                type: string
+                                example: '2.00'
+                              text:
+                                type: string
+                                example: 2h
+                        range:
+                          type: object
+                          properties:
+                            date:
+                              type: string
+                              format: date
+                            start:
+                              type: string
+                              format: date_time
+                            end:
+                              type: string
+                              format: date_time
+                            text:
+                              type: string
+                              example: Today
+                            timezone:
+                              type: string
+                              example: America/New_York
+                          required:
+                          - date
+                          - start
+                          - end
+                          - text
+                          - timezone
+                      required:
+                      - grand_total
+                      - projects
+                      - range
+                  cumulative_total:
+                    type: object
+                    properties:
+                      seconds:
+                        type: integer
+                        example: 7200
+                      text:
+                        type: string
+                        example: 2h
+                      decimal:
+                        type: string
+                        example: '2.00'
+                      digital:
+                        type: string
+                        example: '02:00:00'
+                  daily_average:
+                    type: object
+                    properties:
+                      holidays:
+                        type: integer
+                        example: 0
+                      days_including_holidays:
+                        type: integer
+                        example: 1
+                      days_minus_holidays:
+                        type: integer
+                        example: 1
+                      seconds:
+                        type: integer
+                        example: 7200
+                      text:
+                        type: string
+                        example: 2h
+                  start:
+                    type: string
+                    format: date
+                  end:
+                    type: string
+                    format: date
+                required:
+                - data
+                - cumulative_total
+                - daily_average
+                - start
+                - end
+        '400':
+          description: invalid date range
+        '401':
+          description: unauthorized
   "/api/hackatime/v1/users/{id}/statusbar/today":
     get:
       summary: Get status bar today

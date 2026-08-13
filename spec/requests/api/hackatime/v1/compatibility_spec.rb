@@ -99,10 +99,10 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }
         let(:id) { 'current' }
-        let(:heartbeats) { [ { entity: 'file.rb', time: 2.hours.from_now.to_f } ] }
+        let(:heartbeats) { [ { entity: 'file.rb', time: 2026 } ] }
         schema type: :object,
           properties: {
-            error: { type: :string, example: 'time must not be more than 1 hour in the future' },
+            error: { type: :string, example: 'time must be a valid Unix epoch timestamp' },
             type: { type: :string, example: 'HeartbeatIngest::InvalidHeartbeatTime' }
           }
         run_test!
@@ -228,6 +228,186 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
         let(:api_key) { 'invalid' }
         let(:id) { 'current' }
         let(:heartbeats) { [ { entity: 'file.rb', time: Time.now.to_f } ] }
+        run_test!
+      end
+    end
+  end
+
+  path '/api/hackatime/v1/users/{id}' do
+    get('Get current user (WakaTime compatible)') do
+      tags 'WakaTime Compatibility'
+      description 'Returns profile metadata for the user authenticated by the API key.'
+      security [ Bearer: [], ApiKeyAuth: [] ]
+      produces 'application/json'
+
+      parameter name: :id, in: :path, type: :string, description: 'User ID or "current" (recommended). The authenticated user is resolved from the API token.'
+
+      response(200, 'successful') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:id) { 'current' }
+        schema type: :object,
+          properties: {
+            data: {
+              type: :object,
+              properties: {
+                id: { type: :string, example: '42' },
+                username: { type: :string, nullable: true, example: 'orpheus' },
+                display_name: { type: :string, example: 'Orpheus' },
+                full_name: { type: :string, example: 'Orpheus' },
+                photo: { type: :string, example: 'https://example.com/orpheus.png' },
+                timezone: { type: :string, example: 'America/New_York' },
+                created_at: { type: :string, format: :date_time },
+                modified_at: { type: :string, format: :date_time },
+                plan: { type: :string, example: 'free' }
+              },
+              required: %w[id display_name full_name photo timezone created_at modified_at plan]
+            }
+          },
+          required: [ 'data' ]
+        run_test!
+      end
+
+      response(401, 'unauthorized') do
+        let(:Authorization) { 'Bearer invalid' }
+        let(:api_key) { 'invalid' }
+        let(:id) { 'current' }
+        run_test!
+      end
+    end
+  end
+
+  path '/api/hackatime/v1/users/{id}/summaries' do
+    get('Get daily summaries (WakaTime compatible)') do
+      tags 'WakaTime Compatibility'
+      description 'Returns coding activity for an inclusive date range as WakaTime-compatible daily summaries.'
+      security [ Bearer: [], ApiKeyAuth: [] ]
+      produces 'application/json'
+
+      parameter name: :id, in: :path, type: :string, description: 'User ID or "current" (recommended). The authenticated user is resolved from the API token.'
+      parameter name: :start, in: :query, type: :string, format: :date, required: true, description: 'Inclusive start date in YYYY-MM-DD format.'
+      parameter name: :end, in: :query, type: :string, format: :date, required: true, description: 'Inclusive end date in YYYY-MM-DD format. The range may contain at most 366 days.'
+      parameter name: :project, in: :query, type: :string, required: false, description: 'Only include activity for this project.'
+      parameter name: :timezone, in: :query, type: :string, required: false, description: "Timezone used to segment days. Defaults to the user's timezone."
+
+      response(200, 'successful') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:id) { 'current' }
+        let(:start) { Date.current.iso8601 }
+        let(:end) { Date.current.iso8601 }
+        let(:project) { nil }
+        let(:timezone) { nil }
+        schema type: :object,
+          properties: {
+            data: {
+              type: :array,
+              items: {
+                type: :object,
+                properties: {
+                  grand_total: {
+                    type: :object,
+                    properties: {
+                      total_seconds: { type: :integer, example: 7200 },
+                      hours: { type: :integer, example: 2 },
+                      minutes: { type: :integer, example: 0 },
+                      seconds: { type: :integer, example: 0 },
+                      digital: { type: :string, example: '02:00:00' },
+                      decimal: { type: :string, example: '2.00' },
+                      text: { type: :string, example: '2h' },
+                      ai_input_tokens: { type: :integer, format: :int64, nullable: true, example: 1200 },
+                      ai_output_tokens: { type: :integer, format: :int64, nullable: true, example: 350 },
+                      ai_model_breakdown: {
+                        type: :array,
+                        nullable: true,
+                        items: {
+                          type: :object,
+                          properties: {
+                            name: { type: :string, example: 'gpt/5.6' },
+                            lines: { type: :integer, example: 18 }
+                          }
+                        }
+                      }
+                    },
+                    required: %w[total_seconds hours minutes seconds digital decimal text]
+                  },
+                  projects: {
+                    type: :array,
+                    items: {
+                      type: :object,
+                      properties: {
+                        name: { type: :string, example: 'hackatime' },
+                        total_seconds: { type: :integer, example: 7200 },
+                        percent: { type: :number, example: 100.0 },
+                        hours: { type: :integer, example: 2 },
+                        minutes: { type: :integer, example: 0 },
+                        seconds: { type: :integer, example: 0 },
+                        digital: { type: :string, example: '02:00:00' },
+                        decimal: { type: :string, example: '2.00' },
+                        text: { type: :string, example: '2h' }
+                      }
+                    }
+                  },
+                  range: {
+                    type: :object,
+                    properties: {
+                      date: { type: :string, format: :date },
+                      start: { type: :string, format: :date_time },
+                      end: { type: :string, format: :date_time },
+                      text: { type: :string, example: 'Today' },
+                      timezone: { type: :string, example: 'America/New_York' }
+                    },
+                    required: %w[date start end text timezone]
+                  }
+                },
+                required: %w[grand_total projects range]
+              }
+            },
+            cumulative_total: {
+              type: :object,
+              properties: {
+                seconds: { type: :integer, example: 7200 },
+                text: { type: :string, example: '2h' },
+                decimal: { type: :string, example: '2.00' },
+                digital: { type: :string, example: '02:00:00' }
+              }
+            },
+            daily_average: {
+              type: :object,
+              properties: {
+                holidays: { type: :integer, example: 0 },
+                days_including_holidays: { type: :integer, example: 1 },
+                days_minus_holidays: { type: :integer, example: 1 },
+                seconds: { type: :integer, example: 7200 },
+                text: { type: :string, example: '2h' }
+              }
+            },
+            start: { type: :string, format: :date },
+            end: { type: :string, format: :date }
+          },
+          required: %w[data cumulative_total daily_average start end]
+        run_test!
+      end
+
+      response(400, 'invalid date range') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:api_key) { "dev-api-key-12345" }
+        let(:id) { 'current' }
+        let(:start) { 'invalid' }
+        let(:end) { Date.current.iso8601 }
+        let(:project) { nil }
+        let(:timezone) { nil }
+        run_test!
+      end
+
+      response(401, 'unauthorized') do
+        let(:Authorization) { 'Bearer invalid' }
+        let(:api_key) { 'invalid' }
+        let(:id) { 'current' }
+        let(:start) { Date.current.iso8601 }
+        let(:end) { Date.current.iso8601 }
+        let(:project) { nil }
+        let(:timezone) { nil }
         run_test!
       end
     end
