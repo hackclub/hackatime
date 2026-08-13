@@ -78,6 +78,9 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
+      - name: Install libvips
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips42t64
+
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -115,6 +118,9 @@ jobs:
         with:
           ruby-version: .ruby-version
           bundler-cache: true
+
+      - name: Install libvips
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips42t64
 
       - name: Run Rails Zeitwerk check
         run: bin/rails zeitwerk:check
@@ -205,6 +211,9 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
+      - name: Install libvips
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips42t64
+
       - name: Run tests
         env:
           RAILS_ENV: test
@@ -251,6 +260,9 @@ jobs:
         with:
           ruby-version: .ruby-version
           bundler-cache: true
+
+      - name: Install libvips
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips42t64
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
