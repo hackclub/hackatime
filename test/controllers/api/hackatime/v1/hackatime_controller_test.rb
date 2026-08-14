@@ -449,8 +449,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal [ { "name" => "gpt/5.6", "lines" => 5 } ], active_day.dig("grand_total", "ai_model_breakdown")
     assert_equal(
       [
-        { "name" => "beta", "total_seconds" => 120, "percent" => 66.67 },
-        { "name" => "alpha", "total_seconds" => 60, "percent" => 33.33 }
+        { "name" => "alpha", "total_seconds" => 180, "percent" => 100.0 }
       ],
       active_day.fetch("projects").map { |project| project.slice("name", "total_seconds", "percent") }
     )
