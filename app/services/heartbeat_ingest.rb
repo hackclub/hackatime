@@ -104,10 +104,8 @@ class HeartbeatIngest
 
     resolve_placeholders!(attrs, placeholder_state)
 
-    if attrs[:language].blank? || attrs[:language] == "Unknown"
-      inferred = LanguageUtils.detect_from_extension(attrs[:entity])
-      attrs[:language] = inferred if inferred
-    end
+    inferred = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
+    attrs[:language] = inferred if inferred.present?
 
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     attrs[:user_agent] = attrs[:user_agent].presence || attrs.delete(:plugin).presence || @request_context[:user_agent].presence
