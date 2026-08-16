@@ -1,4 +1,7 @@
 class DeletionRequest < ApplicationRecord
+  MAX_REASON_LENGTH = 100
+  MAX_REASON_DETAILS_LENGTH = 1_000
+
   belongs_to :user
   belongs_to :admin_approved_by, class_name: "User", optional: true
 
@@ -6,7 +9,9 @@ class DeletionRequest < ApplicationRecord
 
   validates :requested_at, presence: true
   validates :reason, presence: true, if: -> { reason_details.present? }
+  validates :reason, length: { maximum: MAX_REASON_LENGTH }
   validates :reason_details, presence: true, if: -> { reason.present? }
+  validates :reason_details, length: { maximum: MAX_REASON_DETAILS_LENGTH }
   validate :user_not_banned_from_deletion, on: :create
 
   scope :active, -> { where(status: [ :pending, :approved ]) }

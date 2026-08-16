@@ -25,7 +25,8 @@ class Settings::PrivacyController < Settings::BaseController
 
   def section_props
     { user: user_props(keys: %i[allow_public_stats_lookup can_request_deletion]),
-      rotated_api_key: flash[:rotated_api_key] }
+      rotated_api_key: flash[:rotated_api_key],
+      deletion_reason_details_max_length: DeletionRequest::MAX_REASON_DETAILS_LENGTH }
   end
 
   def privacy_params = params.require(:user).permit(:allow_public_stats_lookup)

@@ -270,6 +270,7 @@ export type NotificationsPageProps = SettingsCommonProps & {
 export type PrivacyPageProps = SettingsCommonProps & {
   user: Pick<UserProps, "allow_public_stats_lookup" | "can_request_deletion">;
   rotated_api_key?: string | null;
+  deletion_reason_details_max_length: number;
 };
 
 export type GoalsPageProps = SettingsCommonProps & {
