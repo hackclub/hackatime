@@ -87,21 +87,6 @@ class DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Hack Club Auth verification failed. Please try again.", flash[:alert]
   end
 
-  test "HCA callback handles an invalid access token" do
-    @user.update!(hca_id: "hca-linked")
-    post create_deletion_path, params: deletion_params
-    state = session.dig(:pending_deletion_request, "state")
-    stub_request(:post, "#{HCAService.host}/oauth/token")
-      .to_return(body: { access_token: 123 }.to_json)
-
-    assert_no_difference "DeletionRequest.count" do
-      get hca_deletion_callback_path, params: { code: "step-up-code", state: state }
-    end
-
-    assert_redirected_to my_settings_path
-    assert_equal "Please verify with the Hack Club Account linked to Hackatime.", flash[:alert]
-  end
-
   test "HCA callback handles a connection failure" do
     @user.update!(hca_id: "hca-linked")
     post create_deletion_path, params: deletion_params

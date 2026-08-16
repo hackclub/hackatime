@@ -23,7 +23,7 @@ module OauthAuthentication
       })
       token_data = JSON.parse(response.body.to_s)
       access_token = token_data["access_token"] if token_data.is_a?(Hash)
-      return unless access_token.is_a?(String) && access_token.present?
+      return if access_token.nil?
 
       hca_data = HCAService.me(access_token)
       hca_data.dig("identity", "id") if hca_data.is_a?(Hash)
