@@ -99,31 +99,27 @@ module Heartbeatable
       uncached_users = user_ids.select { |id| streak_cache["#{cache_prefix}_#{id}"].nil? }
       return user_ids.index_with { |id| streak_cache["#{cache_prefix}_#{id}"] || 0 } if uncached_users.empty?
 
-      timeout = heartbeat_timeout_duration.to_i
       day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone)"
-      streak_diff_sql = <<~SQL.squish
-        LEAST(
-          time - LAG(time) OVER (PARTITION BY user_id, #{day_group_sql} ORDER BY time, #{quoted_table_name}.id),
-          #{timeout}
-        ) as diff
-      SQL
+      duration_start_sql = "LAG(time) OVER (PARTITION BY user_id, #{day_group_sql} ORDER BY time, #{quoted_table_name}.id) as duration_start"
       raw_durations = joins(:user)
         .where(user_id: uncached_users)
         .where.not(category: "browsing")
         .with_valid_timestamps
         .where(time: start_date..Time.current)
         .select(
+          Arel.sql("#{quoted_table_name}.time as duration_end"),
           :user_id,
           "users.timezone as user_timezone",
           Arel.sql("#{day_group_sql} as day_group"),
-          Arel.sql(streak_diff_sql)
+          Arel.sql(duration_start_sql)
         )
       raw_durations = raw_durations.excluding_browser_time if exclude_browser_time
+      capped_durations = with_capped_duration(raw_durations)
 
       # Then aggregate the results
       daily_durations = connection.select_all(
-        "SELECT user_id, user_timezone, day_group, COALESCE(SUM(diff), 0)::integer as duration
-         FROM (#{raw_durations.to_sql}) AS diffs
+        "SELECT user_id, user_timezone, day_group, COALESCE(SUM(duration), 0)::integer as duration
+         FROM (#{capped_durations.to_sql}) AS durations
          GROUP BY user_id, user_timezone, day_group"
       ).group_by { |row| row["user_id"] }
        .transform_values do |rows|
@@ -194,20 +190,59 @@ module Heartbeatable
         .map { |date, duration| [ date.to_date, duration ] }
     end
 
+    def daily_activity_summary_rows(scope:, timezone:)
+      quoted_timezone = connection.quote(timezone)
+      local_date_sql = "(to_timestamp(daily_summary_heartbeats.time) AT TIME ZONE #{quoted_timezone})::date"
+      summary_heartbeats = scope.with_valid_timestamps
+        .where.not(time: nil)
+        .select(:id, :time, :project, :ai_model, :ai_input_tokens, :ai_output_tokens, :ai_line_changes)
+      heartbeat_gaps = unscoped.from(summary_heartbeats, :daily_summary_heartbeats).select(<<~SQL.squish)
+        daily_summary_heartbeats.project,
+        daily_summary_heartbeats.ai_model,
+        daily_summary_heartbeats.ai_input_tokens,
+        daily_summary_heartbeats.ai_output_tokens,
+        daily_summary_heartbeats.ai_line_changes,
+        daily_summary_heartbeats.time AS duration_start,
+        #{local_date_sql} AS local_date,
+        LEAD(daily_summary_heartbeats.time) OVER (
+          PARTITION BY #{local_date_sql}
+          ORDER BY daily_summary_heartbeats.time, daily_summary_heartbeats.id
+        ) AS duration_end
+      SQL
+      capped_durations = with_capped_duration(heartbeat_gaps)
+
+      connection.select_all(<<~SQL.squish)
+        SELECT local_date,
+               project,
+               ai_model,
+               COALESCE(SUM(duration), 0)::integer AS duration,
+               COALESCE(SUM(ai_input_tokens), 0)::bigint AS ai_input_tokens,
+               COUNT(ai_input_tokens)::integer AS ai_input_token_count,
+               COALESCE(SUM(ai_output_tokens), 0)::bigint AS ai_output_tokens,
+               COUNT(ai_output_tokens)::integer AS ai_output_token_count,
+               COALESCE(SUM(ai_line_changes), 0)::bigint AS ai_line_changes
+        FROM (#{capped_durations.to_sql}) daily_durations
+        GROUP BY local_date, project, ai_model
+        ORDER BY local_date, project, ai_model
+      SQL
+    end
+
     def attributed_durations_by(scope, field)
       scope = scope.with_valid_timestamps
-      timeout = heartbeat_timeout_duration.to_i
       field_expr = connection.quote_column_name(field.to_s)
-      base_sql = scope.unscope(:group, :select, :order).select(:id, :time, field).to_sql
+      attribution_heartbeats = scope.unscope(:group, :select, :order).select(:id, :time, field)
+      heartbeat_gaps = unscoped.from(attribution_heartbeats, :attribution_heartbeats).select(<<~SQL.squish)
+        attribution_heartbeats.#{field_expr} AS bucket,
+        LAG(attribution_heartbeats.time) OVER (
+          ORDER BY attribution_heartbeats.time, attribution_heartbeats.id
+        ) AS duration_start,
+        attribution_heartbeats.time AS duration_end
+      SQL
+      capped_durations = with_capped_duration(heartbeat_gaps)
 
       sql = <<~SQL.squish
-        SELECT bucket, COALESCE(SUM(diff), 0)::integer AS duration
-        FROM (
-          SELECT #{field_expr} AS bucket,
-                 CASE WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
-                      ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout}) END AS diff
-          FROM (#{base_sql}) heartbeats_for_attribution
-        ) capped_diffs
+        SELECT bucket, COALESCE(SUM(duration), 0)::integer AS duration
+        FROM (#{capped_durations.to_sql}) attributed_durations
         WHERE bucket IS NOT NULL AND bucket <> ''
         GROUP BY bucket
       SQL
@@ -217,7 +252,6 @@ module Heartbeatable
 
     def duration_seconds(scope = all)
       scope = scope.with_valid_timestamps
-      timeout = heartbeat_timeout_duration.to_i
 
       if scope.group_values.any?
         raise NotImplementedError, "Multiple group values are not supported" if scope.group_values.length > 1
@@ -226,16 +260,18 @@ module Heartbeatable
         # Don't quote if it's a SQL function (contains parentheses)
         group_expr = group_column.to_s.include?("(") ? group_column : connection.quote_column_name(group_column)
 
-        capped_diffs = scope.select("#{group_expr} as grouped_time, CASE WHEN LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0 ELSE LEAST(time - LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id), #{timeout}) END as diff")
+        heartbeat_gaps = scope.select("#{group_expr} as grouped_time, LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end")
           .where.not(time: nil).unscope(:group)
+        capped_durations = with_capped_duration(heartbeat_gaps)
 
         connection.select_all(
-          "SELECT grouped_time, COALESCE(SUM(diff), 0)::integer as duration FROM (#{capped_diffs.to_sql}) AS diffs GROUP BY grouped_time"
+          "SELECT grouped_time, COALESCE(SUM(duration), 0)::integer as duration FROM (#{capped_durations.to_sql}) AS durations GROUP BY grouped_time"
         ).each_with_object({}) { |row, hash| hash[row["grouped_time"]] = row["duration"].to_i }
       else
         # when not grouped, return a single value
-        capped_diffs = scope.select("CASE WHEN LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0 ELSE LEAST(time - LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id), #{timeout}) END as diff").where.not(time: nil)
-        connection.select_value("SELECT COALESCE(SUM(diff), 0)::integer FROM (#{capped_diffs.to_sql}) AS diffs").to_i
+        heartbeat_gaps = scope.select("LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end").where.not(time: nil)
+        capped_durations = with_capped_duration(heartbeat_gaps)
+        connection.select_value("SELECT COALESCE(SUM(duration), 0)::integer FROM (#{capped_durations.to_sql}) AS durations").to_i
       end
     end
 
@@ -258,12 +294,24 @@ module Heartbeatable
         base_scope.where(time: start_time..end_time)
 
       # we calc w/ the boundary heartbeat, but we only sum within the orignal constraint
-      timeout = heartbeat_timeout_duration.to_i
-      capped_diffs = combined_scope
-        .select("time, CASE WHEN LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) IS NULL THEN 0 ELSE LEAST(time - LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id), #{timeout}) END as diff")
+      heartbeat_gaps = combined_scope
+        .select("LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end")
         .where.not(time: nil).order(time: :asc, id: :asc)
+      capped_durations = with_capped_duration(heartbeat_gaps)
 
-      connection.select_value("SELECT COALESCE(SUM(diff), 0)::integer FROM (#{capped_diffs.to_sql}) AS diffs WHERE time >= #{connection.quote(start_time)}").to_i
+      connection.select_value("SELECT COALESCE(SUM(duration), 0)::integer FROM (#{capped_durations.to_sql}) AS durations WHERE duration_end >= #{connection.quote(start_time)}").to_i
+    end
+
+    private
+
+    def with_capped_duration(heartbeat_intervals)
+      timeout = heartbeat_timeout_duration.to_i
+
+      unscoped.from(heartbeat_intervals, :heartbeat_intervals).select(<<~SQL.squish)
+        heartbeat_intervals.*,
+        CASE WHEN heartbeat_intervals.duration_start IS NULL OR heartbeat_intervals.duration_end IS NULL THEN 0
+             ELSE LEAST(heartbeat_intervals.duration_end - heartbeat_intervals.duration_start, #{timeout}) END AS duration
+      SQL
     end
   end
 end
