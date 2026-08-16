@@ -110,6 +110,13 @@ RUN --mount=type=cache,target=/root/.bundle/cache \
 # layers. Rails and Blume consume those dependencies through read-only mounts.
 FROM ruby-base AS application-source
 
+# image_processing 2.0 loads Ruby Vips during Rails boot, so the stages that
+# boot Rails below (route helpers, asset precompilation) need libvips too.
+ENV LD_LIBRARY_PATH="/usr/local/lib"
+
+COPY --from=libvips /libvips/libvips-cpp.so /usr/local/lib/libvips-cpp.so
+RUN ln -s libvips-cpp.so /usr/local/lib/libvips.so.42
+
 COPY --from=javascript-dependencies /rails/vendor/fonts /rails/vendor/fonts
 COPY --exclude=blume.config.ts --exclude=docs . .
 
