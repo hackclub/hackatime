@@ -1,6 +1,12 @@
 module LanguageUtils
   DEFAULT_COLOR = "#888888"
 
+  # Some extensions are silly and report the wrong language for a given entity path.
+  # But, we know better!
+  # This means that we can just override the language when we think it's incorrect, and Hackatime
+  # will be accurate Most Of The Time(tm). Without this, it's the opposite!
+  AUTHORITATIVE_EXTENSIONS = %w[.luau].freeze
+
   def self.data
     @data ||= begin
       base = YAML.load_file(Rails.root.join("config/languages.yml"))
@@ -56,7 +62,24 @@ module LanguageUtils
   end
 
   def self.detect_from_entity(entity) = detect_from_filename(entity) || detect_from_extension(entity)
-  def self.fill_missing_language(raw, entity:) = blank_or_unknown?(raw) ? detect_from_entity(entity) : raw
+
+  def self.authoritative_language(entity)
+    return nil if entity.blank?
+    return nil unless AUTHORITATIVE_EXTENSIONS.include?(File.extname(entity).downcase)
+    detect_from_extension(entity)
+  end
+
+  def self.fill_missing_language(raw, entity:)
+    authoritative_language(entity) || legacy_fill_missing_language(raw, entity:)
+  end
+
+  # The pre-override fill, without AUTHORITATIVE_EXTENSIONS. Kept so the import
+  # dedup path can reproduce fields hashes stored before the override existed;
+  # routing those through the override would compute hashes that never existed
+  # and re-importing an old dump would mint duplicate heartbeats.
+  def self.legacy_fill_missing_language(raw, entity:)
+    blank_or_unknown?(raw) ? detect_from_entity(entity) : raw
+  end
 
   # Canonical display name: "js" → "JavaScript", "cpp" → "C++"
   def self.display_name(raw) = raw.blank? ? "Unknown" : (find_name(raw) || raw)
