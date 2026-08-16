@@ -19,10 +19,11 @@ class DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
     @user.update!(hca_id: "hca-linked")
 
     assert_no_difference "DeletionRequest.count" do
-      post create_deletion_path, params: deletion_params
+      post create_deletion_path, params: deletion_params, headers: { "X-Inertia" => "true" }
     end
 
-    authorize_uri = URI.parse(response.location)
+    assert_response :conflict
+    authorize_uri = URI.parse(response.headers.fetch("X-Inertia-Location"))
     authorize_query = Rack::Utils.parse_query(authorize_uri.query)
     assert_equal "#{HCAService.host}/oauth/authorize", "#{authorize_uri.scheme}://#{authorize_uri.host}#{authorize_uri.path}"
     assert_equal "login", authorize_query["prompt"]

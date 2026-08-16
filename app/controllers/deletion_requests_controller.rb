@@ -94,12 +94,15 @@ class DeletionRequestsController < InertiaController
       "attributes" => attributes.stringify_keys
     }
 
-    redirect_to User.hca_authorize_url(
+    authorize_url = User.hca_authorize_url(
       hca_deletion_callback_url,
       state:,
       prompt: "login",
       scope: "openid email slack_id verification_status"
-    ), host: HCAService.host, allow_other_host: HCAService.host
+    )
+    return inertia_location(authorize_url) if request.headers["X-Inertia"].present?
+
+    redirect_to authorize_url, host: HCAService.host, allow_other_host: HCAService.host
   end
 
   def valid_hca_state?(expected_state)
