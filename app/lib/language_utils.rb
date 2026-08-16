@@ -70,7 +70,15 @@ module LanguageUtils
   end
 
   def self.fill_missing_language(raw, entity:)
-    authoritative_language(entity) || (blank_or_unknown?(raw) ? detect_from_entity(entity) : raw)
+    authoritative_language(entity) || legacy_fill_missing_language(raw, entity:)
+  end
+
+  # The pre-override fill, without AUTHORITATIVE_EXTENSIONS. Kept so the import
+  # dedup path can reproduce fields hashes stored before the override existed;
+  # routing those through the override would compute hashes that never existed
+  # and re-importing an old dump would mint duplicate heartbeats.
+  def self.legacy_fill_missing_language(raw, entity:)
+    blank_or_unknown?(raw) ? detect_from_entity(entity) : raw
   end
 
   # Canonical display name: "js" → "JavaScript", "cpp" → "C++"

@@ -306,7 +306,7 @@ class HeartbeatIngest
       type: hb[:type],
       category: hb[:category] || "coding",
       project: hb[:project],
-      language: LanguageUtils.fill_missing_language(hb[:language], entity: hb[:entity]),
+      language: LanguageUtils.legacy_fill_missing_language(hb[:language], entity: hb[:entity]),
       editor: hb[:editor].presence || user_agent_info[:editor].presence || legacy_user_agent[:editor].presence,
       operating_system: hb[:operating_system].presence || user_agent_info[:os].presence || legacy_user_agent[:os].presence,
       machine: hb[:machine].presence || hb[:machine_name_id].presence,
