@@ -109,6 +109,13 @@ export default defineConfig({
     output: "static",
     site: "https://hackatime.hackclub.com",
   },
+  redirects: [
+    {
+      from: "/getting-started/configuration",
+      to: "/configuration",
+      status: 301,
+    },
+  ],
   analytics: {
     scripts: [
       {
@@ -140,6 +147,7 @@ export default defineConfig({
   seo: {
     og: {
       enabled: true,
+      logo: "/images/hackatime-icon.svg",
       palette: {
         accent: defaultTheme.preview.primary,
         background: defaultTheme.preview.darker,

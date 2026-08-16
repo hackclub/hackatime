@@ -40,18 +40,10 @@ class Api::V1::My::HeartbeatsController < ApplicationController
   private
 
   def ensure_authenticated!
-    api_header = request.headers["Authorization"]
-    raw_token = api_header&.split(" ")&.last
-    api_token = case api_header&.split(" ")&.first
-    when "Bearer" then raw_token
-    when "Basic" then Base64.decode64(raw_token)
-    end
-    return render_unauthorized unless api_token.present?
-
-    valid_key = ApiKey.find_by(token: api_token)
-    return render_unauthorized unless valid_key.present?
-
-    @current_user = valid_key.user
+    @current_user = api_user_from_credentials(
+      oauth_scopes: [ "read" ],
+      api_key_sources: %i[bearer basic]
+    )
     render_unauthorized unless @current_user
   end
 

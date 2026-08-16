@@ -3,6 +3,7 @@ class ApplicationController < ActionController::Base
   include RenderHelpers
   include AuthHelpers
   include AdminApiKeyAuthentication
+  include UserApiAuthentication
 
   before_action :set_paper_trail_whodunnit
   before_action :sentry_context, if: :current_user
@@ -90,12 +91,15 @@ class ApplicationController < ActionController::Base
   # Authenticates stats integrations with an AdminApiKey. STATS_API_KEY remains
   # available as a temporary fallback while the Flipper flag is enabled.
   def authenticate_stats_api_key!(allow_query_param: true, message: "Unauthorized")
-    header_token = request.headers["Authorization"]&.split(" ")&.last
-    if header_token.present?
-      return if auth_admin_api_key(header_token)
-      return if valid_legacy_stats_api_key?(header_token)
-    elsif allow_query_param
-      return if valid_legacy_stats_api_key?(params[:api_key])
+    authorization = request.headers["Authorization"]
+    if authorization.nil?
+      return if allow_query_param && valid_legacy_stats_api_key?(params[:api_key])
+    elsif authorization.match?(/\ABearer +\S+\z/i)
+      scheme, header_token = authorization_credentials
+      if bearer_scheme?(scheme)
+        return if auth_admin_api_key(header_token)
+        return if valid_legacy_stats_api_key?(header_token)
+      end
     end
 
     render_unauthorized(message)
@@ -106,20 +110,6 @@ class ApplicationController < ActionController::Base
 
     expected = ENV["STATS_API_KEY"]
     token.present? && expected.present? && ActiveSupport::SecurityUtils.secure_compare(token, expected)
-  end
-
-  def oauth_bearer_user(required_scopes = [])
-    @oauth_bearer_users ||= {}
-    @oauth_bearer_users[required_scopes] ||= begin
-      scheme, raw_token = request.headers["Authorization"].to_s.split(/\s+/, 2)
-      if scheme&.casecmp?("Bearer") && raw_token.present?
-        token = Doorkeeper::AccessToken.by_token(raw_token)
-        if token&.acceptable?(required_scopes)
-          user = User.find_by(id: token.resource_owner_id)
-          user unless user&.api_access_restricted?
-        end
-      end
-    end
   end
 
   def enforce_lockout

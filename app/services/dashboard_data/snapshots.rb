@@ -179,6 +179,41 @@ module DashboardData
       }
     end
 
+    def coding_rhythm_snapshot(user:, scope:)
+      relation_sql = scope.with_valid_timestamps.where.not(time: nil).select(:id, :time).to_sql
+      quoted_timezone = Heartbeat.connection.quote(user.timezone)
+      local_time_sql = "to_timestamp(time) AT TIME ZONE #{quoted_timezone}"
+      timeout = Heartbeat.heartbeat_timeout_duration.to_i
+
+      rows = Heartbeat.connection.select_all(<<~SQL.squish)
+        SELECT weekday, hour, COALESCE(SUM(diff), 0)::integer AS duration
+        FROM (
+          SELECT EXTRACT(ISODOW FROM #{local_time_sql})::integer AS weekday,
+                 EXTRACT(HOUR FROM #{local_time_sql})::integer AS hour,
+                 CASE
+                   WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
+                   ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout})
+                 END AS diff
+          FROM (#{relation_sql}) coding_rhythm_heartbeats
+        ) diffs
+        GROUP BY weekday, hour
+        ORDER BY weekday, hour
+      SQL
+
+      {
+        timezone: user.timezone,
+        duration_by_slot: rows.to_h { |row| [ "#{row['weekday']}-#{row['hour']}", row["duration"].to_i ] }
+      }
+    end
+
+    def coding_rhythm_result(payload, timezone:)
+      durations = payload&.fetch("duration_by_slot", nil) || payload&.fetch(:duration_by_slot, nil) || {}
+      {
+        duration_by_slot: durations.transform_values(&:to_i),
+        timezone_label: ActiveSupport::TimeZone[timezone]&.to_s || timezone
+      }
+    end
+
     def week_ranges(timezone)
       Time.use_zone(timezone) do
         (0..11).map do |week_offset|
@@ -201,7 +236,8 @@ module DashboardData
         total_time: scope.duration_seconds,
         total_heartbeats: scope.count,
         grouped_durations: grouped_durations_snapshot(scope),
-        weekly_project_stats: weekly_project_stats(user: user, scope: scope)
+        weekly_project_stats: weekly_project_stats(user: user, scope: scope),
+        coding_rhythm: coding_rhythm_snapshot(user: user, scope: scope)
       }
     end
 
@@ -214,7 +250,8 @@ module DashboardData
     end
 
     # Fill aggregate display fields onto `result` from a snapshot.
-    # `snapshot` must respond to fetch for: total_time, total_heartbeats, grouped_durations, weekly_project_stats.
+    # `snapshot` must respond to fetch for: total_time, total_heartbeats, grouped_durations,
+    # weekly_project_stats, and coding_rhythm.
     def fill_aggregate_result(result:, snapshot:, archived:, helpers:)
       grouped_durations = snapshot.fetch(:grouped_durations)
       weekly = snapshot.fetch(:weekly_project_stats)
@@ -246,6 +283,7 @@ module DashboardData
 
           agg[key] = (agg[key] || 0) + duration
         end
+        result[:coding_category_stats] = stats.slice("ai coding", "coding") if field == :category
 
         display_stats = stats.sort_by { |_, duration| -duration }.first(10).map { |key, value|
           label = field == :language ? helpers.display_language_name(key) : key
@@ -262,6 +300,11 @@ module DashboardData
       result[:weekly_project_stats] = weekly.transform_values do |stats|
         stats.reject { |project, _| archived.include?(project) || ProjectNameUtils.broken?(project) }
       end
+      rhythm = snapshot.fetch(:coding_rhythm)
+      result[:coding_rhythm] = coding_rhythm_result(
+        rhythm,
+        timezone: rhythm[:timezone] || rhythm["timezone"]
+      )
     end
 
     def today_stats_display(snapshot_or_payload, helpers:)

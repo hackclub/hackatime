@@ -104,10 +104,8 @@ class HeartbeatIngest
 
     resolve_placeholders!(attrs, placeholder_state)
 
-    if attrs[:language].blank? || attrs[:language] == "Unknown"
-      inferred = LanguageUtils.detect_from_extension(attrs[:entity])
-      attrs[:language] = inferred if inferred
-    end
+    inferred = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
+    attrs[:language] = inferred if inferred.present?
 
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     attrs[:user_agent] = attrs[:user_agent].presence || attrs.delete(:plugin).presence || @request_context[:user_agent].presence
@@ -308,7 +306,7 @@ class HeartbeatIngest
       type: hb[:type],
       category: hb[:category] || "coding",
       project: hb[:project],
-      language: LanguageUtils.fill_missing_language(hb[:language], entity: hb[:entity]),
+      language: LanguageUtils.legacy_fill_missing_language(hb[:language], entity: hb[:entity]),
       editor: hb[:editor].presence || user_agent_info[:editor].presence || legacy_user_agent[:editor].presence,
       operating_system: hb[:operating_system].presence || user_agent_info[:os].presence || legacy_user_agent[:os].presence,
       machine: hb[:machine].presence || hb[:machine_name_id].presence,

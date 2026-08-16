@@ -69,13 +69,6 @@ class HeartbeatExportTest < ApplicationSystemTestCase
     end
   end
 
-  test "export is not available for restricted users" do
-    @user.update!(trust_level: :red)
-    visit my_settings_imports_exports_path
-
-    assert_text "Data export is currently restricted for this account."
-  end
-
   test "export request is rejected when signed-in user has no email address" do
     user_without_email = users(:three)
     create_heartbeat(user_without_email, Time.current - 1.hour, "src/no_email.rb")

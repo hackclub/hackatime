@@ -309,6 +309,20 @@ RSpec.configure do |config|
       paths: {},
       components: {
         securitySchemes: {
+          OAuth2: {
+            type: :oauth2,
+            flows: {
+              authorizationCode: {
+                authorizationUrl: '/oauth/authorize',
+                tokenUrl: '/oauth/token',
+                scopes: {
+                  profile: 'Read profile information',
+                  read: 'Read coding activity data',
+                  admin: 'Access administrative operations'
+                }
+              }
+            }
+          },
           Bearer: {
             type: :http,
             scheme: :bearer,

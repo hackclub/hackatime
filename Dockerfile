@@ -10,9 +10,8 @@
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 ARG RUBY_VERSION=4.0.6
 
-# Canary is a YMMV thing, so we pin to a known-good version
-# TODO: update to Bun 1.4 stable when it's released
-FROM docker.io/oven/bun:canary-slim@sha256:a7bb5914f0fbc281199f03a901b3f2797abd4604ba1371e3808ac5ab789de7bb AS bun
+# Bun 1.4 canary includes the package alias fix needed for the TypeScript 7 migration.
+FROM docker.io/oven/bun:canary-slim@sha256:6e28b54849cf680251afd7ed83e24375dfe47b6f78c8bfdb7e98bf12a6fa9f2e AS bun
 
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS ruby-base
 
@@ -62,7 +61,6 @@ RUN apt-get update -qq && \
 FROM frontend-base AS javascript-dependencies
 
 COPY package.json bun.lock bunfig.toml ./
-COPY patches patches
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun i --frozen-lockfile --linker=isolated && \
     mkdir -p node_modules/.vite-client node_modules/.vite-ssr node_modules/.vite-temp
@@ -103,13 +101,21 @@ COPY Gemfile Gemfile.lock ./
 RUN --mount=type=cache,target=/root/.bundle/cache \
     --mount=type=cache,target=/usr/local/bundle/ruby/4.0.0/cache \
     BUNDLER_VERSION="$(awk 'END { print $1 }' Gemfile.lock)" && \
-    gem list --installed bundler --version "$BUNDLER_VERSION" && \
+    (gem list --installed bundler --version "$BUNDLER_VERSION" || \
+      gem install bundler --version "$BUNDLER_VERSION" --no-document) && \
     bundle "_${BUNDLER_VERSION}_" install && \
     rm -rf "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git
 
 # Copy application source without persisting build-only dependencies in its
 # layers. Rails and Blume consume those dependencies through read-only mounts.
 FROM ruby-base AS application-source
+
+# image_processing 2.0 loads Ruby Vips during Rails boot, so the stages that
+# boot Rails below (route helpers, asset precompilation) need libvips too.
+ENV LD_LIBRARY_PATH="/usr/local/lib"
+
+COPY --from=libvips /libvips/libvips-cpp.so /usr/local/lib/libvips-cpp.so
+RUN ln -s libvips-cpp.so /usr/local/lib/libvips.so.42
 
 COPY --from=javascript-dependencies /rails/vendor/fonts /rails/vendor/fonts
 COPY --exclude=blume.config.ts --exclude=docs . .
@@ -196,7 +202,7 @@ COPY --from=build --chown=1000:1000 /rails/storage /rails/storage
 COPY --from=build --chown=1000:1000 /rails/tmp /rails/tmp
 
 ARG SOURCE_COMMIT=unknown
-ENV SOURCE_COMMIT="${SOURCE_COMMIT}"
+RUN printf '%s\n' "$SOURCE_COMMIT" > REVISION
 
 USER 1000:1000
 

@@ -7,6 +7,7 @@ Doorkeeper.configure do
   default_scopes "profile"
   optional_scopes "read", "admin"
   enforce_configured_scopes
+  access_token_methods :from_bearer_authorization
 
   resource_owner_authenticator do
     if respond_to?(:current_user, true)

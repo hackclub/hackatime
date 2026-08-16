@@ -37,6 +37,32 @@ class WakatimeService
     build_summary
   end
 
+  def generate_daily_summaries(timezone:, start_date:, end_date:)
+    activity_by_date = daily_activity(timezone)
+    data = (start_date..end_date).map do |date|
+      build_daily_summary(date, activity_by_date[date], timezone)
+    end
+    total_seconds = data.sum { |summary| summary.dig(:grand_total, :total_seconds) }
+    active_days = data.count { |summary| summary.dig(:grand_total, :total_seconds).positive? }
+    average_seconds = data.any? ? total_seconds / data.length : 0
+
+    {
+      data: data,
+      cumulative_total: cumulative_duration(total_seconds),
+      daily_average: {
+        holidays: data.length - active_days,
+        days_including_holidays: data.length,
+        days_minus_holidays: active_days,
+        seconds: average_seconds,
+        seconds_including_other_language: average_seconds,
+        text: duration_text(average_seconds),
+        text_including_other_language: duration_text(average_seconds)
+      },
+      start: start_date.iso8601,
+      end: end_date.iso8601
+    }
+  end
+
   def cached_summary
     Rails.cache.fetch(summary_cache_key, expires_in: 1.minute) do
       build_summary
@@ -128,6 +154,120 @@ class WakatimeService
   end
 
   private
+
+  def daily_activity(timezone)
+    activity_by_date = Hash.new do |hash, date|
+      hash[date] = {
+        total_seconds: 0,
+        projects: Hash.new(0),
+        ai_input_tokens: 0,
+        ai_input_token_count: 0,
+        ai_output_tokens: 0,
+        ai_output_token_count: 0,
+        ai_models: Hash.new(0)
+      }
+    end
+
+    Heartbeat.daily_activity_summary_rows(scope: @scope, timezone: timezone).each do |row|
+      activity = activity_by_date[row.fetch("local_date").to_date]
+      duration = row.fetch("duration").to_i
+      activity[:total_seconds] += duration
+      activity[:projects][row["project"].presence || "Other"] += duration
+      activity[:ai_input_tokens] += row.fetch("ai_input_tokens").to_i
+      activity[:ai_input_token_count] += row.fetch("ai_input_token_count").to_i
+      activity[:ai_output_tokens] += row.fetch("ai_output_tokens").to_i
+      activity[:ai_output_token_count] += row.fetch("ai_output_token_count").to_i
+      activity[:ai_models][row["ai_model"]] += row.fetch("ai_line_changes").to_i if row["ai_model"].present?
+    end
+
+    activity_by_date
+  end
+
+  def build_daily_summary(date, activity, timezone)
+    activity ||= {
+      total_seconds: 0,
+      projects: {},
+      ai_input_tokens: 0,
+      ai_input_token_count: 0,
+      ai_output_tokens: 0,
+      ai_output_token_count: 0,
+      ai_models: {}
+    }
+    total_seconds = activity[:total_seconds]
+    grand_total = duration(total_seconds)
+    grand_total[:ai_input_tokens] = activity[:ai_input_tokens] if activity[:ai_input_token_count].positive?
+    grand_total[:ai_output_tokens] = activity[:ai_output_tokens] if activity[:ai_output_token_count].positive?
+    if activity[:ai_models].any?
+      grand_total[:ai_model_breakdown] = activity[:ai_models]
+        .sort_by { |name, lines| [ -lines, name ] }
+        .map { |name, lines| { name: name, lines: lines } }
+    end
+
+    day_start = date.beginning_of_day
+    {
+      grand_total: grand_total,
+      branches: [],
+      categories: [],
+      dependencies: [],
+      editors: [],
+      entities: [],
+      languages: [],
+      machines: [],
+      operating_systems: [],
+      projects: project_breakdown(activity[:projects], total_seconds),
+      range: {
+        date: date.iso8601,
+        start: day_start.utc.iso8601,
+        end: day_start.end_of_day.utc.iso8601,
+        text: summary_date_text(date),
+        timezone: timezone
+      }
+    }
+  end
+
+  def project_breakdown(projects, total_seconds)
+    projects.filter_map do |name, seconds|
+      next unless seconds.positive?
+
+      duration(seconds).merge(
+        name: name,
+        percent: total_seconds.positive? ? ((seconds.to_f / total_seconds) * 100).round(2) : 0
+      )
+    end.sort_by { |project| [ -project[:total_seconds], project[:name] ] }
+  end
+
+  def duration(total_seconds)
+    total_seconds = total_seconds.to_i
+    hours, remainder = total_seconds.divmod(3600)
+    minutes, seconds = remainder.divmod(60)
+    {
+      total_seconds: total_seconds,
+      hours: hours,
+      minutes: minutes,
+      seconds: seconds,
+      digital: ApplicationController.helpers.digital_time(total_seconds),
+      decimal: format("%.2f", total_seconds / 3600.0),
+      text: duration_text(total_seconds)
+    }
+  end
+
+  def cumulative_duration(total_seconds)
+    value = duration(total_seconds)
+    value[:seconds] = value.delete(:total_seconds)
+    value
+  end
+
+  def duration_text(total_seconds)
+    ApplicationController.helpers.short_time_detailed(total_seconds).presence || "0s"
+  end
+
+  def summary_date_text(date)
+    today = Date.current
+    return "Today" if date == today
+    return "Yesterday" if date == today - 1.day
+
+    date.to_fs(:long)
+  end
 
   def convert_to_unix_timestamp(timestamp)
     # our lord and savior stack overflow for this bit of code

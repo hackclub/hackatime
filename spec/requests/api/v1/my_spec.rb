@@ -20,7 +20,8 @@ RSpec.describe 'Api::V1::My', type: :request do
     get('Get most recent heartbeat') do
       tags 'My Data'
       description 'Returns the most recent heartbeat for the authenticated user. Useful for checking if the user is currently active. ' \
-                  'Authenticate with your API key as a Bearer token in the `Authorization` header (HTTP Basic auth with the API key is also accepted).'
+                  'Authenticate with an OAuth access token with the `read` scope or an API key as a Bearer token in the `Authorization` header ' \
+                  '(HTTP Basic auth with the API key is also accepted).'
       security [ { Bearer: [] } ]
       produces 'application/json'
 
@@ -47,7 +48,7 @@ RSpec.describe 'Api::V1::My', type: :request do
         run_test!
       end
 
-      response(401, 'unauthorized — Returned when the Authorization header is missing or the token does not match a known API key.') do
+      response(401, 'unauthorized — Returned when the Authorization header is missing, the OAuth token lacks the read scope, or the token is invalid.') do
         let(:Authorization) { 'Bearer invalid' }
         let(:source_type) { 'direct_entry' }
         let(:editor) { 'VSCode' }
@@ -60,7 +61,8 @@ RSpec.describe 'Api::V1::My', type: :request do
     get('Get heartbeats') do
       tags 'My Data'
       description 'Returns a list of heartbeats for the authenticated user within a time range. This is the raw data stream. ' \
-                  'Authenticate with your API key as a Bearer token in the `Authorization` header (HTTP Basic auth with the API key is also accepted).'
+                  'Authenticate with an OAuth access token with the `read` scope or an API key as a Bearer token in the `Authorization` header ' \
+                  '(HTTP Basic auth with the API key is also accepted).'
       security [ { Bearer: [] } ]
       produces 'application/json'
 
@@ -87,7 +89,7 @@ RSpec.describe 'Api::V1::My', type: :request do
         run_test!
       end
 
-      response(401, 'unauthorized — Returned when the Authorization header is missing or the token does not match a known API key.') do
+      response(401, 'unauthorized — Returned when the Authorization header is missing, the OAuth token lacks the read scope, or the token is invalid.') do
         let(:Authorization) { 'Bearer invalid' }
         let(:start_time) { 1.day.ago.iso8601 }
         let(:end_time) { Time.now.iso8601 }

@@ -385,4 +385,159 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
 
     assert_response :bad_request
   end
+
+  test "current user returns a WakaTime compatible profile" do
+    user = User.create!(
+      display_name_override: "Ada Lovelace",
+      slack_avatar_url: "https://example.com/ada.png",
+      timezone: "Europe/London",
+      username: "ada"
+    )
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current",
+      headers: { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
+
+    assert_response :success
+    assert_equal(
+      {
+        "id" => user.id.to_s,
+        "username" => "ada",
+        "display_name" => "Ada Lovelace",
+        "full_name" => "Ada Lovelace",
+        "photo" => "https://example.com/ada.png",
+        "timezone" => "Europe/London",
+        "created_at" => user.created_at.iso8601,
+        "modified_at" => user.updated_at.iso8601,
+        "plan" => "free"
+      },
+      JSON.parse(response.body).fetch("data")
+    )
+  end
+
+  test "summaries return WakaTime compatible daily activity" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+    start_time = Time.utc(2026, 8, 10, 10)
+
+    user.heartbeats.create!(
+      category: "coding", entity: "app/first.rb", project: "alpha",
+      source_type: :test_entry, time: start_time.to_f, type: "file"
+    )
+    user.heartbeats.create!(
+      ai_input_tokens: 100, ai_line_changes: 5, ai_model: "gpt/5.6", ai_output_tokens: 20,
+      category: "coding", entity: "app/second.rb", project: "alpha",
+      source_type: :test_entry, time: (start_time + 1.minute).to_f, type: "file"
+    )
+    user.heartbeats.create!(
+      category: "coding", entity: "app/third.rb", project: "beta",
+      source_type: :test_entry, time: (start_time + 5.minutes).to_f, type: "file"
+    )
+
+    get "/api/hackatime/v1/users/current/summaries",
+      params: { start: "2026-08-10", end: "2026-08-11" },
+      headers: { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal [ "2026-08-10", "2026-08-11" ], payload.fetch("data").map { |day| day.dig("range", "date") }
+
+    active_day = payload.fetch("data").first
+    assert_equal 180, active_day.dig("grand_total", "total_seconds")
+    assert_equal 100, active_day.dig("grand_total", "ai_input_tokens")
+    assert_equal 20, active_day.dig("grand_total", "ai_output_tokens")
+    assert_equal [ { "name" => "gpt/5.6", "lines" => 5 } ], active_day.dig("grand_total", "ai_model_breakdown")
+    assert_equal(
+      [
+        { "name" => "alpha", "total_seconds" => 180, "percent" => 100.0 }
+      ],
+      active_day.fetch("projects").map { |project| project.slice("name", "total_seconds", "percent") }
+    )
+
+    assert_equal 0, payload.fetch("data").second.dig("grand_total", "total_seconds")
+    assert_equal 180, payload.dig("cumulative_total", "seconds")
+  end
+
+  test "summaries reject missing or invalid date ranges" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+    headers = { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
+
+    get "/api/hackatime/v1/users/current/summaries", headers: headers
+    assert_response :bad_request
+
+    get "/api/hackatime/v1/users/current/summaries",
+      params: { start: "not-a-date", end: "2026-08-11" }, headers: headers
+    assert_response :bad_request
+
+    get "/api/hackatime/v1/users/current/summaries",
+      params: { start: "2026-08-12", end: "2026-08-11" }, headers: headers
+    assert_response :bad_request
+
+    get "/api/hackatime/v1/users/current/summaries",
+      params: { start: "2025-08-10", end: "2026-08-11" }, headers: headers
+    assert_response :bad_request
+
+    get "/api/hackatime/v1/users/current/summaries",
+      params: { start: "2026-08-11", end: "2026-08-11", timezone: "Not/A_Timezone" }, headers: headers
+    assert_response :bad_request
+  end
+
+  test "status bar accepts API keys with Basic authentication" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current/statusbar/today",
+      headers: { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
+
+    assert_response :success
+  end
+
+  test "status bar accepts API keys from the query string" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current/statusbar/today", params: { api_key: api_key.token }
+
+    assert_response :success
+  end
+
+  test "status bar does not accept OAuth access tokens" do
+    user = User.create!(timezone: "UTC")
+    access_token = create_oauth_access_token(user)
+
+    get "/api/hackatime/v1/users/current/statusbar/today",
+      headers: { "Authorization" => "Bearer #{access_token.token}" }
+
+    assert_response :unauthorized
+  end
+
+  test "malformed authorization header does not fall through to query API key" do
+    user = User.create!(timezone: "UTC")
+    api_key = user.api_keys.create!(name: "primary")
+
+    get "/api/hackatime/v1/users/current/statusbar/today",
+      params: { api_key: api_key.token },
+      headers: { "Authorization" => "Bearer" }
+
+    assert_response :unauthorized
+  end
+
+  private
+
+  def create_oauth_access_token(user)
+    application = user.oauth_applications.create!(
+      name: "Test App",
+      redirect_uri: "https://example.com/callback",
+      scopes: "profile read",
+      confidential: true
+    )
+
+    Doorkeeper::AccessToken.create!(
+      application: application,
+      resource_owner_id: user.id,
+      scopes: "profile read",
+      expires_in: 16.years
+    )
+  end
 end

@@ -14,9 +14,10 @@ class SailorsLogNotifyJob < ApplicationJob
   def perform(sailors_log_slack_notification_id)
     slsn = SailorsLogSlackNotification.find(sailors_log_slack_notification_id)
     hours = slsn.project_duration / 3600
+    hours_text = "#{hours} #{"hour".pluralize(hours)}"
     username = SlackUsername.find_by_uid(slsn.slack_uid)
     handle = username.blank? ? "<@#{slsn.slack_uid}>" : "@#{username}"
-    message = ":boat: `#{handle}` just coded 1 more hour on *#{slsn.project_name}* (total: #{hours}hrs). _#{KUDOS.sample}_"
+    message = ":boat: `#{handle}` has now coded for *#{hours_text}* on *#{slsn.project_name}*. _#{KUDOS.sample}_"
 
     response = HTTP.auth("Bearer #{ENV['SAILORS_LOG_SLACK_BOT_OAUTH_TOKEN']}")
       .post("https://slack.com/api/chat.postMessage",

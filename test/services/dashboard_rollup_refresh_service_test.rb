@@ -20,6 +20,7 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
       filter_options_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::FILTER_OPTIONS_DIMENSION)
       activity_graph_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
       today_stats_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::TODAY_STATS_DIMENSION)
+      coding_rhythm_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::CODING_RHYTHM_DIMENSION)
 
       assert_equal user.heartbeats.duration_seconds, total_row.total_seconds
       assert_equal user.heartbeats.count, total_row.source_heartbeats_count
@@ -52,7 +53,22 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
       assert_equal 60, today_stats_row.payload["todays_duration_seconds"]
       assert_equal [ "Ruby" ], today_stats_row.payload["todays_language_categories"]
       assert_equal [ "vscode" ], today_stats_row.payload["todays_editor_keys"]
+
+      assert_equal "UTC", coding_rhythm_row.payload["timezone"]
+      assert_equal 420, coding_rhythm_row.payload.dig("duration_by_slot", "1-10")
+      assert_equal 240, coding_rhythm_row.payload.dig("duration_by_slot", "2-9")
     end
+  end
+
+  test "groups coding rhythm in the user's local weekday and hour" do
+    user = User.create!(timezone: "America/Los_Angeles")
+    create_heartbeat(user, "2026-04-13 01:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+    create_heartbeat(user, "2026-04-13 01:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+
+    DashboardRollupRefreshService.new(user: user).call
+
+    payload = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::CODING_RHYTHM_DIMENSION).payload
+    assert_equal({ "7-18" => 60 }, payload["duration_by_slot"])
   end
 
   test "excludes archived projects from every rollup dimension" do

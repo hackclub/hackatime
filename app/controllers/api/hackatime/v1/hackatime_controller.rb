@@ -12,6 +12,48 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   ].freeze
 
   MAX_BULK_HEARTBEATS = 100
+  MAX_SUMMARY_DAYS = 366
+
+  def show_user
+    render json: {
+      data: {
+        id: @user.id.to_s,
+        username: @user.username,
+        display_name: @user.display_name,
+        full_name: @user.display_name,
+        photo: @user.avatar_url,
+        timezone: @user.timezone,
+        created_at: @user.created_at.iso8601,
+        modified_at: @user.updated_at.iso8601,
+        plan: "free"
+      }
+    }
+  end
+
+  def summaries
+    start_date = parse_summary_date(params[:start])
+    end_date = parse_summary_date(params[:end])
+    return render_bad_request("start and end must be valid dates in YYYY-MM-DD format") unless start_date && end_date
+    return render_bad_request("end must not be before start") if end_date < start_date
+    return render_bad_request("date range cannot exceed #{MAX_SUMMARY_DAYS} days") if (end_date - start_date).to_i >= MAX_SUMMARY_DAYS
+
+    timezone = params[:timezone].presence || @user.timezone
+    return render_bad_request("Invalid timezone") unless valid_timezone?(timezone)
+
+    Time.use_zone(timezone) do
+      scope = @user.heartbeats
+      scope = scope.where(project: params[:project]) if params[:project].present?
+      service = WakatimeService.new(
+        user: @user,
+        scope: scope,
+        allow_cache: false,
+        start_date: start_date.beginning_of_day,
+        end_date: (end_date + 1.day).beginning_of_day
+      )
+
+      render json: service.generate_daily_summaries(timezone:, start_date:, end_date:)
+    end
+  end
 
   def push_heartbeats
     if params["format"] == "bulk"
@@ -119,6 +161,21 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def hms(total) = [ total / 3600, (total % 3600) / 60, total % 60 ]
 
+  def parse_summary_date(value)
+    return unless value.to_s.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+
+    Date.iso8601(value)
+  rescue Date::Error
+    nil
+  end
+
+  def valid_timezone?(timezone)
+    TZInfo::Timezone.get(timezone)
+    true
+  rescue TZInfo::InvalidTimezoneIdentifier
+    false
+  end
+
   def format_hr(total)
     h, m, _ = hms(total)
     "#{h} hrs #{m} mins"
@@ -182,22 +239,10 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   def check_lockout = (render_forbidden("Account pending deletion") if @user&.pending_deletion?)
 
   def set_user
-    api_header = request.headers["Authorization"]
-    raw_token = api_header&.split(" ")&.last
-    api_token = case api_header&.split(" ")&.first
-    when "Bearer" then raw_token
-    when "Basic" then Base64.decode64(raw_token)
-    end
-    api_token ||= params[:api_key] if params[:api_key].present?
-    return render_unauthorized unless api_token.present?
-
-    # Sanitize api_token to handle invalid UTF-8 sequences
-    api_token = api_token.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
-
-    valid_key = ApiKey.find_by(token: api_token)
-    return render_unauthorized unless valid_key.present?
-
-    @user = valid_key.user
+    @user = api_user_from_credentials(
+      api_key_sources: %i[bearer basic query],
+      allow_restricted: true
+    )
     render_unauthorized unless @user
   end
 
