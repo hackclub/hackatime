@@ -33,6 +33,18 @@ class DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_equal deletion_params[:deletion_request][:reason], session.dig(:pending_deletion_request, "attributes", "reason")
   end
 
+  test "create rejects deletion details that cannot fit in the session" do
+    @user.update!(hca_id: "hca-linked")
+
+    post create_deletion_path, params: {
+      deletion_request: deletion_params[:deletion_request].merge(reason_details: "a" * 10_000)
+    }
+
+    assert_redirected_to my_settings_path
+    assert_equal "Deletion details are too long.", flash[:alert]
+    assert_nil session[:pending_deletion_request]
+  end
+
   test "HCA callback creates the pending request for the linked identity" do
     @user.update!(hca_id: "hca-linked")
     post create_deletion_path, params: deletion_params
@@ -59,6 +71,35 @@ class DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to my_settings_path
+  end
+
+  test "HCA callback handles an invalid response" do
+    @user.update!(hca_id: "hca-linked")
+    post create_deletion_path, params: deletion_params
+    state = session.dig(:pending_deletion_request, "state")
+    stub_request(:post, "#{HCAService.host}/oauth/token").to_return(body: "not json")
+
+    assert_no_difference "DeletionRequest.count" do
+      get hca_deletion_callback_path, params: { code: "step-up-code", state: state }
+    end
+
+    assert_redirected_to my_settings_path
+    assert_equal "Hack Club Auth verification failed. Please try again.", flash[:alert]
+  end
+
+  test "HCA callback handles a connection failure" do
+    @user.update!(hca_id: "hca-linked")
+    post create_deletion_path, params: deletion_params
+    state = session.dig(:pending_deletion_request, "state")
+    stub_request(:post, "#{HCAService.host}/oauth/token")
+      .to_raise(HTTP::ConnectionError.new("HCA unavailable"))
+
+    assert_no_difference "DeletionRequest.count" do
+      get hca_deletion_callback_path, params: { code: "step-up-code", state: state }
+    end
+
+    assert_redirected_to my_settings_path
+    assert_equal "Hack Club Auth verification failed. Please try again.", flash[:alert]
   end
 
   test "HCA callback rejects an invalid state" do

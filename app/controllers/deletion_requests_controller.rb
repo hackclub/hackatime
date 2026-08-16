@@ -48,6 +48,9 @@ class DeletionRequestsController < InertiaController
     end
 
     create_deletion_request(pending_request.fetch("attributes").symbolize_keys)
+  rescue HTTP::Error, JSON::ParserError => e
+    report_error(e, message: "HCA deletion step-up failed")
+    redirect_to my_settings_path, alert: "Hack Club Auth verification failed. Please try again."
   end
 
   def cancel
@@ -77,12 +80,18 @@ class DeletionRequestsController < InertiaController
   end
 
   def begin_hca_step_up
+    attributes = deletion_request_params
+    if attributes[:reason].to_s.length > DeletionRequest::MAX_REASON_LENGTH ||
+        attributes[:reason_details].to_s.length > DeletionRequest::MAX_REASON_DETAILS_LENGTH
+      return redirect_to(my_settings_path, alert: "Deletion details are too long.")
+    end
+
     state = SecureRandom.hex(24)
     session[:pending_deletion_request] = {
       "state" => state,
       "user_id" => current_user.id,
       "hca_id" => current_user.hca_id,
-      "attributes" => deletion_request_params.stringify_keys
+      "attributes" => attributes.stringify_keys
     }
 
     redirect_to User.hca_authorize_url(

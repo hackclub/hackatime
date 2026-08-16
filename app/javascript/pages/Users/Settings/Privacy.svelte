@@ -17,6 +17,7 @@
     user,
     rotated_api_key = "",
     errors,
+    deletion_reason_details_max_length,
   }: PrivacyPageProps = $props();
 
   const deletionReasons = [
@@ -231,6 +232,7 @@
         name="deletion_request[reason_details]"
         rows="4"
         bind:value={deletionReasonDetails}
+        maxlength={deletion_reason_details_max_length}
         required
         class="block w-full rounded-lg border border-surface-300 bg-darker px-3 py-2 text-sm text-surface-content placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
         placeholder="Tell us anything else we should know."

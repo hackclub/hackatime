@@ -21,10 +21,12 @@ module OauthAuthentication
         client_id: ENV["HCA_CLIENT_ID"], client_secret: ENV["HCA_CLIENT_SECRET"],
         redirect_uri:, code:, grant_type: "authorization_code"
       })
-      access_token = JSON.parse(response.body.to_s)["access_token"]
+      token_data = JSON.parse(response.body.to_s)
+      access_token = token_data["access_token"] if token_data.is_a?(Hash)
       return if access_token.nil?
 
-      HCAService.me(access_token).dig("identity", "id")
+      hca_data = HCAService.me(access_token)
+      hca_data.dig("identity", "id") if hca_data.is_a?(Hash)
     end
 
     def slack_authorize_url(redirect_uri, state: nil, close_window: false, continue_param: nil)
