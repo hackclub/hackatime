@@ -541,6 +541,28 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
+  test "import heartbeat ingest recognizes legacy hashes stored before the language override" do
+    user = User.create!(timezone: "UTC")
+    raw = {
+      category: "coding",
+      entity: "/home/dev/main.luau",
+      language: "Lua",
+      project: "vm",
+      time: 1_700_000_000.0,
+      type: "file"
+    }
+    # Stored before AUTHORITATIVE_EXTENSIONS existed, so its hash was computed
+    # with the client-reported "Lua" rather than the corrected "Luau".
+    create_legacy_imported_heartbeat(user, raw)
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 0, result.persisted_count
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
   test "import heartbeat ingest recognizes legacy hashes containing placeholders" do
     user = User.create!(timezone: "UTC")
     raw = {
