@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Form, Link } from "@inertiajs/svelte";
+  import AdminUserMention from "../../components/AdminUserMention.svelte";
   import Button from "../../components/Button.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import { adminTimeline, users } from "../../api";
@@ -24,6 +25,7 @@
       slack_url: string | null;
       github_url: string | null;
       trust_level: string;
+      can_impersonate: boolean;
     };
     total: number;
     total_short: string;
@@ -388,11 +390,7 @@
             title={`User ID: ${column.user.id} - ${column.user.display_name} | Total Coded: ${column.total > 0 ? column.total_detailed : "0m"} | TZ: ${column.user.timezone}`}
           >
             <div class="mb-1 flex items-center gap-2">
-              {#if column.user.avatar_url}<img
-                  src={column.user.avatar_url}
-                  alt={`${column.user.display_name}'s avatar`}
-                  class="aspect-square h-8 w-8 rounded-full border border-surface-200"
-                />{/if}<span>{column.user.display_name}</span>
+              <AdminUserMention user={column.user} />
             </div>
             <div
               class="mb-1 flex items-center justify-center gap-4 text-center"

@@ -17,12 +17,25 @@
   }: { groups: Record<string, User[]>; current_user_id: number } = $props();
   let results = $state<User[] | null>(null);
   let timer: ReturnType<typeof setTimeout>;
-  const colours: Record<string, string> = {
-    ultraadmin: "purple-400",
-    superadmin: "red",
-    admin: "yellow",
-    viewer: "blue",
-    default: "surface-100",
+  const headingClasses: Record<string, string> = {
+    ultraadmin: "text-purple-400",
+    superadmin: "text-red",
+    admin: "text-yellow",
+    viewer: "text-blue",
+  };
+  const buttonClasses: Record<string, string> = {
+    ultraadmin: "bg-purple-400 text-on-primary hover:bg-purple-400",
+    superadmin: "bg-red text-on-primary hover:bg-red",
+    admin: "bg-yellow text-on-primary hover:bg-yellow",
+    viewer: "bg-blue text-on-primary hover:bg-blue",
+    default: "bg-surface-100 text-surface-content hover:bg-surface-100",
+  };
+  const roleClasses: Record<string, string> = {
+    ultraadmin: "bg-purple-400/20 text-purple-400",
+    superadmin: "bg-red/20 text-red",
+    admin: "bg-yellow/20 text-yellow",
+    viewer: "bg-blue/20 text-blue",
+    default: "bg-surface-100/20 text-muted",
   };
   const labels: Record<string, string> = {
     ultraadmin: "Ultraadmin",
@@ -82,7 +95,7 @@
   {#each ["ultraadmin", "superadmin", "admin", "viewer"] as level}<div
       class="border border-primary rounded-xl p-6 bg-dark"
     >
-      <h2 class="text-2xl font-semibold mb-4 text-{colours[level]}">
+      <h2 class="mb-4 text-2xl font-semibold {headingClasses[level]}">
         {labels[level]}s ({groups[level].length})
       </h2>
       {#if groups[level].length}<div class="overflow-x-auto">
@@ -106,7 +119,20 @@
 )}{#each users as user}{#if search}<div
         class="flex items-center justify-between p-3 hover:bg-surface-100/50 bg-darker border border-surface-200"
       >
-        {@render User(user)}{@render Actions(user)}
+        <div>
+          {@render User(user)}
+          <div class="mt-1 flex items-center gap-2 pl-10">
+            <span class="text-sm text-muted"
+              >{user.slack_uid || "No Slack ID"}</span
+            >
+            <span
+              class="rounded-full px-2 py-0.5 text-xs {roleClasses[
+                user.admin_level
+              ]}">{labels[user.admin_level]}</span
+            >
+          </div>
+        </div>
+        {@render Actions(user)}
       </div>{:else}<tr
         class="border-b border-surface-200 hover:bg-surface-100/50"
         ><td class="py-3 px-4">{@render User(user)}</td><td
@@ -145,12 +171,9 @@
         ><Button
           unstyled
           type="submit"
-          class="px-3 py-1 bg-{colours[level]} hover:bg-{colours[
+          class="cursor-pointer rounded px-3 py-1 text-sm font-medium transition-colors {buttonClasses[
             level
-          ]} {level === 'default'
-            ? 'text-surface-content'
-            : 'text-on-primary'} text-sm font-medium rounded transition-colors cursor-pointer"
-          >→ {labels[level]}</Button
+          ]}">→ {labels[level]}</Button
         ></Form
       >{/each}
   </div>{/snippet}

@@ -63,7 +63,8 @@ class Admin::OauthApplicationsController < Admin::BaseController
     { application: summary(@application).merge(uid: @application.uid, scopes: @application.scopes.to_a.map(&:to_s),
         confidential: @application.confidential?, redirect_to_hca_login: @application.redirect_to_hca_login?,
         created_at: @application.created_at.strftime("%B %d, %Y at %I:%M %p"),
-        owner: owner && { display_name: owner.display_name, avatar_url: owner.avatar_url }),
+        owner: owner && { id: owner.id, display_name: owner.display_name, avatar_url: owner.avatar_url,
+                          can_impersonate: current_user.can_impersonate?(owner) }),
       secret: flash[:application_secret].presence }
   end
 

@@ -86,7 +86,8 @@ class Admin::TimelineController < Admin::BaseController
         user: {
           id: user.id, display_name: user.display_name.to_s, avatar_url: user.avatar_url,
           timezone: timezone, slack_url: user == current_user || user.slack_uid.blank? ? nil : "slack://user?team=T0266FRGM&id=#{user.slack_uid}",
-          github_url: user.github_profile_url, trust_level: user.trust_level
+          github_url: user.github_profile_url, trust_level: user.trust_level,
+          can_impersonate: current_user.can_impersonate?(user)
         },
         total: data[:total_coded_time].to_i,
         total_short: short_time_simple(data[:total_coded_time]),

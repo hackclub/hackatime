@@ -113,6 +113,10 @@ class User < ApplicationRecord
   def can_view_query_stats? = admin_level.in?(%w[viewer admin superadmin ultraadmin])
   def admin_level_rank = ADMIN_LEVEL_RANK[admin_level.to_s] || 0
 
+  def can_impersonate?(target_user)
+    admin_level.in?(%w[admin superadmin ultraadmin]) && can_act_on?(target_user)
+  end
+
   # True if `self` is allowed to set `target_user`'s admin_level to `new_level`.
   # Rules: only superadmin+ can change admin_level; no self-change; actor must
   # strictly outrank target's current level and be at/above the rank being

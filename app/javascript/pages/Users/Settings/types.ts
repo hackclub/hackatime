@@ -351,6 +351,7 @@ const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
   ],
   privacy: [
     { id: "user_privacy", label: "Public stats" },
+    { id: "authorized_applications", label: "Authorized applications" },
     { id: "user_api_key", label: "API key" },
     { id: "delete_account", label: "Account deletion" },
   ],
@@ -398,6 +399,7 @@ const hashSectionMap: Record<string, SectionId> = {
   user_weekly_summary_email: "notifications",
   // Privacy & Security
   user_privacy: "privacy",
+  authorized_applications: "privacy",
   user_api_key: "privacy",
   delete_account: "privacy",
   // Goals

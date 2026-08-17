@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import AdminUserMention from "../../../components/AdminUserMention.svelte";
   import DetailField from "../../../components/DetailField.svelte";
   import { adminTrustLevelAuditLogs } from "../../../api";
   type User = {
@@ -7,6 +8,7 @@
     display_name: string;
     avatar_url: string | null;
     admin_level: string | null;
+    can_impersonate: boolean;
   };
   type Log = {
     id: number;
@@ -49,11 +51,7 @@
         <h2 class="mb-4 text-xl font-semibold text-surface-content">user</h2>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            {#if audit_log.user.avatar_url}<img
-                src={audit_log.user.avatar_url}
-                alt=""
-                class="h-8 w-8 rounded-full border border-surface-200"
-              />{/if}{audit_log.user.display_name}
+            <AdminUserMention user={audit_log.user} />
           </div>
           <div class="text-sm text-muted">id: {audit_log.user.id}</div>
         </div>
@@ -72,13 +70,10 @@
         </h2>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            {#if audit_log.changed_by.avatar_url}<img
-                src={audit_log.changed_by.avatar_url}
-                alt=""
-                class="h-8 w-8 rounded-full border border-surface-200"
-              />{/if}{audit_log.changed_by
-              .display_name}{#if badge(audit_log.changed_by.admin_level)}{@const data =
-                badge(audit_log.changed_by.admin_level)!}<span
+            <AdminUserMention user={audit_log.changed_by} />
+            {#if badge(audit_log.changed_by.admin_level)}{@const data = badge(
+                audit_log.changed_by.admin_level,
+              )!}<span
                 class="inline-flex items-center rounded border px-1.5 py-0.2 text-sm font-medium {data[1]}"
                 >{data[0]}</span
               >{/if}

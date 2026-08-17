@@ -36,6 +36,7 @@ module JsFromRoutes
     add_email_auth
     resend_email_verification_auth
     unlink_email_auth
+    impersonate_user
     stop_impersonating
     update_trust_level_user
 

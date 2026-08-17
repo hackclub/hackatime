@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Form, Link } from "@inertiajs/svelte";
   import Button from "../../../components/Button.svelte";
+  import AdminUserMention from "../../../components/AdminUserMention.svelte";
   import DetailField from "../../../components/DetailField.svelte";
   import PageIcon from "../../../components/PageIcon.svelte";
   import CopyableCode from "../../OAuthApplications/components/CopyableCode.svelte";
@@ -15,7 +16,12 @@
     scopes: string[];
     redirect_uris: string[];
     created_at: string;
-    owner: { display_name: string; avatar_url: string | null } | null;
+    owner: {
+      id: number;
+      display_name: string;
+      avatar_url: string | null;
+      can_impersonate: boolean;
+    } | null;
   };
   let {
     application,
@@ -48,11 +54,7 @@
         {#if application.owner}<div
             class="flex items-center gap-2 p-4 bg-darkless rounded-lg"
           >
-            {#if application.owner.avatar_url}<img
-                src={application.owner.avatar_url}
-                alt={`${application.owner.display_name}'s avatar`}
-                class="rounded-full aspect-square border border-surface-200 w-8 h-8"
-              />{/if}<span>{application.owner.display_name}</span>
+            <AdminUserMention user={application.owner} />
           </div>{:else}<div
             class="p-4 bg-yellow/10 border border-yellow/30 rounded-lg text-yellow"
           >
