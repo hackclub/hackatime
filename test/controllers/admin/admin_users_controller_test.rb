@@ -26,6 +26,15 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
     assert_empty ultraadmin["allowed_levels"]
   end
 
+  test "translated admin navigation uses Inertia links" do
+    get admin_admin_users_path
+
+    links = inertia_page.dig("props", "layout", "nav").values_at("admin_links", "superadmin_links").flatten
+    translated_labels = [ "Trust Level Logs", "Admin Management", "Account Deletions", "All OAuth Apps" ]
+
+    assert translated_labels.all? { |label| links.find { |link| link["label"] == label }.fetch("inertia") }
+  end
+
   test "search does not offer superadmins actions for ultraadmins" do
     get search_admin_admin_users_path, params: { q: @ultraadmin.username }
 

@@ -52,23 +52,23 @@ class InertiaController < ApplicationController
 
   def inertia_primary_links
     links = [
-      inertia_link("Home", root_path, active: helpers.current_page?(root_path), inertia: true),
-      inertia_link("Leaderboards", leaderboards_path, active: helpers.current_page?(leaderboards_path), inertia: true)
+      inertia_link("Home", root_path, active: helpers.current_page?(root_path)),
+      inertia_link("Leaderboards", leaderboards_path, active: helpers.current_page?(leaderboards_path))
     ]
 
     if current_user
       links += [
-        inertia_link("Projects", my_projects_path, active: request.path.start_with?("/my/projects"), inertia: true),
-        inertia_link("Docs", "/docs", active: request.path.start_with?("/docs")),
-        inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true),
-        inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings"), inertia: true),
-        inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications"), inertia: true),
+        inertia_link("Projects", my_projects_path, active: request.path.start_with?("/my/projects")),
+        inertia_link("Docs", "/docs", active: request.path.start_with?("/docs"), inertia: false),
+        inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path)),
+        inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings")),
+        inertia_link("My OAuth Apps", oauth_applications_path, active: helpers.current_page?(oauth_applications_path) || request.path.start_with?("/oauth/applications")),
         { label: "Logout", action: "logout" }
       ]
     else
       links += [
-        inertia_link("Docs", "/docs", active: request.path.start_with?("/docs")),
-        inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path), inertia: true)
+        inertia_link("Docs", "/docs", active: request.path.start_with?("/docs"), inertia: false),
+        inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path))
       ]
     end
 
@@ -78,8 +78,8 @@ class InertiaController < ApplicationController
   def inertia_dev_links
     return [] unless Rails.env.development?
     [
-      inertia_link("Letter Opener", letter_opener_web_path, active: helpers.current_page?(letter_opener_web_path)),
-      inertia_link("Mailers", "/rails/mailers", active: helpers.current_page?("/rails/mailers"))
+      inertia_link("Letter Opener", letter_opener_web_path, active: helpers.current_page?(letter_opener_web_path), inertia: false),
+      inertia_link("Mailers", "/rails/mailers", active: helpers.current_page?("/rails/mailers"), inertia: false)
     ]
   end
 
@@ -93,7 +93,7 @@ class InertiaController < ApplicationController
     return [] unless current_user&.admin_level.in?(%w[admin superadmin ultraadmin])
     build_nav_from(ADMIN_NAV_LINKS) + [
       # viewers can't access these!
-      inertia_link("Leaderboard Shadowbans", admin_leaderboard_shadowbans_path, active: helpers.current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?("/admin/leaderboard_shadowbans"), inertia: true)
+      inertia_link("Leaderboard Shadowbans", admin_leaderboard_shadowbans_path, active: helpers.current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?("/admin/leaderboard_shadowbans"))
     ]
   end
 
@@ -116,9 +116,9 @@ class InertiaController < ApplicationController
   def inertia_ultraadmin_links
     return [] unless current_user&.admin_level == "ultraadmin"
     [
-      inertia_link("GoodBoy", good_job_path, active: helpers.current_page?(good_job_path)),
-      inertia_link("Feature Flags", flipper_path, active: helpers.current_page?(flipper_path)),
-      inertia_link("Account Merger", admin_account_merger_path, active: helpers.current_page?(admin_account_merger_path) || request.path.start_with?("/admin/account_merger"), inertia: true)
+      inertia_link("GoodBoy", good_job_path, active: helpers.current_page?(good_job_path), inertia: false),
+      inertia_link("Feature Flags", flipper_path, active: helpers.current_page?(flipper_path), inertia: false),
+      inertia_link("Account Merger", admin_account_merger_path, active: helpers.current_page?(admin_account_merger_path) || request.path.start_with?("/admin/account_merger"))
     ]
   end
 
@@ -129,7 +129,7 @@ class InertiaController < ApplicationController
     end
   end
 
-  def inertia_link(label, href, active: false, badge: nil, inertia: false)
+  def inertia_link(label, href, active: false, badge: nil, inertia: true)
     { label: label, href: href, active: active, badge: badge, inertia: inertia }
   end
 
