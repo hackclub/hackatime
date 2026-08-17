@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Form } from "@inertiajs/svelte";
+  import { Form, router } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import { adminAdminUsers } from "../../api";
@@ -14,8 +14,16 @@
   let {
     groups,
     current_user_id,
-  }: { groups: Record<string, User[]>; current_user_id: number } = $props();
-  let results = $state<User[] | null>(null);
+    search_results = null,
+  }: {
+    groups: Record<string, User[]>;
+    current_user_id: number;
+    search_results?: { query: string; users: User[] } | null;
+  } = $props();
+  let query = $state("");
+  const results = $derived(
+    search_results?.query === query.trim() ? search_results.users : null,
+  );
   let timer: ReturnType<typeof setTimeout>;
   const headingClasses: Record<string, string> = {
     ultraadmin: "text-purple-400",
@@ -56,19 +64,18 @@
     const verb = ranks[level] > ranks[user.admin_level] ? "Promote" : "Demote";
     return `${verb} ${user.display_name} to ${labels[level]}?`;
   };
-  async function search(event: Event) {
+  function search() {
     clearTimeout(timer);
-    const q = (event.currentTarget as HTMLInputElement).value.trim();
-    if (q.length < 2) {
-      results = null;
-      return;
-    }
-    timer = setTimeout(async () => {
-      const response = await fetch(
-        adminAdminUsers.search.path({ query: { q } }),
-        { headers: { Accept: "application/json" } },
-      );
-      results = (await response.json()).users;
+    const q = query.trim();
+    if (q.length < 2) return;
+
+    timer = setTimeout(() => {
+      router.visit(adminAdminUsers.index.path({ query: { q } }), {
+        only: ["search_results"],
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+      });
     }, 100);
   }
 </script>
@@ -85,6 +92,7 @@
     <h2 class="text-2xl font-semibold text-green mb-4">Promote</h2>
     <div class="mb-4">
       <TextInput
+        bind:value={query}
         oninput={search}
         placeholder="Search by name or Slack ID..."
         class="w-full px-4 py-2 bg-darker border border-surface-200 rounded-lg text-surface-content placeholder-gray-500 focus:outline-none focus:border-primary"

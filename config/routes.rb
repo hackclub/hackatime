@@ -39,9 +39,7 @@ Rails.application.routes.draw do
 
   constraints AdminLevelConstraint.new(:superadmin, :ultraadmin) do
     namespace :admin do
-      resources :admin_users, only: [ :index, :update ] do
-        get :search, on: :collection
-      end
+      resources :admin_users, only: [ :index, :update ]
       resources :oauth_applications, only: [ :index, :show, :edit, :update ] do
         member do
           post :toggle_verified

@@ -36,12 +36,25 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "admin-tool", links.last.fetch("tool")
   end
 
-  test "search does not offer superadmins actions for ultraadmins" do
-    get search_admin_admin_users_path, params: { q: @ultraadmin.username }
+  test "search reload returns only authorised search results" do
+    get admin_admin_users_path
+
+    assert_nil inertia_page.dig("props", "search_results")
+
+    get admin_admin_users_path, params: { q: @ultraadmin.username }, headers: {
+      "X-Inertia" => "true",
+      "X-Requested-With" => "XMLHttpRequest",
+      "X-Inertia-Version" => inertia_page["version"],
+      "X-Inertia-Partial-Component" => "Admin/AdminUsers",
+      "X-Inertia-Partial-Data" => "search_results"
+    }
 
     assert_response :success
-    ultraadmin = response.parsed_body.fetch("users").find { |user| user["id"] == @ultraadmin.id }
+    props = response.parsed_body.fetch("props")
+    ultraadmin = props.dig("search_results", "users").find { |user| user["id"] == @ultraadmin.id }
 
+    assert_nil props["groups"]
+    assert_equal @ultraadmin.username, props.dig("search_results", "query")
     assert_empty ultraadmin["allowed_levels"]
   end
 end

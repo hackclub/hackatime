@@ -100,7 +100,6 @@ module JsFromRoutes
     new_admin_admin_api_key
     admin_admin_users
     admin_admin_user
-    search_admin_admin_users
     admin_deletion_requests
     admin_deletion_request
     new_admin_deletion_request
