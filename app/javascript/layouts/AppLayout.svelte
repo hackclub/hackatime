@@ -82,7 +82,9 @@
 <main
   class={`min-h-screen min-w-0 flex-1 transition-[margin] duration-300 ease-in-out ${showSidebar ? "lg:ml-62.5" : ""}`}
 >
-  <div class="mx-auto w-full min-w-0 max-w-7xl p-4 pt-16 md:p-8 lg:pt-8">
+  <div
+    class={`mx-auto w-full min-w-0 ${layout.full_width ? "" : "max-w-7xl p-4 pt-16 md:p-8 lg:pt-8"}`}
+  >
     {@render children?.()}
 
     {#if !layout.hide_footer}

@@ -13,6 +13,7 @@ class InertiaController < ApplicationController
       csrf_token: form_authenticity_token,
       hide_sidebar: false,
       hide_footer: false,
+      full_width: false,
       show_stop_impersonating: session[:impersonater_user_id].present?
     }
   end

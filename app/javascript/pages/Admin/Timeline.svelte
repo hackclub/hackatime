@@ -303,16 +303,23 @@
             </div>{/if}
         </div>
         <Button
+          unstyled
           type="button"
-          variant="dark"
+          class="rounded-md bg-darker px-3 py-2 text-sm text-surface-content transition-colors"
           onclick={() => applyPreset("today")}>Top 15 Today</Button
         >
         <Button
+          unstyled
           type="button"
-          variant="dark"
+          class="rounded-md bg-darker px-3 py-2 text-sm text-surface-content transition-colors"
           onclick={() => applyPreset("last_7_days")}>Top 15 Week</Button
         >
-        <Button type="submit" variant="primary">View</Button>
+        <Button
+          unstyled
+          type="submit"
+          class="rounded-md bg-green px-4 py-2 text-sm font-medium text-on-primary transition-colors"
+          >View</Button
+        >
       </div>
       <div class="mt-2 min-h-7">
         {#each selected as user}<span

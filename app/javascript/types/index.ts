@@ -80,6 +80,7 @@ export type LayoutProps = {
   csrf_token: string;
   hide_sidebar: boolean;
   hide_footer: boolean;
+  full_width: boolean;
   show_stop_impersonating: boolean;
 };
 

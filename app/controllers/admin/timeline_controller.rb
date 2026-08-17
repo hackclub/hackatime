@@ -76,6 +76,8 @@ class Admin::TimelineController < Admin::BaseController
 
   private
 
+  def inertia_layout_props = super.merge(full_width: true)
+
   def user_summary(user) = { id: user.id, display_name: user.display_name.to_s, avatar_url: user.avatar_url }
 
   def timeline_columns(primary_timezone)
