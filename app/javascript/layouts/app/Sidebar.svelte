@@ -68,13 +68,14 @@
       prefetch
       cacheFor={cacheFor(link)}
       onclick={handleNavLinkClick}
-      class={linkCls(link.active, tool)}>{link.label}{@render badge(link)}</Link
+      class={linkCls(link.active, link.tool || tool)}
+      >{link.label}{@render badge(link)}</Link
     >
   {:else}
     <a
       href={link.href || "#"}
       onclick={handleNavLinkClick}
-      class={linkCls(link.active, tool)}
+      class={linkCls(link.active, link.tool || tool)}
     >
       {link.label}{@render badge(link)}
     </a>

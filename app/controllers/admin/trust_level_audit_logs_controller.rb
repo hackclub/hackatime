@@ -62,6 +62,8 @@ class Admin::TrustLevelAuditLogsController < Admin::BaseController
 
   private
 
+  def inertia_layout_props = super.merge(full_width: true)
+
   def audit_log_props(log)
     {
       id: log.id, created_at: log.created_at.strftime("%b %d, %Y at %I:%M %p"),

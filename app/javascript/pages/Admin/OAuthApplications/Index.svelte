@@ -86,18 +86,25 @@
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <Button href={path(app.id)} variant="dark" size="sm">View</Button
+              <Button
+                unstyled
+                href={path(app.id)}
+                class="inline-flex items-center gap-1.5 rounded bg-darkless px-3 py-2 text-sm font-medium text-surface-content transition-colors duration-200 hover:bg-secondary/20"
+                ><PageIcon name="eye" class="h-4 w-4" /> View</Button
               ><Form
                 action={adminOauthApplications.toggleVerified.path({
                   id: app.id,
                 })}
                 method="post"
                 ><Button
+                  unstyled
                   type="submit"
-                  class={app.verified
-                    ? "bg-yellow hover:bg-yellow/80"
-                    : "bg-green hover:bg-green/80"}
-                  >{app.verified ? "Unverify" : "Verify"}</Button
+                  class={`inline-flex items-center gap-1.5 rounded px-3 py-2 text-sm font-medium text-on-primary transition-colors duration-200 ${app.verified ? "bg-yellow hover:bg-yellow/80" : "bg-green hover:bg-green/80"}`}
+                  ><PageIcon
+                    name={app.verified ? "warning" : "check"}
+                    class="h-4 w-4"
+                  />
+                  {app.verified ? "Unverify" : "Verify"}</Button
                 ></Form
               >
             </div>

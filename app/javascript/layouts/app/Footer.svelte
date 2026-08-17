@@ -57,10 +57,10 @@
       >
     {/if}
   </div>
-  <div class="flex flex-row gap-2 mt-4 justify-center">
+  <div class="mt-4 flex flex-row gap-2">
     {#each footer.active_users_graph as hour, i}
       <div
-        class="bg-white opacity-10 grow max-w-1 rounded-sm"
+        class="min-w-2.5 grow bg-white opacity-10"
         title={graphTitle(i, hour.users)}
         style={`height: ${hour.height}px`}
       ></div>

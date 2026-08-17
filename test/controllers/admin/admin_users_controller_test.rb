@@ -30,9 +30,10 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
     get admin_admin_users_path
 
     links = inertia_page.dig("props", "layout", "nav").values_at("admin_links", "superadmin_links").flatten
-    translated_labels = [ "Trust Level Logs", "Admin Management", "Account Deletions", "All OAuth Apps" ]
 
-    assert translated_labels.all? { |label| links.find { |link| link["label"] == label }.fetch("inertia") }
+    assert_equal [ "Review Timeline", "Trust Level Logs", "Admin API Keys", "Admin Management", "Account Deletions", "All OAuth Apps", "Leaderboard Shadowbans" ], links.pluck("label")
+    assert links.all? { |link| link.fetch("inertia") }
+    assert_equal "admin-tool", links.last.fetch("tool")
   end
 
   test "search does not offer superadmins actions for ultraadmins" do

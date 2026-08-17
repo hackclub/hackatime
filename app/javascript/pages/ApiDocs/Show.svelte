@@ -13,7 +13,7 @@
     layout: "modern",
     hideDownloadButton: false,
     customCss:
-      'a.no-underline.hover\\:underline[href="https://www.scalar.com"][target="_blank"] { display: none !important; }',
+      'main { margin-bottom: 0 !important; padding: 0 !important; } a.no-underline.hover\\:underline[href="https://www.scalar.com"][target="_blank"] { display: none !important; }',
     metaData: { title, description: "The API for Hackatime" },
   });
 

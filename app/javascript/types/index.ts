@@ -12,6 +12,7 @@ export type NavLink = {
   badge?: number | null;
   action?: string;
   inertia?: boolean;
+  tool?: string;
 };
 
 export type AdminLevel =

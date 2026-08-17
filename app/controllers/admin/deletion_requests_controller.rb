@@ -70,6 +70,8 @@ class Admin::DeletionRequestsController < Admin::BaseController
 
   private
 
+  def inertia_layout_props = super.merge(full_width: true)
+
   def serialize_request(request, extra = {})
     { id: request.id, user: { display_name: request.user.display_name, avatar_url: request.user.avatar_url,
       email: request.user.email_addresses.first&.email || "N/A", trust_level: request.user.trust_level },

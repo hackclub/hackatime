@@ -92,10 +92,10 @@ class InertiaController < ApplicationController
 
   def inertia_admin_links
     return [] unless current_user&.admin_level.in?(%w[admin superadmin ultraadmin])
-    build_nav_from(ADMIN_NAV_LINKS) + [
-      # viewers can't access these!
-      inertia_link("Leaderboard Shadowbans", admin_leaderboard_shadowbans_path, active: helpers.current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?("/admin/leaderboard_shadowbans"))
-    ]
+
+    links = build_nav_from(ADMIN_NAV_LINKS)
+    links << inertia_leaderboard_shadowbans_link if current_user.admin_level == "admin"
+    links
   end
 
   def inertia_viewer_links
@@ -110,8 +110,13 @@ class InertiaController < ApplicationController
     [
       inertia_link("Admin Management", admin_admin_users_path, active: helpers.current_page?(admin_admin_users_path)),
       inertia_link("Account Deletions", admin_deletion_requests_path, active: helpers.current_page?(admin_deletion_requests_path), badge: pending_count.positive? ? pending_count : nil),
-      inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications"))
+      inertia_link("All OAuth Apps", admin_oauth_applications_path, active: helpers.current_page?(admin_oauth_applications_path) || request.path.start_with?("/admin/oauth_applications")),
+      inertia_leaderboard_shadowbans_link
     ]
+  end
+
+  def inertia_leaderboard_shadowbans_link
+    inertia_link("Leaderboard Shadowbans", admin_leaderboard_shadowbans_path, active: helpers.current_page?(admin_leaderboard_shadowbans_path) || request.path.start_with?("/admin/leaderboard_shadowbans"), tool: "admin-tool")
   end
 
   def inertia_ultraadmin_links
@@ -130,8 +135,8 @@ class InertiaController < ApplicationController
     end
   end
 
-  def inertia_link(label, href, active: false, badge: nil, inertia: true)
-    { label: label, href: href, active: active, badge: badge, inertia: inertia }
+  def inertia_link(label, href, active: false, badge: nil, inertia: true, tool: nil)
+    { label: label, href: href, active: active, badge: badge, inertia: inertia, tool: tool }
   end
 
   def inertia_nav_current_user

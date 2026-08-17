@@ -15,7 +15,7 @@
 </script>
 
 <svelte:head><title>Admin API Key Details</title></svelte:head>
-<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
   <div class="mb-8 flex items-center justify-between">
     <div>
       <h1 class="text-3xl font-bold text-surface-content mb-2">

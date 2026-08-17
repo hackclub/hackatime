@@ -43,6 +43,8 @@ class Admin::OauthApplicationsController < Admin::BaseController
 
   private
 
+  def inertia_layout_props = super.merge(full_width: true)
+
   def set_application
     @application = OauthApplication.find(params[:id])
   end

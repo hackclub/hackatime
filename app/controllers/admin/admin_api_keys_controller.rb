@@ -46,6 +46,8 @@ class Admin::AdminApiKeysController < Admin::BaseController
 
   private
 
+  def inertia_layout_props = super.merge(full_width: true)
+
   def render_new(status: :ok)
     render inertia: "Admin/AdminApiKeys/New", props: { errors: @admin_api_key.errors.full_messages }, status: status
   end

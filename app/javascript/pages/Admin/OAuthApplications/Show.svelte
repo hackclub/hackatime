@@ -48,9 +48,14 @@
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2 space-y-6">
       <section class="border border-primary rounded-xl p-6 bg-dark">
-        <h2 class="text-xl font-semibold text-surface-content mb-6">
-          Owner Information
-        </h2>
+        <div class="mb-6 flex items-center gap-3">
+          <div class="rounded bg-primary/10 p-2">
+            <PageIcon name="user" class="h-6 w-6 text-primary" />
+          </div>
+          <h2 class="text-xl font-semibold text-surface-content">
+            Owner Information
+          </h2>
+        </div>
         {#if application.owner}<div
             class="flex items-center gap-2 p-4 bg-darkless rounded-lg"
           >
@@ -62,12 +67,20 @@
           </div>{/if}
       </section>
       <section class="border border-primary rounded-xl p-6 bg-dark">
-        <h2 class="text-xl font-semibold text-surface-content mb-6">
-          Application Details
-        </h2>
+        <div class="mb-6 flex items-center gap-3">
+          <div class="rounded bg-primary/10 p-2">
+            <PageIcon name="key" class="h-6 w-6 text-primary" />
+          </div>
+          <h2 class="text-xl font-semibold text-surface-content">
+            Application Details
+          </h2>
+        </div>
         <div class="space-y-5">
           <DetailField label="Application ID" variant="secondary">
-            <CopyableCode value={application.uid} />
+            <code
+              class="block break-all rounded border border-darkless bg-darkless px-3 py-2 font-mono text-sm text-surface-content"
+              >{application.uid}</code
+            >
           </DetailField>
           <DetailField label="Scopes" variant="secondary">
             {#if application.scopes.length}<div class="flex flex-wrap gap-2">
@@ -87,14 +100,19 @@
             </DetailField>{/if}
           <DetailField label="Confidential" variant="secondary">
             <span
-              class={`inline-flex px-2 py-1 border rounded text-sm ${application.confidential ? "bg-green/20 text-green border-green/30" : "bg-yellow/20 text-yellow border-yellow/30"}`}
-              >{application.confidential
+              class={`inline-flex items-center gap-1.5 rounded border px-2 py-1 text-sm ${application.confidential ? "border-green/30 bg-green/20 text-green" : "border-yellow/30 bg-yellow/20 text-yellow"}`}
+              ><PageIcon
+                name={application.confidential ? "check" : "warning"}
+                class="h-4 w-4"
+              />
+              {application.confidential
                 ? "Yes - Confidential"
                 : "No - Public Client"}</span
             >
           </DetailField>
           <DetailField label="Login Redirect" variant="secondary">
-            <span class="text-surface-content"
+            <span
+              class={`inline-flex items-center gap-1.5 rounded border px-2 py-1 text-sm ${application.redirect_to_hca_login ? "border-green/30 bg-green/20 text-green" : "border-yellow/30 bg-yellow/20 text-yellow"}`}
               >{application.redirect_to_hca_login
                 ? "Hack Club Auth"
                 : "Hackatime sign in"}</span
@@ -106,9 +124,14 @@
         </div>
       </section>
       <section class="border border-primary rounded-xl p-6 bg-dark">
-        <h2 class="text-xl font-semibold text-surface-content mb-6">
-          Callback URLs
-        </h2>
+        <div class="mb-6 flex items-center gap-3">
+          <div class="rounded bg-primary/10 p-2">
+            <PageIcon name="link" class="h-6 w-6 text-primary" />
+          </div>
+          <h2 class="text-xl font-semibold text-surface-content">
+            Callback URLs
+          </h2>
+        </div>
         {#if application.redirect_uris.length}<div class="space-y-3">
             {#each application.redirect_uris as uri}<code
                 class="block p-3 bg-darkless border border-darkless rounded text-surface-content font-mono text-sm break-all"
@@ -129,9 +152,14 @@
         })}
         method="post"
         ><Button
+          unstyled
           type="submit"
           class={`${action} ${application.verified ? "bg-yellow" : "bg-green"}`}
-          >{application.verified
+          ><PageIcon
+            name={application.verified ? "warning" : "check"}
+            class="h-5 w-5"
+          />
+          {application.verified
             ? "Remove Verification"
             : "Verify Application"}</Button
         ></Form
@@ -149,21 +177,24 @@
           )
             e.preventDefault();
         }}
-        ><Button type="submit" class={`${action} bg-yellow`}
-          >Rotate Secret</Button
+        ><Button unstyled type="submit" class={`${action} bg-yellow`}
+          ><PageIcon name="rotate" class="h-5 w-5" /> Rotate Secret</Button
         ></Form
       >
       <Button
+        unstyled
         href={adminOauthApplications.edit.path({ id: application.id })}
-        class={action}>Edit Application</Button
+        class={`${action} bg-primary hover:opacity-90`}
+        ><PageIcon name="edit" class="h-5 w-5" /> Edit Application</Button
       ><Button
+        unstyled
         href={doorkeeperApplications.show.path({ id: application.id })}
-        variant="outlinePrimary"
-        class="w-full">View as Owner</Button
+        class="inline-flex w-full items-center justify-center gap-2 rounded border border-primary px-4 py-2 font-medium text-primary transition-colors duration-200 hover:bg-primary/75"
+        ><PageIcon name="eye" class="h-5 w-5" /> View as Owner</Button
       ><Link
         href={adminOauthApplications.index.path()}
-        class="w-full inline-flex items-center justify-center px-4 py-2 border border-darkless text-surface-content font-medium rounded hover:bg-darkless"
-        >Back to All Applications</Link
+        class="inline-flex w-full items-center justify-center gap-2 rounded border border-darkless px-4 py-2 font-medium text-surface-content transition-colors duration-200 hover:bg-darkless"
+        ><PageIcon name="arrow-left" class="h-5 w-5" /> Back to All Applications</Link
       >
     </aside>
   </div>

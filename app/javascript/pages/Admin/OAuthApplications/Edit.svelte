@@ -52,11 +52,16 @@
     </p>
   </header>
   <div class="bg-blue/10 border border-blue/30 rounded-lg p-4 mb-6">
-    <p class="text-blue font-medium">Super Admin Edit</p>
-    <p class="text-blue/80 text-sm mt-1">
-      As a super admin, you can edit all fields including the name of verified
-      applications.
-    </p>
+    <div class="flex items-start gap-3">
+      <PageIcon name="info" class="mt-0.5 h-5 w-5 shrink-0 text-blue" />
+      <div>
+        <p class="text-blue font-medium">Super Admin Edit</p>
+        <p class="text-blue/80 text-sm mt-1">
+          As a super admin, you can edit all fields including the name of
+          verified applications.
+        </p>
+      </div>
+    </div>
   </div>
   {#if Object.values(errors).flat().length}<div
       class="p-4 bg-red/10 border border-red/20 rounded-lg text-red"
@@ -71,9 +76,14 @@
     method="patch"
     class="space-y-6"
     ><div class="border border-primary rounded-xl p-6 bg-dark">
-      <h2 class="text-xl font-semibold text-surface-content mb-6">
-        Application Details
-      </h2>
+      <div class="mb-6 flex items-center gap-3">
+        <div class="rounded bg-primary/10 p-2">
+          <PageIcon name="monitor" class="h-6 w-6 text-primary" />
+        </div>
+        <h2 class="text-xl font-semibold text-surface-content">
+          Application Details
+        </h2>
+      </div>
       <div class="space-y-5">
         <label class="block text-sm font-medium text-surface-content"
           >Name<TextInput
@@ -104,6 +114,7 @@
           native
           align="start"
           class="p-4 bg-darkless border border-darkless rounded"
+          inputClass="mt-0.5 h-4 w-4 rounded border-darkless bg-darker text-primary focus:ring-primary"
           name="oauth_application[confidential]"
           bind:checked={confidential}
         >
@@ -119,6 +130,7 @@
           native
           align="start"
           class="p-4 bg-darkless border border-darkless rounded"
+          inputClass="mt-0.5 h-4 w-4 rounded border-darkless bg-darker text-primary focus:ring-primary"
           name="oauth_application[redirect_to_hca_login]"
           bind:checked={hcaLogin}
         >
@@ -134,9 +146,16 @@
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <Button type="submit">Save Changes</Button><Button
+      <Button
+        unstyled
+        type="submit"
+        class="cursor-pointer rounded bg-primary px-6 py-2 font-medium text-on-primary transition-colors duration-200 hover:opacity-90"
+        >Save Changes</Button
+      ><Button
+        unstyled
         href={showPath}
-        variant="dark">Cancel</Button
+        class="rounded border border-darkless px-6 py-2 font-medium text-surface-content transition-colors duration-200 hover:bg-darkless"
+        >Cancel</Button
       >
     </div></Form
   >

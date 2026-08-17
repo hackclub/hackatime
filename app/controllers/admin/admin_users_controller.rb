@@ -31,6 +31,8 @@ class Admin::AdminUsersController < Admin::BaseController
 
   private
 
+  def inertia_layout_props = super.merge(full_width: true)
+
   def serialize_user(user, all_actions: false)
     levels = all_actions ? %w[ultraadmin superadmin admin viewer] : %w[ultraadmin superadmin admin viewer default]
     { id: user.id, display_name: user.display_name, avatar_url: user.avatar_url, slack_uid: user.slack_uid,
