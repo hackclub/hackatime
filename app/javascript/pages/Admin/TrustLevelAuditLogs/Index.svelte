@@ -100,7 +100,12 @@
         </div>
       </div>
       <div class="flex items-center gap-4">
-        <Button type="submit" variant="primary">run that shit</Button><Link
+        <Button
+          unstyled
+          type="submit"
+          class="rounded-md bg-blue px-4 py-2 font-medium text-on-primary transition-colors hover:bg-blue"
+          >run that shit</Button
+        ><Link
           href={indexPath}
           class="rounded-md bg-surface-100 px-4 py-2 font-medium text-surface-content transition-colors hover:bg-darkless"
           >alt+f4</Link
