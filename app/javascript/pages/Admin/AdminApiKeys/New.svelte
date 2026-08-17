@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head><title>spawn in a new key</title></svelte:head>
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
   <div class="mb-8 flex items-center justify-between">
     <div>
       <h1 class="text-3xl font-bold text-surface-content mb-2">
