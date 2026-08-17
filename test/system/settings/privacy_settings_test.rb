@@ -7,6 +7,18 @@ class PrivacySettingsTest < ApplicationSystemTestCase
   setup do
     @user = User.create!(timezone: "UTC")
     @user.api_keys.create!(name: "Initial key")
+    @oauth_application = @user.oauth_applications.create!(
+      name: "Test Integration",
+      redirect_uri: "https://example.com/callback",
+      scopes: "profile",
+      confidential: true
+    )
+    @access_token = Doorkeeper::AccessToken.create!(
+      application: @oauth_application,
+      resource_owner_id: @user.id,
+      scopes: "profile",
+      expires_in: 1.hour.to_i
+    )
     sign_in_as(@user)
   end
 
@@ -14,11 +26,25 @@ class PrivacySettingsTest < ApplicationSystemTestCase
     assert_settings_page(
       path: my_settings_privacy_path,
       marker_text: "Public Stats",
-      card_count: 3
+      card_count: 4
     )
 
+    assert_text "Authorized Applications"
+    assert_text "Test Integration"
     assert_text "API Key"
     assert_text "Account Deletion"
+  end
+
+  test "privacy settings revokes an authorized application" do
+    visit my_settings_privacy_path
+
+    within("#authorized_applications") do
+      accept_confirm { click_on "Revoke" }
+    end
+
+    assert_text "Application access revoked"
+    assert_no_text "Test Integration"
+    assert_predicate @access_token.reload, :revoked?
   end
 
   test "privacy settings updates public stats lookup" do

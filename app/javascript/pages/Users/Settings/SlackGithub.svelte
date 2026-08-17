@@ -3,7 +3,7 @@
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import CheckboxField from "./components/CheckboxField.svelte";
+  import CheckboxField from "../../../components/CheckboxField.svelte";
   import ModalActions from "./components/ModalActions.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { SlackGithubPageProps } from "./types";

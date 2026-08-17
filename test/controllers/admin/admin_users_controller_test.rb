@@ -16,19 +16,45 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "ultraadmin", @ultraadmin.reload.admin_level
   end
 
-  test "index does not offer superadmins controls for ultraadmins" do
+  test "index does not offer superadmins actions for ultraadmins" do
     get admin_admin_users_path
 
     assert_response :success
-    assert_select "form[action=?]", admin_admin_user_path(@ultraadmin, admin_level: "superadmin"), count: 0
-    assert_select "form[action=?]", admin_admin_user_path(@ultraadmin, admin_level: "default"), count: 0
-    assert_select "th", text: "Actions", count: 1
+    assert_inertia_component "Admin/AdminUsers"
+    ultraadmin = inertia_page.dig("props", "groups", "ultraadmin").find { |user| user["id"] == @ultraadmin.id }
+
+    assert_empty ultraadmin["allowed_levels"]
   end
 
-  test "search does not offer superadmins controls for ultraadmins" do
-    get search_admin_admin_users_path, params: { q: @ultraadmin.username }
+  test "translated admin navigation uses Inertia links" do
+    get admin_admin_users_path
+
+    links = inertia_page.dig("props", "layout", "nav").values_at("admin_links", "superadmin_links").flatten
+
+    assert_equal [ "Review Timeline", "Trust Level Logs", "Admin API Keys", "Admin Management", "Account Deletions", "All OAuth Apps", "Leaderboard Shadowbans" ], links.pluck("label")
+    assert links.all? { |link| link.fetch("inertia") }
+    assert_equal "admin-tool", links.last.fetch("tool")
+  end
+
+  test "search reload returns only authorised search results" do
+    get admin_admin_users_path
+
+    assert_nil inertia_page.dig("props", "search_results")
+
+    get admin_admin_users_path, params: { q: @ultraadmin.username }, headers: {
+      "X-Inertia" => "true",
+      "X-Requested-With" => "XMLHttpRequest",
+      "X-Inertia-Version" => inertia_page["version"],
+      "X-Inertia-Partial-Component" => "Admin/AdminUsers",
+      "X-Inertia-Partial-Data" => "search_results"
+    }
 
     assert_response :success
-    assert_select "form[action^=?]", admin_admin_user_path(@ultraadmin), count: 0
+    props = response.parsed_body.fetch("props")
+    ultraadmin = props.dig("search_results", "users").find { |user| user["id"] == @ultraadmin.id }
+
+    assert_nil props["groups"]
+    assert_equal @ultraadmin.username, props.dig("search_results", "query")
+    assert_empty ultraadmin["allowed_levels"]
   end
 end

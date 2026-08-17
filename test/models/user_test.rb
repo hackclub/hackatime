@@ -40,6 +40,19 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "ultraadmin", first_user.reload.admin_level
   end
 
+  test "impersonation follows the admin hierarchy" do
+    users = %i[default viewer admin superadmin ultraadmin].to_h do |level|
+      [ level, User.create!(timezone: "UTC", admin_level: level) ]
+    end
+
+    assert users[:admin].can_impersonate?(users[:default])
+    assert users[:admin].can_impersonate?(users[:viewer])
+    assert users[:superadmin].can_impersonate?(users[:admin])
+    assert users[:ultraadmin].can_impersonate?(users[:superadmin])
+    assert_not users[:ultraadmin].can_impersonate?(users[:ultraadmin])
+    assert_not users[:default].can_impersonate?(users[:default])
+  end
+
   test "rotate_api_keys! replaces existing api key with a new one" do
     user = User.create!(timezone: "UTC", slack_uid: "U#{SecureRandom.hex(8)}")
     user.api_keys.create!(name: "Original key")

@@ -3,8 +3,8 @@
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import CheckboxField from "./components/CheckboxField.svelte";
-  import Field from "./components/Field.svelte";
+  import CheckboxField from "../../../components/CheckboxField.svelte";
+  import FormField from "../../../components/FormField.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { EditorsPageProps } from "./types";
   import { settingsEditors } from "../../../api";
@@ -41,14 +41,14 @@
       class="space-y-4"
       options={{ preserveScroll: true }}
     >
-      <Field inputId="extension_type" label="Display style">
+      <FormField inputId="extension_type" label="Display style">
         <Select
           id="extension_type"
           name="user[hackatime_extension_text_type]"
           bind:value={user.hackatime_extension_text_type}
           items={options.extension_text_types}
         />
-      </Field>
+      </FormField>
 
       <CheckboxField
         name="user[show_goals_in_statusbar]"

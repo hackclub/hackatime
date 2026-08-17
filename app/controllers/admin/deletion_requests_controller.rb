@@ -4,20 +4,26 @@ class Admin::DeletionRequestsController < Admin::BaseController
   before_action -> { require_admin_level!(:ultraadmin) }, only: [ :new, :confirm, :create ]
 
   def index
-    @pending = DeletionRequest.pending.includes(:user).order(requested_at: :asc)
+    @pending = DeletionRequest.pending.includes(user: :email_addresses).order(requested_at: :asc)
     @approved = DeletionRequest.approved.includes(:user, :admin_approved_by).order(scheduled_deletion_at: :asc)
     @done = DeletionRequest.completed.includes(:user, :admin_approved_by).order(completed_at: :desc).limit(25)
+    render inertia: "Admin/DeletionRequests/Index", props: {
+      pending: @pending.map { |request| serialize_request(request, requested_at: "#{helpers.time_ago_in_words(request.requested_at)} ago") },
+      approved: @approved.map { |request| serialize_request(request, approved_at: request.admin_approved_at&.strftime("%b %d, %Y"), deletion_at: request.scheduled_deletion_at&.strftime("%b %d, %Y"), days: request.days_until_deletion) },
+      done: @done.map { |request| { user_id: request.user_id, approver: request.admin_approved_by&.display_name || "N/A", completed_at: request.completed_at&.strftime("%b %d, %Y at %I:%M %p") } }
+    }
   end
 
-  def show
-  end
+  def show = redirect_to(admin_deletion_requests_path)
 
   def new
+    render inertia: "Admin/DeletionRequests/New"
   end
 
   def confirm
     @user = lookup_user(params[:q])
-    redirect_to new_admin_deletion_request_path, alert: "user not found" unless @user
+    return redirect_to new_admin_deletion_request_path, alert: "user not found" unless @user
+    render inertia: "Admin/DeletionRequests/Confirm", props: { user: serialize_confirmation_user(@user) }
   end
 
   def create
@@ -63,6 +69,20 @@ class Admin::DeletionRequestsController < Admin::BaseController
   end
 
   private
+
+  def inertia_layout_props = super.merge(full_width: true)
+
+  def serialize_request(request, extra = {})
+    { id: request.id, user: { display_name: request.user.display_name, avatar_url: request.user.avatar_url,
+      email: request.user.email_addresses.first&.email || "N/A", trust_level: request.user.trust_level },
+      approver: request.admin_approved_by&.display_name || "N/A" }.merge(extra)
+  end
+
+  def serialize_confirmation_user(user)
+    { id: user.id, display_name: user.display_name, avatar_url: user.avatar_url, username: user.username,
+      trust_level: user.trust_level, email: user.email_addresses.first&.email || "none",
+      joined_at: user.created_at.strftime("%B %d, %Y"), active_deletion_request: user.active_deletion_request.present? }
+  end
 
   def set_deletion_request
     @deletion_request = DeletionRequest.find(params[:id])

@@ -192,7 +192,6 @@
           <form
             action={authorizePath}
             method="post"
-            data-turbo="false"
             onsubmit={() => (denying = true)}
           >
             {#each hiddenFields as [name, value]}
@@ -217,7 +216,6 @@
           <form
             action={authorizePath}
             method="post"
-            data-turbo="false"
             onsubmit={() => (authorizing = true)}
           >
             {#each hiddenFields as [name, value]}

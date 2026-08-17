@@ -12,6 +12,7 @@ export type NavLink = {
   badge?: number | null;
   action?: string;
   inertia?: boolean;
+  tool?: string;
 };
 
 export type AdminLevel =
@@ -80,6 +81,7 @@ export type LayoutProps = {
   csrf_token: string;
   hide_sidebar: boolean;
   hide_footer: boolean;
+  full_width: boolean;
   show_stop_impersonating: boolean;
 };
 

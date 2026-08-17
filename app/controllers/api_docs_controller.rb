@@ -1,9 +1,12 @@
 class ApiDocsController < ApplicationController
-  def show
-    render :show, layout: false, locals: { title: "Hackatime API", spec_url: "/api-docs/v1/swagger.yaml" }
-  end
+  layout "inertia"
 
-  def admin
-    render :show, layout: false, locals: { title: "Hackatime Admin API", spec_url: "/api-docs/admin/swagger.yaml" }
+  def show = render_docs("Hackatime API", "/api-docs/v1/swagger.yaml")
+  def admin = render_docs("Hackatime Admin API", "/api-docs/admin/swagger.yaml")
+
+  private
+
+  def render_docs(title, spec_url)
+    render inertia: "ApiDocs/Show", props: { title: title, spec_url: spec_url }
   end
 end

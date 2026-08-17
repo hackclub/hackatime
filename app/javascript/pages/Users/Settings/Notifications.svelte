@@ -2,7 +2,7 @@
   import { Form } from "@inertiajs/svelte";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import CheckboxField from "./components/CheckboxField.svelte";
+  import CheckboxField from "../../../components/CheckboxField.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { NotificationsPageProps } from "./types";
   import { settingsNotifications } from "../../../api";

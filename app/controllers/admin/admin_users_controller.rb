@@ -2,11 +2,11 @@ class Admin::AdminUsersController < Admin::BaseController
   include AdminLevelChangeMessages
 
   def index
-    @current_user_id = current_user.id
-    @ultraadmins = User.where(admin_level: :ultraadmin).order(:slack_username).to_a
-    @superadmins = User.where(admin_level: :superadmin).order(:slack_username).to_a
-    @admins = User.where(admin_level: :admin).order(:slack_username).to_a
-    @viewers = User.where(admin_level: :viewer).order(:slack_username).to_a
+    render inertia: "Admin/AdminUsers", props: {
+      groups: -> { admin_groups },
+      current_user_id: current_user.id,
+      search_results: InertiaRails.optional { search_results }
+    }
   end
 
   def update
@@ -24,9 +24,25 @@ class Admin::AdminUsersController < Admin::BaseController
     end
   end
 
-  def search
+  private
+
+  def inertia_layout_props = super.merge(full_width: true)
+
+  def admin_groups
+    %w[ultraadmin superadmin admin viewer].to_h do |level|
+      [ level, User.where(admin_level: level).order(:slack_username).map { |user| serialize_user(user) } ]
+    end
+  end
+
+  def search_results
     query = params[:q].to_s.strip
-    @users = query.present? ? User.fuzzy_ranked_search(query, limit: 20) : User.none
-    render partial: "search_results", locals: { users: @users }
+    users = query.present? ? User.fuzzy_ranked_search(query, limit: 20) : User.none
+    { query: query, users: users.map { |user| serialize_user(user, all_actions: true) } }
+  end
+
+  def serialize_user(user, all_actions: false)
+    levels = all_actions ? %w[ultraadmin superadmin admin viewer] : %w[ultraadmin superadmin admin viewer default]
+    { id: user.id, display_name: user.display_name, avatar_url: user.avatar_url, slack_uid: user.slack_uid,
+      admin_level: user.admin_level, allowed_levels: levels.select { |level| current_user.can_change_admin_level_of?(user, level) } }
   end
 end

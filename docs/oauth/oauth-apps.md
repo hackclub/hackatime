@@ -254,7 +254,7 @@ Returns the user's Hackatime API key (creates one if none exists).
 
 Users can revoke access to your app at any time:
 
-1. Go to [Authorized Applications](https://hackatime.hackclub.com/oauth/authorized_applications)
+1. Go to [Privacy & Security](https://hackatime.hackclub.com/my/settings/privacy#authorized_applications)
 2. Click **Revoke** next to the app
 
 ### Programmatically

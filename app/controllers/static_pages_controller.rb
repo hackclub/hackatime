@@ -55,7 +55,6 @@ class StaticPagesController < InertiaController
   end
 
   def currently_hacking_count = render(json: { count: Cache::CurrentlyHackingCountJob.perform_now[:count] })
-  def streak = render(partial: "streak")
 
   def wakatime_alternative
     @meta_description = @og_description = @twitter_description = "Looking for a WakaTime alternative? Hackatime is a free, open source coding time tracker with all features unlocked. Compare features, pricing, and see why developers are switching."

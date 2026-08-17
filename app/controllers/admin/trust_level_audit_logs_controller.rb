@@ -46,12 +46,35 @@ class Admin::TrustLevelAuditLogsController < Admin::BaseController
       @trust_level_filter = params[:trust_level_filter]
     end
 
-    @audit_logs = @audit_logs.to_a
+    audit_logs = @audit_logs.to_a
+    render inertia: "Admin/TrustLevelAuditLogs/Index", props: {
+      audit_logs: audit_logs.map { |log| audit_log_props(log) },
+      filters: { user_search: @user_search, admin_search: @admin_search, trust_level: @trust_level_filter || "all" },
+      filtered_user: @filtered_user&.display_name,
+      filtered_admin: @filtered_admin&.display_name
+    }
   end
 
   def show
-    @audit_log = TrustLevelAuditLog.find(params[:id])
+    log = TrustLevelAuditLog.includes(:user, :changed_by).find(params[:id])
+    render inertia: "Admin/TrustLevelAuditLogs/Show", props: { audit_log: audit_log_props(log).merge(notes: log.notes) }
   end
 
   private
+
+  def inertia_layout_props = super.merge(full_width: true)
+
+  def audit_log_props(log)
+    {
+      id: log.id, created_at: log.created_at.strftime("%b %d, %Y at %I:%M %p"),
+      created_at_long: log.created_at.strftime("%B %d, %Y at %I:%M %p %Z"),
+      previous_trust_level: log.previous_trust_level, new_trust_level: log.new_trust_level,
+      reason: log.reason, user: audit_user_props(log.user), changed_by: audit_user_props(log.changed_by)
+    }
+  end
+
+  def audit_user_props(user)
+    { id: user.id, display_name: user.display_name.to_s, avatar_url: user.avatar_url, admin_level: user.admin_level,
+      can_impersonate: current_user.can_impersonate?(user) }
+  end
 end

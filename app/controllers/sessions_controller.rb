@@ -84,7 +84,7 @@ class SessionsController < ApplicationController
     end
   end
 
-  def close_window = render(:close_window, layout: false)
+  def close_window = render(inertia: "Auth/CloseWindow", layout: "inertia")
 
   def github_new
     return unless require_signed_in!("Please sign in first to link your GitHub account")
@@ -253,13 +253,7 @@ class SessionsController < ApplicationController
     user = User.find_by(id: params[:id])
     return redirect_to(root_path, alert: "who?") unless user
 
-    actor_level = current_user.admin_level
-    target_level = user.admin_level
-    blocked =
-      target_level == "ultraadmin" ||
-      (target_level == "superadmin" && actor_level != "ultraadmin") ||
-      (target_level == "admin" && !actor_level.in?(%w[superadmin ultraadmin]))
-    return redirect_to(root_path, alert: "nice try, you cant do that") if blocked
+    return redirect_to(root_path, alert: "nice try, you cant do that") unless current_user.can_impersonate?(user)
 
     session[:impersonater_user_id] ||= current_user.id
     session[:user_id] = user.id

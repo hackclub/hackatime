@@ -3,7 +3,7 @@
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import CheckboxField from "./components/CheckboxField.svelte";
+  import CheckboxField from "../../../components/CheckboxField.svelte";
   import ModalActions from "./components/ModalActions.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { PrivacyPageProps } from "./types";
@@ -15,6 +15,7 @@
     heading,
     subheading,
     user,
+    authorized_applications,
     rotated_api_key = "",
     errors,
     deletion_reason_details_max_length,
@@ -91,6 +92,51 @@
         >Save privacy settings</Button
       >
     {/snippet}
+  </SectionCard>
+
+  <SectionCard
+    id="authorized_applications"
+    title="Authorized Applications"
+    description="Applications that have access to your Hackatime account."
+  >
+    {#if authorized_applications.length}
+      <div class="divide-y divide-surface-200">
+        {#each authorized_applications as application (application.id)}
+          <div
+            class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+          >
+            <div class="min-w-0">
+              <p class="truncate font-medium text-surface-content">
+                {application.name}
+              </p>
+              <p class="text-sm text-muted">
+                Authorized {application.authorized_at}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="surface"
+              size="sm"
+              onclick={() => {
+                if (!confirm("Are you sure?")) return;
+                router.delete(
+                  settingsPrivacy.revokeApplication.path({
+                    application_id: application.id,
+                  }),
+                  { preserveScroll: true },
+                );
+              }}
+            >
+              Revoke
+            </Button>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <p class="text-sm text-muted">
+        You haven't authorized any third-party applications.
+      </p>
+    {/if}
   </SectionCard>
 
   <SectionCard
