@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> Updating Bun"
-bun upgrade
+cache_dir=".amp/setup-cache"
+mkdir -p "$cache_dir"
+
+fingerprint() {
+  git ls-files -z -- "$@" | sort -z | xargs -0 sha256sum | sha256sum | awk '{ print $1 }'
+}
+
+cache_matches() {
+  [ -f "$cache_dir/$1" ] && [ "$(cat "$cache_dir/$1")" = "$2" ]
+}
 
 gh_min_version="2.97.0"
 gh_version="$(/usr/bin/gh --version 2>/dev/null | awk 'NR == 1 { print $3 }' || true)"
@@ -57,8 +65,15 @@ if [ ! -f .env ]; then
   cp -- .env.example .env
 fi
 
-echo "==> Building and starting development containers"
-sudo docker compose up -d --build
+container_fingerprint="$(fingerprint Dockerfile.dev docker-compose.yml entrypoint.dev.sh Gemfile Gemfile.lock package.json bun.lock)"
+if cache_matches containers "$container_fingerprint"; then
+  echo "==> Starting existing development containers"
+  sudo docker compose up -d
+else
+  echo "==> Building and starting development containers"
+  sudo docker compose up -d --build
+  printf '%s\n' "$container_fingerprint" > "$cache_dir/containers"
+fi
 
 echo "==> Trusting the mounted repository inside the web container"
 sudo docker compose exec -T web sh -c '
@@ -67,17 +82,31 @@ sudo docker compose exec -T web sh -c '
     git config --global --add safe.directory "$repo_root"
 '
 
-echo "==> Building Vite client assets"
-sudo docker compose exec -T web bin/vite build
+assets_fingerprint="$(fingerprint app/javascript app/assets/tailwind config/routes.rb config/vite.json config/initializers/js_from_routes.rb vite.config.ts svelte.config.js tsconfig.json tsconfig.svelte-check.json package.json bun.lock)"
+if cache_matches assets "$assets_fingerprint" && [ -f public/vite-dev/.vite/manifest.json ]; then
+  echo "==> Vite client assets are current"
+else
+  echo "==> Building Vite client assets"
+  sudo docker compose exec -T web env JS_FROM_ROUTES_FORCE=true bin/rake js_from_routes:generate
+  sudo docker compose exec -T web bin/vite build
+  printf '%s\n' "$assets_fingerprint" > "$cache_dir/assets"
+fi
 
-echo "==> Preparing and seeding the development database"
-sudo docker compose exec -T web bin/rails db:prepare db:seed
+database_fingerprint="$(fingerprint db/migrate db/schema.rb db/seeds.rb)"
+development_seeded="$(sudo docker compose exec -T db psql -U postgres -d app_development -tAc \
+  "SELECT 1 FROM email_addresses WHERE email = 'test@example.com' LIMIT 1" 2>/dev/null || true)"
+test_database_exists="$(sudo docker compose exec -T db psql -U postgres -tAc \
+  "SELECT 1 FROM pg_database WHERE datname = 'app_test'" 2>/dev/null || true)"
+if cache_matches database "$database_fingerprint" && [ "$development_seeded" = "1" ] && [ "$test_database_exists" = "1" ]; then
+  echo "==> Development and test databases are current"
+else
+  echo "==> Preparing and seeding the development database"
+  sudo docker compose exec -T web bin/rails db:prepare db:seed
 
-echo "==> Preparing the test database"
-sudo docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare
-
-echo "==> Ensuring the Hackatime portal service is running"
-amp orb services ensure
+  echo "==> Preparing the test database"
+  sudo docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare
+  printf '%s\n' "$database_fingerprint" > "$cache_dir/database"
+fi
 
 echo "==> Disabling thread ID trailer"
 mkdir -p "$HOME/.config/amp"
