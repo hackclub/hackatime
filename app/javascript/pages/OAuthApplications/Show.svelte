@@ -1,11 +1,11 @@
 <script lang="ts">
   import { Form, Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
+  import DetailField from "../../components/DetailField.svelte";
   import DestructiveActionModal from "./DestructiveActionModal.svelte";
   import Badge from "./components/Badge.svelte";
   import ChipList from "./components/ChipList.svelte";
   import CopyableCode from "./components/CopyableCode.svelte";
-  import Field from "./components/Field.svelte";
   import type { OAuthApplicationShowProps } from "./types";
   import {
     doorkeeperApplications,
@@ -99,11 +99,11 @@
         <h2 class="text-lg font-semibold text-surface-content">Credentials</h2>
 
         <div class="mt-4 space-y-4">
-          <Field label={labels.application_id}>
+          <DetailField label={labels.application_id}>
             <CopyableCode value={application.uid} />
-          </Field>
+          </DetailField>
 
-          <Field label={labels.secret}>
+          <DetailField label={labels.secret}>
             {#if secret.hashed}
               <div
                 class="rounded-md border border-surface-200 bg-darker px-3 py-2 text-sm text-muted"
@@ -119,19 +119,19 @@
                 </p>
               {/if}
             {/if}
-          </Field>
+          </DetailField>
 
-          <Field label={labels.scopes}>
+          <DetailField label={labels.scopes}>
             <ChipList items={application.scopes} empty={labels.not_defined} />
-          </Field>
+          </DetailField>
 
-          <Field label={labels.confidential}>
+          <DetailField label={labels.confidential}>
             <Badge tone={application.confidential ? "green" : "yellow"}>
               {application.confidential ? "Yes" : "No"}
             </Badge>
-          </Field>
+          </DetailField>
 
-          <Field label="Login redirect">
+          <DetailField label="Login redirect">
             <Badge
               tone={application.redirect_to_hca_login ? "green" : "yellow"}
             >
@@ -139,13 +139,13 @@
                 ? "Hack Club Auth"
                 : "Hackatime sign in"}
             </Badge>
-          </Field>
+          </DetailField>
 
-          <Field label="Verified">
+          <DetailField label="Verified">
             <Badge tone={application.verified ? "green" : "yellow"}>
               {application.verified ? "Verified" : "Unverified"}
             </Badge>
-          </Field>
+          </DetailField>
         </div>
       </article>
 

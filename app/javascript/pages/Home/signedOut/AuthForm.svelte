@@ -95,7 +95,7 @@
       <div class="flex-1 h-px bg-surface-200"></div>
     </div>
 
-    <form method="post" action={emailAuthPath} data-turbo="false">
+    <form method="post" action={emailAuthPath}>
       <input type="hidden" name="authenticity_token" value={csrf_token} />
       {#if redirect_to}
         <input type="hidden" name="redirect_to" value={redirect_to} />

@@ -37,6 +37,7 @@ module JsFromRoutes
     resend_email_verification_auth
     unlink_email_auth
     stop_impersonating
+    update_trust_level_user
 
     leaderboards
 
@@ -58,6 +59,7 @@ module JsFromRoutes
     my_settings_privacy
     my_settings_privacy_update
     my_settings_rotate_api_key
+    my_settings_revoke_authorized_application
     my_settings_goals
     my_settings_goals_create
     my_settings_goal_update
@@ -88,11 +90,26 @@ module JsFromRoutes
     extensions
 
     admin_timeline
+    admin_timeline_search_users
+    admin_timeline_leaderboard_users
     admin_trust_level_audit_logs
+    admin_trust_level_audit_log
     admin_admin_api_keys
+    admin_admin_api_key
+    new_admin_admin_api_key
     admin_admin_users
+    admin_admin_user
+    search_admin_admin_users
     admin_deletion_requests
+    admin_deletion_request
+    new_admin_deletion_request
+    confirm_admin_deletion_requests
+    approve_admin_deletion_request
+    reject_admin_deletion_request
     admin_oauth_applications
+    admin_oauth_application
+    edit_admin_oauth_application
+    rotate_secret_admin_oauth_application
     admin_leaderboard_shadowbans
     admin_leaderboard_shadowban
     search_users_admin_leaderboard_shadowbans

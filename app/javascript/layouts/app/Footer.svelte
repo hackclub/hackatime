@@ -52,7 +52,6 @@
     {#if showStopImpersonating}
       <a
         href={stopImpersonatingPath}
-        data-turbo-prefetch="false"
         class="text-primary font-bold hover:text-red transition-colors duration-200"
         >Stop impersonating</a
       >

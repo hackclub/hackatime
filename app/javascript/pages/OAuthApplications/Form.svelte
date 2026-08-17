@@ -1,6 +1,9 @@
 <script lang="ts">
   import { Form } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
+  import CheckboxField from "../../components/CheckboxField.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import TextInput from "../../components/TextInput.svelte";
   import type { OAuthApplicationFormProps } from "./types";
   import { doorkeeperApplications } from "../../api";
 
@@ -25,8 +28,6 @@
   );
   const cancelPath = doorkeeperApplications.index.path();
 
-  const input =
-    "w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none";
   const row =
     "flex cursor-pointer items-start gap-3 rounded-lg border border-surface-200 bg-darker/70 p-3 hover:border-surface-300";
 </script>
@@ -49,14 +50,11 @@
     </h2>
 
     <div class="mt-5 space-y-5">
-      <div>
-        <label
-          for="doorkeeper_application_name"
-          class="mb-2 block text-sm font-medium text-surface-content"
-        >
-          Name
-        </label>
-
+      <FormField
+        inputId="doorkeeper_application_name"
+        label="Name"
+        error={errors.name[0]}
+      >
         {#if nameLocked}
           <input
             id="doorkeeper_application_name"
@@ -75,20 +73,15 @@
             change it.
           </p>
         {:else}
-          <input
+          <TextInput
             id="doorkeeper_application_name"
             name="doorkeeper_application[name]"
             value={application.name}
             required
             placeholder="My Awesome App"
-            class={input}
           />
         {/if}
-
-        {#if errors.name.length > 0}
-          <p class="mt-1 text-xs text-red">{errors.name[0]}</p>
-        {/if}
-      </div>
+      </FormField>
 
       <div>
         <label
@@ -103,7 +96,8 @@
           rows="4"
           value={application.redirect_uri}
           placeholder="https://example.com/auth/callback"
-          class="{input} font-mono"></textarea>
+          class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 font-mono text-sm text-surface-content focus:border-primary focus:outline-none"
+        ></textarea>
         <p class="mt-2 text-xs text-muted">{help_text.redirect_uri}</p>
         {#if allow_blank_redirect_uri}
           <p class="mt-1 text-xs text-muted">{help_text.blank_redirect_uri}</p>
@@ -151,20 +145,14 @@
         {/if}
       </div>
 
-      <label class={row} for="doorkeeper_application_confidential">
-        <input
-          type="hidden"
-          name="doorkeeper_application[confidential]"
-          value="0"
-        />
-        <input
-          id="doorkeeper_application_confidential"
-          type="checkbox"
-          name="doorkeeper_application[confidential]"
-          value="1"
-          checked={application.confidential}
-          class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
-        />
+      <CheckboxField
+        native
+        align="start"
+        class={row}
+        inputClass="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
+        checked={application.confidential}
+        name="doorkeeper_application[confidential]"
+      >
         <span>
           <span class="text-sm font-medium text-surface-content"
             >Confidential application</span
@@ -173,22 +161,16 @@
             >{help_text.confidential}</span
           >
         </span>
-      </label>
+      </CheckboxField>
 
-      <label class={row} for="doorkeeper_application_redirect_to_hca_login">
-        <input
-          type="hidden"
-          name="doorkeeper_application[redirect_to_hca_login]"
-          value="0"
-        />
-        <input
-          id="doorkeeper_application_redirect_to_hca_login"
-          type="checkbox"
-          name="doorkeeper_application[redirect_to_hca_login]"
-          value="1"
-          checked={application.redirect_to_hca_login}
-          class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
-        />
+      <CheckboxField
+        native
+        align="start"
+        class={row}
+        inputClass="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
+        checked={application.redirect_to_hca_login}
+        name="doorkeeper_application[redirect_to_hca_login]"
+      >
         <span>
           <span class="text-sm font-medium text-surface-content"
             >Use Hack Club Auth for login</span
@@ -198,7 +180,7 @@
             app's OAuth consent screen.</span
           >
         </span>
-      </label>
+      </CheckboxField>
     </div>
   </section>
 

@@ -4,7 +4,7 @@
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import Field from "./components/Field.svelte";
+  import FormField from "../../../components/FormField.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { BadgesPageProps } from "./types";
   import { settingsPrivacy } from "../../../api";
@@ -93,7 +93,7 @@
       wide
     >
       <div class="space-y-4">
-        <Field inputId="badge_theme" label="Theme">
+        <FormField inputId="badge_theme" label="Theme">
           <Select
             id="badge_theme"
             bind:value={selectedTheme}
@@ -102,7 +102,7 @@
               label: theme,
             }))}
           />
-        </Field>
+        </FormField>
 
         {@render badgePreview(
           badgeUrl,
@@ -113,7 +113,7 @@
 
       {#if badges.projects.length > 0 && badges.project_badge_base_url}
         <div class="mt-6 border-t border-surface-200 pt-6">
-          <Field inputId="badge_project" label="Project">
+          <FormField inputId="badge_project" label="Project">
             <Select
               id="badge_project"
               bind:value={selectedProject}
@@ -122,7 +122,7 @@
                 label: p.display_name,
               }))}
             />
-          </Field>
+          </FormField>
           <div class="mt-4">
             {@render badgePreview(
               projectBadgeUrl,

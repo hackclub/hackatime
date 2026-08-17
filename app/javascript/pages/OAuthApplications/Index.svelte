@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
+  import DetailField from "../../components/DetailField.svelte";
   import DestructiveActionModal from "./DestructiveActionModal.svelte";
   import Badge from "./components/Badge.svelte";
   import ChipList from "./components/ChipList.svelte";
-  import Field from "./components/Field.svelte";
   import type { OAuthApplicationsIndexProps } from "./types";
   import { doorkeeperApplications } from "../../api";
 
@@ -68,7 +68,7 @@
               </div>
 
               <div class="space-y-2">
-                <Field label="Callback URLs">
+                <DetailField label="Callback URLs">
                   <div class="mt-1">
                     <ChipList
                       items={application.redirect_uris}
@@ -76,15 +76,15 @@
                       variant="uri"
                     />
                   </div>
-                </Field>
-                <Field label="Scopes">
+                </DetailField>
+                <DetailField label="Scopes">
                   <div class="mt-1">
                     <ChipList
                       items={application.scopes}
                       empty="No scopes configured."
                     />
                   </div>
-                </Field>
+                </DetailField>
               </div>
             </div>
 

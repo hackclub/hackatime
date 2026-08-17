@@ -363,10 +363,6 @@ select {
   @apply text-[#ccc];
 }
 
-turbo-frame#mini_leaderboard[aria-busy="true"]::before {
-  @apply hidden;
-}
-
 #currently_hacking {
   @apply hidden;
 }

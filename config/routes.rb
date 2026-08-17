@@ -22,7 +22,10 @@ Rails.application.routes.draw do
   get "api-docs", to: "api_docs#show", as: :api_docs
   get "api-docs/admin", to: "api_docs#admin", as: :admin_api_docs
   mount Rswag::Api::Engine => "/api-docs"
-  use_doorkeeper { controllers authorizations: "custom_doorkeeper/authorizations" }
+  use_doorkeeper do
+    controllers authorizations: "custom_doorkeeper/authorizations"
+    skip_controllers :authorized_applications
+  end
 
   post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application
   root "static_pages#index"
@@ -110,7 +113,6 @@ Rails.application.routes.draw do
     collection do
       get :currently_hacking
       get :currently_hacking_count
-      get :streak
     end
   end
 
@@ -185,6 +187,7 @@ Rails.application.routes.draw do
   get "my/settings/privacy", to: "settings/privacy#show", as: :my_settings_privacy
   patch "my/settings/privacy", to: "settings/privacy#update", as: :my_settings_privacy_update
   post "my/settings/privacy/rotate_api_key", to: "settings/privacy#rotate_api_key", as: :my_settings_rotate_api_key
+  delete "my/settings/privacy/authorized_applications/:application_id", to: "settings/privacy#revoke_application", as: :my_settings_revoke_authorized_application
 
   # Goals
   get "my/settings/goals", to: "settings/goals#show", as: :my_settings_goals

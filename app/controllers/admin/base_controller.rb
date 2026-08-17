@@ -1,5 +1,7 @@
-class Admin::BaseController < ApplicationController
+class Admin::BaseController < InertiaController
   ADMIN_NAV_LEVELS = %w[admin superadmin viewer ultraadmin].freeze
+
+  layout "inertia"
 
   before_action :authenticate_admin!
 

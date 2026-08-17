@@ -17,7 +17,7 @@
     <a
       href={sessions.githubNew.path()}
       class="bg-primary hover:opacity-90 text-on-primary font-medium px-4 py-2 rounded-lg transition-colors duration-200 shrink-0 text-center w-full md:w-fit"
-      data-turbo="false">Connect GitHub</a
+      >Connect GitHub</a
     >
   </div>
 </div>

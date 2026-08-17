@@ -19,6 +19,11 @@ class Settings::PrivacyController < Settings::BaseController
     redirect_to my_settings_privacy_path, alert: "Unable to rotate API key"
   end
 
+  def revoke_application
+    OauthApplication.revoke_tokens_and_grants_for(params[:application_id], @user)
+    redirect_to my_settings_privacy_path, notice: "Application access revoked"
+  end
+
   private
 
   def render_privacy(status: :ok) = render_settings_page(active_section: "privacy", status: status)
@@ -26,6 +31,10 @@ class Settings::PrivacyController < Settings::BaseController
   def section_props
     { user: user_props(keys: %i[allow_public_stats_lookup can_request_deletion]),
       rotated_api_key: flash[:rotated_api_key],
+      authorized_applications: OauthApplication.authorized_for(@user).map { |application|
+        { id: application.id, name: application.name,
+          authorized_at: "#{helpers.time_ago_in_words(application.created_at)} ago" }
+      },
       deletion_reason_details_max_length: DeletionRequest::MAX_REASON_DETAILS_LENGTH }
   end
 

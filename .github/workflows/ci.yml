@@ -34,22 +34,6 @@ jobs:
         with:
           sarif_file: brakeman.sarif.json
 
-  scan_js:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: .ruby-version
-          bundler-cache: true
-
-      - name: Scan for security vulnerabilities in JavaScript dependencies
-        run: bin/importmap audit
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -312,7 +296,7 @@ jobs:
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [scan_ruby, scan_js, lint, frontend, zeitwerk, publish_image, test, test_system]
+    needs: [scan_ruby, lint, frontend, zeitwerk, publish_image, test, test_system]
     runs-on: ubuntu-latest
     concurrency:
       group: production-deploy

@@ -3,9 +3,10 @@
   import { Tooltip } from "bits-ui";
   import { Icon, ArrowPath, Trash } from "svelte-hero-icons";
   import Button from "../../../components/Button.svelte";
+  import FormField from "../../../components/FormField.svelte";
   import Select from "../../../components/Select.svelte";
+  import TextInput from "../../../components/TextInput.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import Field from "./components/Field.svelte";
   import SettingsShell from "./Shell.svelte";
   import type { ProfilePageProps } from "./types";
   import { settingsProfile, sessions } from "../../../api";
@@ -23,9 +24,6 @@
     emails,
     errors,
   }: ProfilePageProps = $props();
-
-  const inputClass =
-    "w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none";
 
   function formatCooldown(seconds: number): string {
     if (seconds <= 0) return "";
@@ -52,7 +50,7 @@
       class="space-y-4"
       options={{ preserveScroll: true }}
     >
-      <Field inputId="country_code" label="Country">
+      <FormField inputId="country_code" label="Country">
         <Select
           id="country_code"
           name="user[country_code]"
@@ -62,16 +60,16 @@
             ...options.countries,
           ]}
         />
-      </Field>
+      </FormField>
 
-      <Field wrapperId="user_timezone" inputId="timezone" label="Timezone">
+      <FormField wrapperId="user_timezone" inputId="timezone" label="Timezone">
         <Select
           id="timezone"
           name="user[timezone]"
           value={user.timezone}
           items={options.timezones}
         />
-      </Field>
+      </FormField>
     </Form>
 
     {#snippet footer()}
@@ -93,20 +91,19 @@
       class="space-y-3"
       options={{ preserveScroll: true }}
     >
-      <Field
+      <FormField
         inputId="display_name_override"
         label="Display name"
         error={errors.display_name_override[0]}
       >
-        <input
+        <TextInput
           id="display_name_override"
           name="user[display_name_override]"
           value={user.display_name_override || ""}
           maxlength={display_name_max_length}
           placeholder={user.display_name}
-          class={inputClass}
         />
-      </Field>
+      </FormField>
     </Form>
 
     {#snippet footer()}
@@ -128,16 +125,15 @@
       class="space-y-3"
       options={{ preserveScroll: true }}
     >
-      <Field inputId="username" label="Username" error={errors.username[0]}>
-        <input
+      <FormField inputId="username" label="Username" error={errors.username[0]}>
+        <TextInput
           id="username"
           name="user[username]"
           value={user.username || ""}
           maxlength={username_max_length}
           placeholder="your-name"
-          class={inputClass}
         />
-      </Field>
+      </FormField>
     </Form>
 
     {#if profile_url}
@@ -271,12 +267,12 @@
       class="mt-4 flex flex-col gap-3 sm:flex-row"
       options={{ preserveScroll: true }}
     >
-      <input
+      <TextInput
         type="email"
         name="email"
         required
         placeholder="name@example.com"
-        class={`grow ${inputClass}`}
+        class="grow w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none"
       />
     </Form>
 

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class ErrorsController < ApplicationController
+  layout "inertia"
+
   skip_before_action :verify_authenticity_token
 
   def bad_request
@@ -43,7 +45,14 @@ class ErrorsController < ApplicationController
 
   def render_error
     respond_to do |format|
-      format.html { render "errors/show", status: @status_code, layout: error_layout }
+      format.html do
+        render inertia: "Errors/Show", props: {
+          status_code: @status_code,
+          title: @title,
+          message: @message,
+          sentry_event_id: @sentry_event_id
+        }, status: @status_code
+      end
       format.json { render json: error_json, status: @status_code }
       format.any { render json: error_json, status: @status_code }
     end
@@ -57,9 +66,5 @@ class ErrorsController < ApplicationController
     }
     response[:sentry_event_id] = @sentry_event_id if @sentry_event_id.present?
     response
-  end
-
-  def error_layout
-    "errors"
   end
 end

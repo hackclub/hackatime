@@ -3,7 +3,6 @@ CI.run do
   step "Style: Ruby", "bin/rubocop"
 
   step "Zeitwerk", "bin/rails zeitwerk:check"
-  step "Security: Importmap vulnerability audit", "bin/importmap audit"
   step "Security: Brakeman code analysis", "bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error"
 
   step "Setup: Test DB", "env RAILS_ENV=test bin/rails db:create db:schema:load"

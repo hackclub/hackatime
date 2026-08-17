@@ -16,19 +16,22 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "ultraadmin", @ultraadmin.reload.admin_level
   end
 
-  test "index does not offer superadmins controls for ultraadmins" do
+  test "index does not offer superadmins actions for ultraadmins" do
     get admin_admin_users_path
 
     assert_response :success
-    assert_select "form[action=?]", admin_admin_user_path(@ultraadmin, admin_level: "superadmin"), count: 0
-    assert_select "form[action=?]", admin_admin_user_path(@ultraadmin, admin_level: "default"), count: 0
-    assert_select "th", text: "Actions", count: 1
+    assert_inertia_component "Admin/AdminUsers"
+    ultraadmin = inertia_page.dig("props", "groups", "ultraadmin").find { |user| user["id"] == @ultraadmin.id }
+
+    assert_empty ultraadmin["allowed_levels"]
   end
 
-  test "search does not offer superadmins controls for ultraadmins" do
+  test "search does not offer superadmins actions for ultraadmins" do
     get search_admin_admin_users_path, params: { q: @ultraadmin.username }
 
     assert_response :success
-    assert_select "form[action^=?]", admin_admin_user_path(@ultraadmin), count: 0
+    ultraadmin = response.parsed_body.fetch("users").find { |user| user["id"] == @ultraadmin.id }
+
+    assert_empty ultraadmin["allowed_levels"]
   end
 end

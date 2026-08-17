@@ -84,7 +84,7 @@ class SessionsController < ApplicationController
     end
   end
 
-  def close_window = render(:close_window, layout: false)
+  def close_window = render(inertia: "Auth/CloseWindow", layout: "inertia")
 
   def github_new
     return unless require_signed_in!("Please sign in first to link your GitHub account")

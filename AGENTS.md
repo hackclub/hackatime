@@ -14,7 +14,6 @@ We do development using docker-compose. Run `docker compose ps` to see if the de
 - **Server**: `docker compose exec web rails s -b 0.0.0.0` (development server)
 - **Database**: `docker compose exec web rails db:migrate`, `docker compose exec web rails db:create`, `docker compose exec web rails db:schema:load`, `docker compose exec web rails db:seed`
 - **Security**: `docker compose exec web bundle exec brakeman` (security audit)
-- **JS Security**: `docker compose exec web bin/importmap audit` (JS dependency scan)
 - **Zeitwerk**: `docker compose exec web bin/rails zeitwerk:check` (autoloader check)
 - **Swagger**: `docker compose exec web bin/rails rswag:specs:swaggerize` (generate API docs)
 
