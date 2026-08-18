@@ -33,6 +33,10 @@ RSpec.describe 'Api::V1::Badges', type: :request do
         time a user has logged on a project. The endpoint is public (no auth) but
         only works for users who have not disabled public stats lookup.
 
+        Admins may bypass that setting by supplying an Admin API Key (or an OAuth
+        token with the `admin` scope) in the `Authorization: Bearer` header. Admin
+        credentials are never accepted in the `api_key` query param.
+
         `user_id` is matched, in order, against the user's Slack UID, then
         username, then (only when the value is all digits) the internal numeric
         ID. `project` may be a raw project name (e.g. `hackatime`) or an

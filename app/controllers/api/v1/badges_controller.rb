@@ -1,6 +1,8 @@
 module Api
   module V1
     class BadgesController < ApplicationController
+      include PublicStatsAccess
+
       skip_before_action :verify_authenticity_token
 
       # GET /api/v1/badge/:user_id/*project
@@ -11,7 +13,7 @@ module Api
       def show
         user = find_user(params[:user_id])
         return render_not_found_json("User not found") unless user
-        return render_forbidden("User has disabled public stats") unless user.allow_public_stats_lookup
+        return render_forbidden("User has disabled public stats") unless user.allow_public_stats_lookup || admin_stats_access?
 
         project_name = resolve_project_name(user, params[:project])
         return render_not_found_json("Project not found") unless project_name

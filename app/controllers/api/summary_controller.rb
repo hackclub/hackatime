@@ -1,5 +1,7 @@
 module Api
   class SummaryController < ApplicationController
+    include PublicStatsAccess
+
     skip_before_action :verify_authenticity_token
     before_action :set_user
 
@@ -47,7 +49,7 @@ module Api
 
       @user = User.lookup_by_identifier(identifier)
       return render_not_found_json("User not found") unless @user
-      render_forbidden("User has disabled public stats") unless @user.allow_public_stats_lookup
+      render_forbidden("User has disabled public stats") unless @user.allow_public_stats_lookup || admin_stats_access?
     end
 
     def determine_date_range(interval, range, from_date, to_date)

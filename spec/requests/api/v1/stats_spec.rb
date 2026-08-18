@@ -88,7 +88,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
   path '/api/v1/users/{username}/heartbeats/spans' do
     get('Get user heartbeat spans') do
       tags 'Stats'
-      description 'Returns heartbeat spans for a user, useful for visualizations. Accessible anonymously when the target user has public stats lookup enabled; otherwise the requester must be the user (authenticated via the User API Key).'
+      description 'Returns heartbeat spans for a user, useful for visualizations. Accessible anonymously when the target user has public stats lookup enabled; otherwise the requester must be the user (authenticated via the User API Key). Admins may bypass the target public stats lookup setting by supplying an Admin API Key (or an OAuth token with the `admin` scope) in the `Authorization: Bearer` header. Admin credentials are never accepted in the `api_key` query param.'
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID. The literal value "my" resolves the user from the Authorization Bearer token.'
@@ -187,7 +187,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
   path '/api/v1/users/{username}/projects' do
     get('Get user project names') do
       tags 'Stats'
-      description 'Returns a list of project names for a user from the last 30 days. Accessible anonymously when the target user has public stats lookup enabled.'
+      description 'Returns a list of project names for a user from the last 30 days. Accessible anonymously when the target user has public stats lookup enabled. Admins may bypass the target public stats lookup setting by supplying an Admin API Key (or an OAuth token with the `admin` scope) in the `Authorization: Bearer` header. Admin credentials are never accepted in the `api_key` query param.'
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
@@ -226,7 +226,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
   path '/api/v1/users/{username}/project/{project_name}' do
     get('Get user project details') do
       tags 'Stats'
-      description 'Returns details for a specific project. Accessible anonymously when the target user has public stats lookup enabled.'
+      description 'Returns details for a specific project. Accessible anonymously when the target user has public stats lookup enabled. Admins may bypass the target public stats lookup setting by supplying an Admin API Key (or an OAuth token with the `admin` scope) in the `Authorization: Bearer` header. Admin credentials are never accepted in the `api_key` query param.'
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
@@ -301,7 +301,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
   path '/api/v1/users/{username}/projects/details' do
     get('Get details for multiple projects') do
       tags 'Stats'
-      description 'Returns details for multiple projects, or all projects in a time range. Accessible anonymously when the target user has public stats lookup enabled.'
+      description 'Returns details for multiple projects, or all projects in a time range. Accessible anonymously when the target user has public stats lookup enabled. Admins may bypass the target public stats lookup setting by supplying an Admin API Key (or an OAuth token with the `admin` scope) in the `Authorization: Bearer` header. Admin credentials are never accepted in the `api_key` query param.'
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
@@ -389,6 +389,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         Returns detailed coding stats for a specific user, including languages, projects, and total time.
 
         Authentication is OPTIONAL: the endpoint is publicly accessible (no token) whenever the target user has public stats lookup enabled. When a User API Key is supplied it is used to resolve the special username "my" and to grant access to the caller's own private stats.
+
+        Admins may bypass the target public stats lookup setting by supplying an Admin API Key (or an OAuth token with the `admin` scope) in the `Authorization: Bearer` header. Admin credentials are never accepted in the `api_key` query param.
 
         When total_seconds=true, the response shape is instead { "total_seconds": <number> }.
       DESC

@@ -7,7 +7,9 @@ RSpec.describe 'Api::Summary', type: :request do
       description 'Returns a summary of coding activity in a format compatible with WakaTime clients. ' \
                   'This endpoint does NOT authenticate any API token: access is gated solely by the target ' \
                   'user (identified by user_id/user) having allow_public_stats_lookup enabled. No caller ' \
-                  'credentials are required or verified.'
+                  'credentials are required or verified, with one exception: admins may bypass that setting ' \
+                  'by supplying an Admin API Key (or an OAuth token with the `admin` scope) in the ' \
+                  '`Authorization: Bearer` header. Admin credentials are never accepted in the `api_key` query param.'
       produces 'application/json'
 
       parameter name: :start, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD). Requires "end"/"to" to be set as well to form an explicit range.'

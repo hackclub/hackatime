@@ -1,4 +1,6 @@
 class Api::V1::StatsController < ApplicationController
+  include PublicStatsAccess
+
   USER_LOOKUP_ACTIONS = [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ].freeze
 
   before_action :authenticate_stats_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
@@ -180,6 +182,7 @@ class Api::V1::StatsController < ApplicationController
     return render_not_found_json("User not found") unless @user
     return if @user.allow_public_stats_lookup
     return if current_user == @user || @api_caller_user == @user
+    return if admin_stats_access?
     render_forbidden("user has disabled public stats")
   end
 

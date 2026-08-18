@@ -870,7 +870,10 @@ paths:
       description: 'Returns a summary of coding activity in a format compatible with
         WakaTime clients. This endpoint does NOT authenticate any API token: access
         is gated solely by the target user (identified by user_id/user) having allow_public_stats_lookup
-        enabled. No caller credentials are required or verified.'
+        enabled. No caller credentials are required or verified, with one exception:
+        admins may bypass that setting by supplying an Admin API Key (or an OAuth
+        token with the `admin` scope) in the `Authorization: Bearer` header. Admin
+        credentials are never accepted in the `api_key` query param.'
       parameters:
       - name: start
         in: query
@@ -1320,6 +1323,10 @@ paths:
         time a user has logged on a project. The endpoint is public (no auth) but
         only works for users who have not disabled public stats lookup.
 
+        Admins may bypass that setting by supplying an Admin API Key (or an OAuth
+        token with the `admin` scope) in the `Authorization: Bearer` header. Admin
+        credentials are never accepted in the `api_key` query param.
+
         `user_id` is matched, in order, against the user's Slack UID, then
         username, then (only when the value is all digits) the internal numeric
         ID. `project` may be a raw project name (e.g. `hackatime`) or an
@@ -1726,9 +1733,13 @@ paths:
       summary: Get user heartbeat spans
       tags:
       - Stats
-      description: Returns heartbeat spans for a user, useful for visualizations.
+      description: 'Returns heartbeat spans for a user, useful for visualizations.
         Accessible anonymously when the target user has public stats lookup enabled;
         otherwise the requester must be the user (authenticated via the User API Key).
+        Admins may bypass the target public stats lookup setting by supplying an Admin
+        API Key (or an OAuth token with the `admin` scope) in the `Authorization:
+        Bearer` header. Admin credentials are never accepted in the `api_key` query
+        param.'
       parameters:
       - name: username
         in: path
@@ -1853,8 +1864,12 @@ paths:
       summary: Get user project names
       tags:
       - Stats
-      description: Returns a list of project names for a user from the last 30 days.
+      description: 'Returns a list of project names for a user from the last 30 days.
         Accessible anonymously when the target user has public stats lookup enabled.
+        Admins may bypass the target public stats lookup setting by supplying an Admin
+        API Key (or an OAuth token with the `admin` scope) in the `Authorization:
+        Bearer` header. Admin credentials are never accepted in the `api_key` query
+        param.'
       parameters:
       - name: username
         in: path
@@ -1893,8 +1908,11 @@ paths:
       summary: Get user project details
       tags:
       - Stats
-      description: Returns details for a specific project. Accessible anonymously
-        when the target user has public stats lookup enabled.
+      description: 'Returns details for a specific project. Accessible anonymously
+        when the target user has public stats lookup enabled. Admins may bypass the
+        target public stats lookup setting by supplying an Admin API Key (or an OAuth
+        token with the `admin` scope) in the `Authorization: Bearer` header. Admin
+        credentials are never accepted in the `api_key` query param.'
       parameters:
       - name: username
         in: path
@@ -2001,9 +2019,12 @@ paths:
       summary: Get details for multiple projects
       tags:
       - Stats
-      description: Returns details for multiple projects, or all projects in a time
+      description: 'Returns details for multiple projects, or all projects in a time
         range. Accessible anonymously when the target user has public stats lookup
-        enabled.
+        enabled. Admins may bypass the target public stats lookup setting by supplying
+        an Admin API Key (or an OAuth token with the `admin` scope) in the `Authorization:
+        Bearer` header. Admin credentials are never accepted in the `api_key` query
+        param.'
       parameters:
       - name: username
         in: path
@@ -2129,6 +2150,8 @@ paths:
         Returns detailed coding stats for a specific user, including languages, projects, and total time.
 
         Authentication is OPTIONAL: the endpoint is publicly accessible (no token) whenever the target user has public stats lookup enabled. When a User API Key is supplied it is used to resolve the special username "my" and to grant access to the caller's own private stats.
+
+        Admins may bypass the target public stats lookup setting by supplying an Admin API Key (or an OAuth token with the `admin` scope) in the `Authorization: Bearer` header. Admin credentials are never accepted in the `api_key` query param.
 
         When total_seconds=true, the response shape is instead { "total_seconds": <number> }.
       security:
