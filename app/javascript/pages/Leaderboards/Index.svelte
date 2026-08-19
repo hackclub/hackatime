@@ -29,7 +29,7 @@
     entries?: LeaderboardEntriesPayload;
   } = $props();
 
-  const settingsPath = settingsProfile.mySettings.path();
+  const settingsPath = settingsProfile.my.path();
   let searchQuery = $state("");
 
   const filteredEntries = $derived.by(() => {
