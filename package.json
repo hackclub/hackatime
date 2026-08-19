@@ -4,7 +4,7 @@
   "scripts": {
     "build:docs": "rm -rf public/docs public/og/docs public/og/docs.png public/_astro public/blume-search.json public/docs.md public/docs.mdx public/docs-sitemap.xml public/agent-readability.json public/llms.txt public/llms-full.txt && bun x --bun blume build && mkdir -p public/og && cp -R dist/docs dist/_astro public/ && cp -R dist/og/. public/og/ && cp dist/sitemap.xml public/docs-sitemap.xml && cp dist/blume-search.json dist/docs.md dist/docs.mdx dist/agent-readability.json dist/llms.txt dist/llms-full.txt public/",
     "check": "bun run check:svelte && tsc -p tsconfig.node.json",
-    "check:svelte": "svelte-check --tsgo --config ./svelte.config.js --tsconfig ./tsconfig.svelte-check.json",
+    "check:svelte": "svelte-check --tsgo --workspace app/javascript --config ../../svelte.config.js --tsconfig ../../tsconfig.svelte-check.json",
     "format:svelte": "oxfmt --write \"app/javascript/**/*.svelte\"",
     "format:svelte:check": "oxfmt --check \"app/javascript/**/*.svelte\"",
     "lint": "oxlint --import-plugin app/javascript",

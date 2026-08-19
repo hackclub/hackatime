@@ -22,15 +22,17 @@ Rails.application.routes.draw do
   get "api-docs", to: "api_docs#show", as: :api_docs
   get "api-docs/admin", to: "api_docs#admin", as: :admin_api_docs
   mount Rswag::Api::Engine => "/api-docs"
-  use_doorkeeper do
-    controllers authorizations: "custom_doorkeeper/authorizations"
-    skip_controllers :authorized_applications
+  defaults export: true do
+    use_doorkeeper do
+      controllers authorizations: "custom_doorkeeper/authorizations"
+      skip_controllers :authorized_applications
+    end
   end
 
-  post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application
-  root "static_pages#index"
+  post "/oauth/applications/:id/rotate_secret", to: "doorkeeper/applications#rotate_secret", as: :rotate_secret_oauth_application, export: true
+  root "static_pages#index", export: true
 
-  resources :extensions, only: [ :index ]
+  resources :extensions, only: [ :index ], export: true
 
   constraints AdminLevelConstraint.new(:ultraadmin) do
     mount GoodJob::Engine => "good_job"
@@ -38,7 +40,7 @@ Rails.application.routes.draw do
   end
 
   constraints AdminLevelConstraint.new(:superadmin, :ultraadmin) do
-    namespace :admin do
+    namespace :admin, defaults: { export: true } do
       resources :admin_users, only: [ :index, :update ]
       resources :oauth_applications, only: [ :index, :show, :edit, :update ] do
         member do
@@ -50,7 +52,7 @@ Rails.application.routes.draw do
   end
 
   constraints AdminLevelConstraint.new(:ultraadmin) do
-    namespace :admin do
+    namespace :admin, defaults: { export: true } do
       resource :account_merger, only: [ :show ], controller: "account_merger" do
         get :search_users
         post :merge
@@ -60,7 +62,7 @@ Rails.application.routes.draw do
 
   # Read-only admin surfaces — viewers are allowed.
   constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer, :ultraadmin) do
-    namespace :admin do
+    namespace :admin, defaults: { export: true } do
       get "timeline", to: "timeline#show", as: :timeline
       get "timeline/search_users", to: "timeline#search_users"
       get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
@@ -74,7 +76,7 @@ Rails.application.routes.draw do
   end
 
   constraints AdminLevelConstraint.new(:superadmin, :admin, :ultraadmin) do
-    namespace :admin do
+    namespace :admin, defaults: { export: true } do
       resources :deletion_requests, only: [ :index, :show, :new, :create ] do
         get :confirm, on: :collection
         member do
@@ -86,10 +88,10 @@ Rails.application.routes.draw do
         get :search_users, on: :collection
       end
     end
-    get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user
+    get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user, export: true
   end
 
-  get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating
+  get "/stop_impersonating", to: "sessions#stop_impersonating", as: :stop_impersonating, export: true
 
   if Rails.env.development?
     mount LetterOpenerWeb::Engine, at: "/letter_opener"
@@ -114,92 +116,94 @@ Rails.application.routes.draw do
     end
   end
 
-  get "/signin", to: "static_pages#signin", as: :signin
+  get "/signin", to: "static_pages#signin", as: :signin, export: true
 
   # Auth routes
-  get "/auth/hca", to: "sessions#hca_new", as: :hca_auth
+  get "/auth/hca", to: "sessions#hca_new", as: :hca_auth, export: true
   get "/auth/hca/callback", to: "sessions#hca_create"
-  get "/auth/slack", to: "sessions#slack_new", as: :slack_auth
+  get "/auth/slack", to: "sessions#slack_new", as: :slack_auth, export: true
   get "/auth/slack/callback", to: "sessions#slack_create"
-  get "/auth/github", to: "sessions#github_new", as: :github_auth
+  get "/auth/github", to: "sessions#github_new", as: :github_auth, export: true
   get "/auth/github/callback", to: "sessions#github_create"
-  delete "/auth/github/unlink", to: "sessions#github_unlink", as: :github_unlink
-  post "/auth/email", to: "sessions#email", as: :email_auth
-  post "/auth/email/add", to: "sessions#add_email", as: :add_email_auth
-  post "/auth/email/resend_verification", to: "sessions#resend_email_verification", as: :resend_email_verification_auth
-  delete "/auth/email/unlink", to: "sessions#unlink_email", as: :unlink_email_auth
+  delete "/auth/github/unlink", to: "sessions#github_unlink", as: :github_unlink, export: true
+  post "/auth/email", to: "sessions#email", as: :email_auth, export: true
+  post "/auth/email/add", to: "sessions#add_email", as: :add_email_auth, export: true
+  post "/auth/email/resend_verification", to: "sessions#resend_email_verification", as: :resend_email_verification_auth, export: true
+  delete "/auth/email/unlink", to: "sessions#unlink_email", as: :unlink_email_auth, export: true
   get "/auth/token/:token", to: "sessions#token", as: :auth_token
   get "/auth/close_window", to: "sessions#close_window", as: :close_window
-  delete "signout", to: "sessions#destroy", as: "signout"
+  delete "signout", to: "sessions#destroy", as: "signout", export: true
 
   get "/leaderboard", to: redirect("/leaderboards", status: 301)
 
-  resources :leaderboards, only: [ :index ]
+  resources :leaderboards, only: [ :index ], export: true
 
   # Docs routes
   post "docs/feedback", to: "documentation_feedbacks#create", format: false
 
   constraints AdminLevelConstraint.new(:admin, :superadmin, :ultraadmin) do
-    patch "users/:id/update_trust_level", to: "users#update_trust_level", as: :update_trust_level_user
+    patch "users/:id/update_trust_level", to: "users#update_trust_level", as: :update_trust_level_user, export: true
   end
 
   resource :api_key, only: [ :show ], path: "api-key"
 
-  get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects
-  get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }
+  get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects, export: true
+  get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }, export: true
 
   # Namespace for current user actions
-  get "my/settings", to: "settings/profile#show", as: :my_settings
+  defaults export: true do
+    get "my/settings", to: "settings/profile#show", as: :my_settings
 
-  # Profile
-  get "my/settings/profile", to: "settings/profile#show", as: :my_settings_profile
-  patch "my/settings/profile/region", to: "settings/profile#update_region", as: :my_settings_profile_region
-  patch "my/settings/profile/display_name", to: "settings/profile#update_display_name", as: :my_settings_profile_display_name
-  patch "my/settings/profile/username", to: "settings/profile#update_username", as: :my_settings_profile_username
+    # Profile
+    get "my/settings/profile", to: "settings/profile#show", as: :my_settings_profile
+    patch "my/settings/profile/region", to: "settings/profile#update_region", as: :my_settings_profile_region
+    patch "my/settings/profile/display_name", to: "settings/profile#update_display_name", as: :my_settings_profile_display_name
+    patch "my/settings/profile/username", to: "settings/profile#update_username", as: :my_settings_profile_username
 
-  # Setup
-  get "my/settings/setup", to: "settings/setup#show", as: :my_settings_setup
+    # Setup
+    get "my/settings/setup", to: "settings/setup#show", as: :my_settings_setup
 
-  # Appearance
-  get "my/settings/appearance", to: "settings/appearance#show", as: :my_settings_appearance
-  patch "my/settings/appearance/theme", to: "settings/appearance#update_theme", as: :my_settings_appearance_theme
+    # Appearance
+    get "my/settings/appearance", to: "settings/appearance#show", as: :my_settings_appearance
+    patch "my/settings/appearance/theme", to: "settings/appearance#update_theme", as: :my_settings_appearance_theme
 
-  # Editors
-  get "my/settings/editors", to: "settings/editors#show", as: :my_settings_editors
-  patch "my/settings/editors", to: "settings/editors#update", as: :my_settings_editors_update
+    # Editors
+    get "my/settings/editors", to: "settings/editors#show", as: :my_settings_editors
+    patch "my/settings/editors", to: "settings/editors#update", as: :my_settings_editors_update
 
-  # Slack & GitHub
-  get "my/settings/slack_github", to: "settings/slack_github#show", as: :my_settings_slack_github
-  patch "my/settings/slack_github", to: "settings/slack_github#update", as: :my_settings_slack_github_update
+    # Slack & GitHub
+    get "my/settings/slack_github", to: "settings/slack_github#show", as: :my_settings_slack_github
+    patch "my/settings/slack_github", to: "settings/slack_github#update", as: :my_settings_slack_github_update
 
-  # Notifications
-  get "my/settings/notifications", to: "settings/notifications#show", as: :my_settings_notifications
-  patch "my/settings/notifications", to: "settings/notifications#update", as: :my_settings_notifications_update
+    # Notifications
+    get "my/settings/notifications", to: "settings/notifications#show", as: :my_settings_notifications
+    patch "my/settings/notifications", to: "settings/notifications#update", as: :my_settings_notifications_update
 
-  # Privacy & Security
-  get "my/settings/privacy", to: "settings/privacy#show", as: :my_settings_privacy
-  patch "my/settings/privacy", to: "settings/privacy#update", as: :my_settings_privacy_update
-  post "my/settings/privacy/rotate_api_key", to: "settings/privacy#rotate_api_key", as: :my_settings_rotate_api_key
-  delete "my/settings/privacy/authorized_applications/:application_id", to: "settings/privacy#revoke_application", as: :my_settings_revoke_authorized_application
+    # Privacy & Security
+    get "my/settings/privacy", to: "settings/privacy#show", as: :my_settings_privacy
+    patch "my/settings/privacy", to: "settings/privacy#update", as: :my_settings_privacy_update
+    post "my/settings/privacy/rotate_api_key", to: "settings/privacy#rotate_api_key", as: :my_settings_rotate_api_key
+    delete "my/settings/privacy/authorized_applications/:application_id", to: "settings/privacy#revoke_application", as: :my_settings_revoke_authorized_application
 
-  # Goals
-  get "my/settings/goals", to: "settings/goals#show", as: :my_settings_goals
-  post "my/settings/goals", to: "settings/goals#create", as: :my_settings_goals_create
-  patch "my/settings/goals/:goal_id", to: "settings/goals#update", as: :my_settings_goal_update
-  delete "my/settings/goals/:goal_id", to: "settings/goals#destroy", as: :my_settings_goal_destroy
+    # Goals
+    get "my/settings/goals", to: "settings/goals#show", as: :my_settings_goals
+    post "my/settings/goals", to: "settings/goals#create", as: :my_settings_goals_create
+    patch "my/settings/goals/:goal_id", to: "settings/goals#update", as: :my_settings_goal_update
+    delete "my/settings/goals/:goal_id", to: "settings/goals#destroy", as: :my_settings_goal_destroy
 
-  # Badges
-  get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
+    # Badges
+    get "my/settings/badges", to: "settings/badges#show", as: :my_settings_badges
 
-  # Imports & Exports
-  get "my/settings/imports_exports", to: "settings/imports_exports#show", as: :my_settings_imports_exports
+    # Imports & Exports
+    get "my/settings/imports_exports", to: "settings/imports_exports#show", as: :my_settings_imports_exports
+  end
 
   # Backward-compat redirects from the old settings categories.
   get "my/settings/integrations", to: redirect("/my/settings/slack_github")
   get "my/settings/access", to: redirect("/my/settings/privacy")
   get "my/settings/data", to: redirect("/my/settings/imports_exports")
 
-  namespace :my do
+  namespace :my, defaults: { export: true } do
     resources :heartbeat_imports, only: [ :create, :show ] do
       get :wakatime_download_link, on: :collection
     end
@@ -216,12 +220,12 @@ Rails.application.routes.draw do
     end
   end
 
-  get "deletion", to: "deletion_requests#show", as: :deletion
-  post "deletion", to: "deletion_requests#create", as: :create_deletion
-  delete "deletion", to: "deletion_requests#cancel", as: :cancel_deletion
+  get "deletion", to: "deletion_requests#show", as: :deletion, export: true
+  post "deletion", to: "deletion_requests#create", as: :create_deletion, export: true
+  delete "deletion", to: "deletion_requests#cancel", as: :cancel_deletion, export: true
   get "deletion/hca/callback", to: "deletion_requests#hca_callback", as: :hca_deletion_callback
 
-  get "setup", to: "users#setup", as: :setup
+  get "setup", to: "users#setup", as: :setup, export: true
   get "my/wakatime_setup", to: redirect("/setup")
   get "my/wakatime_setup/step-2", to: redirect("/setup")
   get "my/wakatime_setup/step-3", to: redirect("/setup")
@@ -256,7 +260,7 @@ Rails.application.routes.draw do
       get "banned_users/counts", to: "stats#banned_users_counts"
 
       namespace :my do
-        get "heartbeats/most_recent", to: "heartbeats#most_recent"
+        get "heartbeats/most_recent", to: "heartbeats#most_recent", export: true
         get "heartbeats", to: "heartbeats#index"
       end
 
@@ -348,9 +352,9 @@ Rails.application.routes.draw do
     end
   end
 
-  get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }, export: true
   get "/@:username/og.png", to: "profiles#og_image", as: :profile_og_image, constraints: { username: /[A-Za-z0-9_-]+/ }
-  get "/@:username/project/:project_name", to: "profiles#project", as: :profile_project, constraints: { username: /[A-Za-z0-9_-]+/, project_name: /.+/ }
+  get "/@:username/project/:project_name", to: "profiles#project", as: :profile_project, constraints: { username: /[A-Za-z0-9_-]+/, project_name: /.+/ }, export: true
 
   # SEO routes
   get "/sitemap.xml", to: "sitemap#sitemap", defaults: { format: "xml" }
