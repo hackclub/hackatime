@@ -241,6 +241,33 @@ module DashboardData
       }
     end
 
+    def processed_export_snapshot(user:, scope:, start_date:, end_date:)
+      {
+        total_time: scope.duration_seconds,
+        total_heartbeats: scope.count,
+
+        project_durations: project_grouped_durations(scope),
+
+        language_stats: Heartbeat.attributed_durations_by(scope, :language),
+
+        editor_stats: Heartbeat.attributed_durations_by(scope, :editor),
+        operating_system_stats: Heartbeat.attributed_durations_by(scope, :operating_system),
+        category_stats: Heartbeat.attributed_durations_by(scope, :category),
+
+        weekly_project_stats: weekly_project_stats(
+          user: user,
+          scope: scope
+        ),
+
+        coding_rhythm: coding_rhythm_snapshot(
+          user: user,
+          scope: scope
+        )
+      }
+    end
+        
+
+
     # Reject project entries that should not appear in dashboard summaries.
     def grouped_durations_for(grouped_durations, field, archived)
       stats = grouped_durations.fetch(field, {})

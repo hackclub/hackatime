@@ -10,10 +10,16 @@ module My
         return redirect_to my_settings_imports_exports_path, alert: "You need an email address on your account to export heartbeats."
       end
 
+      include_stats = params[:include_stats] == "true"
+
       if params[:all_data] == "true"
         return if export_rate_limited?
 
-        HeartbeatExportJob.perform_later(current_user.id, all_data: true)
+        HeartbeatExportJob.perform_later(
+          current_user.id,
+          all_data: true,
+          include_stats: include_stats
+        )
       else
         date_range = export_date_range_from_params
         return if date_range.nil?
@@ -22,6 +28,7 @@ module My
         HeartbeatExportJob.perform_later(
           current_user.id,
           all_data: false,
+          include_stats: include_stats,
           start_date: date_range[:start_date].iso8601,
           end_date: date_range[:end_date].iso8601
         )
