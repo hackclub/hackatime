@@ -39,12 +39,11 @@ rebuilt.
    `InertiaController`; page-specific props belong in the rendering controller.
 
 Client route strings come from **js_from_routes**, not controller props or
-hand-built URLs. Add a named route to `EXPORTED_ROUTES` in
-[`js_from_routes.rb`](config/initializers/js_from_routes.rb), regenerate, and
+hand-built URLs. Mark the route with `export: true` in
+[`config/routes.rb`](config/routes.rb), regenerate, and
 import the controller module from `app/javascript/api`. Call `.path()` with
-path/query parameters. The generated directory is gitignored. The allowlist
-exports named routes and nameless siblings for an already-exported controller;
-it intentionally avoids exposing every Rails route.
+path/query parameters. The generated directory is gitignored. Only marked
+routes are exported; it intentionally avoids exposing every Rails route.
 
 Keep server-built URLs only when the client lacks required information (for
 example, request host), or for external links. API-only controllers may inherit
@@ -248,7 +247,7 @@ keep heartbeat dedup race-safe and rollup replacement atomic.
 | Add dashboard/profile statistic | `DashboardData::Snapshots` + `DashboardStats`; add rollup dimension only if appropriate |
 | Change page data or validation | Rails controller/service/model; serialize minimal Inertia props |
 | Change page interaction/presentation | Svelte page/component; use Inertia primitives |
-| Add a frontend Rails URL | Rails route + `js_from_routes` allowlist + generated helper import |
+| Add a frontend Rails URL | Rails route with `export: true` + generated helper import |
 | Add browser/admin/API authorization | Existing auth concern/controller boundary and model capability predicate |
 | Change sign-in/provider identity | `SessionsController` plus the relevant user OAuth/provider concern |
 | Change project archive/share/user mapping | `ProjectRepoMapping` and its controller/job |

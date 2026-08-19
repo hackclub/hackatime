@@ -194,7 +194,7 @@ fooThings.update.path({ query: { from: "x" } }); // -> "/foo_things?from=x"
 
 ### Adding a new path helper
 
-1. Add the route's `as:` name to `EXPORTED_ROUTES` in `config/initializers/js_from_routes.rb`. We use an explicit allowlist (not `defaults export: true`) so the generated `app/javascript/api/` stays small and predictable.
+1. Mark the route in `config/routes.rb`: add `export: true` to the route or `resources` call, or wrap a group in `defaults export: true do ... end`. Unmarked routes are not exported, keeping the generated `app/javascript/api/` small and predictable. Beware that js_from_routes derives helper names from sibling routes on the same controller, so adding or removing an exported route can rename existing helpers — check `svelte-check` after changing exports.
 2. In dev, refresh the page (Rails reloader regenerates) or run `docker compose exec web bin/rake js_from_routes:generate`. Force regeneration with `JS_FROM_ROUTES_FORCE=true`.
 3. Import from `app/javascript/api/<Namespace>Api.ts` (one file per controller). All helpers are also re-exported from `app/javascript/api/index.ts`.
 
@@ -212,7 +212,7 @@ Files under `app/javascript/api/` are gitignored and regenerated on every build:
 - **Production Docker build**: regenerated in `Dockerfile` before `assets:precompile`.
 - **CI**: regenerated in the `frontend` and `test_system` jobs before Vite/svelte-check run; the `test` job triggers regeneration via Rails boot.
 
-After adding a route to `EXPORTED_ROUTES`, just refresh the page (or run `docker compose exec web bin/rake js_from_routes:generate`) — there's nothing to commit.
+After marking a route with `export: true`, just refresh the page (or run `docker compose exec web bin/rake js_from_routes:generate`) — there's nothing to commit.
 
 ## Default theme
 
