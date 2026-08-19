@@ -5,7 +5,6 @@ class Settings::BaseController < InertiaController
   include ActionView::Helpers::NumberHelper
 
   before_action :set_user
-  before_action :require_current_user
 
   private
 
@@ -31,10 +30,9 @@ class Settings::BaseController < InertiaController
 
   # Lightweight props shared by every settings page
   def common_props(active_section:)
-    is_own = is_own_settings?
     { active_section: active_section,
-      page_title: (is_own ? "My Settings" : "Settings | #{@user.display_name}"),
-      heading: (is_own ? "Settings" : "Settings for #{@user.display_name}"),
+      page_title: "Settings | #{@user.display_name}",
+      heading: "Settings for #{@user.display_name}",
       subheading: "Manage your profile, appearance, editors, integrations, privacy, goals, and data tools.",
       errors: { full_messages: @user.errors.full_messages,
                 display_name_override: @user.errors[:display_name_override],
@@ -160,13 +158,7 @@ class Settings::BaseController < InertiaController
   end
 
   def set_user
-    @user = (params["id"].present? && params["id"] != "my") ? User.find(params["id"]) : current_user
+    @user = current_user
     redirect_to root_path, alert: "You need to log in!" if @user.nil?
   end
-
-  def require_current_user
-    redirect_to root_path, alert: "You are not authorized to access this page" unless @user == current_user
-  end
-
-  def is_own_settings? = params["id"] == "my" || params["id"]&.blank?
 end
