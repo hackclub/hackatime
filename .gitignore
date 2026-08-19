@@ -59,7 +59,7 @@ public/vite-test
 .vite
 
 # Transpiled Svelte files written to disk by `svelte-check --tsgo`
-/.svelte-check
+.svelte-check/
 
 pg-dump*
 
