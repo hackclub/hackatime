@@ -28,7 +28,7 @@ class HeartbeatExportJob < ApplicationJob
     end
 
     if all_data
-      heartbeats = user.heartbeats.order(time: :asc)
+      heartbeats = user.heartbeats
       first_time, last_time = user.heartbeats.pick(Arel.sql("MIN(time), MAX(time)"))
       if first_time && last_time
         start_date = Time.at(first_time).to_date
@@ -41,17 +41,15 @@ class HeartbeatExportJob < ApplicationJob
       end_date = Date.iso8601(end_date)
       heartbeats = user.heartbeats
         .where("time >= ? AND time <= ?", start_date.beginning_of_day.to_f, end_date.end_of_day.to_f)
-        .order(time: :asc)
     end
 
-    export_data = build_export_data(heartbeats, start_date, end_date)
     user_identifier = user.slack_uid.presence || "user_#{user.id}"
     json_filename = "heartbeats_#{user_identifier}_#{start_date.strftime("%Y%m%d")}_#{end_date.strftime("%Y%m%d")}.json"
     zip_filename = "#{File.basename(json_filename, ".json")}.zip"
 
     Tempfile.create([ "heartbeat_export", ".json" ]) do |file|
-      file.write(export_data.to_json)
-      file.rewind
+      write_export_json(file, heartbeats, start_date, end_date)
+      file.flush
 
       Tempfile.create([ "heartbeat_export", ".zip" ]) do |zip_file|
         Zip::File.open(zip_file.path, create: true) { |archive| archive.add(json_filename, file.path) }
@@ -80,21 +78,31 @@ class HeartbeatExportJob < ApplicationJob
 
   private
 
-  def build_export_data(heartbeats, start_date, end_date)
-    {
-      export_info: {
-        exported_at: Time.current.iso8601,
-        date_range: { start_date: start_date.iso8601, end_date: end_date.iso8601 },
-        total_heartbeats: heartbeats.count,
-        total_duration_seconds: heartbeats.duration_seconds
-      },
-      heartbeats: heartbeats.map do |hb|
-        HEARTBEAT_EXPORT_FIELDS.index_with { |f| hb.public_send(f) }.merge(
-          time: Time.at(hb.time).iso8601,
-          created_at: hb.created_at.iso8601,
-          updated_at: hb.updated_at.iso8601
-        )
-      end
+  # Streams the export document instead of materialising every heartbeat in
+  # memory, so exports for heavy users stay within worker memory limits.
+  def write_export_json(file, heartbeats, start_date, end_date)
+    export_info = {
+      exported_at: Time.current.iso8601,
+      date_range: { start_date: start_date.iso8601, end_date: end_date.iso8601 },
+      total_heartbeats: heartbeats.count,
+      total_duration_seconds: heartbeats.duration_seconds
     }
+
+    file.write(%({"export_info":#{export_info.to_json},"heartbeats":[))
+    first = true
+    heartbeats.find_each do |hb|
+      file.write(",") unless first
+      first = false
+      file.write(export_row(hb).to_json)
+    end
+    file.write("]}")
+  end
+
+  def export_row(hb)
+    HEARTBEAT_EXPORT_FIELDS.index_with { |f| hb.public_send(f) }.merge(
+      time: Time.at(hb.time).iso8601,
+      created_at: hb.created_at.iso8601,
+      updated_at: hb.updated_at.iso8601
+    )
   end
 end

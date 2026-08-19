@@ -45,7 +45,7 @@
 
   const indexPath = myProjectRepoMappings.index.path();
   const githubAuthPath = sessions.githubNew.path();
-  const settingsPath = `${settingsProfile.mySettings.path()}#user_github_account`;
+  const settingsPath = `${settingsProfile.my.path()}#user_github_account`;
 
   const intervalQueryString = $derived(
     intervalParams(interval, from, to).toString(),

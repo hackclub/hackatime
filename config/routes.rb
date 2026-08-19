@@ -139,11 +139,6 @@ Rails.application.routes.draw do
   # Docs routes
   post "docs/feedback", to: "documentation_feedbacks#create", format: false
 
-  # Nested under users for admin access
-  resources :users, only: [] do
-    get "settings", on: :member, to: "settings/profile#show"
-  end
-
   constraints AdminLevelConstraint.new(:admin, :superadmin, :ultraadmin) do
     patch "users/:id/update_trust_level", to: "users#update_trust_level", as: :update_trust_level_user
   end
