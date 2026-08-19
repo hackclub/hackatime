@@ -133,11 +133,6 @@ class HeartbeatExportJob < ApplicationJob
   def stats_to_csv(stats)
     CSV.generate do |csv|
       csv << ["name", "duration_seconds"]
-
-      stats.sort_by { |_, duration| -duration.to_i }.each do |name, duration|
-  def stats_to_csv(stats)
-    CSV.generate do |csv|
-      csv << ["name", "duration_seconds"]
       stats.sort_by { |_, duration| -duration.to_i }.each do |name, duration|
         safe_name = name.to_s.gsub(/\A([=+\-@\t\r])/, "'\1")
         csv << [safe_name, duration]
