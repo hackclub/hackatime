@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Deferred, Link } from "@inertiajs/svelte";
+  import { onMount } from "svelte";
   import { Icon, MagnifyingGlass } from "svelte-hero-icons";
   import Tabs from "./components/Tabs.svelte";
   import EntriesList from "./components/EntriesList.svelte";
@@ -71,6 +72,23 @@
   const periodLabel = $derived(
     period_type === "last_7_days" ? "last 7 days" : "last 24 hours",
   );
+
+  onMount(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+        const el = document.getElementById("leaderboard-search") as HTMLInputElement | null;
+        if (el) {
+          event.preventDefault();
+          el.focus();
+          el.select();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  });
 </script>
 
 <svelte:head>
