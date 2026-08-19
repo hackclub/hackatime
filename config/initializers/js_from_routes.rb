@@ -42,7 +42,6 @@ module JsFromRoutes
 
     leaderboards
 
-    settings_user
     my_settings
     my_settings_profile
     my_settings_profile_region
