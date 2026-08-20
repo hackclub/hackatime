@@ -20,6 +20,27 @@
     accent_foreground: "#ffffff"
     code_background: "#1f1617"
 
+- value: midnight
+  label: Midnight
+  description: Neutral charcoal with classic Hackatime accents.
+  color_scheme: dark
+  theme_color: "#ec3750"
+  preview:
+    darker: "#121217"
+    dark: "#17171d"
+    darkless: "#252429"
+    primary: "#ec3750"
+    content: "#f5f5f5"
+    info: "#5bc0de"
+    success: "#33d6a6"
+    warning: "#f1c40f"
+  docs:
+    muted: "#1e1e24"
+    muted_foreground: "#8492a6"
+    border: "#333238"
+    accent_foreground: "#ffffff"
+    code_background: "#121217"
+
 - value: neon
   label: Neon
   description: Dark mode with neon green primary.
