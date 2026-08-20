@@ -105,11 +105,6 @@ Rails.application.configure do
       class: "WeeklySummaryEmailJob",
       description: "Sends weekly coding summaries on Sundays at 18:30 GMT."
     },
-
-    geocode_users_without_country: {
-      cron: "7 * * * *",
-      class: "GeocodeUsersWithoutCountryJob"
-    },
     cleanup_successful_jobs: {
       cron: "0 0 * * *",
       class: "CleanupSuccessfulJobsJob"
