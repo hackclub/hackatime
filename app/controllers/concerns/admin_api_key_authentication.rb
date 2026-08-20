@@ -8,7 +8,7 @@ module AdminApiKeyAuthentication
   private
 
   def auth_admin_api_key(token)
-    key = AdminApiKey.active.includes(:user).find_by(token: token) or return false
+    key = AdminApiKey.find_active_by_token(token) or return false
     user = key.user
     unless admin_api_user?(user)
       key.revoke!

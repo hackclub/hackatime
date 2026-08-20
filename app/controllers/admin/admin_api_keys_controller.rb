@@ -15,10 +15,11 @@ class Admin::AdminApiKeysController < Admin::BaseController
   end
 
   def show
-    show_token = session.delete(:newkey) == @admin_api_key.id
+    new_key = session.delete(:newkey)
+    show_token = new_key.is_a?(Hash) && new_key["id"] == @admin_api_key.id
     render inertia: "Admin/AdminApiKeys/Show", props: {
       api_key: serialize_key(@admin_api_key, created_at: @admin_api_key.created_at.strftime("%B %d, %Y at %I:%M %p"),
-        preview_length: 20, token: show_token ? @admin_api_key.token : nil),
+        preview_length: 20, token: show_token ? new_key["token"] : nil),
       show_token: show_token
     }
   end
@@ -32,7 +33,7 @@ class Admin::AdminApiKeysController < Admin::BaseController
     @admin_api_key = current_user.admin_api_keys.build(admin_api_key_params)
 
     if @admin_api_key.save
-      session[:newkey] = @admin_api_key.id
+      session[:newkey] = { "id" => @admin_api_key.id, "token" => @admin_api_key.token }
       redirect_to admin_admin_api_key_path(@admin_api_key)
     else
       render_new(status: :unprocessable_entity)
@@ -53,7 +54,7 @@ class Admin::AdminApiKeysController < Admin::BaseController
   end
 
   def serialize_key(key, created_at:, preview_length: 12, token: nil)
-    { id: key.id, name: key.name, token_preview: "#{key.token[0..preview_length]}...", token: token, created_at: created_at,
+    { id: key.id, name: key.name, token_preview: "#{key.token_preview[0..preview_length]}...", token: token, created_at: created_at,
       user: { id: key.user.id, display_name: key.user.display_name, avatar_url: key.user.avatar_url } }
   end
 

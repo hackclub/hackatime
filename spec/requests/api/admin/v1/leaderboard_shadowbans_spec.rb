@@ -23,7 +23,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:actor) { AdminApiKey.find_by!(token: 'dev-admin-api-key-12345').user }
+        let(:actor) { AdminApiKey.find_active_by_token('dev-admin-api-key-12345').user }
         let(:shadowbanned_user) { User.create!(username: 'rswag_lb_shadowbanned', timezone: 'UTC') }
 
         before do
@@ -167,7 +167,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:actor) { AdminApiKey.find_by!(token: 'dev-admin-api-key-12345').user }
+        let(:actor) { AdminApiKey.find_active_by_token('dev-admin-api-key-12345').user }
         let(:target) { User.create!(username: 'rswag_lb_delete', timezone: 'UTC') }
         let(:user_id) { target.id }
 

@@ -200,7 +200,7 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:api_key_to_revoke) do
-          AdminApiKey.find_by!(token: 'dev-admin-api-key-12345').user.admin_api_keys.create!(name: 'Revoke Key')
+          AdminApiKey.find_active_by_token('dev-admin-api-key-12345').user.admin_api_keys.create!(name: 'Revoke Key')
         end
         let(:id) { api_key_to_revoke.id }
         schema type: :object,
