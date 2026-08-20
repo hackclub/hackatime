@@ -10,7 +10,7 @@ class HashAdminApiKeys < ActiveRecord::Migration[8.1]
     admin_api_keys.find_each do |key|
       raw_token = key[:token]
       key.update_columns(
-        token: BlindIndex.generate_bidx(raw_token, key: index_key),
+        token: BlindIndex.generate_bidx(raw_token, key: index_key, algorithm: :pbkdf2_sha256, cost: { iterations: 1 }),
         token_preview: raw_token.first(21)
       )
     end
