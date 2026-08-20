@@ -143,7 +143,9 @@
         {#snippet fallback()}
           <div class="divide-y divide-gray-800">
             {#each Array(20) as _}
-              <div class="flex h-16 items-center p-2 sm:p-3 animate-pulse">
+              <div
+                class="flex h-16 items-center gap-2 p-2 sm:gap-0 sm:p-3 animate-pulse"
+              >
                 <div class="w-8 sm:w-12 h-6 bg-darkless rounded shrink-0"></div>
                 <div
                   class="w-8 h-8 bg-darkless rounded-full mx-1 sm:mx-4"
