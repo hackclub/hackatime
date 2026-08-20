@@ -127,6 +127,24 @@ class HeartbeatTest < ActiveSupport::TestCase
     end
   end
 
+  test "creating a heartbeat schedules a goal completion check for notification goals" do
+    user = User.create!(timezone: "UTC")
+    user.goals.create!(period: "day", target_seconds: 1.hour.to_i, notify_by_slack: true)
+    clear_enqueued_jobs
+
+    assert_enqueued_with(job: GoalCompletionCheckJob, args: [ user.id ]) do
+      user.heartbeats.create!(
+        entity: "src/main.rb",
+        type: "file",
+        category: "coding",
+        editor: "vscode",
+        time: Time.current.to_f,
+        project: "heartbeat-test",
+        source_type: :test_entry
+      )
+    end
+  end
+
   private
 
   def create_heartbeat_sequence(user:, started_at:, editor:, count: 9)

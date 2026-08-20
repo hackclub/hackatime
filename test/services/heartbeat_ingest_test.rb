@@ -256,6 +256,25 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
+  test "direct heartbeat ingest schedules a goal completion check for notification goals" do
+    user = User.create!(timezone: "UTC")
+    user.goals.create!(period: "day", target_seconds: 1.hour.to_i, notify_by_email: true)
+    clear_enqueued_jobs
+
+    assert_enqueued_with(job: GoalCompletionCheckJob, args: [ user.id ]) do
+      HeartbeatIngest.call(
+        user: user,
+        mode: :direct,
+        heartbeats: [ {
+          entity: "src/main.rb",
+          project: "hackatime",
+          time: Time.current.to_f,
+          type: "file"
+        } ]
+      )
+    end
+  end
+
   test "import heartbeat ingest runs model validations before bulk insertion" do
     user = User.create!(timezone: "UTC")
     validation = lambda do |heartbeat|

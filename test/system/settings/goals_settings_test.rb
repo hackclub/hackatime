@@ -6,6 +6,7 @@ class GoalsSettingsTest < ApplicationSystemTestCase
 
   setup do
     @user = User.create!(timezone: "UTC")
+    @user.email_addresses.create!(email: "goals-system@example.com", source: :signing_in)
     sign_in_as(@user)
   end
 
@@ -25,13 +26,16 @@ class GoalsSettingsTest < ApplicationSystemTestCase
 
     within_modal do
       click_on "2h"
+      click_on "Email"
       click_on "Create Goal"
     end
 
     assert_text "Goal created."
     assert_text(/1 Active Goal/i)
     assert_text "Daily: 2h"
+    assert_text "Completion notification: email"
     assert_equal 2.hours.to_i, @user.reload.goals.first.target_seconds
+    assert @user.goals.first.notify_by_email?
 
     click_on "Edit"
     within_modal do

@@ -14,6 +14,7 @@ class Goal < ApplicationRecord
   MAX_GOALS = 5
 
   belongs_to :user
+  has_many :completion_notifications, class_name: "GoalCompletionNotification", dependent: :destroy
 
   before_validation :normalize_fields
 
@@ -30,7 +31,9 @@ class Goal < ApplicationRecord
       period: period,
       target_seconds: target_seconds,
       languages: languages,
-      projects: projects
+      projects: projects,
+      notify_by_email: notify_by_email,
+      notify_by_slack: notify_by_slack
     }
   end
 
