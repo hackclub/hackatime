@@ -88,7 +88,7 @@ class InertiaController < ApplicationController
     [ :admin_timeline_path, "Review Timeline" ],
     [ :admin_trust_level_audit_logs_path, "Trust Level Logs", "/admin/trust_level_audit_logs" ],
     [ :admin_admin_api_keys_path, "Admin API Keys", "/admin/admin_api_keys" ],
-    [ :admin_leaderboard_shadowbans_path, "Leaderboard Shadowbans", "/admin/leaderboard_shadowbans"]
+    [ :admin_leaderboard_shadowbans_path, "Leaderboard Shadowbans", "/admin/leaderboard_shadowbans" ]
   ].freeze
 
   def inertia_admin_links
