@@ -85,6 +85,56 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "body-machine", heartbeat.machine
   end
 
+  test "direct heartbeat ingest remaps filenames swapped by macos-wakatime for newer Zed versions" do
+    user = User.create!(timezone: "UTC")
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "hackatime",
+        project: "heartbeat_ingest.rb",
+        time: Time.current.to_f,
+        type: "app",
+        user_agent: "wakatime/v1.100.1 (darwin-arm64) Zed/0.198.5 macos-wakatime/5.28.4-alpha.1"
+      } ]
+    )
+
+    heartbeat = user.heartbeats.sole
+    assert_equal "heartbeat_ingest.rb", heartbeat.entity
+    assert_equal "hackatime", heartbeat.project
+    assert_equal "Ruby", heartbeat.language
+  end
+
+  test "direct heartbeat ingest preserves filenames from unaffected macos-wakatime versions" do
+    user = User.create!(timezone: "UTC")
+    now = Time.current.to_f
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [
+        {
+          entity: "heartbeat_ingest.rb",
+          project: "hackatime",
+          time: now - 1,
+          type: "app",
+          user_agent: "wakatime/v1.100.1 (darwin-arm64) Zed/0.161.2 macos-wakatime/5.28.4-alpha.1"
+        },
+        {
+          entity: "heartbeat_ingest.rb",
+          project: "hackatime",
+          time: now,
+          type: "app",
+          user_agent: "wakatime/v1.100.1 (darwin-arm64) Zed/0.198.5 macos-wakatime/5.28.5-alpha.1"
+        }
+      ]
+    )
+
+    assert_equal [ [ "heartbeat_ingest.rb", "hackatime" ] ] * 2,
+      user.heartbeats.order(:time).pluck(:entity, :project)
+  end
+
   test "direct heartbeat ingest classifies uncategorized browser heartbeats as browsing" do
     user = User.create!(timezone: "UTC")
 
@@ -516,6 +566,27 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     heartbeat = user.heartbeats.sole
     assert_equal "coding", heartbeat.category
     assert_equal "hackatime", heartbeat.project
+  end
+
+  test "import heartbeat ingest remaps filenames swapped by macos-wakatime" do
+    user = User.create!(timezone: "UTC")
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :import,
+      heartbeats: [ {
+        entity: "hackatime",
+        project: "heartbeat_ingest.rb",
+        time: 1_700_000_000.0,
+        type: "app",
+        user_agent: "wakatime/v1.100.1 (darwin-arm64) Zed/0.198.5+stable macos-wakatime/5.28.4"
+      } ]
+    )
+
+    heartbeat = user.heartbeats.sole
+    assert_equal "heartbeat_ingest.rb", heartbeat.entity
+    assert_equal "hackatime", heartbeat.project
+    assert_equal "Ruby", heartbeat.language
   end
 
   test "import heartbeat ingest recognizes a pre-normalization fields hash" do
