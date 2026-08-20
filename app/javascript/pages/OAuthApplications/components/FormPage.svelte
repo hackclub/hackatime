@@ -12,7 +12,7 @@
 <div class="mx-auto max-w-4xl space-y-4">
   <header>
     <h1 class="text-3xl font-bold text-surface-content">{props.heading}</h1>
-    <p class="mt-1 text-sm text-muted">{props.subheading}</p>
+    <p class="mt-1 text-sm text-surface-content/65">{props.subheading}</p>
   </header>
 
   <Form {...props} />

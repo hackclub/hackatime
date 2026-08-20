@@ -29,7 +29,7 @@
   const cancelPath = doorkeeperApplications.index.path();
 
   const row =
-    "flex cursor-pointer items-start gap-3 rounded-lg border border-surface-200 bg-darker/70 p-3 hover:border-surface-300";
+    "flex cursor-pointer items-start gap-3 rounded-lg border border-surface-content/20 bg-transparent p-3 hover:border-surface-content/35";
 </script>
 
 {#if errors.full_messages.length > 0}
@@ -44,7 +44,7 @@
 {/if}
 
 <Form action={submitPath} method={form_method} class="space-y-5">
-  <section class="rounded-xl border border-surface-200 bg-dark p-6">
+  <section class="rounded-xl border border-surface-content/20 p-6">
     <h2 class="text-lg font-semibold text-surface-content">
       Application details
     </h2>
@@ -60,7 +60,7 @@
             id="doorkeeper_application_name"
             type="text"
             value={application.name}
-            class="w-full cursor-not-allowed rounded-md border border-surface-200 bg-input/60 px-3 py-2 text-sm text-muted"
+            class="w-full cursor-not-allowed rounded-md border border-surface-content/15 bg-input/60 px-3 py-2 text-sm text-surface-content/55"
             disabled
           />
           <input
@@ -77,6 +77,7 @@
             id="doorkeeper_application_name"
             name="doorkeeper_application[name]"
             value={application.name}
+            class="w-full rounded-md border border-surface-content/25 bg-input px-3 py-2 text-sm text-surface-content placeholder:text-surface-content/40 focus:border-primary focus:outline-none"
             required
             placeholder="My Awesome App"
           />
@@ -96,11 +97,15 @@
           rows="4"
           value={application.redirect_uri}
           placeholder="https://example.com/auth/callback"
-          class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 font-mono text-sm text-surface-content focus:border-primary focus:outline-none"
+          class="w-full rounded-md border border-surface-content/25 bg-input px-3 py-2 font-mono text-sm text-surface-content placeholder:text-surface-content/40 focus:border-primary focus:outline-none"
         ></textarea>
-        <p class="mt-2 text-xs text-muted">{help_text.redirect_uri}</p>
+        <p class="mt-2 text-xs text-surface-content/65">
+          {help_text.redirect_uri}
+        </p>
         {#if allow_blank_redirect_uri}
-          <p class="mt-1 text-xs text-muted">{help_text.blank_redirect_uri}</p>
+          <p class="mt-1 text-xs text-surface-content/65">
+            {help_text.blank_redirect_uri}
+          </p>
         {/if}
 
         {#if errors.redirect_uri.length > 0}
@@ -123,7 +128,7 @@
                 name="doorkeeper_application[scopes][]"
                 value={scope.value}
                 checked={selectedScopes.includes(scope.value)}
-                class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
+                class="mt-1 h-4 w-4 rounded border-surface-content/25 bg-darker text-primary"
               />
               <span>
                 <span class="text-sm font-medium text-surface-content">
@@ -132,7 +137,7 @@
                     <span class="ml-1 text-xs text-primary">(default)</span>
                   {/if}
                 </span>
-                <span class="mt-1 block text-xs text-muted"
+                <span class="mt-1 block text-xs text-surface-content/65"
                   >{scope.description}</span
                 >
               </span>
@@ -149,7 +154,7 @@
         native
         align="start"
         class={row}
-        inputClass="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
+        inputClass="mt-1 h-4 w-4 rounded border-surface-content/25 bg-darker text-primary"
         checked={application.confidential}
         name="doorkeeper_application[confidential]"
       >
@@ -157,7 +162,7 @@
           <span class="text-sm font-medium text-surface-content"
             >Confidential application</span
           >
-          <span class="mt-1 block text-xs text-muted"
+          <span class="mt-1 block text-xs text-surface-content/65"
             >{help_text.confidential}</span
           >
         </span>
@@ -167,7 +172,7 @@
         native
         align="start"
         class={row}
-        inputClass="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
+        inputClass="mt-1 h-4 w-4 rounded border-surface-content/25 bg-darker text-primary"
         checked={application.redirect_to_hca_login}
         name="doorkeeper_application[redirect_to_hca_login]"
       >
@@ -175,7 +180,7 @@
           <span class="text-sm font-medium text-surface-content"
             >Use Hack Club Auth for login</span
           >
-          <span class="mt-1 block text-xs text-muted"
+          <span class="mt-1 block text-xs text-surface-content/65"
             >Send unauthenticated users directly to Hack Club Auth before this
             app's OAuth consent screen.</span
           >
