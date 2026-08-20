@@ -1,7 +1,13 @@
 class AdminApiKey < ApplicationRecord
+  TOKEN_PREVIEW_LENGTH = 13
+
   belongs_to :user
 
-  validates :token, presence: true, uniqueness: true
+  attribute :token, :string
+  blind_index :token, algorithm: :pbkdf2_sha256, cost: { iterations: 1 }
+
+  validates :token_bidx, presence: true, uniqueness: true
+  validates :token_preview, presence: true
   validates :name, presence: true, uniqueness: { scope: :user_id }
 
   before_validation :generate_token!, on: :create
@@ -16,5 +22,8 @@ class AdminApiKey < ApplicationRecord
 
   private
 
-  def generate_token! = self.token ||= "hka_#{SecureRandom.hex(32)}"
+  def generate_token!
+    self.token ||= "hka_#{SecureRandom.hex(32)}"
+    self.token_preview = token.first(TOKEN_PREVIEW_LENGTH)
+  end
 end
