@@ -10,8 +10,7 @@
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 ARG RUBY_VERSION=4.0.6
 
-# Bun 1.4 canary includes the package alias fix needed for the TypeScript 7 migration.
-FROM docker.io/oven/bun:canary-slim@sha256:6e28b54849cf680251afd7ed83e24375dfe47b6f78c8bfdb7e98bf12a6fa9f2e AS bun
+FROM docker.io/oven/bun:1.4-slim AS bun
 
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS ruby-base
 
