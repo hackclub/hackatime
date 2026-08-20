@@ -19,7 +19,7 @@ class Admin::AdminApiKeysController < Admin::BaseController
     show_token = new_key.is_a?(Hash) && new_key["id"] == @admin_api_key.id
     render inertia: "Admin/AdminApiKeys/Show", props: {
       api_key: serialize_key(@admin_api_key, created_at: @admin_api_key.created_at.strftime("%B %d, %Y at %I:%M %p"),
-        preview_length: 20, token: show_token ? new_key["token"] : nil),
+        token: show_token ? new_key["token"] : nil),
       show_token: show_token
     }
   end
@@ -53,8 +53,8 @@ class Admin::AdminApiKeysController < Admin::BaseController
     render inertia: "Admin/AdminApiKeys/New", props: { errors: @admin_api_key.errors.full_messages }, status: status
   end
 
-  def serialize_key(key, created_at:, preview_length: 12, token: nil)
-    { id: key.id, name: key.name, token_preview: "#{key.token_preview[0..preview_length]}...", token: token, created_at: created_at,
+  def serialize_key(key, created_at:, token: nil)
+    { id: key.id, name: key.name, token_preview: "#{key.token_preview}...", token: token, created_at: created_at,
       user: { id: key.user.id, display_name: key.user.display_name, avatar_url: key.user.avatar_url } }
   end
 

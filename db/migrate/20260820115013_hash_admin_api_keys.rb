@@ -11,7 +11,9 @@ class HashAdminApiKeys < ActiveRecord::Migration[8.1]
       raw_token = key[:token]
       key.update_columns(
         token: BlindIndex.generate_bidx(raw_token, key: index_key, algorithm: :pbkdf2_sha256, cost: { iterations: 1 }),
-        token_preview: raw_token.first(21)
+        # Deliberately not AdminApiKey::TOKEN_PREVIEW_LENGTH: the model can
+        # change after this migration ships, but rows converted here must not.
+        token_preview: raw_token.first(13)
       )
     end
 

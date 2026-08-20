@@ -1,4 +1,6 @@
 class AdminApiKey < ApplicationRecord
+  TOKEN_PREVIEW_LENGTH = 13
+
   belongs_to :user
 
   attribute :token, :string
@@ -22,6 +24,6 @@ class AdminApiKey < ApplicationRecord
 
   def generate_token!
     self.token ||= "hka_#{SecureRandom.hex(32)}"
-    self.token_preview = token.first(21)
+    self.token_preview = token.first(TOKEN_PREVIEW_LENGTH)
   end
 end
