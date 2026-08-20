@@ -53,33 +53,33 @@ html[data-theme="rose_pine_dawn"] .avatar-image-outline {
 }
 
 @theme {
-  --color-darker: #1f1617;
-  --color-dark: #2a1f21;
-  --color-darkless: #4a2d31;
-  --color-red: #c8394f;
+  --color-darker: #121217;
+  --color-dark: #17171d;
+  --color-darkless: #252429;
+  --color-red: #ec3750;
   --color-orange: #ff8c37;
   --color-yellow: #f1c40f;
   --color-green: #33d6a6;
   --color-cyan: #5bc0de;
   --color-blue: #338eda;
   --color-purple: #a633d6;
-  --color-primary: #c8394f;
-  --color-secondary: #6e6468;
+  --color-primary: #ec3750;
+  --color-secondary: #8492a6;
 
-  --color-muted: #6e6468;
-  --color-text-muted: #6e6468;
+  --color-muted: #8492a6;
+  --color-text-muted: #8492a6;
 
-  --color-surface: #2a1f21;
-  --color-surface-100: #3a292d;
-  --color-surface-200: #4a3438;
-  --color-surface-300: #5a3f44;
-  --color-surface-content: #f3ecee;
+  --color-surface: #17171d;
+  --color-surface-100: #1e1e24;
+  --color-surface-200: #252429;
+  --color-surface-300: #333238;
+  --color-surface-content: #f5f5f5;
   --color-info: #5bc0de;
   --color-success: #33d6a6;
   --color-warning: #f1c40f;
-  --color-danger: #c8394f;
+  --color-danger: #ec3750;
   --color-on-primary: #ffffff;
-  --color-input: #1f1617;
+  --color-input: #121217;
 }
 
 :root {

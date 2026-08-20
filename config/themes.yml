@@ -3,22 +3,22 @@
   label: Classic
   description: Current Hackatime look.
   color_scheme: dark
-  theme_color: "#c8394f"
+  theme_color: "#ec3750"
   preview:
-    darker: "#1f1617"
-    dark: "#2a1f21"
-    darkless: "#4a2d31"
-    primary: "#c8394f"
-    content: "#f3ecee"
+    darker: "#121217"
+    dark: "#17171d"
+    darkless: "#252429"
+    primary: "#ec3750"
+    content: "#f5f5f5"
     info: "#5bc0de"
     success: "#33d6a6"
     warning: "#f1c40f"
   docs:
-    muted: "#3a292d"
-    muted_foreground: "#6e6468"
-    border: "#5a3f44"
+    muted: "#1e1e24"
+    muted_foreground: "#8492a6"
+    border: "#333238"
     accent_foreground: "#ffffff"
-    code_background: "#1f1617"
+    code_background: "#121217"
 
 - value: neon
   label: Neon
