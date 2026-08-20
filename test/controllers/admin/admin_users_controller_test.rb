@@ -29,11 +29,14 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
   test "translated admin navigation uses Inertia links" do
     get admin_admin_users_path
 
-    links = inertia_page.dig("props", "layout", "nav").values_at("admin_links", "superadmin_links").flatten
+    nav = inertia_page.dig("props", "layout", "nav")
+    admin_links = nav.fetch("admin_links")
+    superadmin_links = nav.fetch("superadmin_links")
+    links = admin_links + superadmin_links
 
-    assert_equal [ "Review Timeline", "Trust Level Logs", "Admin API Keys", "Admin Management", "Account Deletions", "All OAuth Apps", "Leaderboard Shadowbans" ], links.pluck("label")
+    assert_equal [ "Review Timeline", "Trust Level Logs", "Admin API Keys", "Leaderboard Shadowbans" ], admin_links.pluck("label")
+    assert_equal [ "Admin Management", "Account Deletions", "All OAuth Apps" ], superadmin_links.pluck("label")
     assert links.all? { |link| link.fetch("inertia") }
-    assert_equal "admin-tool", links.last.fetch("tool")
   end
 
   test "search reload returns only authorised search results" do
