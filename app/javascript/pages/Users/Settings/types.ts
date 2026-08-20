@@ -80,6 +80,8 @@ export type ProgrammingGoal = {
   target_seconds: number;
   languages: string[];
   projects: string[];
+  notify_by_email: boolean;
+  notify_by_slack: boolean;
 };
 
 type GoalForm = {
@@ -90,6 +92,8 @@ type GoalForm = {
   target_seconds: number;
   languages: string[];
   projects: string[];
+  notify_by_email: boolean;
+  notify_by_slack: boolean;
   errors: string[];
 };
 
@@ -281,6 +285,10 @@ export type PrivacyPageProps = SettingsCommonProps & {
 export type GoalsPageProps = SettingsCommonProps & {
   programming_goals: ProgrammingGoal[];
   options: GoalsOptionsProps;
+  notification_options: {
+    email_available: boolean;
+    slack_available: boolean;
+  };
   goal_form?: GoalForm | null;
 };
 

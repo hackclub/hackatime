@@ -2,6 +2,7 @@
   import { router } from "@inertiajs/svelte";
   import { secondsToDisplay } from "../../../utils";
   import Button from "../../../components/Button.svelte";
+  import CheckboxField from "../../../components/CheckboxField.svelte";
   import Modal from "../../../components/Modal.svelte";
   import MultiSelectCombobox from "../../../components/MultiSelectCombobox.svelte";
   import Select from "../../../components/Select.svelte";
@@ -35,6 +36,7 @@
     subheading,
     programming_goals,
     options,
+    notification_options,
     errors,
     goal_form,
   }: GoalsPageProps = $props();
@@ -52,6 +54,8 @@
   let selectedPeriod = $state<ProgrammingGoal["period"]>(defaultPeriod());
   let selectedLanguages = $state<string[]>([]);
   let selectedProjects = $state<string[]>([]);
+  let notifyByEmail = $state(false);
+  let notifyBySlack = $state(false);
   let submitting = $state(false);
 
   $effect(() => {
@@ -62,6 +66,8 @@
     setFromSeconds(goal_form.target_seconds || 1800);
     selectedLanguages = goal_form.languages || [];
     selectedProjects = goal_form.projects || [];
+    notifyByEmail = goal_form.notify_by_email ?? false;
+    notifyBySlack = goal_form.notify_by_slack ?? false;
     editingGoal =
       goal_form.mode === "edit" && goal_form.goal_id
         ? ((programming_goals || []).find((g) => g.id === goal_form.goal_id) ??
@@ -83,6 +89,15 @@
     return parts.join(" AND ") || "All programming activity";
   }
 
+  function notificationSubtitle(goal: ProgrammingGoal) {
+    const channels = [];
+    if (goal.notify_by_email) channels.push("email");
+    if (goal.notify_by_slack) channels.push("Slack");
+    return channels.length > 0
+      ? `Completion notification: ${channels.join(" and ")}`
+      : "Completion notifications off";
+  }
+
   function setFromSeconds(seconds: number) {
     targetUnit = seconds % 3600 === 0 ? "hours" : "minutes";
     targetAmount = targetUnit === "hours" ? seconds / 3600 : seconds / 60;
@@ -94,6 +109,8 @@
     setFromSeconds(options.goals.preset_target_seconds[0] || 1800);
     selectedLanguages = [];
     selectedProjects = [];
+    notifyByEmail = false;
+    notifyBySlack = false;
     goalModalOpen = true;
   }
 
@@ -103,6 +120,8 @@
     setFromSeconds(goal.target_seconds);
     selectedLanguages = [...goal.languages];
     selectedProjects = [...goal.projects];
+    notifyByEmail = goal.notify_by_email;
+    notifyBySlack = goal.notify_by_slack;
     goalModalOpen = true;
   }
 
@@ -137,6 +156,8 @@
         target_seconds: currentTargetSeconds,
         languages: selectedLanguages,
         projects: selectedProjects,
+        notify_by_email: notifyByEmail,
+        notify_by_slack: notifyBySlack,
       },
     };
     if (editingGoal) {
@@ -194,6 +215,9 @@
               </p>
               <p class="mt-1 truncate text-xs text-muted">
                 {scopeSubtitle(goal)}
+              </p>
+              <p class="mt-1 text-xs text-muted">
+                {notificationSubtitle(goal)}
               </p>
             </div>
             <div class="flex items-center gap-2">
@@ -317,6 +341,32 @@
           bind:selected={selectedProjects}
         />
       </div>
+
+      <fieldset class="space-y-3 rounded-md border border-surface-200 p-4">
+        <legend class="px-1 text-sm font-semibold text-surface-content">
+          Notify me when I reach this goal
+        </legend>
+        <CheckboxField
+          name="goal[notify_by_email]"
+          bind:checked={notifyByEmail}
+          label="Email"
+          description={notification_options.email_available
+            ? "Send a completion email to your linked email address."
+            : "Link an email address before enabling email notifications."}
+          disabled={!notification_options.email_available}
+          includeHidden={false}
+        />
+        <CheckboxField
+          name="goal[notify_by_slack]"
+          bind:checked={notifyBySlack}
+          label="Slack"
+          description={notification_options.slack_available
+            ? "Send a direct message from the Sailor's Log app."
+            : "Connect your Slack account before enabling Slack notifications."}
+          disabled={!notification_options.slack_available}
+          includeHidden={false}
+        />
+      </fieldset>
 
       {#if modalErrors.length > 0}
         <p

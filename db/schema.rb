@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_20_115209) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -168,9 +168,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
     t.index ["feature_key", "key", "value"], name: "index_flipper_gates_on_feature_key_and_key_and_value", unique: true
   end
 
+  create_table "goal_completion_notifications", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "email_delivered_at"
+    t.bigint "goal_id", null: false
+    t.string "languages", default: [], null: false, array: true
+    t.string "period", null: false
+    t.datetime "period_started_at", null: false
+    t.string "projects", default: [], null: false, array: true
+    t.datetime "slack_delivered_at"
+    t.integer "target_seconds", null: false
+    t.integer "tracked_seconds", null: false
+    t.datetime "updated_at", null: false
+    t.index ["goal_id", "period", "period_started_at"], name: "index_goal_completion_notifications_on_goal_period", unique: true
+    t.index ["goal_id"], name: "index_goal_completion_notifications_on_goal_id"
+  end
+
   create_table "goals", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "languages", default: [], null: false, array: true
+    t.boolean "notify_by_email", default: false, null: false
+    t.boolean "notify_by_slack", default: false, null: false
     t.string "period", null: false
     t.string "projects", default: [], null: false, array: true
     t.integer "target_seconds", null: false
@@ -765,6 +783,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
   add_foreign_key "documentation_feedbacks", "users", on_delete: :cascade
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
+  add_foreign_key "goal_completion_notifications", "goals"
   add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"

@@ -1,0 +1,16 @@
+<h1 class="text-2xl font-bold text-gray-900">You reached your <%= @notification.period %> coding goal!</h1>
+
+<p class="mt-4">Nice work, <%= @user.display_name %>! You coded for <strong><%= @tracked_duration %></strong>, reaching your target of <strong><%= @target_duration %></strong>.</p>
+
+<% if @notification.languages.any? || @notification.projects.any? %>
+  <div class="mt-4">
+    <% if @notification.languages.any? %>
+      <p><strong>Languages:</strong> <%= @notification.languages.to_sentence %></p>
+    <% end %>
+    <% if @notification.projects.any? %>
+      <p><strong>Projects:</strong> <%= @notification.projects.to_sentence %></p>
+    <% end %>
+  </div>
+<% end %>
+
+<p class="mt-6"><%= link_to "Manage your goals", @goals_url %></p>

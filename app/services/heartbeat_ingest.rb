@@ -20,6 +20,7 @@ class HeartbeatIngest
 
   def self.call(...) = new(...).call
   def self.schedule_rollup_refresh(user:) = DashboardRollupRefreshJob.schedule_for(user.id)
+  def self.schedule_goal_completion_check(user:) = GoalCompletionCheckJob.schedule_for(user.id)
 
   def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {}, schedule_rollup_refresh: true)
     @user = user
@@ -155,6 +156,7 @@ class HeartbeatIngest
     hashes.each { |fields_hash| persisted_by_hash.fetch(fields_hash) }
     if inserted_by_hash.any? && @schedule_rollup_refresh
       self.class.schedule_rollup_refresh(user: @user)
+      self.class.schedule_goal_completion_check(user: @user)
     end
 
     [ persisted_by_hash, inserted_by_hash.keys ]
@@ -199,7 +201,10 @@ class HeartbeatIngest
     end
 
     persisted_count = flush_import_batch(seen_hashes)
-    self.class.schedule_rollup_refresh(user: @user) if persisted_count.positive? && @schedule_rollup_refresh
+    if persisted_count.positive? && @schedule_rollup_refresh
+      self.class.schedule_rollup_refresh(user: @user)
+      self.class.schedule_goal_completion_check(user: @user)
+    end
 
     Result.new(
       total_count:,

@@ -31,6 +31,7 @@ class ProgrammingGoalsProgressService
       complete: tracked_seconds >= goal.target_seconds,
       languages: goal.languages,
       projects: goal.projects,
+      period_start: time_window.begin.iso8601,
       period_end: time_window.end.iso8601
     }
   end

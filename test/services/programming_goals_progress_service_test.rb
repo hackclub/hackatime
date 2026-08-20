@@ -21,6 +21,7 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
       progress = ProgrammingGoalsProgressService.new(user: user).call
 
       assert_equal 1, progress.first[:tracked_seconds]
+      assert_equal "2026-01-14T00:00:00-05:00", progress.first[:period_start]
     end
   end
 

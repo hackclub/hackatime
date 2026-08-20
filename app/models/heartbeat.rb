@@ -2,6 +2,7 @@ class Heartbeat < ApplicationRecord
   before_save :set_fields_hash!
   before_save :set_time_epoch!
   after_commit :schedule_dashboard_rollup_refresh, on: %i[create update destroy]
+  after_commit :schedule_goal_completion_check, on: %i[create update]
 
   include Heartbeatable
   include TimeRangeFilterable
@@ -79,4 +80,5 @@ class Heartbeat < ApplicationRecord
   end
 
   def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(user_id)
+  def schedule_goal_completion_check = GoalCompletionCheckJob.schedule_for(user_id)
 end

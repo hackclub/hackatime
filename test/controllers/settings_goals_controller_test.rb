@@ -5,6 +5,7 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
 
   test "show renders goals settings page" do
     user = users(:one)
+    user.email_addresses.create!(email: "goals-controller@example.com", source: :signing_in)
     sign_in_as(user)
 
     get my_settings_goals_path
@@ -15,6 +16,8 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     page = inertia_page
     assert_equal [], page.dig("props", "programming_goals")
     assert_nil page.dig("props", "user", "programming_goals")
+    assert_equal true, page.dig("props", "notification_options", "email_available")
+    assert_equal true, page.dig("props", "notification_options", "slack_available")
   end
 
   test "create saves valid goal" do
@@ -26,7 +29,9 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
         period: "day",
         target_seconds: 3600,
         languages: [ "Ruby" ],
-        projects: [ "hackatime" ]
+        projects: [ "hackatime" ],
+        notify_by_email: true,
+        notify_by_slack: true
       }
     }
 
@@ -37,6 +42,8 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "day", saved_goal.period
     assert_equal [ "Ruby" ], saved_goal.languages
     assert_equal [ "hackatime" ], saved_goal.projects
+    assert saved_goal.notify_by_email?
+    assert saved_goal.notify_by_slack?
   end
 
   test "rejects sixth goal when limit reached" do
@@ -131,7 +138,9 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
         period: "week",
         target_seconds: 7200,
         languages: [ "Python" ],
-        projects: [ "beta" ]
+        projects: [ "beta" ],
+        notify_by_email: true,
+        notify_by_slack: false
       }
     }
 
@@ -143,6 +152,8 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 7200, goal.target_seconds
     assert_equal [ "Python" ], goal.languages
     assert_equal [ "beta" ], goal.projects
+    assert goal.notify_by_email?
+    assert_not goal.notify_by_slack?
   end
 
   test "update rejects invalid goal and re-renders settings page" do

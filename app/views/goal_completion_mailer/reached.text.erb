@@ -1,0 +1,12 @@
+You reached your <%= @notification.period %> coding goal!
+===================================================
+
+Nice work, <%= @user.display_name %>! You coded for <%= @tracked_duration %>, reaching your target of <%= @target_duration %>.
+<% if @notification.languages.any? %>
+Languages: <%= @notification.languages.to_sentence %>
+<% end %>
+<% if @notification.projects.any? %>
+Projects: <%= @notification.projects.to_sentence %>
+<% end %>
+
+Manage your goals: <%= @goals_url %>
