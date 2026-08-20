@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -48,10 +48,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_184518) do
     t.datetime "created_at", null: false
     t.text "name", null: false
     t.datetime "revoked_at"
-    t.text "token", null: false
+    t.text "token_bidx", null: false
+    t.string "token_preview", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["token"], name: "index_admin_api_keys_on_token", unique: true
+    t.index ["token_bidx"], name: "index_admin_api_keys_on_token_bidx", unique: true
     t.index ["user_id", "name"], name: "index_admin_api_keys_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_admin_api_keys_on_user_id"
   end
