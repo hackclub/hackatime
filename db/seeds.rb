@@ -25,9 +25,10 @@ if Rails.env.development? || Rails.env.test?
   end
 
   # Create Admin API Key
-  admin_api_key = AdminApiKey.find_or_create_by(name: 'Development Admin Key') do |key|
+  admin_api_token = 'dev-admin-api-key-12345'
+  AdminApiKey.find_or_create_by(name: 'Development Admin Key') do |key|
     key.user = test_user
-    key.token = 'dev-admin-api-key-12345'
+    key.token = admin_api_token
   end
 
   # Create a sign-in token that doesn't expire
@@ -40,7 +41,7 @@ if Rails.env.development? || Rails.env.test?
   puts "  Username: #{test_user.display_name}"
   puts "  Email: #{email.email}"
   puts "  API Key: #{api_key.token}"
-  puts "  Admin API Key: #{admin_api_key.token}"
+  puts "  Admin API Key: #{admin_api_token}"
   puts "  Sign-in Token: #{token.token}"
 
   # Create sample heartbeats for last 7 days with variety of data

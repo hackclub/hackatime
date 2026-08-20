@@ -44,7 +44,7 @@ RUN apt-get update -qq && \
 FROM ruby-base AS build-base
 
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y g++ gcc make && \
+    apt-get install --no-install-recommends -y g++ gcc libffi-dev make && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install Git and the font conversion tool independently so native gem
