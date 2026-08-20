@@ -47,6 +47,7 @@
   let remoteApiKey = $state("");
   let importOverlay = $state<Partial<HeartbeatImportStatusProps> | null>(null);
   let overlayStartTime = $state<number | null>(null);
+  let includeStats = false;
 
   const { start: startPolling, stop: stopPolling } = usePoll(
     1000,
@@ -350,9 +351,26 @@
             options={{ preserveScroll: true }}
           >
             {#snippet children({ processing })}
-              <Button type="submit" class="rounded-md" disabled={processing}>
-                {processing ? "Exporting..." : "Export all heartbeats"}
-              </Button>
+              <div class="space-y-3">
+                <Button type="submit" class="rounded-md" disabled={processing}>
+                  {processing ? "Exporting..." : "Export all heartbeats"}
+                </Button>
+                
+                <input 
+                  type="hidden" 
+                  name="include_stats" 
+                  value={includeStats ? "true" : "false"} 
+                />
+  
+                <label class="inline-flex items-center gap-2 text-sm text-muted cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      bind:checked={includeStats} 
+                      class="h-4 w-4 rounded border-gray-300" 
+                    />
+                  <span>Include stats</span>
+                </label>
+            </div>
             {/snippet}
           </Form>
 
@@ -374,6 +392,10 @@
                 name="end_date"
                 required
                 class={dateInputClass}
+              />
+              <input
+                type="hidden" name="include_stats"
+                value={includeStats ? "true" : "false"} 
               />
               <Button
                 type="submit"
