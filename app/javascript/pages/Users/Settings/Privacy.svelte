@@ -98,6 +98,7 @@
     id="authorized_applications"
     title="Authorized Applications"
     description="Applications that have access to your Hackatime account."
+    wide
   >
     {#if authorized_applications.length}
       <div class="divide-y divide-surface-200">
