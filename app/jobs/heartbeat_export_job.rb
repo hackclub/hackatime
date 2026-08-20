@@ -48,7 +48,12 @@ class HeartbeatExportJob < ApplicationJob
 
     user_identifier = user.slack_uid.presence || "user_#{user.id}"
     json_filename = "heartbeats_#{user_identifier}_#{start_date.strftime("%Y%m%d")}_#{end_date.strftime("%Y%m%d")}.json"
-    zip_filename = "#{File.basename(json_filename, ".json")}.zip"
+    if include_stats
+      zip_filename = "#{File.basename(json_filename, ".json")}_stat.zip"
+    else
+      zip_filename = "#{File.basename(json_filename, ".json")}.zip"
+    end
+
 
     # Stream the heartbeat JSON to a temporary file so large exports do not
     # materialise every heartbeat in memory at once.
