@@ -254,15 +254,10 @@ module DashboardData
         operating_system_stats: Heartbeat.attributed_durations_by(scope, :operating_system),
         category_stats: Heartbeat.attributed_durations_by(scope, :category),
 
-        weekly_project_stats: weekly_project_stats(
-          user: user,
-          scope: scope
-        ),
+        weekly_project_stats: weekly_project_stats(user: user, scope: scope, start_date: start_date, end_date: end_date),
 
-        coding_rhythm: coding_rhythm_snapshot(
-          user: user,
-          scope: scope
-        )
+
+        coding_rhythm: coding_rhythm_snapshot(user: user, scope: scope)
       }
     end
         
