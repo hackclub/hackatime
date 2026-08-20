@@ -1,0 +1,35 @@
+diff --git a/dist/cli/index.js b/dist/cli/index.js
+index cf5dcf1184f41eff7eadee92698b22a6c06ba98a..eb902938c5d1eea99308cdaba0ae8804117771e4 100755
+--- a/dist/cli/index.js
++++ b/dist/cli/index.js
+@@ -17060,9 +17060,10 @@ var missingFontFiles = (options, root) => {
+ 
+ // src/og/logo.ts
+ import { existsSync as existsSync15, readFileSync as readFileSync6 } from "node:fs";
++import { imageSize as imageSize3 } from "image-size";
+ import { join as join24 } from "pathe";
+ var resolveOgLogo = (project, source) => {
+-  if (!source?.toLowerCase().endsWith(".svg")) {
++  if (!source) {
+     return;
+   }
+@@ -17070,7 +17071,20 @@ var resolveOgLogo = (project, source) => {
+     join24(project.context.root, "public", relative13),
+     join24(project.context.root, relative13)
+   ].find((path) => existsSync15(path));
+-  return file ? readFileSync6(file, "utf-8") : undefined;
++  if (!file) {
++    return;
++  }
++  const image2 = readFileSync6(file);
++  if (source.toLowerCase().endsWith(".svg")) {
++    return image2.toString("utf-8");
++  }
++  const { height, type, width } = imageSize3(image2);
++  if (!height || !width || !type) {
++    return;
++  }
++  const mimeType = type === "jpg" ? "image/jpeg" : `image/${type}`;
++  const dataUri = `data:${mimeType};base64,${image2.toString("base64")}`;
++  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><image href="${dataUri}" width="${width}" height="${height}" /></svg>`;
+ };
