@@ -50,6 +50,20 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     assert_inertia_prop "period_type", "daily"
   end
 
+  test "index exposes Telescreen links to admin-level viewers only" do
+    create_boards_for_today(period_type: :daily)
+
+    %i[admin superadmin ultraadmin].each do |admin_level|
+      sign_in_as(create_user(username: "lb_#{admin_level}", admin_level: admin_level))
+      get leaderboards_path
+      assert_inertia_prop "can_view_telescreen", true
+    end
+
+    sign_in_as(create_user(username: "leaderboard_viewer", admin_level: :viewer))
+    get leaderboards_path
+    assert_inertia_prop "can_view_telescreen", false
+  end
+
   test "validated_period_type does not intern arbitrary symbols" do
     user = create_user(username: "bad_period_user")
     create_boards_for_today(period_type: :daily)
@@ -103,11 +117,12 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def create_user(username:, country_code: nil, leaderboard_shadowbanned: false)
+  def create_user(username:, country_code: nil, leaderboard_shadowbanned: false, admin_level: :default)
     User.create!(
       username:,
       country_code:,
       timezone: "UTC",
+      admin_level:,
       leaderboard_shadowbanned: leaderboard_shadowbanned,
       leaderboard_shadowban_reason: leaderboard_shadowbanned ? "test shadowban" : nil
     )
