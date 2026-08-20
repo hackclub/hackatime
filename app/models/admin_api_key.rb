@@ -2,7 +2,6 @@ class AdminApiKey < ApplicationRecord
   belongs_to :user
 
   attribute :token, :string
-  # Tokens have 256 bits of random entropy, so key stretching only adds request latency.
   blind_index :token, algorithm: :pbkdf2_sha256, cost: { iterations: 1 }
 
   validates :token_bidx, presence: true, uniqueness: true
