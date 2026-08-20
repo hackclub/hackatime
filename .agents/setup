@@ -65,7 +65,7 @@ if [ ! -f .env ]; then
   cp -- .env.example .env
 fi
 
-container_fingerprint="$(fingerprint Dockerfile.dev docker-compose.yml entrypoint.dev.sh Gemfile Gemfile.lock package.json bun.lock)"
+container_fingerprint="$(fingerprint Dockerfile.dev docker-compose.yml entrypoint.dev.sh Gemfile Gemfile.lock package.json bun.lock patches)"
 if cache_matches containers "$container_fingerprint"; then
   echo "==> Starting existing development containers"
   sudo docker compose up -d
