@@ -102,6 +102,10 @@ export default defineConfig({
   theme: {
     accent: defaultTheme.preview.primary,
     background: defaultTheme.preview.dark,
+    fonts: {
+      body: "inter",
+      display: "inter",
+    },
     mode: defaultTheme.color_scheme,
     radius: "lg",
   },
