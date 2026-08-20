@@ -237,8 +237,7 @@ module DashboardData
           end
 
         cursor = effective_end.beginning_of_week
-        min_week_start = effective_start.beginning_of_week
-
+        min_week_start = start_date.present? ? effective_start.beginning_of_week : cursor - 11.weeks
         ranges = []
         while cursor >= min_week_start
           ranges << [cursor.to_date.iso8601, cursor.to_i, cursor.end_of_week.to_i]
