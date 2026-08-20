@@ -77,6 +77,7 @@ class User < ApplicationRecord
 
   enum :theme, {
     standard: 0,
+    midnight: 11,
     neon: 1,
     catppuccin_mocha: 2,
     catppuccin_iced_latte: 3,
