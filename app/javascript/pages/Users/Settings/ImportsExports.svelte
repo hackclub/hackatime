@@ -165,6 +165,44 @@
     "rounded-md border border-surface-200 bg-surface px-3 py-2 text-sm text-surface-content focus:border-primary focus:outline-none";
 </script>
 
+<style>
+  input[type="checkbox"] {
+    appearance: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    border: 1px solid var(--color-surface-300);
+    border-radius: var(--radius-md);
+    background-color: var(--color-input);
+    color: var(--color-primary);
+    cursor: pointer;
+    transition:
+      background-color .15s ease-out,
+      border-color .15s ease-out,
+      box-shadow .15s ease-out,
+      transform .15s ease-out;
+  }
+
+  input[type="checkbox"]:hover {
+    border-color: var(--color-primary);
+    background-color: var(--color-surface-100);
+  }
+
+  input[type="checkbox"]:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+  }
+
+  input[type="checkbox"]:focus,
+  input[type="checkbox"]:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+</style>
+
 {#snippet statTile(label: string, value: string)}
   <div class="rounded-md border border-surface-200 bg-darker px-3 py-3">
     <p class="text-xs uppercase tracking-wide text-muted">{label}</p>
