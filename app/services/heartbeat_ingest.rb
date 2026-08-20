@@ -5,9 +5,6 @@ class HeartbeatIngest
   LAST_BRANCH_SENTINEL = "<<LAST_BRANCH>>"
   LAST_PROJECT_SENTINEL = "<<LAST_PROJECT>>"
 
-  ZED_PROJECT_FIRST_VERSION = Gem::Version.new("0.162.0")
-  MACOS_WAKATIME_ZED_FIX_VERSION = Gem::Version.new("5.28.5-alpha.1")
-
   # Sane epoch-seconds window: 2001-09-09 .. 2033-05-18. Values outside are
   # client bugs (uptime-like numbers, literal years, ms/µs/ns-scaled epochs).
   EPOCH_SANE_MIN = 1_000_000_000
@@ -103,14 +100,12 @@ class HeartbeatIngest
     attrs = strip_null_bytes(heartbeat.to_h.with_indifferent_access)
     attrs[:time] = normalize_heartbeat_time(attrs[:time])
     attrs[:user_agent] = attrs[:user_agent].presence || attrs.delete(:plugin).presence || @request_context[:user_agent].presence
-    remap_macos_wakatime_zed_heartbeat!(attrs)
+    attrs = HeartbeatPayloadRemapper.remap_fields(attrs)
     source_type = attrs[:entity] == "test.txt" ? :test_entry : :direct_entry
     attrs[:project] = sanitize_project(attrs[:project])
 
     resolve_placeholders!(attrs, placeholder_state)
-
-    inferred = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
-    attrs[:language] = inferred if inferred.present?
+    attrs = HeartbeatPayloadRemapper.remap_language(attrs)
 
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     parsed_ua = WakatimeUserAgentParser.parse(attrs[:user_agent], category: attrs[:category])
@@ -220,7 +215,7 @@ class HeartbeatIngest
     source_heartbeat = hb.dup
     user_agent_info = (@user_agents_by_id[hb[:user_agent_id].to_s] || {}).with_indifferent_access
     resolved_user_agent = hb[:user_agent].presence || user_agent_info[:value].presence || hb[:user_agent_id].presence
-    remap_macos_wakatime_zed_heartbeat!(hb, user_agent: resolved_user_agent)
+    hb = HeartbeatPayloadRemapper.remap_fields(hb, user_agent: resolved_user_agent)
     parsed_user_agent = parse_user_agent(resolved_user_agent, category: hb[:category])
     derived_ai_editor = parsed_user_agent[:editor].presence if parsed_user_agent[:ai_model].present?
 
@@ -256,7 +251,7 @@ class HeartbeatIngest
       source_type: Heartbeat.source_types.fetch("wakapi_import")
     }
     resolve_placeholders!(attrs, placeholder_state)
-    attrs[:language] = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
+    attrs = HeartbeatPayloadRemapper.remap_language(attrs)
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     model_attributes = validated_model_attributes(attrs)
     normalized = model_attributes
@@ -312,7 +307,7 @@ class HeartbeatIngest
       type: hb[:type],
       category: hb[:category] || "coding",
       project: hb[:project],
-      language: LanguageUtils.legacy_fill_missing_language(hb[:language], entity: hb[:entity]),
+      language: HeartbeatPayloadRemapper.legacy_language(hb[:language], entity: hb[:entity]),
       editor: hb[:editor].presence || user_agent_info[:editor].presence || legacy_user_agent[:editor].presence,
       operating_system: hb[:operating_system].presence || user_agent_info[:os].presence || legacy_user_agent[:os].presence,
       machine: hb[:machine].presence || hb[:machine_name_id].presence,
@@ -435,25 +430,6 @@ class HeartbeatIngest
     return "browsing" if %w[domain url].include?(type)
 
     "coding"
-  end
-
-  def remap_macos_wakatime_zed_heartbeat!(heartbeat, user_agent: heartbeat[:user_agent])
-    return unless heartbeat[:type] == "app"
-
-    zed_version = product_version(user_agent, "Zed")
-    macos_wakatime_version = product_version(user_agent, "macos-wakatime")
-    return unless zed_version && macos_wakatime_version
-    return unless zed_version >= ZED_PROJECT_FIRST_VERSION
-    return unless macos_wakatime_version < MACOS_WAKATIME_ZED_FIX_VERSION
-
-    heartbeat[:entity], heartbeat[:project] = heartbeat[:project], heartbeat[:entity]
-  end
-
-  def product_version(user_agent, product)
-    version = user_agent.to_s.match(/(?:\A|\s)#{Regexp.escape(product)}\/([^\s]+)/i)&.captures&.first
-    Gem::Version.new(version&.split("+")&.first)
-  rescue ArgumentError
-    nil
   end
 
   # `<<LAST_PROJECT>>` stays persisted by design, but language and branch need

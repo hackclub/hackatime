@@ -622,7 +622,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
       time: 1_700_000_000.0,
       type: "file"
     }
-    # Stored before AUTHORITATIVE_EXTENSIONS existed, so its hash was computed
+    # Stored before authoritative language remapping existed, so its hash was computed
     # with the client-reported "Lua" rather than the corrected "Luau".
     create_legacy_imported_heartbeat(user, raw)
 
