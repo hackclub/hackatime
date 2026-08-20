@@ -30,7 +30,7 @@ module Api
 
       def find_key_info(token)
         if token.match?(ADMIN_KEY_REGEX)
-          key = AdminApiKey.find_active_by_token(token)
+          key = AdminApiKey.active.find_by(token:)
           return [ key, key&.user, key&.name, :admin ]
         end
 

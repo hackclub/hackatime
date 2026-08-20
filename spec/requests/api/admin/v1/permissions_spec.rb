@@ -119,7 +119,7 @@ RSpec.describe 'Api::Admin::V1::Permissions', type: :request, openapi_spec: 'adm
 
       response(403, 'forbidden — Returned when the caller is not allowed to set the target to the requested level (e.g. attempting to change your own admin level). Body is { error: <denial message> }.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:id) { AdminApiKey.find_active_by_token('dev-admin-api-key-12345').user.id }
+        let(:id) { AdminApiKey.find_by!(token: 'dev-admin-api-key-12345').user.id }
         let(:permission) { { admin_level: 'admin' } }
         schema(**error_schema)
         run_test!
