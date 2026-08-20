@@ -128,6 +128,11 @@
             class="h-9 w-full rounded-full border border-surface-200 bg-darkless pl-9 pr-3 text-sm text-surface-content placeholder:text-muted focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
           />
         </div>
+      {:else if leaderboard && entries === undefined}
+        <div
+          aria-hidden="true"
+          class="h-9 w-full rounded-full bg-darkless sm:w-64 sm:shrink-0 animate-pulse"
+        ></div>
       {/if}
     </div>
   </div>
@@ -138,9 +143,13 @@
         {#snippet fallback()}
           <div class="divide-y divide-gray-800">
             {#each Array(20) as _}
-              <div class="flex items-center p-2 animate-pulse">
-                <div class="w-12 h-6 bg-darkless rounded shrink-0"></div>
-                <div class="w-8 h-8 bg-darkless rounded-full mx-4"></div>
+              <div
+                class="flex h-16 items-center gap-2 p-2 sm:gap-0 sm:p-3 animate-pulse"
+              >
+                <div class="w-8 sm:w-12 h-6 bg-darkless rounded shrink-0"></div>
+                <div
+                  class="w-8 h-8 bg-darkless rounded-full mx-1 sm:mx-4"
+                ></div>
                 <div class="flex-1">
                   <div class="h-4 w-32 bg-darkless rounded"></div>
                 </div>
