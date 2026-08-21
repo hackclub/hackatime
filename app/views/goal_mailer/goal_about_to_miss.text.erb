@@ -1,0 +1,12 @@
+Heads up!
+
+With <%= ApplicationController.helpers.short_time_simple(@remaining_seconds) %>
+left in your <%= @goal.period_adjective %> period, you've tracked
+<%= ApplicationController.helpers.short_time_simple(@tracked_seconds) %>
+of your
+<%= ApplicationController.helpers.short_time_simple(@goal.target_seconds) %>
+goal on Hackatime.
+
+Log some time and save your goal: <%= root_url %>
+
+Unsubscribe from goal emails: <%= @unsubscribe_url %>

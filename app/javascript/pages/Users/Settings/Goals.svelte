@@ -2,6 +2,7 @@
   import { router } from "@inertiajs/svelte";
   import { secondsToDisplay } from "../../../utils";
   import Button from "../../../components/Button.svelte";
+  import CheckboxField from "../../../components/CheckboxField.svelte";
   import Modal from "../../../components/Modal.svelte";
   import MultiSelectCombobox from "../../../components/MultiSelectCombobox.svelte";
   import Select from "../../../components/Select.svelte";
@@ -52,6 +53,8 @@
   let selectedPeriod = $state<ProgrammingGoal["period"]>(defaultPeriod());
   let selectedLanguages = $state<string[]>([]);
   let selectedProjects = $state<string[]>([]);
+  let notifySlack = $state(false);
+  let notifyEmail = $state(false);
   let submitting = $state(false);
 
   $effect(() => {
@@ -62,6 +65,8 @@
     setFromSeconds(goal_form.target_seconds || 1800);
     selectedLanguages = goal_form.languages || [];
     selectedProjects = goal_form.projects || [];
+    notifySlack = goal_form.notify_slack ?? false;
+    notifyEmail = goal_form.notify_email ?? false;
     editingGoal =
       goal_form.mode === "edit" && goal_form.goal_id
         ? ((programming_goals || []).find((g) => g.id === goal_form.goal_id) ??
@@ -83,6 +88,15 @@
     return parts.join(" AND ") || "All programming activity";
   }
 
+  function notificationSubtitle(goal: ProgrammingGoal) {
+    const channels = [];
+    if (goal.notify_slack) channels.push("Slack");
+    if (goal.notify_email) channels.push("email");
+    return channels.length > 0
+      ? `Notifies via ${channels.join(" and ")} when you're about to miss`
+      : "No notifications";
+  }
+
   function setFromSeconds(seconds: number) {
     targetUnit = seconds % 3600 === 0 ? "hours" : "minutes";
     targetAmount = targetUnit === "hours" ? seconds / 3600 : seconds / 60;
@@ -94,6 +108,8 @@
     setFromSeconds(options.goals.preset_target_seconds[0] || 1800);
     selectedLanguages = [];
     selectedProjects = [];
+    notifySlack = false;
+    notifyEmail = false;
     goalModalOpen = true;
   }
 
@@ -103,6 +119,8 @@
     setFromSeconds(goal.target_seconds);
     selectedLanguages = [...goal.languages];
     selectedProjects = [...goal.projects];
+    notifySlack = goal.notify_slack;
+    notifyEmail = goal.notify_email;
     goalModalOpen = true;
   }
 
@@ -137,6 +155,8 @@
         target_seconds: currentTargetSeconds,
         languages: selectedLanguages,
         projects: selectedProjects,
+        notify_slack: notifySlack,
+        notify_email: notifyEmail,
       },
     };
     if (editingGoal) {
@@ -194,6 +214,9 @@
               </p>
               <p class="mt-1 truncate text-xs text-muted">
                 {scopeSubtitle(goal)}
+              </p>
+              <p class="mt-0.5 truncate text-xs text-muted">
+                {notificationSubtitle(goal)}
               </p>
             </div>
             <div class="flex items-center gap-2">
@@ -315,6 +338,35 @@
           emptyText="No projects found"
           options={options.goals.selectable_projects}
           bind:selected={selectedProjects}
+        />
+      </div>
+
+      <div
+        class="space-y-2 rounded-md border border-surface-200 bg-darker/30 px-4 py-3"
+      >
+        <p class="text-sm font-semibold text-surface-content">Notifications</p>
+        <p class="text-xs text-muted">
+          Get a message when this goal is at risk as the period runs out.
+        </p>
+        <CheckboxField
+          name="goal[notify_slack]"
+          bind:checked={notifySlack}
+          align="start"
+          label="Notify me on Slack"
+          description={options.goals.slack_available
+            ? "Sends a Slack DM when you reach this goal"
+            : "Connect Slack to your account first"}
+          disabled={!options.goals.slack_available}
+        />
+        <CheckboxField
+          name="goal[notify_email]"
+          bind:checked={notifyEmail}
+          align="start"
+          label="Notify me by email"
+          description={options.goals.email_available
+            ? "Sends an email when you reach this goal"
+            : "Add an email address to your account first"}
+          disabled={!options.goals.email_available}
         />
       </div>
 

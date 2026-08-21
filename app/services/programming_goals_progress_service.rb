@@ -56,15 +56,6 @@ class ProgrammingGoalsProgressService
   end
 
   def time_window_for(period, now:)
-    case period
-    when "day"
-      now.beginning_of_day..now.end_of_day
-    when "week"
-      now.beginning_of_week(:monday)..now.end_of_week(:monday)
-    when "month"
-      now.beginning_of_month..now.end_of_month
-    else
-      now.beginning_of_day..now.end_of_day
-    end
+    Goal.time_window_for(period, now: now)
   end
 end

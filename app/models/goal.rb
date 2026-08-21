@@ -1,5 +1,6 @@
 class Goal < ApplicationRecord
   PERIODS = %w[day week month].freeze
+  PERIOD_ADJECTIVES = { "day" => "daily", "week" => "weekly", "month" => "monthly" }.freeze
   PRESET_TARGET_SECONDS = [
     30.minutes.to_i,
     1.hour.to_i,
@@ -12,6 +13,12 @@ class Goal < ApplicationRecord
     "month" => 31.days.to_i
   }.freeze
   MAX_GOALS = 5
+
+  # Fraction of the period that must elapse before an incomplete goal is
+  # considered "about to miss" and the user gets warned.
+  MISSED_WARNING_ELAPSED_FRACTION = 0.8
+
+  scope :notifications_enabled, -> { where(notify_slack: true).or(where(notify_email: true)) }
 
   belongs_to :user
 
@@ -30,8 +37,47 @@ class Goal < ApplicationRecord
       period: period,
       target_seconds: target_seconds,
       languages: languages,
-      projects: projects
+      projects: projects,
+      notify_slack: notify_slack,
+      notify_email: notify_email
     }
+  end
+
+  # The calendar window this goal's current period covers, in the user's timezone.
+  def time_window(now: Time.current)
+    self.class.time_window_for(period, now: now)
+  end
+
+  def notifications_enabled? = notify_slack? || notify_email?
+
+  def period_adjective = PERIOD_ADJECTIVES.fetch(period, period)
+
+  # Describes what the goal covers, e.g. "Rust coding goal for hackatime".
+  def scope_description
+    description = languages.any? ? "#{languages.join(", ")} coding goal" : "coding goal"
+    description += " for #{projects.join(", ")}" if projects.any?
+    description
+  end
+
+  # True when enough of the period has elapsed that the goal can no longer be
+  # comfortably reached and tracked time is still short of the target.
+  def about_to_miss?(now:, tracked_seconds:)
+    return false if tracked_seconds >= target_seconds
+
+    window = time_window(now: now)
+    elapsed_fraction = ((now - window.begin).to_f / (window.end - window.begin)).clamp(0, 1)
+    elapsed_fraction >= MISSED_WARNING_ELAPSED_FRACTION
+  end
+
+  def self.time_window_for(period, now:)
+    case period
+    when "week"
+      now.beginning_of_week(:monday)..now.end_of_week(:monday)
+    when "month"
+      now.beginning_of_month..now.end_of_month
+    else
+      now.beginning_of_day..now.end_of_day
+    end
   end
 
   private

@@ -80,6 +80,8 @@ export type ProgrammingGoal = {
   target_seconds: number;
   languages: string[];
   projects: string[];
+  notify_slack: boolean;
+  notify_email: boolean;
 };
 
 type GoalForm = {
@@ -90,6 +92,8 @@ type GoalForm = {
   target_seconds: number;
   languages: string[];
   projects: string[];
+  notify_slack?: boolean;
+  notify_email?: boolean;
   errors: string[];
 };
 
@@ -127,6 +131,8 @@ type GoalsOptionsProps = {
     preset_target_seconds: number[];
     selectable_languages: Option[];
     selectable_projects: Option[];
+    slack_available: boolean;
+    email_available: boolean;
   };
 };
 

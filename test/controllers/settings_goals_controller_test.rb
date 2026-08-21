@@ -174,4 +174,62 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to my_settings_goals_path
   end
+
+  test "create saves notification settings" do
+    user = users(:one)
+    sign_in_as(user)
+
+    post my_settings_goals_create_path, params: {
+      goal: {
+        period: "day",
+        target_seconds: 3600,
+        languages: [],
+        projects: [],
+        notify_slack: "1",
+        notify_email: "1"
+      }
+    }
+
+    assert_response :redirect
+    saved_goal = user.reload.goals.first
+    assert_equal true, saved_goal.notify_slack
+    assert_equal true, saved_goal.notify_email
+  end
+
+  test "create defaults notification settings to disabled when omitted" do
+    user = users(:one)
+    sign_in_as(user)
+
+    post my_settings_goals_create_path, params: {
+      goal: { period: "day", target_seconds: 3600, languages: [], projects: [] }
+    }
+
+    assert_response :redirect
+    saved_goal = user.reload.goals.first
+    assert_equal false, saved_goal.notify_slack
+    assert_equal false, saved_goal.notify_email
+  end
+
+  test "update changes notification settings and re-subscribes goal emails" do
+    user = users(:one)
+    user.unsubscribe("goal_notifications")
+    goal = user.goals.create!(period: "day", target_seconds: 1800)
+    sign_in_as(user)
+
+    patch my_settings_goal_update_path(goal_id: goal.id), params: {
+      goal: {
+        period: "day",
+        target_seconds: 1800,
+        languages: [],
+        projects: [],
+        notify_email: "1"
+      }
+    }
+
+    assert_response :redirect
+    goal.reload
+    assert_equal true, goal.notify_email
+    assert_equal false, goal.notify_slack
+    assert_equal true, user.subscribed?("goal_notifications")
+  end
 end

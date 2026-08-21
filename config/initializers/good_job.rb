@@ -43,6 +43,11 @@ Rails.application.configure do
       cron: "*/2 * * * *",
       class: "SailorsLogPollForChangesJob"
     },
+    goal_notification: {
+      cron: "*/10 * * * *",
+      class: "GoalNotificationFanoutJob",
+      description: "Sends Slack and email notifications when users reach their goals."
+    },
     update_slack_channel_cache: {
       cron: "0 11 * * *",
       class: "SlackCommand::UpdateSlackChannelCacheJob"

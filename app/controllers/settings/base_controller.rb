@@ -104,24 +104,6 @@ class Settings::BaseController < InertiaController
       .transform_values { |builder| builder.call }
   end
 
-  def goal_options
-    goal_languages = []
-    goal_projects = project_list.map { |p| p[:display_name] }
-
-    @user.heartbeats.distinct.pluck(:language, :project).each do |language, project|
-      categorized = language&.categorize_language
-      goal_languages << categorized if categorized.present?
-      goal_projects << project if project.present?
-    end
-
-    {
-      periods: Goal::PERIODS.map { |p| { label: p.humanize, value: p } },
-      preset_target_seconds: Goal::PRESET_TARGET_SECONDS,
-      selectable_languages: goal_languages.uniq.sort.map { |l| { label: l, value: l } },
-      selectable_projects: goal_projects.uniq.sort.map { |p| { label: p, value: p } }
-    }
-  end
-
   def badges_props
     work_time_stats_base_url = "#{request.base_url}/api/v1/badge/#{badge_user_id}/"
     work_time_stats_url = (project_list.first.present? ? "#{work_time_stats_base_url}#{project_list.first[:repo_path]}" : nil)
