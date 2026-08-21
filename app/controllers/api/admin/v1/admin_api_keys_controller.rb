@@ -66,7 +66,7 @@ module Api
           {
             id: key.id,
             name: key.name,
-            token_preview: "#{key.token[0..10]}...",
+            token_preview: "#{key.token_preview}...",
             user: {
               id: key.user.id,
               username: key.user.username,

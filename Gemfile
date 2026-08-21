@@ -13,6 +13,7 @@ gem "puma", ">= 5.0"
 gem "jbuilder"
 # PaperTrail for auditing
 gem "paper_trail"
+gem "blind_index", "~> 2.8"
 # Handle CORS (Cross-Origin Resource Sharing)
 gem "rack-cors"
 

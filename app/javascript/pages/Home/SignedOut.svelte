@@ -152,13 +152,13 @@
       <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
         <Link
           href="/signin"
-          class="px-7 py-3.5 bg-primary text-on-primary rounded-md font-semibold text-base hover:opacity-90 transition-colors"
+          class="px-7 py-3.5 bg-primary text-on-primary rounded-xl font-semibold text-base hover:opacity-90 transition-colors"
         >
           Start tracking
         </Link>
         <a
           href="/docs"
-          class="px-7 py-3.5 bg-surface border border-surface-200 text-surface-content rounded-md font-semibold text-base hover:border-primary hover:text-primary transition-colors"
+          class="px-7 py-3.5 bg-surface border border-surface-200 text-surface-content rounded-xl font-semibold text-base hover:border-primary hover:text-primary transition-colors"
         >
           Read the docs
         </a>
