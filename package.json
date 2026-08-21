@@ -45,7 +45,7 @@
     "@types/node": "^26.2.0",
     "@typescript/native": "npm:typescript@^7.0.2",
     "knip": "^6.32.2",
-    "oxfmt": "^0.63.0",
+    "oxfmt": "^0.64.0",
     "oxlint": "^1.78.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
