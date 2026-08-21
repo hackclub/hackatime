@@ -86,7 +86,7 @@ module DashboardData
       start_ts = effective_start.to_i
       end_ts = effective_end.to_i
 
-      ranges = week_ranges(user.timezone, start_date: effective_start, end_date: effective_end)
+      ranges = week_ranges(user.timezone, start_date: start_date, end_date: end_date)
       result = ranges.to_h { |week_key, *_| [week_key, {}] }
       relation_sql = scope.with_valid_timestamps
         .where.not(time: nil)
