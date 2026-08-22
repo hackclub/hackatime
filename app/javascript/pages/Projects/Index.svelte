@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Deferred, Link, router } from "@inertiajs/svelte";
   import Search from "hcicons-svelte/search";
+  import { onDestroy, onMount, tick } from "svelte";
+  import { ChevronDown, ChevronUp, Icon, XMark } from "svelte-hero-icons";
   import { WindowVirtualizer } from "virtua/svelte";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
@@ -88,8 +90,69 @@
   const PROJECT_ROW_ESTIMATE = 208;
 
   let projectGridContainer: HTMLDivElement | undefined = $state();
+  let projectVirtualizer: WindowVirtualizer<ProjectCardType[]> | undefined =
+    $state();
   let projectColumnCount = $state(1);
   let searchQuery = $state("");
+  let searchOpen = $state(false);
+  let searchInput: HTMLInputElement | undefined = $state();
+  let currentMatchIndex = $state(0);
+
+  const normalizedSearchQuery = $derived(
+    searchQuery.trim().toLocaleLowerCase(),
+  );
+  const matchingProjects = $derived(
+    normalizedSearchQuery
+      ? (projects_data?.projects || []).filter((project) =>
+          project.name.toLocaleLowerCase().includes(normalizedSearchQuery),
+        )
+      : [],
+  );
+  const visibleProjects = $derived(
+    normalizedSearchQuery ? matchingProjects : projects_data?.projects || [],
+  );
+
+  const openSearch = async () => {
+    searchOpen = true;
+    await tick();
+    searchInput?.focus();
+    searchInput?.select();
+  };
+
+  const closeSearch = () => {
+    searchOpen = false;
+    searchQuery = "";
+    currentMatchIndex = 0;
+  };
+
+  const navigateMatches = (direction: 1 | -1) => {
+    if (matchingProjects.length === 0) return;
+
+    currentMatchIndex =
+      (currentMatchIndex + direction + matchingProjects.length) %
+      matchingProjects.length;
+    projectVirtualizer?.scrollToIndex(
+      Math.floor(currentMatchIndex / projectColumnCount),
+      { align: "center", smooth: true },
+    );
+  };
+
+  const handleSearchKeydown = (event: KeyboardEvent) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      navigateMatches(event.shiftKey ? -1 : 1);
+    }
+  };
+
+  const handlePageKeydown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+      event.preventDefault();
+      void openSearch();
+    } else if (event.key === "Escape" && searchOpen) {
+      event.preventDefault();
+      closeSearch();
+    }
+  };
 
   const updateProjectColumnCount = () => {
     if (!projectGridContainer) return;
@@ -105,17 +168,22 @@
   };
 
   const projectRows = $derived.by(() => {
-    const query = searchQuery.trim().toLocaleLowerCase();
-    const projects = (projects_data?.projects || []).filter((project) =>
-      project.name.toLocaleLowerCase().includes(query),
-    );
     const rows: ProjectCardType[][] = [];
 
-    for (let index = 0; index < projects.length; index += projectColumnCount) {
-      rows.push(projects.slice(index, index + projectColumnCount));
+    for (
+      let index = 0;
+      index < visibleProjects.length;
+      index += projectColumnCount
+    ) {
+      rows.push(visibleProjects.slice(index, index + projectColumnCount));
     }
 
     return rows;
+  });
+
+  $effect(() => {
+    searchQuery;
+    currentMatchIndex = 0;
   });
 
   $effect(() => {
@@ -128,6 +196,9 @@
 
     return () => observer.disconnect();
   });
+
+  onMount(() => document.addEventListener("keydown", handlePageKeydown));
+  onDestroy(() => document.removeEventListener("keydown", handlePageKeydown));
 
   const changeInterval = (
     nextInterval: string,
@@ -206,6 +277,65 @@
   <title>{page_title}</title>
 </svelte:head>
 
+{#if searchOpen}
+  <div
+    role="search"
+    aria-label="Find projects"
+    class="fixed right-4 top-4 z-50 flex h-10 w-[min(22rem,calc(100vw-2rem))] items-center rounded-lg border border-surface-200 bg-dark px-2 shadow-xl shadow-black/30"
+  >
+    <label for="project-search" class="sr-only">Find projects</label>
+    <input
+      bind:this={searchInput}
+      id="project-search"
+      name="project-search"
+      type="text"
+      bind:value={searchQuery}
+      onkeydown={handleSearchKeydown}
+      placeholder="Find in projects"
+      autocomplete="off"
+      class="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-sm text-surface-content placeholder:text-muted focus:outline-none focus:ring-0"
+    />
+    <span
+      aria-live="polite"
+      class="w-14 shrink-0 text-center text-xs tabular-nums text-muted"
+    >
+      {matchingProjects.length > 0
+        ? currentMatchIndex + 1
+        : 0}/{matchingProjects.length}
+    </span>
+    <Button
+      type="button"
+      unstyled
+      aria-label="Previous match"
+      title="Previous match (Shift+Enter)"
+      class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted hover:bg-surface-200 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      onclick={() => navigateMatches(-1)}
+    >
+      <Icon src={ChevronUp} size="17" />
+    </Button>
+    <Button
+      type="button"
+      unstyled
+      aria-label="Next match"
+      title="Next match (Enter)"
+      class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted hover:bg-surface-200 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      onclick={() => navigateMatches(1)}
+    >
+      <Icon src={ChevronDown} size="17" />
+    </Button>
+    <Button
+      type="button"
+      unstyled
+      aria-label="Close search"
+      title="Close (Escape)"
+      class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted hover:bg-surface-200 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      onclick={closeSearch}
+    >
+      <Icon src={XMark} size="18" />
+    </Button>
+  </div>
+{/if}
+
 <div>
   <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-4">
@@ -233,21 +363,35 @@
 
   <div class="flex items-center gap-3">
     <div class="relative min-w-0 flex-1">
-      <label for="project-search" class="sr-only">Search projects</label>
+      <label for="project-filter" class="sr-only">Search projects</label>
       <Search
         size={24}
         aria-hidden="true"
         class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted"
       />
       <input
-        id="project-search"
-        name="project-search"
+        id="project-filter"
+        name="project-filter"
         type="search"
         bind:value={searchQuery}
         placeholder="Search projects"
         class="h-10 w-full rounded-lg border border-surface-200 bg-input pl-11 pr-4 text-base text-surface-content placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
       />
     </div>
+
+    <Button
+      type="button"
+      variant="surface"
+      class="h-10 shrink-0 gap-2 px-3"
+      onclick={openSearch}
+    >
+      <Search size={18} aria-hidden="true" class="text-muted" />
+      <span>Find</span>
+      <kbd
+        class="hidden rounded border border-surface-300 bg-dark px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted sm:inline"
+        >Ctrl F</kbd
+      >
+    </Button>
 
     <div class="w-44 shrink-0 sm:w-56">
       <IntervalSelect
@@ -343,6 +487,7 @@
           {:else}
             <div bind:this={projectGridContainer} class="mt-6">
               <WindowVirtualizer
+                bind:this={projectVirtualizer}
                 data={projectRows}
                 getKey={(row: ProjectCardType[]) => row[0]?.id || "empty-row"}
                 itemSize={PROJECT_ROW_ESTIMATE}
@@ -354,21 +499,40 @@
                     style={`grid-template-columns: repeat(${projectColumnCount}, minmax(0, 1fr));`}
                   >
                     {#each row as project (project.id)}
-                      <ProjectCard
-                        {project}
-                        showArchived={show_archived}
-                        {intervalQueryString}
-                        onEditMapping={openMappingEditor}
-                        onArchive={openStatusChangeModal}
-                        onShowBrokenInfo={() => (brokenNameModalOpen = true)}
-                        editing={editingProjectKey === project.project_key}
-                        repoUrlError={errors.repo_url_project_name ===
-                        project.project_key
-                          ? errors.repo_url
-                          : undefined}
-                        bind:repoUrlDraft
-                        onCancelEdit={closeMappingEditor}
-                      />
+                      <div
+                        class:rounded-2xl={searchQuery &&
+                          matchingProjects[currentMatchIndex]?.id ===
+                            project.id}
+                        class:ring-2={searchQuery &&
+                          matchingProjects[currentMatchIndex]?.id ===
+                            project.id}
+                        class:ring-primary={searchQuery &&
+                          matchingProjects[currentMatchIndex]?.id ===
+                            project.id}
+                        class:ring-offset-2={searchQuery &&
+                          matchingProjects[currentMatchIndex]?.id ===
+                            project.id}
+                        class:ring-offset-surface={searchQuery &&
+                          matchingProjects[currentMatchIndex]?.id ===
+                            project.id}
+                      >
+                        <ProjectCard
+                          {project}
+                          showArchived={show_archived}
+                          {intervalQueryString}
+                          onEditMapping={openMappingEditor}
+                          onArchive={openStatusChangeModal}
+                          onShowBrokenInfo={() => (brokenNameModalOpen = true)}
+                          editing={editingProjectKey === project.project_key}
+                          repoUrlError={errors.repo_url_project_name ===
+                          project.project_key
+                            ? errors.repo_url
+                            : undefined}
+                          highlightQuery={searchQuery}
+                          bind:repoUrlDraft
+                          onCancelEdit={closeMappingEditor}
+                        />
+                      </div>
                     {/each}
                   </div>
                 {/snippet}
