@@ -1,6 +1,8 @@
 require "test_helper"
 require "webmock/minitest"
 
+WebMock.disable_net_connect!(allow_localhost: true)
+
 class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
   setup do
     @original_slack_token = ENV["SAILORS_LOG_SLACK_BOT_OAUTH_TOKEN"]

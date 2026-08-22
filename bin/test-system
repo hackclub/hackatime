@@ -36,6 +36,9 @@ def wait_for_ssr!(pid)
 end
 
 Dir.chdir(APP_ROOT) do
+  test_command = ARGV.first == "--rails" ? "test" : "test:system"
+  ARGV.shift if ARGV.first == "--rails"
+
   unless File.exist?(SSR_ENTRYPOINT)
     success = system(
       {
@@ -59,7 +62,7 @@ Dir.chdir(APP_ROOT) do
       "INERTIA_SYSTEM_TEST" => "1",
       "VITE_RUBY_AUTO_BUILD" => "false"
     }
-    system(system_test_env, "bin/rails", "test:system", *ARGV)
+    system(system_test_env, "bin/rails", test_command, *ARGV)
     status = $?
   ensure
     begin
