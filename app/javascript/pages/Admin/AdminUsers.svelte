@@ -172,10 +172,7 @@
           query: { admin_level: level },
         })}
         method="patch"
-        onsubmit={(event: SubmitEvent) => {
-          if (confirmChange && !confirm(confirmation(user, level)))
-            event.preventDefault();
-        }}
+        onBefore={() => !confirmChange || confirm(confirmation(user, level))}
         ><Button
           unstyled
           type="submit"

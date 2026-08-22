@@ -21,6 +21,16 @@ class AdminUsersTest < ApplicationSystemTestCase
     assert_selector "button.bg-purple-400", text: "→ Ultraadmin"
   end
 
+  test "an ultraadmin can promote a searched user" do
+    visit admin_admin_users_path
+
+    fill_in "Search by name or Slack ID...", with: "Search Target"
+    click_button "→ Admin"
+
+    assert_text "Search Target's admin level updated to admin."
+    assert_equal "admin", @target.reload.admin_level
+  end
+
   test "an admin can start impersonating from a migrated user mention" do
     application = @target.oauth_applications.create!(
       name: "Target App",
