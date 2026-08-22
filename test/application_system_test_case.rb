@@ -1,5 +1,5 @@
 ENV["INERTIA_SYSTEM_TEST"] = "1"
-ENV["VITE_RUBY_AUTO_BUILD"] ||= "true"
+ENV["VITE_RUBY_AUTO_BUILD"] = "false"
 
 require "test_helper"
 
@@ -24,8 +24,12 @@ Capybara.register_driver :headless_chromium do |app|
   Capybara::Selenium::Driver.new(app, browser: :chrome, options: options, service: service)
 end
 
+Capybara.server_host = "localhost"
+
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   include SystemTestAuthHelper
+
+  parallelize workers: ENV.fetch("SYSTEM_TEST_WORKERS", 3).to_i, threshold: 1
 
   # Chrome 134+ has an intermittent ChromeDriver bug where node ownership
   # gets stale after Capybara visit() calls, causing "Node with given id

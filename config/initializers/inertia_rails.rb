@@ -8,5 +8,7 @@ InertiaRails.configure do |config|
   # in inertia_rails 3.x; will become the only behavior in inertia_rails 4.0.
   config.use_script_element_for_initial_page = true
   config.use_data_inertia_head_attribute = true
-  config.ssr_enabled = ViteRuby.config.ssr_build_enabled
+  system_test = Rails.env.test? && ENV["INERTIA_SYSTEM_TEST"] == "1"
+  config.ssr_enabled = ViteRuby.config.ssr_build_enabled && (!Rails.env.test? || system_test)
+  config.ssr_raise_on_error = system_test
 end

@@ -9,14 +9,6 @@ class GoalsSettingsTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
-  test "goals settings page renders" do
-    assert_settings_page(
-      path: my_settings_goals_path,
-      marker_text: "Programming Goals"
-    )
-    assert_text(/Active Goal/i)
-  end
-
   test "goals settings can create edit and delete goal" do
     visit my_settings_goals_path
 

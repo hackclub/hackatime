@@ -1,0 +1,79 @@
+#!/usr/bin/env ruby
+
+require "net/http"
+
+APP_ROOT = File.expand_path("..", __dir__)
+SSR_ENTRYPOINT = File.join(APP_ROOT, "public/vite-ssr/ssr.js")
+SSR_HEALTH_URI = URI("http://127.0.0.1:13714/health")
+SSR_START_TIMEOUT = 30
+
+def wait_for_ssr!(pid)
+  deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + SSR_START_TIMEOUT
+
+  loop do
+    if Process.waitpid(pid, Process::WNOHANG)
+      abort "Inertia SSR server exited before becoming ready"
+    end
+
+    begin
+      response = Net::HTTP.start(
+        SSR_HEALTH_URI.host,
+        SSR_HEALTH_URI.port,
+        open_timeout: 0.2,
+        read_timeout: 0.2
+      ) { |http| http.get(SSR_HEALTH_URI.request_uri) }
+      return if response.is_a?(Net::HTTPSuccess)
+    rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, Net::OpenTimeout, Net::ReadTimeout
+      # The renderer is still starting.
+    end
+
+    if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+      abort "Inertia SSR server did not become ready within #{SSR_START_TIMEOUT} seconds"
+    end
+
+    sleep 0.1
+  end
+end
+
+Dir.chdir(APP_ROOT) do
+  unless File.exist?(SSR_ENTRYPOINT)
+    success = system(
+      {
+        "RAILS_ENV" => "test",
+        "VITE_CACHE_DIR" => "node_modules/.vite-test-ssr"
+      },
+      "bin/vite",
+      "build",
+      "--ssr"
+    )
+    abort "Failed to build the Inertia SSR bundle" unless success
+  end
+
+  ssr_pid = spawn({ "RAILS_ENV" => "test" }, "bun", SSR_ENTRYPOINT)
+
+  begin
+    wait_for_ssr!(ssr_pid)
+
+    system_test_env = {
+      "RAILS_ENV" => "test",
+      "INERTIA_SYSTEM_TEST" => "1",
+      "VITE_RUBY_AUTO_BUILD" => "false"
+    }
+    system(system_test_env, "bin/rails", "test:system", *ARGV)
+    status = $?
+  ensure
+    begin
+      Process.kill("TERM", ssr_pid)
+    rescue Errno::ESRCH
+      nil
+    end
+
+    begin
+      Process.wait(ssr_pid)
+    rescue Errno::ECHILD
+      nil
+    end
+  end
+
+  exit(status.exitstatus || 1)
+end
