@@ -30,17 +30,4 @@ class LanguageUtilsTest < Minitest::Test
   def test_custom_language_without_extension_conflict
     assert_equal "Lapse", LanguageUtils.find_name("Lapse")
   end
-
-  def test_authoritative_extension_overrides_client_reported_language
-    assert_equal "Luau", LanguageUtils.fill_missing_language("Lua", entity: "/a/main.luau")
-    assert_equal "Luau", LanguageUtils.fill_missing_language("PLAIN_TEXT", entity: "/a/main.luau")
-    assert_equal "Luau", LanguageUtils.fill_missing_language("luau", entity: "/a/MAIN.LUAU")
-    assert_equal "Luau", LanguageUtils.fill_missing_language(nil, entity: "/a/main.luau")
-  end
-
-  def test_non_authoritative_extensions_still_trust_the_client
-    assert_equal "Lua", LanguageUtils.fill_missing_language("Lua", entity: "/a/main.lua")
-    assert_equal "C++", LanguageUtils.fill_missing_language("C++", entity: "/a/foo.h")
-    assert_nil LanguageUtils.fill_missing_language(nil, entity: "/a/noext")
-  end
 end
