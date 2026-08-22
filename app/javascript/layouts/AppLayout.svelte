@@ -81,6 +81,9 @@
 
 <main
   class={`min-h-screen min-w-0 flex-1 transition-[margin] duration-300 ease-in-out ${showSidebar ? "lg:ml-62.5" : ""}`}
+  style={layout.viewport_fit
+    ? "padding: 0; margin-bottom: 0; height: 100vh; overflow: hidden;"
+    : ""}
 >
   <div
     class={`mx-auto w-full min-w-0 ${layout.full_width ? "" : "max-w-7xl p-4 pt-16 md:p-8 lg:pt-8"}`}

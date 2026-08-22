@@ -82,6 +82,7 @@ export type LayoutProps = {
   hide_sidebar: boolean;
   hide_footer: boolean;
   full_width: boolean;
+  viewport_fit: boolean;
   show_stop_impersonating: boolean;
 };
 
