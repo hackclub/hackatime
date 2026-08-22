@@ -96,8 +96,6 @@
       yellow: "bg-yellow/20",
       blue: "bg-blue/20",
     })[level] ?? "bg-surface-100/20";
-  const datePath = (value: string) =>
-    adminTimeline.show.path({ query: { date: value, user_ids: selectedIds } });
   const adjacentDate = (days: number) => {
     const value = new Date(`${date}T12:00:00Z`);
     value.setUTCDate(value.getUTCDate() + days);
@@ -351,12 +349,16 @@
     <div class="text-lg font-semibold">{date_label}</div>
     <div class="flex gap-2">
       <Link
-        href={datePath(adjacentDate(-1))}
+        href={adminTimeline.show.path()}
+        data={{ date: adjacentDate(-1), user_ids: selectedIds }}
         class="rounded bg-darker px-3 py-1 text-sm">← Prev</Link
-      ><Link href={datePath(today)} class="rounded bg-darker px-3 py-1 text-sm"
-        >Today</Link
       ><Link
-        href={datePath(adjacentDate(1))}
+        href={adminTimeline.show.path()}
+        data={{ date: today, user_ids: selectedIds }}
+        class="rounded bg-darker px-3 py-1 text-sm">Today</Link
+      ><Link
+        href={adminTimeline.show.path()}
+        data={{ date: adjacentDate(1), user_ids: selectedIds }}
         class="rounded bg-darker px-3 py-1 text-sm">Next →</Link
       >
     </div>
