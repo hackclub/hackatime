@@ -14,6 +14,7 @@ class InertiaController < ApplicationController
       hide_sidebar: false,
       hide_footer: false,
       full_width: false,
+      viewport_fit: false,
       show_stop_impersonating: session[:impersonater_user_id].present?
     }
   end

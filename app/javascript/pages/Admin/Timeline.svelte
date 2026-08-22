@@ -138,6 +138,21 @@
     const timer = setInterval(() => (nowEpoch = Date.now() / 1000), 30_000);
     return () => clearInterval(timer);
   });
+  let gridScroller = $state<HTMLDivElement | null>(null);
+  // On load and whenever the data changes (View, Prev/Next), center the grid
+  // on the current time of day in the primary column's timezone.
+  $effect(() => {
+    if (!columns.length || !gridScroller) return;
+    const dayStart = columns[0].day_start_epoch;
+    const offset =
+      (((Date.now() / 1000 - dayStart) % DAY_SECONDS) + DAY_SECONDS) %
+      DAY_SECONDS;
+    const target = HEADER_HEIGHT + (offset / 3600) * PIXELS_PER_HOUR;
+    gridScroller.scrollTop = Math.max(
+      0,
+      target - gridScroller.clientHeight / 2,
+    );
+  });
   const nowTop = $derived.by(() => {
     const dayStart = columns[0]?.day_start_epoch;
     if (dayStart === undefined) return null;
@@ -288,7 +303,7 @@
 </script>
 
 <svelte:head><title>Admin Timeline</title></svelte:head>
-<div class="flex min-h-screen flex-col font-sans text-surface-content">
+<div class="flex h-screen flex-col p-5 font-sans text-surface-content">
   <div class="mb-4 shrink-0 rounded-md bg-dark p-3">
     <Form action={adminTimeline.show.path()} method="get">
       <input type="hidden" name="user_ids" value={selectedIds} /><input
@@ -431,13 +446,68 @@
       >
     </div>
   </div>
-  <div class="flex-1 overflow-x-auto overflow-y-auto">
+  <div
+    bind:this={gridScroller}
+    class="min-h-0 flex-1 overflow-x-auto overflow-y-auto"
+  >
     {#if columns.length}
       <div
         class="relative"
         style:width={`${gridWidth}px`}
         style:height={`${gridHeight}px`}
       >
+        <div
+          class="sticky top-0 z-40 bg-darker"
+          style:height={`${HEADER_HEIGHT}px`}
+        >
+          {#each columns as column, index}
+            <div
+              class="absolute top-0 overflow-hidden rounded-lg p-3 shadow-lg {trustBackground(
+                column.user.trust_level,
+              )}"
+              style:left={`${columnLeft(index) + 2}px`}
+              style:width={`${COLUMN_WIDTH - 4}px`}
+              style:height={`${HEADER_HEIGHT - 8}px`}
+              title={`User ID: ${column.user.id} - ${column.user.display_name} | Total Coded: ${column.total > 0 ? column.total_detailed : "0m"} | TZ: ${column.user.timezone}`}
+            >
+              <div
+                class="mb-1 flex min-w-0 items-center gap-2 [&_span]:min-w-0 [&_span]:truncate"
+              >
+                <AdminUserMention user={column.user} />
+              </div>
+              <div
+                class="mb-1 flex items-center justify-center gap-4 text-center"
+              >
+                {#if column.user.slack_url}<a
+                    href={column.user.slack_url}
+                    target="_blank"
+                    class="text-xs text-blue underline">Slack</a
+                  >{/if}{#if column.user.github_url}<a
+                    href={column.user.github_url}
+                    target="_blank"
+                    class="text-xs text-green underline">Git</a
+                  >{/if}<span class="text-sm"
+                  >{trustEmoji(column.user.trust_level)}</span
+                >{#if canMutate && column.user.id !== current_user.id}<button
+                    type="button"
+                    onclick={() => setTrust(column)}
+                    class="text-xs text-muted hover:text-surface-content"
+                    title="Set trust level">🔨</button
+                  >{/if}
+              </div>
+              <div
+                class="mb-1 text-sm font-medium {column.total > 0
+                  ? 'text-green'
+                  : 'text-muted'}"
+              >
+                {column.total > 0
+                  ? `${column.total_short} coded`
+                  : "No time coded"}
+              </div>
+              <div class="text-xs text-muted">{column.user.timezone}</div>
+            </div>
+          {/each}
+        </div>
         {#each Array(24) as _, hour}<div
             class="absolute left-0 w-full border-t border-surface-200"
             style:top={`${HEADER_HEIGHT + hour * PIXELS_PER_HOUR}px`}
@@ -459,48 +529,6 @@
             style:left={`${columnLeft(index)}px`}
             style:width={`${COLUMN_WIDTH}px`}
           ></div>
-          <div
-            class="absolute top-0 rounded-lg p-3 shadow-lg {trustBackground(
-              column.user.trust_level,
-            )}"
-            style:left={`${columnLeft(index) + 2}px`}
-            style:width={`${COLUMN_WIDTH - 4}px`}
-            title={`User ID: ${column.user.id} - ${column.user.display_name} | Total Coded: ${column.total > 0 ? column.total_detailed : "0m"} | TZ: ${column.user.timezone}`}
-          >
-            <div class="mb-1 flex items-center gap-2">
-              <AdminUserMention user={column.user} />
-            </div>
-            <div
-              class="mb-1 flex items-center justify-center gap-4 text-center"
-            >
-              {#if column.user.slack_url}<a
-                  href={column.user.slack_url}
-                  target="_blank"
-                  class="text-xs text-blue underline">Slack</a
-                >{/if}{#if column.user.github_url}<a
-                  href={column.user.github_url}
-                  target="_blank"
-                  class="text-xs text-green underline">Git</a
-                >{/if}<span class="text-sm"
-                >{trustEmoji(column.user.trust_level)}</span
-              >{#if canMutate && column.user.id !== current_user.id}<button
-                  type="button"
-                  onclick={() => setTrust(column)}
-                  class="text-xs text-muted hover:text-surface-content"
-                  title="Set trust level">🔨</button
-                >{/if}
-            </div>
-            <div
-              class="mb-1 text-sm font-medium {column.total > 0
-                ? 'text-green'
-                : 'text-muted'}"
-            >
-              {column.total > 0
-                ? `${column.total_short} coded`
-                : "No time coded"}
-            </div>
-            <div class="text-xs text-muted">{column.user.timezone}</div>
-          </div>
           {#each positionSpans(column) as span}<div
               class="absolute z-10 overflow-hidden rounded-md p-2 text-xs text-surface-content"
               style:background-color={columnColor(index)}
@@ -529,7 +557,7 @@
             </div>{/each}
         {/each}
         {#if nowTop !== null}<div
-            class="absolute z-300 flex h-0.5 w-full items-center bg-red"
+            class="absolute z-30 flex h-0.5 w-full items-center bg-red"
             style:left={`${HOUR_LABEL_WIDTH}px`}
             style:top={`${nowTop}px`}
           >
