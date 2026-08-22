@@ -102,6 +102,10 @@ export default defineConfig({
   theme: {
     accent: defaultTheme.preview.primary,
     background: defaultTheme.preview.dark,
+    fonts: {
+      body: "inter",
+      display: "inter",
+    },
     mode: defaultTheme.color_scheme,
     radius: "lg",
   },
@@ -147,7 +151,7 @@ export default defineConfig({
   seo: {
     og: {
       enabled: true,
-      logo: "/images/hackatime-icon.svg",
+      logo: "/images/hackatime-og-logo.png",
       palette: {
         accent: defaultTheme.preview.primary,
         background: defaultTheme.preview.darker,
