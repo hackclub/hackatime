@@ -1,6 +1,8 @@
 require "test_helper"
 require "webmock/minitest"
 
+WebMock.disable_net_connect!(allow_localhost: true)
+
 class UserTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
   include ActionMailer::TestHelper

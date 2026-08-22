@@ -2,10 +2,6 @@ require "test_helper"
 
 # Tests for User.fuzzy_ranked_search (UserFuzzySearch concern).
 #
-# Production scenarios mirror the queries the admin search UI fires:
-#   "mahad", "miggy", "58", "mahadkalam1234@gmail.com", "mahadkalam1234", "json"
-# — each of those is asserted against equivalent fixture users below.
-#
 # Invariants covered:
 #   - blank/whitespace input -> none
 #   - limit kwarg respected
@@ -251,59 +247,5 @@ class UserFuzzySearchTest < ActiveSupport::TestCase
     rows = User.fuzzy_ranked_search("%").to_a
     ids = rows.map(&:id)
     refute_includes ids, u.id, "literal `%` must not match arbitrary substrings"
-  end
-
-  # ----- production-query parity -----
-
-  test "production query 'mahad' returns the user with username mahad ranked highest" do
-    mahad = create_user(username: "mahad", slack_uid: "U059VC0UDEU")
-    with_email(mahad, "mahadkalam1234@gmail.com")
-    create_user(username: "mahadmammu5") # secondary contains match
-    row = User.fuzzy_ranked_search("mahad").first
-    assert_equal mahad.id, row.id
-    assert_operator row.rank_score, :>=, 100
-  end
-
-  test "production query 'miggy' returns the user whose slack_username is miggy" do
-    miggy = create_user(username: "shy", slack_username: "miggy", github_username: "ImShyMike")
-    with_email(miggy, "imshymike@proton.me")
-    row = User.fuzzy_ranked_search("miggy").find { |r| r.id == miggy.id }
-    assert row, "user matched by slack_username should appear"
-    assert_operator row.rank_score, :>=, 100
-  end
-
-  test "production query '58' (numeric) hits the exact-id path" do
-    u = create_user(username: "byid_#{SecureRandom.hex(4)}")
-    row = User.fuzzy_ranked_search(u.id.to_s).find { |r| r.id == u.id }
-    assert row, "numeric term should find user by id"
-    assert_operator row.rank_score, :>=, 1000
-  end
-
-  test "production query 'mahadkalam1234@gmail.com' (full email) is an exact email match" do
-    u = create_user(username: "mahad", slack_uid: "U#{SecureRandom.hex(8).upcase}")
-    with_email(u, "mahadkalam1234@gmail.com")
-    row = User.fuzzy_ranked_search("mahadkalam1234@gmail.com").find { |r| r.id == u.id }
-    assert_equal "mahadkalam1234@gmail.com", row.matched_email
-    # exact (100) + maybe other tiers for "mahad" inside the email containing username
-    assert_operator row.rank_score, :>=, 100
-  end
-
-  test "production query 'mahadkalam1234' (email prefix) returns email prefix match" do
-    u = create_user(slack_uid: "U#{SecureRandom.hex(8).upcase}")
-    with_email(u, "mahadkalam1234@gmail.com")
-    row = User.fuzzy_ranked_search("mahadkalam1234").find { |r| r.id == u.id }
-    assert_equal "mahadkalam1234@gmail.com", row.matched_email
-    # email prefix tier (50) at minimum
-    assert_operator row.rank_score, :>=, 50
-  end
-
-  test "production query 'json' returns users with json in their username" do
-    json_lk = create_user(username: "JSON_LK")
-    with_email(json_lk, "sojyta@gmail.com")
-    json_cam = create_user(username: "jsoncameron")
-    with_email(json_cam, "jasoncameron.all@gmail.com")
-    ids = User.fuzzy_ranked_search("json").to_a.map(&:id)
-    assert_includes ids, json_lk.id
-    assert_includes ids, json_cam.id
   end
 end

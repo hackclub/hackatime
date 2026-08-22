@@ -33,8 +33,7 @@ end
 
 module SystemTestAuthHelper
   def sign_in_as(user)
-    token = user.sign_in_tokens.create!(auth_type: :email)
-    visit auth_token_path(token: token.token)
+    visit "/__system_test__/log-in/#{user.id}"
   end
 end
 

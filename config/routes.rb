@@ -19,6 +19,11 @@ Rails.application.routes.draw do
     }
   end
 
+  if Rails.env.test?
+    require Rails.root.join("test/support/system_test_session_app")
+    mount SystemTestSessionApp.new, at: "/__system_test__/log-in"
+  end
+
   get "api-docs", to: "api_docs#show", as: :api_docs
   get "api-docs/admin", to: "api_docs#admin", as: :admin_api_docs
   mount Rswag::Api::Engine => "/api-docs"

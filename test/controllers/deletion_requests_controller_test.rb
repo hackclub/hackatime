@@ -1,6 +1,8 @@
 require "test_helper"
 require "webmock/minitest"
 
+WebMock.disable_net_connect!(allow_localhost: true)
+
 class DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = User.create!(timezone: "UTC")

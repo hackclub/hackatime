@@ -1,4 +1,14 @@
 #!/usr/bin/env ruby
+
+if ENV["INERTIA_SYSTEM_TEST"] != "1"
+  case ARGV.first
+  when "test"
+    exec File.expand_path("test-system", __dir__), "--rails", *ARGV.drop(1)
+  when "test:system"
+    exec File.expand_path("test-system", __dir__), *ARGV.drop(1)
+  end
+end
+
 APP_PATH = File.expand_path("../config/application", __dir__)
 require_relative "../config/boot"
 require "rails/commands"

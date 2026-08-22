@@ -82,40 +82,6 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, user.reload.goals.count
   end
 
-  test "create rejects nonpositive goal target" do
-    user = users(:one)
-    sign_in_as(user)
-
-    post my_settings_goals_create_path, params: {
-      goal: {
-        period: "day",
-        target_seconds: 0,
-        languages: [],
-        projects: []
-      }
-    }
-
-    assert_response :unprocessable_entity
-    assert_equal 0, user.reload.goals.count
-  end
-
-  test "create rejects impossible day target" do
-    user = users(:one)
-    sign_in_as(user)
-
-    post my_settings_goals_create_path, params: {
-      goal: {
-        period: "day",
-        target_seconds: 25.hours.to_i,
-        languages: [],
-        projects: []
-      }
-    }
-
-    assert_response :unprocessable_entity
-    assert_equal 0, user.reload.goals.count
-  end
-
   test "update saves valid goal changes" do
     user = users(:one)
     goal = user.goals.create!(

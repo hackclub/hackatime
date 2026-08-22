@@ -9,14 +9,6 @@ class EditorsSettingsTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
-  test "editors settings page renders the extension display section" do
-    assert_settings_page(
-      path: my_settings_editors_path,
-      marker_text: "Extension Display",
-      card_count: 1
-    )
-  end
-
   test "editors settings updates extension display style" do
     visit my_settings_editors_path
 

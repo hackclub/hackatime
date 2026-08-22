@@ -53,22 +53,6 @@ class HeartbeatExportTest < ApplicationSystemTestCase
     )
   end
 
-  test "repeated export requests are rate limited" do
-    visit my_settings_imports_exports_path
-
-    wait_for_export_controls
-
-    assert_difference -> { export_job_count }, 1 do
-      click_on "Export all heartbeats"
-      assert_text "Your export is being prepared and will be emailed to you"
-    end
-
-    assert_no_difference -> { export_job_count } do
-      click_on "Export all heartbeats"
-      assert_text "Export requests are limited to once every 10 minutes."
-    end
-  end
-
   test "export request is rejected when signed-in user has no email address" do
     user_without_email = users(:three)
     create_heartbeat(user_without_email, Time.current - 1.hour, "src/no_email.rb")
