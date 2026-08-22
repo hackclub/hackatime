@@ -79,6 +79,8 @@ GEM
       uri (>= 0.13.1)
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
+    argon2-kdf (1.0.0)
+      fiddle
     ast (2.4.3)
     autotuner (1.1.0)
     aws-eventstream (1.4.0)
@@ -111,6 +113,9 @@ GEM
       smart_properties
     bigdecimal (4.1.2)
     bindex (0.8.1)
+    blind_index (2.8.1)
+      activesupport (>= 7.2)
+      argon2-kdf (>= 1)
     bootsnap (1.25.0)
       msgpack (~> 1.5)
     brakeman (8.0.6)
@@ -182,6 +187,7 @@ GEM
     ffi (1.17.4-arm64-darwin)
     ffi (1.17.4-x86_64-linux-gnu)
     ffi (1.17.4-x86_64-linux-musl)
+    fiddle (1.1.8)
     flamegraph (0.9.5)
     flipper (1.4.2)
       concurrent-ruby (< 2)
@@ -565,6 +571,7 @@ DEPENDENCIES
   autotuner (~> 1.0)
   aws-sdk-s3
   benchmark
+  blind_index (~> 2.8)
   bootsnap
   brakeman
   bullet

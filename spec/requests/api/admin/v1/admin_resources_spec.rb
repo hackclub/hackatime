@@ -64,7 +64,7 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
                 properties: {
                   id: { type: :integer, example: 12 },
                   name: { type: :string, example: 'Revoker admin key' },
-                  token_preview: { type: :string, example: 'hka_3f8e...7f01' },
+                  token_preview: { type: :string, example: 'hka_3f8e12ab5...' },
                   user: {
                     type: :object,
                     properties: {
@@ -160,7 +160,7 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
           properties: {
             id: { type: :integer, example: 12 },
             name: { type: :string, example: 'Revoker admin key' },
-            token_preview: { type: :string, example: 'hka_3f8e...7f01' },
+            token_preview: { type: :string, example: 'hka_3f8e12ab5...' },
             user: {
               type: :object,
               properties: {

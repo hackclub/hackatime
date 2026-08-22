@@ -15,6 +15,7 @@ class LeaderboardsController < InertiaController
       leaderboard: leaderboard_metadata(leaderboard),
       is_logged_in: current_user.present?,
       github_uid_blank: current_user.present? && current_user.github_uid.blank?,
+      can_view_telescreen: current_user&.admin_level.in?(AuthHelpers::ADMIN_LEVELS) || false,
       entries: InertiaRails.defer { entries_payload(leaderboard, leaderboard_scope, country) }
     }
   end

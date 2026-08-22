@@ -1393,6 +1393,7 @@ CoffeeScript:
   - "._coffee"
   - ".cake"
   - ".cjsx"
+  - ".coffee.erb"
   - ".iced"
   filenames:
   - Cakefile
@@ -2213,6 +2214,15 @@ FLUX:
   tm_scope: none
   ace_mode: text
   language_id: 106
+FPP:
+  type: programming
+  color: "#d37327"
+  extensions:
+  - ".fpp"
+  - ".fppi"
+  tm_scope: source.fpp
+  ace_mode: text
+  language_id: 252360067
 Factor:
   type: programming
   color: "#636746"
@@ -2692,6 +2702,7 @@ Git Commit:
   aliases:
   - commit
   filenames:
+  - ".gitmessage"
   - COMMIT_EDITMSG
   ace_mode: text
   tm_scope: text.git-commit
@@ -3374,6 +3385,7 @@ INI:
   - ".buckconfig"
   - ".coveragerc"
   - ".flake8"
+  - ".gitreview"
   - ".pylintrc"
   - HOSTS
   - buildozer.spec
@@ -3430,6 +3442,7 @@ Ignore List:
   extensions:
   - ".gitignore"
   filenames:
+  - ".agignore"
   - ".atomignore"
   - ".babelignore"
   - ".bzrignore"
@@ -3645,6 +3658,7 @@ JSON:
   - ".htmlhintrc"
   - ".imgbotconfig"
   - ".nycrc"
+  - ".releaserc"
   - ".secrets.baseline"
   - ".tern-config"
   - ".tern-project"
@@ -3691,6 +3705,7 @@ JSON with Comments:
   filenames:
   - ".babelrc"
   - ".devcontainer.json"
+  - ".eslintrc"
   - ".eslintrc.json"
   - ".jscsrc"
   - ".jshintrc"
@@ -6472,8 +6487,11 @@ R:
   extensions:
   - ".r"
   - ".rd"
+  - ".rhistory"
   - ".rsx"
   filenames:
+  - ".Rapp.history"
+  - ".Rhistory"
   - ".Rprofile"
   - expr-dist
   interpreters:
@@ -8526,7 +8544,22 @@ Vim Help File:
   tm_scope: text.vim-help
   ace_mode: text
   language_id: 508563686
-Vim Script:
+Vim Snippet:
+  type: markup
+  color: "#199f4b"
+  aliases:
+  - SnipMate
+  - UltiSnip
+  - UltiSnips
+  - NeoSnippet
+  extensions:
+  - ".snip"
+  - ".snippet"
+  - ".snippets"
+  tm_scope: source.vim-snippet
+  ace_mode: text
+  language_id: 81265970
+Vim script:
   type: programming
   color: "#199f4b"
   tm_scope: source.viml
@@ -8551,21 +8584,6 @@ Vim Script:
   - vimrc
   ace_mode: text
   language_id: 388
-Vim Snippet:
-  type: markup
-  color: "#199f4b"
-  aliases:
-  - SnipMate
-  - UltiSnip
-  - UltiSnips
-  - NeoSnippet
-  extensions:
-  - ".snip"
-  - ".snippet"
-  - ".snippets"
-  tm_scope: source.vim-snippet
-  ace_mode: text
-  language_id: 81265970
 Visual Basic .NET:
   type: programming
   color: "#945db7"
@@ -8950,6 +8968,7 @@ XML:
   - ".kml"
   - ".launch"
   - ".mdpolicy"
+  - ".meta4"
   - ".mjml"
   - ".mm"
   - ".mod"
@@ -9166,7 +9185,9 @@ YAML:
   - ".clang-format"
   - ".clang-tidy"
   - ".clangd"
+  - ".eslintrc"
   - ".gemrc"
+  - ".releaserc"
   - CITATION.cff
   - glide.lock
   - pixi.lock
