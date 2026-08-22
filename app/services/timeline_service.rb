@@ -13,25 +13,31 @@ class TimelineService
   end
 
   def timeline_data
+    duration_cap = Heartbeat.heartbeat_timeout_duration.to_i
     users_by_id.values.map do |user|
       user_tz = user.timezone || "UTC"
       day_start = date.in_time_zone(user_tz).beginning_of_day.to_f
       day_end = date.in_time_zone(user_tz).end_of_day.to_f
 
-      total_coded_time_seconds = Heartbeat.where(user_id: user.id, deleted_at: nil)
-                                          .where("time >= ? AND time <= ?", day_start, day_end)
-                                          .duration_seconds
-
       hbs = (heartbeats_by_user_id[user.id] || []).select { |hb| hb.time >= day_start && hb.time <= day_end }
+      total_coded_time_seconds = hbs.each_cons(2).sum { |a, b| [ b.time - a.time, duration_cap ].min }.to_i
 
       { user: user, spans: calculate_spans(user, hbs), total_coded_time: total_coded_time_seconds }
     end
   end
 
   def commit_markers
-    Commit.where(user_id: selected_user_ids, created_at: date.beginning_of_day..date.end_of_day).map do |commit|
+    # Fetch a widened window, then filter to each user's local calendar day so
+    # markers line up with the timezone the rest of the page is rendered in.
+    window = (date.beginning_of_day - 24.hours)..(date.end_of_day + 24.hours)
+    Commit.where(user_id: selected_user_ids, created_at: window).filter_map do |commit|
       raw = commit.github_raw || {}
-      commit_time = raw.dig("commit", "committer", "date") ? Time.parse(raw["commit"]["committer"]["date"]) : commit.created_at
+      next if raw["html_url"].blank?
+
+      commit_time = raw.dig("commit", "committer", "date") ? Time.zone.parse(raw["commit"]["committer"]["date"]) : commit.created_at
+      user_tz = users_by_id[commit.user_id]&.timezone.presence || "UTC"
+      next unless date.in_time_zone(user_tz).all_day.cover?(commit_time)
+
       {
         user_id: commit.user_id,
         timestamp: commit_time.to_f,

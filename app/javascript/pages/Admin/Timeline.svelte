@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { Form, Link } from "@inertiajs/svelte";
   import AdminUserMention from "../../components/AdminUserMention.svelte";
   import Button from "../../components/Button.svelte";
@@ -12,8 +13,8 @@
   };
   type Project = { name: string; repo_url: string | null };
   type Span = {
-    top: number;
-    height: number;
+    start_epoch: number;
+    end_epoch: number;
     title: string;
     projects: Project[];
     languages: string;
@@ -30,13 +31,12 @@
     total: number;
     total_short: string;
     total_detailed: string;
-    left: number;
-    color: string;
+    day_start_epoch: number;
     spans: Span[];
   };
   type Commit = {
-    left: number;
-    top: number;
+    user_id: number;
+    timestamp: number;
     github_url: string;
     additions: number | null;
     deletions: number | null;
@@ -50,7 +50,6 @@
     today,
     columns,
     commits,
-    now_top,
   }: {
     current_user: UserSummary & { admin_level: string };
     selected_users: UserSummary[];
@@ -59,10 +58,49 @@
     today: string;
     columns: Column[];
     commits: Commit[];
-    now_top: number | null;
   } = $props();
 
-  let selected = $state<UserSummary[]>([]);
+  const HOUR_LABEL_WIDTH = 80;
+  const COLUMN_WIDTH = 186;
+  const GUTTER = 4;
+  const HEADER_HEIGHT = 120;
+  const PIXELS_PER_HOUR = 128;
+  const DAY_SECONDS = 24 * 3600;
+  const COLORS = [
+    "#7C3AED",
+    "#10B981",
+    "#3B82F6",
+    "#F59E0B",
+    "#EF4444",
+    "#DB2777",
+    "#6D28D9",
+  ];
+
+  const columnLeft = (index: number) =>
+    HOUR_LABEL_WIDTH + index * (COLUMN_WIDTH + GUTTER);
+  const columnColor = (index: number) => COLORS[index % COLORS.length];
+  const epochTop = (epoch: number, dayStartEpoch: number) =>
+    HEADER_HEIGHT + ((epoch - dayStartEpoch) / 3600) * PIXELS_PER_HOUR;
+  const positionSpans = (column: Column) =>
+    column.spans.flatMap((span) => {
+      const start = Math.max(span.start_epoch, column.day_start_epoch);
+      const end = Math.min(
+        span.end_epoch,
+        column.day_start_epoch + DAY_SECONDS,
+      );
+      const height =
+        Math.round(((end - start) / 3600) * PIXELS_PER_HOUR * 100) / 100;
+      if (height <= 0.5) return [];
+      return [
+        {
+          ...span,
+          top: Math.round(epochTop(start, column.day_start_epoch)),
+          height,
+        },
+      ];
+    });
+
+  let selected = $state<UserSummary[]>(untrack(() => selected_users));
   let query = $state("");
   let results = $state<UserSummary[]>([]);
   let searching = $state(false);
@@ -76,7 +114,37 @@
     ["superadmin", "ultraadmin"].includes(current_user.admin_level),
   );
   const selectedIds = $derived(selected.map((user) => user.id).join(","));
-  const gridWidth = $derived(80 + columns.length * 190);
+  const gridWidth = $derived(
+    HOUR_LABEL_WIDTH + columns.length * (COLUMN_WIDTH + GUTTER),
+  );
+  const gridHeight = HEADER_HEIGHT + 24 * PIXELS_PER_HOUR;
+  const positionedCommits = $derived(
+    commits.flatMap((commit) => {
+      const index = columns.findIndex(({ user }) => user.id === commit.user_id);
+      if (index === -1) return [];
+      return [
+        {
+          ...commit,
+          left: columnLeft(index) + 93,
+          top: Math.round(
+            epochTop(commit.timestamp, columns[index].day_start_epoch),
+          ),
+        },
+      ];
+    }),
+  );
+  let nowEpoch = $state(Date.now() / 1000);
+  $effect(() => {
+    const timer = setInterval(() => (nowEpoch = Date.now() / 1000), 30_000);
+    return () => clearInterval(timer);
+  });
+  const nowTop = $derived.by(() => {
+    const dayStart = columns[0]?.day_start_epoch;
+    if (dayStart === undefined) return null;
+    const offset = nowEpoch - dayStart;
+    if (offset < 0 || offset >= DAY_SECONDS) return null;
+    return epochTop(nowEpoch, dayStart);
+  });
   const trusts: Record<string, { emoji: string; name: string; level: string }> =
     {
       green: { emoji: "🟢", name: "Green - Trusted", level: "green" },
@@ -368,12 +436,12 @@
       <div
         class="relative"
         style:width={`${gridWidth}px`}
-        style:height="3192px"
+        style:height={`${gridHeight}px`}
       >
         {#each Array(24) as _, hour}<div
             class="absolute left-0 w-full border-t border-surface-200"
-            style:top={`${120 + hour * 128}px`}
-            style:height="128px"
+            style:top={`${HEADER_HEIGHT + hour * PIXELS_PER_HOUR}px`}
+            style:height={`${PIXELS_PER_HOUR}px`}
           >
             <div
               class="absolute left-2 top-2 px-1 font-mono text-xs text-muted"
@@ -384,18 +452,19 @@
               )}
             </div>
           </div>{/each}
-        {#each columns as column}
+        {#each columns as column, index}
           <div
-            class="absolute bottom-0 top-[120px] border-r border-surface-200"
-            style:left={`${column.left}px`}
-            style:width="186px"
+            class="absolute bottom-0 border-r border-surface-200"
+            style:top={`${HEADER_HEIGHT}px`}
+            style:left={`${columnLeft(index)}px`}
+            style:width={`${COLUMN_WIDTH}px`}
           ></div>
           <div
             class="absolute top-0 rounded-lg p-3 shadow-lg {trustBackground(
               column.user.trust_level,
             )}"
-            style:left={`${column.left + 2}px`}
-            style:width="182px"
+            style:left={`${columnLeft(index) + 2}px`}
+            style:width={`${COLUMN_WIDTH - 4}px`}
             title={`User ID: ${column.user.id} - ${column.user.display_name} | Total Coded: ${column.total > 0 ? column.total_detailed : "0m"} | TZ: ${column.user.timezone}`}
           >
             <div class="mb-1 flex items-center gap-2">
@@ -432,11 +501,11 @@
             </div>
             <div class="text-xs text-muted">{column.user.timezone}</div>
           </div>
-          {#each column.spans as span}<div
+          {#each positionSpans(column) as span}<div
               class="absolute z-10 overflow-hidden rounded-md p-2 text-xs text-surface-content"
-              style:background-color={column.color}
-              style:left={`${column.left + 2}px`}
-              style:width="182px"
+              style:background-color={columnColor(index)}
+              style:left={`${columnLeft(index) + 2}px`}
+              style:width={`${COLUMN_WIDTH - 4}px`}
               style:top={`${span.top}px`}
               style:height={`${span.height}px`}
               title={span.title}
@@ -459,10 +528,10 @@
               <div class="truncate opacity-75">{span.time}</div>
             </div>{/each}
         {/each}
-        {#if now_top !== null}<div
+        {#if nowTop !== null}<div
             class="absolute z-300 flex h-0.5 w-full items-center bg-red"
-            style:left="80px"
-            style:top={`${now_top}px`}
+            style:left={`${HOUR_LABEL_WIDTH}px`}
+            style:top={`${nowTop}px`}
           >
             <div
               class="-ml-16 rounded bg-red px-2 py-1 text-xs text-on-primary"
@@ -470,7 +539,7 @@
               NOW
             </div>
           </div>{/if}
-        {#each commits as commit}<a
+        {#each positionedCommits as commit}<a
             href={commit.github_url}
             target="_blank"
             rel="noopener noreferrer"
