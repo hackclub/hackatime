@@ -15,7 +15,8 @@
   "ignoreDependencies": [
     "@js-from-routes/client",
     "@img/sharp-libvips-linux-arm64",
-    "@img/sharp-libvips-linux-x64"
+    "@img/sharp-libvips-linux-x64",
+    "playwright"
   ],
   "tags": [
     "-lintignore"
