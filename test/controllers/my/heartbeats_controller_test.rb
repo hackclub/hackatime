@@ -13,8 +13,7 @@ class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "export rejects banned users" do
-    user = User.create!(trust_level: :red)
-    user.email_addresses.create!(email: "banned-export@example.com", source: :signing_in)
+    user = create(:user, :with_email, email: "banned-export@example.com", trust_level: :red)
     sign_in_as(user)
 
     post export_my_heartbeats_path, params: { all_data: "true" }
@@ -25,8 +24,7 @@ class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "export rejects invalid start date format" do
-    user = User.create!
-    user.email_addresses.create!(email: "invalid-start-date@example.com", source: :signing_in)
+    user = create(:user, :with_email, email: "invalid-start-date@example.com")
     sign_in_as(user)
 
     post export_my_heartbeats_path, params: {
@@ -41,8 +39,7 @@ class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "export rejects start date after end date" do
-    user = User.create!
-    user.email_addresses.create!(email: "invalid-range@example.com", source: :signing_in)
+    user = create(:user, :with_email, email: "invalid-range@example.com")
     sign_in_as(user)
 
     post export_my_heartbeats_path, params: {
@@ -57,8 +54,7 @@ class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "export rate limits repeated requests" do
-    user = User.create!
-    user.email_addresses.create!(email: "rate-limited-export@example.com", source: :signing_in)
+    user = create(:user, :with_email, email: "rate-limited-export@example.com")
     sign_in_as(user)
 
     assert_difference -> { GoodJob::Job.where(job_class: "HeartbeatExportJob").count }, +1 do

@@ -13,8 +13,9 @@ export default defineConfig(({ isSsrBuild }) => ({
     noExternal: true,
   },
   server: {
-    hmr: {
+    ws: {
       host: "localhost",
+      clientPort: 3036,
     },
     watch: {
       usePolling: false, // uses a sh*tton of CPU

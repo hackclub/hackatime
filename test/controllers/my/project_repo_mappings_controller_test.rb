@@ -9,8 +9,8 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index renders project rollups synchronously when available" do
-    user = User.create!(timezone: "UTC")
-    user.project_repo_mappings.create!(project_name: "alpha")
+    user = create(:user)
+    create(:project_repo_mapping, user: user, project_name: "alpha")
     create_project_heartbeats(user, "alpha")
     DashboardRollupRefreshService.new(user: user).call
 
@@ -20,46 +20,41 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_inertia_component "Projects/Index"
 
-    page = inertia_page
-    assert_equal false, page.dig("props", "show_archived")
-    assert_equal 1, page.dig("props", "total_projects")
-    assert_nil page["deferredProps"]
-    assert_equal [ "alpha" ], page.dig("props", "projects_data", "projects").map { |project| project["name"] }
+    assert_equal false, inertia.props["show_archived"]
+    assert_equal 1, inertia.props["total_projects"]
+    assert_empty inertia.deferred_props
+    assert_equal [ "alpha" ], inertia.props.dig("projects_data", "projects").map { |project| project["name"] }
   end
 
   test "index falls back to deferred project data when default rollups are missing" do
-    user = User.create!(timezone: "UTC")
-    user.project_repo_mappings.create!(project_name: "alpha")
+    user = create(:user)
+    create(:project_repo_mapping, user: user, project_name: "alpha")
     create_project_heartbeats(user, "alpha")
 
     sign_in_as(user)
     get my_projects_path
 
     assert_response :success
-
-    page = inertia_page
-    assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
+    assert_inertia_deferred_props :projects_data
   end
 
   test "index still defers interval-filtered project data" do
-    user = User.create!(timezone: "UTC")
-    user.project_repo_mappings.create!(project_name: "alpha")
+    user = create(:user)
+    create(:project_repo_mapping, user: user, project_name: "alpha")
     create_project_heartbeats(user, "alpha")
 
     sign_in_as(user)
     get my_projects_path(interval: "last_7_days")
 
     assert_response :success
-
-    page = inertia_page
-    assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
+    assert_inertia_deferred_props :projects_data
   end
 
   test "index supports archived view state" do
-    user = User.create!(timezone: "UTC")
-    user.project_repo_mappings.create!(project_name: "alpha")
+    user = create(:user)
+    create(:project_repo_mapping, user: user, project_name: "alpha")
     create_project_heartbeats(user, "alpha")
-    mapping = user.project_repo_mappings.create!(project_name: "beta")
+    mapping = create(:project_repo_mapping, user: user, project_name: "beta")
     mapping.archive!
     create_project_heartbeats(user, "beta")
     DashboardRollupRefreshService.new(user: user).call
@@ -70,14 +65,13 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_inertia_component "Projects/Index"
 
-    page = inertia_page
-    assert_equal true, page.dig("props", "show_archived")
-    assert_equal 1, page.dig("props", "total_projects")
-    assert_equal [ "projects_data" ], page.dig("deferredProps", "default")
+    assert_equal true, inertia.props["show_archived"]
+    assert_equal 1, inertia.props["total_projects"]
+    assert_inertia_deferred_props :projects_data
   end
 
   test "show preserves percent-encoded text in project names" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     project_name = "folder/café ?# 100%25"
     create_project_heartbeats(user, project_name)
 
@@ -85,12 +79,12 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     get my_project_path(project_name: project_name)
 
     assert_response :success
-    assert_equal project_name, inertia_page.dig("props", "project_name")
+    assert_equal project_name, inertia.props["project_name"]
   end
 
   test "archive accepts a slash as the project name" do
-    user = User.create!(timezone: "UTC")
-    mapping = user.project_repo_mappings.create!(project_name: "/")
+    user = create(:user)
+    mapping = create(:project_repo_mapping, user: user, project_name: "/")
 
     sign_in_as(user)
     patch archive_my_project_repo_mapping_path(project_name: "/")
@@ -100,8 +94,8 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update returns validation errors to the projects page" do
-    user = User.create!(timezone: "UTC", github_uid: "123")
-    mapping = user.project_repo_mappings.create!(project_name: "alpha")
+    user = create(:user, github_uid: "123")
+    mapping = create(:project_repo_mapping, user: user, project_name: "alpha")
 
     sign_in_as(user)
     patch my_project_repo_mapping_path(project_name: mapping.project_name),
@@ -118,7 +112,7 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
 
   def create_project_heartbeats(user, project_name)
     now = Time.current.to_i
-    Heartbeat.create!(user: user, project: project_name, category: "coding", time: now - 1800, source_type: :test_entry)
-    Heartbeat.create!(user: user, project: project_name, category: "coding", time: now, source_type: :test_entry)
+    create(:heartbeat, user: user, project: project_name, category: "coding", time: now - 1800, source_type: :test_entry)
+    create(:heartbeat, user: user, project: project_name, category: "coding", time: now, source_type: :test_entry)
   end
 end

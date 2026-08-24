@@ -2,7 +2,7 @@ require "test_helper"
 
 class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTest
   test "index is not routed for viewers" do
-    viewer = User.create!(timezone: "UTC", admin_level: :viewer)
+    viewer = create(:user, :viewer)
     sign_in_as(viewer)
 
     get admin_leaderboard_shadowbans_path
@@ -11,7 +11,7 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "index renders for regular admins" do
-    admin = User.create!(timezone: "UTC", admin_level: :admin)
+    admin = create(:user, :admin)
     sign_in_as(admin)
 
     get admin_leaderboard_shadowbans_path
@@ -21,8 +21,8 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "index renders current shadowbanned users" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "already_shadowbanned")
+    admin = create(:user, :superadmin)
+    user = create(:user, username: "already_shadowbanned")
     expires_at = 2.days.from_now
     PaperTrail.request(whodunnit: admin.id) do
       user.set_leaderboard_shadowban(banned: true, changed_by_user: admin, reason: "inflated activity", expires_at: expires_at)
@@ -33,7 +33,7 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
 
     assert_response :success
     assert_inertia_component "Admin/LeaderboardShadowbans"
-    body_user = inertia_page.dig("props", "shadowbanned_users").first
+    body_user = inertia.props["shadowbanned_users"].first
     assert_equal user.id, body_user["id"]
     assert_equal "inflated activity", body_user["leaderboard_shadowban_reason"]
     assert_equal expires_at.iso8601, body_user["leaderboard_shadowban_expires_at"]
@@ -43,9 +43,8 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "search_users returns shadowban metadata" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(
-      timezone: "UTC",
+    admin = create(:user, :superadmin)
+    user = create(:user,
       username: "shadowban_search",
       leaderboard_shadowbanned: true,
       leaderboard_shadowban_reason: "fake data"
@@ -63,8 +62,8 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "create leaderboard shadowbans a user with PaperTrail whodunnit" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "shadowban_create")
+    admin = create(:user, :superadmin)
+    user = create(:user, username: "shadowban_create")
     expires_at = 1.week.from_now
     sign_in_as(admin)
 
@@ -85,8 +84,8 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "create rejects invalid automatic unshadowban time" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "shadowban_bad_exp")
+    admin = create(:user, :superadmin)
+    user = create(:user, username: "shadowban_bad_exp")
     sign_in_as(admin)
 
     post admin_leaderboard_shadowbans_path, params: {
@@ -100,8 +99,8 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "create requires reason" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "shadowban_reason")
+    admin = create(:user, :superadmin)
+    user = create(:user, username: "shadowban_reason")
     sign_in_as(admin)
 
     post admin_leaderboard_shadowbans_path, params: { user_id: user.id, reason: "" }
@@ -111,9 +110,8 @@ class Admin::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "destroy removes leaderboard shadowban" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(
-      timezone: "UTC",
+    admin = create(:user, :superadmin)
+    user = create(:user,
       username: "shadowban_destroy",
       leaderboard_shadowbanned: true,
       leaderboard_shadowban_reason: "fake data"

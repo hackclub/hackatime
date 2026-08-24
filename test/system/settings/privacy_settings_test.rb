@@ -5,15 +5,17 @@ class PrivacySettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
-    @user = User.create!(timezone: "UTC")
-    @user.api_keys.create!(name: "Initial key")
-    @oauth_application = @user.oauth_applications.create!(
+    @user = create(:user, :with_email)
+    create(:api_key, user: @user, name: "Initial key")
+    @oauth_application = create(
+      :oauth_application,
+      owner: @user,
       name: "Test Integration",
       redirect_uri: "https://example.com/callback",
       scopes: "profile",
       confidential: true
     )
-    @access_token = Doorkeeper::AccessToken.create!(
+    @access_token = create(:oauth_access_token,
       application: @oauth_application,
       resource_owner_id: @user.id,
       scopes: "profile",
@@ -68,7 +70,7 @@ class PrivacySettingsTest < ApplicationSystemTestCase
     click_on "Rotate API key"
     assert_text "Rotate API key?"
 
-    within_modal do
+    within("[role='dialog']") do
       click_on "Cancel"
     end
 
@@ -92,7 +94,7 @@ class PrivacySettingsTest < ApplicationSystemTestCase
     visit my_settings_privacy_path
     click_on "Rotate API key"
 
-    within_modal do
+    within("[role='dialog']") do
       click_on "Rotate key"
     end
 

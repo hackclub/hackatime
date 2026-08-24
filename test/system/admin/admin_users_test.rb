@@ -2,9 +2,9 @@ require "application_system_test_case"
 
 class AdminUsersTest < ApplicationSystemTestCase
   setup do
-    @ultraadmin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
-    @target = User.create!(
-      timezone: "UTC",
+    @ultraadmin = create(:user, :with_email, :ultraadmin)
+    @target = create(
+      :user,
       display_name_override: "Search Target",
       slack_uid: "USEARCHTARGET"
     )
@@ -32,7 +32,9 @@ class AdminUsersTest < ApplicationSystemTestCase
   end
 
   test "an admin can start impersonating from a migrated user mention" do
-    application = @target.oauth_applications.create!(
+    application = create(
+      :oauth_application,
+      owner: @target,
       name: "Target App",
       redirect_uri: "https://example.com/callback",
       scopes: "profile",

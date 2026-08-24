@@ -81,11 +81,16 @@ When making a change, **add tests** to ensure that the change does not break exi
 
 ```bash
 bin/rails test
+RAILS_ENV=test bin/vite build
+RAILS_ENV=test VITE_CACHE_DIR=node_modules/.vite-test-ssr bin/vite build --ssr
+bin/test-system
 ```
 
 Please don't use mocks or stubs in your tests unless absolutely necessary. More often than not, these tests would end up testing _the mocks themselves_, rather than the actual code being tested.
 
-Prefer using Capybara (browser) tests whenever possible, as this helps test both the frontend and backend of the application. You should also that your tests cover all possible edge cases and scenarios!
+`bin/test-system` runs the Capybara browser tests with the Inertia SSR renderer. Both Vite builds above must be current before running it.
+
+Prefer using Capybara browser tests whenever possible, as this helps test both the frontend and backend of the application. Make sure your tests cover all possible edge cases and scenarios!
 
 ## Running CI locally
 

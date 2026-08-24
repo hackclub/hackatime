@@ -123,7 +123,7 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
         let(:heartbeats) { [ { entity: 'file.rb', time: Time.now.to_f } ] }
         before do
           user = ApiKey.find_by(token: 'dev-api-key-12345').user
-          DeletionRequest.create!(user: user, requested_at: Time.current, status: :pending, reason: nil, reason_details: nil)
+          create(:deletion_request, user: user, requested_at: Time.current, status: :pending, reason: nil, reason_details: nil)
         end
         schema type: :object, properties: { error: { type: :string, example: 'Account pending deletion' } }
         run_test!

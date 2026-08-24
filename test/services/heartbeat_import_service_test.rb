@@ -2,7 +2,7 @@ require "test_helper"
 
 class HeartbeatImportServiceTest < ActiveSupport::TestCase
   test "deduplicates imported heartbeats by fields hash" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     file_content = {
       heartbeats: [
         {
@@ -34,7 +34,7 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
   end
 
   test "imports heartbeats from wakatime data dump day groups" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     file_content = {
       range: { start: 1_727_905_169, end: 1_727_905_177 },
       days: [
@@ -71,7 +71,7 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
   end
 
   test "normalizes and validates each imported heartbeat once" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     validation_count = 0
     validation = lambda do |_heartbeat|
       validation_count += 1
@@ -92,7 +92,7 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
   end
 
   test "re-importing placeholders is idempotent after database context changes" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     file_content = {
       heartbeats: [
         {

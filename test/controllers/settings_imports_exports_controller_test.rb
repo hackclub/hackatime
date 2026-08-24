@@ -2,31 +2,24 @@ require "test_helper"
 
 class SettingsImportsExportsControllerTest < ActionDispatch::IntegrationTest
   test "deferred data export reload does not clobber user props" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     sign_in_as(user)
 
     get my_settings_imports_exports_path
-
-    get my_settings_imports_exports_path, headers: {
-      "X-Inertia" => "true",
-      "X-Requested-With" => "XMLHttpRequest",
-      "X-Inertia-Version" => inertia_page["version"],
-      "X-Inertia-Partial-Component" => "Users/Settings/ImportsExports",
-      "X-Inertia-Partial-Data" => "data_export"
-    }
+    inertia_reload_only :data_export
 
     assert_response :success
-    page = JSON.parse(response.body)
-    assert_nil page.dig("props", "user")
-    assert_equal false, page.dig("props", "data_export", "is_restricted")
+    assert_nil inertia.props["user"]
+    assert_equal false, inertia.props.dig("data_export", "is_restricted")
   end
 
   test "imports & exports page omits remote cooldown for superadmins" do
-    user = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = create(:user, :superadmin)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
-    user.heartbeat_import_runs.create!(
+    create(:heartbeat_import_run,
+      user: user,
       source_kind: :wakatime_dump,
       state: :completed,
       encrypted_api_key: "secret",
@@ -37,17 +30,18 @@ class SettingsImportsExportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal My::HeartbeatsController::EXPORT_COOLDOWN.in_minutes.to_i,
-      inertia_page.dig("props", "export_cooldown_minutes")
-    assert_nil inertia_page.dig("props", "remote_import_cooldown_until")
-    assert_nil inertia_page.dig("props", "latest_heartbeat_import", "cooldown_until")
+      inertia.props["export_cooldown_minutes"]
+    assert_nil inertia.props["remote_import_cooldown_until"]
+    assert_nil inertia.props.dig("latest_heartbeat_import", "cooldown_until")
   end
 
   test "imports & exports page refreshes stale remote imports" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run,
+      user: user,
       source_kind: :hackatime_v1_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret",
@@ -77,7 +71,7 @@ class SettingsImportsExportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_inertia_component "Users/Settings/ImportsExports"
-    latest_import = inertia_page.dig("props", "latest_heartbeat_import")
+    latest_import = inertia.props["latest_heartbeat_import"]
     assert_equal run.id.to_s, latest_import["import_id"]
     assert_equal "Completed", latest_import["remote_dump_status"]
     assert_equal "Downloading data dump...", latest_import["message"]

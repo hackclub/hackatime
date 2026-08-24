@@ -95,6 +95,9 @@ Rails.application.routes.draw do
 
   if Rails.env.development?
     mount LetterOpenerWeb::Engine, at: "/letter_opener"
+  end
+
+  if Rails.env.local?
     get "/__dev", to: "dev#index", as: :dev
     get "/__dev/log-me-in/:email", to: "dev#log_me_in", as: :dev_log_me_in,
       constraints: { email: /[^\/]+/ }, format: false

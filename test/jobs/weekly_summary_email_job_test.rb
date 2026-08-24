@@ -16,22 +16,22 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
     reference_time = Time.utc(2026, 3, 1, 12, 0, 0)
     cutoff = reference_time - 3.weeks
 
-    recent_signup = User.create!(timezone: "UTC")
+    recent_signup = create(:user)
     recent_signup.update_column(:created_at, cutoff + 1.hour)
 
-    recent_coder = User.create!(timezone: "UTC")
+    recent_coder = create(:user)
     recent_coder.update_column(:created_at, cutoff - 1.day)
     create_coding_heartbeat(recent_coder, cutoff + 2.hours, "recent-coder", "Ruby")
 
-    stale_user = User.create!(timezone: "UTC")
+    stale_user = create(:user)
     stale_user.update_column(:created_at, cutoff - 1.day)
     create_coding_heartbeat(stale_user, cutoff - 2.hours, "stale-user", "Ruby")
 
-    unsubscribed_recent_coder = User.create!(timezone: "UTC")
+    unsubscribed_recent_coder = create(:user)
     unsubscribed_recent_coder.unsubscribe("weekly_summary")
     create_coding_heartbeat(unsubscribed_recent_coder, cutoff + 3.hours, "unsubscribed", "Ruby")
 
-    pending_deletion_user = User.create!(timezone: "UTC")
+    pending_deletion_user = create(:user)
     DeletionRequest.create_for_user!(pending_deletion_user)
     create_coding_heartbeat(pending_deletion_user, cutoff + 4.hours, "pending-deletion", "Ruby")
 
@@ -49,7 +49,7 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
 
   test "does not enqueue summaries when feature flag is disabled" do
     Flipper.disable(:weekly_summary_emails)
-    User.create!(timezone: "UTC")
+    create(:user)
 
     assert_no_difference -> { GoodJob::Job.where(job_class: "WeeklySummaryUserEmailJob").count } do
       WeeklySummaryEmailJob.perform_now(Time.utc(2026, 3, 1, 12, 0, 0))
@@ -57,8 +57,7 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
   end
 
   test "does not send user summary email when user is unsubscribed before perform" do
-    user = User.create!(timezone: "UTC")
-    user.email_addresses.create!(email: "unsubscribed-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
+    user = create(:user, :with_email, email: "unsubscribed-#{SecureRandom.hex(4)}@example.com")
     user.unsubscribe("weekly_summary")
 
     assert_no_difference -> { ActionMailer::Base.deliveries.count } do
@@ -67,8 +66,7 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
   end
 
   test "does not send user summary email when user has pending deletion request" do
-    user = User.create!(timezone: "UTC")
-    user.email_addresses.create!(email: "pending-deletion-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
+    user = create(:user, :with_email, email: "pending-deletion-#{SecureRandom.hex(4)}@example.com")
     DeletionRequest.create_for_user!(user)
 
     assert_no_difference -> { ActionMailer::Base.deliveries.count } do
@@ -79,7 +77,7 @@ class WeeklySummaryEmailJobTest < ActiveJob::TestCase
   private
 
   def create_coding_heartbeat(user, time, project, language)
-    user.heartbeats.create!(
+    create(:heartbeat, user: user,
       entity: "src/#{project}.rb",
       type: "file",
       category: "coding",

@@ -19,9 +19,9 @@ RSpec.describe 'Api::Internal', type: :request, openapi_spec: 'admin/swagger.yam
 
       response(201, 'created') do
         let(:Authorization) { "Bearer test_revocation_key" }
-        let(:user) { User.create!(timezone: "UTC") }
-        let!(:email_address) { user.email_addresses.create!(email: "internal@example.com", source: :signing_in) }
-        let!(:api_key) { user.api_keys.create!(name: "Desktop") }
+        let(:user) { create(:user, timezone: "UTC") }
+        let!(:email_address) { create(:email_address, user: user, email: "internal@example.com", source: :signing_in) }
+        let!(:api_key) { create(:api_key, user: user, name: "Desktop") }
         let(:payload) { { token: api_key.token } }
 
         before do

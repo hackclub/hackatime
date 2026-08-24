@@ -2,12 +2,13 @@ require "test_helper"
 
 class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
   test "user heartbeats returns ja4 fingerprint and name" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    key = admin.admin_api_keys.create!(name: "test")
-    user = User.create!(timezone: "UTC", username: "admin_heartbeats_ja4")
-    ja4 = Ja4.create!(fingerprint: "t13d1312h2_f57a46bbacb6_ab7e3b40a677", name: "Go net/http")
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, username: "admin_heartbeats_ja4")
+    ja4 = create(:ja4, fingerprint: "t13d1312h2_f57a46bbacb6_ab7e3b40a677", name: "Go net/http")
 
-    user.heartbeats.create!(
+    create(:heartbeat,
+      user: user,
       time: Time.current.to_i,
       project: "test-project",
       entity: "test.rb",

@@ -9,7 +9,7 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
   ].freeze
 
   test "index explicitly requires the profile scope" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     profile_token = create_oauth_access_token(user, scopes: "profile")
     read_token = create_oauth_access_token(user, scopes: "read")
 
@@ -22,7 +22,7 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "coding data endpoints explicitly require the read scope" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     profile_token = create_oauth_access_token(user, scopes: "profile")
     read_token = create_oauth_access_token(user, scopes: "read")
 
@@ -37,7 +37,7 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "missing revoked and expired credentials remain unauthorized" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     revoked_token = create_oauth_access_token(user, scopes: "profile")
     revoked_token.revoke
     expired_token = create_oauth_access_token(user, scopes: "profile", created_at: 2.hours.ago, expires_in: 1.hour)
@@ -50,7 +50,7 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "protected resources accept only bearer authorization credentials" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     access_token = create_oauth_access_token(user, scopes: "profile")
 
     get "/api/v1/authenticated/me", headers: bearer_header(access_token)
@@ -70,10 +70,10 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "OAuth token and revocation endpoints continue to accept body credentials" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_oauth_application(user, scopes: "profile")
     application_secret = application.plaintext_secret
-    grant = Doorkeeper::AccessGrant.create!(
+    grant = create(:oauth_access_grant,
       application: application,
       resource_owner_id: user.id,
       expires_in: 10.minutes,
@@ -101,7 +101,7 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index allows red users" do
-    user = User.create!(timezone: "UTC", trust_level: :red)
+    user = create(:user, trust_level: :red)
     access_token = create_oauth_access_token(user)
 
     get "/api/v1/authenticated/me", headers: { "Authorization" => "Bearer #{access_token.token}" }
@@ -110,7 +110,7 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index rejects pending deletion users" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     DeletionRequest.create_for_user!(user)
     access_token = create_oauth_access_token(user)
 
@@ -126,7 +126,7 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
   end
 
   def create_oauth_application(user, scopes:)
-    user.oauth_applications.create!(
+    create(:oauth_application, owner: user,
       name: "Test App",
       redirect_uri: "https://example.com/callback",
       scopes: scopes,
@@ -137,7 +137,7 @@ class Api::V1::Authenticated::MeControllerTest < ActionDispatch::IntegrationTest
   def create_oauth_access_token(user, scopes: "profile", **attributes)
     application = create_oauth_application(user, scopes: scopes)
 
-    Doorkeeper::AccessToken.create!(
+    create(:oauth_access_token,
       application: application,
       resource_owner_id: user.id,
       scopes: scopes,

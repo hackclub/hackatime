@@ -14,14 +14,6 @@ module SettingsSystemTestHelpers
 
   def choose_select_option(select_id, option_text)
     find("##{select_id}").click
-    assert_selector ".dashboard-select-popover"
-
-    within ".dashboard-select-popover" do
-      find("[role='option']", text: option_text, match: :first).click
-    end
-  end
-
-  def within_modal(&)
-    within ".bits-modal-content", &
+    find("[role='option']", text: option_text, exact_text: true).click
   end
 end

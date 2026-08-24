@@ -47,6 +47,7 @@
     "knip": "^6.32.2",
     "oxfmt": "^0.63.0",
     "oxlint": "^1.79.0",
+    "playwright": "1.62.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }

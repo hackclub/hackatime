@@ -24,7 +24,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:actor) { AdminApiKey.find_by!(token: 'dev-admin-api-key-12345').user }
-        let(:shadowbanned_user) { User.create!(username: 'rswag_lb_shadowbanned', timezone: 'UTC') }
+        let(:shadowbanned_user) { create(:user, username: 'rswag_lb_shadowbanned', timezone: 'UTC') }
 
         before do
           shadowbanned_user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: 'inflated activity')
@@ -49,8 +49,8 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
       response(403, 'forbidden — Returned when the caller cannot manage leaderboard shadowbans (e.g. a viewer-level admin).') do
         let(:Authorization) { "Bearer viewer-admin-api-key-rswag" }
         before do
-          u = User.create!(username: 'rswag_lb_viewer', timezone: 'UTC', admin_level: :viewer)
-          AdminApiKey.create!(user: u, name: 'Viewer Key', token: 'viewer-admin-api-key-rswag')
+          u = create(:user, :viewer, username: 'rswag_lb_viewer', timezone: 'UTC')
+          create(:admin_api_key, user: u, name: 'Viewer Key', token: 'viewer-admin-api-key-rswag')
         end
         schema(**error_schema)
         run_test!
@@ -76,7 +76,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
 
       response(201, 'created') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:target) { User.create!(username: 'rswag_lb_create', timezone: 'UTC') }
+        let(:target) { create(:user, username: 'rswag_lb_create', timezone: 'UTC') }
         let(:payload) { { user_id: target.id, reason: 'fake leaderboard activity', leaderboard_shadowban_expires_at: 1.week.from_now.iso8601 } }
 
         schema type: :object,
@@ -91,7 +91,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
 
       response(422, 'validation error — Returned when the shadowban could not be saved (model validation errors).') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:target) { User.create!(username: 'rswag_lb_invalid', timezone: 'UTC') }
+        let(:target) { create(:user, username: 'rswag_lb_invalid', timezone: 'UTC') }
         let(:payload) { { user_id: target.id, reason: 'bad expiry', leaderboard_shadowban_expires_at: 'not-a-date' } }
         schema(**error_with_details_schema)
         run_test!
@@ -106,7 +106,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
 
       response(403, 'forbidden (cannot manage that user) — Returned when the change is rejected without validation errors (e.g. the target outranks the caller).') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:target) { User.create!(username: 'rswag_lb_peer', timezone: 'UTC', admin_level: :ultraadmin) }
+        let(:target) { create(:user, :ultraadmin, username: 'rswag_lb_peer', timezone: 'UTC') }
         let(:payload) { { user_id: target.id, reason: 'fake activity' } }
         schema(**error_schema)
         run_test!
@@ -134,7 +134,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
         let(:query) { 'rswag_lb_search' }
 
         before do
-          User.create!(username: query, timezone: 'UTC')
+          create(:user, username: query, timezone: 'UTC')
         end
 
         schema type: :object,
@@ -168,7 +168,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:actor) { AdminApiKey.find_by!(token: 'dev-admin-api-key-12345').user }
-        let(:target) { User.create!(username: 'rswag_lb_delete', timezone: 'UTC') }
+        let(:target) { create(:user, username: 'rswag_lb_delete', timezone: 'UTC') }
         let(:user_id) { target.id }
 
         before do
@@ -194,7 +194,7 @@ RSpec.describe 'Api::Admin::V1::LeaderboardShadowbans', type: :request, openapi_
 
       response(403, 'forbidden (cannot manage that user) — Returned when the change is rejected without validation errors (e.g. the target outranks the caller).') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:target) { User.create!(username: 'rswag_lb_del_peer', timezone: 'UTC', admin_level: :ultraadmin) }
+        let(:target) { create(:user, :ultraadmin, username: 'rswag_lb_del_peer', timezone: 'UTC') }
         let(:user_id) { target.id }
         schema(**error_schema)
         run_test!

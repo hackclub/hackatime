@@ -13,14 +13,10 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:u1) do
-          u = User.create!(username: 'u1')
-          EmailAddress.create!(user: u, email: 'u1@example.com')
-          u
+          create(:user, :with_email, username: 'u1', email: 'u1@example.com')
         end
         let(:u2) do
-          u = User.create!(username: 'u2')
-          EmailAddress.create!(user: u, email: 'u2@example.com')
-          u
+          create(:user, :with_email, username: 'u2', email: 'u2@example.com')
         end
         let(:ids) { "#{u1.id},#{u2.id}" }
         schema type: :object,
@@ -77,9 +73,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'info_user')
-          EmailAddress.create!(user: u, email: 'info@example.com')
-          u
+          create(:user, :with_email, username: 'info_user', email: 'info@example.com')
         end
         let(:user_id) { user.id }
         schema type: :object,
@@ -203,9 +197,9 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'hb_user')
-          EmailAddress.create!(user: u, email: 'hb@example.com')
-          u.heartbeats.create!(
+          u = create(:user, :with_email, username: 'hb_user', email: 'hb@example.com')
+          create(:heartbeat,
+            user: u,
             entity: 'app/models/user.rb',
             time: Time.current.to_f,
             dependencies: [ 'rails', 'sidekiq' ],
@@ -215,7 +209,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
             line_additions: 8,
             line_deletions: 3,
             source_type: :direct_entry,
-            ja4: Ja4.create!(fingerprint: 't13d1516h2_8daaf6152771_02713d6af862', name: 'Go net/http')
+            ja4: create(:ja4, fingerprint: 't13d1516h2_8daaf6152771_02713d6af862', name: 'Go net/http')
           )
           u
         end
@@ -267,9 +261,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(422, 'invalid date filter') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'hb_user_invalid_date')
-          EmailAddress.create!(user: u, email: 'hb-invalid@example.com')
-          u
+          create(:user, :with_email, username: 'hb_user_invalid_date', email: 'hb-invalid@example.com')
         end
         let(:user_id) { user.id }
         let(:start_date) { 'not-a-date' }
@@ -305,12 +297,10 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(200, 'successful with matching rows') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:hb_user) do
-          u = User.create!(username: 'hb_segment_user')
-          EmailAddress.create!(user: u, email: 'hb-segment@example.com')
-          u
+          create(:user, :with_email, username: 'hb_segment_user', email: 'hb-segment@example.com')
         end
         before do
-          Heartbeat.create!(
+          create(:heartbeat,
             user: hb_user,
             time: Time.current.to_i,
             project: 'demo',
@@ -343,13 +333,11 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(200, 'count_only returns total only') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:hb_user) do
-          u = User.create!(username: 'hb_segment_count_user')
-          EmailAddress.create!(user: u, email: 'hb-segment-count@example.com')
-          u
+          create(:user, :with_email, username: 'hb_segment_count_user', email: 'hb-segment-count@example.com')
         end
         before do
           2.times do |i|
-            Heartbeat.create!(
+            create(:heartbeat,
               user: hb_user,
               time: Time.current.to_i - i,
               project: 'demo',
@@ -443,12 +431,10 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:hb_user_doc) do
-          u = User.create!(username: 'hb_segment_doc_user')
-          EmailAddress.create!(user: u, email: 'hb-segment-doc@example.com')
-          u
+          create(:user, :with_email, username: 'hb_segment_doc_user', email: 'hb-segment-doc@example.com')
         end
         before do
-          Heartbeat.create!(
+          create(:heartbeat,
             user: hb_user_doc,
             time: Time.current.to_i,
             project: 'demo',
@@ -516,9 +502,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'projects_user')
-          EmailAddress.create!(user: u, email: 'projects@example.com')
-          u
+          create(:user, :with_email, username: 'projects_user', email: 'projects@example.com')
         end
         let(:user_id) { user.id }
         let(:field) { 'projects' }
@@ -541,9 +525,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(422, 'invalid date filter or invalid field — Returned with "invalid date filter" when start_date/end_date cannot be parsed, or "invalid field" when field is not one of the allowed values.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'projects_invalid')
-          EmailAddress.create!(user: u, email: 'projects-invalid@example.com')
-          u
+          create(:user, :with_email, username: 'projects_invalid', email: 'projects-invalid@example.com')
         end
         let(:user_id) { user.id }
         let(:field) { 'projects' }
@@ -557,9 +539,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(422, 'invalid field — Returned ("invalid field") when field is not one of the allowed values.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'proj_bad_field')
-          EmailAddress.create!(user: u, email: 'projects-invalid-field@example.com')
-          u
+          create(:user, :with_email, username: 'proj_bad_field', email: 'projects-invalid-field@example.com')
         end
         let(:user_id) { user.id }
         let(:field) { 'not_a_field' }
@@ -664,9 +644,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'stats_user')
-          EmailAddress.create!(user: u, email: 'stats@example.com')
-          u
+          create(:user, :with_email, username: 'stats_user', email: 'stats@example.com')
         end
         let(:user_id) { user.id }
         let(:start_date) { nil }
@@ -742,9 +720,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'hb_values_user')
-          EmailAddress.create!(user: u, email: 'hb_vals@example.com')
-          u
+          create(:user, :with_email, username: 'hb_values_user', email: 'hb_vals@example.com')
         end
         let(:user_id) { user.id }
         let(:start_date) { nil }
@@ -848,9 +824,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user_with_email) do
-          u = User.create!(username: 'email_lookup_user')
-          EmailAddress.create!(user: u, email: 'lookup@example.com')
-          u
+          create(:user, :with_email, username: 'email_lookup_user', email: 'lookup@example.com')
         end
         before { user_with_email }
         let(:payload) { { email: 'lookup@example.com' } }
@@ -949,9 +923,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'convict_me')
-          EmailAddress.create!(user: u, email: 'convict@example.com')
-          u
+          create(:user, :with_email, username: 'convict_me', email: 'convict@example.com')
         end
         let(:payload) { { user_id: user.id, reason: 'spam', trust_level: 'red' } }
         schema type: :object,
@@ -989,9 +961,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       response(422, 'invalid request — Returned when reason is blank, when trust_level is not a valid trust level, or when the change fails to apply.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'convict_invalid')
-          EmailAddress.create!(user: u, email: 'convict-invalid@example.com')
-          u
+          create(:user, :with_email, username: 'convict_invalid', email: 'convict-invalid@example.com')
         end
         let(:payload) { { user_id: user.id, reason: 'spam', trust_level: 'not_a_level' } }
         schema '$ref' => '#/components/schemas/Error'
@@ -1002,8 +972,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
         let(:Authorization) { "Bearer viewer-admin-api-key-convict" }
         let(:payload) { { user_id: 0, reason: 'spam', trust_level: 'red' } }
         before do
-          u = User.create!(username: 'rswag_convict_viewer', timezone: 'UTC', admin_level: :viewer)
-          AdminApiKey.create!(user: u, name: 'Viewer Key', token: 'viewer-admin-api-key-convict')
+          u = create(:user, :viewer, username: 'rswag_convict_viewer', timezone: 'UTC')
+          create(:admin_api_key, user: u, name: 'Viewer Key', token: 'viewer-admin-api-key-convict')
         end
         schema '$ref' => '#/components/schemas/Error'
         run_test!

@@ -3,8 +3,8 @@ require "stringio"
 
 class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationTest
   test "single text plain heartbeat normalizes hash payloads" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     payload = {
       dependencies: [ "rails", "pg" ],
@@ -33,8 +33,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "single heartbeat stores the Cloudflare JA4 header" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
     ja4 = "t13d1516h2_8daaf6152771_02713d6af862"
 
     assert_difference([ "Heartbeat.count", "Ja4.count" ], 1) do
@@ -57,10 +57,11 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "single heartbeat resolves <<LAST_LANGUAGE>> from existing heartbeats" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
     # Seed a prior heartbeat with a known language
-    user.heartbeats.create!(
+    create(:heartbeat,
+      user: user,
       entity: "src/old.rb",
       type: "file",
       category: "coding",
@@ -94,8 +95,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "bulk heartbeat resolves <<LAST_LANGUAGE>> from previous heartbeat in same batch" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     now = Time.current.to_f
     payload = [
@@ -133,8 +134,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "single heartbeat with <<LAST_LANGUAGE>> and no prior heartbeats infers language from extension" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     payload = {
       entity: "src/main.rb",
@@ -160,8 +161,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "single heartbeat ignores unknown fields and preserves AI telemetry" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     payload = {
       entity: "src/main.rb",
@@ -205,8 +206,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "bulk heartbeat ignores unknown fields and preserves AI telemetry" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     payload = [
       {
@@ -241,8 +242,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "duplicate heartbeat with different ip returns existing record" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     payload = {
       entity: "src/main.rb",
@@ -289,8 +290,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "bulk heartbeat normalizes permitted params" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     payload = [ {
       dependencies: [ "rack", "puma" ],
@@ -319,8 +320,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "single heartbeat returns unprocessable entity when ingestion fails" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     assert_no_difference("Heartbeat.count") do
       post "/api/hackatime/v1/users/current/heartbeats",
@@ -336,8 +337,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "bulk text plain heartbeat rejects a non-array payload" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     assert_no_difference("Heartbeat.count") do
       post "/api/hackatime/v1/users/current/heartbeats.bulk",
@@ -352,8 +353,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "bulk heartbeat reports non-object array items without discarding valid items" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     assert_difference("Heartbeat.count", 1) do
       post "/api/hackatime/v1/users/current/heartbeats.bulk",
@@ -371,8 +372,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "single text plain heartbeat rejects a scalar payload" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     assert_no_difference("Heartbeat.count") do
       post "/api/hackatime/v1/users/current/heartbeats",
@@ -387,13 +388,13 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "current user returns a WakaTime compatible profile" do
-    user = User.create!(
+    user = create(:user,
       display_name_override: "Ada Lovelace",
       slack_avatar_url: "https://example.com/ada.png",
       timezone: "Europe/London",
       username: "ada"
     )
-    api_key = user.api_keys.create!(name: "primary")
+    api_key = create(:api_key, user: user, name: "primary")
 
     get "/api/hackatime/v1/users/current",
       headers: { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
@@ -416,20 +417,23 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "summaries return WakaTime compatible daily activity" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
     start_time = Time.utc(2026, 8, 10, 10)
 
-    user.heartbeats.create!(
+    create(:heartbeat,
+      user: user,
       category: "coding", entity: "app/first.rb", project: "alpha",
       source_type: :test_entry, time: start_time.to_f, type: "file"
     )
-    user.heartbeats.create!(
+    create(:heartbeat,
+      user: user,
       ai_input_tokens: 100, ai_line_changes: 5, ai_model: "gpt/5.6", ai_output_tokens: 20,
       category: "coding", entity: "app/second.rb", project: "alpha",
       source_type: :test_entry, time: (start_time + 1.minute).to_f, type: "file"
     )
-    user.heartbeats.create!(
+    create(:heartbeat,
+      user: user,
       category: "coding", entity: "app/third.rb", project: "beta",
       source_type: :test_entry, time: (start_time + 5.minutes).to_f, type: "file"
     )
@@ -459,8 +463,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "summaries reject missing or invalid date ranges" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
     headers = { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
 
     get "/api/hackatime/v1/users/current/summaries", headers: headers
@@ -484,8 +488,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "status bar accepts API keys with Basic authentication" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     get "/api/hackatime/v1/users/current/statusbar/today",
       headers: { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
@@ -494,8 +498,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "status bar accepts API keys from the query string" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     get "/api/hackatime/v1/users/current/statusbar/today", params: { api_key: api_key.token }
 
@@ -503,7 +507,7 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "status bar does not accept OAuth access tokens" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     access_token = create_oauth_access_token(user)
 
     get "/api/hackatime/v1/users/current/statusbar/today",
@@ -513,8 +517,8 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   test "malformed authorization header does not fall through to query API key" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "primary")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "primary")
 
     get "/api/hackatime/v1/users/current/statusbar/today",
       params: { api_key: api_key.token },
@@ -526,14 +530,14 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   private
 
   def create_oauth_access_token(user)
-    application = user.oauth_applications.create!(
+    application = create(:oauth_application, owner: user,
       name: "Test App",
       redirect_uri: "https://example.com/callback",
       scopes: "profile read",
       confidential: true
     )
 
-    Doorkeeper::AccessToken.create!(
+    create(:oauth_access_token,
       application: application,
       resource_owner_id: user.id,
       scopes: "profile read",

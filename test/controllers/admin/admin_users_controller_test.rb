@@ -2,9 +2,9 @@ require "test_helper"
 
 class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @superadmin = User.create!(timezone: "UTC", admin_level: :superadmin, username: "admin_manager")
-    @ultraadmin = User.create!(timezone: "UTC", admin_level: :ultraadmin, username: "protected_ultraadmin")
-    User.create!(timezone: "UTC", admin_level: :admin, username: "manageable_admin")
+    @superadmin = create(:user, :superadmin, username: "admin_manager")
+    @ultraadmin = create(:user, :ultraadmin, username: "protected_ultraadmin")
+    create(:user, :admin, username: "manageable_admin")
     sign_in_as(@superadmin)
   end
 
@@ -21,7 +21,7 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_inertia_component "Admin/AdminUsers"
-    ultraadmin = inertia_page.dig("props", "groups", "ultraadmin").find { |user| user["id"] == @ultraadmin.id }
+    ultraadmin = inertia.props.dig("groups", "ultraadmin").find { |user| user["id"] == @ultraadmin.id }
 
     assert_empty ultraadmin["allowed_levels"]
   end
@@ -29,18 +29,12 @@ class Admin::AdminUsersControllerTest < ActionDispatch::IntegrationTest
   test "search reload returns only authorised search results" do
     get admin_admin_users_path
 
-    assert_nil inertia_page.dig("props", "search_results")
-
-    get admin_admin_users_path, params: { q: @ultraadmin.username }, headers: {
-      "X-Inertia" => "true",
-      "X-Requested-With" => "XMLHttpRequest",
-      "X-Inertia-Version" => inertia_page["version"],
-      "X-Inertia-Partial-Component" => "Admin/AdminUsers",
-      "X-Inertia-Partial-Data" => "search_results"
-    }
+    assert_nil inertia.props["search_results"]
+    get admin_admin_users_path(q: @ultraadmin.username)
+    inertia_reload_only :search_results
 
     assert_response :success
-    props = response.parsed_body.fetch("props")
+    props = inertia.props
     ultraadmin = props.dig("search_results", "users").find { |user| user["id"] == @ultraadmin.id }
 
     assert_nil props["groups"]

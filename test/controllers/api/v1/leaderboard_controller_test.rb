@@ -13,8 +13,8 @@ class Api::V1::LeaderboardControllerTest < ActionDispatch::IntegrationTest
     visible_user = create_user(username: "api_lb_visible")
     hidden_user = create_user(username: "api_lb_hidden", leaderboard_shadowbanned: true)
     board = create_board(period_type: :daily)
-    board.entries.create!(user: hidden_user, total_seconds: 500)
-    board.entries.create!(user: visible_user, total_seconds: 300)
+    create(:leaderboard_entry, leaderboard: board, user: hidden_user, total_seconds: 500)
+    create(:leaderboard_entry, leaderboard: board, user: visible_user, total_seconds: 300)
 
     get "/api/v1/leaderboard/daily"
 
@@ -28,8 +28,8 @@ class Api::V1::LeaderboardControllerTest < ActionDispatch::IntegrationTest
     visible_user = create_user(username: "api_lb_week_visible")
     hidden_user = create_user(username: "api_lb_week_hidden", leaderboard_shadowbanned: true)
     board = create_board(period_type: :last_7_days)
-    board.entries.create!(user: visible_user, total_seconds: 300)
-    board.entries.create!(user: hidden_user, total_seconds: 200)
+    create(:leaderboard_entry, leaderboard: board, user: visible_user, total_seconds: 300)
+    create(:leaderboard_entry, leaderboard: board, user: hidden_user, total_seconds: 200)
 
     get "/api/v1/leaderboard/weekly"
 
@@ -41,16 +41,15 @@ class Api::V1::LeaderboardControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_user(username:, leaderboard_shadowbanned: false)
-    User.create!(
+    create(:user,
       username: username,
-      timezone: "UTC",
       leaderboard_shadowbanned: leaderboard_shadowbanned,
       leaderboard_shadowban_reason: leaderboard_shadowbanned ? "test shadowban" : nil
     )
   end
 
   def create_board(period_type:)
-    Leaderboard.create!(
+    create(:leaderboard,
       start_date: LeaderboardDateRange.normalize_date(Date.current, period_type),
       period_type: period_type,
       timezone_utc_offset: nil,

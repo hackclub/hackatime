@@ -3,8 +3,6 @@ require "test_helper"
 class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
-  fixtures :users
-
   setup do
     @original_queue_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :test
@@ -25,7 +23,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create rejects dev upload outside development" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     post my_heartbeat_imports_path, params: { heartbeat_file: uploaded_file }
@@ -34,7 +32,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create returns error when no import data is provided" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     post my_heartbeat_imports_path
@@ -43,7 +41,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create returns error when dev upload file type is invalid" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     with_development_env do
@@ -56,7 +54,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create starts dev upload import" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     with_development_env do
@@ -75,7 +73,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "remote create rejects users without the imports feature" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
@@ -84,11 +82,12 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "remote create rejects during cooldown" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
-    user.heartbeat_import_runs.create!(
+    create(:heartbeat_import_run,
+      user: user,
       source_kind: :wakatime_dump,
       state: :completed,
       encrypted_api_key: "old-secret",
@@ -102,11 +101,12 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "remote create bypasses cooldown for superadmins" do
-    user = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = create(:user, :superadmin)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
-    user.heartbeat_import_runs.create!(
+    create(:heartbeat_import_run,
+      user: user,
       source_kind: :wakatime_dump,
       state: :completed,
       encrypted_api_key: "old-secret",
@@ -124,11 +124,12 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "remote create rejects when another import is active" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
-    user.heartbeat_import_runs.create!(
+    create(:heartbeat_import_run,
+      user: user,
       source_kind: :dev_upload,
       state: :queued,
       source_filename: "old.json"
@@ -140,7 +141,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "remote create starts wakatime import" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
@@ -158,7 +159,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "remote create starts hackatime v1 import" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
@@ -176,7 +177,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "remote create starts a wakatime download link import" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
@@ -198,7 +199,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "remote create rejects invalid wakatime download links" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
@@ -212,10 +213,11 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show returns status for existing import" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run,
+      user: user,
       source_kind: :dev_upload,
       state: :completed,
       source_filename: "heartbeats.json",
@@ -232,11 +234,12 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show refreshes stale remote imports" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run,
+      user: user,
       source_kind: :hackatime_v1_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret",
@@ -271,11 +274,12 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show enqueues stale remote refresh when dump id exists" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
     Flipper.enable_actor(:imports, user)
 
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run,
+      user: user,
       source_kind: :wakatime_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret",
@@ -305,11 +309,12 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show returns not found for another user's import" do
-    user = users(:one)
-    other_user = users(:two)
+    user = create(:user)
+    other_user = create(:user)
     sign_in_as(user)
 
-    run = other_user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run,
+      user: other_user,
       source_kind: :dev_upload,
       state: :queued,
       source_filename: "other.json"
@@ -322,7 +327,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "wakatime download link page renders without the app shell" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     get wakatime_download_link_my_heartbeat_imports_path

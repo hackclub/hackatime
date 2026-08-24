@@ -2,8 +2,8 @@ require "test_helper"
 
 class Api::V1::My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   test "index accepts OAuth access token with read scope" do
-    user = User.create!(timezone: "UTC")
-    heartbeat = Heartbeat.create!(
+    user = create(:user)
+    heartbeat = create(:heartbeat,
       user:,
       source_type: :direct_entry,
       time: Time.current.to_f,
@@ -18,7 +18,7 @@ class Api::V1::My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index rejects OAuth access token without read scope" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     access_token = create_oauth_access_token(user, scopes: "profile")
 
     get "/api/v1/my/heartbeats", headers: { "Authorization" => "Bearer #{access_token.token}" }
@@ -27,8 +27,8 @@ class Api::V1::My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index continues to accept API keys" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "test")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "test")
 
     get "/api/v1/my/heartbeats", headers: { "Authorization" => "Bearer #{api_key.token}" }
 
@@ -36,8 +36,8 @@ class Api::V1::My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index continues to accept API keys with Basic authentication" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "test")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "test")
 
     get "/api/v1/my/heartbeats", headers: { "Authorization" => "Basic #{Base64.strict_encode64(api_key.token)}" }
 
@@ -45,8 +45,8 @@ class Api::V1::My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index rejects API keys belonging to restricted users" do
-    user = User.create!(timezone: "UTC", trust_level: :red)
-    api_key = user.api_keys.create!(name: "test")
+    user = create(:user, trust_level: :red)
+    api_key = create(:api_key, user: user, name: "test")
 
     get "/api/v1/my/heartbeats", headers: { "Authorization" => "Bearer #{api_key.token}" }
 
@@ -54,8 +54,8 @@ class Api::V1::My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index rejects non-canonical Basic credentials" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "test")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "test")
     encoded_token = Base64.strict_encode64(api_key.token)
 
     get "/api/v1/my/heartbeats", headers: { "Authorization" => "Basic #{encoded_token}!" }
@@ -64,8 +64,8 @@ class Api::V1::My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index rejects Basic credentials containing invalid UTF-8" do
-    user = User.create!(timezone: "UTC")
-    api_key = user.api_keys.create!(name: "test")
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "test")
     encoded_token = Base64.strict_encode64("#{api_key.token}\xFF".b)
 
     get "/api/v1/my/heartbeats", headers: { "Authorization" => "Basic #{encoded_token}" }
@@ -76,14 +76,14 @@ class Api::V1::My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_oauth_access_token(user, scopes:)
-    application = user.oauth_applications.create!(
+    application = create(:oauth_application, owner: user,
       name: "Test App",
       redirect_uri: "https://example.com/callback",
       scopes: scopes,
       confidential: true
     )
 
-    Doorkeeper::AccessToken.create!(
+    create(:oauth_access_token,
       application: application,
       resource_owner_id: user.id,
       scopes: scopes,

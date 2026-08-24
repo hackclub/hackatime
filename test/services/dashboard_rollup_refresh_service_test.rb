@@ -3,7 +3,7 @@ require "test_helper"
 class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
   test "rebuilds dashboard rollups from current heartbeat aggregates" do
     travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
 
       create_heartbeat(user, "2026-04-07 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       create_heartbeat(user, "2026-04-07 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -61,7 +61,7 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
   end
 
   test "groups coding rhythm in the user's local weekday and hour" do
-    user = User.create!(timezone: "America/Los_Angeles")
+    user = create(:user, timezone: "America/Los_Angeles")
     create_heartbeat(user, "2026-04-13 01:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
     create_heartbeat(user, "2026-04-13 01:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
@@ -73,13 +73,13 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
 
   test "excludes archived projects from every rollup dimension" do
     travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       create_heartbeat(user, "2026-04-14 09:00:00 UTC", project: "active", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       create_heartbeat(user, "2026-04-14 09:01:00 UTC", project: "active", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       create_heartbeat(user, "2026-04-14 10:00:00 UTC", project: "archived", language: "python", editor: "zed", operating_system: "linux", category: "coding")
       create_heartbeat(user, "2026-04-14 10:01:00 UTC", project: "archived", language: "python", editor: "zed", operating_system: "linux", category: "coding")
       create_heartbeat(user, "2026-04-14 11:00:00 UTC", project: nil, language: "go", editor: "vim", operating_system: "linux", category: "coding")
-      user.project_repo_mappings.create!(project_name: "archived").archive!
+      create(:project_repo_mapping, user: user, project_name: "archived").archive!
 
       DashboardRollupRefreshService.new(user: user).call
 
@@ -100,7 +100,7 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
   private
 
   def create_heartbeat(user, timestamp, project:, language:, editor:, operating_system:, category:)
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user,
       time: Time.parse(timestamp).to_f,
       project: project,

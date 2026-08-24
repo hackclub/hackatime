@@ -2,8 +2,8 @@ require "test_helper"
 
 class LeaderboardShadowbanExpirationJobTest < ActiveJob::TestCase
   test "removes an expired leaderboard shadowban" do
-    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "expired_shadowban_job")
+    actor = create(:user, :superadmin)
+    user = create(:user, username: "expired_shadowban_job")
     expires_at = 1.hour.from_now
     user.set_leaderboard_shadowban(
       banned: true,
@@ -23,8 +23,8 @@ class LeaderboardShadowbanExpirationJobTest < ActiveJob::TestCase
   end
 
   test "ignores stale expiration jobs for a later shadowban expiration" do
-    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "stale_shadowban_job")
+    actor = create(:user, :superadmin)
+    user = create(:user, username: "stale_shadowban_job")
     later_expires_at = 2.days.from_now
     user.set_leaderboard_shadowban(
       banned: true,
@@ -40,7 +40,7 @@ class LeaderboardShadowbanExpirationJobTest < ActiveJob::TestCase
   end
 
   test "ignores already removed shadowbans" do
-    user = User.create!(timezone: "UTC", username: "removed_shadowban_job")
+    user = create(:user, username: "removed_shadowban_job")
 
     assert_nothing_raised do
       LeaderboardShadowbanExpirationJob.perform_now(user.id)

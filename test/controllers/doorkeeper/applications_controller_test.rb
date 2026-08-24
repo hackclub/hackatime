@@ -1,6 +1,5 @@
 require "test_helper"
 require "json"
-require "nokogiri"
 
 class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   test "index redirects guests to signin" do
@@ -11,8 +10,8 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index renders only current user's applications in inertia payload" do
-    user = User.create!(timezone: "UTC")
-    other_user = User.create!(timezone: "UTC")
+    user = create(:user)
+    other_user = create(:user)
     user_application = create_application_for(user, name: "Owner App")
     create_application_for(other_user, name: "Other App")
 
@@ -20,16 +19,14 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     get oauth_applications_path
 
     assert_response :success
-    page = inertia_page
-
-    assert_equal "OAuthApplications/Index", page["component"]
-    assert_equal [ user_application.id ], page.dig("props", "applications").map { |application| application["id"] }
-    assert_equal [ "Owner App" ], page.dig("props", "applications").map { |application| application["name"] }
+    assert_inertia_component "OAuthApplications/Index"
+    assert_equal [ user_application.id ], inertia.props["applications"].map { |application| application["id"] }
+    assert_equal [ "Owner App" ], inertia.props["applications"].map { |application| application["name"] }
   end
 
   test "show returns 404 for applications owned by another user" do
-    user = User.create!(timezone: "UTC")
-    other_user = User.create!(timezone: "UTC")
+    user = create(:user)
+    other_user = create(:user)
     other_user_application = create_application_for(other_user, name: "Private App")
 
     sign_in_as(user)
@@ -39,36 +36,32 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show renders inertia payload with application details" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_application_for(user, name: "Show App")
 
     sign_in_as(user)
     get oauth_application_path(application)
 
     assert_response :success
-    page = inertia_page
-
-    assert_equal "OAuthApplications/Show", page["component"]
-    assert_equal application.id, page.dig("props", "application", "id")
-    assert_equal application.name, page.dig("props", "application", "name")
+    assert_inertia_component "OAuthApplications/Show"
+    assert_equal application.id, inertia.props.dig("application", "id")
+    assert_equal application.name, inertia.props.dig("application", "name")
   end
 
   test "show does not include client secret in inertia payload by default" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_application_for(user, name: "Hidden Secret App")
 
     sign_in_as(user)
     get oauth_application_path(application)
 
     assert_response :success
-    page = inertia_page
-
-    assert_nil page.dig("props", "secret", "value")
-    assert_equal false, page.dig("props", "secret", "just_rotated")
+    assert_nil inertia.props.dig("secret", "value")
+    assert_equal false, inertia.props.dig("secret", "just_rotated")
   end
 
   test "create persists owned application and redirects to show" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     sign_in_as(user)
     assert_difference -> { OauthApplication.count }, 1 do
@@ -84,7 +77,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show includes client secret once after creation" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     sign_in_as(user)
     post oauth_applications_path, params: {
@@ -94,14 +87,12 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
-    page = inertia_page
-
-    assert page.dig("props", "secret", "value").present?
-    assert_equal true, page.dig("props", "secret", "just_rotated")
+    assert_predicate inertia.props.dig("secret", "value"), :present?
+    assert_equal true, inertia.props.dig("secret", "just_rotated")
   end
 
   test "create can persist HCA login redirect preference" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     sign_in_as(user)
     post oauth_applications_path, params: {
@@ -113,7 +104,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create invalid re-renders inertia new with validation errors" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     sign_in_as(user)
     post oauth_applications_path, params: {
@@ -121,14 +112,12 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :unprocessable_entity
-    page = inertia_page
-
-    assert_equal "OAuthApplications/New", page["component"]
-    assert_not_empty page.dig("props", "errors", "full_messages")
+    assert_inertia_component "OAuthApplications/New"
+    assert_not_empty inertia.props.dig("errors", "full_messages")
   end
 
   test "create invalid json returns errors" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     sign_in_as(user)
     post oauth_applications_path(format: :json), params: {
@@ -141,7 +130,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update persists changes and redirects to show" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_application_for(user, name: "Before")
 
     sign_in_as(user)
@@ -154,7 +143,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update can persist HCA login redirect preference" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_application_for(user, name: "Before")
 
     sign_in_as(user)
@@ -167,7 +156,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update invalid re-renders inertia edit with validation errors" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_application_for(user, name: "Valid Name")
 
     sign_in_as(user)
@@ -176,14 +165,12 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :unprocessable_entity
-    page = inertia_page
-
-    assert_equal "OAuthApplications/Edit", page["component"]
-    assert_not_empty page.dig("props", "errors", "name")
+    assert_inertia_component "OAuthApplications/Edit"
+    assert_not_empty inertia.props.dig("errors", "name")
   end
 
   test "destroy removes application and redirects to index" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_application_for(user, name: "Delete Me")
 
     sign_in_as(user)
@@ -195,7 +182,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "rotate_secret updates secret and redirects to show" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_application_for(user, name: "Rotate Me")
     previous_secret = application.secret
 
@@ -209,7 +196,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show includes client secret once after rotation" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_application_for(user, name: "Rotate Me")
 
     sign_in_as(user)
@@ -217,13 +204,12 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
-    page = inertia_page
-    assert page.dig("props", "secret", "value").present?
-    assert_equal true, page.dig("props", "secret", "just_rotated")
+    assert_predicate inertia.props.dig("secret", "value"), :present?
+    assert_equal true, inertia.props.dig("secret", "just_rotated")
   end
 
   test "show json returns application data for owner" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     application = create_application_for(user, name: "JSON App")
 
     sign_in_as(user)
@@ -237,7 +223,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "new form omits admin scope for non-admin users" do
-    sign_in_as(User.create!(timezone: "UTC"))
+    sign_in_as(create(:user))
     get new_oauth_application_path
     vals = scope_option_values
     assert_includes vals, "profile"
@@ -246,13 +232,13 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "new form includes admin scope for admin users" do
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    sign_in_as(create(:user, :admin))
     get new_oauth_application_path
     assert_includes scope_option_values, "admin"
   end
 
   test "non-admin cannot create application with admin scope" do
-    sign_in_as(User.create!(timezone: "UTC"))
+    sign_in_as(create(:user))
     post oauth_applications_path, params: {
       doorkeeper_application: valid_application_form_params(name: "Sneaky").merge(scopes: %w[profile admin])
     }
@@ -262,7 +248,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can create confidential application with admin scope" do
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    sign_in_as(create(:user, :admin))
     post oauth_applications_path, params: {
       doorkeeper_application: valid_application_form_params(name: "Fraud Tool").merge(scopes: %w[profile admin])
     }
@@ -270,7 +256,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin scope requires confidential application" do
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    sign_in_as(create(:user, :admin))
     assert_no_difference -> { OauthApplication.count } do
       post oauth_applications_path, params: {
         doorkeeper_application: valid_application_form_params(name: "Public Admin").merge(
@@ -297,7 +283,7 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def create_application_for(user, name:)
-    user.oauth_applications.create!(valid_application_params(name: name))
+    create(:oauth_application, **valid_application_params(name: name), owner: user)
   end
 
   def configured_scopes
@@ -305,6 +291,6 @@ class Doorkeeper::ApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def scope_option_values
-    inertia_page.dig("props", "scope_options").map { |s| s["value"] }
+    inertia.props["scope_options"].map { |scope| scope["value"] }
   end
 end

@@ -133,6 +133,10 @@ GEM
       rack-test (>= 0.6.3)
       regexp_parser (>= 1.5, < 3.0)
       xpath (~> 3.2)
+    capybara-playwright-driver (0.5.10)
+      addressable
+      capybara
+      playwright-ruby-client (>= 1.16.0)
     childprocess (5.1.0)
       logger (~> 1.5)
     chunky_png (1.4.0)
@@ -178,6 +182,11 @@ GEM
     erubi (1.13.1)
     et-orbi (1.4.1)
       tzinfo
+    factory_bot (6.6.0)
+      activesupport (>= 6.1.0)
+    factory_bot_rails (6.5.1)
+      factory_bot (~> 6.5)
+      railties (>= 6.1.0)
     faker (3.8.0)
       i18n (>= 1.8.11, < 2)
     ffi (1.17.4-aarch64-linux-gnu)
@@ -283,6 +292,10 @@ GEM
     matrix (0.4.3)
     maxminddb (0.1.22)
     memory_profiler (1.1.0)
+    mime-types (3.7.0)
+      logger
+      mime-types-data (~> 3.2025, >= 3.2025.0507)
+    mime-types-data (3.2026.0701)
     mini_mime (1.1.5)
     minitest (6.0.6)
       drb (~> 2.0)
@@ -330,6 +343,10 @@ GEM
     pg (1.6.3-arm64-darwin)
     pg (1.6.3-x86_64-linux)
     pg (1.6.3-x86_64-linux-musl)
+    playwright-ruby-client (1.62.0)
+      base64
+      concurrent-ruby (>= 1.1.6)
+      mime-types (>= 3.0)
     pp (0.6.4)
       prettyprint
     premailer (1.30.0)
@@ -489,12 +506,6 @@ GEM
       crass (~> 1.0.2)
       nokogiri (>= 1.16.8)
     securerandom (0.4.1)
-    selenium-webdriver (4.47.0)
-      base64 (~> 0.2)
-      logger (~> 1.4)
-      rexml (~> 3.2, >= 3.2.5)
-      rubyzip (>= 1.2.2, < 4.0)
-      websocket (~> 1.0)
     sentry-rails (6.7.0)
       railties (>= 5.2.0)
       sentry-ruby (~> 6.7.0)
@@ -544,7 +555,6 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    websocket (1.2.11)
     websocket-driver (0.8.2)
       base64
       websocket-extensions (>= 0.1.0)
@@ -576,12 +586,14 @@ DEPENDENCIES
   brakeman
   bullet
   capybara
+  capybara-playwright-driver
   cloudflare-rails
   countries
   debug
   doorkeeper (~> 5.8)
   dotenv-rails
   erb_lint
+  factory_bot_rails
   faker
   flamegraph
   flipper
@@ -619,7 +631,6 @@ DEPENDENCIES
   ruby-vips (~> 2.3)
   ruby_identicon
   rubyzip (~> 3.3)
-  selenium-webdriver
   sentry-rails
   sentry-ruby
   skylight

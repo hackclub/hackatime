@@ -17,9 +17,9 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
   end
 
   test "requests a remote dump and schedules polling" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     Flipper.enable_actor(:imports, user)
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :queued,
       encrypted_api_key: "secret"
@@ -44,9 +44,9 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
   end
 
   test "downloads a completed dump and enqueues the shared download job" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     Flipper.enable_actor(:imports, user)
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :hackatime_v1_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret",
@@ -76,9 +76,9 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
   end
 
   test "re-enqueues polling while the remote dump is still processing" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     Flipper.enable_actor(:imports, user)
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :hackatime_v1_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret",
@@ -105,10 +105,10 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
 
   test "ignores stale dump poll jobs once the import has started downloading or importing" do
     %i[downloading_dump importing].each do |state|
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       Flipper.enable_actor(:imports, user)
 
-      run = user.heartbeat_import_runs.create!(
+      run = create(:heartbeat_import_run, user: user,
         source_kind: :hackatime_v1_dump,
         state: state,
         encrypted_api_key: "secret",
@@ -134,10 +134,9 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
   end
 
   test "fails the run when dump polling exceeds the timeout window" do
-    user = User.create!(timezone: "UTC")
-    user.email_addresses.create!(email: "timeout-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
+    user = create(:user, :with_email, email: "timeout-#{SecureRandom.hex(4)}@example.com")
     Flipper.enable_actor(:imports, user)
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :hackatime_v1_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret",
@@ -161,10 +160,9 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
   end
 
   test "marks the run as failed on authentication errors" do
-    user = User.create!(timezone: "UTC")
-    user.email_addresses.create!(email: "auth-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
+    user = create(:user, :with_email, email: "auth-#{SecureRandom.hex(4)}@example.com")
     Flipper.enable_actor(:imports, user)
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :queued,
       encrypted_api_key: "secret"
@@ -187,10 +185,9 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
   end
 
   test "emails the user when wakatime requires a manual download link" do
-    user = User.create!(timezone: "UTC")
-    user.email_addresses.create!(email: "manual-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
+    user = create(:user, :with_email, email: "manual-#{SecureRandom.hex(4)}@example.com")
     Flipper.enable_actor(:imports, user)
-    run = user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :queued,
       encrypted_api_key: "secret"

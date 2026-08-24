@@ -1,6 +1,8 @@
 require "test_helper"
 require "webmock/minitest"
 
+WebMock.disable_net_connect!(allow_localhost: true)
+
 class UserTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
   include ActionMailer::TestHelper
@@ -29,8 +31,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "updating admin level does not validate existing duplicate usernames" do
-    first_user = User.create!(timezone: "UTC", username: "duplicate_name")
-    User.create!(timezone: "UTC", username: "other_name")
+    first_user = create(:user, username: "duplicate_name")
+    create(:user, username: "other_name")
       .update_column(:username, "DUPLICATE_NAME")
 
     assert_nothing_raised do
@@ -42,7 +44,7 @@ class UserTest < ActiveSupport::TestCase
 
   test "impersonation follows the admin hierarchy" do
     users = %i[default viewer admin superadmin ultraadmin].to_h do |level|
-      [ level, User.create!(timezone: "UTC", admin_level: level) ]
+      [ level, level == :default ? create(:user) : create(:user, level) ]
     end
 
     assert users[:admin].can_impersonate?(users[:default])
@@ -54,8 +56,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "rotate_api_keys! replaces existing api key with a new one" do
-    user = User.create!(timezone: "UTC", slack_uid: "U#{SecureRandom.hex(8)}")
-    user.api_keys.create!(name: "Original key")
+    user = create(:user, slack_uid: "U#{SecureRandom.hex(8)}")
+    create(:api_key, user: user, name: "Original key")
     original_token = user.api_keys.first.token
 
     new_api_key = user.rotate_api_keys!
@@ -66,7 +68,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "rotate_api_keys! creates a key when none exists" do
-    user = User.create!(timezone: "UTC", slack_uid: "U#{SecureRandom.hex(8)}")
+    user = create(:user, slack_uid: "U#{SecureRandom.hex(8)}")
 
     assert_equal 0, user.api_keys.count
 
@@ -78,13 +80,13 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "flipper id uses the user id" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     assert_equal "User;#{user.id}", user.flipper_id
   end
 
   test "api_access_restricted? is true for red users and users pending deletion" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     assert_not user.api_access_restricted?
 
     user.update!(trust_level: :red)
@@ -98,8 +100,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "display name override takes precedence over synced provider names" do
-    user = User.create!(
-      timezone: "UTC",
+    user = create(:user,
       username: "profile_user",
       slack_username: "slack_user",
       github_username: "github_user",
@@ -110,14 +111,13 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "display name override is normalized before validation" do
-    user = User.create!(timezone: "UTC", slack_username: "slack_user", display_name_override: "  Custom Name  ")
+    user = create(:user, slack_username: "slack_user", display_name_override: "  Custom Name  ")
 
     assert_equal "Custom Name", user.display_name_override
   end
 
   test "slack profile sync does not replace display name override" do
-    user = User.create!(
-      timezone: "UTC",
+    user = create(:user,
       slack_username: "old_slack",
       display_name_override: "Custom Name"
     )
@@ -138,7 +138,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "slack profile sync prefers the workspace token over the user's Slack token" do
-    user = User.create!(timezone: "UTC", slack_uid: "U_HCA", slack_access_token: "personal-token")
+    user = create(:user, slack_uid: "U_HCA", slack_access_token: "personal-token")
     original_token = ENV["SLACK_USER_OAUTH_TOKEN"]
     ENV["SLACK_USER_OAUTH_TOKEN"] = "workspace-token"
     request = stub_request(:get, "https://slack.com/api/users.info?user=U_HCA")
@@ -161,7 +161,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "HCA authentication fills a missing Slack ID on an existing account" do
-    user = User.create!(timezone: "UTC", hca_id: "hca-existing")
+    user = create(:user, hca_id: "hca-existing")
     stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
       .to_return(body: { access_token: "hca-token" }.to_json)
     stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
@@ -181,8 +181,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "HCA authentication does not replace an existing Slack ID" do
-    user = User.create!(
-      timezone: "UTC",
+    user = create(:user,
       hca_id: "hca-linked",
       slack_uid: "U_LINKED",
       slack_synced_at: 1.hour.ago
@@ -206,8 +205,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "HCA authentication does not claim a Slack ID linked to another account" do
-    user = User.create!(timezone: "UTC", hca_id: "hca-unlinked")
-    User.create!(timezone: "UTC", slack_uid: "U_ALREADY_LINKED")
+    user = create(:user, hca_id: "hca-unlinked")
+    create(:user, slack_uid: "U_ALREADY_LINKED")
     stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
       .to_return(body: { access_token: "hca-token" }.to_json)
     stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
@@ -228,26 +227,26 @@ class UserTest < ActiveSupport::TestCase
 
     assert_enqueued_email_with OnboardingMailer, :welcome, args: ->(args) { args.second[:recipient_email] == email } do
       User.transaction do
-        user = User.create!(timezone: "UTC")
-        user.email_addresses.create!(email: email, source: :signing_in)
+        user = create(:user)
+        create(:email_address, user: user, email: email, source: :signing_in)
       end
     end
   end
 
   test "active heartbeat import run counts all import sources" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     assert_not user.active_heartbeat_import_run?
 
-    other_user = User.create!(timezone: "UTC")
-    other_user.heartbeat_import_runs.create!(
+    other_user = create(:user)
+    create(:heartbeat_import_run, user: other_user,
       source_kind: :dev_upload,
       state: :queued,
       source_filename: "dev.json"
     )
     assert other_user.active_heartbeat_import_run?
 
-    user.heartbeat_import_runs.create!(
+    create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret"
@@ -257,8 +256,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "set_leaderboard_shadowban requires privileged actor and reason" do
-    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "shadowban_target")
+    actor = create(:user, :superadmin)
+    user = create(:user, username: "shadowban_target")
 
     assert_not user.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "")
     assert_includes user.errors[:leaderboard_shadowban_reason], "can't be blank"
@@ -278,8 +277,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "set_leaderboard_shadowban can schedule an automatic expiration" do
-    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "shadowban_expiring")
+    actor = create(:user, :superadmin)
+    user = create(:user, username: "shadowban_expiring")
     expires_at = 2.days.from_now
 
     assert_enqueued_with(job: LeaderboardShadowbanExpirationJob, args: [ user.id ], at: expires_at) do
@@ -295,8 +294,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "set_leaderboard_shadowban requires future automatic expiration" do
-    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "shadowban_past_exp")
+    actor = create(:user, :superadmin)
+    user = create(:user, username: "shadowban_past_exp")
 
     assert_not user.set_leaderboard_shadowban(
       banned: true,
@@ -309,8 +308,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "expired leaderboard shadowban does not block unrelated user updates" do
-    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "sb_exp_update")
+    actor = create(:user, :superadmin)
+    user = create(:user, username: "sb_exp_update")
     expires_at = 1.minute.from_now
 
     assert user.set_leaderboard_shadowban(
@@ -326,8 +325,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "set_leaderboard_shadowban records PaperTrail changes" do
-    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
-    user = User.create!(timezone: "UTC", username: "pt_shadowban_target")
+    actor = create(:user, :superadmin)
+    user = create(:user, username: "pt_shadowban_target")
 
     assert_difference -> { PaperTrail::Version.where(item_type: "User", item_id: user.id).count }, 1 do
       PaperTrail.request(whodunnit: actor.id) do
@@ -341,8 +340,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "set_leaderboard_shadowban cannot target self or equal rank admins" do
-    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
-    peer = User.create!(timezone: "UTC", admin_level: :superadmin)
+    actor = create(:user, :superadmin)
+    peer = create(:user, :superadmin)
 
     assert_not actor.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "self")
     assert_not peer.set_leaderboard_shadowban(banned: true, changed_by_user: actor, reason: "peer")
@@ -352,7 +351,7 @@ class UserTest < ActiveSupport::TestCase
     with_memory_cache_store do
       Rails.cache.clear
 
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       Rails.cache.write(user.activity_graph_cache_key("UTC"), { "2026-04-14" => 60 })
       Rails.cache.write(user.activity_graph_cache_key("America/New_York"), { "2026-04-14" => 60 })
 

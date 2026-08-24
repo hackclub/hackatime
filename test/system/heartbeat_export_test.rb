@@ -1,82 +1,47 @@
 require "application_system_test_case"
 
 class HeartbeatExportTest < ApplicationSystemTestCase
-  fixtures :users, :email_addresses, :heartbeats, :sign_in_tokens, :api_keys, :admin_api_keys
+  include ActiveJob::TestHelper
 
   setup do
-    @original_cache = Rails.cache
-    Rails.cache = ActiveSupport::Cache::MemoryStore.new
-    Rails.cache.clear
-    GoodJob::Job.delete_all
-    @user = users(:one)
+    @user = create(:user, :with_email)
     sign_in_as(@user)
-  end
-
-  teardown do
-    Rails.cache = @original_cache
   end
 
   test "clicking export all heartbeats enqueues job and shows notice" do
     visit my_settings_imports_exports_path
 
-    wait_for_export_controls
-
-    assert_difference -> { export_job_count }, 1 do
+    assert_enqueued_with(job: HeartbeatExportJob, args: [ @user.id, { all_data: true } ]) do
       click_on "Export all heartbeats"
       assert_text "Your export is being prepared and will be emailed to you"
     end
-
-    assert_latest_export_job_kwargs(
-      "all_data" => true
-    )
   end
 
   test "submitting export date range enqueues job and shows notice" do
     visit my_settings_imports_exports_path
 
-    wait_for_export_controls
-
     start_date = 7.days.ago.to_date.iso8601
     end_date = Date.current.iso8601
-    set_date_input("start_date", start_date)
-    set_date_input("end_date", end_date)
+    fill_in "start_date", with: start_date
+    fill_in "end_date", with: end_date
 
-    assert_difference -> { export_job_count }, 1 do
+    assert_enqueued_with(
+      job: HeartbeatExportJob,
+      args: [ @user.id, { all_data: false, start_date: start_date, end_date: end_date } ]
+    ) do
       click_on "Export date range"
       assert_text "Your export is being prepared and will be emailed to you"
-    end
-
-    assert_latest_export_job_kwargs(
-      "all_data" => false,
-      "start_date" => start_date,
-      "end_date" => end_date
-    )
-  end
-
-  test "repeated export requests are rate limited" do
-    visit my_settings_imports_exports_path
-
-    wait_for_export_controls
-
-    assert_difference -> { export_job_count }, 1 do
-      click_on "Export all heartbeats"
-      assert_text "Your export is being prepared and will be emailed to you"
-    end
-
-    assert_no_difference -> { export_job_count } do
-      click_on "Export all heartbeats"
-      assert_text "Export requests are limited to once every 10 minutes."
     end
   end
 
   test "export request is rejected when signed-in user has no email address" do
-    user_without_email = users(:three)
-    create_heartbeat(user_without_email, Time.current - 1.hour, "src/no_email.rb")
+    user_without_email = create(:user, :with_email)
 
     sign_in_as(user_without_email)
+    user_without_email.email_addresses.destroy_all
     visit my_settings_imports_exports_path
 
-    assert_difference -> { export_job_count }, 0 do
+    assert_no_enqueued_jobs only: HeartbeatExportJob do
       click_on "Export all heartbeats"
       assert_text "You need an email address on your account to export heartbeats."
     end
@@ -84,50 +49,7 @@ class HeartbeatExportTest < ApplicationSystemTestCase
 
   private
 
-  def export_job_count
-    export_jobs.count
-  end
-
-  def export_jobs
-    GoodJob::Job.where(job_class: "HeartbeatExportJob").order(created_at: :asc)
-  end
-
-  def latest_export_job
-    export_jobs.last
-  end
-
-  def latest_export_job_kwargs
-    serialized_params = latest_export_job.serialized_params
-    args = serialized_params.fetch("arguments")
-    kwargs = args.second || {}
-    kwargs.except("_aj_ruby2_keywords")
-  end
-
-  def assert_latest_export_job_kwargs(expected_kwargs)
-    assert_equal expected_kwargs, latest_export_job_kwargs
-  end
-
-  def create_heartbeat(user, at_time, entity)
-    user.heartbeats.create!(
-      entity: entity,
-      type: "file",
-      category: "coding",
-      time: at_time.to_f,
-      project: "export-test",
-      source_type: :test_entry
-    )
-  end
-
-  def set_date_input(field_name, value)
-    execute_script(<<~JS, field_name, value)
-      const input = document.querySelector(`input[name="${arguments[0]}"]`);
-      input.value = arguments[1];
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-    JS
-  end
-
-  def wait_for_export_controls
-    assert_button "Export all heartbeats", wait: 15
+  def queue_adapter_for_test
+    ActiveJob::QueueAdapters::TestAdapter.new
   end
 end

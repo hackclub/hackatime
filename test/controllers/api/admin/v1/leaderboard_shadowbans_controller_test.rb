@@ -2,8 +2,8 @@ require "test_helper"
 
 class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::IntegrationTest
   test "index requires a shadowban-capable admin API key" do
-    viewer = User.create!(timezone: "UTC", admin_level: :viewer)
-    key = viewer.admin_api_keys.create!(name: "test")
+    viewer = create(:user, :viewer)
+    key = create(:admin_api_key, user: viewer, name: "test")
 
     get "/api/admin/v1/leaderboard_shadowbans", headers: auth_headers(key)
 
@@ -11,9 +11,9 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
   end
 
   test "create requires a shadowban-capable admin API key" do
-    viewer = User.create!(timezone: "UTC", admin_level: :viewer)
-    key = viewer.admin_api_keys.create!(name: "test")
-    user = User.create!(timezone: "UTC", username: "shadowban_create_403")
+    viewer = create(:user, :viewer)
+    key = create(:admin_api_key, user: viewer, name: "test")
+    user = create(:user, username: "shadowban_create_403")
 
     post "/api/admin/v1/leaderboard_shadowbans", params: { user_id: user.id, reason: "fake leaderboard activity" }, headers: auth_headers(key), as: :json
 
@@ -22,10 +22,10 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
   end
 
   test "destroy requires a shadowban-capable admin API key" do
-    superadmin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    viewer = User.create!(timezone: "UTC", admin_level: :viewer)
-    key = viewer.admin_api_keys.create!(name: "test")
-    user = User.create!(timezone: "UTC", username: "shadowban_destroy403")
+    superadmin = create(:user, :superadmin)
+    viewer = create(:user, :viewer)
+    key = create(:admin_api_key, user: viewer, name: "test")
+    user = create(:user, username: "shadowban_destroy403")
     user.set_leaderboard_shadowban(banned: true, changed_by_user: superadmin, reason: "fake leaderboard activity")
 
     delete "/api/admin/v1/leaderboard_shadowbans/#{user.id}", headers: auth_headers(key)
@@ -35,9 +35,9 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
   end
 
   test "regular admins can create leaderboard shadowbans" do
-    admin = User.create!(timezone: "UTC", admin_level: :admin)
-    key = admin.admin_api_keys.create!(name: "test")
-    user = User.create!(timezone: "UTC", username: "sb_admin_create")
+    admin = create(:user, :admin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, username: "sb_admin_create")
 
     post "/api/admin/v1/leaderboard_shadowbans", params: { user_id: user.id, reason: "fake leaderboard activity" }, headers: auth_headers(key), as: :json
 
@@ -46,9 +46,9 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
   end
 
   test "index lists leaderboard shadowbanned users" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    key = admin.admin_api_keys.create!(name: "test")
-    user = User.create!(timezone: "UTC", username: "api_shadowbanned")
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, username: "api_shadowbanned")
     expires_at = 2.days.from_now
     user.set_leaderboard_shadowban(banned: true, changed_by_user: admin, reason: "inflated activity", expires_at: expires_at)
 
@@ -65,10 +65,9 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
   end
 
   test "search_users returns shadowban metadata" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    key = admin.admin_api_keys.create!(name: "test")
-    user = User.create!(
-      timezone: "UTC",
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user,
       username: "api_shadowban_search"
     )
     user.set_leaderboard_shadowban(banned: true, changed_by_user: admin, reason: "fake data")
@@ -86,9 +85,9 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
   end
 
   test "create leaderboard shadowbans a user with PaperTrail whodunnit" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    key = admin.admin_api_keys.create!(name: "test")
-    user = User.create!(timezone: "UTC", username: "api_shadowban_create")
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, username: "api_shadowban_create")
     expires_at = 1.week.from_now
 
     assert_difference -> { PaperTrail::Version.where(item_type: "User", item_id: user.id).count }, 1 do
@@ -112,9 +111,9 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
   end
 
   test "create rejects invalid automatic unshadowban time" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    key = admin.admin_api_keys.create!(name: "test")
-    user = User.create!(timezone: "UTC", username: "api_shadowban_bad")
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, username: "api_shadowban_bad")
 
     post "/api/admin/v1/leaderboard_shadowbans", params: {
       user_id: user.id,
@@ -128,9 +127,9 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
   end
 
   test "create requires reason" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    key = admin.admin_api_keys.create!(name: "test")
-    user = User.create!(timezone: "UTC", username: "api_shadowban_reason")
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, username: "api_shadowban_reason")
 
     post "/api/admin/v1/leaderboard_shadowbans", params: { user_id: user.id, reason: "" }, headers: auth_headers(key), as: :json
 
@@ -140,10 +139,9 @@ class Api::Admin::V1::LeaderboardShadowbansControllerTest < ActionDispatch::Inte
   end
 
   test "destroy removes leaderboard shadowban" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    key = admin.admin_api_keys.create!(name: "test")
-    user = User.create!(
-      timezone: "UTC",
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user,
       username: "api_shadowban_destroy",
       leaderboard_shadowbanned: true,
       leaderboard_shadowban_reason: "fake data"

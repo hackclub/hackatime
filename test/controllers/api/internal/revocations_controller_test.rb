@@ -11,10 +11,10 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "revokes regular ApiKey by rolling token" do
-    user = User.create!(timezone: "UTC")
-    email_address = user.email_addresses.create!(email: "regular@example.com", source: :signing_in)
+    user = create(:user)
+    email_address = create(:email_address, user: user, email: "regular@example.com", source: :signing_in)
     original_token = SecureRandom.uuid_v4
-    key = user.api_keys.create!(name: "Desktop", token: original_token)
+    key = create(:api_key, user: user, name: "Desktop", token: original_token)
 
     post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json
 
@@ -55,9 +55,9 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "revokes admin key" do
-    user = User.create!(timezone: "UTC")
-    email_address = user.email_addresses.create!(email: "admin@example.com", source: :signing_in)
-    admin_key = user.admin_api_keys.create!(name: "Infra", token: "hka_#{SecureRandom.hex(32)}")
+    user = create(:user)
+    email_address = create(:email_address, user: user, email: "admin@example.com", source: :signing_in)
+    admin_key = create(:admin_api_key, user: user, name: "Infra", token: "hka_#{SecureRandom.hex(32)}")
 
     post "/api/internal/revoke", params: { token: admin_key.token }, headers: auth_headers, as: :json
 
@@ -74,9 +74,9 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "returns error for already-revoked admin key" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     original_token = "hka_#{SecureRandom.hex(32)}"
-    admin_key = user.admin_api_keys.create!(name: "Infra", token: original_token)
+    admin_key = create(:admin_api_key, user: user, name: "Infra", token: original_token)
     admin_key.revoke!
 
     post "/api/internal/revoke", params: { token: original_token }, headers: auth_headers, as: :json

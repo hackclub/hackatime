@@ -1,10 +1,8 @@
 require "test_helper"
 
 class SettingsNotificationsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users
-
   test "notifications show renders notifications settings page" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     get my_settings_notifications_path
@@ -14,7 +12,7 @@ class SettingsNotificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "notifications update subscribes user to weekly summary" do
-    user = users(:one)
+    user = create(:user)
     user.unsubscribe("weekly_summary") if user.subscribed?("weekly_summary")
     sign_in_as(user)
 
@@ -26,7 +24,7 @@ class SettingsNotificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "notifications update unsubscribes user from weekly summary" do
-    user = users(:one)
+    user = create(:user)
     user.subscribe("weekly_summary") unless user.subscribed?("weekly_summary")
     sign_in_as(user)
 

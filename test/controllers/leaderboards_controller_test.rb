@@ -18,11 +18,9 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_inertia_component "Leaderboards/Index"
-    assert_inertia_prop "period_type", "last_7_days"
-    assert_inertia_prop "scope", "country"
-    page = inertia_page
-    assert_equal "US", page.dig("props", "country", "code")
-    assert page.dig("props", "country", "available")
+    assert_inertia_props period_type: "last_7_days", scope: "country"
+    assert_equal "US", inertia.props.dig("country", "code")
+    assert inertia.props.dig("country", "available")
   end
 
   test "index falls back to global scope when country is missing" do
@@ -34,9 +32,8 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_inertia_component "Leaderboards/Index"
-    assert_inertia_prop "scope", "global"
-    page = inertia_page
-    assert_not page.dig("props", "country", "available")
+    assert_inertia_props scope: "global"
+    assert_not inertia.props.dig("country", "available")
   end
 
   test "index clamps invalid period_type to daily" do
@@ -47,7 +44,7 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     get leaderboards_path(period_type: "bogus")
 
     assert_response :success
-    assert_inertia_prop "period_type", "daily"
+    assert_inertia_props period_type: "daily"
   end
 
   test "index exposes Telescreen links to admin-level viewers only" do
@@ -56,12 +53,12 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     %i[admin superadmin ultraadmin].each do |admin_level|
       sign_in_as(create_user(username: "lb_#{admin_level}", admin_level: admin_level))
       get leaderboards_path
-      assert_inertia_prop "can_view_telescreen", true
+      assert_inertia_props can_view_telescreen: true
     end
 
     sign_in_as(create_user(username: "leaderboard_viewer", admin_level: :viewer))
     get leaderboards_path
-    assert_inertia_prop "can_view_telescreen", false
+    assert_inertia_props can_view_telescreen: false
   end
 
   test "validated_period_type does not intern arbitrary symbols" do
@@ -81,17 +78,15 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     visible_user = create_user(username: "lb_visible_user")
     hidden_user = create_user(username: "lb_hidden_user", leaderboard_shadowbanned: true)
     board = create_boards_for_today(period_type: :daily).first
-    board.entries.create!(user: visible_user, total_seconds: 300, streak_count: 1)
-    board.entries.create!(user: hidden_user, total_seconds: 200, streak_count: 1)
+    create(:leaderboard_entry, leaderboard: board, user: visible_user, total_seconds: 300, streak_count: 1)
+    create(:leaderboard_entry, leaderboard: board, user: hidden_user, total_seconds: 200, streak_count: 1)
 
     sign_in_as(viewer)
     get leaderboards_path
-    version = inertia_page["version"]
-
-    get leaderboards_path, headers: inertia_partial_headers(version)
+    inertia_load_deferred_props :default
 
     assert_response :success
-    entries_payload = JSON.parse(response.body).dig("props", "entries")
+    entries_payload = inertia.props["entries"]
     assert_equal 1, entries_payload["total"]
     assert_equal [ visible_user.id ], entries_payload["entries"].map { |entry| entry["user_id"] }
     assert_nil entries_payload["entries"].first.dig("user", "shadowbanned")
@@ -100,16 +95,14 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
   test "deferred entries show leaderboard shadowbanned user to themselves" do
     hidden_user = create_user(username: "lb_hidden_self", leaderboard_shadowbanned: true)
     board = create_boards_for_today(period_type: :daily).first
-    board.entries.create!(user: hidden_user, total_seconds: 200, streak_count: 1)
+    create(:leaderboard_entry, leaderboard: board, user: hidden_user, total_seconds: 200, streak_count: 1)
 
     sign_in_as(hidden_user)
     get leaderboards_path
-    version = inertia_page["version"]
-
-    get leaderboards_path, headers: inertia_partial_headers(version)
+    inertia_load_deferred_props :default
 
     assert_response :success
-    entries_payload = JSON.parse(response.body).dig("props", "entries")
+    entries_payload = inertia.props["entries"]
     assert_equal 1, entries_payload["total"]
     assert_equal hidden_user.id, entries_payload["entries"].first["user_id"]
     assert_equal true, entries_payload["entries"].first["is_current_user"]
@@ -118,10 +111,9 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_user(username:, country_code: nil, leaderboard_shadowbanned: false, admin_level: :default)
-    User.create!(
+    create(:user,
       username:,
       country_code:,
-      timezone: "UTC",
       admin_level:,
       leaderboard_shadowbanned: leaderboard_shadowbanned,
       leaderboard_shadowban_reason: leaderboard_shadowbanned ? "test shadowban" : nil
@@ -130,22 +122,12 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
 
   def create_boards_for_today(period_type:)
     [ Date.current, Time.current.in_time_zone("UTC").to_date ].uniq.map do |date|
-      Leaderboard.create!(
+      create(:leaderboard,
         start_date: date,
         period_type: period_type,
         timezone_utc_offset: nil,
         finished_generating_at: Time.current
       )
     end
-  end
-
-  def inertia_partial_headers(version)
-    {
-      "X-Inertia" => "true",
-      "X-Requested-With" => "XMLHttpRequest",
-      "X-Inertia-Version" => version,
-      "X-Inertia-Partial-Component" => "Leaderboards/Index",
-      "X-Inertia-Partial-Data" => "entries"
-    }
   end
 end

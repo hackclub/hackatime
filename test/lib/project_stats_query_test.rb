@@ -2,7 +2,7 @@ require "test_helper"
 
 class ProjectStatsQueryTest < ActiveSupport::TestCase
   def setup
-    @user = User.create!(username: "pq_#{SecureRandom.hex(4)}")
+    @user = create(:user, username: "pq_#{SecureRandom.hex(4)}")
   end
 
   test "project details supports start and end aliases" do
@@ -77,7 +77,7 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
     create_heartbeat(project: "active_project", time: 2.days.ago.to_f)
     create_heartbeat(project: "archived_project", time: 2.days.ago.to_f)
 
-    archived_mapping = ProjectRepoMapping.create!(user: @user, project_name: "archived_project")
+    archived_mapping = create(:project_repo_mapping, user: @user, project_name: "archived_project")
     archived_mapping.archive!
 
     excluded = ProjectStatsQuery.new(user: @user, params: {})
@@ -333,7 +333,7 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
 
   test "project details hides archived projects unless include_archived is true" do
     create_heartbeat(project: "archived_project", language: "Ruby", time: 2.days.ago.to_f)
-    mapping = ProjectRepoMapping.create!(user: @user, project_name: "archived_project")
+    mapping = create(:project_repo_mapping, user: @user, project_name: "archived_project")
     mapping.archive!
 
     excluded = ProjectStatsQuery.new(user: @user, params: {})
@@ -346,7 +346,7 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
   private
 
   def create_heartbeat(project:, time:, language: nil)
-    Heartbeat.create!(
+    create(:heartbeat,
       user: @user,
       source_type: :direct_entry,
       category: "coding",
@@ -357,7 +357,7 @@ class ProjectStatsQueryTest < ActiveSupport::TestCase
   end
 
   def create_project_detail_rollup(project:, total_seconds:, total_heartbeats: 1, first_heartbeat: 5.days.ago.to_f, last_heartbeat: 5.days.ago.to_f, languages: [])
-    DashboardRollup.create!(
+    create(:dashboard_rollup,
       user: @user,
       dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION,
       bucket_value: project,

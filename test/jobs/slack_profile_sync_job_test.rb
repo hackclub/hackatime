@@ -1,6 +1,8 @@
 require "test_helper"
 require "webmock/minitest"
 
+WebMock.disable_net_connect!(allow_localhost: true)
+
 class SlackProfileSyncJobTest < ActiveJob::TestCase
   setup do
     @original_queue_adapter = ActiveJob::Base.queue_adapter
@@ -17,7 +19,7 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
   end
 
   test "updates and persists the Slack profile" do
-    user = User.create!(timezone: "UTC", slack_uid: "U_PROFILE_SYNC")
+    user = create(:user, slack_uid: "U_PROFILE_SYNC")
     stub_request(:get, "https://slack.com/api/users.info?user=U_PROFILE_SYNC")
       .with(headers: { "Authorization" => "Bearer workspace-token" })
       .to_return(body: {
@@ -40,8 +42,7 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
   end
 
   test "retries Slack rate limits without changing the existing profile" do
-    user = User.create!(
-      timezone: "UTC",
+    user = create(:user,
       slack_uid: "U_RATE_LIMITED",
       slack_username: "existing-name",
       slack_avatar_url: "https://example.com/existing-avatar.png"
@@ -67,8 +68,7 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
 
   test "fails visibly and preserves the existing profile when Slack returns an API error" do
     synced_at = 2.days.ago
-    user = User.create!(
-      timezone: "UTC",
+    user = create(:user,
       slack_uid: "U_API_ERROR",
       slack_username: "existing-name",
       slack_avatar_url: "https://example.com/existing-avatar.png",
@@ -89,7 +89,7 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
   end
 
   test "does nothing when the user has no Slack ID" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     SlackProfileSyncJob.perform_now(user.id)
 

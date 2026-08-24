@@ -4,8 +4,8 @@ require "test_helper"
 
 class Api::Admin::V1::OauthAdminAuthTest < ActionDispatch::IntegrationTest
   setup do
-    @admin = User.create!(timezone: "UTC", admin_level: :admin, username: "oauth_admin_auth")
-    @oauth = @admin.oauth_applications.create!(
+    @admin = create(:user, :admin, username: "oauth_admin_auth")
+    @oauth = create(:oauth_application, owner: @admin,
       name: "Fraud Tool",
       redirect_uri: "https://example.com/callback",
       scopes: "profile admin",
@@ -59,7 +59,7 @@ class Api::Admin::V1::OauthAdminAuthTest < ActionDispatch::IntegrationTest
   end
 
   test "still accepts admin api keys" do
-    key = @admin.admin_api_keys.create!(name: "legacy")
+    key = create(:admin_api_key, user: @admin, name: "legacy")
     get "/api/admin/v1/check", headers: bearer(key.token)
     assert_response :success
     b = response.parsed_body
@@ -68,7 +68,7 @@ class Api::Admin::V1::OauthAdminAuthTest < ActionDispatch::IntegrationTest
   end
 
   test "viewer oauth token can access admin check" do
-    v = User.create!(timezone: "UTC", admin_level: :viewer)
+    v = create(:user, :viewer)
     get "/api/admin/v1/check", headers: bearer(oauth_token(v, "admin").token)
     assert_response :success
     assert_equal "viewer", response.parsed_body.dig("creator", "admin_level")
@@ -77,7 +77,7 @@ class Api::Admin::V1::OauthAdminAuthTest < ActionDispatch::IntegrationTest
   private
 
   def oauth_token(u, scopes)
-    Doorkeeper::AccessToken.create!(
+    create(:oauth_access_token,
       application: @oauth, resource_owner_id: u.id, scopes: scopes, expires_in: 16.years
     )
   end

@@ -5,14 +5,10 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
   setup do
     ActionMailer::Base.deliveries.clear
     GoodJob::Job.delete_all
-    @user = User.create!(
-      timezone: "UTC",
+    @user = create(:user, :with_email,
+      email: "job-export-#{SecureRandom.hex(6)}@example.com",
       slack_uid: "U#{SecureRandom.hex(5)}",
       username: "job_export_#{SecureRandom.hex(4)}"
-    )
-    @user.email_addresses.create!(
-      email: "job-export-#{SecureRandom.hex(6)}@example.com",
-      source: :signing_in
     )
   end
 
@@ -97,12 +93,11 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
   end
 
   test "job returns without email and does not send a message" do
-    user_without_email = User.create!(
-      timezone: "UTC",
+    user_without_email = create(:user,
       slack_uid: "U#{SecureRandom.hex(5)}",
       username: "job_no_email_#{SecureRandom.hex(4)}"
     )
-    user_without_email.heartbeats.create!(
+    create(:heartbeat, user: user_without_email,
       entity: "src/no_email.rb",
       type: "file",
       category: "coding",
@@ -140,7 +135,7 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
   private
 
   def create_heartbeat(at_time:, entity:)
-    @user.heartbeats.create!(
+    create(:heartbeat, user: @user,
       entity: entity,
       type: "file",
       category: "coding",

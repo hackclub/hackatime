@@ -35,8 +35,8 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
     us_user = create_user(username: "lbcache_us", country_code: "US")
     ca_user = create_user(username: "lbcache_ca", country_code: "CA")
     board = create_board
-    board.entries.create!(user: us_user, total_seconds: 300)
-    board.entries.create!(user: ca_user, total_seconds: 200)
+    create(:leaderboard_entry, leaderboard: board, user: us_user, total_seconds: 300)
+    create(:leaderboard_entry, leaderboard: board, user: ca_user, total_seconds: 200)
 
     payload = LeaderboardPageCache.fetch(leaderboard: board, scope: :country, country_code: "US")
 
@@ -45,7 +45,7 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
   end
 
   test "set_leaderboard_shadowban invalidates cached rows" do
-    actor = User.create!(timezone: "UTC", admin_level: :superadmin)
+    actor = create(:user, :superadmin)
     user = create_user(username: "lbcache_invalidate", country_code: "US")
     board = create_board_with_entry(user: user, total_seconds: 321)
 
@@ -61,10 +61,9 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
   private
 
   def create_user(username:, country_code:, trust_level: :blue, leaderboard_shadowbanned: false)
-    User.create!(
+    create(:user,
       username: username,
       country_code: country_code,
-      timezone: "UTC",
       trust_level: trust_level,
       leaderboard_shadowbanned: leaderboard_shadowbanned,
       leaderboard_shadowban_reason: leaderboard_shadowbanned ? "test shadowban" : nil
@@ -72,7 +71,7 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
   end
 
   def create_board
-    Leaderboard.create!(
+    create(:leaderboard,
       start_date: Date.current,
       period_type: :daily,
       timezone_utc_offset: nil,
@@ -82,7 +81,7 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
 
   def create_board_with_entry(user:, total_seconds:)
     board = create_board
-    board.entries.create!(user: user, total_seconds: total_seconds, streak_count: 2)
+    create(:leaderboard_entry, leaderboard: board, user: user, total_seconds: total_seconds, streak_count: 2)
     board
   end
 end

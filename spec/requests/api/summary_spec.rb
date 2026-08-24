@@ -20,7 +20,7 @@ RSpec.describe 'Api::Summary', type: :request do
       parameter name: :user, in: :query, type: :string, description: 'Deprecated: use user_id instead. Kept for backwards compatibility.'
 
       response(200, 'successful') do
-        let(:test_user) { User.create!(slack_uid: "USUMMARY#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true) }
+        let(:test_user) { create(:user, slack_uid: "USUMMARY#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true) }
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }
         let(:start) { '2023-01-01' }
@@ -82,7 +82,7 @@ RSpec.describe 'Api::Summary', type: :request do
       end
 
       response(400, 'invalid date range') do
-        let(:date_test_user) { User.create!(slack_uid: "UDATE#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true) }
+        let(:date_test_user) { create(:user, slack_uid: "UDATE#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true) }
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }
         let(:start) { nil }
@@ -111,7 +111,7 @@ RSpec.describe 'Api::Summary', type: :request do
       end
 
       response(403, 'user has disabled public stats') do
-        let(:private_user) { User.create!(slack_uid: 'UPRIVATE', timezone: 'UTC', allow_public_stats_lookup: false) }
+        let(:private_user) { create(:user, slack_uid: 'UPRIVATE', timezone: 'UTC', allow_public_stats_lookup: false) }
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }
         let(:start) { '2023-01-01' }

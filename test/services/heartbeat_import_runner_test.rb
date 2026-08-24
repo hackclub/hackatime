@@ -16,9 +16,8 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   end
 
   test "run_import emails the user when a wakatime import succeeds" do
-    user = User.create!(timezone: "UTC")
-    user.email_addresses.create!(email: "success-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
-    run = user.heartbeat_import_runs.create!(
+    user = create(:user, :with_email, email: "success-#{SecureRandom.hex(4)}@example.com")
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :queued,
       encrypted_api_key: "secret"
@@ -52,9 +51,9 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   end
 
   test "run_import advances an existing sailors log baseline without creating notifications" do
-    user = User.create!(timezone: "UTC", slack_uid: "U_IMPORT_BASELINE")
-    sailors_log = SailorsLog.create!(slack_uid: user.slack_uid, projects_summary: { "imported" => 0 })
-    run = user.heartbeat_import_runs.create!(
+    user = create(:user, slack_uid: "U_IMPORT_BASELINE")
+    sailors_log = create(:sailors_log, user: user, slack_uid: user.slack_uid, projects_summary: { "imported" => 0 })
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :queued,
       encrypted_api_key: "secret"
@@ -79,9 +78,8 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   end
 
   test "run_import does not overwrite a completed run if completion follow-up fails" do
-    user = User.create!(timezone: "UTC")
-    user.email_addresses.create!(email: "post-complete-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
-    run = user.heartbeat_import_runs.create!(
+    user = create(:user, :with_email, email: "post-complete-#{SecureRandom.hex(4)}@example.com")
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :queued,
       encrypted_api_key: "secret"
@@ -126,9 +124,8 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   end
 
   test "fail_run_for_error! emails the user about invalid api keys" do
-    user = User.create!(timezone: "UTC")
-    user.email_addresses.create!(email: "invalid-key-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
-    run = user.heartbeat_import_runs.create!(
+    user = create(:user, :with_email, email: "invalid-key-#{SecureRandom.hex(4)}@example.com")
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :queued,
       encrypted_api_key: "secret"
@@ -147,9 +144,8 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   end
 
   test "fail_run_for_error! includes slack guidance for hackatime v1 provider errors" do
-    user = User.create!(timezone: "UTC")
-    user.email_addresses.create!(email: "provider-error-#{SecureRandom.hex(4)}@example.com", source: :signing_in)
-    run = user.heartbeat_import_runs.create!(
+    user = create(:user, :with_email, email: "provider-error-#{SecureRandom.hex(4)}@example.com")
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :hackatime_v1_dump,
       state: :queued,
       encrypted_api_key: "secret"
@@ -168,10 +164,10 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   end
 
   test "start_remote_import bypasses cooldown for superadmins" do
-    user = User.create!(timezone: "UTC", admin_level: :superadmin)
+    user = create(:user, :superadmin)
     Flipper.enable_actor(:imports, user)
 
-    user.heartbeat_import_runs.create!(
+    create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :completed,
       encrypted_api_key: "old-secret",
@@ -191,8 +187,8 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   end
 
   test "serialize omits cooldown for superadmins" do
-    user = User.create!(timezone: "UTC", admin_level: :superadmin)
-    run = user.heartbeat_import_runs.create!(
+    user = create(:user, :superadmin)
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :completed,
       encrypted_api_key: "secret",
@@ -206,10 +202,10 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
 
   test "refreshable_remote_run? stops once a remote import is downloading or importing" do
     %i[downloading_dump importing].each do |state|
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       Flipper.enable_actor(:imports, user)
 
-      run = user.heartbeat_import_runs.create!(
+      run = create(:heartbeat_import_run, user: user,
         source_kind: :wakatime_dump,
         state: state,
         encrypted_api_key: "secret"

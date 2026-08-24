@@ -5,7 +5,7 @@ class ImportsExportsSettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
-    @user = User.create!(timezone: "UTC")
+    @user = create(:user, :with_email)
     sign_in_as(@user)
   end
 
@@ -60,7 +60,9 @@ class ImportsExportsSettingsTest < ApplicationSystemTestCase
   test "imports & exports page shows remote import cooldown notice" do
     Flipper.enable_actor(:imports, @user)
 
-    @user.heartbeat_import_runs.create!(
+    create(
+      :heartbeat_import_run,
+      user: @user,
       source_kind: :wakatime_dump,
       state: :waiting_for_dump,
       encrypted_api_key: "secret",

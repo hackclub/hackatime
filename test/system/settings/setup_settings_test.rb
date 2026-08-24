@@ -5,8 +5,8 @@ class SetupSettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
-    @user = User.create!(timezone: "UTC")
-    @user.api_keys.create!(name: "Initial key")
+    @user = create(:user, :with_email)
+    create(:api_key, user: @user, name: "Initial key")
     sign_in_as(@user)
   end
 

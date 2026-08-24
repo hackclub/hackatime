@@ -7,9 +7,9 @@ CI.run do
 
   step "Setup: Test DB", "env RAILS_ENV=test bin/rails db:create db:schema:load"
   step "Setup: js_from_routes", "env JS_FROM_ROUTES_FORCE=true bin/rake js_from_routes:generate"
-  step "Setup: Vite assets", "env RAILS_ENV=test bin/vite build"
+  step "Setup: Vite assets", "env RAILS_ENV=test bin/vite build && env RAILS_ENV=test VITE_CACHE_DIR=node_modules/.vite-test-ssr bin/vite build --ssr"
   step "Tests: Rails", "env RAILS_ENV=test bin/rails test"
-  step "Tests: System", "env RAILS_ENV=test bin/rails test:system"
+  step "Tests: System", "bin/test-system"
   step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
 
   step "Docs: Swagger", "env RAILS_ENV=test bin/rails rswag:specs:swaggerize && git diff --exit-code swagger/"

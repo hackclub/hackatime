@@ -40,9 +40,7 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:viz_user) do
-          u = User.create!(username: 'viz_user')
-          EmailAddress.create!(user: u, email: 'viz@example.com')
-          u
+          create(:user, :with_email, username: 'viz_user', email: 'viz@example.com')
         end
         let(:id) { viz_user.id }
         let(:year) { 2024 }
@@ -53,9 +51,7 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
       response(422, 'invalid parameters — Returned ("invalid parameters") when year or month is missing or month is outside 1-12.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:viz_user) do
-          u = User.create!(username: 'viz_user_invalid')
-          EmailAddress.create!(user: u, email: 'viz-invalid@example.com')
-          u
+          create(:user, :with_email, username: 'viz_user_invalid', email: 'viz-invalid@example.com')
         end
         let(:id) { viz_user.id }
         let(:year) { 2024 }
@@ -151,21 +147,17 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user_a) do
-          u = User.create!(username: 'alts_sm_a')
-          EmailAddress.create!(user: u, email: 'alts_sm_a@example.com')
-          u
+          create(:user, :with_email, username: 'alts_sm_a', email: 'alts_sm_a@example.com')
         end
         let(:user_b) do
-          u = User.create!(username: 'alts_sm_b')
-          EmailAddress.create!(user: u, email: 'alts_sm_b@example.com')
-          u
+          create(:user, :with_email, username: 'alts_sm_b', email: 'alts_sm_b@example.com')
         end
         let(:lookback_days) { 30 }
         let(:limit) { nil }
 
         before do
           [ user_a, user_b ].each do |u|
-            Heartbeat.create!(
+            create(:heartbeat,
               user: u,
               time: Time.current.to_i,
               project: 'demo',
@@ -266,9 +258,7 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:counts_user) do
-          u = User.create!(username: 'audit_counts_user')
-          EmailAddress.create!(user: u, email: 'audit-counts@example.com')
-          u
+          create(:user, :with_email, username: 'audit_counts_user', email: 'audit-counts@example.com')
         end
         let(:payload) { { user_ids: [ counts_user.id ] } }
         run_test! do |response|

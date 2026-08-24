@@ -1,12 +1,6 @@
 require "test_helper"
 
 class WakatimeUserAgentParserTest < Minitest::Test
-  # Since parse_user_agent is a pure function that doesn't need database access,
-  # we can test it without loading any fixtures
-  def setup
-    ActiveRecord::FixtureSet.reset_cache
-  end
-
   def test_parse_user_agent_with_vscode_wakatime_client
     user_agent = "wakatime/v1.0.0 (darwin-arm64) go1.0.0 vscode/1.0.0 vscode-wakatime/1.0.0"
     result = WakatimeUserAgentParser.parse(user_agent)

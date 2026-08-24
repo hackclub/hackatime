@@ -3,7 +3,7 @@ require "test_helper"
 class HeartbeatImportRunTest < ActiveSupport::TestCase
   test "requires api key for remote imports on create" do
     run = HeartbeatImportRun.new(
-      user: User.create!(timezone: "UTC"),
+      user: create(:user),
       source_kind: :wakatime_dump,
       state: :queued
     )
@@ -14,7 +14,7 @@ class HeartbeatImportRunTest < ActiveSupport::TestCase
 
   test "does not require api key for wakatime download link imports" do
     run = HeartbeatImportRun.new(
-      user: User.create!(timezone: "UTC"),
+      user: create(:user),
       source_kind: :wakatime_download_link,
       state: :queued
     )
@@ -25,8 +25,8 @@ class HeartbeatImportRunTest < ActiveSupport::TestCase
   end
 
   test "remote cooldown helper returns future timestamp for recent remote import" do
-    user = User.create!(timezone: "UTC")
-    run = user.heartbeat_import_runs.create!(
+    user = create(:user)
+    run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
       state: :completed,
       encrypted_api_key: "secret",
@@ -39,13 +39,13 @@ class HeartbeatImportRunTest < ActiveSupport::TestCase
   end
 
   test "active_for returns the latest active import" do
-    user = User.create!(timezone: "UTC")
-    user.heartbeat_import_runs.create!(
+    user = create(:user)
+    create(:heartbeat_import_run, user: user,
       source_kind: :dev_upload,
       state: :completed,
       source_filename: "old.json"
     )
-    latest = user.heartbeat_import_runs.create!(
+    latest = create(:heartbeat_import_run, user: user,
       source_kind: :dev_upload,
       state: :queued,
       source_filename: "new.json"

@@ -123,8 +123,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
       response(403, 'forbidden — The target user has disabled public stats lookup and the requester is not that user.') do
         before do
-          user = User.create!(username: 'private_spans_user', slack_uid: 'PRIVATE_SPANS_1', allow_public_stats_lookup: false, timezone: 'America/New_York')
-          user.email_addresses.create!(email: 'private_spans@example.com')
+          create(:user, :with_email, username: 'private_spans_user', slack_uid: 'PRIVATE_SPANS_1', allow_public_stats_lookup: false, timezone: 'America/New_York', email: 'private_spans@example.com')
         end
         let(:username) { 'private_spans_user' }
         let(:start_date) { '2023-01-01' }
@@ -207,8 +206,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
       response(403, 'forbidden — The target user has disabled public stats lookup and the requester is not that user.') do
         before do
-          user = User.create!(username: 'private_projects_user', slack_uid: 'PRIVATE_PROJ_1', allow_public_stats_lookup: false, timezone: 'America/New_York')
-          user.email_addresses.create!(email: 'private_projects@example.com')
+          create(:user, :with_email, username: 'private_projects_user', slack_uid: 'PRIVATE_PROJ_1', allow_public_stats_lookup: false, timezone: 'America/New_York', email: 'private_projects@example.com')
         end
         let(:username) { 'private_projects_user' }
         schema '$ref' => '#/components/schemas/Error'
@@ -272,8 +270,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
       response(403, 'forbidden — The target user has disabled public stats lookup and the requester is not that user.') do
         before do
-          user = User.create!(username: 'private_project_user', slack_uid: 'PRIVATE_PROJ_2', allow_public_stats_lookup: false, timezone: 'America/New_York')
-          user.email_addresses.create!(email: 'private_project@example.com')
+          create(:user, :with_email, username: 'private_project_user', slack_uid: 'PRIVATE_PROJ_2', allow_public_stats_lookup: false, timezone: 'America/New_York', email: 'private_project@example.com')
         end
         let(:username) { 'private_project_user' }
         let(:project_name) { 'harbor' }
@@ -350,8 +347,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
       response(403, 'forbidden — The target user has disabled public stats lookup and the requester is not that user.') do
         before do
-          user = User.create!(username: 'private_details_user', slack_uid: 'PRIVATE_DET_1', allow_public_stats_lookup: false, timezone: 'America/New_York')
-          user.email_addresses.create!(email: 'private_details@example.com')
+          create(:user, :with_email, username: 'private_details_user', slack_uid: 'PRIVATE_DET_1', allow_public_stats_lookup: false, timezone: 'America/New_York', email: 'private_details@example.com')
         end
         let(:username) { 'private_details_user' }
         let(:projects) { nil }
@@ -451,8 +447,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
       response(403, 'forbidden — User has disabled public stats lookup') do
         before do
-          user = User.create!(username: 'private_user', slack_uid: 'PRIVATE_123', allow_public_stats_lookup: false, timezone: 'America/New_York')
-          user.email_addresses.create!(email: 'private@example.com')
+          create(:user, :with_email, username: 'private_user', slack_uid: 'PRIVATE_123', allow_public_stats_lookup: false, timezone: 'America/New_York', email: 'private@example.com')
         end
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }
