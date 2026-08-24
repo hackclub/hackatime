@@ -2,7 +2,7 @@ require "test_helper"
 
 class GoalTest < ActiveSupport::TestCase
   test "normalizes language and project arrays" do
-    user = User.create!
+    user = create(:user)
     goal = user.goals.create!(
       period: "day",
       target_seconds: 1800,
@@ -15,7 +15,7 @@ class GoalTest < ActiveSupport::TestCase
   end
 
   test "requires supported period" do
-    user = User.create!
+    user = create(:user)
     goal = user.goals.build(period: "year", target_seconds: 1800)
 
     assert_not goal.valid?
@@ -23,7 +23,7 @@ class GoalTest < ActiveSupport::TestCase
   end
 
   test "requires positive target seconds" do
-    user = User.create!
+    user = create(:user)
     goal = user.goals.build(period: "day", target_seconds: 0)
 
     assert_not goal.valid?
@@ -31,7 +31,7 @@ class GoalTest < ActiveSupport::TestCase
   end
 
   test "rejects targets longer than possible day" do
-    user = User.create!
+    user = create(:user)
     goal = user.goals.build(period: "day", target_seconds: 25.hours.to_i)
 
     assert_not goal.valid?
@@ -39,7 +39,7 @@ class GoalTest < ActiveSupport::TestCase
   end
 
   test "rejects targets longer than possible week" do
-    user = User.create!
+    user = create(:user)
     goal = user.goals.build(period: "week", target_seconds: (7.days + 1.hour).to_i)
 
     assert_not goal.valid?
@@ -47,7 +47,7 @@ class GoalTest < ActiveSupport::TestCase
   end
 
   test "rejects targets longer than possible month" do
-    user = User.create!
+    user = create(:user)
     goal = user.goals.build(period: "month", target_seconds: (31.days + 1.hour).to_i)
 
     assert_not goal.valid?
@@ -55,9 +55,9 @@ class GoalTest < ActiveSupport::TestCase
   end
 
   test "rejects exact duplicate goals for user" do
-    user = User.create!
+    user = create(:user)
 
-    user.goals.create!(
+    create(:goal, user: user,
       period: "week",
       target_seconds: 3600,
       languages: [ "Ruby" ],
@@ -76,9 +76,9 @@ class GoalTest < ActiveSupport::TestCase
   end
 
   test "rejects duplicate goals when languages and projects are in different order" do
-    user = User.create!
+    user = create(:user)
 
-    user.goals.create!(
+    create(:goal, user: user,
       period: "week",
       target_seconds: 3600,
       languages: [ "Ruby", "Python" ],
@@ -99,10 +99,10 @@ class GoalTest < ActiveSupport::TestCase
   end
 
   test "limits users to five goals" do
-    user = User.create!
+    user = create(:user)
 
     5.times do |index|
-      user.goals.create!(
+      create(:goal, user: user,
         period: "day",
         target_seconds: 1800 + index,
         languages: [],

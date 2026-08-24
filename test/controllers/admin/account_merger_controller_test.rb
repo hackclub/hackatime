@@ -2,9 +2,8 @@ require "test_helper"
 
 class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
   test "search_users returns formatted user results" do
-    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
-    user = User.create!(timezone: "UTC", username: "merge_target")
-    user.email_addresses.create!(email: "merge-target@example.com", source: :signing_in)
+    admin = create(:user, :ultraadmin)
+    user = create(:user, :with_email, email: "merge-target@example.com", username: "merge_target")
     sign_in_as(admin)
 
     get search_users_admin_account_merger_path, params: { query: "merge_target" }
@@ -21,28 +20,27 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "merge does not double count revoked doorkeeper rows in success message" do
-    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
-    older = User.create!(timezone: "UTC", username: "older_user")
-    newer = User.create!(timezone: "UTC", username: "newer_user")
+    admin = create(:user, :ultraadmin)
+    older = create(:user, username: "older_user")
+    newer = create(:user, :with_email, email: "newer@example.com", username: "newer_user")
     sign_in_as(admin)
 
-    heartbeat = Heartbeat.create!(user: newer, time: Time.current.to_i, source_type: :test_entry)
-    api_key = ApiKey.create!(user: newer, name: "Merge Test Key")
-    newer.email_addresses.create!(email: "newer@example.com", source: :signing_in)
-    newer.sign_in_tokens.create!(auth_type: :email)
-    oauth_app = newer.oauth_applications.create!(
+    heartbeat = create(:heartbeat, user: newer, time: Time.current.to_i, source_type: :test_entry)
+    api_key = create(:api_key, user: newer, name: "Merge Test Key")
+    create(:sign_in_token, user: newer, auth_type: :email)
+    oauth_app = create(:oauth_application, owner: newer,
       name: "Merge Test App",
       redirect_uri: "https://example.com/callback",
       scopes: "profile",
       confidential: true
     )
-    Doorkeeper::AccessToken.create!(
+    create(:oauth_access_token,
       application: oauth_app,
       resource_owner_id: newer.id,
       scopes: "profile",
       expires_in: 1.hour.to_i
     )
-    Doorkeeper::AccessGrant.create!(
+    create(:oauth_access_grant,
       application: oauth_app,
       resource_owner_id: newer.id,
       redirect_uri: oauth_app.redirect_uri,
@@ -64,16 +62,16 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "merge renames transferred api keys when the older account already has the same key name" do
-    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
-    older = User.create!(timezone: "UTC", username: "older_user")
-    newer = User.create!(timezone: "UTC", username: "newer_user")
+    admin = create(:user, :ultraadmin)
+    older = create(:user, username: "older_user")
+    newer = create(:user, username: "newer_user")
     sign_in_as(admin)
 
     older.update_column(:created_at, 2.days.ago)
     newer.update_column(:created_at, 1.day.ago)
 
-    older.api_keys.create!(name: "Wakatime API Key")
-    transferred_key = newer.api_keys.create!(name: "Wakatime API Key")
+    create(:api_key, user: older, name: "Wakatime API Key")
+    transferred_key = create(:api_key, user: newer, name: "Wakatime API Key")
 
     post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
 
@@ -85,9 +83,9 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "merge transfers instance import sources to the older account when it does not have one" do
-    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
-    older = User.create!(timezone: "UTC", username: "older_user")
-    newer = User.create!(timezone: "UTC", username: "newer_user")
+    admin = create(:user, :ultraadmin)
+    older = create(:user, username: "older_user")
+    newer = create(:user, username: "newer_user")
     sign_in_as(admin)
 
     older.update_column(:created_at, 2.days.ago)
@@ -105,9 +103,9 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "merge removes the newer instance import source when the older account already has one" do
-    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
-    older = User.create!(timezone: "UTC", username: "older_user")
-    newer = User.create!(timezone: "UTC", username: "newer_user")
+    admin = create(:user, :ultraadmin)
+    older = create(:user, username: "older_user")
+    newer = create(:user, username: "newer_user")
     sign_in_as(admin)
 
     older.update_column(:created_at, 2.days.ago)
@@ -128,7 +126,7 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
   private
 
   def create_instance_import_source_for(user, endpoint_url:)
-    InstanceImportSource.create!(
+    create(:instance_import_source,
       user: user,
       endpoint_url: endpoint_url,
       encrypted_api_key: "encrypted-api-key"

@@ -2,9 +2,9 @@ require "test_helper"
 
 class Api::Admin::V1::PermissionsControllerTest < ActionDispatch::IntegrationTest
   test "update admin level records PaperTrail whodunnit from admin API key user" do
-    admin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    key = admin.admin_api_keys.create!(name: "test")
-    user = User.create!(timezone: "UTC", username: "api_perms_target")
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, username: "api_perms_target")
 
     assert_difference -> { PaperTrail::Version.where(item_type: "User", item_id: user.id).count }, 1 do
       patch "/api/admin/v1/permissions/#{user.id}", params: { admin_level: "admin" }, headers: auth_headers(key), as: :json

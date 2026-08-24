@@ -16,8 +16,6 @@ RUN apt-get update -qq && \
     nodejs \
     npm \
     woff2 \
-    chromium \
-    chromium-driver \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
 
 # Install Bun
@@ -29,7 +27,9 @@ WORKDIR /app
 
 # Install npm dependencies for Vite.
 COPY package.json bun.lock ./
-RUN bun install
+RUN bun install && \
+    bun x playwright install --with-deps --only-shell chromium && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
 
 # Make Spline Sans available to librsvg/libvips via fontconfig. Pango does not
 # rasterize the bundled WOFF2 reliably, so dev installs a converted TTF.

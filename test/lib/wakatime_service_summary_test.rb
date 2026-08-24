@@ -5,7 +5,7 @@ class WakatimeServiceSummaryTest < ActiveSupport::TestCase
     @original_cache = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
     Rails.cache.clear
-    @user = User.create!(username: "wts_#{SecureRandom.hex(4)}")
+    @user = create(:user, username: "wts_#{SecureRandom.hex(4)}")
   end
 
   teardown do
@@ -43,7 +43,7 @@ class WakatimeServiceSummaryTest < ActiveSupport::TestCase
   end
 
   def create_heartbeat(project:, language:, time:)
-    @user.heartbeats.create!(
+    create(:heartbeat, user: @user,
       entity: "src/main.rb",
       type: "file",
       category: "coding",

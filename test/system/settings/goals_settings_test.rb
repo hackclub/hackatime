@@ -5,7 +5,7 @@ class GoalsSettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
-    @user = User.create!(timezone: "UTC")
+    @user = create(:user, :with_email)
     sign_in_as(@user)
   end
 
@@ -15,7 +15,7 @@ class GoalsSettingsTest < ApplicationSystemTestCase
     assert_text(/0 Active Goals/i)
     click_on "New goal"
 
-    within_modal do
+    within("[role='dialog']") do
       click_on "2h"
       click_on "Create Goal"
     end
@@ -26,7 +26,7 @@ class GoalsSettingsTest < ApplicationSystemTestCase
     assert_equal 2.hours.to_i, @user.reload.goals.first.target_seconds
 
     click_on "Edit"
-    within_modal do
+    within("[role='dialog']") do
       click_on "30m"
       click_on "Update Goal"
     end
@@ -42,12 +42,12 @@ class GoalsSettingsTest < ApplicationSystemTestCase
   end
 
   test "goals settings rejects duplicate goal" do
-    @user.goals.create!(period: "day", target_seconds: 2.hours.to_i, languages: [], projects: [])
+    create(:goal, user: @user, period: "day", target_seconds: 2.hours.to_i, languages: [], projects: [])
 
     visit my_settings_goals_path
     click_on "New goal"
 
-    within_modal do
+    within("[role='dialog']") do
       click_on "2h"
       click_on "Create Goal"
     end
@@ -58,7 +58,9 @@ class GoalsSettingsTest < ApplicationSystemTestCase
 
   test "goals settings rejects creating more than five goals" do
     5.times do |index|
-      @user.goals.create!(
+      create(
+        :goal,
+        user: @user,
         period: "day",
         target_seconds: (index + 1).hours.to_i,
         languages: [],

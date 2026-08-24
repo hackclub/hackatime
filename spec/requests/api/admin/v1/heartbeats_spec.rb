@@ -2,13 +2,11 @@ require 'swagger_helper'
 
 RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request, openapi_spec: 'admin/swagger.yaml' do
   def create_user(username, email)
-    u = User.create!(username: username)
-    EmailAddress.create!(user: u, email: email)
-    u
+    create(:user, :with_email, username: username, email: email)
   end
 
   def create_heartbeat(user, machine:, ip_address: nil)
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user,
       time: Time.current.to_i,
       project: 'test',

@@ -17,7 +17,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest persists normalized heartbeats and schedules dashboard rollup refresh" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     assert_difference("user.heartbeats.count", 1) do
       assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
@@ -59,7 +59,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest applies blank defaults and falls back to body metadata" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     HeartbeatIngest.call(
       user: user,
@@ -86,7 +86,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest classifies uncategorized browser heartbeats as browsing" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     HeartbeatIngest.call(
       user: user,
@@ -98,7 +98,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest classifies a minimal heartbeat as coding" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     HeartbeatIngest.call(
       user: user,
@@ -110,7 +110,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest uses the HTTP user agent when the body omits it" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     user_agent = "wakatime/v1.0.0 (linux-x86_64) go1.0.0 zed/1.0.0"
 
     HeartbeatIngest.call(
@@ -126,7 +126,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest prefers request machine over body machine" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     HeartbeatIngest.call(
       user: user,
@@ -144,7 +144,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest reuses a JA4 record across requests" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     ja4 = "t13d1516h2_8daaf6152771_02713d6af862"
 
     assert_difference({ "user.heartbeats.count" => 2, "Ja4.count" => 1 }) do
@@ -166,7 +166,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest returns existing heartbeat for duplicate input" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     payload = {
       entity: "src/main.rb",
       plugin: "vscode/1.0.0",
@@ -204,7 +204,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest inserts distinct bulk items in one statement and preserves item order" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     now = Time.current.to_f
     sql = []
     subscriber = lambda do |_name, _started, _finished, _unique_id, payload|
@@ -233,7 +233,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest runs model validations before bulk insertion" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     validation = lambda do |heartbeat|
       heartbeat.errors.add(:entity, "is rejected by a model validation") if heartbeat.entity == "rejected.rb"
     end
@@ -257,7 +257,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "import heartbeat ingest runs model validations before bulk insertion" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     validation = lambda do |heartbeat|
       heartbeat.errors.add(:entity, "is rejected by a model validation") if heartbeat.entity == "rejected.rb"
     end
@@ -281,7 +281,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "a validation failure does not seed placeholder state for later bulk items" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     now = Time.current.to_f
     validation = lambda do |heartbeat|
       heartbeat.errors.add(:entity, "is rejected by a model validation") if heartbeat.entity == "rejected.py"
@@ -307,7 +307,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest refetches a concurrent winner after an insert conflict" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     payload = { entity: "src/raced.rb", time: Time.current.to_f, type: "file" }
     winner = nil
     no_inserted_rows = ActiveRecord::Result.new([], [])
@@ -333,7 +333,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest rebuilds partition attributes inside a schema retry" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     time = Time.current.to_f
     attrs = { user_id: user.id, entity: "src/main.rb", time:, type: "file", category: "coding", source_type: :direct_entry }
     model_attributes = Heartbeat.new(attrs).attributes
@@ -374,7 +374,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest deduplicates repeated items within one bulk request" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     payload = {
       entity: "src/main.rb",
       project: "hackatime",
@@ -398,7 +398,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest resolves last language within the batch" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     now = Time.current.to_f
 
     result = HeartbeatIngest.call(
@@ -430,7 +430,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest normalizes millisecond-scaled epoch times" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     sane_time = Time.current.to_f
 
     HeartbeatIngest.call(
@@ -443,7 +443,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct AI heartbeat ingest stores the editor instead of the model" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     HeartbeatIngest.call(
       user: user,
@@ -464,7 +464,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct AI heartbeat ingest does not deduplicate distinct telemetry at the same timestamp" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     timestamp = Time.current.to_f
     base = {
       ai_session: "session-123",
@@ -486,7 +486,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "import heartbeat ingest normalizes nanosecond-scaled epoch times" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     sane_time = 1_700_000_000.0
 
     HeartbeatIngest.call(
@@ -499,7 +499,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "import heartbeat ingest applies blank defaults and sanitizes project names" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     HeartbeatIngest.call(
       user: user,
@@ -519,7 +519,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "import heartbeat ingest recognizes a pre-normalization fields hash" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     raw = {
       category: "",
       entity: "/tmp/test.rb",
@@ -542,7 +542,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "import heartbeat ingest recognizes legacy hashes stored before the language override" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     raw = {
       category: "coding",
       entity: "/home/dev/main.luau",
@@ -564,7 +564,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "import heartbeat ingest recognizes legacy hashes containing placeholders" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     raw = {
       branch: "<<LAST_BRANCH>>",
       entity: "/tmp/test.rb",
@@ -584,7 +584,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "import heartbeat ingest recognizes legacy user agent normalization hashes" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     user_agent = "wakatime/v1.0.0 (darwin-arm64) go1.0.0 vscode/1.90.0"
     raw = {
       category: "coding",
@@ -608,7 +608,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "import heartbeat ingest preserves AI telemetry" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     HeartbeatIngest.call(
       user: user,
@@ -643,7 +643,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest does not queue repo mapping for the last-project sentinel" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     assert_no_enqueued_jobs only: AttemptProjectRepoMappingJob do
       HeartbeatIngest.call(
@@ -660,7 +660,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "epoch normalization preserves sane values and rejects unrepairable values" do
-    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
 
     sane = Time.current.to_f
     assert_equal sane, ingest.send(:normalize_epoch_time, sane)
@@ -671,7 +671,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest reports invalid timestamps without persisting them" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     assert_no_difference("user.heartbeats.count") do
       result = HeartbeatIngest.call(
@@ -686,7 +686,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest strips null bytes from string attributes" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     result = HeartbeatIngest.call(
       user: user,
@@ -710,7 +710,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct placeholder resolution is scoped to the project and preserves last project" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     now = Time.current.to_f
 
     HeartbeatIngest.call(
@@ -731,9 +731,9 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "placeholder resolution fills missing in-batch context from database history" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     now = Time.current.to_f
-    user.heartbeats.create!(
+    create(:heartbeat, user: user,
       entity: "historical.rb", project: "api", branch: "main", language: "Ruby",
       category: "coding", source_type: :direct_entry, time: now - 10, type: "file"
     )
@@ -751,7 +751,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "heartbeat_unique_by targets the composite index once time_epoch exists" do
-    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
 
     assert_equal [ :fields_hash ], ingest.send(:heartbeat_unique_by)
 
@@ -765,7 +765,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "partition_attrs supplies floor(time) as time_epoch only once the column exists" do
-    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
 
     # pre-cutover / dev-and-test plain table: no-op
     assert_equal({}, ingest.send(:partition_attrs, 1_783_000_000.9))
@@ -799,7 +799,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "with_heartbeat_unique_by re-raises inside an open transaction after refreshing the schema cache" do
-    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
 
     # transactional tests already wrap us in a transaction, so the guard applies
     calls = 0
@@ -813,7 +813,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "import heartbeat ingest deduplicates imported heartbeats and schedules dashboard rollup refresh" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     assert_difference("user.heartbeats.count", 1) do
       assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
@@ -871,7 +871,7 @@ class HeartbeatIngestUniqueByFallbackTest < ActiveSupport::TestCase
   self.use_transactional_tests = false
 
   test "with_heartbeat_unique_by retries once after a schema-cache failure" do
-    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
 
     calls = 0
     result = ingest.send(:with_heartbeat_unique_by) do |unique_by|
@@ -885,7 +885,7 @@ class HeartbeatIngestUniqueByFallbackTest < ActiveSupport::TestCase
   end
 
   test "with_heartbeat_unique_by does not retry more than once" do
-    ingest = HeartbeatIngest.new(user: User.new, mode: :direct, heartbeats: [])
+    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
 
     calls = 0
     assert_raises(ActiveRecord::StatementInvalid) do

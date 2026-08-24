@@ -5,7 +5,7 @@ class SlackGithubSettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
-    @user = User.create!(timezone: "UTC")
+    @user = create(:user, :with_email)
     sign_in_as(@user)
   end
 
@@ -26,7 +26,7 @@ class SlackGithubSettingsTest < ApplicationSystemTestCase
     visit my_settings_slack_github_path
 
     within("#user_slack_status") do
-      find("[role='checkbox']", wait: 10).click
+      find("[role='checkbox']").click
     end
 
     click_on "Save Slack settings"
@@ -46,7 +46,7 @@ class SlackGithubSettingsTest < ApplicationSystemTestCase
     assert_text "@octocat"
 
     click_on "Unlink GitHub"
-    within_modal do
+    within("[role='dialog']") do
       assert_text "Unlink GitHub account?"
       click_on "Cancel"
     end

@@ -2,8 +2,7 @@ require "test_helper"
 
 class HeartbeatImportMailerTest < ActionMailer::TestCase
   setup do
-    @user = User.create!(
-      timezone: "UTC",
+    @user = create(:user,
       slack_uid: "U#{SecureRandom.hex(5)}",
       username: "mimp_#{SecureRandom.hex(4)}"
     )
@@ -25,7 +24,7 @@ class HeartbeatImportMailerTest < ActionMailer::TestCase
   end
 
   test "import_completed includes the import summary" do
-    run = @user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: @user,
       source_kind: :wakatime_dump,
       state: :completed,
       encrypted_api_key: "secret",
@@ -49,7 +48,7 @@ class HeartbeatImportMailerTest < ActionMailer::TestCase
   end
 
   test "import_failed includes the failure reason" do
-    run = @user.heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: @user,
       source_kind: :hackatime_v1_dump,
       state: :failed,
       encrypted_api_key: "secret",

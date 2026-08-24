@@ -2,9 +2,8 @@ require "test_helper"
 
 class WeeklySummaryMailerTest < ActionMailer::TestCase
   setup do
-    @user = User.create!(timezone: "UTC")
     @recipient_email = "weekly-mailer-#{SecureRandom.hex(4)}@example.com"
-    @user.email_addresses.create!(email: @recipient_email, source: :signing_in)
+    @user = create(:user, :with_email, email: @recipient_email)
   end
 
   test "weekly_summary renders coding recap and top lists" do
@@ -37,7 +36,7 @@ class WeeklySummaryMailerTest < ActionMailer::TestCase
   private
 
   def create_coding_heartbeat(time, project, language)
-    @user.heartbeats.create!(
+    create(:heartbeat, user: @user,
       entity: "src/#{project}.rb",
       type: "file",
       category: "coding",

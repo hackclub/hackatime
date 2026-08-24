@@ -5,7 +5,7 @@ class ProfileSettingsTest < ApplicationSystemTestCase
   include SettingsSystemTestHelpers
 
   setup do
-    @user = User.create!(timezone: "UTC")
+    @user = create(:user, :with_email)
     sign_in_as(@user)
   end
 

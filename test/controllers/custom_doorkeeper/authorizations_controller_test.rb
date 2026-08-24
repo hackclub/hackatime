@@ -1,12 +1,11 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "json"
 
 class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = User.create!(timezone: "UTC")
-    @oauth_app = @user.oauth_applications.create!(
+    @user = create(:user)
+    @oauth_app = create(:oauth_application, owner: @user,
       name: "Test App",
       redirect_uri: "https://example.com/callback",
       scopes: "profile",
@@ -42,16 +41,15 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
     get "/oauth/authorize", params: authorization_params
     assert_response :success
 
-    page = inertia_page
-    assert_equal "OAuthAuthorize/New", page["component"]
-    assert_equal @oauth_app.name, page.dig("props", "client_name")
-    assert page.dig("props", "scopes").is_a?(Array)
-    assert page.dig("props", "form_data", "client_id").present?
+    assert_inertia_component "OAuthAuthorize/New"
+    assert_equal @oauth_app.name, inertia.props["client_name"]
+    assert_kind_of Array, inertia.props["scopes"]
+    assert_predicate inertia.props.dig("form_data", "client_id"), :present?
   end
 
   test "new skips authorization when matching token exists" do
     sign_in_as(@user)
-    Doorkeeper::AccessToken.create!(
+    create(:oauth_access_token,
       application: @oauth_app,
       resource_owner_id: @user.id,
       scopes: "profile",
@@ -73,9 +71,8 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
       scope: "profile"
     }
 
-    page = inertia_page
-    assert_equal "OAuthAuthorize/Error", page["component"]
-    assert page.dig("props", "error_description").present?
+    assert_inertia_component "OAuthAuthorize/Error"
+    assert_predicate inertia.props["error_description"], :present?
   end
 
   test "new renders error for invalid client_id without a scope" do
@@ -87,9 +84,8 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
     }
 
     assert_response :success
-    page = inertia_page
-    assert_equal "OAuthAuthorize/Error", page["component"]
-    assert page.dig("props", "error_description").present?
+    assert_inertia_component "OAuthAuthorize/Error"
+    assert_predicate inertia.props["error_description"], :present?
   end
 
   test "show renders OAuthAuthorize/Show with code" do
@@ -97,9 +93,8 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
     get "/oauth/authorize/native", params: { code: "test_code" }
 
     assert_response :success
-    page = inertia_page
-    assert_equal "OAuthAuthorize/Show", page["component"]
-    assert_equal "test_code", page.dig("props", "code")
+    assert_inertia_component "OAuthAuthorize/Show"
+    assert_inertia_props code: "test_code"
   end
 
   test "new denies non-admin users requesting admin scope" do
@@ -107,67 +102,67 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
     sign_in_as(@user)
     get "/oauth/authorize", params: authorization_params(scope: "admin")
     assert_response :forbidden
-    assert_equal "OAuthAuthorize/Error", inertia_page["component"]
-    assert_match(/admins/i, inertia_page.dig("props", "error_description"))
+    assert_inertia_component "OAuthAuthorize/Error"
+    assert_match(/admins/i, inertia.props["error_description"])
   end
 
   test "new denies unverified applications requesting admin scope" do
     enable_admin_scope!(verified: false)
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    sign_in_as(create(:user, :admin))
     get "/oauth/authorize", params: authorization_params(scope: "admin")
     assert_response :forbidden
-    assert_equal "OAuthAuthorize/Error", inertia_page["component"]
-    assert_match(/verified applications/i, inertia_page.dig("props", "error_description"))
+    assert_inertia_component "OAuthAuthorize/Error"
+    assert_match(/verified applications/i, inertia.props["error_description"])
   end
 
   test "create denies unverified applications requesting admin scope" do
     enable_admin_scope!(verified: false)
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    sign_in_as(create(:user, :admin))
     post "/oauth/authorize", params: authorization_params(scope: "admin")
     assert_response :forbidden
-    assert_equal "OAuthAuthorize/Error", inertia_page["component"]
-    assert_match(/verified applications/i, inertia_page.dig("props", "error_description"))
+    assert_inertia_component "OAuthAuthorize/Error"
+    assert_match(/verified applications/i, inertia.props["error_description"])
   end
 
   test "new denies applications without an explicitly configured admin scope" do
     @oauth_app.update!(scopes: "", verified: true)
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    sign_in_as(create(:user, :admin))
     get "/oauth/authorize", params: authorization_params(scope: "admin")
     assert_response :forbidden
-    assert_equal "OAuthAuthorize/Error", inertia_page["component"]
-    assert_match(/configured with the admin scope/i, inertia_page.dig("props", "error_description"))
+    assert_inertia_component "OAuthAuthorize/Error"
+    assert_match(/configured with the admin scope/i, inertia.props["error_description"])
   end
 
   test "new denies public applications requesting admin scope" do
     enable_admin_scope!
     @oauth_app.update_column(:confidential, false)
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    sign_in_as(create(:user, :admin))
     get "/oauth/authorize", params: authorization_params(scope: "admin")
     assert_response :forbidden
-    assert_equal "OAuthAuthorize/Error", inertia_page["component"]
-    assert_match(/confidential applications/i, inertia_page.dig("props", "error_description"))
+    assert_inertia_component "OAuthAuthorize/Error"
+    assert_match(/confidential applications/i, inertia.props["error_description"])
   end
 
   test "new allows viewer requesting admin scope with warning prop" do
     enable_admin_scope!
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :viewer))
+    sign_in_as(create(:user, :viewer))
     get "/oauth/authorize", params: authorization_params(scope: "admin")
     assert_response :success
-    assert_equal "OAuthAuthorize/New", inertia_page["component"]
-    assert_equal true, inertia_page.dig("props", "has_admin_scope")
+    assert_inertia_component "OAuthAuthorize/New"
+    assert_inertia_props has_admin_scope: true
   end
 
   test "new allows admin requesting admin scope" do
     enable_admin_scope!
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    sign_in_as(create(:user, :admin))
     get "/oauth/authorize", params: authorization_params(scope: "admin")
     assert_response :success
-    assert_equal true, inertia_page.dig("props", "has_admin_scope")
+    assert_inertia_props has_admin_scope: true
   end
 
   test "create allows admin to authorize a verified confidential application with admin scope" do
     enable_admin_scope!
-    sign_in_as(User.create!(timezone: "UTC", admin_level: :admin))
+    sign_in_as(create(:user, :admin))
     post "/oauth/authorize", params: authorization_params(scope: "admin")
     assert_redirected_to %r{https://example\.com/callback\?code=}
   end

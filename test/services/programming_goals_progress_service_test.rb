@@ -11,8 +11,8 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
   end
 
   test "day goal uses current day in user timezone" do
-    user = User.create!(timezone: "America/New_York")
-    user.goals.create!(period: "day", target_seconds: 10)
+    user = create(:user, timezone: "America/New_York")
+    create(:goal, user: user, period: "day", target_seconds: 10)
 
     travel_to Time.utc(2026, 1, 14, 16, 0, 0) do
       create_heartbeat_pair(user, "2026-01-14 09:00:00")
@@ -25,8 +25,8 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
   end
 
   test "week goal starts on monday" do
-    user = User.create!(timezone: "America/New_York")
-    user.goals.create!(period: "week", target_seconds: 10)
+    user = create(:user, timezone: "America/New_York")
+    create(:goal, user: user, period: "week", target_seconds: 10)
 
     travel_to Time.utc(2026, 1, 14, 16, 0, 0) do
       timezone = ActiveSupport::TimeZone[user.timezone]
@@ -42,8 +42,8 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
   end
 
   test "month goal uses current calendar month" do
-    user = User.create!(timezone: "America/New_York")
-    user.goals.create!(period: "month", target_seconds: 10)
+    user = create(:user, timezone: "America/New_York")
+    create(:goal, user: user, period: "month", target_seconds: 10)
 
     travel_to Time.utc(2026, 2, 15, 17, 0, 0) do
       create_heartbeat_pair(user, "2026-02-01 08:00:00")
@@ -56,21 +56,21 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
   end
 
   test "language and project filters apply with and behavior" do
-    user = User.create!(timezone: "America/New_York")
+    user = create(:user, timezone: "America/New_York")
 
-    language_goal = user.goals.create!(
+    language_goal = create(:goal, user: user,
       period: "day",
       target_seconds: 10,
       languages: [ "Ruby" ],
       projects: []
     )
-    project_goal = user.goals.create!(
+    project_goal = create(:goal, user: user,
       period: "day",
       target_seconds: 10,
       languages: [],
       projects: [ "alpha" ]
     )
-    and_goal = user.goals.create!(
+    and_goal = create(:goal, user: user,
       period: "day",
       target_seconds: 10,
       languages: [ "Ruby" ],
@@ -91,8 +91,8 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
   end
 
   test "completion percent is capped at one hundred" do
-    user = User.create!(timezone: "America/New_York")
-    user.goals.create!(period: "day", target_seconds: 1)
+    user = create(:user, timezone: "America/New_York")
+    create(:goal, user: user, period: "day", target_seconds: 1)
 
     travel_to Time.utc(2026, 1, 14, 16, 0, 0) do
       create_heartbeat_pair(user, "2026-01-14 09:00:00")
@@ -106,13 +106,13 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
   end
 
   test "archived projects do not count toward goals" do
-    user = User.create!(timezone: "America/New_York")
-    user.goals.create!(period: "day", target_seconds: 10)
+    user = create(:user, timezone: "America/New_York")
+    create(:goal, user: user, period: "day", target_seconds: 10)
 
     travel_to Time.utc(2026, 1, 14, 16, 0, 0) do
       create_heartbeat_pair(user, "2026-01-14 09:00:00", project: "active")
       create_heartbeat_pair(user, "2026-01-14 09:10:00", project: "archived")
-      user.project_repo_mappings.create!(project_name: "archived").archive!
+      create(:project_repo_mapping, user: user, project_name: "archived").archive!
 
       progress = ProgrammingGoalsProgressService.new(user: user).call.first
 
@@ -125,7 +125,7 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
   def create_heartbeat_pair(user, start_time, language: "Ruby", project: "alpha")
     start_at = to_time_in_zone(user.timezone, start_time)
 
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user,
       time: start_at.to_i,
       language: language,
@@ -134,7 +134,7 @@ class ProgrammingGoalsProgressServiceTest < ActiveSupport::TestCase
       source_type: :test_entry
     )
 
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user,
       time: (start_at + 1.second).to_i,
       language: language,

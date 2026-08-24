@@ -18,7 +18,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
     with_memory_cache_store do
       Rails.cache.clear
 
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       stats = build_stats(user)
 
       create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -36,15 +36,15 @@ class DashboardStatsTest < ActiveSupport::TestCase
   end
 
   test "project grouped durations preserve nil project values" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     stats = build_stats(user)
 
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user, time: Time.current.to_f - 60, project: nil,
       language: "ruby", editor: "vscode", operating_system: "macos",
       category: "coding", source_type: :test_entry
     )
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user, time: Time.current.to_f, project: nil,
       language: "ruby", editor: "vscode", operating_system: "macos",
       category: "coding", source_type: :test_entry
@@ -60,7 +60,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   test "all-time dashboard data can be served from rollups" do
     with_memory_cache_store do
       Rails.cache.clear
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
         create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -88,7 +88,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   test "all-time dashboard data falls back when rollup table is unavailable" do
     with_memory_cache_store do
       Rails.cache.clear
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       stats = build_stats(user)
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
@@ -109,7 +109,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   test "selected periods include average coding time per elapsed day" do
     with_memory_cache_store do
       Rails.cache.clear
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
         create_heartbeat_at(user, "2026-04-13 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -140,7 +140,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   test "until-only period average starts at first heartbeat matching dashboard filters" do
     with_memory_cache_store do
       Rails.cache.clear
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
         create_heartbeat_at(user, "2026-01-01 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -162,7 +162,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   test "homepage rollup path falls back to live filter options when filter option rollup is missing" do
     with_memory_cache_store do
       Rails.cache.clear
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
         create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -189,7 +189,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   test "dirty rollup serves last rollup and schedules a refresh" do
     with_memory_cache_store do
       Rails.cache.clear
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
         create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -224,7 +224,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   test "stale rollup fingerprint serves last rollup and schedules a refresh" do
     with_memory_cache_store do
       Rails.cache.clear
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
         create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -262,7 +262,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
       Rails.cache.clear
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-        user = User.create!(timezone: "UTC")
+        user = create(:user)
         create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -292,7 +292,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
       Rails.cache.clear
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-        user = User.create!(timezone: "UTC")
+        user = create(:user)
         create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -330,7 +330,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
       Rails.cache.clear
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-        user = User.create!(timezone: "UTC")
+        user = create(:user)
         create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -367,7 +367,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
     with_memory_cache_store do
       Rails.cache.clear
 
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "Mac", category: "coding")
       create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "Mac", category: "coding")
       create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
@@ -386,14 +386,14 @@ class DashboardStatsTest < ActiveSupport::TestCase
     with_memory_cache_store do
       Rails.cache.clear
 
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
         create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "active", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "active", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 10:00:00 UTC", project: "archived", language: "python", editor: "zed", operating_system: "linux", category: "coding")
         create_heartbeat_at(user, "2026-04-14 10:01:00 UTC", project: "archived", language: "python", editor: "zed", operating_system: "linux", category: "coding")
       end
-      user.project_repo_mappings.create!(project_name: "archived").archive!
+      create(:project_repo_mapping, user: user, project_name: "archived").archive!
 
       stats = build_stats(user, params: { interval: "custom", from: "2026-04-14", to: "2026-04-14" })
       def stats.rollups_available? = false
@@ -412,7 +412,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   test "coding category meter data remains available for a singular category filter" do
     with_memory_cache_store do
       Rails.cache.clear
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "ai coding")
       create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "ai coding")
 
@@ -431,7 +431,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
     with_memory_cache_store do
       Rails.cache.clear
 
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
         %w[linux linux Linux Linux LINUX LINUX macos macos macos].each_with_index do |operating_system, index|
           create_heartbeat_at(
@@ -460,7 +460,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
 
       # Freeze time for the whole test so weekly rollups use the same week as the heartbeats.
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-        user = User.create!(timezone: "UTC")
+        user = create(:user)
         [ "<<LAST_PROJECT>>", "", nil, "Unknown" ].each_with_index do |project, index|
           start_at = Time.zone.parse("2026-04-13 09:00:00") + index.hours
           create_heartbeat_at(user, start_at.to_s, project:, language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -485,7 +485,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
     with_memory_cache_store do
       Rails.cache.clear
 
-      user = User.create!(timezone: "UTC")
+      user = create(:user)
       create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
@@ -505,7 +505,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
       Rails.cache.clear
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-        user = User.create!(timezone: "UTC")
+        user = create(:user)
         create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -553,7 +553,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   end
 
   def create_heartbeat(user, project:, language:, editor:, operating_system:, category:)
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user, time: Time.current.to_f, project: project,
       language: language, editor: editor, operating_system: operating_system,
       category: category, source_type: :test_entry
@@ -561,7 +561,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
   end
 
   def create_heartbeat_at(user, timestamp, project:, language:, editor:, operating_system:, category:)
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user, time: Time.parse(timestamp).to_f, project: project,
       language: language, editor: editor, operating_system: operating_system,
       category: category, source_type: :test_entry

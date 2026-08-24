@@ -36,15 +36,14 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
   private
 
   def create_user(username:, github_uid:)
-    User.create!(
+    create(:user,
       username: username,
-      github_uid: github_uid,
-      timezone: "UTC"
+      github_uid: github_uid
     )
   end
 
   def create_heartbeat_pair(user:, started_at:, editor:, project: "leaderboard-job-test")
-    user.heartbeats.create!(
+    create(:heartbeat, user: user,
       entity: "src/#{editor}.rb",
       type: "file",
       category: "coding",
@@ -53,7 +52,7 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
       project: project,
       source_type: :test_entry
     )
-    user.heartbeats.create!(
+    create(:heartbeat, user: user,
       entity: "src/#{editor}.rb",
       type: "file",
       category: "coding",

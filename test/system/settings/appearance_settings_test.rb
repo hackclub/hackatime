@@ -2,7 +2,7 @@ require "application_system_test_case"
 
 class AppearanceSettingsTest < ApplicationSystemTestCase
   setup do
-    @user = User.create!(timezone: "UTC")
+    @user = create(:user, :with_email)
     sign_in_as(@user)
   end
 

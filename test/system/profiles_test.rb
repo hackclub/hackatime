@@ -2,7 +2,8 @@ require "application_system_test_case"
 
 class ProfilesTest < ApplicationSystemTestCase
   test "public profile renders visible bio" do
-    user = User.create!(
+    user = create(
+      :user,
       username: "prof_#{SecureRandom.hex(4)}",
       profile_bio: "Profile bio from system test",
       allow_public_stats_lookup: true

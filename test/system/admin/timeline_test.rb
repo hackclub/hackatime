@@ -4,7 +4,7 @@ class AdminTimelineTest < ApplicationSystemTestCase
   DATE = Date.new(2026, 8, 10)
 
   setup do
-    @admin = User.create!(timezone: "UTC", admin_level: :admin)
+    @admin = create(:user, :with_email, :admin)
     sign_in_as(@admin)
   end
 
@@ -23,7 +23,7 @@ class AdminTimelineTest < ApplicationSystemTestCase
     assert_text "4m coded"
 
     # 02:00 = header (120px) + 2 hours * 128px; 8 minutes = 17.07px.
-    span = find("div[title*='Duration:']", match: :first)
+    span = find("div[title*='Duration:']")
     assert_includes span[:style], "top: 376px"
     assert_includes span[:style], "height: 17.07px"
 
@@ -38,11 +38,12 @@ class AdminTimelineTest < ApplicationSystemTestCase
 
     assert_text "NOW"
 
-    scroller = "document.querySelector('main .overflow-y-auto')"
-    assert page.evaluate_script("#{scroller}.scrollTop") > 0, "grid should auto-scroll towards the current time"
-    expected = page.evaluate_script(<<~JS)
+    scroller = find("main .overflow-y-auto")
+    assert page.evaluate_script("arguments[0].scrollTop", scroller) > 0,
+      "grid should auto-scroll towards the current time"
+    expected = page.evaluate_script(<<~JS, scroller)
       (() => {
-        const el = #{scroller};
+        const el = arguments[0];
         const now = new Date();
         const target = 120 + (now.getUTCHours() + now.getUTCMinutes() / 60) * 128;
         return Math.abs(el.scrollTop - Math.max(0, target - el.clientHeight / 2)) < 130;
@@ -54,7 +55,9 @@ class AdminTimelineTest < ApplicationSystemTestCase
   private
 
   def create_heartbeat(user, time:)
-    user.heartbeats.create!(
+    create(
+      :heartbeat,
+      user: user,
       entity: "src/main.rb",
       type: "file",
       category: "coding",
@@ -67,7 +70,8 @@ class AdminTimelineTest < ApplicationSystemTestCase
   end
 
   def create_commit(user, committed_at:)
-    Commit.create!(
+    create(
+      :commit,
       sha: "d" * 40,
       user_id: user.id,
       created_at: committed_at,

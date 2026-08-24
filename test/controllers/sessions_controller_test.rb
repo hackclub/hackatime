@@ -2,10 +2,6 @@ require "test_helper"
 require "uri"
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
-  setup do
-    ActiveRecord::FixtureSet.reset_cache
-  end
-
   # -- HCA: hca_new stores continue in session --
 
   test "hca_new stores continue path for oauth authorize" do
@@ -58,7 +54,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_inertia_component "Auth/SignIn"
-    assert_inertia_prop "continue_param", oauth_path
+    assert_inertia_props continue_param: oauth_path
   end
 
   test "signin renders without continue param when not provided" do
@@ -66,15 +62,14 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_inertia_component "Auth/SignIn"
-    assert_inertia_prop "continue_param", nil
+    assert_inertia_props continue_param: nil
   end
 
   # -- Email auth: persists continue into sign-in token --
 
   test "email auth stores continue param in sign-in token" do
-    user = User.create!
     email = "continue-test-#{SecureRandom.hex(4)}@example.com"
-    user.email_addresses.create!(email: email)
+    user = create(:user, :with_email, email: email)
 
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
 
@@ -90,9 +85,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   test "email auth uses the public URL for the development sign-in link" do
     original_public_url = ENV["PUBLIC_URL"]
     ENV["PUBLIC_URL"] = "https://hackatime.example.test/"
-    user = User.create!
     email = "public-url-test-#{SecureRandom.hex(4)}@example.com"
-    user.email_addresses.create!(email: email)
+    user = create(:user, :with_email, email: email)
     host! "3000-orb-id.e2b.app"
 
     post email_auth_path, params: { email: email }
@@ -106,9 +100,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   test "email auth uses the request URL when the public URL is blank" do
     original_public_url = ENV["PUBLIC_URL"]
     ENV["PUBLIC_URL"] = ""
-    user = User.create!
     email = "blank-public-url-test-#{SecureRandom.hex(4)}@example.com"
-    user.email_addresses.create!(email: email)
+    user = create(:user, :with_email, email: email)
     host! "hackatime.local"
 
     post email_auth_path, params: { email: email }
@@ -120,9 +113,9 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email token redirects to continue param after sign in" do
-    user = User.create!
+    user = create(:user)
     oauth_path = "/oauth/authorize?client_id=test&response_type=code"
-    sign_in_token = user.sign_in_tokens.create!(
+    sign_in_token = create(:sign_in_token, user: user,
       auth_type: :email,
       continue_param: oauth_path
     )
@@ -135,8 +128,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email token falls back to root when no continue param" do
-    user = User.create!
-    sign_in_token = user.sign_in_tokens.create!(auth_type: :email)
+    user = create(:user)
+    sign_in_token = create(:sign_in_token, user: user, auth_type: :email)
 
     get auth_token_path(token: sign_in_token.token)
 
@@ -146,8 +139,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email token rejects external continue URL" do
-    user = User.create!
-    sign_in_token = user.sign_in_tokens.create!(
+    user = create(:user)
+    sign_in_token = create(:sign_in_token, user: user,
       auth_type: :email,
       continue_param: "https://evil.example.com/phish"
     )
@@ -160,8 +153,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email token rejects protocol-relative continue URL" do
-    user = User.create!
-    sign_in_token = user.sign_in_tokens.create!(
+    user = create(:user)
+    sign_in_token = create(:sign_in_token, user: user,
       auth_type: :email,
       continue_param: "//evil.example.com/phish"
     )
@@ -198,7 +191,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "github_new stores oauth nonce and passes it in redirect state" do
-    user = User.create!
+    user = create(:user)
     sign_in_as(user)
 
     get github_auth_path
@@ -211,7 +204,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "github_create rejects oauth callback with mismatched state nonce" do
-    user = User.create!
+    user = create(:user)
     sign_in_as(user)
 
     get github_auth_path
@@ -225,8 +218,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "expired token redirects to root with alert" do
-    user = User.create!
-    sign_in_token = user.sign_in_tokens.create!(
+    user = create(:user)
+    sign_in_token = create(:sign_in_token, user: user,
       auth_type: :email,
       continue_param: "/oauth/authorize?client_id=test",
       expires_at: 1.hour.ago
@@ -240,8 +233,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "used token redirects to root with alert" do
-    user = User.create!
-    sign_in_token = user.sign_in_tokens.create!(
+    user = create(:user)
+    sign_in_token = create(:sign_in_token, user: user,
       auth_type: :email,
       continue_param: "/oauth/authorize?client_id=test",
       used_at: 1.minute.ago
@@ -255,7 +248,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "github_unlink clears github fields for signed-in user" do
-    user = User.create!(github_uid: "12345", github_username: "octocat", github_access_token: "secret-token")
+    user = create(:user, github_uid: "12345", github_username: "octocat", github_access_token: "secret-token")
     sign_in_as(user)
 
     delete github_unlink_path
@@ -270,7 +263,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "add_email creates email verification request" do
-    user = User.create!
+    user = create(:user)
     sign_in_as(user)
 
     assert_difference -> { user.reload.email_verification_requests.count }, 1 do
@@ -283,7 +276,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "add_email succeeds again after a pending request was removed" do
-    user = User.create!
+    user = create(:user)
     sign_in_as(user)
 
     post add_email_auth_path, params: { email: "recycle@example.com" }
@@ -300,8 +293,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "resend_email_verification enforces cooldown" do
-    user = User.create!
-    verification_request = user.email_verification_requests.create!(email: "pending@example.com")
+    user = create(:user)
+    verification_request = create(:email_verification_request, user: user, email: "pending@example.com")
     sign_in_as(user)
 
     old_token = verification_request.token
@@ -313,8 +306,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "resend_email_verification refreshes token after cooldown" do
-    user = User.create!
-    verification_request = user.email_verification_requests.create!(email: "pending-ok@example.com")
+    user = create(:user)
+    verification_request = create(:email_verification_request, user: user, email: "pending-ok@example.com")
     verification_request.update_columns(created_at: 11.minutes.ago, updated_at: 11.minutes.ago)
     sign_in_as(user)
 
@@ -327,8 +320,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "resend_email_verification revives an expired request" do
-    user = User.create!
-    verification_request = user.email_verification_requests.create!(email: "expired-resend@example.com")
+    user = create(:user)
+    verification_request = create(:email_verification_request, user: user, email: "expired-resend@example.com")
     verification_request.update_columns(
       created_at: 2.weeks.ago,
       updated_at: 2.weeks.ago,
@@ -350,9 +343,9 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "unlink_email removes secondary signing-in email" do
-    user = User.create!
-    removable = user.email_addresses.create!(email: "remove-me@example.com", source: :signing_in)
-    user.email_addresses.create!(email: "keep-me@example.com", source: :signing_in)
+    user = create(:user)
+    removable = create(:email_address, user: user, email: "remove-me@example.com", source: :signing_in)
+    create(:email_address, user: user, email: "keep-me@example.com", source: :signing_in)
     sign_in_as(user)
 
     assert_difference -> { user.reload.email_addresses.count }, -1 do
@@ -365,8 +358,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "unlink_email removes pending verification request when email is unverified" do
-    user = User.create!
-    verification_request = user.email_verification_requests.create!(email: "pending-remove@example.com")
+    user = create(:user)
+    verification_request = create(:email_verification_request, user: user, email: "pending-remove@example.com")
     sign_in_as(user)
 
     delete unlink_email_auth_path, params: { email: verification_request.email }
@@ -377,8 +370,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "unlink_email removes expired pending verification request" do
-    user = User.create!
-    verification_request = user.email_verification_requests.create!(email: "expired-remove@example.com")
+    user = create(:user)
+    verification_request = create(:email_verification_request, user: user, email: "expired-remove@example.com")
     verification_request.update_columns(expires_at: 1.minute.ago)
     sign_in_as(user)
 
@@ -390,8 +383,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "auth token verifies email verification request token" do
-    user = User.create!
-    verification_request = user.email_verification_requests.create!(email: "verify-me@example.com")
+    user = create(:user)
+    verification_request = create(:email_verification_request, user: user, email: "verify-me@example.com")
 
     assert_difference -> { user.reload.email_addresses.count }, 1 do
       get auth_token_path(token: verification_request.token)
@@ -404,8 +397,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "impersonate and stop impersonating swaps active user session" do
-    admin = User.create!(admin_level: :admin)
-    target = User.create!
+    admin = create(:user, :admin)
+    target = create(:user)
     sign_in_as(admin)
 
     get impersonate_user_path(target.id)

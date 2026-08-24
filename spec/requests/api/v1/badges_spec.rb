@@ -2,7 +2,7 @@ require 'swagger_helper'
 
 RSpec.describe 'Api::V1::Badges', type: :request do
   def create_heartbeat(user, project, time)
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user,
       time: time,
       project: project,
@@ -62,7 +62,7 @@ RSpec.describe 'Api::V1::Badges', type: :request do
 
       response(307, 'redirect to the shields.io badge image') do
         let(:badge_user) do
-          User.create!(slack_uid: "UBADGE#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true)
+          create(:user, slack_uid: "UBADGE#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true)
         end
         let(:user_id) { badge_user.slack_uid }
         let(:project) { 'hackatime' }
@@ -93,7 +93,7 @@ RSpec.describe 'Api::V1::Badges', type: :request do
 
       response(403, 'user has disabled public stats lookup') do
         let(:badge_user) do
-          User.create!(slack_uid: "UPRIV#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: false)
+          create(:user, slack_uid: "UPRIV#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: false)
         end
         let(:user_id) { badge_user.slack_uid }
         let(:project) { 'hackatime' }
@@ -109,7 +109,7 @@ RSpec.describe 'Api::V1::Badges', type: :request do
 
       response(404, 'project not found') do
         let(:badge_user) do
-          User.create!(slack_uid: "UNOPROJ#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true)
+          create(:user, slack_uid: "UNOPROJ#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true)
         end
         let(:user_id) { badge_user.slack_uid }
         let(:project) { 'a-project-with-no-heartbeats' }
@@ -127,7 +127,7 @@ RSpec.describe 'Api::V1::Badges', type: :request do
         # A single heartbeat resolves the project name (so it isn't a 404) but
         # yields duration_seconds == 0, triggering `head :bad_request`.
         let(:badge_user) do
-          User.create!(slack_uid: "UZERO#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true)
+          create(:user, slack_uid: "UZERO#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true)
         end
         let(:user_id) { badge_user.slack_uid }
         let(:project) { 'hackatime' }
@@ -145,18 +145,18 @@ RSpec.describe 'Api::V1::Badges', type: :request do
   end
 
   it 'supports project names containing dots' do
-    badge_user = User.create!(
+    badge_user = create(:user,
       slack_uid: "UDOTTED#{SecureRandom.hex(4)}",
       timezone: 'UTC',
       allow_public_stats_lookup: true
     )
-    repository = Repository.create!(
+    repository = create(:repository,
       url: 'https://github.com/pimlico/pimlico.dev',
       host: 'github.com',
       owner: 'pimlico',
       name: 'pimlico.dev'
     )
-    badge_user.project_repo_mappings.create!(project_name: 'pimlico.dev', repository: repository)
+    create(:project_repo_mapping, user: badge_user, project_name: 'pimlico.dev', repository: repository)
     log_time(badge_user, 'pimlico.dev')
 
     get "/api/v1/badge/#{badge_user.slack_uid}/pimlico/pimlico.dev"

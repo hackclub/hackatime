@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 InertiaRails.configure do |config|
-  config.version = ViteRuby.digest
+  # The official partial-reload test helpers do not send X-Inertia-Version.
+  config.version = ViteRuby.digest unless Rails.env.test?
   config.encrypt_history = Rails.env.production?
   config.always_include_errors_hash = true
   # Required for Inertia.js v3 client compatibility. Defaults are still `false`

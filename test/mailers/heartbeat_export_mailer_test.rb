@@ -2,8 +2,7 @@ require "test_helper"
 
 class HeartbeatExportMailerTest < ActionMailer::TestCase
   setup do
-    @user = User.create!(
-      timezone: "UTC",
+    @user = create(:user,
       slack_uid: "U#{SecureRandom.hex(5)}",
       username: "mexp_#{SecureRandom.hex(4)}"
     )

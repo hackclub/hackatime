@@ -16,7 +16,7 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
 
   test "downloads the remote dump and enqueues the import job" do
     run = nil
-    run = User.create!(timezone: "UTC").heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: create(:user),
       source_kind: :wakatime_dump,
       state: :downloading_dump,
       remote_dump_status: "Manual download link received",
@@ -53,7 +53,7 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
   end
 
   test "marks the run as failed when the direct download is rejected" do
-    run = User.create!(timezone: "UTC").heartbeat_import_runs.create!(
+    run = create(:heartbeat_import_run, user: create(:user),
       source_kind: :wakatime_download_link,
       state: :downloading_dump,
       message: "Downloading data dump..."

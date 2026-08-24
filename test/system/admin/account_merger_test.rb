@@ -2,30 +2,32 @@ require "application_system_test_case"
 
 class Admin::AccountMergerTest < ApplicationSystemTestCase
   test "ultraadmin can merge a newer account into an older account" do
-    admin = User.create!(timezone: "UTC", admin_level: :ultraadmin, username: "ultraadmin")
-    older = User.create!(timezone: "UTC", username: "older_merge_target")
-    newer = User.create!(timezone: "UTC", username: "newer_merge_target")
+    admin = create(:user, :with_email, :ultraadmin, username: "ultraadmin")
+    older = create(:user, username: "older_merge_target")
+    newer = create(:user, username: "newer_merge_target")
 
     older.update_column(:created_at, 2.days.ago)
     newer.update_column(:created_at, 1.day.ago)
 
-    heartbeat = Heartbeat.create!(user: newer, time: Time.current.to_i, source_type: :test_entry)
-    api_key = ApiKey.create!(user: newer, name: "Merge Test Key")
-    newer.email_addresses.create!(email: "newer@example.com", source: :signing_in)
-    newer.sign_in_tokens.create!(auth_type: :email)
-    oauth_app = newer.oauth_applications.create!(
+    heartbeat = create(:heartbeat, user: newer, time: Time.current.to_i, source_type: :test_entry)
+    api_key = create(:api_key, user: newer, name: "Merge Test Key")
+    create(:email_address, user: newer, email: "newer@example.com", source: :signing_in)
+    create(:sign_in_token, user: newer, auth_type: :email)
+    oauth_app = create(
+      :oauth_application,
+      owner: newer,
       name: "Merge Test App",
       redirect_uri: "https://example.com/callback",
       scopes: "profile",
       confidential: true
     )
-    Doorkeeper::AccessToken.create!(
+    create(:oauth_access_token,
       application: oauth_app,
       resource_owner_id: newer.id,
       scopes: "profile",
       expires_in: 1.hour.to_i
     )
-    Doorkeeper::AccessGrant.create!(
+    create(:oauth_access_grant,
       application: oauth_app,
       resource_owner_id: newer.id,
       redirect_uri: oauth_app.redirect_uri,

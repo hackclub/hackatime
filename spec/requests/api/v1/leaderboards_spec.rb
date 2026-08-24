@@ -2,7 +2,7 @@ require 'swagger_helper'
 
 RSpec.describe 'Api::V1::Leaderboard', type: :request do
   let(:leaderboard_user) do
-    User.find_by(slack_uid: 'LEADERBOARD_USER') || User.create!(
+    User.find_by(slack_uid: 'LEADERBOARD_USER') || create(:user,
       slack_uid: 'LEADERBOARD_USER',
       username: 'leaderboarduser',
       slack_username: 'leaderboarduser',
@@ -18,12 +18,12 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
 
       response(200, 'successful', document: false) do
         before do
-          board = Leaderboard.create!(
+          board = create(:leaderboard,
             start_date: Date.current,
             period_type: :daily,
             finished_generating_at: Time.current
           )
-          board.entries.create!(user: leaderboard_user, total_seconds: 3600)
+          create(:leaderboard_entry, leaderboard: board, user: leaderboard_user, total_seconds: 3600)
         end
 
         schema type: :object,
@@ -59,12 +59,12 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
 
       response(200, 'successful') do
         before do
-          board = Leaderboard.create!(
+          board = create(:leaderboard,
             start_date: Date.current,
             period_type: :daily,
             finished_generating_at: Time.current
           )
-          board.entries.create!(user: leaderboard_user, total_seconds: 3600)
+          create(:leaderboard_entry, leaderboard: board, user: leaderboard_user, total_seconds: 3600)
         end
 
         schema type: :object,
@@ -100,12 +100,12 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
 
       response(200, 'successful') do
         before do
-          board = Leaderboard.create!(
+          board = create(:leaderboard,
             start_date: Date.current,
             period_type: :last_7_days,
             finished_generating_at: Time.current
           )
-          board.entries.create!(user: leaderboard_user, total_seconds: 3600 * 7)
+          create(:leaderboard_entry, leaderboard: board, user: leaderboard_user, total_seconds: 3600 * 7)
         end
 
         schema type: :object,

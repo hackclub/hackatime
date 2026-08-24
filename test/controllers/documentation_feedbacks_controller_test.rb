@@ -16,7 +16,7 @@ class DocumentationFeedbacksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "uses the signed-in user and ignores the visitor token" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     sign_in_as(user)
     visitor_token = SecureRandom.uuid
 

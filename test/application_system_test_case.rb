@@ -3,25 +3,17 @@ ENV["VITE_RUBY_AUTO_BUILD"] = "false"
 
 require "test_helper"
 
-Capybara.register_driver :headless_chromium do |app|
-  options = Selenium::WebDriver::Chrome::Options.new
-  options.binary = ENV.fetch("CHROME_BIN", "/usr/bin/chromium")
-  options.add_argument("--headless=new")
-  options.add_argument("--no-sandbox")
-  options.add_argument("--disable-gpu")
-  options.add_argument("--disable-dev-shm-usage")
-  options.add_argument("--window-size=1400,1400")
+Capybara.register_driver :headless_playwright do |app|
+  options = {
+    browser_type: :chromium,
+    headless: true,
+    playwright_cli_executable_path: Rails.root.join("node_modules/.bin/playwright").to_s,
+    args: [ "--no-sandbox", "--disable-dev-shm-usage" ],
+    viewport: { width: 1400, height: 1400 }
+  }
+  options[:executablePath] = ENV["CHROME_BIN"] if ENV["CHROME_BIN"].present?
 
-  # (For CI pinning)
-  if ENV["CHROME_BIN"].present?
-    options.binary = ENV["CHROME_BIN"]
-  end
-
-  service = Selenium::WebDriver::Chrome::Service.new(
-    path: ENV.fetch("CHROMEDRIVER_BIN", "/usr/bin/chromedriver")
-  )
-
-  Capybara::Selenium::Driver.new(app, browser: :chrome, options: options, service: service)
+  Capybara::Playwright::Driver.new(app, **options)
 end
 
 Capybara.server_host = "localhost"
@@ -31,32 +23,5 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
 
   parallelize workers: ENV.fetch("SYSTEM_TEST_WORKERS", 3).to_i, threshold: 1
 
-  # Chrome 134+ has an intermittent ChromeDriver bug where node ownership
-  # gets stale after Capybara visit() calls, causing "Node with given id
-  # does not belong to the document" errors. Retry once as a workaround.
-  # See: https://github.com/teamcapybara/capybara/issues/2800
-  CHROMEDRIVER_NODE_ERROR = /Node with given id does not belong to the document/i
-
-  driven_by :headless_chromium
-
-  def run
-    result = super
-    return result unless chromedriver_node_error?(result)
-
-    warn "Retrying #{self.class}##{name} after chromedriver node ownership error"
-
-    self.failures = []
-    self.assertions = 0
-    super
-  end
-
-  private
-
-  def chromedriver_node_error?(result)
-    result.failures.any? do |failure|
-      [ failure.message, failure.respond_to?(:error) ? failure.error&.message : nil ].any? do |message|
-        message&.match?(CHROMEDRIVER_NODE_ERROR)
-      end
-    end
-  end
+  driven_by :headless_playwright
 end

@@ -1,10 +1,8 @@
 require "test_helper"
 
 class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users
-
   test "theme update persists selected theme" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     patch my_settings_appearance_theme_path, params: { user: { theme: "nord" } }
@@ -16,7 +14,7 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "region update normalizes blank country code to nil" do
-    user = users(:one)
+    user = create(:user)
     user.update!(country_code: "US")
     sign_in_as(user)
 
@@ -27,7 +25,7 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "display name update persists override" do
-    user = users(:one)
+    user = create(:user)
     user.update!(slack_username: "slack_name")
     sign_in_as(user)
 
@@ -40,7 +38,7 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "display name update clears blank override" do
-    user = users(:one)
+    user = create(:user)
     user.update!(display_name_override: "Custom Name", slack_username: "slack_name")
     sign_in_as(user)
 
@@ -52,7 +50,7 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "display name update with invalid display name returns unprocessable entity" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     patch my_settings_profile_display_name_path, params: {
@@ -64,7 +62,7 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "username update with invalid username returns unprocessable entity" do
-    user = users(:one)
+    user = create(:user)
     user.update!(username: "good_name")
     sign_in_as(user)
 

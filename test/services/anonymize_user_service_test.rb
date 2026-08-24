@@ -2,7 +2,7 @@ require "test_helper"
 
 class AnonymizeUserServiceTest < ActiveSupport::TestCase
   test "anonymization clears profile identity fields" do
-    user = User.create!(
+    user = create(:user,
       username: "anon_#{SecureRandom.hex(4)}",
       display_name_override: "Custom Name",
       profile_bio: "Bio",
@@ -28,8 +28,8 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
   end
 
   test "anonymization destroys goals" do
-    user = User.create!(username: "ag_#{SecureRandom.hex(4)}")
-    user.goals.create!(period: "day", target_seconds: 600, languages: [ "Ruby" ], projects: [ "alpha" ])
+    user = create(:user, username: "ag_#{SecureRandom.hex(4)}")
+    create(:goal, user: user, period: "day", target_seconds: 600, languages: [ "Ruby" ], projects: [ "alpha" ])
 
     assert_equal 1, user.goals.count
 
@@ -39,9 +39,9 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
   end
 
   test "anonymization removes api keys and sign-in tokens" do
-    user = User.create!(username: "cleanup_#{SecureRandom.hex(4)}")
-    user.api_keys.create!(name: "primary")
-    user.sign_in_tokens.create!(auth_type: :email)
+    user = create(:user, username: "cleanup_#{SecureRandom.hex(4)}")
+    create(:api_key, user: user, name: "primary")
+    create(:sign_in_token, user: user, auth_type: :email)
 
     assert_equal 1, user.api_keys.count
     assert_equal 1, user.sign_in_tokens.count
@@ -53,8 +53,8 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
   end
 
   test "anonymization soft deletes active heartbeats" do
-    user = User.create!(username: "hb_cleanup_#{SecureRandom.hex(4)}")
-    heartbeat = user.heartbeats.create!(
+    user = create(:user, username: "hb_cleanup_#{SecureRandom.hex(4)}")
+    heartbeat = create(:heartbeat, user: user,
       entity: "src/app.rb",
       type: "file",
       category: "coding",
@@ -69,7 +69,7 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
   end
 
   test "anonymization removes legacy encrypted import credentials" do
-    user = User.create!(username: "legacy_#{SecureRandom.hex(3)}")
+    user = create(:user, username: "legacy_#{SecureRandom.hex(3)}")
     connection = ActiveRecord::Base.connection
     now = connection.quote(Time.current)
 

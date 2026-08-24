@@ -5,7 +5,7 @@ WebMock.disable_net_connect!(allow_localhost: true)
 
 class DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = User.create!(timezone: "UTC")
+    @user = create(:user)
     sign_in_as(@user)
   end
 

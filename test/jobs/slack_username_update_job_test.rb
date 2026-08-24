@@ -14,10 +14,10 @@ class SlackUsernameUpdateJobTest < ActiveJob::TestCase
   end
 
   test "enqueues profile syncs for never-synced and stale Slack users" do
-    never_synced = User.create!(timezone: "UTC", slack_uid: "U_NEVER_SYNCED")
-    stale = User.create!(timezone: "UTC", slack_uid: "U_STALE", slack_synced_at: 2.days.ago)
-    User.create!(timezone: "UTC", slack_uid: "U_FRESH", slack_synced_at: 1.hour.ago)
-    User.create!(timezone: "UTC")
+    never_synced = create(:user, slack_uid: "U_NEVER_SYNCED")
+    stale = create(:user, slack_uid: "U_STALE", slack_synced_at: 2.days.ago)
+    create(:user, slack_uid: "U_FRESH", slack_synced_at: 1.hour.ago)
+    create(:user)
 
     assert_enqueued_jobs 2, only: SlackProfileSyncJob do
       SlackUsernameUpdateJob.perform_now

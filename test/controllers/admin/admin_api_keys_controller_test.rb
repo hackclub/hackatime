@@ -2,9 +2,9 @@ require "test_helper"
 
 class Admin::AdminApiKeysControllerTest < ActionDispatch::IntegrationTest
   test "ultraadmin can revoke another user's admin API key" do
-    ultraadmin = User.create!(timezone: "UTC", admin_level: :ultraadmin)
-    owner = User.create!(timezone: "UTC", admin_level: :admin)
-    key = owner.admin_api_keys.create!(name: "Other user's key")
+    ultraadmin = create(:user, :ultraadmin)
+    owner = create(:user, :admin)
+    key = create(:admin_api_key, user: owner, name: "Other user's key")
 
     sign_in_as(ultraadmin)
     delete admin_admin_api_key_path(key)
@@ -14,9 +14,9 @@ class Admin::AdminApiKeysControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "superadmin cannot revoke another user's admin API key" do
-    superadmin = User.create!(timezone: "UTC", admin_level: :superadmin)
-    owner = User.create!(timezone: "UTC", admin_level: :admin)
-    key = owner.admin_api_keys.create!(name: "Other user's key")
+    superadmin = create(:user, :superadmin)
+    owner = create(:user, :admin)
+    key = create(:admin_api_key, user: owner, name: "Other user's key")
 
     sign_in_as(superadmin)
     delete admin_admin_api_key_path(key)

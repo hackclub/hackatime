@@ -5,16 +5,16 @@ class Cache::ActiveProjectsJobTest < ActiveSupport::TestCase
   teardown { Rails.cache.clear }
 
   def create_heartbeat(user:, project:, **attrs)
-    Heartbeat.create!(
+    create(:heartbeat,
       user: user, project: project, entity: "src/#{project}.rb",
       source_type: :direct_entry, time: Time.current.to_f, **attrs
     )
   end
 
   test "returns the most recent active project per user and excludes soft-deleted heartbeats" do
-    user = User.create!(timezone: "UTC")
-    ProjectRepoMapping.create!(user: user, project_name: "live")
-    ProjectRepoMapping.create!(user: user, project_name: "ghost")
+    user = create(:user)
+    create(:project_repo_mapping, user: user, project_name: "live")
+    create(:project_repo_mapping, user: user, project_name: "ghost")
 
     create_heartbeat(user: user, project: "live", time: 1.minute.ago.to_f)
     # a soft-deleted recent heartbeat must NOT resurrect "ghost" as active
@@ -27,9 +27,9 @@ class Cache::ActiveProjectsJobTest < ActiveSupport::TestCase
   end
 
   test "excludes heartbeats older than the recent window and non-direct source types" do
-    user = User.create!(timezone: "UTC")
-    ProjectRepoMapping.create!(user: user, project_name: "stale")
-    ProjectRepoMapping.create!(user: user, project_name: "imported")
+    user = create(:user)
+    create(:project_repo_mapping, user: user, project_name: "stale")
+    create(:project_repo_mapping, user: user, project_name: "imported")
 
     create_heartbeat(user: user, project: "stale", time: 10.minutes.ago.to_f)
     create_heartbeat(user: user, project: "imported", time: 1.minute.ago.to_f, source_type: :wakapi_import)

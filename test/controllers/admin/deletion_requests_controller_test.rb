@@ -2,9 +2,9 @@ require "test_helper"
 
 class Admin::DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @ultraadmin = User.create!(timezone: "UTC", admin_level: :ultraadmin, username: "ultraadmin")
-    @superadmin = User.create!(timezone: "UTC", admin_level: :superadmin, username: "superadmin")
-    @target = User.create!(timezone: "UTC", username: "delete_me")
+    @ultraadmin = create(:user, :ultraadmin, username: "ultraadmin")
+    @superadmin = create(:user, :superadmin, username: "superadmin")
+    @target = create(:user, username: "delete_me")
   end
 
   # new
@@ -36,7 +36,7 @@ class Admin::DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "confirm finds user by email" do
-    @target.email_addresses.create!(email: "delete_me@example.com", source: :signing_in)
+    create(:email_address, user: @target, email: "delete_me@example.com", source: :signing_in)
     sign_in_as(@ultraadmin)
     get confirm_admin_deletion_requests_path, params: { q: "delete_me@example.com" }
     assert_response :success

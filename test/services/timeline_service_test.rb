@@ -4,7 +4,7 @@ class TimelineServiceTest < ActiveSupport::TestCase
   DATE = Date.new(2026, 8, 10)
 
   test "total_coded_time matches Heartbeat.duration_seconds for the user's day" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     day_start = DATE.in_time_zone("UTC").beginning_of_day.to_f
 
     create_heartbeat(user, time: day_start + 3600)
@@ -23,7 +23,7 @@ class TimelineServiceTest < ActiveSupport::TestCase
   end
 
   test "total_coded_time only counts heartbeats within the user's local day" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     day_start = DATE.in_time_zone("UTC").beginning_of_day.to_f
 
     create_heartbeat(user, time: day_start - 60)
@@ -37,7 +37,7 @@ class TimelineServiceTest < ActiveSupport::TestCase
   end
 
   test "commit_markers uses the user's timezone to pick the day" do
-    user = User.create!(timezone: "Asia/Tokyo")
+    user = create(:user, timezone: "Asia/Tokyo")
 
     # 01:00 on Aug 10 in Tokyo is 16:00 on Aug 9 UTC: outside the server-zone
     # day but inside the user's day, so it must appear.
@@ -57,10 +57,10 @@ class TimelineServiceTest < ActiveSupport::TestCase
   end
 
   test "commit_markers skips commits without a GitHub URL" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     committed_at = DATE.in_time_zone("UTC").beginning_of_day + 2.hours
 
-    Commit.create!(sha: "c" * 40, user_id: user.id, created_at: committed_at,
+    create(:commit, sha: "c" * 40, user_id: user.id, created_at: committed_at,
                    github_raw: { "commit" => { "committer" => { "date" => committed_at.iso8601 } } })
 
     service = TimelineService.new(date: DATE, selected_user_ids: [ user.id ])
@@ -71,7 +71,7 @@ class TimelineServiceTest < ActiveSupport::TestCase
   private
 
   def create_heartbeat(user, time:)
-    user.heartbeats.create!(
+    create(:heartbeat, user: user,
       entity: "src/main.rb",
       type: "file",
       category: "coding",
@@ -84,7 +84,7 @@ class TimelineServiceTest < ActiveSupport::TestCase
   end
 
   def create_commit(user, sha:, committed_at:)
-    Commit.create!(
+    create(:commit,
       sha: sha,
       user_id: user.id,
       created_at: committed_at,

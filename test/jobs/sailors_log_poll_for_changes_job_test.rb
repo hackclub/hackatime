@@ -14,13 +14,13 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
   end
 
   test "notifies for a recently received direct heartbeat with an old coding timestamp" do
-    user = User.create!(slack_uid: "U_DELAYED_DIRECT", timezone: "UTC")
-    sailors_log = SailorsLog.create!(slack_uid: user.slack_uid, projects_summary: { "nixos" => 3_500 })
-    Heartbeat.create!(
+    user = create(:user, slack_uid: "U_DELAYED_DIRECT")
+    sailors_log = create(:sailors_log, user: user, slack_uid: user.slack_uid, projects_summary: { "nixos" => 3_500 })
+    create(:heartbeat,
       user:, time: 3.weeks.ago.to_f, project: "nixos", category: "coding",
       entity: "/tmp/configuration.nix", type: "file", source_type: :direct_entry
     )
-    DashboardRollup.create!(
+    create(:dashboard_rollup,
       user_id: user.id, dimension: "project", bucket_value: "nixos",
       bucket_value_present: true, total_seconds: 22_209
     )
@@ -42,13 +42,13 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
   end
 
   test "does not notify for a recently imported heartbeat with an old coding timestamp" do
-    user = User.create!(slack_uid: "U_DELAYED_IMPORT", timezone: "UTC")
-    sailors_log = SailorsLog.create!(slack_uid: user.slack_uid, projects_summary: { "imported" => 3_500 })
-    Heartbeat.create!(
+    user = create(:user, slack_uid: "U_DELAYED_IMPORT")
+    sailors_log = create(:sailors_log, user: user, slack_uid: user.slack_uid, projects_summary: { "imported" => 3_500 })
+    create(:heartbeat,
       user:, time: 3.weeks.ago.to_f, project: "imported", category: "coding",
       entity: "/tmp/imported.rb", type: "file", source_type: :wakapi_import
     )
-    DashboardRollup.create!(
+    create(:dashboard_rollup,
       user_id: user.id, dimension: "project", bucket_value: "imported",
       bucket_value_present: true, total_seconds: 3_700
     )
@@ -60,14 +60,14 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
   end
 
   test "does not notify while any heartbeat import is active" do
-    user = User.create!(slack_uid: "U_ACTIVE_IMPORT", timezone: "UTC")
-    sailors_log = SailorsLog.create!(slack_uid: user.slack_uid, projects_summary: { "imported" => 3_500 })
-    user.heartbeat_import_runs.create!(source_kind: :dev_upload, state: :importing)
-    Heartbeat.create!(
+    user = create(:user, slack_uid: "U_ACTIVE_IMPORT")
+    sailors_log = create(:sailors_log, user: user, slack_uid: user.slack_uid, projects_summary: { "imported" => 3_500 })
+    create(:heartbeat_import_run, user: user, source_kind: :dev_upload, state: :importing)
+    create(:heartbeat,
       user:, time: Time.current.to_f, project: "imported", category: "coding",
       entity: "/tmp/imported.rb", type: "file", source_type: :wakapi_import
     )
-    DashboardRollup.create!(
+    create(:dashboard_rollup,
       user_id: user.id, dimension: "project", bucket_value: "imported",
       bucket_value_present: true, total_seconds: 3_700
     )

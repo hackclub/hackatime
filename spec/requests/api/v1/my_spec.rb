@@ -2,7 +2,7 @@ require 'swagger_helper'
 
 RSpec.describe 'Api::V1::My', type: :request do
   let(:user) do
-    User.find_by(slack_uid: 'TEST123456') || User.create!(
+    User.find_by(slack_uid: 'TEST123456') || create(:user,
       slack_uid: 'TEST123456',
       username: 'testuser',
       slack_username: 'testuser',
@@ -12,7 +12,7 @@ RSpec.describe 'Api::V1::My', type: :request do
 
   def login_browser_user
     allow_any_instance_of(ActionController::Base).to receive(:protect_against_forgery?).and_return(false)
-    sign_in_token = user.sign_in_tokens.create!(auth_type: :email)
+    sign_in_token = create(:sign_in_token, user: user, auth_type: :email)
     get "/auth/token/#{sign_in_token.token}"
   end
 
@@ -228,7 +228,7 @@ RSpec.describe 'Api::V1::My', type: :request do
 
         before do
            login_browser_user
-           user.project_repo_mappings.create!(project_name: 'hackatime')
+           create(:project_repo_mapping, user: user, project_name: 'hackatime')
         end
         run_test!
       end
@@ -251,7 +251,7 @@ RSpec.describe 'Api::V1::My', type: :request do
 
         before do
            login_browser_user
-           p = user.project_repo_mappings.create!(project_name: 'hackatime')
+           p = create(:project_repo_mapping, user: user, project_name: 'hackatime')
            p.archive!
         end
         run_test!
@@ -289,7 +289,7 @@ RSpec.describe 'Api::V1::My', type: :request do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { 'dev-api-key-12345' }
         let(:id) do
-          HeartbeatImportRun.create!(
+          create(:heartbeat_import_run,
             user: user,
             source_kind: :dev_upload,
             state: :completed,

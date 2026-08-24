@@ -6,7 +6,7 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
   end
 
   test "dashboard_stats returns dashboard-shaped data backed by rollups" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     base_time = (Time.current - 1.day).to_f
 
     create_heartbeat(user, time: base_time, project: "alpha", language: "Ruby", editor: "vscode")
@@ -23,7 +23,7 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
   end
 
   test "og_stats reports totals and top language from rollups" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     base_time = (Time.current - 1.hour).to_f
 
     create_heartbeat(user, time: base_time, project: "alpha", language: "Ruby", editor: "vscode")
@@ -41,7 +41,7 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
   private
 
   def create_heartbeat(user, time:, project:, language: "Ruby", editor: "vscode")
-    user.heartbeats.create!(
+    create(:heartbeat, user: user,
       entity: "src/main.rb",
       type: "file",
       category: "coding",

@@ -2,8 +2,8 @@ require "test_helper"
 
 class ProjectRepoMappingTest < ActiveSupport::TestCase
   test "archive and unarchive toggle archived state" do
-    user = User.create!
-    mapping = user.project_repo_mappings.create!(project_name: "hackatime")
+    user = create(:user)
+    mapping = create(:project_repo_mapping, user: user, project_name: "hackatime")
 
     assert_not mapping.archived?
 
@@ -15,8 +15,8 @@ class ProjectRepoMappingTest < ActiveSupport::TestCase
   end
 
   test "project name must be unique per user" do
-    user = User.create!
-    user.project_repo_mappings.create!(project_name: "same-project")
+    user = create(:user)
+    create(:project_repo_mapping, user: user, project_name: "same-project")
 
     duplicate = user.project_repo_mappings.build(project_name: "same-project")
 
@@ -25,7 +25,7 @@ class ProjectRepoMappingTest < ActiveSupport::TestCase
   end
 
   test "existing GitHub repository URLs are valid" do
-    user = User.create!(github_access_token: "github-token")
+    user = create(:user, github_access_token: "github-token")
     stub_request(:get, "https://api.github.com/repos/yousseftechdev/RoboEyesMacroPad")
       .to_return(status: 200, body: "{}")
     mapping = user.project_repo_mappings.build(
@@ -37,7 +37,7 @@ class ProjectRepoMappingTest < ActiveSupport::TestCase
   end
 
   test "nonexistent GitHub repository URLs are invalid" do
-    user = User.create!(github_access_token: "github-token")
+    user = create(:user, github_access_token: "github-token")
     stub_request(:get, "https://api.github.com/repos/hackcl/hackatime")
       .to_return(status: 404, body: '{"message":"Not Found"}')
     mapping = user.project_repo_mappings.build(
@@ -50,7 +50,7 @@ class ProjectRepoMappingTest < ActiveSupport::TestCase
   end
 
   test "temporary GitHub failures do not mark repository URLs as nonexistent" do
-    user = User.create!(github_access_token: "github-token")
+    user = create(:user, github_access_token: "github-token")
     stub_request(:get, "https://api.github.com/repos/example/repository")
       .to_return(status: 503, body: '{"message":"Service unavailable"}')
     mapping = user.project_repo_mappings.build(
@@ -62,7 +62,7 @@ class ProjectRepoMappingTest < ActiveSupport::TestCase
   end
 
   test "TLS failures do not mark repository URLs as nonexistent" do
-    user = User.create!(github_access_token: "github-token")
+    user = create(:user, github_access_token: "github-token")
     stub_request(:get, "https://api.github.com/repos/example/repository")
       .to_raise(OpenSSL::SSL::SSLError.new("certificate verify failed"))
     mapping = user.project_repo_mappings.build(
@@ -74,8 +74,8 @@ class ProjectRepoMappingTest < ActiveSupport::TestCase
   end
 
   test "unchanged repository URLs are not remotely verified" do
-    user = User.create!(github_access_token: "github-token")
-    mapping = user.project_repo_mappings.create!(project_name: "repository")
+    user = create(:user, github_access_token: "github-token")
+    mapping = create(:project_repo_mapping, user: user, project_name: "repository")
     mapping.update_column(:repo_url, "https://github.com/example/repository")
 
     mapping.archive!

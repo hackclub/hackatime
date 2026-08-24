@@ -17,11 +17,11 @@ require "test_helper"
 #   - SQL-LIKE wildcards (%/_) in the term are escaped, not interpreted
 class UserFuzzySearchTest < ActiveSupport::TestCase
   def create_user(attrs = {})
-    User.create!({ timezone: "UTC" }.merge(attrs))
+    create(:user, attrs)
   end
 
   def with_email(user, email)
-    user.email_addresses.create!(email: email)
+    create(:email_address, user: user, email: email)
     user
   end
 

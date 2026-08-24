@@ -2,7 +2,7 @@ require "application_system_test_case"
 
 class NotificationsSettingsTest < ApplicationSystemTestCase
   setup do
-    @user = User.create!(timezone: "UTC")
+    @user = create(:user, :with_email)
     sign_in_as(@user)
   end
 
@@ -12,7 +12,7 @@ class NotificationsSettingsTest < ApplicationSystemTestCase
     visit my_settings_notifications_path
 
     within("#user_weekly_summary_email") do
-      find("[role='checkbox']", wait: 10).click
+      find("[role='checkbox']").click
     end
 
     click_on "Save notification settings"

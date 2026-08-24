@@ -1,2 +1,0 @@
-# Keep this fixture file present so Rails truncates oauth_access_grants
-# during fixture setup when user fixtures are loaded.

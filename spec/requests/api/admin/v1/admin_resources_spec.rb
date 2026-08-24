@@ -151,9 +151,8 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:api_key) do
-          u = User.create!(username: 'key_owner')
-          EmailAddress.create!(user: u, email: 'key_owner@example.com')
-          AdminApiKey.create!(user: u, name: 'Show Key')
+          u = create(:user, :with_email, username: 'key_owner', email: 'key_owner@example.com')
+          create(:admin_api_key, user: u, name: 'Show Key')
         end
         let(:id) { api_key.id }
         schema type: :object,
@@ -200,7 +199,7 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:api_key_to_revoke) do
-          AdminApiKey.find_by!(token: 'dev-admin-api-key-12345').user.admin_api_keys.create!(name: 'Revoke Key')
+          create(:admin_api_key, user: AdminApiKey.find_by!(token: 'dev-admin-api-key-12345').user, name: 'Revoke Key')
         end
         let(:id) { api_key_to_revoke.id }
         schema type: :object,
@@ -212,12 +211,9 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       end
 
       response(403, 'forbidden (not your key)') do
-        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:other_users_key) do
-          u = User.create!(username: 'other_key_owner')
-          EmailAddress.create!(user: u, email: 'other_key_owner@example.com')
-          AdminApiKey.create!(user: u, name: 'Not Mine')
-        end
+        let(:authentication_key) { create(:admin_api_key, name: 'Authentication key') }
+        let(:Authorization) { "Bearer #{authentication_key.token}" }
+        let(:other_users_key) { create(:admin_api_key, name: 'Not Mine') }
         let(:id) { other_users_key.id }
         schema(**error_schema)
         run_test!
@@ -325,19 +321,15 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'audit_user')
-          EmailAddress.create!(user: u, email: 'audit@example.com')
-          u
+          create(:user, :with_email, username: 'audit_user', email: 'audit@example.com')
         end
         let(:admin) do
           User.find_by(username: 'testuser') || begin
-            u = User.create!(username: 'testuser', admin_level: 'superadmin')
-            EmailAddress.create!(user: u, email: 'admin@example.com')
-            u
+            create(:user, :superadmin, :with_email, username: 'testuser', email: 'admin@example.com')
           end
         end
         let(:log) do
-          TrustLevelAuditLog.create!(
+          create(:trust_level_audit_log,
             user: user,
             changed_by: admin,
             previous_trust_level: 'blue',
@@ -430,11 +422,9 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'delete_me')
-          EmailAddress.create!(user: u, email: 'delete@example.com')
-          u
+          create(:user, :with_email, username: 'delete_me', email: 'delete@example.com')
         end
-        let(:deletion_request) { DeletionRequest.create!(user: user, status: 0, requested_at: Time.current) }
+        let(:deletion_request) { create(:deletion_request, user: user, status: 0, requested_at: Time.current) }
         let(:id) { deletion_request.id }
         schema(**deletion_request_schema)
         run_test!
@@ -466,11 +456,9 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'reject_me')
-          EmailAddress.create!(user: u, email: 'reject@example.com')
-          u
+          create(:user, :with_email, username: 'reject_me', email: 'reject@example.com')
         end
-        let(:deletion_request) { DeletionRequest.create!(user: user, status: 0, requested_at: Time.current) }
+        let(:deletion_request) { create(:deletion_request, user: user, status: 0, requested_at: Time.current) }
         let(:id) { deletion_request.id }
         schema type: :object,
           properties: {
@@ -507,11 +495,9 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'reject_me_please')
-          EmailAddress.create!(user: u, email: 'reject_me_please@example.com')
-          u
+          create(:user, :with_email, username: 'reject_me_please', email: 'reject_me_please@example.com')
         end
-        let(:deletion_request) { DeletionRequest.create!(user: user, status: 0, requested_at: Time.current) }
+        let(:deletion_request) { create(:deletion_request, user: user, status: 0, requested_at: Time.current) }
         let(:id) { deletion_request.id }
         schema type: :object,
           properties: {

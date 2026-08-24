@@ -87,9 +87,7 @@ RSpec.describe 'Api::Admin::V1::Permissions', type: :request, openapi_spec: 'adm
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'perm_user')
-          EmailAddress.create!(user: u, email: 'perm@example.com')
-          u
+          create(:user, :with_email, username: 'perm_user', email: 'perm@example.com')
         end
         let(:id) { user.id }
         let(:permission) { { admin_level: 'superadmin' } }
@@ -107,9 +105,7 @@ RSpec.describe 'Api::Admin::V1::Permissions', type: :request, openapi_spec: 'adm
       response(422, 'validation error handled — Returned when admin_level is not a valid admin level. Body is { error: "Invalid admin level" }.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user) do
-          u = User.create!(username: 'perm_val_user')
-          EmailAddress.create!(user: u, email: 'perm_val@example.com')
-          u
+          create(:user, :with_email, username: 'perm_val_user', email: 'perm_val@example.com')
         end
         let(:id) { user.id }
         let(:permission) { { admin_level: 'invalid' } }

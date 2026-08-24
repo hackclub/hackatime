@@ -1,10 +1,8 @@
 require "test_helper"
 
 class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :users
-
   test "show renders goals settings page" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     get my_settings_goals_path
@@ -12,13 +10,12 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_inertia_component "Users/Settings/Goals"
 
-    page = inertia_page
-    assert_equal [], page.dig("props", "programming_goals")
-    assert_nil page.dig("props", "user", "programming_goals")
+    assert_equal [], inertia.props["programming_goals"]
+    assert_nil inertia.props.dig("user", "programming_goals")
   end
 
   test "create saves valid goal" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     post my_settings_goals_create_path, params: {
@@ -40,11 +37,12 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "rejects sixth goal when limit reached" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     5.times do |index|
-      user.goals.create!(
+      create(:goal,
+        user: user,
         period: "day",
         target_seconds: 1800 + index,
         languages: [],
@@ -66,7 +64,7 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create rejects invalid goal period" do
-    user = users(:one)
+    user = create(:user)
     sign_in_as(user)
 
     post my_settings_goals_create_path, params: {
@@ -83,8 +81,9 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update saves valid goal changes" do
-    user = users(:one)
-    goal = user.goals.create!(
+    user = create(:user)
+    goal = create(:goal,
+      user: user,
       period: "day",
       target_seconds: 1800,
       languages: [ "Ruby" ],
@@ -112,8 +111,8 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update rejects invalid goal and re-renders settings page" do
-    user = users(:one)
-    goal = user.goals.create!(period: "day", target_seconds: 1800)
+    user = create(:user)
+    goal = create(:goal, user: user, period: "day", target_seconds: 1800)
     sign_in_as(user)
 
     patch my_settings_goal_update_path(goal_id: goal.id), params: {
@@ -129,8 +128,8 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "destroy removes goal" do
-    user = users(:one)
-    goal = user.goals.create!(period: "day", target_seconds: 1800)
+    user = create(:user)
+    goal = create(:goal, user: user, period: "day", target_seconds: 1800)
     sign_in_as(user)
 
     assert_difference -> { user.reload.goals.count }, -1 do

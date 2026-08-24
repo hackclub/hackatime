@@ -17,8 +17,8 @@ class HeartbeatTest < ActiveSupport::TestCase
   end
 
   test "soft delete hides record from default scope and restore brings it back" do
-    user = User.create!(timezone: "UTC")
-    heartbeat = user.heartbeats.create!(
+    user = create(:user)
+    heartbeat = create(:heartbeat, user: user,
       entity: "src/main.rb",
       type: "file",
       category: "coding",
@@ -40,7 +40,7 @@ class HeartbeatTest < ActiveSupport::TestCase
   end
 
   test "daily streak cache is separated for browser-filtered leaderboard streaks" do
-    user = User.create!(timezone: "UTC", username: "hb_streak_cache")
+    user = create(:user, username: "hb_streak_cache")
     create_heartbeat_sequence(user: user, started_at: 1.day.ago.beginning_of_day + 9.hours, editor: "firefox")
 
     assert_equal 1, Heartbeat.daily_streaks_for_users([ user.id ])[user.id]
@@ -48,11 +48,11 @@ class HeartbeatTest < ActiveSupport::TestCase
   end
 
   test "attributed_durations_by sums to total duration when every heartbeat has the field" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     base = Time.current.to_i.to_f
     languages = %w[ruby ruby python python javascript]
     languages.each_with_index do |lang, i|
-      user.heartbeats.create!(
+      create(:heartbeat, user: user,
         entity: "src/#{lang}.rb",
         type: "file",
         category: "coding",
@@ -77,7 +77,7 @@ class HeartbeatTest < ActiveSupport::TestCase
   end
 
   test "attributed_durations_by excludes NULL/blank field values without inventing an Unknown bucket" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
     base = Time.current.to_i.to_f
     rows = [
       { language: "ruby",   offset: 0   },
@@ -87,7 +87,7 @@ class HeartbeatTest < ActiveSupport::TestCase
       { language: "python", offset: 240 }
     ]
     rows.each do |r|
-      user.heartbeats.create!(
+      create(:heartbeat, user: user,
         entity: "src/file.rb",
         type: "file",
         category: "coding",
@@ -112,7 +112,7 @@ class HeartbeatTest < ActiveSupport::TestCase
   end
 
   test "creating a heartbeat schedules a dashboard rollup refresh" do
-    user = User.create!(timezone: "UTC")
+    user = create(:user)
 
     assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
       user.heartbeats.create!(
@@ -131,7 +131,7 @@ class HeartbeatTest < ActiveSupport::TestCase
 
   def create_heartbeat_sequence(user:, started_at:, editor:, count: 9)
     count.times do |offset|
-      user.heartbeats.create!(
+      create(:heartbeat, user: user,
         entity: "src/#{editor}.rb",
         type: "file",
         category: "coding",

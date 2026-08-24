@@ -1,5 +1,5 @@
 class DevController < ApplicationController
-  before_action :ensure_development_environment
+  before_action :ensure_local_environment
 
   def index
     render plain: <<~TEXT
@@ -15,6 +15,8 @@ class DevController < ApplicationController
 
     reset_session
     session[:user_id] = email_address.user_id
+    return render plain: "Signed in" if Rails.env.test?
+
     redirect_to root_path, notice: "Signed in as #{email_address.email}."
   end
 
@@ -25,7 +27,7 @@ class DevController < ApplicationController
 
   private
 
-  def ensure_development_environment
-    raise ActionController::RoutingError, "Not Found" unless Rails.env.development?
+  def ensure_local_environment
+    raise ActionController::RoutingError, "Not Found" unless Rails.env.local?
   end
 end
