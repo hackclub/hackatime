@@ -3,9 +3,16 @@
 require "net/http"
 
 APP_ROOT = File.expand_path("..", __dir__)
+CLIENT_MANIFEST = File.join(APP_ROOT, "public/vite-test/.vite/manifest.json")
 SSR_ENTRYPOINT = File.join(APP_ROOT, "public/vite-ssr/ssr.js")
 SSR_HEALTH_URI = URI("http://127.0.0.1:13714/health")
 SSR_START_TIMEOUT = 30
+
+def build_vite!(name, marker:, env: {}, args: [])
+  args = [ *args, *("--force" unless File.exist?(marker)) ]
+  success = system({ "RAILS_ENV" => "test", **env }, "bin/vite", "build", *args)
+  abort "Failed to build the #{name} bundle" unless success
+end
 
 def wait_for_ssr!(pid)
   deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + SSR_START_TIMEOUT
@@ -36,18 +43,13 @@ def wait_for_ssr!(pid)
 end
 
 Dir.chdir(APP_ROOT) do
-  unless File.exist?(SSR_ENTRYPOINT)
-    success = system(
-      {
-        "RAILS_ENV" => "test",
-        "VITE_CACHE_DIR" => "node_modules/.vite-test-ssr"
-      },
-      "bin/vite",
-      "build",
-      "--ssr"
-    )
-    abort "Failed to build the Inertia SSR bundle" unless success
-  end
+  build_vite!("client", marker: CLIENT_MANIFEST)
+  build_vite!(
+    "Inertia SSR",
+    marker: SSR_ENTRYPOINT,
+    env: { "VITE_CACHE_DIR" => "node_modules/.vite-test-ssr" },
+    args: [ "--ssr" ]
+  )
 
   ssr_pid = spawn({ "RAILS_ENV" => "test" }, "bun", SSR_ENTRYPOINT)
 
