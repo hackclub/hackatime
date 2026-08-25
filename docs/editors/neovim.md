@@ -2,7 +2,7 @@
 title: Neovim
 sidebar: { icon: "/images/editor-icons/neovim-32.webp" }
 ---
-![Neovim](/images/editor-icons/neovim-128.png)
+![Neovim](../../public/images/editor-icons/neovim-128.png)
 
 Follow these steps to start tracking your coding time in Neovim with Hackatime.
 

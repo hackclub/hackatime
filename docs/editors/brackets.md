@@ -2,7 +2,7 @@
 title: Brackets
 sidebar: { icon: "/images/editor-icons/brackets-32.webp" }
 ---
-![Brackets](/images/editor-icons/brackets-128.png)
+![Brackets](../../public/images/editor-icons/brackets-128.png)
 
 Follow these steps to start tracking your coding time in Brackets with Hackatime.
 

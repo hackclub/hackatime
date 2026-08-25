@@ -2,7 +2,7 @@
 title: Onshape
 sidebar: { icon: "/images/editor-icons/onshape-32.webp" }
 ---
-![Onshape](/images/editor-icons/onshape-128.png)
+![Onshape](../../public/images/editor-icons/onshape-128.png)
 
 Follow these steps to start tracking your coding time in OnShape with Hackatime.
 

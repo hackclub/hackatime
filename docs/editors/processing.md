@@ -2,7 +2,7 @@
 title: Processing
 sidebar: { icon: "/images/editor-icons/processing-32.webp" }
 ---
-![Processing](/images/editor-icons/processing-128.png)
+![Processing](../../public/images/editor-icons/processing-128.png)
 
 Follow these steps to start tracking your coding time in Processing with Hackatime.
 

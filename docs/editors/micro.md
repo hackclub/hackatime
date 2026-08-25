@@ -2,7 +2,7 @@
 title: Micro
 sidebar: { icon: "/images/editor-icons/micro-32.webp" }
 ---
-![Micro](/images/editor-icons/micro-128.png)
+![Micro](../../public/images/editor-icons/micro-128.png)
 
 Follow these steps to start tracking your coding time in Micro with Hackatime.
 

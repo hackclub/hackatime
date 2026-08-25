@@ -2,7 +2,7 @@
 title: Visual Studio
 sidebar: { icon: "/images/editor-icons/visual-studio-32.webp" }
 ---
-![Visual Studio](/images/editor-icons/visual-studio-128.png)
+![Visual Studio](../../public/images/editor-icons/visual-studio-128.png)
 
 Follow these steps to start tracking your coding time in Visual Studio with Hackatime.
 

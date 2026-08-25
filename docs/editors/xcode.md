@@ -2,7 +2,7 @@
 title: Xcode
 sidebar: { icon: "/images/editor-icons/xcode-32.webp" }
 ---
-![Xcode](/images/editor-icons/xcode-128.png)
+![Xcode](../../public/images/editor-icons/xcode-128.png)
 
 Follow these steps to start tracking your coding time in Xcode with Hackatime.
 
@@ -30,7 +30,7 @@ To track things like what line you're on, we use macOS's Accessibility APIs!
 
 This means that macOS will ask you to allow xcode-hackatime to use them: **System Settings -> Privacy & Security -> Accessibility -> enable `xcode-hackatime`**. You'll probably see a window like this to help you through it:
 
-![Screenshot of "One step to start tracking Xcode" window](/images/editors/xcode-onboarding.png)
+![Screenshot of "One step to start tracking Xcode" window](./images/xcode-onboarding.png)
 
 That's it - the agent starts at login and follows Xcode automatically!
 

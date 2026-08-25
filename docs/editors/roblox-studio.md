@@ -2,7 +2,7 @@
 title: Roblox Studio
 sidebar: { icon: "/images/editor-icons/roblox-studio-32.webp" }
 ---
-![Roblox Studio](/images/editor-icons/roblox-studio-128.png)
+![Roblox Studio](../../public/images/editor-icons/roblox-studio-128.png)
 
 This guide will walk you through setting up **Hackatime** to automatically track your game development time in **Roblox Studio**.
 
@@ -24,10 +24,10 @@ Next, you'll need to install the Hackatime plugin directly within Roblox Studio:
 4.  Search for **"HackaTime Roblox"**.
 5.  Install the plugin published by **"ThisWhity"**.
 
-    ![Toolbox filter showing Plugins selected](https://github.com/user-attachments/assets/65931fad-fa16-4df6-9a07-eadf1e2aaf07)
+    ![Toolbox filter showing Plugins selected](./images/roblox-toolbox-plugins-filter.png)
     *Filter the Toolbox by "Plugins"*
 
-    ![Toolbox search results showing HackaTime Roblox plugin](https://github.com/user-attachments/assets/13233bf7-b876-4c29-b690-9ebbcb796488)
+    ![Toolbox search results showing HackaTime Roblox plugin](./images/roblox-toolbox-search.png)
     *Install the "HackaTime Roblox" plugin by ThisWhity*
 
 ---
@@ -38,12 +38,12 @@ Now, you'll connect the plugin to your Hackatime account using your unique API k
 
 1.  Get your API key by visiting [hackatime.hackclub.com/my/wakatime_setup](https://hackatime.hackclub.com/setup). It will look something like this: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
 
-    ![Screenshot showing API Key on Hackatime website](https://github.com/user-attachments/assets/635cab06-36cb-4351-819b-62403b6c6885)
+    ![Screenshot showing API Key on Hackatime website](./images/roblox-api-key.png)
     *Your API key from the Hackatime website*
 
 2.  In Roblox Studio, open the **Hackatime plugin**. You'll usually find it under the "Plugins" tab in the Ribbon bar.
 
-    ![Screenshot showing the Hackatime plugin tab with API key input](https://github.com/user-attachments/assets/c241dbe2-6f9a-44bf-adb9-f0b4780227db)
+    ![Screenshot showing the Hackatime plugin tab with API key input](./images/roblox-plugin-api-key-input.png)
     *Open the Plugin*
 
 4.  Paste your API key into the API key box. And hit "Save API Key"
@@ -60,10 +60,10 @@ If you see an **ERR\_NETWORK** message, it means the plugin can't connect to Hac
 2.  Hit the edit icon.
 3.  Ensure that **"hackatime.hackclub.com"** is enabled.
 
-    ![Screenshot showing Game Settings with Security tab open and Allow HTTP Requests highlighted](https://github.com/user-attachments/assets/c3533d87-2b06-4ba8-a1c5-7416332578e9)
+    ![Screenshot showing Game Settings with Security tab open and Allow HTTP Requests highlighted](./images/roblox-game-settings-security.png)
     *Open Plugin Managment*
 
-    ![Screenshot showing Allow HTTP Requests enabled](https://github.com/user-attachments/assets/86bea3e2-dbbe-496f-acd4-f5963c208767)
+    ![Screenshot showing Allow HTTP Requests enabled](./images/roblox-allow-http-requests.png)
     *Allow HTTP requests*
 
 ### Still stuck?

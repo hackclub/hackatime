@@ -2,7 +2,7 @@
 title: TextMate
 sidebar: { icon: "/images/editor-icons/textmate-32.webp" }
 ---
-![TextMate](/images/editor-icons/textmate-128.png)
+![TextMate](../../public/images/editor-icons/textmate-128.png)
 
 Follow these steps to start tracking your coding time in TextMate with Hackatime.
 

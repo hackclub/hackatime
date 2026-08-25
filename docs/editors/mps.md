@@ -2,7 +2,7 @@
 title: MPS
 sidebar: { icon: "/images/editor-icons/mps-32.webp" }
 ---
-![MPS](/images/editor-icons/mps-128.png)
+![MPS](../../public/images/editor-icons/mps-128.png)
 
 Follow these steps to start tracking your coding time in MPS with Hackatime.
 

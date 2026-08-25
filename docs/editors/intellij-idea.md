@@ -2,7 +2,7 @@
 title: IntelliJ IDEA
 sidebar: { icon: "/images/editor-icons/intellij-idea-32.webp" }
 ---
-![IntelliJ IDEA](/images/editor-icons/intellij-idea-128.png)
+![IntelliJ IDEA](../../public/images/editor-icons/intellij-idea-128.png)
 
 Let's set up IntelliJ IDEA to count how much time you spend coding in Java!
 

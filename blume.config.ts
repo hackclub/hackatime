@@ -78,7 +78,7 @@ export default defineConfig({
   logo: {
     image: "/images/new-icon-rounded.png",
     text: "Hackatime",
-    href: "/docs",
+    href: "/",
   },
   github: {
     owner: "hackclub",

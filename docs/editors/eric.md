@@ -2,7 +2,7 @@
 title: Eric
 sidebar: { icon: "/images/editor-icons/eric-32.webp" }
 ---
-![Eric](/images/editor-icons/eric-128.png)
+![Eric](../../public/images/editor-icons/eric-128.png)
 
 Follow these steps to start tracking your coding time in Eric with Hackatime.
 

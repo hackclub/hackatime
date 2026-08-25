@@ -2,7 +2,7 @@
 title: Figma
 sidebar: { icon: "/images/editor-icons/figma-32.webp" }
 ---
-![Figma](/images/editor-icons/figma-128.png)
+![Figma](../../public/images/editor-icons/figma-128.png)
 
 Follow these steps to start tracking your design work in Figma with Hackatime.
 

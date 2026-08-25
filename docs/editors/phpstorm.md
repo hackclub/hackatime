@@ -2,7 +2,7 @@
 title: PhpStorm
 sidebar: { icon: "/images/editor-icons/phpstorm-32.webp" }
 ---
-![PhpStorm](/images/editor-icons/phpstorm-128.png)
+![PhpStorm](../../public/images/editor-icons/phpstorm-128.png)
 
 Follow these steps to start tracking your coding time in PhpStorm with Hackatime.
 

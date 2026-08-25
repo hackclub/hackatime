@@ -2,7 +2,7 @@
 title: Wing
 sidebar: { icon: "/images/editor-icons/wing-32.webp" }
 ---
-![Wing](/images/editor-icons/wing-128.png)
+![Wing](../../public/images/editor-icons/wing-128.png)
 
 Follow these steps to start tracking your coding time in Wing with Hackatime.
 

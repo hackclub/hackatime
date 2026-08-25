@@ -2,7 +2,7 @@
 title: ReClassEx
 sidebar: { icon: "/images/editor-icons/reclassex-32.webp" }
 ---
-![ReClassEx](/images/editor-icons/reclassex-128.png)
+![ReClassEx](../../public/images/editor-icons/reclassex-128.png)
 
 Follow these steps to start tracking your coding time in ReClassEx with Hackatime.
 

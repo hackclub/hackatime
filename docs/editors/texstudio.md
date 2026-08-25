@@ -2,7 +2,7 @@
 title: TeXstudio
 sidebar: { icon: "/images/editor-icons/texstudio-32.webp" }
 ---
-![TeXstudio](/images/editor-icons/texstudio-128.png)
+![TeXstudio](../../public/images/editor-icons/texstudio-128.png)
 
 Follow these steps to start tracking your coding time in TeXstudio with Hackatime.
 

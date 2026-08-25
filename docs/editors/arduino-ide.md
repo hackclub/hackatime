@@ -2,7 +2,7 @@
 title: Arduino IDE
 sidebar: { icon: "/images/editor-icons/arduino-ide-32.webp" }
 ---
-![Arduino IDE](/images/editor-icons/arduino-ide-128.png)
+![Arduino IDE](../../public/images/editor-icons/arduino-ide-128.png)
 
 Follow these steps to start tracking your coding time in Arduino IDE with Hackatime.
 

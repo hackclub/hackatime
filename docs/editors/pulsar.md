@@ -2,7 +2,7 @@
 title: Pulsar
 sidebar: { icon: "/images/editor-icons/pulsar-32.webp" }
 ---
-![Pulsar](/images/editor-icons/pulsar-128.png)
+![Pulsar](../../public/images/editor-icons/pulsar-128.png)
 
 Follow these steps to start tracking your coding time in Pulsar with Hackatime.
 

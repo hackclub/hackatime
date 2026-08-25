@@ -2,7 +2,7 @@
 title: Azure Data Studio
 sidebar: { icon: "/images/editor-icons/azure-data-studio-32.webp" }
 ---
-![Azure Data Studio](/images/editor-icons/azure-data-studio-128.png)
+![Azure Data Studio](../../public/images/editor-icons/azure-data-studio-128.png)
 
 Follow these steps to start tracking your coding time in Azure Data Studio with Hackatime.
 

@@ -2,7 +2,7 @@
 title: CodeTasty
 sidebar: { icon: "/images/editor-icons/codetasty-32.webp" }
 ---
-![CodeTasty](/images/editor-icons/codetasty-128.png)
+![CodeTasty](../../public/images/editor-icons/codetasty-128.png)
 
 Follow these steps to start tracking your coding time in CodeTasty with Hackatime.
 

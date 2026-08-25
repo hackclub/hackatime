@@ -2,7 +2,7 @@
 title: Aptana
 sidebar: { icon: "/images/editor-icons/aptana-32.webp" }
 ---
-![Aptana](/images/editor-icons/aptana-128.png)
+![Aptana](../../public/images/editor-icons/aptana-128.png)
 
 Follow these steps to start tracking your coding time in Aptana with Hackatime.
 

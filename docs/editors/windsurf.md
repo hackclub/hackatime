@@ -2,7 +2,7 @@
 title: Windsurf
 sidebar: { icon: "/images/editor-icons/windsurf-32.webp" }
 ---
-![Windsurf](/images/editor-icons/windsurf-128.png)
+![Windsurf](../../public/images/editor-icons/windsurf-128.png)
 
 Follow these steps to start tracking your coding time in Windsurf with Hackatime.
 

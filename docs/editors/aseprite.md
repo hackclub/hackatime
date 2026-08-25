@@ -2,7 +2,7 @@
 title: Aseprite
 sidebar: { icon: "/images/editor-icons/aseprite-32.webp" }
 ---
-![Aseprite](/images/editor-icons/aseprite-128.png)
+![Aseprite](../../public/images/editor-icons/aseprite-128.png)
 
 Let's set up Aseprite to count how much time you spend making art!
 

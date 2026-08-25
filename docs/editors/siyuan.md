@@ -2,7 +2,7 @@
 title: SiYuan
 sidebar: { icon: "/images/editor-icons/siyuan-32.webp" }
 ---
-![SiYuan](/images/editor-icons/siyuan-128.png)
+![SiYuan](../../public/images/editor-icons/siyuan-128.png)
 
 Follow these steps to start tracking your coding time in SiYuan with Hackatime.
 

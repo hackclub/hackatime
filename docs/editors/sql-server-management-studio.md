@@ -2,7 +2,7 @@
 title: SQL Server Management Studio
 sidebar: { icon: "/images/editor-icons/sql-server-management-studio-32.webp" }
 ---
-![SQL Server Management Studio](/images/editor-icons/sql-server-management-studio-128.png)
+![SQL Server Management Studio](../../public/images/editor-icons/sql-server-management-studio-128.png)
 
 Follow these steps to start tracking your coding time in SQL Server Management Studio with Hackatime.
 

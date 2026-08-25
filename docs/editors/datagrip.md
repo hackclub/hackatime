@@ -2,7 +2,7 @@
 title: DataGrip
 sidebar: { icon: "/images/editor-icons/datagrip-32.webp" }
 ---
-![DataGrip](/images/editor-icons/datagrip-128.png)
+![DataGrip](../../public/images/editor-icons/datagrip-128.png)
 
 Follow these steps to start tracking your coding time in DataGrip with Hackatime.
 

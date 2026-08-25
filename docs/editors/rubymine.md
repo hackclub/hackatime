@@ -2,7 +2,7 @@
 title: RubyMine
 sidebar: { icon: "/images/editor-icons/rubymine-32.webp" }
 ---
-![RubyMine](/images/editor-icons/rubymine-128.png)
+![RubyMine](../../public/images/editor-icons/rubymine-128.png)
 
 Follow these steps to start tracking your coding time in RubyMine with Hackatime.
 

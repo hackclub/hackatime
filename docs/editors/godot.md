@@ -2,7 +2,7 @@
 title: Godot
 sidebar: { icon: "/images/editor-icons/godot-32.webp" }
 ---
-![Godot](/images/editor-icons/godot-128.png)
+![Godot](../../public/images/editor-icons/godot-128.png)
 
 Follow these steps to start tracking your game development in Godot with Hackatime:
 
@@ -28,8 +28,6 @@ Download the Godot binary! If you're on Linux and know what you're doing, make s
 
 ## 4: Create a new Godot project
 
-![Create New Project](/images/setup/godot-new-project.png)
-
 If you'd like to be able to run your game in browser, choose the **Mobile** renderer. Otherwise, **Forward+** is a good option.
 
 ## 5: Install Godot Super WakaTime
@@ -45,8 +43,6 @@ If you'd like to be able to run your game in browser, choose the **Mobile** rend
 
 **Note:** If you can't find it, make sure that you created a project already & aren't searching from the project library page!
 
-![Asset Library Search](/images/setup/godot-asset-search.png)
-
 **Ignore any warnings that appear during installation.**
 
 ### Alternative: Manual installation
@@ -60,8 +56,6 @@ If you'd like to be able to run your game in browser, choose the **Mobile** rend
 2. Find **"Godot Super Wakatime"** in the list
 3. **Enable** the plugin
 4. You'll be prompted to enter your WakaTime API key (this should be automatically configured from step 2!)
-
-![Enable Plugin](/images/setup/godot-enable-plugin.png)
 
 **Important:** You need to install Godot Super WakaTime for every project (it's a Godot limitation)
 

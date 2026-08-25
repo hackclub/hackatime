@@ -2,7 +2,7 @@
 title: Kakoune
 sidebar: { icon: "/images/editor-icons/kakoune-32.webp" }
 ---
-![Kakoune](/images/editor-icons/kakoune-128.png)
+![Kakoune](../../public/images/editor-icons/kakoune-128.png)
 
 Follow these steps to start tracking your coding time in Kakoune with Hackatime.
 

@@ -2,7 +2,7 @@
 title: Zed
 sidebar: { icon: "/images/editor-icons/zed-32.webp" }
 ---
-![Zed](/images/editor-icons/zed-128.png)
+![Zed](../../public/images/editor-icons/zed-128.png)
 
 Follow these steps to start tracking your coding time in Zed with Hackatime.
 

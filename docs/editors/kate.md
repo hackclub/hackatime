@@ -2,7 +2,7 @@
 title: Kate
 sidebar: { icon: "/images/editor-icons/kate-32.webp" }
 ---
-![Kate](/images/editor-icons/kate-128.png)
+![Kate](../../public/images/editor-icons/kate-128.png)
 
 Follow these steps to start tracking your coding time in Kate with Hackatime.
 

@@ -2,7 +2,7 @@
 title: GoLand
 sidebar: { icon: "/images/editor-icons/goland-32.webp" }
 ---
-![GoLand](/images/editor-icons/goland-128.png)
+![GoLand](../../public/images/editor-icons/goland-128.png)
 
 Follow these steps to start tracking your coding time in GoLand with Hackatime.
 

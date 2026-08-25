@@ -2,7 +2,7 @@
 title: Sketch
 sidebar: { icon: "/images/editor-icons/sketch-32.webp" }
 ---
-![Sketch](/images/editor-icons/sketch-128.png)
+![Sketch](../../public/images/editor-icons/sketch-128.png)
 
 Follow these steps to start tracking your design work in Sketch with Hackatime.
 

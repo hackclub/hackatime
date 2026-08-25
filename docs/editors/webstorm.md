@@ -2,7 +2,7 @@
 title: WebStorm
 sidebar: { icon: "/images/editor-icons/webstorm-32.webp" }
 ---
-![WebStorm](/images/editor-icons/webstorm-128.png)
+![WebStorm](../../public/images/editor-icons/webstorm-128.png)
 
 Follow these steps to start tracking your coding time in WebStorm with Hackatime.
 

@@ -2,7 +2,7 @@
 title: Delphi
 sidebar: { icon: "/images/editor-icons/delphi-32.webp" }
 ---
-![Delphi](/images/editor-icons/delphi-128.png)
+![Delphi](../../public/images/editor-icons/delphi-128.png)
 
 Follow these steps to start tracking your coding time in Delphi with Hackatime.
 

@@ -2,7 +2,7 @@
 title: Unreal Engine 4
 sidebar: { icon: "/images/editor-icons/unreal-engine-4-32.webp" }
 ---
-![Unreal Engine 4](/images/editor-icons/unreal-engine-4-128.png)
+![Unreal Engine 4](../../public/images/editor-icons/unreal-engine-4-128.png)
 
 This guide will walk you through setting up **Hackatime** to automatically track your game development time in **Unreal Engine 4.27**. This currently only supports Windows systems.
 

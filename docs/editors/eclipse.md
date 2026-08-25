@@ -2,7 +2,7 @@
 title: Eclipse
 sidebar: { icon: "/images/editor-icons/eclipse-32.webp" }
 ---
-![Eclipse](/images/editor-icons/eclipse-128.png)
+![Eclipse](../../public/images/editor-icons/eclipse-128.png)
 
 Follow these steps to start tracking your coding time in Eclipse with Hackatime.
 

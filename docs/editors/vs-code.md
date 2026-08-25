@@ -2,7 +2,7 @@
 title: VS Code
 sidebar: { icon: "/images/editor-icons/vs-code-32.webp" }
 ---
-![VS Code](/images/editor-icons/vs-code-128.png)
+![VS Code](../../public/images/editor-icons/vs-code-128.png)
 
 ## Automatic setup
 

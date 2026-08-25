@@ -2,7 +2,7 @@
 title: Gedit
 sidebar: { icon: "/images/editor-icons/gedit-32.webp" }
 ---
-![Gedit](/images/editor-icons/gedit-128.png)
+![Gedit](../../public/images/editor-icons/gedit-128.png)
 
 Follow these steps to start tracking your coding time in Gedit with Hackatime.
 
