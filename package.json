@@ -41,7 +41,7 @@
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
     "@types/d3-array": "3.2.2",
-    "@types/d3-shape": "^3.1.8",
+    "@types/d3-shape": "^3.2.0",
     "@types/node": "^26.2.0",
     "@typescript/native": "npm:typescript@^7.0.2",
     "knip": "^6.32.2",
