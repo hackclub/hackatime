@@ -14,16 +14,25 @@ Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are
 
 Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
 
-## Step 3: Install Xcode plugin
+## Step 3: Install the Xcode plugin
 
-Follow the detailed plugin installation instructions on the [WakaTime Xcode page](https://wakatime.com/xcode).
+Run this command in your terminal to install the Hack Club xcode-hackatime plugin:
 
-The WakaTime plugin will automatically use your Hackatime configuration after running the setup script.
+```bash
+curl -fsSL https://raw.githubusercontent.com/hackclub/xcode-hackatime/main/install.sh | bash
+```
+
+This installs `xcode-hackatime`, a background agent that tracks your Xcode coding time (file, line, cursor position, and saves) using your Hackatime configuration from the setup script.
+
+## Step 4: Grant Accessibility permission
+
+The agent reads your cursor position through macOS Accessibility, so macOS asks you to allow it once: **System Settings -> Privacy & Security -> Accessibility -> enable `xcode-hackatime`**. An onboarding window walks you through it, and a notification confirms when tracking starts. That's it - the agent starts at login and follows Xcode automatically.
 
 ## Troubleshooting
 
 - **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first
-- **Plugin not working?** Try restarting Xcode after installation
+- **Something not working?** Run `~/.wakatime/xcode-hackatime doctor` - it checks every part of the tracking chain and prints a fix for anything broken
+- **Previously used the WakaTime Mac app?** xcode-hackatime turns off its Xcode tracking automatically so your time is not double-counted (you'll get a notification when that happens)
 - **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel)
 
 ## Next steps
