@@ -77,7 +77,7 @@ module ApplicationHelper
     "ktexteditor" => "Kate", "android studio" => "Android Studio", "visual studio" => "Visual Studio",
     "sublime text" => "Sublime Text", "iterm2" => "iTerm2", "rubymine" => "RubyMine",
     "opencode" => "OpenCode", "claudecode" => "Claude Code", "claude code" => "Claude Code",
-    "zoom.us" => "Zoom", "windowspowershell" => "PowerShell",
+    "claude-code" => "Claude Code", "zoom.us" => "Zoom", "windowspowershell" => "PowerShell",
     "goland" => "GoLand", "rustrover" => "RustRover"
   }.freeze
 
