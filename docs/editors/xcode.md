@@ -22,11 +22,17 @@ Run this command in your terminal to install the Hack Club xcode-hackatime plugi
 curl -fsSL https://raw.githubusercontent.com/hackclub/xcode-hackatime/main/install.sh | bash
 ```
 
-This installs `xcode-hackatime`, a background agent that tracks your Xcode coding time (file, line, cursor position, and saves) using your Hackatime configuration from the setup script.
+This installs `xcode-hackatime`, a background agent that tracks your Xcode coding time (file, line, cursor position, and saves) using your Hackatime config from the setup script. It's super lightweight and uses ~6MB of RAM, so you don't have to worry about battery/RAM usage!
 
 ## Step 4: Grant Accessibility permission
 
-The agent reads your cursor position through macOS Accessibility, so macOS asks you to allow it once: **System Settings -> Privacy & Security -> Accessibility -> enable `xcode-hackatime`**. An onboarding window walks you through it, and a notification confirms when tracking starts. That's it - the agent starts at login and follows Xcode automatically.
+To track things like what line you're on, we use macOS's Accessibility APIs!
+
+This means that macOS will ask you to allow xcode-hackatime to use them: **System Settings -> Privacy & Security -> Accessibility -> enable `xcode-hackatime`**. You'll probably see a window like this to help you through it:
+
+![Screenshot of "One step to start tracking Xcode" window](/images/editors/xcode-onboarding.png)
+
+That's it - the agent starts at login and follows Xcode automatically!
 
 ## Troubleshooting
 
