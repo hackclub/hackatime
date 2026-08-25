@@ -22,7 +22,7 @@ Visit [hackatime.hackclub.com](https://hackatime.hackclub.com) and sign up using
 1. Auto-detect your operating system
 2. Provide a copy-paste command that configures everything
 3. Create your `~/.wakatime.cfg` file pointing to Hackatime
-4. Send a test heartbeat to verify setup
+4. Send a test <Tooltip tip="A small activity event your editor plugin sends to Hackatime while you code. It carries metadata like the file name and language, never your code." headline="Heartbeat" cta="Read about privacy" href="/docs/configuration/privacy">heartbeat</Tooltip> to verify setup
 5. Show you when it's working!
 
 The setup page handles all configuration automatically - no manual editing required!
@@ -85,12 +85,20 @@ Just run the automated setup script on the [Hackatime Setup Page](https://hackat
 
 ## Frequently asked questions
 
-**Is Hackatime really free?** Yes! Hackatime is completely free with no premium features or paywalls. It's [open source](https://github.com/hackclub/hackatime) and maintained by Hack Club.
-
-**Which editors work with Hackatime?** All [70+ editors](../#editor-guides) that support WakaTime work with Hackatime, including [VS Code](../editors/vs-code), [IntelliJ IDEA](../editors/intellij-idea), [Sublime Text](../editors/sublime-text), [Vim](../editors/vim), [Neovim](../editors/neovim), [PyCharm](../editors/pycharm), and many more.
-
-**How is Hackatime different from WakaTime?** Hackatime is free, open source, privacy-focused, and includes unique features like leaderboards for Hack Club members.
-
-**Can I import my existing WakaTime data?** Currently, data import is not supported, but you can start fresh with Hackatime while keeping your WakaTime account.
-
-**Is my code data secure?** Hackatime only tracks metadata (file names, languages, project names) - never your actual code content. All data is encrypted in transit.
+<Accordion>
+  <AccordionItem title="Is Hackatime really free?">
+    Yes! Hackatime is completely free with no premium features or paywalls. It's [open source](https://github.com/hackclub/hackatime) and maintained by Hack Club.
+  </AccordionItem>
+  <AccordionItem title="Which editors work with Hackatime?">
+    All [70+ editors](../#editor-guides) that support WakaTime work with Hackatime, including [VS Code](../editors/vs-code), [IntelliJ IDEA](../editors/intellij-idea), [Sublime Text](../editors/sublime-text), [Vim](../editors/vim), [Neovim](../editors/neovim), [PyCharm](../editors/pycharm), and many more.
+  </AccordionItem>
+  <AccordionItem title="How is Hackatime different from WakaTime?">
+    Hackatime is free, open source, privacy-focused, and includes unique features like leaderboards for Hack Club members.
+  </AccordionItem>
+  <AccordionItem title="Can I import my existing WakaTime data?">
+    Currently, data import is not supported, but you can start fresh with Hackatime while keeping your WakaTime account.
+  </AccordionItem>
+  <AccordionItem title="Is my code data secure?">
+    Hackatime only tracks metadata (file names, languages, project names) - never your actual code content. All data is encrypted in transit.
+  </AccordionItem>
+</Accordion>

@@ -2,7 +2,7 @@
 title: Swift Playgrounds
 sidebar: { icon: "/images/editor-icons/swift-playgrounds-32.webp" }
 ---
-// TODO: CHANGE EDITOR ICON
+
 ![iPad](../../public/images/editor-icons/swift-playgrounds-128.png)
 
 Follow these steps to start tracking your coding time in Swift Playgrounds or any other iPad apps with Hackatime.
