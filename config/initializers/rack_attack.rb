@@ -39,8 +39,8 @@ class Rack::Attack
     !req.cloudflare?
   end
 
-  Rack::Attack.throttle("admin abooze", limit: 5, period: 1.second) do |req|
-    req.path.start_with?("/api/admin/")
+  Rack::Attack.throttle("admin abooze", limit: 300, period: 1.minute) do |req|
+    req.ip if req.path.start_with?("/api/admin/")
   end
 
   Rack::Attack.throttle("general", limit: 300, period: 1.minute) do |req|
