@@ -1,8 +1,7 @@
 # config/initializers/rack_attack.rb
 
 class Rack::Attack
-  # kill switch in case you really wanna
-  Rack::Attack.enabled = ENV.key?("RACK_ATTACK_ENABLED") ? ENV["RACK_ATTACK_ENABLED"] == "true" : Rails.env.production?
+  Rack::Attack.enabled = true
 
   if ENV["RACK_ATTACK_BYPASS"].present?
     begin
