@@ -25,6 +25,16 @@ class Rack::Attack
     req.path =~ %r{\A/api/hackatime/v1/users/[^/]+/heartbeats(?:\.bulk)?\z}
   end
 
+  def self.oauth_user_id(req)
+    return unless req.path.start_with?("/api/v1/authenticated/")
+
+    scheme, token = req.get_header("HTTP_AUTHORIZATION").to_s.split(/\s+/, 2)
+    return unless scheme&.casecmp?("Bearer") && token.present?
+
+    oauth_token = Doorkeeper::AccessToken.by_token(token)
+    "user:#{oauth_token.resource_owner_id}" if oauth_token&.accessible? && oauth_token.resource_owner_id
+  end
+
   # Always allow requests from bogon ips
   # (blocklist & throttles are skipped)
   Rack::Attack.safelist("allow from bogon ips") do |req|
@@ -44,7 +54,9 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("general", limit: 300, period: 1.minute) do |req|
-    req.ip unless req.path.start_with?("/assets")
+    unless req.path.start_with?("/assets")
+      oauth_user_id(req) || req.ip
+    end
   end
 
   Rack::Attack.throttle("posts by ip", limit: 60, period: 5.minutes) do |req|
