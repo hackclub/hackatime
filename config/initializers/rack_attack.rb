@@ -28,27 +28,50 @@ class Rack::Attack
   end
 
   def self.authenticated_credential_id(req)
-    source, token = credential_from(req)
+    sources, api_keys, oauth, oauth_scopes = credential_policy(req.path)
+    return unless sources
+
+    source, token = credential_from(req, sources)
     token = normalize_credential(token)
     return if token.blank?
 
-    api_key_id = ApiKey.where(token: token).pick(:id)
-    return "api_key:#{api_key_id}" if api_key_id
-    return if source != :bearer
-
-    admin_api_key_id = AdminApiKey.active.find_by(token: token)&.id
-    return "admin_api_key:#{admin_api_key_id}" if admin_api_key_id
+    if api_keys
+      api_key_id = ApiKey.where(token: token).pick(:id)
+      return "api_key:#{api_key_id}" if api_key_id
+    end
+    return unless source == :bearer && oauth
 
     oauth_token = Doorkeeper::AccessToken.by_token(token)
-    "oauth_token:#{oauth_token.id}" if oauth_token&.accessible?
+    oauth_valid = oauth_scopes ? oauth_token&.acceptable?(oauth_scopes) : oauth_token&.accessible?
+    "oauth_token:#{oauth_token.id}" if oauth_valid
   end
 
-  def self.credential_from(req)
-    scheme, token = req.get_header("HTTP_AUTHORIZATION").to_s.split(/\s+/, 2)
-    return [ :bearer, token ] if scheme&.casecmp?("Bearer")
-    return [ :basic, Base64.strict_decode64(token.to_s) ] if scheme&.casecmp?("Basic")
+  def self.credential_policy(path)
+    normalized_path = path.chomp("/")
 
-    [ :query, req.GET["api_key"] ]
+    case normalized_path
+    when "/api/v1/authenticated/me"
+      [ [ :bearer ], false, true, [ "profile" ] ]
+    when "/api/v1/authenticated/hours", "/api/v1/authenticated/streak",
+         "/api/v1/authenticated/projects", "/api/v1/authenticated/heartbeats/latest"
+      [ [ :bearer ], false, true, [ "read" ] ]
+    when "/api/v1/authenticated/api_keys"
+      [ [ :bearer ], false, true, nil ]
+    when %r{\A/api/hackatime/v1/}
+      [ %i[bearer basic query], true, false, nil ]
+    when "/api/v1/my/heartbeats", "/api/v1/my/heartbeats/most_recent"
+      [ %i[bearer basic], true, true, [ "read" ] ]
+    end
+  end
+
+  def self.credential_from(req, sources)
+    scheme, token = req.get_header("HTTP_AUTHORIZATION").to_s.split(/\s+/, 2)
+    return [ :bearer, token ] if sources.include?(:bearer) && scheme&.casecmp?("Bearer")
+    if sources.include?(:basic) && scheme&.casecmp?("Basic")
+      return [ :basic, Base64.strict_decode64(token.to_s) ]
+    end
+
+    [ :query, req.GET["api_key"] ] if sources.include?(:query)
   rescue ArgumentError
     nil
   end

@@ -3,8 +3,8 @@ require "test_helper"
 class RackAttackTest < ActiveSupport::TestCase
   test "general throttle separates valid bearer credentials for the same user" do
     user = create(:user)
-    first_token = create(:oauth_access_token, resource_owner_id: user.id)
-    second_token = create(:oauth_access_token, resource_owner_id: user.id)
+    first_token = create(:oauth_access_token, resource_owner_id: user.id, scopes: "read")
+    second_token = create(:oauth_access_token, resource_owner_id: user.id, scopes: "read")
 
     assert_equal(
       "oauth_token:#{first_token.id}",
@@ -21,15 +21,32 @@ class RackAttackTest < ActiveSupport::TestCase
     first_key = create(:api_key, user: user)
     second_key = create(:api_key, user: user)
 
-    assert_equal "api_key:#{first_key.id}", discriminator_for(query: first_key.token)
-    assert_equal "api_key:#{second_key.id}", discriminator_for(query: second_key.token)
+    path = "/api/hackatime/v1/users/current/heartbeats"
+    assert_equal "api_key:#{first_key.id}", discriminator_for(path:, query: first_key.token)
+    assert_equal "api_key:#{second_key.id}", discriminator_for(path:, query: second_key.token)
   end
 
   test "general throttle recognises valid basic credentials" do
     key = create(:api_key)
     authorization = "Basic #{Base64.strict_encode64(key.token)}"
 
-    assert_equal "api_key:#{key.id}", discriminator_for(authorization: authorization)
+    path = "/api/hackatime/v1/users/current/heartbeats"
+    assert_equal "api_key:#{key.id}", discriminator_for(path:, authorization: authorization)
+  end
+
+  test "general throttle groups credentials sent over unsupported transports by IP" do
+    key = create(:api_key)
+    basic = "Basic #{Base64.strict_encode64(key.token)}"
+
+    assert_equal "ip:198.51.100.20", discriminator_for(query: key.token)
+    assert_equal "ip:198.51.100.20", discriminator_for(authorization: basic)
+  end
+
+  test "general throttle groups credentials invalid for the endpoint by IP" do
+    oauth_token = create(:oauth_access_token, scopes: "profile")
+    authorization = "Bearer #{oauth_token.token}"
+
+    assert_equal "ip:198.51.100.20", discriminator_for(authorization: authorization)
   end
 
   test "general throttle groups invalid credentials by IP" do
