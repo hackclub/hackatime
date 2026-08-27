@@ -35,16 +35,23 @@ An exceeded limit returns HTTP `429 Too Many Requests` with a JSON response and 
 ```http
 HTTP/1.1 429 Too Many Requests
 Content-Type: application/json
-Retry-After: 60
+Retry-After: 30
+X-RateLimit-Limit: 300
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1710948630
+X-RateLimit-Reset-At: 2024-03-20T15:30:30Z
 ```
 
 ```json
 {
-  "error": "Rate limit exceeded"
+  "error": "Rate limit exceeded",
+  "message": "Woah there, way too fast, take a chill pill speedy gonzales!",
+  "retry_after": 30,
+  "reset_at": "2024-03-20T15:30:30Z"
 }
 ```
 
-Responses from the IP-based limits also include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` and `X-RateLimit-Reset-At` headers. These headers are not currently sent with every successful API response, so clients should treat a `429` and `Retry-After` as the source of truth.
+Rate-limit responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` and `X-RateLimit-Reset-At` headers. `X-RateLimit-Reset` is the Unix timestamp when the current window resets. These headers are not currently sent with every successful API response, so clients should treat a `429` and `Retry-After` as the source of truth.
 
 When your integration receives a `429`:
 

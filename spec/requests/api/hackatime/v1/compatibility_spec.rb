@@ -133,14 +133,14 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
         schema type: :object,
           properties: {
             error: { type: :string, example: 'Rate limit exceeded' },
-            message: { type: :string, example: 'You have exceeded the heartbeat upload rate limit. Please try again later.' },
+            message: { type: :string, example: 'Woah there, way too fast, take a chill pill speedy gonzales!' },
             retry_after: { type: :integer, example: 30 },
             reset_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:30Z' }
           }
         header 'Retry-After', schema: { type: :string, example: '30' }, description: 'Seconds until the rate limit resets'
-        header 'X-RateLimit-Limit', schema: { type: :string, example: '360' }
+        header 'X-RateLimit-Limit', schema: { type: :string, example: '300' }
         header 'X-RateLimit-Remaining', schema: { type: :string, example: '0' }
-        header 'X-RateLimit-Reset', schema: { type: :string, example: '30' }
+        header 'X-RateLimit-Reset', schema: { type: :string, example: '1710948630' }
         header 'X-RateLimit-Reset-At', schema: { type: :string, example: '2024-03-20T15:30:30Z' }
       end
     end
