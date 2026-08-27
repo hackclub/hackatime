@@ -148,6 +148,11 @@ export default defineConfig({
       to: "/configuration",
       status: 301,
     },
+    {
+      from: "/oauth/oauth-apps",
+      to: "/developers/oauth-apps",
+      status: 301,
+    },
   ],
   analytics: {
     scripts: [

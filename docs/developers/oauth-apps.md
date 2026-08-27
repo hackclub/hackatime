@@ -124,6 +124,8 @@ GET https://hackatime.hackclub.com/api/v1/authenticated/me
 Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
 
+Requests made with the token count towards the user's shared authenticated API allowance. See [API rate limits](/developers/rate-limits) for limits and retry guidance.
+
 ### Admin API access
 
 With a token that includes the `admin` scope, call Admin API endpoints the same way (instead of minting an Admin API key):
