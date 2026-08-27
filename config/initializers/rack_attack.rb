@@ -1,7 +1,7 @@
 # config/initializers/rack_attack.rb
 
 class Rack::Attack
-  Rack::Attack.enabled = true
+  Rack::Attack.enabled = false
 
   if ENV["RACK_ATTACK_BYPASS"].present?
     begin
