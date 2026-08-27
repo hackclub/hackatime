@@ -3,6 +3,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   skip_before_action :verify_authenticity_token
   skip_before_action :enforce_lockout
   before_action :check_lockout, only: [ :push_heartbeats ]
+  include AuthenticatedApiRateLimiting
 
   HEARTBEAT_KEYS = %i[
     ai_input_tokens ai_line_changes ai_model ai_output_tokens ai_prompt_length ai_session
@@ -237,6 +238,8 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   end
 
   def check_lockout = (render_forbidden("Account pending deletion") if @user&.pending_deletion?)
+
+  def authenticated_api_rate_limit_identity = "user:#{@user.id}"
 
   def set_user
     @user = api_user_from_credentials(

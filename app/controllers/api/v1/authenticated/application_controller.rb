@@ -5,6 +5,7 @@ module Api
         include Doorkeeper::Rails::Helpers
         before_action :doorkeeper_authorize!
         before_action :ensure_api_access_allowed
+        include AuthenticatedApiRateLimiting
 
         def self.require_oauth_scope(scope)
           skip_before_action :doorkeeper_authorize!
@@ -12,6 +13,8 @@ module Api
         end
 
         private
+
+        def authenticated_api_rate_limit_identity = "user:#{current_user.id}"
 
         def current_user
           @current_user ||= User.find(doorkeeper_token.resource_owner_id) if doorkeeper_token
