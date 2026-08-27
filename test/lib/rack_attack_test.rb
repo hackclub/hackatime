@@ -1,0 +1,59 @@
+require "test_helper"
+
+class RackAttackTest < ActiveSupport::TestCase
+  test "general throttle separates valid bearer credentials by user" do
+    first_token = create(:oauth_access_token)
+    second_token = create(:oauth_access_token)
+
+    assert_equal(
+      "user:#{first_token.resource_owner_id}",
+      discriminator_for(authorization: "Bearer #{first_token.token}")
+    )
+    assert_equal(
+      "user:#{second_token.resource_owner_id}",
+      discriminator_for(authorization: "Bearer #{second_token.token}")
+    )
+  end
+
+  test "general throttle separates valid query credentials by user" do
+    first_key = create(:api_key)
+    second_key = create(:api_key)
+
+    assert_equal "user:#{first_key.user_id}", discriminator_for(query: first_key.token)
+    assert_equal "user:#{second_key.user_id}", discriminator_for(query: second_key.token)
+  end
+
+  test "general throttle recognises valid basic credentials" do
+    key = create(:api_key)
+    authorization = "Basic #{Base64.strict_encode64(key.token)}"
+
+    assert_equal "user:#{key.user_id}", discriminator_for(authorization: authorization)
+  end
+
+  test "general throttle groups invalid credentials by IP" do
+    first = discriminator_for(authorization: "Bearer invalid-one")
+    second = discriminator_for(authorization: "Bearer invalid-two")
+
+    assert_equal "ip:198.51.100.20", first
+    assert_equal first, second
+  end
+
+  test "general throttle groups anonymous requests by IP" do
+    assert_equal "ip:198.51.100.20", discriminator_for
+  end
+
+  test "general throttle excludes assets" do
+    assert_nil discriminator_for(path: "/assets/application.js")
+  end
+
+  private
+
+  def discriminator_for(path: "/api/v1/authenticated/projects", authorization: nil, query: nil)
+    path = "#{path}?api_key=#{query}" if query
+    env = Rack::MockRequest.env_for(path, "REMOTE_ADDR" => "198.51.100.20")
+    env["HTTP_AUTHORIZATION"] = authorization if authorization
+    request = Rack::Attack::Request.new(env)
+
+    Rack::Attack.throttles.fetch("general").block.call(request)
+  end
+end
