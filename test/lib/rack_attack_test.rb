@@ -1,19 +1,26 @@
 require "test_helper"
 
 class RackAttackTest < ActiveSupport::TestCase
-  test "general throttle separates valid OAuth credentials for the same user" do
+  test "general throttle groups valid OAuth credentials by user" do
     user = create(:user)
     first_token = create(:oauth_access_token, resource_owner_id: user.id)
     second_token = create(:oauth_access_token, resource_owner_id: user.id)
 
-    assert_equal(
-      "oauth_token:#{first_token.id}",
-      discriminator_for(authorization: "Bearer #{first_token.token}")
-    )
-    assert_equal(
-      "oauth_token:#{second_token.id}",
-      discriminator_for(authorization: "Bearer #{second_token.token}")
-    )
+    first = discriminator_for(authorization: "Bearer #{first_token.token}")
+    second = discriminator_for(authorization: "Bearer #{second_token.token}")
+
+    assert_equal "user:#{user.id}", first
+    assert_equal first, second
+  end
+
+  test "general throttle separates OAuth credentials for different users" do
+    first_token = create(:oauth_access_token)
+    second_token = create(:oauth_access_token)
+
+    first = discriminator_for(authorization: "Bearer #{first_token.token}")
+    second = discriminator_for(authorization: "Bearer #{second_token.token}")
+
+    assert_not_equal first, second
   end
 
   test "general throttle groups invalid credentials by IP" do
