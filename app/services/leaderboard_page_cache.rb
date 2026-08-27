@@ -14,6 +14,8 @@ class LeaderboardPageCache
       Rails.cache.write(version_key, SecureRandom.uuid)
     end
 
+    def version = cache_version
+
     private
 
     def version_key = "leaderboard_page/v2/version"
@@ -34,7 +36,7 @@ class LeaderboardPageCache
     end
 
     def entries_scope(leaderboard:, scope:, country_code:)
-      q = leaderboard.entries.order(total_seconds: :desc)
+      q = leaderboard.entries.order(total_seconds: :desc, user_id: :asc)
       q = q.joins(:user).where(users: { country_code: }) if scope.to_sym == :country && country_code.present?
       q.preload(user: :email_addresses)
     end
