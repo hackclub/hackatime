@@ -1,33 +1,35 @@
 require "test_helper"
 
 class RackAttackTest < ActiveSupport::TestCase
-  test "general throttle separates valid bearer credentials by user" do
-    first_token = create(:oauth_access_token)
-    second_token = create(:oauth_access_token)
+  test "general throttle separates valid bearer credentials for the same user" do
+    user = create(:user)
+    first_token = create(:oauth_access_token, resource_owner_id: user.id)
+    second_token = create(:oauth_access_token, resource_owner_id: user.id)
 
     assert_equal(
-      "user:#{first_token.resource_owner_id}",
+      "oauth_token:#{first_token.id}",
       discriminator_for(authorization: "Bearer #{first_token.token}")
     )
     assert_equal(
-      "user:#{second_token.resource_owner_id}",
+      "oauth_token:#{second_token.id}",
       discriminator_for(authorization: "Bearer #{second_token.token}")
     )
   end
 
-  test "general throttle separates valid query credentials by user" do
-    first_key = create(:api_key)
-    second_key = create(:api_key)
+  test "general throttle separates valid query credentials for the same user" do
+    user = create(:user)
+    first_key = create(:api_key, user: user)
+    second_key = create(:api_key, user: user)
 
-    assert_equal "user:#{first_key.user_id}", discriminator_for(query: first_key.token)
-    assert_equal "user:#{second_key.user_id}", discriminator_for(query: second_key.token)
+    assert_equal "api_key:#{first_key.id}", discriminator_for(query: first_key.token)
+    assert_equal "api_key:#{second_key.id}", discriminator_for(query: second_key.token)
   end
 
   test "general throttle recognises valid basic credentials" do
     key = create(:api_key)
     authorization = "Basic #{Base64.strict_encode64(key.token)}"
 
-    assert_equal "user:#{key.user_id}", discriminator_for(authorization: authorization)
+    assert_equal "api_key:#{key.id}", discriminator_for(authorization: authorization)
   end
 
   test "general throttle groups invalid credentials by IP" do

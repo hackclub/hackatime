@@ -27,17 +27,20 @@ class Rack::Attack
     req.path =~ %r{\A/api/hackatime/v1/users/[^/]+/heartbeats(?:\.bulk)?\z}
   end
 
-  def self.authenticated_user_id(req)
+  def self.authenticated_credential_id(req)
     source, token = credential_from(req)
     token = normalize_credential(token)
     return if token.blank?
 
-    user_id = ApiKey.where(token: token).pick(:user_id)
-    user_id ||= AdminApiKey.active.find_by(token: token)&.user_id if source == :bearer
-    return user_id if user_id || source != :bearer
+    api_key_id = ApiKey.where(token: token).pick(:id)
+    return "api_key:#{api_key_id}" if api_key_id
+    return if source != :bearer
+
+    admin_api_key_id = AdminApiKey.active.find_by(token: token)&.id
+    return "admin_api_key:#{admin_api_key_id}" if admin_api_key_id
 
     oauth_token = Doorkeeper::AccessToken.by_token(token)
-    oauth_token.resource_owner_id if oauth_token&.accessible?
+    "oauth_token:#{oauth_token.id}" if oauth_token&.accessible?
   end
 
   def self.credential_from(req)
@@ -79,8 +82,7 @@ class Rack::Attack
 
   Rack::Attack.throttle("general", limit: 300, period: 1.minute) do |req|
     unless req.path.start_with?("/assets")
-      user_id = authenticated_user_id(req)
-      user_id ? "user:#{user_id}" : "ip:#{req.ip}"
+      authenticated_credential_id(req) || "ip:#{req.ip}"
     end
   end
 
