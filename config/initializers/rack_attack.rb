@@ -1,5 +1,7 @@
 # config/initializers/rack_attack.rb
 
+require "digest"
+
 class Rack::Attack
   Rack::Attack.enabled = true
 
@@ -44,7 +46,10 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("general", limit: 300, period: 1.minute) do |req|
-    req.ip unless req.path.start_with?("/assets")
+    unless req.path.start_with?("/assets")
+      authorization = req.get_header("HTTP_AUTHORIZATION")
+      authorization.present? ? Digest::SHA256.hexdigest(authorization) : req.ip
+    end
   end
 
   Rack::Attack.throttle("posts by ip", limit: 60, period: 5.minutes) do |req|
