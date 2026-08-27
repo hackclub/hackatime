@@ -24,6 +24,8 @@ class AuthenticatedApiRateLimitingTest < ActionController::TestCase
   tests RateLimitedTestController
 
   setup do
+    @routes = ActionDispatch::Routing::RouteSet.new
+    @routes.draw { get "index", to: "rate_limited_test#index" }
     RateLimitedTestController::RATE_LIMIT_STORE.clear
     @request.headers["X-User-ID"] = "1"
   end
