@@ -73,7 +73,7 @@
         </span>
         {#if can_view_telescreen}
           <a
-            href={`https://telescreen.hackclub.com/subjects/${entry.user_id}`}
+            href={`https://telescreen.hackclub.com/workbench/hackatime/overview?u=${entry.user_id}`}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`View ${entry.user.display_name} on Telescreen`}
