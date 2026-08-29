@@ -77,7 +77,8 @@ class LeaderboardsController < InertiaController
     active_projects = Cache::ActiveProjectsJob.perform_now
 
     visible_entries = payload[:entries].reject do |e|
-      e.dig(:user, :shadowbanned) && e[:user_id] != current_user&.id
+      e.dig(:user, :red) ||
+        (e.dig(:user, :shadowbanned) && e[:user_id] != current_user&.id)
     end
 
     entries = visible_entries.map do |e|
@@ -93,8 +94,7 @@ class LeaderboardsController < InertiaController
           avatar_url: user[:avatar_url],
           profile_path: user[:profile_path],
           verified: user[:verified],
-          country_code: user[:country_code],
-          red: user[:red]
+          country_code: user[:country_code]
         },
         active_project: proj ? { name: proj.project_name, repo_url: proj.repo_url } : nil
       }

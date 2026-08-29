@@ -17,7 +17,7 @@ class User < ApplicationRecord
   after_create :subscribe_to_default_lists
   after_create_commit :schedule_welcome_email
   after_create_commit :schedule_onboarding_check_in_email
-  after_update_commit :clear_leaderboard_page_cache, if: :saved_change_to_leaderboard_shadowban_state?
+  after_update_commit :clear_leaderboard_page_cache, if: -> { saved_change_to_leaderboard_shadowban_state? || saved_change_to_trust_level? }
   before_validation :normalize_username
   before_validation :normalize_display_name_override
   encrypts :slack_access_token, :github_access_token, :hca_access_token

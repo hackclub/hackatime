@@ -108,13 +108,51 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, entries_payload["entries"].first["is_current_user"]
   end
 
+  test "deferred entries hide red users" do
+    viewer = create_user(username: "lb_red_viewer")
+    visible_user = create_user(username: "lb_not_red_user")
+    red_user = create_user(username: "lb_red_user", trust_level: :red)
+    board = create_boards_for_today(period_type: :daily).first
+    create(:leaderboard_entry, leaderboard: board, user: visible_user, total_seconds: 300, streak_count: 1)
+    create(:leaderboard_entry, leaderboard: board, user: red_user, total_seconds: 200, streak_count: 1)
+
+    sign_in_as(viewer)
+    get leaderboards_path
+    inertia_load_deferred_props :default
+
+    assert_response :success
+    entries_payload = inertia.props["entries"]
+    assert_equal 1, entries_payload["total"]
+    assert_equal [ visible_user.id ], entries_payload["entries"].map { |entry| entry["user_id"] }
+  end
+
+  test "convicting a user hides them even after the page cache was warmed" do
+    viewer = create_user(username: "lb_cache_viewer")
+    convict = create_user(username: "lb_soon_red_user")
+    board = create_boards_for_today(period_type: :daily).first
+    create(:leaderboard_entry, leaderboard: board, user: convict, total_seconds: 200, streak_count: 1)
+
+    sign_in_as(viewer)
+    get leaderboards_path
+    inertia_load_deferred_props :default
+    assert_equal [ convict.id ], inertia.props.dig("entries", "entries").map { |entry| entry["user_id"] }
+
+    convict.update!(trust_level: :red)
+
+    get leaderboards_path
+    inertia_load_deferred_props :default
+    assert_equal 0, inertia.props.dig("entries", "total")
+    assert_empty inertia.props.dig("entries", "entries")
+  end
+
   private
 
-  def create_user(username:, country_code: nil, leaderboard_shadowbanned: false, admin_level: :default)
+  def create_user(username:, country_code: nil, leaderboard_shadowbanned: false, admin_level: :default, trust_level: :blue)
     create(:user,
       username:,
       country_code:,
       admin_level:,
+      trust_level:,
       leaderboard_shadowbanned: leaderboard_shadowbanned,
       leaderboard_shadowban_reason: leaderboard_shadowbanned ? "test shadowban" : nil
     )

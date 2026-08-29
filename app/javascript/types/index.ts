@@ -92,7 +92,6 @@ type LeaderboardEntryUser = {
   profile_path: string | null;
   verified: boolean;
   country_code: string | null;
-  red: boolean;
 };
 
 export type LeaderboardEntry = {

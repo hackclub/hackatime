@@ -28,9 +28,7 @@
   class="group relative flex items-center p-2 sm:p-3 hover:bg-dark transition-colors duration-200 gap-2 sm:gap-0 border-b border-gray-800 {entry
     .user.profile_path
     ? 'cursor-pointer'
-    : ''} {entry.is_current_user
-    ? 'bg-dark border-l-4 border-l-primary'
-    : ''} {entry.user.red ? 'opacity-40 hover:opacity-60' : ''}"
+    : ''} {entry.is_current_user ? 'bg-dark border-l-4 border-l-primary' : ''}"
 >
   {#if entry.user.profile_path}
     <Link
