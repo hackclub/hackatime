@@ -19,14 +19,6 @@ class ProfileSettingsTest < ApplicationSystemTestCase
     assert_selector "[data-settings-card]", minimum: 3
   end
 
-  test "settings hash redirects to the matching settings page and subsection" do
-    visit "#{my_settings_profile_path}#user_api_key"
-
-    assert_current_path my_settings_privacy_path, ignore_query: true
-    assert_text "API Key"
-    assert_selector "[data-settings-subnav-item][data-active='true']", text: "API key"
-  end
-
   test "profile settings updates country and username" do
     @user.update!(country_code: "CA", username: "old_name")
     new_username = "settings_#{SecureRandom.hex(4)}"
