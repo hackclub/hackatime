@@ -4,7 +4,7 @@
 </script>
 
 <script lang="ts">
-  import { router } from "@inertiajs/svelte";
+  import { Form } from "@inertiajs/svelte";
   import { untrack } from "svelte";
   import Button from "../../../components/Button.svelte";
   import Select from "../../../components/Select.svelte";
@@ -75,19 +75,28 @@
       Badges require public stats to be enabled so they can be viewed by others.
       Enable public stats to use badges.
     </p>
-    <Button
-      onclick={() =>
-        router.patch(
-          settingsPrivacy.update.path(),
-          { user: { allow_public_stats_lookup: true } },
-          { preserveScroll: true },
-        )}
-      variant="primary"
-      size="sm"
-      class="mt-3"
+    <Form
+      action={settingsPrivacy.update.path()}
+      method="patch"
+      options={{ preserveScroll: true }}
     >
-      Enable public stats
-    </Button>
+      {#snippet children({ processing })}
+        <input
+          type="hidden"
+          name="user[allow_public_stats_lookup]"
+          value="true"
+        />
+        <Button
+          type="submit"
+          variant="primary"
+          size="sm"
+          class="mt-3"
+          disabled={processing}
+        >
+          {processing ? "Enabling public stats..." : "Enable public stats"}
+        </Button>
+      {/snippet}
+    </Form>
   </div>
 {/if}
 

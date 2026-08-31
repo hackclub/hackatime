@@ -27,4 +27,14 @@ class BadgesSettingsTest < ApplicationSystemTestCase
 
     assert_text(/theme=default/i)
   end
+
+  test "badges settings enables public stats" do
+    @user.update!(allow_public_stats_lookup: false)
+
+    visit my_settings_badges_path
+    click_on "Enable public stats"
+
+    assert_text "Settings updated successfully"
+    assert_equal true, @user.reload.allow_public_stats_lookup
+  end
 end
