@@ -1636,13 +1636,9 @@ paths:
       - Stats
       description: Returns the total coding time for all users, optionally filtered
         by user or date range. Requires an active Admin API Key supplied via the Bearer
-        header. Admin API Keys are never accepted in the api_key query param. During
-        migration, STATS_API_KEY is accepted via the Bearer header or api_key query
-        param only when the allow_legacy_stats_api_key Flipper flag is enabled. Authentication
-        is skipped entirely in development.
+        header.
       security:
       - Bearer: []
-      - LegacyStatsApiKey: []
       parameters:
       - name: start_date
         in: query
@@ -2262,9 +2258,7 @@ paths:
       - Users
       description: Find a user ID by their email address. Useful for integrations
         that need to map emails to Hackatime users. Requires an active Admin API Key
-        supplied via the Authorization Bearer header (the api_key query param is NOT
-        accepted for this endpoint). During migration, STATS_API_KEY is also accepted
-        when the allow_legacy_stats_api_key Flipper flag is enabled.
+        supplied via the Authorization Bearer header.
       security:
       - Bearer: []
       parameters:
@@ -2314,9 +2308,7 @@ paths:
       tags:
       - Users
       description: Find a user ID by their Slack User ID. Requires an active Admin
-        API Key supplied via the Authorization Bearer header (the api_key query param
-        is NOT accepted for this endpoint). During migration, STATS_API_KEY is also
-        accepted when the allow_legacy_stats_api_key Flipper flag is enabled.
+        API Key supplied via the Authorization Bearer header
       security:
       - Bearer: []
       parameters:
@@ -2382,12 +2374,6 @@ components:
       name: api_key
       in: query
       description: User API Key from settings
-    LegacyStatsApiKey:
-      type: apiKey
-      name: api_key
-      in: query
-      description: Legacy STATS_API_KEY, accepted only while the allow_legacy_stats_api_key
-        feature flag is enabled
   schemas:
     Error:
       type: object

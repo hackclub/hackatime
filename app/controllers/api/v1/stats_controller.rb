@@ -1,7 +1,7 @@
 class Api::V1::StatsController < ApplicationController
   USER_LOOKUP_ACTIONS = [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ].freeze
 
-  before_action :authenticate_stats_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
+  before_action :authenticate_admin_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
   before_action :set_user, only: USER_LOOKUP_ACTIONS
   before_action :ensure_public_stats_allowed!, only: USER_LOOKUP_ACTIONS
 
