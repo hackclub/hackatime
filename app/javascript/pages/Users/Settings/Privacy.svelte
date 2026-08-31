@@ -10,15 +10,28 @@
   import SectionCard from "./components/SectionCard.svelte";
   import CheckboxField from "../../../components/CheckboxField.svelte";
   import ModalActions from "./components/ModalActions.svelte";
-  import type { PrivacyPageProps } from "./types";
   import { settingsPrivacy, deletionRequests } from "../../../api";
+
+  type Props = {
+    user: {
+      allow_public_stats_lookup: boolean;
+      can_request_deletion: boolean;
+    };
+    authorized_applications: Array<{
+      id: number;
+      name: string;
+      authorized_at: string;
+    }>;
+    rotated_api_key?: string | null;
+    deletion_reason_details_max_length: number;
+  };
 
   let {
     user,
     authorized_applications,
     rotated_api_key = "",
     deletion_reason_details_max_length,
-  }: PrivacyPageProps = $props();
+  }: Props = $props();
 
   const deletionReasons = [
     "Switching to an alternative",

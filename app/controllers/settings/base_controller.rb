@@ -25,32 +25,6 @@ class Settings::BaseController < InertiaController
   # Subclasses override this to provide page-specific props
   def page_props = {}
 
-  USER_PROP_BUILDERS = {
-    id: ->(u) { u.id },
-    display_name: ->(u) { u.display_name },
-    display_name_override: ->(u) { u.display_name_override },
-    timezone: ->(u) { u.timezone },
-    country_code: ->(u) { u.country_code },
-    username: ->(u) { u.username },
-    theme: ->(u) { u.theme },
-    uses_slack_status: ->(u) { u.uses_slack_status },
-    weekly_summary_email_enabled: ->(u) { u.subscribed?("weekly_summary") },
-    hackatime_extension_text_type: ->(u) { u.hackatime_extension_text_type },
-    show_goals_in_statusbar: ->(u) { u.show_goals_in_statusbar },
-    allow_public_stats_lookup: ->(u) { u.allow_public_stats_lookup },
-    trust_level: ->(u) { u.public_trust_level },
-    can_request_deletion: ->(u) { u.can_request_deletion? },
-    github_uid: ->(u) { u.github_uid },
-    github_username: ->(u) { u.github_username },
-    slack_uid: ->(u) { u.slack_uid }
-  }.freeze
-
-  # Build a user prop hash containing only the requested keys.
-  def user_props(keys: nil)
-    (keys.present? ? USER_PROP_BUILDERS.slice(*keys) : USER_PROP_BUILDERS)
-      .transform_values { |builder| builder.call(@user) }
-  end
-
   BASE_OPTION_BUILDERS = {
     countries: -> { ISO3166::Country.all.map { |c| { label: c.common_name, value: c.alpha2 } }.sort_by { |c| c[:label] } },
     # see .timezone_options below; a user's current zone, if outside the list,

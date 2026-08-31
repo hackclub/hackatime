@@ -10,11 +10,26 @@
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import FormField from "../../../components/FormField.svelte";
-  import type { BadgesPageProps } from "./types";
   import { settingsPrivacy } from "../../../api";
 
-  let { badge_themes, badges, allow_public_stats_lookup }: BadgesPageProps =
-    $props();
+  type Props = {
+    badge_themes: string[];
+    badges: {
+      general_badge_url: string;
+      project_badge_base_url?: string | null;
+      projects: Array<{ display_name: string; repo_path: string }>;
+      markscribe_template: string;
+      markscribe_reference_url: string;
+      markscribe_preview_image_url: string;
+      heatmap_badge_url: string;
+      heatmap_config_url: string;
+      hackabox_repo_url: string;
+      hackabox_preview_image_url: string;
+    };
+    allow_public_stats_lookup: boolean;
+  };
+
+  let { badge_themes, badges, allow_public_stats_lookup }: Props = $props();
 
   let selectedTheme = $state(
     untrack(() =>

@@ -10,10 +10,26 @@
   import SectionCard from "./components/SectionCard.svelte";
   import CheckboxField from "../../../components/CheckboxField.svelte";
   import ModalActions from "./components/ModalActions.svelte";
-  import type { SlackGithubPageProps } from "./types";
   import { sessions, settingsSlackGithub } from "../../../api";
 
-  let { user, slack, github }: SlackGithubPageProps = $props();
+  type Props = {
+    user: { uses_slack_status: boolean };
+    slack: {
+      can_enable_status: boolean;
+      notification_channels: Array<{
+        id: string;
+        label: string;
+        url: string;
+      }>;
+    };
+    github: {
+      connected: boolean;
+      username?: string | null;
+      profile_url?: string | null;
+    };
+  };
+
+  let { user, slack, github }: Props = $props();
 
   let unlinkGithubModalOpen = $state(false);
 </script>

@@ -11,7 +11,7 @@ class Settings::AppearanceController < Settings::BaseController
   private
 
   def page_props
-    { user: user_props(keys: %i[theme]), options: base_options(keys: %i[themes]) }
+    { user: { theme: @user.theme }, options: base_options(keys: %i[themes]) }
   end
 
   def theme_params = params.require(:user).permit(:theme)

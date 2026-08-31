@@ -12,8 +12,37 @@
   import Select from "../../../components/Select.svelte";
   import TextInput from "../../../components/TextInput.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import type { ProfilePageProps } from "./types";
   import { settingsProfile, sessions } from "../../../api";
+
+  type Props = {
+    username_max_length: number;
+    display_name_max_length: number;
+    user: {
+      country_code?: string | null;
+      timezone: string;
+      display_name: string;
+      display_name_override?: string | null;
+      username?: string | null;
+    };
+    options: {
+      countries: Array<{ label: string; value: string }>;
+      timezones: Array<{ label: string; value: string }>;
+    };
+    profile_url: string | null;
+    emails: Array<{
+      email: string;
+      source: string;
+      can_unlink: boolean;
+      pending: boolean;
+      expired?: boolean;
+      can_resend: boolean;
+      resend_cooldown_seconds: number;
+    }>;
+    errors: {
+      display_name_override: string[];
+      username: string[];
+    };
+  };
 
   let {
     username_max_length,
@@ -23,7 +52,7 @@
     profile_url,
     emails,
     errors,
-  }: ProfilePageProps = $props();
+  }: Props = $props();
 
   function formatCooldown(seconds: number): string {
     if (seconds <= 0) return "";

@@ -4,17 +4,15 @@
   import { Icon } from "svelte-hero-icons";
   import type { LayoutProps } from "../../../types";
   import { SETTINGS_SECTIONS } from "./navigation";
-  import type { SettingsCommonProps } from "./types";
 
-  let {
-    layout,
-    active_section,
-    errors,
-    children,
-  }: SettingsCommonProps & {
+  type Props = {
     layout: LayoutProps;
+    active_section: (typeof SETTINGS_SECTIONS)[number]["id"];
+    errors: { full_messages: string[] };
     children?: Snippet;
-  } = $props();
+  };
+
+  let { layout, active_section, errors, children }: Props = $props();
 
   const pillClass = (active: boolean) =>
     `inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${

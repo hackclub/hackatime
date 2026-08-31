@@ -11,7 +11,13 @@ class Settings::ProfileController < Settings::BaseController
     {
       username_max_length: User::USERNAME_MAX_LENGTH,
       display_name_max_length: User::DISPLAY_NAME_MAX_LENGTH,
-      user: user_props(keys: %i[country_code timezone display_name display_name_override username]),
+      user: {
+        country_code: @user.country_code,
+        timezone: @user.timezone,
+        display_name: @user.display_name,
+        display_name_override: @user.display_name_override,
+        username: @user.username
+      },
       options: options,
       profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
       emails: email_props

@@ -8,10 +8,13 @@
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import CheckboxField from "../../../components/CheckboxField.svelte";
-  import type { NotificationsPageProps } from "./types";
   import { settingsNotifications } from "../../../api";
 
-  let { user }: NotificationsPageProps = $props();
+  type Props = {
+    user: { weekly_summary_email_enabled: boolean };
+  };
+
+  let { user }: Props = $props();
 </script>
 
 <svelte:head>

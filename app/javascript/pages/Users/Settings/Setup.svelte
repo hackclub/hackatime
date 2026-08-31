@@ -7,10 +7,17 @@
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import CodeBlock from "./components/CodeBlock.svelte";
-  import type { SetupPageProps } from "./types";
   import { users } from "../../../api";
 
-  let { config_file }: SetupPageProps = $props();
+  type Props = {
+    config_file: {
+      content?: string | null;
+      has_api_key: boolean;
+      empty_message: string;
+    };
+  };
+
+  let { config_file }: Props = $props();
 </script>
 
 <svelte:head>

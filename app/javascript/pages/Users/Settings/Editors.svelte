@@ -10,10 +10,19 @@
   import SectionCard from "./components/SectionCard.svelte";
   import CheckboxField from "../../../components/CheckboxField.svelte";
   import FormField from "../../../components/FormField.svelte";
-  import type { EditorsPageProps } from "./types";
   import { settingsEditors } from "../../../api";
 
-  let { user, options }: EditorsPageProps = $props();
+  type Props = {
+    user: {
+      hackatime_extension_text_type: string;
+      show_goals_in_statusbar: boolean;
+    };
+    options: {
+      extension_text_types: Array<{ label: string; value: string }>;
+    };
+  };
+
+  let { user, options }: Props = $props();
 
   let goalsDisabled = $derived(
     user.hackatime_extension_text_type !== "simple_text",

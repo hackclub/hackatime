@@ -8,11 +8,33 @@
   import { RadioGroup } from "bits-ui";
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import type { AppearancePageProps } from "./types";
   import { settingsAppearance } from "../../../api";
   import { DEFAULT_THEME } from "../../../utils";
 
-  let { user, options }: AppearancePageProps = $props();
+  type Props = {
+    user: { theme: string };
+    options: {
+      themes: Array<{
+        value: string;
+        label: string;
+        description: string;
+        color_scheme: "dark" | "light";
+        theme_color: string;
+        preview: {
+          darker: string;
+          dark: string;
+          darkless: string;
+          primary: string;
+          content: string;
+          info: string;
+          success: string;
+          warning: string;
+        };
+      }>;
+    };
+  };
+
+  let { user, options }: Props = $props();
 
   let selectedTheme = $state(user.theme || DEFAULT_THEME);
 

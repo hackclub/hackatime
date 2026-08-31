@@ -8,11 +8,41 @@
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import ImportStatusRow from "./components/ImportStatusRow.svelte";
-  import type {
-    ImportsExportsPageProps,
-    HeartbeatImportStatusProps,
-  } from "./types";
   import { myHeartbeatImports, myHeartbeats } from "../../../api";
+
+  type HeartbeatImportStatusProps = {
+    import_id: string;
+    state: string;
+    source_kind: string;
+    progress_percent: number | null;
+    processed_count: number;
+    total_count: number | null;
+    imported_count: number | null;
+    skipped_count: number | null;
+    errors_count: number;
+    message: string;
+    error_message?: string | null;
+    remote_dump_status?: string | null;
+    remote_percent_complete?: number | null;
+    cooldown_until?: string | null;
+    source_filename?: string | null;
+    updated_at: string;
+    started_at?: string | null;
+    finished_at?: string | null;
+  };
+
+  type Props = {
+    data_export?: {
+      total_heartbeats: string;
+      total_coding_time: string;
+      heartbeats_last_7_days: string;
+      is_restricted: boolean;
+    };
+    export_cooldown_minutes: number;
+    remote_import_cooldown_until?: string | null;
+    latest_heartbeat_import?: HeartbeatImportStatusProps | null;
+    show_dev_import: boolean;
+  };
 
   const PROVIDERS = [
     {
@@ -35,7 +65,7 @@
     remote_import_cooldown_until,
     latest_heartbeat_import,
     show_dev_import,
-  }: ImportsExportsPageProps = $props();
+  }: Props = $props();
 
   const createHeartbeatImportPath = myHeartbeatImports.create.path();
 

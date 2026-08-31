@@ -11,8 +11,37 @@
   import MultiSelectCombobox from "../../../components/MultiSelectCombobox.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import type { GoalsPageProps, ProgrammingGoal } from "./types";
   import { settingsGoals } from "../../../api";
+
+  type ProgrammingGoal = {
+    id: string;
+    period: "day" | "week" | "month";
+    target_seconds: number;
+    languages: string[];
+    projects: string[];
+  };
+
+  type Props = {
+    programming_goals: ProgrammingGoal[];
+    options: {
+      goals: {
+        periods: Array<{ label: string; value: string }>;
+        preset_target_seconds: number[];
+        selectable_languages: Array<{ label: string; value: string }>;
+        selectable_projects: Array<{ label: string; value: string }>;
+      };
+    };
+    goal_form?: {
+      open: boolean;
+      mode: "create" | "edit";
+      goal_id: string | null;
+      period: string;
+      target_seconds: number;
+      languages: string[];
+      projects: string[];
+      errors: string[];
+    } | null;
+  };
 
   const MAX_GOALS = 5;
   const QUICK_TARGETS = [
@@ -32,7 +61,7 @@
     month: "Monthly",
   };
 
-  let { programming_goals, options, goal_form }: GoalsPageProps = $props();
+  let { programming_goals, options, goal_form }: Props = $props();
 
   const goals = $derived(programming_goals || []);
   const hasReachedGoalLimit = $derived(goals.length >= MAX_GOALS);

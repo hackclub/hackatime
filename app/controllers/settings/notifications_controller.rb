@@ -21,8 +21,6 @@ class Settings::NotificationsController < Settings::BaseController
   private
 
   def page_props
-    {
-      user: user_props(keys: %i[weekly_summary_email_enabled])
-    }
+    { user: { weekly_summary_email_enabled: @user.subscribed?("weekly_summary") } }
   end
 end

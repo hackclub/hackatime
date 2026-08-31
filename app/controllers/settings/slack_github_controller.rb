@@ -20,7 +20,7 @@ class Settings::SlackGithubController < Settings::BaseController
     channel_ids = enabled_sailors_logs.pluck(:slack_channel_id)
 
     {
-      user: user_props(keys: %i[uses_slack_status]),
+      user: { uses_slack_status: @user.uses_slack_status },
       slack: {
         can_enable_status: can_enable_slack_status,
         notification_channels: channel_ids.map { |channel_id|
