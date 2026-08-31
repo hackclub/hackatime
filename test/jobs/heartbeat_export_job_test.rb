@@ -132,6 +132,58 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
     end
   end
 
+  test "include_stats adds stats directory files to the zip" do
+    create_heartbeat(at_time: Time.utc(2026, 2, 10, 12, 0, 0), entity: "src/first.rb")
+
+    HeartbeatExportJob.perform_now(@user.id, all_data: true, include_stats: true)
+
+    zip_bytes = ActiveStorage::Blob.order(created_at: :asc).last.download
+    entries = []
+
+    Zip::InputStream.open(StringIO.new(zip_bytes)) do |stream|
+      while (entry = stream.get_next_entry)
+        entries << entry.name
+      end
+    end
+
+    %w[
+      stats/project_durations.csv
+      stats/language_stats.csv
+      stats/editor_stats.csv
+      stats/operating_system_stats.csv
+      stats/category_stats.csv
+      stats/weekly_project_stats.csv
+      stats/coding_rhythm.csv
+      stats/stats.json
+    ].each do |expected|
+      assert_includes entries, expected, "Expected zip to include #{expected}"
+    end
+
+    # verify the JSON is parseable
+    Zip::InputStream.open(StringIO.new(zip_bytes)) do |stream|
+      while (entry = stream.get_next_entry)
+        if entry.name == "stats/stats.json"
+          parsed = JSON.parse(stream.read)
+          assert parsed.key?("project_durations")
+          break
+        end
+      end
+    end
+  end
+
+  test "without include_stats no stats directory is present" do
+    create_heartbeat(at_time: Time.utc(2026, 2, 10, 12, 0, 0), entity: "src/first.rb")
+
+    HeartbeatExportJob.perform_now(@user.id, all_data: true)
+
+    zip_bytes = ActiveStorage::Blob.order(created_at: :asc).last.download
+    Zip::InputStream.open(StringIO.new(zip_bytes)) do |stream|
+      while (entry = stream.get_next_entry)
+        assert_no_match(/\Astats\//, entry.name)
+      end
+    end
+  end
+
   private
 
   def create_heartbeat(at_time:, entity:)
