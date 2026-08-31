@@ -1,5 +1,5 @@
 class Api::V1::UsersController < ApplicationController
-  before_action -> { authenticate_stats_api_key!(allow_query_param: false) }, unless: -> { Rails.env.development? }
+  before_action :authenticate_admin_api_key!, unless: -> { Rails.env.development? }
 
   def lookup_email
     user = EmailAddress.find_by(email: params[:email])&.user

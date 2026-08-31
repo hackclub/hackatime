@@ -4,8 +4,8 @@ RSpec.describe 'Api::V1::Stats', type: :request do
   path '/api/v1/stats' do
     get('Get total coding time') do
       tags 'Stats'
-      description 'Returns the total coding time for all users, optionally filtered by user or date range. Requires an active Admin API Key supplied via the Bearer header. Admin API Keys are never accepted in the api_key query param. During migration, STATS_API_KEY is accepted via the Bearer header or api_key query param only when the allow_legacy_stats_api_key Flipper flag is enabled. Authentication is skipped entirely in development.'
-      security [ { Bearer: [] }, { LegacyStatsApiKey: [] } ]
+      description 'Returns the total coding time for all users, optionally filtered by user or date range. Requires an active Admin API Key supplied via the Bearer header.'
+      security [ { Bearer: [] } ]
       produces 'text/plain'
 
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD), defaults to 10 years ago'

@@ -4,7 +4,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
   path '/api/v1/users/lookup_email/{email}' do
     get('Lookup user by email') do
       tags 'Users'
-      description 'Find a user ID by their email address. Useful for integrations that need to map emails to Hackatime users. Requires an active Admin API Key supplied via the Authorization Bearer header (the api_key query param is NOT accepted for this endpoint). During migration, STATS_API_KEY is also accepted when the allow_legacy_stats_api_key Flipper flag is enabled.'
+      description 'Find a user ID by their email address. Useful for integrations that need to map emails to Hackatime users. Requires an active Admin API Key supplied via the Authorization Bearer header.'
       security [ Bearer: [] ]
       produces 'application/json'
 
@@ -49,7 +49,7 @@ RSpec.describe 'Api::V1::Users', type: :request do
   path '/api/v1/users/lookup_slack_uid/{slack_uid}' do
     get('Lookup user by Slack UID') do
       tags 'Users'
-      description 'Find a user ID by their Slack User ID. Requires an active Admin API Key supplied via the Authorization Bearer header (the api_key query param is NOT accepted for this endpoint). During migration, STATS_API_KEY is also accepted when the allow_legacy_stats_api_key Flipper flag is enabled.'
+      description 'Find a user ID by their Slack User ID. Requires an active Admin API Key supplied via the Authorization Bearer header'
       security [ Bearer: [] ]
       produces 'application/json'
 
