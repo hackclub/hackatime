@@ -36,7 +36,7 @@
     "tailwindcss": "^4.3.3",
     "virtua": "^0.50.3",
     "vite": "^8.2.2",
-    "vite-plugin-ruby": "^5.2.2"
+    "vite-plugin-ruby": "^5.2.3"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
