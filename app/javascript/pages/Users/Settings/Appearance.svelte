@@ -9,7 +9,6 @@
   import Button from "../../../components/Button.svelte";
   import SectionCard from "./components/SectionCard.svelte";
   import { settingsAppearance } from "../../../api";
-  import { DEFAULT_THEME } from "../../../utils";
 
   type Props = {
     user: { theme: string };
@@ -36,21 +35,7 @@
 
   let { user, options }: Props = $props();
 
-  let selectedTheme = $state(user.theme || DEFAULT_THEME);
-
-  const applySelectedTheme = () => {
-    if (typeof document === "undefined") return;
-    const theme = options.themes.find((o) => o.value === selectedTheme);
-    if (!theme) return;
-    document.documentElement.dataset.theme = theme.value;
-    document.documentElement.dataset.colorScheme = theme.color_scheme;
-    document
-      .querySelector('meta[name="color-scheme"]')
-      ?.setAttribute("content", theme.color_scheme);
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", theme.theme_color);
-  };
+  let selectedTheme = $derived(user.theme);
 </script>
 
 <svelte:head>
@@ -69,7 +54,6 @@
     method="patch"
     class="space-y-4"
     options={{ preserveScroll: true }}
-    onSuccess={applySelectedTheme}
   >
     <RadioGroup.Root
       name="user[theme]"

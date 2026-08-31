@@ -1,7 +1,11 @@
 class Settings::AppearanceController < Settings::BaseController
   def update_theme
     if @user.update(theme_params)
-      redirect_back(fallback_location: my_settings_appearance_path, notice: "Settings updated successfully")
+      redirect_back(
+        fallback_location: my_settings_appearance_path,
+        notice: "Settings updated successfully",
+        inertia: { clear_history: true }
+      )
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
       render_settings_page(status: :unprocessable_entity)
