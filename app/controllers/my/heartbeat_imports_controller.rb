@@ -5,7 +5,6 @@ class My::HeartbeatImportsController < ApplicationController
   before_action :authenticate_user!, only: :wakatime_download_link
 
   IMPORT_RESCUE_CLASSES = [
-    HeartbeatImportRunner::FeatureDisabledError,
     HeartbeatImportRunner::ActiveImportError,
     HeartbeatImportRunner::InvalidDownloadUrlError,
     HeartbeatImportRunner::InvalidProviderError,

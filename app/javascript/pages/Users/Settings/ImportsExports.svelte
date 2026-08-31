@@ -32,10 +32,9 @@
   let {
     data_export,
     export_cooldown_minutes,
-    imports_enabled,
     remote_import_cooldown_until,
     latest_heartbeat_import,
-    ui,
+    show_dev_import,
   }: ImportsExportsPageProps = $props();
 
   const createHeartbeatImportPath = myHeartbeatImports.create.path();
@@ -172,119 +171,115 @@
   <title>Imports & Exports - Hackatime Settings</title>
 </svelte:head>
 
-{#if ui.show_imports}
-  <Form
-    method="post"
-    action={createHeartbeatImportPath}
-    resetOnSuccess={["heartbeat_import[api_key]"]}
-    options={{ preserveScroll: true }}
-    onSuccess={(page) =>
-      onImportSuccess(
-        page.props.latest_heartbeat_import as HeartbeatImportStatusProps,
-      )}
-  >
-    {#snippet children({ processing, errors: formErrors })}
-      <SectionCard
-        id="user_imports"
-        title="Imports"
-        description="Request a one-time heartbeat dump from WakaTime or legacy Hackatime."
-        wide
-        footerClass=""
-      >
-        <div class="space-y-4">
-          <div class="space-y-3">
-            {#each PROVIDERS as provider}
-              <label
-                class="flex cursor-pointer items-start gap-3 rounded-md border border-surface-200 bg-surface-100 px-3 py-3 text-sm text-surface-content hover:border-surface-300"
-              >
-                <input
-                  type="radio"
-                  name="heartbeat_import[provider]"
-                  value={provider.value}
-                  bind:group={remoteProvider}
-                  class="mt-1 h-4 w-4 shrink-0 cursor-pointer border-2 border-surface-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                  disabled={importInProgress || processing}
-                />
-                <span class="space-y-1">
-                  <span class="block font-semibold">{provider.label}</span>
-                  <span class="block text-xs text-muted">{provider.helper}</span
-                  >
-                </span>
-              </label>
-            {/each}
-          </div>
-
-          <div class="max-w-2xl">
+<Form
+  method="post"
+  action={createHeartbeatImportPath}
+  resetOnSuccess={["heartbeat_import[api_key]"]}
+  options={{ preserveScroll: true }}
+  onSuccess={(page) =>
+    onImportSuccess(
+      page.props.latest_heartbeat_import as HeartbeatImportStatusProps,
+    )}
+>
+  {#snippet children({ processing, errors: formErrors })}
+    <SectionCard
+      id="user_imports"
+      title="Imports"
+      description="Request a one-time heartbeat dump from WakaTime or legacy Hackatime."
+      wide
+      footerClass=""
+    >
+      <div class="space-y-4">
+        <div class="space-y-3">
+          {#each PROVIDERS as provider}
             <label
-              for="remote_import_api_key"
-              class="mb-2 block text-sm text-surface-content"
+              class="flex cursor-pointer items-start gap-3 rounded-md border border-surface-200 bg-surface-100 px-3 py-3 text-sm text-surface-content hover:border-surface-300"
             >
-              API Key
+              <input
+                type="radio"
+                name="heartbeat_import[provider]"
+                value={provider.value}
+                bind:group={remoteProvider}
+                class="mt-1 h-4 w-4 shrink-0 cursor-pointer border-2 border-surface-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                disabled={importInProgress || processing}
+              />
+              <span class="space-y-1">
+                <span class="block font-semibold">{provider.label}</span>
+                <span class="block text-xs text-muted">{provider.helper}</span>
+              </span>
             </label>
-            <input
-              id="remote_import_api_key"
-              name="heartbeat_import[api_key]"
-              type="password"
-              bind:value={remoteApiKey}
-              class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-base text-surface-content focus:border-primary focus:outline-none"
-              disabled={importInProgress || processing}
-            />
-          </div>
-
-          {#if formErrors.import}
-            <p class="text-sm text-red-300">{formErrors.import}</p>
-          {/if}
-
-          {#if importState !== "idle" && latestImportIsRemote}
-            <ImportStatusRow
-              label={providerLabel(importSourceKind)}
-              state={importState}
-              inProgress={importInProgress}
-              errorMessage={activeImport?.error_message}
-              {completedSummary}
-            />
-          {/if}
+          {/each}
         </div>
 
-        {#snippet footer()}
-          <div
-            class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between"
+        <div class="max-w-2xl">
+          <label
+            for="remote_import_api_key"
+            class="mb-2 block text-sm text-surface-content"
           >
-            {#if remoteCooldownActive && effectiveRemoteCooldownUntil}
-              <p class="text-sm text-muted sm:mr-auto">
-                Available again in {formatRelativeTime(
-                  effectiveRemoteCooldownUntil,
-                )}
-              </p>
-            {:else}
-              <div></div>
-            {/if}
-            <div class="w-full sm:w-auto">
-              <Button
-                type="submit"
-                variant="primary"
-                class="w-full"
-                disabled={!imports_enabled ||
-                  remoteCooldownActive ||
-                  !remoteApiKey.trim() ||
-                  importInProgress ||
-                  processing}
-              >
-                {#if processing}
-                  Starting remote import...
-                {:else if importInProgress && latestImportIsRemote}
-                  Import in progress...
-                {:else}
-                  Start remote import
-                {/if}
-              </Button>
-            </div>
+            API Key
+          </label>
+          <input
+            id="remote_import_api_key"
+            name="heartbeat_import[api_key]"
+            type="password"
+            bind:value={remoteApiKey}
+            class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-base text-surface-content focus:border-primary focus:outline-none"
+            disabled={importInProgress || processing}
+          />
+        </div>
+
+        {#if formErrors.import}
+          <p class="text-sm text-red-300">{formErrors.import}</p>
+        {/if}
+
+        {#if importState !== "idle" && latestImportIsRemote}
+          <ImportStatusRow
+            label={providerLabel(importSourceKind)}
+            state={importState}
+            inProgress={importInProgress}
+            errorMessage={activeImport?.error_message}
+            {completedSummary}
+          />
+        {/if}
+      </div>
+
+      {#snippet footer()}
+        <div
+          class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          {#if remoteCooldownActive && effectiveRemoteCooldownUntil}
+            <p class="text-sm text-muted sm:mr-auto">
+              Available again in {formatRelativeTime(
+                effectiveRemoteCooldownUntil,
+              )}
+            </p>
+          {:else}
+            <div></div>
+          {/if}
+          <div class="w-full sm:w-auto">
+            <Button
+              type="submit"
+              variant="primary"
+              class="w-full"
+              disabled={remoteCooldownActive ||
+                !remoteApiKey.trim() ||
+                importInProgress ||
+                processing}
+            >
+              {#if processing}
+                Starting remote import...
+              {:else if importInProgress && latestImportIsRemote}
+                Import in progress...
+              {:else}
+                Start remote import
+              {/if}
+            </Button>
           </div>
-        {/snippet}
-      </SectionCard>
-    {/snippet}
-  </Form>
-{/if}
+        </div>
+      {/snippet}
+    </SectionCard>
+  {/snippet}
+</Form>
 
 <SectionCard
   id="download_user_data"
@@ -371,7 +366,7 @@
         </Form>
       </div>
 
-      {#if ui.show_dev_import}
+      {#if show_dev_import}
         <Form
           method="post"
           action={createHeartbeatImportPath}

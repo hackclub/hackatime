@@ -11,7 +11,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    Flipper.disable(:imports)
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
@@ -72,19 +71,9 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "dev_upload", run.source_kind
   end
 
-  test "remote create rejects users without the imports feature" do
-    user = create(:user)
-    sign_in_as(user)
-
-    post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
-
-    assert_redirected_with_import_error("Imports are not enabled for this user.")
-  end
-
   test "remote create rejects during cooldown" do
     user = create(:user)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     create(:heartbeat_import_run,
       user: user,
@@ -103,7 +92,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   test "remote create bypasses cooldown for superadmins" do
     user = create(:user, :superadmin)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     create(:heartbeat_import_run,
       user: user,
@@ -126,7 +114,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   test "remote create rejects when another import is active" do
     user = create(:user)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     create(:heartbeat_import_run,
       user: user,
@@ -143,7 +130,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   test "remote create starts wakatime import" do
     user = create(:user)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     assert_difference -> { user.heartbeat_import_runs.count }, +1 do
       assert_enqueued_with(job: HeartbeatImportDumpJob) do
@@ -161,7 +147,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   test "remote create starts hackatime v1 import" do
     user = create(:user)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     assert_difference -> { user.heartbeat_import_runs.count }, +1 do
       assert_enqueued_with(job: HeartbeatImportDumpJob) do
@@ -179,7 +164,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   test "remote create starts a wakatime download link import" do
     user = create(:user)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     assert_difference -> { user.heartbeat_import_runs.count }, +1 do
       assert_enqueued_with(job: HeartbeatImportRemoteDownloadJob) do
@@ -201,7 +185,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   test "remote create rejects invalid wakatime download links" do
     user = create(:user)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     post my_heartbeat_imports_path, params: {
       heartbeat_import: {
@@ -236,7 +219,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   test "show refreshes stale remote imports" do
     user = create(:user)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     run = create(:heartbeat_import_run,
       user: user,
@@ -276,7 +258,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   test "show enqueues stale remote refresh when dump id exists" do
     user = create(:user)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     run = create(:heartbeat_import_run,
       user: user,

@@ -165,7 +165,6 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
 
   test "start_remote_import bypasses cooldown for superadmins" do
     user = create(:user, :superadmin)
-    Flipper.enable_actor(:imports, user)
 
     create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
@@ -203,7 +202,6 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   test "refreshable_remote_run? stops once a remote import is downloading or importing" do
     %i[downloading_dump importing].each do |state|
       user = create(:user)
-      Flipper.enable_actor(:imports, user)
 
       run = create(:heartbeat_import_run, user: user,
         source_kind: :wakatime_dump,

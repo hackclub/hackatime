@@ -184,11 +184,6 @@ type DataExportProps = {
   is_restricted: boolean;
 };
 
-type UiProps = {
-  show_dev_import: boolean;
-  show_imports: boolean;
-};
-
 export type HeartbeatImportStatusProps = {
   import_id: string;
   state: string;
@@ -290,10 +285,9 @@ export type BadgesPageProps = SettingsCommonProps & {
 export type ImportsExportsPageProps = SettingsCommonProps & {
   data_export?: DataExportProps;
   export_cooldown_minutes: number;
-  imports_enabled: boolean;
   remote_import_cooldown_until?: string | null;
   latest_heartbeat_import?: HeartbeatImportStatusProps | null;
-  ui: UiProps;
+  show_dev_import: boolean;
 };
 
 export const buildSections = (): SettingsSection[] => [
@@ -367,10 +361,8 @@ const subsectionMap: Record<SectionId, SettingsSubsection[]> = {
 
 export const buildSubsections = (
   activeSection: SectionId,
-  exclude?: Set<string>,
 ): SettingsSubsection[] => {
-  const items = subsectionMap[activeSection] || [];
-  return exclude?.size ? items.filter((item) => !exclude.has(item.id)) : items;
+  return subsectionMap[activeSection] || [];
 };
 
 const hashSectionMap: Record<string, SectionId> = {

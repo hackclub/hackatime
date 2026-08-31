@@ -13,7 +13,6 @@ class Settings::ImportsExportsController < Settings::BaseController
   end
 
   def section_props
-    imports_enabled = Flipper.enabled?(:imports, @user)
     latest_import = @user.heartbeat_import_runs.latest_first.first
     if latest_import.present?
       latest_import = HeartbeatImportRunner.refresh_remote_run!(latest_import)
@@ -29,13 +28,9 @@ class Settings::ImportsExportsController < Settings::BaseController
         }
       },
       export_cooldown_minutes: export_cooldown_minutes,
-      imports_enabled: imports_enabled,
       remote_import_cooldown_until: HeartbeatImportRunner.remote_import_cooldown_until(user: @user)&.iso8601,
       latest_heartbeat_import: HeartbeatImportRunner.serialize(latest_import),
-      ui: {
-        show_dev_import: Rails.env.development?,
-        show_imports: imports_enabled
-      }
+      show_dev_import: Rails.env.development?
     }
   end
 

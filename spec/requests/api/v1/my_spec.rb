@@ -145,11 +145,7 @@ RSpec.describe 'Api::V1::My', type: :request do
         let(:"heartbeat_import[provider]") { "wakatime_dump" }
         let(:"heartbeat_import[api_key]") { "test-api-key" }
 
-        before do
-          login_browser_user
-          Flipper.enable_actor(:imports, user)
-        end
-        after { Flipper.disable(:imports) }
+        before { login_browser_user }
         run_test!
       end
     end

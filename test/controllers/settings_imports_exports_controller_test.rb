@@ -16,7 +16,6 @@ class SettingsImportsExportsControllerTest < ActionDispatch::IntegrationTest
   test "imports & exports page omits remote cooldown for superadmins" do
     user = create(:user, :superadmin)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     create(:heartbeat_import_run,
       user: user,
@@ -38,7 +37,6 @@ class SettingsImportsExportsControllerTest < ActionDispatch::IntegrationTest
   test "imports & exports page refreshes stale remote imports" do
     user = create(:user)
     sign_in_as(user)
-    Flipper.enable_actor(:imports, user)
 
     run = create(:heartbeat_import_run,
       user: user,

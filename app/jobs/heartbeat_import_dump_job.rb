@@ -19,7 +19,7 @@ class HeartbeatImportDumpJob < ApplicationJob
 
   def perform(import_run_id)
     run = HeartbeatImportRun.includes(:user).find_by(id: import_run_id)
-    return unless runnable?(run)
+    return unless run&.remote? && !run.terminal? && run.remote_dump_pollable?
 
     client = HeartbeatImportDumpClient.new(source_kind: run.source_kind, api_key: run.encrypted_api_key)
     process_dump!(run, current_dump_for(run, client))
@@ -30,13 +30,6 @@ class HeartbeatImportDumpJob < ApplicationJob
   end
 
   private
-
-  def runnable?(run)
-    return false unless run&.remote? && !run.terminal? && run.remote_dump_pollable?
-    return true if Flipper.enabled?(:imports, run.user)
-    fail_run!(run, "Imports are no longer enabled for this user.")
-    false
-  end
 
   def current_dump_for(run, client) = run.remote_dump_id.blank? ? request_dump!(run, client) : fetch_dump!(run, client)
 

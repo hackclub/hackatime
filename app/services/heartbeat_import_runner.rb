@@ -20,7 +20,6 @@ class HeartbeatImportRunner < ApplicationService
     end
   end
 
-  class FeatureDisabledError < StandardError; end
   class InvalidProviderError < StandardError; end
   class InvalidDownloadUrlError < StandardError; end
 
@@ -49,7 +48,6 @@ class HeartbeatImportRunner < ApplicationService
   end
 
   def self.start_remote_import(user:, provider:, api_key:)
-    ensure_imports_enabled!(user)
     ensure_no_active_import!(user)
     ensure_remote_cooldown!(user)
 
@@ -64,7 +62,6 @@ class HeartbeatImportRunner < ApplicationService
   end
 
   def self.start_wakatime_download_link_import(user:, download_url:)
-    ensure_imports_enabled!(user)
     ensure_no_active_import!(user)
 
     unless HeartbeatImportDumpClient.valid_wakatime_download_url?(download_url)
@@ -98,7 +95,6 @@ class HeartbeatImportRunner < ApplicationService
   def self.refreshable_remote_run?(run)
     run&.remote? &&
       run.remote_dump_pollable? &&
-      Flipper.enabled?(:imports, run.user) &&
       run.updated_at <= REMOTE_REFRESH_THROTTLE.ago &&
       run.encrypted_api_key.present? &&
       !dump_job_pending_for?(run) # Prevent duplicate job enqueuing
@@ -302,10 +298,6 @@ class HeartbeatImportRunner < ApplicationService
   end
 
   def self.import_source_name(run) = run.hackatime_v1_dump? ? "Hackatime v1" : "WakaTime"
-
-  def self.ensure_imports_enabled!(user)
-    raise FeatureDisabledError, "Imports are not enabled for this user." unless Flipper.enabled?(:imports, user)
-  end
 
   def self.ensure_no_active_import!(user)
     raise ActiveImportError, "Another import is already in progress." if HeartbeatImportRun.active_for(user)

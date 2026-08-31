@@ -18,23 +18,14 @@
     layout,
     active_section,
     errors,
-    ui,
     children,
   }: SettingsCommonProps & {
     layout: LayoutProps;
-    ui?: { show_imports: boolean };
     children?: Snippet;
   } = $props();
 
   const sections = buildSections();
-  const hiddenSubsections = $derived(
-    active_section === "imports_exports" && ui?.show_imports === false
-      ? new Set(["user_imports"])
-      : undefined,
-  );
-  const subsections = $derived(
-    buildSubsections(active_section, hiddenSubsections),
-  );
+  const subsections = $derived(buildSubsections(active_section));
   const knownSectionIds = new Set(sections.map((s) => s.id));
 
   const pillClass = (active: boolean) =>
