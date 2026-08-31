@@ -7,7 +7,7 @@
     "autoBuild": true,
     "publicOutputDir": "vite-dev",
     "host": "0.0.0.0",
-    "port": 3036,
+    "port": 33149,
     "ssrBuildEnabled": true
   },
   "production": {
