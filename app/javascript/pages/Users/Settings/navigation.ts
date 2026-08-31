@@ -93,5 +93,3 @@ export const SETTINGS_SECTIONS = [
     icon: ArrowsRightLeft,
   },
 ] as const satisfies readonly SettingsSection[];
-
-export type SectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
