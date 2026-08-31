@@ -218,8 +218,6 @@ type ErrorsProps = {
 
 export type SettingsCommonProps = {
   active_section: SectionId;
-  page_title: string;
-  heading: string;
   errors: ErrorsProps;
 };
 

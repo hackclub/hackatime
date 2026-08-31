@@ -31,8 +31,6 @@ class Settings::BaseController < InertiaController
   # Lightweight props shared by every settings page
   def common_props(active_section:)
     { active_section: active_section,
-      page_title: "Settings | #{@user.display_name}",
-      heading: "Settings for #{@user.display_name}",
       errors: { full_messages: @user.errors.full_messages,
                 display_name_override: @user.errors[:display_name_override],
                 username: @user.errors[:username] } }

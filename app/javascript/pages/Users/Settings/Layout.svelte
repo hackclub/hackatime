@@ -3,6 +3,7 @@
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
   import { Icon } from "svelte-hero-icons";
+  import type { LayoutProps } from "../../../types";
   import SubsectionNav from "./components/SubsectionNav.svelte";
   import { sectionIcons } from "./components/SectionIcons";
   import {
@@ -14,20 +15,25 @@
   import type { SettingsCommonProps } from "./types";
 
   let {
+    layout,
     active_section,
-    page_title,
-    heading,
     errors,
+    ui,
     children,
-    hidden_subsections,
   }: SettingsCommonProps & {
+    layout: LayoutProps;
+    ui?: { show_imports: boolean };
     children?: Snippet;
-    hidden_subsections?: Set<string>;
   } = $props();
 
   const sections = buildSections();
+  const hiddenSubsections = $derived(
+    active_section === "imports_exports" && ui?.show_imports === false
+      ? new Set(["user_imports"])
+      : undefined,
+  );
   const subsections = $derived(
-    buildSubsections(active_section, hidden_subsections),
+    buildSubsections(active_section, hiddenSubsections),
   );
   const knownSectionIds = new Set(sections.map((s) => s.id));
 
@@ -53,16 +59,12 @@
   });
 </script>
 
-<svelte:head>
-  <title>{page_title}</title>
-</svelte:head>
-
 <div data-settings-shell>
   <header class="mb-6">
     <h1
       class="text-2xl font-bold tracking-tight text-balance text-surface-content sm:text-3xl"
     >
-      {heading}
+      Settings for {layout.nav.current_user?.display_name}
     </h1>
   </header>
 

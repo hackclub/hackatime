@@ -1,3 +1,8 @@
+<script module lang="ts">
+  import settingsLayout from "./layout";
+  export const layout = settingsLayout;
+</script>
+
 <script lang="ts">
   import { router } from "@inertiajs/svelte";
   import { secondsToDisplay } from "../../../utils";
@@ -6,7 +11,6 @@
   import MultiSelectCombobox from "../../../components/MultiSelectCombobox.svelte";
   import Select from "../../../components/Select.svelte";
   import SectionCard from "./components/SectionCard.svelte";
-  import SettingsShell from "./Shell.svelte";
   import type { GoalsPageProps, ProgrammingGoal } from "./types";
   import { settingsGoals } from "../../../api";
 
@@ -28,15 +32,7 @@
     month: "Monthly",
   };
 
-  let {
-    active_section,
-    page_title,
-    heading,
-    programming_goals,
-    options,
-    errors,
-    goal_form,
-  }: GoalsPageProps = $props();
+  let { programming_goals, options, goal_form }: GoalsPageProps = $props();
 
   const goals = $derived(programming_goals || []);
   const hasReachedGoalLimit = $derived(goals.length >= MAX_GOALS);
@@ -154,98 +150,96 @@
   <title>Goals - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell {active_section} {page_title} {heading} {errors}>
-  <SectionCard
-    id="user_programming_goals"
-    title="Programming Goals"
-    description={`Set up to ${MAX_GOALS} goals for your daily, weekly, or monthly coding targets.`}
-    footerClass="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-  >
-    <div class="flex items-center justify-between gap-3">
-      <p
-        class="text-xs font-semibold uppercase tracking-wider text-secondary/80 sm:text-sm"
-      >
-        {goals.length} Active Goal{goals.length === 1 ? "" : "s"}
+<SectionCard
+  id="user_programming_goals"
+  title="Programming Goals"
+  description={`Set up to ${MAX_GOALS} goals for your daily, weekly, or monthly coding targets.`}
+  footerClass="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+>
+  <div class="flex items-center justify-between gap-3">
+    <p
+      class="text-xs font-semibold uppercase tracking-wider text-secondary/80 sm:text-sm"
+    >
+      {goals.length} Active Goal{goals.length === 1 ? "" : "s"}
+    </p>
+  </div>
+
+  {#if goals.length === 0}
+    <div
+      class="mt-4 rounded-md border border-surface-200 bg-darker/30 px-4 py-5 text-center"
+    >
+      <p class="text-sm text-muted">
+        Set a goal to track your coding consistency.
       </p>
     </div>
-
-    {#if goals.length === 0}
-      <div
-        class="mt-4 rounded-md border border-surface-200 bg-darker/30 px-4 py-5 text-center"
-      >
-        <p class="text-sm text-muted">
-          Set a goal to track your coding consistency.
-        </p>
-      </div>
-    {:else}
-      <div
-        class="mt-4 overflow-hidden rounded-md border border-surface-200 bg-darker/30"
-      >
-        {#each goals as goal (goal.id)}
-          <article
-            class="flex flex-wrap items-start justify-between gap-3 border-b border-surface-200 px-4 py-3 last:border-b-0"
-          >
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-surface-content">
-                {PERIOD_LABELS[goal.period]}: {secondsToDisplay(
-                  goal.target_seconds,
+  {:else}
+    <div
+      class="mt-4 overflow-hidden rounded-md border border-surface-200 bg-darker/30"
+    >
+      {#each goals as goal (goal.id)}
+        <article
+          class="flex flex-wrap items-start justify-between gap-3 border-b border-surface-200 px-4 py-3 last:border-b-0"
+        >
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-surface-content">
+              {PERIOD_LABELS[goal.period]}: {secondsToDisplay(
+                goal.target_seconds,
+              )}
+            </p>
+            <p class="mt-1 truncate text-xs text-muted">
+              {scopeSubtitle(goal)}
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="surface"
+              size="xs"
+              class="rounded-md"
+              onclick={() => openEditModal(goal)}
+              disabled={submitting}
+            >
+              Edit
+            </Button>
+            <Button
+              type="button"
+              variant="surface"
+              size="xs"
+              class="rounded-md"
+              onclick={() =>
+                submit(
+                  "delete",
+                  settingsGoals.destroy.path({ goalId: goal.id }),
                 )}
-              </p>
-              <p class="mt-1 truncate text-xs text-muted">
-                {scopeSubtitle(goal)}
-              </p>
-            </div>
-            <div class="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="surface"
-                size="xs"
-                class="rounded-md"
-                onclick={() => openEditModal(goal)}
-                disabled={submitting}
-              >
-                Edit
-              </Button>
-              <Button
-                type="button"
-                variant="surface"
-                size="xs"
-                class="rounded-md"
-                onclick={() =>
-                  submit(
-                    "delete",
-                    settingsGoals.destroy.path({ goalId: goal.id }),
-                  )}
-                disabled={submitting}
-              >
-                Delete
-              </Button>
-            </div>
-          </article>
-        {/each}
-      </div>
-    {/if}
+              disabled={submitting}
+            >
+              Delete
+            </Button>
+          </div>
+        </article>
+      {/each}
+    </div>
+  {/if}
 
-    {#snippet footer()}
-      <p class="text-sm text-muted">
-        {#if hasReachedGoalLimit}
-          Goal limit reached. Delete an existing goal before adding another.
-        {:else}
-          Add a goal to stay accountable across languages and projects.
-        {/if}
-      </p>
-      <Button
-        type="button"
-        variant="primary"
-        class="rounded-md px-3 py-2"
-        onclick={openCreateModal}
-        disabled={hasReachedGoalLimit || submitting}
-      >
-        New goal
-      </Button>
-    {/snippet}
-  </SectionCard>
-</SettingsShell>
+  {#snippet footer()}
+    <p class="text-sm text-muted">
+      {#if hasReachedGoalLimit}
+        Goal limit reached. Delete an existing goal before adding another.
+      {:else}
+        Add a goal to stay accountable across languages and projects.
+      {/if}
+    </p>
+    <Button
+      type="button"
+      variant="primary"
+      class="rounded-md px-3 py-2"
+      onclick={openCreateModal}
+      disabled={hasReachedGoalLimit || submitting}
+    >
+      New goal
+    </Button>
+  {/snippet}
+</SectionCard>
 
 <Modal
   bind:open={goalModalOpen}

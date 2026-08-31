@@ -13,7 +13,7 @@ class ProfileSettingsTest < ApplicationSystemTestCase
     visit my_settings_path
 
     assert_current_path my_settings_path, ignore_query: true
-    assert_text "Settings"
+    assert_selector "h1", text: "Settings for #{@user.display_name}", exact_text: true
     assert_text "Region and Timezone"
     assert_text "Email Addresses"
     assert_selector "[data-settings-card]", minimum: 3
