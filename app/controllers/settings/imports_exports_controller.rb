@@ -1,7 +1,9 @@
 class Settings::ImportsExportsController < Settings::BaseController
+  include ActionView::Helpers::NumberHelper
+
   private
 
-  def section_props
+  def page_props
     latest_import = @user.heartbeat_import_runs.latest_first.first
     if latest_import.present?
       latest_import = HeartbeatImportRunner.refresh_remote_run!(latest_import)

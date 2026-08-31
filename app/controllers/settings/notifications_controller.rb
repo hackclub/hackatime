@@ -20,7 +20,7 @@ class Settings::NotificationsController < Settings::BaseController
 
   private
 
-  def section_props
+  def page_props
     {
       user: user_props(keys: %i[weekly_summary_email_enabled])
     }

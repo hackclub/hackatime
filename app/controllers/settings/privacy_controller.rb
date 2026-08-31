@@ -24,7 +24,7 @@ class Settings::PrivacyController < Settings::BaseController
 
   private
 
-  def section_props
+  def page_props
     { user: user_props(keys: %i[allow_public_stats_lookup can_request_deletion]),
       rotated_api_key: flash[:rotated_api_key],
       authorized_applications: OauthApplication.authorized_for(@user).map { |application|

@@ -10,7 +10,7 @@ class Settings::AppearanceController < Settings::BaseController
 
   private
 
-  def section_props
+  def page_props
     { user: user_props(keys: %i[theme]), options: base_options(keys: %i[themes]) }
   end
 

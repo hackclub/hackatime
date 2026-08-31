@@ -5,7 +5,7 @@ class Settings::ProfileController < Settings::BaseController
 
   private
 
-  def section_props
+  def page_props
     options = base_options(keys: %i[countries timezones])
     options[:timezones] = pin_current_timezone(options[:timezones])
     {

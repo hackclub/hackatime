@@ -11,7 +11,7 @@ class Settings::SlackGithubController < Settings::BaseController
 
   private
 
-  def section_props
+  def page_props
     can_enable_slack_status = @user.slack_access_token.present? && @user.slack_scopes.include?("users.profile:write")
     enabled_sailors_logs = SailorsLogNotificationPreference.where(
       slack_uid: @user.slack_uid,
