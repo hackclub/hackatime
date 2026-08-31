@@ -1,18 +1,14 @@
 class Settings::EditorsController < Settings::BaseController
-  def show = render_editors
-
   def update
     if @user.update(editor_params)
       redirect_to my_settings_editors_path, notice: "Settings updated successfully"
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
-      render_editors(status: :unprocessable_entity)
+      render_settings_page(status: :unprocessable_entity)
     end
   end
 
   private
-
-  def render_editors(status: :ok) = render_settings_page(active_section: "editors", status: status)
 
   def section_props
     { user: user_props(keys: %i[hackatime_extension_text_type show_goals_in_statusbar]),

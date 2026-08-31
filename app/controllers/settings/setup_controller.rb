@@ -1,8 +1,4 @@
 class Settings::SetupController < Settings::BaseController
-  def show
-    render_settings_page(active_section: "setup")
-  end
-
   private
 
   def section_props

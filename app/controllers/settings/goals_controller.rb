@@ -1,6 +1,4 @@
 class Settings::GoalsController < Settings::BaseController
-  def show = render_goals
-
   def create
     @goal = @user.goals.build(goal_params)
     if @goal.save
@@ -30,7 +28,7 @@ class Settings::GoalsController < Settings::BaseController
 
   def render_goals(status: :ok, goal_form: nil)
     extra_props = goal_form ? { goal_form: goal_form } : {}
-    render_settings_page(active_section: "goals", status: status, extra_props: extra_props)
+    render_settings_page(status: status, extra_props: extra_props)
   end
 
   def section_props

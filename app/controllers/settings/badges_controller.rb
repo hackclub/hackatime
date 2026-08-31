@@ -1,8 +1,4 @@
 class Settings::BadgesController < Settings::BaseController
-  def show
-    render_settings_page(active_section: "badges")
-  end
-
   private
 
   def section_props

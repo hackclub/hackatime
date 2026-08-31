@@ -6,25 +6,14 @@ class Settings::BaseController < InertiaController
 
   before_action :set_user
 
+  def show = render_settings_page
+
   private
 
-  SETTINGS_COMPONENTS = {
-    "profile" => "Users/Settings/Profile",
-    "setup" => "Users/Settings/Setup",
-    "appearance" => "Users/Settings/Appearance",
-    "editors" => "Users/Settings/Editors",
-    "slack_github" => "Users/Settings/SlackGithub",
-    "notifications" => "Users/Settings/Notifications",
-    "privacy" => "Users/Settings/Privacy",
-    "goals" => "Users/Settings/Goals",
-    "badges" => "Users/Settings/Badges",
-    "imports_exports" => "Users/Settings/ImportsExports"
-  }.freeze
-
-  def render_settings_page(active_section:, status: :ok, extra_props: {})
-    component = SETTINGS_COMPONENTS.fetch(active_section.to_s, "Users/Settings/Profile")
-    render inertia: component,
-           props: common_props(active_section: active_section).merge(section_props).merge(extra_props),
+  def render_settings_page(status: :ok, extra_props: {})
+    section = controller_name
+    render inertia: "Users/Settings/#{section.camelize}",
+           props: common_props(active_section: section).merge(section_props).merge(extra_props),
            status: status
   end
 

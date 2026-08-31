@@ -1,16 +1,5 @@
 class Settings::ImportsExportsController < Settings::BaseController
-  def show
-    render_imports_exports
-  end
-
   private
-
-  def render_imports_exports(status: :ok)
-    render_settings_page(
-      active_section: "imports_exports",
-      status: status
-    )
-  end
 
   def section_props
     latest_import = @user.heartbeat_import_runs.latest_first.first
