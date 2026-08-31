@@ -12,26 +12,22 @@
 </script>
 
 <svelte:head><title>Successfully signed in!</title></svelte:head>
-<p>Successfully signed in! You can close this window.</p>
+<main>
+  <p>Successfully signed in! You can close this window.</p>
+</main>
 
 <style>
-  :global(html),
-  :global(body) {
+  main {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
     background: white;
     color: black;
     font-family: "Times New Roman", serif;
     font-size: medium;
     line-height: normal;
-  }
-
-  :global(body) {
-    display: block;
-    margin: 8px;
-  }
-
-  :global(#app) {
-    display: contents;
-    min-height: 0;
+    margin: 0;
+    padding: 8px;
   }
 
   p {
