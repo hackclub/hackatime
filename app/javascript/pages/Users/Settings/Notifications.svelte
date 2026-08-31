@@ -11,7 +11,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     user,
     errors,
   }: NotificationsPageProps = $props();
@@ -21,7 +20,7 @@
   <title>Notifications - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
+<SettingsShell {active_section} {page_title} {heading} {errors}>
   <SectionCard
     id="user_email_notifications"
     title="Email Notifications"

@@ -333,12 +333,6 @@ RSpec.configure do |config|
             name: 'api_key',
             in: :query,
             description: 'User API Key from settings'
-          },
-          LegacyStatsApiKey: {
-            type: :apiKey,
-            name: 'api_key',
-            in: :query,
-            description: 'Legacy STATS_API_KEY, accepted only while the allow_legacy_stats_api_key feature flag is enabled'
           }
         },
         schemas: public_schemas

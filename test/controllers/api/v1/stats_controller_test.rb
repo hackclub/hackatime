@@ -210,48 +210,6 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
-  test "aggregate stats accepts STATS_API_KEY only while legacy flag is enabled" do
-    previous_stats_api_key = ENV["STATS_API_KEY"]
-    legacy_key = "legacy-stats-#{SecureRandom.hex(8)}"
-    ENV["STATS_API_KEY"] = legacy_key
-    Flipper.disable(:allow_legacy_stats_api_key)
-
-    get "/api/v1/stats", headers: { "Authorization" => "Bearer #{legacy_key}" }
-    assert_response :unauthorized
-    get "/api/v1/stats", params: { api_key: legacy_key }
-    assert_response :unauthorized
-
-    Flipper.enable(:allow_legacy_stats_api_key)
-    get "/api/v1/stats", headers: { "Authorization" => "Bearer #{legacy_key}" }
-    assert_response :success
-    get "/api/v1/stats", headers: { "Authorization" => "bearer #{legacy_key}" }
-    assert_response :success
-    get "/api/v1/stats", params: { api_key: legacy_key }
-    assert_response :success
-
-    [ "Basic #{legacy_key}", "Token #{legacy_key}", legacy_key, "Bearer\t#{legacy_key}" ].each do |authorization|
-      get "/api/v1/stats", headers: { "Authorization" => authorization }
-      assert_response :unauthorized
-    end
-
-    [ "", " ", "Token malformed" ].each do |authorization|
-      get "/api/v1/stats",
-        params: { api_key: legacy_key },
-        headers: { "Authorization" => authorization }
-      assert_response :unauthorized
-    end
-
-    get "/api/v1/users/lookup_email/nobody@example.com", params: { api_key: legacy_key }
-    assert_response :unauthorized
-
-    admin_api_key = create_admin_api_key
-    get "/api/v1/stats", params: { api_key: admin_api_key.token }
-    assert_response :unauthorized
-  ensure
-    Flipper.disable(:allow_legacy_stats_api_key)
-    ENV["STATS_API_KEY"] = previous_stats_api_key
-  end
-
   private
 
   def create_admin_api_key

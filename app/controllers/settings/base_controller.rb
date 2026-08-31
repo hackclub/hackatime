@@ -33,7 +33,6 @@ class Settings::BaseController < InertiaController
     { active_section: active_section,
       page_title: "Settings | #{@user.display_name}",
       heading: "Settings for #{@user.display_name}",
-      subheading: "Manage your profile, appearance, editors, integrations, privacy, goals, and data tools.",
       errors: { full_messages: @user.errors.full_messages,
                 display_name_override: @user.errors[:display_name_override],
                 username: @user.errors[:username] } }

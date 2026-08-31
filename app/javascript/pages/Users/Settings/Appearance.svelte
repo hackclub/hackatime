@@ -12,7 +12,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     user,
     options,
     errors,
@@ -39,7 +38,7 @@
   <title>Appearance - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
+<SettingsShell {active_section} {page_title} {heading} {errors}>
   <SectionCard
     id="user_theme"
     title="Theme"

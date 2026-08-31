@@ -13,7 +13,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     user,
     slack,
     github,
@@ -27,7 +26,7 @@
   <title>Slack & GitHub - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
+<SettingsShell {active_section} {page_title} {heading} {errors}>
   <SectionCard
     id="user_slack_status"
     title="Slack Status Sync"

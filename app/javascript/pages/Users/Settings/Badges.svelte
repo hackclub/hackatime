@@ -13,7 +13,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     badge_themes,
     badges,
     allow_public_stats_lookup,
@@ -55,7 +54,7 @@
   <title>Badges - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
+<SettingsShell {active_section} {page_title} {heading} {errors}>
   {#if !allow_public_stats_lookup}
     <div
       class="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-surface-content"

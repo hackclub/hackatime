@@ -29,7 +29,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     data_export,
     export_cooldown_minutes,
     imports_enabled,
@@ -181,7 +180,6 @@
   {active_section}
   {page_title}
   {heading}
-  {subheading}
   {errors}
   hidden_subsections={hiddenSubsections}
 >
