@@ -32,7 +32,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     programming_goals,
     options,
     errors,
@@ -155,7 +154,7 @@
   <title>Goals - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
+<SettingsShell {active_section} {page_title} {heading} {errors}>
   <SectionCard
     id="user_programming_goals"
     title="Programming Goals"

@@ -10,7 +10,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     config_file,
     errors,
   }: SetupPageProps = $props();
@@ -20,7 +19,7 @@
   <title>Setup - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
+<SettingsShell {active_section} {page_title} {heading} {errors}>
   <SectionCard
     id="user_tracking_setup"
     title="Time Tracking Setup"

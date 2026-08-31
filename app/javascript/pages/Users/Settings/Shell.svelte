@@ -17,7 +17,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     errors,
     children,
     hidden_subsections,
@@ -59,17 +58,12 @@
 </svelte:head>
 
 <div data-settings-shell>
-  <header class="mb-6 sm:mb-8">
+  <header class="mb-6">
     <h1
       class="text-2xl font-bold tracking-tight text-balance text-surface-content sm:text-3xl"
     >
       {heading}
     </h1>
-    <p
-      class="mt-1 max-w-3xl text-pretty text-sm text-muted sm:mt-2 sm:text-base"
-    >
-      {subheading}
-    </p>
   </header>
 
   {#if errors.full_messages.length > 0}

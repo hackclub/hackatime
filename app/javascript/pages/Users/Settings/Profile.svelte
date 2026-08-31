@@ -15,7 +15,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     username_max_length,
     display_name_max_length,
     user,
@@ -37,7 +36,7 @@
   <title>Profile - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
+<SettingsShell {active_section} {page_title} {heading} {errors}>
   <SectionCard
     id="user_region"
     title="Region and Timezone"

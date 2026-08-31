@@ -13,7 +13,6 @@
     active_section,
     page_title,
     heading,
-    subheading,
     user,
     authorized_applications,
     rotated_api_key = "",
@@ -67,7 +66,7 @@
   <title>Privacy & Security - Hackatime Settings</title>
 </svelte:head>
 
-<SettingsShell {active_section} {page_title} {heading} {subheading} {errors}>
+<SettingsShell {active_section} {page_title} {heading} {errors}>
   <SectionCard
     id="user_privacy"
     title="Public Stats"

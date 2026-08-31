@@ -220,7 +220,6 @@ export type SettingsCommonProps = {
   active_section: SectionId;
   page_title: string;
   heading: string;
-  subheading: string;
   errors: ErrorsProps;
 };
 
