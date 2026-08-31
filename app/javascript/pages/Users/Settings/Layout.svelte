@@ -1,35 +1,18 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
   import type { Snippet } from "svelte";
-  import { onMount } from "svelte";
   import { Icon } from "svelte-hero-icons";
-  import SubsectionNav from "./components/SubsectionNav.svelte";
-  import { sectionIcons } from "./components/SectionIcons";
-  import {
-    buildSections,
-    buildSubsections,
-    sectionFromHash,
-    SECTION_PATHS,
-  } from "./types";
-  import type { SettingsCommonProps } from "./types";
+  import type { LayoutProps } from "../../../types";
+  import { SETTINGS_SECTIONS } from "./navigation";
 
-  let {
-    active_section,
-    page_title,
-    heading,
-    errors,
-    children,
-    hidden_subsections,
-  }: SettingsCommonProps & {
+  type Props = {
+    layout: LayoutProps;
+    active_section: (typeof SETTINGS_SECTIONS)[number]["id"];
+    errors: { full_messages: string[] };
     children?: Snippet;
-    hidden_subsections?: Set<string>;
-  } = $props();
+  };
 
-  const sections = buildSections();
-  const subsections = $derived(
-    buildSubsections(active_section, hidden_subsections),
-  );
-  const knownSectionIds = new Set(sections.map((s) => s.id));
+  let { layout, active_section, errors, children }: Props = $props();
 
   const pillClass = (active: boolean) =>
     `inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
@@ -37,32 +20,14 @@
         ? "bg-surface-100 text-surface-content"
         : "bg-surface/70 text-muted hover:text-surface-content"
     }`;
-
-  onMount(() => {
-    const sync = () => {
-      const section = sectionFromHash(window.location.hash);
-      if (!section || !knownSectionIds.has(section)) return;
-      if (section === active_section || !SECTION_PATHS[section]) return;
-      window.location.replace(
-        `${SECTION_PATHS[section]}${window.location.hash}`,
-      );
-    };
-    sync();
-    window.addEventListener("hashchange", sync);
-    return () => window.removeEventListener("hashchange", sync);
-  });
 </script>
-
-<svelte:head>
-  <title>{page_title}</title>
-</svelte:head>
 
 <div data-settings-shell>
   <header class="mb-6">
     <h1
       class="text-2xl font-bold tracking-tight text-balance text-surface-content sm:text-3xl"
     >
-      {heading}
+      Settings for {layout.nav.current_user?.display_name}
     </h1>
   </header>
 
@@ -84,7 +49,7 @@
     class="-mx-5 mb-6 overflow-x-auto px-5 lg:hidden"
   >
     <div class="flex min-w-full gap-2 pb-1">
-      {#each sections as section}
+      {#each SETTINGS_SECTIONS as section}
         {@const active = active_section === section.id}
         <Link
           href={section.path}
@@ -93,7 +58,7 @@
           class={pillClass(active)}
         >
           <Icon
-            src={sectionIcons[section.id]}
+            src={section.icon}
             solid={active}
             size="16"
             class={`shrink-0 ${active ? "text-primary" : ""}`}
@@ -109,7 +74,7 @@
   >
     <aside class="hidden h-max lg:sticky lg:top-8 lg:block">
       <div data-settings-sidebar class="rounded-[1.25rem] bg-surface/90 p-1">
-        {#each sections as section}
+        {#each SETTINGS_SECTIONS as section}
           {@const active = active_section === section.id}
           <Link
             href={section.path}
@@ -120,7 +85,7 @@
             }`}
           >
             <Icon
-              src={sectionIcons[section.id]}
+              src={section.icon}
               solid={active}
               size="18"
               class={`shrink-0 transition-colors duration-150 ${
@@ -136,10 +101,7 @@
     </aside>
 
     <div data-settings-content class="min-w-0 space-y-5">
-      <SubsectionNav items={subsections} />
-      <div class="space-y-5">
-        {@render children?.()}
-      </div>
+      {@render children?.()}
     </div>
   </div>
 </div>

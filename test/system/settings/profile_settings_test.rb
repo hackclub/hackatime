@@ -13,18 +13,10 @@ class ProfileSettingsTest < ApplicationSystemTestCase
     visit my_settings_path
 
     assert_current_path my_settings_path, ignore_query: true
-    assert_text "Settings"
+    assert_selector "h1", text: "Settings for #{@user.display_name}", exact_text: true
     assert_text "Region and Timezone"
     assert_text "Email Addresses"
     assert_selector "[data-settings-card]", minimum: 3
-  end
-
-  test "settings hash redirects to the matching settings page and subsection" do
-    visit "#{my_settings_profile_path}#user_api_key"
-
-    assert_current_path my_settings_privacy_path, ignore_query: true
-    assert_text "API Key"
-    assert_selector "[data-settings-subnav-item][data-active='true']", text: "API key"
   end
 
   test "profile settings updates country and username" do

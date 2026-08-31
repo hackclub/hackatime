@@ -1,21 +1,21 @@
 class Settings::AppearanceController < Settings::BaseController
-  def show = render_appearance
-
   def update_theme
     if @user.update(theme_params)
-      redirect_back(fallback_location: my_settings_appearance_path, notice: "Settings updated successfully")
+      redirect_back(
+        fallback_location: my_settings_appearance_path,
+        notice: "Settings updated successfully",
+        inertia: { clear_history: true }
+      )
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
-      render_appearance(status: :unprocessable_entity)
+      render_settings_page(status: :unprocessable_entity)
     end
   end
 
   private
 
-  def render_appearance(status: :ok) = render_settings_page(active_section: "appearance", status: status)
-
-  def section_props
-    { user: user_props(keys: %i[theme]), options: base_options(keys: %i[themes]) }
+  def page_props
+    { user: { theme: @user.theme }, options: base_options(keys: %i[themes]) }
   end
 
   def theme_params = params.require(:user).permit(:theme)

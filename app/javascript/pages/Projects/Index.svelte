@@ -6,7 +6,11 @@
   import Modal from "../../components/Modal.svelte";
   import IntervalSelect from "../Home/signedIn/IntervalSelect.svelte";
   import ProjectCard from "./components/ProjectCard.svelte";
-  import { myProjectRepoMappings, sessions, settingsProfile } from "../../api";
+  import {
+    myProjectRepoMappings,
+    sessions,
+    settingsSlackGithub,
+  } from "../../api";
   import { buildIntervalChange, intervalParams } from "./intervalNav";
   import type { ProjectCard as ProjectCardType } from "./types";
 
@@ -45,7 +49,7 @@
 
   const indexPath = myProjectRepoMappings.index.path();
   const githubAuthPath = sessions.githubNew.path();
-  const settingsPath = `${settingsProfile.my.path()}#user_github_account`;
+  const settingsPath = `${settingsSlackGithub.show.path()}#user_github_account`;
 
   const intervalQueryString = $derived(
     intervalParams(interval, from, to).toString(),

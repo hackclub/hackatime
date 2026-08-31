@@ -1,12 +1,10 @@
 class Settings::PrivacyController < Settings::BaseController
-  def show = render_privacy
-
   def update
     if @user.update(privacy_params)
       redirect_back(fallback_location: my_settings_privacy_path, notice: "Settings updated successfully")
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
-      render_privacy(status: :unprocessable_entity)
+      render_settings_page(status: :unprocessable_entity)
     end
   end
 
@@ -26,10 +24,11 @@ class Settings::PrivacyController < Settings::BaseController
 
   private
 
-  def render_privacy(status: :ok) = render_settings_page(active_section: "privacy", status: status)
-
-  def section_props
-    { user: user_props(keys: %i[allow_public_stats_lookup can_request_deletion]),
+  def page_props
+    { user: {
+        allow_public_stats_lookup: @user.allow_public_stats_lookup,
+        can_request_deletion: @user.can_request_deletion?
+      },
       rotated_api_key: flash[:rotated_api_key],
       authorized_applications: OauthApplication.authorized_for(@user).map { |application|
         { id: application.id, name: application.name,

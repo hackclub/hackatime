@@ -9,13 +9,7 @@ class ImportsExportsSettingsTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
-  teardown do
-    Flipper.disable(:imports)
-  end
-
   test "imports & exports page renders key sections" do
-    Flipper.enable_actor(:imports, @user)
-
     assert_settings_page(
       path: my_settings_imports_exports_path,
       marker_text: "Imports",
@@ -37,9 +31,7 @@ class ImportsExportsSettingsTest < ApplicationSystemTestCase
     assert_no_button "Export date range"
   end
 
-  test "imports card is visible when feature is enabled for the user" do
-    Flipper.enable_actor(:imports, @user)
-
+  test "imports card is visible" do
     visit my_settings_imports_exports_path
 
     assert_text "Imports"
@@ -49,17 +41,7 @@ class ImportsExportsSettingsTest < ApplicationSystemTestCase
     assert_text "Start remote import"
   end
 
-  test "imports card is hidden when feature is disabled" do
-    visit my_settings_imports_exports_path
-
-    assert_no_text "Request a one-time heartbeat dump from WakaTime or legacy Hackatime."
-    assert_no_field "remote_import_api_key"
-    assert_no_button "Start remote import"
-  end
-
   test "imports & exports page shows remote import cooldown notice" do
-    Flipper.enable_actor(:imports, @user)
-
     create(
       :heartbeat_import_run,
       user: @user,

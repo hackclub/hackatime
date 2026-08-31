@@ -7,7 +7,7 @@ module SettingsSystemTestHelpers
     assert_current_path path, ignore_query: true
     assert_selector "[data-settings-shell]"
     assert_selector "[data-settings-content]"
-    assert_text "Settings"
+    assert_selector "h1", text: "Settings for #{@user.display_name}", exact_text: true
     assert_text marker_text
     assert_selector "[data-settings-card]", minimum: card_count
   end

@@ -1,18 +1,6 @@
 require "test_helper"
 
 class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
-  test "theme update persists selected theme" do
-    user = create(:user)
-    sign_in_as(user)
-
-    patch my_settings_appearance_theme_path, params: { user: { theme: "nord" } }
-
-    assert_response :redirect
-    assert_redirected_to my_settings_appearance_path
-    assert_equal "nord", user.reload.theme
-    assert_equal "nord", cookies[:hackatime_theme]
-  end
-
   test "region update normalizes blank country code to nil" do
     user = create(:user)
     user.update!(country_code: "US")

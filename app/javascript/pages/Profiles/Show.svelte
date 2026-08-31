@@ -3,7 +3,7 @@
   import Button from "../../components/Button.svelte";
   import ActivityGraph from "../Home/signedIn/ActivityGraph.svelte";
   import Dashboard from "../Home/signedIn/Dashboard.svelte";
-  import { settingsProfile } from "../../api";
+  import { settingsPrivacy, settingsProfile } from "../../api";
   import type {
     ActivityGraphData,
     FilterableDashboardData,
@@ -35,6 +35,7 @@
   } = $props();
 
   const editProfilePath = settingsProfile.my.path();
+  const privacySettingsPath = `${settingsPrivacy.show.path()}#user_privacy`;
   const badgeClass =
     "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold";
 </script>
@@ -138,7 +139,7 @@
       </p>
       {#if is_own_profile}
         <div class="mt-4">
-          <Button href={`${editProfilePath}#user_privacy`} variant="surface">
+          <Button href={privacySettingsPath} variant="surface">
             Update privacy settings
           </Button>
         </div>
