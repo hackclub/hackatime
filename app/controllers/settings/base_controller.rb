@@ -1,6 +1,7 @@
 class Settings::BaseController < InertiaController
   layout "inertia"
 
+  before_action :authenticate_user!
   before_action :set_user
 
   def show = render_settings_page
@@ -49,6 +50,5 @@ class Settings::BaseController < InertiaController
 
   def set_user
     @user = current_user
-    redirect_to root_path, alert: "You need to log in!" if @user.nil?
   end
 end

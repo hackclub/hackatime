@@ -1,6 +1,26 @@
 require "test_helper"
 
 class SettingsAppearanceControllerTest < ActionDispatch::IntegrationTest
+  test "show redirects guests to sign in with the original URL" do
+    settings_path = my_settings_appearance_path(source: "profile")
+
+    get settings_path
+
+    assert_response :redirect
+    assert_redirected_to signin_path(continue: settings_path)
+  end
+
+  test "show renders appearance settings for an authenticated user" do
+    user = create(:user)
+    sign_in_as(user)
+
+    get my_settings_appearance_path
+
+    assert_response :success
+    assert_inertia_component "Users/Settings/Appearance"
+    assert_equal user.theme, inertia.props.dig("user", "theme")
+  end
+
   test "theme update persists selected theme and clears Inertia history" do
     user = create(:user)
     sign_in_as(user)
