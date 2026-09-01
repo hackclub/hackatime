@@ -1,5 +1,6 @@
 class TimelineService
-  MAX_TIMELINE_USERS = 20
+  MAX_REQUESTED_TIMELINE_USERS = 20
+  MAX_TIMELINE_USERS = MAX_REQUESTED_TIMELINE_USERS + 1
   LEADERBOARD_USERS_LIMIT = 25
   SEARCH_USERS_LIMIT = 20
   LEADERBOARD_USER_SELECT_FIELDS = %i[id username slack_username github_username slack_avatar_url github_avatar_url display_name_override].freeze
@@ -9,10 +10,11 @@ class TimelineService
 
   class << self
     def for_selection(date:, current_user:, user_ids:, slack_uids:)
-      requested_user_ids = user_ids.to_s.split(",").map(&:to_i).uniq.first(MAX_TIMELINE_USERS)
-      requested_slack_uids = slack_uids.to_s.split(",").uniq.first(MAX_TIMELINE_USERS)
+      requested_user_ids = user_ids.to_s.split(",").map(&:to_i).uniq.first(MAX_REQUESTED_TIMELINE_USERS)
+      requested_slack_uids = slack_uids.to_s.split(",").uniq.first(MAX_REQUESTED_TIMELINE_USERS)
       user_ids_by_slack_uid = User.where(slack_uid: requested_slack_uids).pluck(:slack_uid, :id).to_h
       requested_user_ids.concat(requested_slack_uids.filter_map { |slack_uid| user_ids_by_slack_uid[slack_uid] })
+      requested_user_ids = requested_user_ids.uniq.first(MAX_REQUESTED_TIMELINE_USERS)
 
       new(date: date, selected_user_ids: [ current_user.id, *requested_user_ids ])
     end

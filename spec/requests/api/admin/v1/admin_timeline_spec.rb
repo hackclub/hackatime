@@ -4,7 +4,7 @@ RSpec.describe 'Admin::Timeline', type: :request, openapi_spec: 'admin/swagger.y
   path '/api/admin/v1/timeline' do
     get('Get timeline') do
       tags 'Admin Timeline'
-      description 'Get timeline events including coding activity and commits for up to 20 users. The authenticated admin is always included, even when no users are selected.'
+      description 'Get timeline events including coding activity and commits for up to 20 requested users plus the authenticated admin, for a maximum of 21 users.'
       security [ AdminToken: [] ]
       produces 'application/json'
 
@@ -20,7 +20,7 @@ RSpec.describe 'Admin::Timeline', type: :request, openapi_spec: 'admin/swagger.y
             prev_date: { type: :string, format: :date, example: '2024-03-19' },
             users: {
               type: :array,
-              maxItems: 20,
+              maxItems: 21,
               items: {
                 type: :object,
                 properties: {
@@ -90,7 +90,7 @@ RSpec.describe 'Admin::Timeline', type: :request, openapi_spec: 'admin/swagger.y
             prev_date: { type: :string, format: :date, example: '2024-03-19' },
             users: {
               type: :array,
-              maxItems: 20,
+              maxItems: 21,
               items: {
                 type: :object,
                 properties: {

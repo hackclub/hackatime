@@ -1266,8 +1266,7 @@ paths:
       tags:
       - Admin Timeline
       description: Get timeline events including coding activity and commits for up
-        to 20 users. The authenticated admin is always included, even when no users
-        are selected.
+        to 20 requested users plus the authenticated admin, for a maximum of 21 users.
       security:
       - AdminToken: []
       parameters:
@@ -1309,7 +1308,7 @@ paths:
                     example: '2024-03-19'
                   users:
                     type: array
-                    maxItems: 20
+                    maxItems: 21
                     items:
                       type: object
                       properties:

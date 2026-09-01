@@ -3,9 +3,9 @@ require "test_helper"
 class TimelineServiceTest < ActiveSupport::TestCase
   DATE = Date.new(2026, 8, 10)
 
-  test "for_selection forces the current user, preserves request order, and caps the selection" do
+  test "for_selection caps requested users before forcing the current user" do
     current_user = create(:user)
-    requested_users = create_list(:user, TimelineService::MAX_TIMELINE_USERS + 2, :with_slack)
+    requested_users = create_list(:user, TimelineService::MAX_REQUESTED_TIMELINE_USERS + 2, :with_slack)
     users_selected_by_id = requested_users.first(10)
     users_selected_by_slack = requested_users.drop(10)
 
@@ -16,10 +16,25 @@ class TimelineServiceTest < ActiveSupport::TestCase
       slack_uids: users_selected_by_slack.map(&:slack_uid).join(",")
     )
 
-    expected_user_ids = [ current_user.id, *requested_users.first(TimelineService::MAX_TIMELINE_USERS - 1).map(&:id) ]
+    expected_user_ids = [ current_user.id, *requested_users.first(TimelineService::MAX_REQUESTED_TIMELINE_USERS).map(&:id) ]
     assert_equal expected_user_ids, service.selected_user_ids
     assert_equal expected_user_ids, service.timeline_data.map { |entry| entry[:user].id }
     assert service.timeline_data.all? { |entry| entry[:spans].empty? }
+  end
+
+  test "for_selection preserves requested order and deduplicates IDs and Slack UIDs" do
+    current_user = create(:user, :with_slack)
+    first_requested_user = create(:user, :with_slack)
+    second_requested_user = create(:user, :with_slack)
+
+    service = TimelineService.for_selection(
+      date: DATE,
+      current_user: current_user,
+      user_ids: [ first_requested_user.id, current_user.id, first_requested_user.id ].join(","),
+      slack_uids: [ first_requested_user.slack_uid, second_requested_user.slack_uid, current_user.slack_uid ].join(",")
+    )
+
+    assert_equal [ current_user.id, first_requested_user.id, second_requested_user.id ], service.selected_user_ids
   end
 
   test "leaderboard_users keeps the current user first and the remaining users in leaderboard order" do
