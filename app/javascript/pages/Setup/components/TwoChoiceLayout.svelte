@@ -3,18 +3,17 @@
   import ScreenHeader from "./ScreenHeader.svelte";
 
   interface Props {
-    emoji: string;
     title: string;
     subtitle?: string;
     question: string;
     children: Snippet;
   }
 
-  let { emoji, title, subtitle, question, children }: Props = $props();
+  let { title, subtitle, question, children }: Props = $props();
 </script>
 
 <div class="space-y-8 sm:space-y-10">
-  <ScreenHeader {emoji} {title} {subtitle} />
+  <ScreenHeader {title} {subtitle} />
 
   <div>
     <h2
