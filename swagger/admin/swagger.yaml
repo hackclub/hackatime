@@ -89,8 +89,8 @@ paths:
       summary: List potential alt-account candidates
       tags:
       - Admin
-      description: Returns pairs of users that have shared the same machine + IP address
-        within the lookback window. Capped at 5000 candidate pairs.
+      description: Compatibility endpoint for the machine and IP pair report. Preserves
+        the legacy candidate response keys and caps results at 5000 pairs.
       security:
       - AdminToken: []
       parameters:

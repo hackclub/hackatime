@@ -183,4 +183,43 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request, openapi_spec: 'admi
       end
     end
   end
+
+  describe 'machine and IP candidate compatibility' do
+    it 'returns equivalent records in each endpoint response shape' do
+      user_a = create_user('candidate_compat_a', 'candidate_compat_a@example.com')
+      user_b = create_user('candidate_compat_b', 'candidate_compat_b@example.com')
+      create_heartbeat(user_a, machine: 'candidate-compat-box', ip_address: '192.0.2.1')
+      create_heartbeat(user_b, machine: 'candidate-compat-box', ip_address: '192.0.2.1')
+      headers = { 'Authorization' => 'Bearer dev-admin-api-key-12345' }
+
+      get '/api/admin/v1/heartbeats/ip_machine_pairs', params: { lookback_days: 30, limit: 5_000 }, headers: headers
+      expect(response).to have_http_status(:ok)
+      pair = JSON.parse(response.body).fetch('pairs').find do |record|
+        [ record['user_a_id'], record['user_b_id'] ] == [ user_a.id, user_b.id ].sort
+      end
+
+      get '/api/admin/v1/alts/candidates', params: { lookback_days: 30 }, headers: headers
+      expect(response).to have_http_status(:ok)
+      candidate = JSON.parse(response.body).fetch('candidates').find do |record|
+        [ record['user_a_id'], record['user_b_id'] ] == [ user_a.id, user_b.id ].sort
+      end
+
+      expect(pair).not_to be_nil
+      expect(candidate).not_to be_nil
+      expect(pair.keys).to match_array(%w[
+        user_a_id user_b_id machine ip_address
+        user_a_first_seen user_a_last_seen user_b_first_seen user_b_last_seen
+      ])
+      expect(candidate).to eq(
+        'user_a_id' => pair['user_a_id'],
+        'user_b_id' => pair['user_b_id'],
+        'machine' => pair['machine'],
+        'ip_address' => pair['ip_address'],
+        'user_a_first_seen_on_combo' => pair['user_a_first_seen'],
+        'user_a_last_seen_on_combo' => pair['user_a_last_seen'],
+        'user_b_first_seen_on_combo' => pair['user_b_first_seen'],
+        'user_b_last_seen_on_combo' => pair['user_b_last_seen']
+      )
+    end
+  end
 end
