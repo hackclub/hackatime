@@ -24,9 +24,15 @@
 
   let { user, options }: Props = $props();
 
-  let goalsDisabled = $derived(
-    user.hackatime_extension_text_type !== "simple_text",
-  );
+  let extensionTextType = $state("");
+  let showGoalsInStatusbar = $state(false);
+
+  $effect(() => {
+    extensionTextType = user.hackatime_extension_text_type;
+    showGoalsInStatusbar = user.show_goals_in_statusbar;
+  });
+
+  let goalsDisabled = $derived(extensionTextType !== "simple_text");
 </script>
 
 <svelte:head>
@@ -49,14 +55,14 @@
       <Select
         id="extension_type"
         name="user[hackatime_extension_text_type]"
-        bind:value={user.hackatime_extension_text_type}
+        bind:value={extensionTextType}
         items={options.extension_text_types}
       />
     </FormField>
 
     <CheckboxField
       name="user[show_goals_in_statusbar]"
-      bind:checked={user.show_goals_in_statusbar}
+      bind:checked={showGoalsInStatusbar}
       disabled={goalsDisabled}
       align="start"
       label="Show daily goal in status bar"

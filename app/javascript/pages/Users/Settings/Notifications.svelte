@@ -15,6 +15,12 @@
   };
 
   let { user }: Props = $props();
+
+  let weeklySummaryEmailEnabled = $state(false);
+
+  $effect(() => {
+    weeklySummaryEmailEnabled = user.weekly_summary_email_enabled;
+  });
 </script>
 
 <svelte:head>
@@ -36,7 +42,7 @@
     <div id="user_weekly_summary_email">
       <CheckboxField
         name="user[weekly_summary_email_enabled]"
-        bind:checked={user.weekly_summary_email_enabled}
+        bind:checked={weeklySummaryEmailEnabled}
         label="Weekly coding summary email (sent Sundays at 6:30 PM GMT)"
       />
       <p class="mt-2 text-xs text-muted">

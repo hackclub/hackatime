@@ -42,6 +42,7 @@
     "Something else",
   ];
 
+  let allowPublicStatsLookup = $state(false);
   let rotatingApiKey = $state(false);
   let apiKeyCopied = $state(false);
   let rotateApiKeyModalOpen = $state(false);
@@ -51,6 +52,10 @@
   let canSubmitDeletionRequest = $derived(
     deletionReason.length > 0 && deletionReasonDetails.trim().length > 0,
   );
+
+  $effect(() => {
+    allowPublicStatsLookup = user.allow_public_stats_lookup;
+  });
 
   const rotateApiKey = () => {
     if (rotatingApiKey) return;
@@ -93,7 +98,7 @@
   >
     <CheckboxField
       name="user[allow_public_stats_lookup]"
-      bind:checked={user.allow_public_stats_lookup}
+      bind:checked={allowPublicStatsLookup}
       label="Allow public stats lookup"
     />
   </Form>
