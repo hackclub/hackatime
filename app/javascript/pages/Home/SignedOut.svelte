@@ -5,6 +5,8 @@
 
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import { staticPages } from "../../api";
+  import MarketingHeader from "../../components/MarketingHeader.svelte";
   import PhilosophySection from "./signedOut/PhilosophySection.svelte";
   import FeaturesGrid from "./signedOut/FeaturesGrid.svelte";
   import EditorGrid from "./signedOut/EditorGrid.svelte";
@@ -101,39 +103,7 @@
     </div>
   {/if}
 
-  <header
-    class="fixed top-0 w-full bg-darker/95 backdrop-blur-sm z-50 border-b border-surface-200/60"
-  >
-    <div
-      class="max-w-[1100px] mx-auto px-6 py-4 flex justify-between items-center"
-    >
-      <a href="/" class="flex items-center gap-3">
-        <img
-          src="/images/new-icon-rounded.png"
-          class="w-10 h-10 rounded-lg"
-          alt="Hackatime"
-        />
-        <span class="font-bold text-2xl tracking-tight">Hackatime</span>
-      </a>
-      <nav
-        class="hidden md:flex gap-8 items-center text-sm font-medium text-secondary"
-      >
-        {#each NAV_LINKS as { href, label, external }}
-          <a
-            {href}
-            target={external ? "_blank" : undefined}
-            class="hover:text-surface-content transition-colors">{label}</a
-          >
-        {/each}
-        <Link
-          href="/signin"
-          class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
-        >
-          Sign in
-        </Link>
-      </nav>
-    </div>
-  </header>
+  <MarketingHeader navLinks={NAV_LINKS} ctaLabel="Sign in" />
 
   <section class="pt-40 pb-20">
     <div class="max-w-[900px] mx-auto px-6 text-center">
@@ -151,7 +121,7 @@
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
         <Link
-          href="/signin"
+          href={staticPages.signin.path()}
           class="px-7 py-3.5 bg-primary text-on-primary rounded-xl font-semibold text-base hover:opacity-90 transition-colors"
         >
           Start tracking
