@@ -21,7 +21,7 @@ Capybara.server_host = "localhost"
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   include SystemTestAuthHelper
 
-  parallelize workers: ENV.fetch("SYSTEM_TEST_WORKERS", 3).to_i, threshold: 1
+  parallelize workers: ENV.fetch("SYSTEM_TEST_WORKERS", ENV["CI"] ? 3 : 1).to_i, threshold: 1
 
   driven_by :headless_playwright
 end
