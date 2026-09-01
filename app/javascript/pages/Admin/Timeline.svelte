@@ -271,6 +271,7 @@
             activeDescendant,
             setQuery,
             select,
+            selectFirstResult,
             handleKeydown,
             handleOptionKeydown,
             openResults,
@@ -320,14 +321,9 @@
                   value={query}
                   oninput={(event) => setQuery(event.currentTarget.value)}
                   onkeydown={(event) => {
-                    if (
-                      event.key === "Enter" &&
-                      open &&
-                      highlight === -1 &&
-                      results[0]
-                    ) {
+                    if (event.key === "Enter" && highlight === -1) {
                       event.preventDefault();
-                      select(results[0]);
+                      selectFirstResult();
                     } else {
                       handleKeydown(event);
                     }

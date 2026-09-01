@@ -86,6 +86,25 @@ class AdminTimelineTest < ApplicationSystemTestCase
       user.id.to_s
   end
 
+  test "Enter during debounce selects the pending first result with one request" do
+    user = create(:user, username: "timeline_pending")
+
+    visit admin_timeline_path(date: DATE.iso8601)
+    track_timeline_searches
+
+    search = find("#timeline-user-search")
+    search.set user.username
+    search.send_keys :enter
+
+    assert_selector \
+      "input[name='user_ids'][value='#{@admin.id},#{user.id}']",
+      visible: false
+    sleep 0.3
+    assert_equal [ user.username ],
+      page.evaluate_script("window.__timelineSearchQueries")
+    assert_no_selector "[role='listbox']"
+  end
+
   test "Escape aborts a delayed search without reopening results" do
     user = create(:user, username: "timeline_escape")
 

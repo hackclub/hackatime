@@ -10,6 +10,7 @@
     activeDescendant: string | undefined;
     setQuery: (query: string) => void;
     select: (result: Result) => void;
+    selectFirstResult: () => void;
     handleKeydown: (event: KeyboardEvent) => void;
     handleOptionKeydown: (event: KeyboardEvent, result: Result) => void;
     openResults: () => void;
@@ -43,6 +44,7 @@
   let searchError = $state(false);
   let searchAbortController: AbortController | null = null;
   let searchSequence = 0;
+  let selectFirstWhenResultsAvailable = false;
   const debouncedQuery = new Debounced(() => query, 200);
 
   const listboxId = $derived(`${id}-results`);
@@ -70,11 +72,13 @@
     results = [];
     highlight = -1;
     searchError = false;
+    selectFirstWhenResultsAvailable = false;
   }
 
   function setQuery(nextQuery: string) {
     query = nextQuery;
     invalidateSearch();
+    selectFirstWhenResultsAvailable = false;
 
     if (!searchWhen(nextQuery.trim())) resetResults();
   }
@@ -103,6 +107,10 @@
       if (requestSequence !== searchSequence) return;
 
       results = nextResults;
+      if (selectFirstWhenResultsAvailable) {
+        selectFirstWhenResultsAvailable = false;
+        if (nextResults[0]) return select(nextResults[0]);
+      }
       open = true;
       highlight = -1;
     } catch (error) {
@@ -113,6 +121,7 @@
       open = true;
       highlight = -1;
       searchError = true;
+      selectFirstWhenResultsAvailable = false;
     } finally {
       if (requestSequence === searchSequence) searching = false;
       if (searchAbortController === controller) searchAbortController = null;
@@ -124,6 +133,17 @@
     query = "";
     invalidateSearch();
     resetResults();
+  }
+
+  function selectFirstResult() {
+    if (open && results[0]) return select(results[0]);
+    if (!searchWhen(query.trim())) return;
+
+    selectFirstWhenResultsAvailable = true;
+    if (debouncedQuery.pending) {
+      debouncedQuery.cancel();
+      void search(query);
+    }
   }
 
   function handleOptionKeydown(event: KeyboardEvent, result: Result) {
@@ -162,6 +182,7 @@
   function closeResults() {
     debouncedQuery.cancel();
     invalidateSearch();
+    selectFirstWhenResultsAvailable = false;
     open = false;
   }
 </script>
@@ -177,6 +198,7 @@
   activeDescendant,
   setQuery,
   select,
+  selectFirstResult,
   handleKeydown,
   handleOptionKeydown,
   openResults,
