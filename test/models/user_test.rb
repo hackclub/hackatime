@@ -1,5 +1,6 @@
 require "test_helper"
 require "webmock/minitest"
+require "timeout"
 
 WebMock.disable_net_connect!(allow_localhost: true)
 
@@ -403,5 +404,62 @@ class UserTest < ActiveSupport::TestCase
     yield
   ensure
     Rails.cache = original_cache
+  end
+end
+
+class UserApiKeyConcurrencyTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
+  self.use_transactional_tests = false
+
+  setup { clear_enqueued_jobs }
+  teardown { clear_enqueued_jobs }
+
+  test "concurrent first key callers resolve one canonical key" do
+    user = create(:user)
+    first_created = Queue.new
+    release_first = Queue.new
+
+    first_caller = Thread.new do
+      User.transaction do
+        api_key = User.find(user.id).hackatime_api_key(create_if_missing: true)
+        first_created << true
+        release_first.pop
+        api_key
+      end
+    end
+    first_created.pop
+
+    second_backend_pid = Queue.new
+    second_caller = Thread.new do
+      ActiveRecord::Base.connection_pool.with_connection do |connection|
+        second_backend_pid << connection.select_value("SELECT pg_backend_pid()")
+        User.find(user.id).hackatime_api_key(create_if_missing: true)
+      end
+    end
+    backend_pid = second_backend_pid.pop
+    Timeout.timeout(5) do
+      loop do
+        wait_event_type = ActiveRecord::Base.connection.select_value(<<~SQL.squish)
+          SELECT wait_event_type FROM pg_stat_activity WHERE pid = #{Integer(backend_pid)}
+        SQL
+        break if wait_event_type == "Lock"
+        sleep 0.01
+      end
+    end
+    release_first << true
+
+    resolved_keys = [ first_caller.value, second_caller.value ]
+    persisted_key = ApiKey.find_by!(user: user)
+
+    assert_equal 1, ApiKey.where(user: user).count
+    assert_equal [ persisted_key.id ], resolved_keys.map(&:id).uniq
+  ensure
+    release_first << true if defined?(release_first)
+    first_caller&.join(5)
+    second_caller&.join(5)
+    ApiKey.where(user_id: user&.id).delete_all
+    Mailkick::Subscription.where(subscriber: user).delete_all if user
+    User.where(id: user&.id).delete_all
   end
 end

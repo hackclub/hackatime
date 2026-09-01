@@ -357,7 +357,11 @@ class User < ApplicationRecord
     api_key = api_keys.find_by(name: ApiKey::DEFAULT_NAME) || api_keys.order(:id).first
     return api_key if api_key || !create_if_missing
 
-    api_keys.create!(name: ApiKey::DEFAULT_NAME)
+    with_lock do
+      api_keys.find_by(name: ApiKey::DEFAULT_NAME) ||
+        api_keys.order(:id).first ||
+        api_keys.create!(name: ApiKey::DEFAULT_NAME)
+    end
   end
 
   def rotate_api_keys!
