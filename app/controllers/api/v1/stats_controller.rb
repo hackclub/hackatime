@@ -156,6 +156,13 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_projects
+    return unless parse_date_range(
+      start_value: params[:since].presence || params[:start].presence || params[:start_date],
+      end_value: params[:until].presence || params[:until_date].presence || params[:end].presence || params[:end_date],
+      start_default: 30.days.ago.beginning_of_day,
+      end_default: Time.current
+    ) { |value| value.to_datetime }
+
     render json: { projects: project_stats_query(include_archived: true).project_names }
   end
 

@@ -210,6 +210,32 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
+  test "user_projects preserves discovery date alias precedence" do
+    user = create(:user, username: "projects_#{SecureRandom.hex(3)}", allow_public_stats_lookup: true)
+    create_heartbeat(user:, time: Time.utc(2025, 1, 2).to_f, project: "before_range", category: "coding")
+    create_heartbeat(user:, time: Time.utc(2025, 1, 10).to_f, project: "in_range", category: "coding")
+    create_heartbeat(user:, time: Time.utc(2025, 1, 20).to_f, project: "after_range", category: "coding")
+
+    requests = [
+      {
+        since: "2025-01-05", start: "2025-01-01", start_date: "2024-01-01",
+        until: "2025-01-15", until_date: "2025-01-25", end: "2025-02-01", end_date: "2025-03-01"
+      },
+      {
+        start: "2025-01-05", start_date: "2025-01-01",
+        until_date: "2025-01-15", end: "2025-02-01", end_date: "2025-03-01"
+      },
+      { start_date: "2025-01-05", end: "2025-01-15", end_date: "2025-03-01" }
+    ]
+
+    requests.each do |params|
+      get "/api/v1/users/#{user.username}/projects", params: params
+
+      assert_response :success
+      assert_equal [ "in_range" ], response.parsed_body.fetch("projects")
+    end
+  end
+
   test "date-filtered endpoints reject malformed ranges consistently" do
     user = create(:user, username: "dates_#{SecureRandom.hex(3)}", allow_public_stats_lookup: true)
     admin_api_key = create_admin_api_key
@@ -218,6 +244,7 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
       [ "/api/v1/stats", { start_date: "not-a-date" }, { "Authorization" => "Bearer #{admin_api_key.token}" } ],
       [ "/api/v1/users/#{user.username}/stats", { start_date: "not-a-date" }, {} ],
       [ "/api/v1/users/#{user.username}/heartbeats/spans", { start_date: "not-a-date" }, {} ],
+      [ "/api/v1/users/#{user.username}/projects", { since: "not-a-date" }, {} ],
       [ "/api/v1/users/#{user.username}/project/test", { start: "not-a-date" }, {} ],
       [ "/api/v1/users/#{user.username}/projects/details", { start_date: "not-a-date" }, {} ]
     ]
@@ -238,6 +265,7 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
       [ "/api/v1/stats", { start_date: "2025-02-01", end_date: "2025-01-01" }, { "Authorization" => "Bearer #{admin_api_key.token}" } ],
       [ "/api/v1/users/#{user.username}/stats", { start_date: "2025-02-01", end_date: "2025-01-01" }, {} ],
       [ "/api/v1/users/#{user.username}/heartbeats/spans", { start_date: "2025-02-01", end_date: "2025-01-01" }, {} ],
+      [ "/api/v1/users/#{user.username}/projects", { since: "2025-02-01", until: "2025-01-01" }, {} ],
       [ "/api/v1/users/#{user.username}/project/test", { start: "2025-02-01", end: "2025-01-01" }, {} ],
       [ "/api/v1/users/#{user.username}/projects/details", { start: "2025-02-01", end: "2025-01-01" }, {} ]
     ]

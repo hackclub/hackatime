@@ -6,7 +6,6 @@ RSpec.describe 'Api::V1::Stats', type: :request do
       tags 'Stats'
       description 'Returns the total coding time for all users, optionally filtered by user or date range. Requires an active Admin API Key supplied via the Bearer header.'
       security [ { Bearer: [] } ]
-      produces 'text/plain'
 
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD), defaults to 10 years ago'
       parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD), defaults to today'
@@ -21,8 +20,10 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:username) { nil }
         let(:user_email) { nil }
         schema type: :integer, example: 123456
+        metadata[:response][:content] = { 'text/plain' => { schema: metadata[:response][:schema] } }
         run_test! do |response|
           expect(response).to have_http_status(:ok)
+          expect(response.media_type).to eq('text/plain')
           expect(response.body.to_i).to be >= 0
         end
       end
@@ -35,7 +36,10 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:username) { nil }
         let(:user_email) { nil }
         schema '$ref' => '#/components/schemas/Error'
-        run_test!
+        metadata[:response][:content] = { 'application/json' => { schema: metadata[:response][:schema] } }
+        run_test! do |response|
+          expect(response.media_type).to eq('application/json')
+        end
       end
 
       response(404, 'user not found') do
@@ -46,7 +50,10 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:username) { 'non_existent_user' }
         let(:user_email) { nil }
         schema '$ref' => '#/components/schemas/Error'
-        run_test!
+        metadata[:response][:content] = { 'application/json' => { schema: metadata[:response][:schema] } }
+        run_test! do |response|
+          expect(response.media_type).to eq('application/json')
+        end
       end
 
       response(400, 'invalid or reversed date range') do
@@ -57,7 +64,10 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:username) { nil }
         let(:user_email) { nil }
         schema '$ref' => '#/components/schemas/Error'
-        run_test!
+        metadata[:response][:content] = { 'application/json' => { schema: metadata[:response][:schema] } }
+        run_test! do |response|
+          expect(response.media_type).to eq('application/json')
+        end
       end
     end
   end
@@ -190,9 +200,35 @@ RSpec.describe 'Api::V1::Stats', type: :request do
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
+      parameter name: :since, in: :query, schema: { type: :string, format: :date_time }, description: 'Start date/time (ISO 8601), defaults to 30 days ago and takes precedence over start and start_date'
+      parameter name: :start, in: :query, schema: { type: :string, format: :date_time }, description: 'Start date/time alias, takes precedence over start_date'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Start date/time alias'
+      parameter name: :until, in: :query, schema: { type: :string, format: :date_time }, description: 'End date/time (ISO 8601), defaults to the current time and takes precedence over until_date, end and end_date'
+      parameter name: :until_date, in: :query, schema: { type: :string, format: :date_time }, description: 'End date/time alias, takes precedence over end and end_date'
+      parameter name: :end, in: :query, schema: { type: :string, format: :date_time }, description: 'End date/time alias, takes precedence over end_date'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date_time }, description: 'End date/time alias'
+
+      let(:since) { nil }
+      let(:start) { nil }
+      let(:start_date) { nil }
+      let(:until) { nil }
+      let(:until_date) { nil }
+      let(:end) { nil }
+      let(:end_date) { nil }
 
       response(200, 'successful') do
-        let(:username) { 'testuser' }
+        let!(:projects_user) { create(:user, username: "proj_alias_#{SecureRandom.hex(3)}", allow_public_stats_lookup: true) }
+        let!(:before_range) { create(:heartbeat, user: projects_user, time: Time.utc(2025, 1, 2).to_f, project: 'before_range') }
+        let!(:in_range) { create(:heartbeat, user: projects_user, time: Time.utc(2025, 1, 10).to_f, project: 'in_range') }
+        let!(:after_range) { create(:heartbeat, user: projects_user, time: Time.utc(2025, 1, 20).to_f, project: 'after_range') }
+        let(:username) { projects_user.username }
+        let(:since) { '2025-01-05' }
+        let(:start) { '2025-01-01' }
+        let(:start_date) { '2024-01-01' }
+        let(:until) { '2025-01-15' }
+        let(:until_date) { '2025-01-25' }
+        let(:end) { '2025-02-01' }
+        let(:end_date) { '2025-03-01' }
 
         schema type: :object,
           properties: {
@@ -201,6 +237,23 @@ RSpec.describe 'Api::V1::Stats', type: :request do
               items: { type: :string, example: 'hackatime' }
             }
           }
+        run_test! do |response|
+          expect(response.parsed_body.fetch('projects')).to eq([ 'in_range' ])
+        end
+      end
+
+      response(400, 'invalid or reversed date range') do
+        let(:username) { 'testuser' }
+        let(:since) { 'not-a-date' }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(400, 'invalid or reversed date range') do
+        let(:username) { 'testuser' }
+        let(:since) { '2025-02-01' }
+        let(:until) { '2025-01-01' }
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
 

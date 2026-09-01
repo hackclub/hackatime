@@ -1686,19 +1686,19 @@ paths:
           description: unauthorized — Returned when the Admin API Key is missing,
             revoked, or incorrect. (Auth is bypassed in the development environment.)
           content:
-            text/plain:
+            application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
         '404':
           description: user not found
           content:
-            text/plain:
+            application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
         '400':
           description: invalid or reversed date range
           content:
-            text/plain:
+            application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
   "/api/v1/banned_users/counts":
@@ -1870,6 +1870,50 @@ paths:
         required: true
         schema:
           type: string
+      - name: since
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start date/time (ISO 8601), defaults to 30 days ago and takes
+          precedence over start and start_date
+      - name: start
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start date/time alias, takes precedence over start_date
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start date/time alias
+      - name: until
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time (ISO 8601), defaults to the current time and takes
+          precedence over until_date, end and end_date
+      - name: until_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time alias, takes precedence over end and end_date
+      - name: end
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time alias, takes precedence over end_date
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time alias
       responses:
         '200':
           description: successful
@@ -1883,6 +1927,12 @@ paths:
                     items:
                       type: string
                       example: hackatime
+        '400':
+          description: invalid or reversed date range
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '403':
           description: forbidden — The target user has disabled public stats lookup
             and the requester is not that user.
