@@ -16,7 +16,7 @@
 
   let { user }: Props = $props();
 
-  let weeklySummaryEmailEnabled = $state(false);
+  let weeklySummaryEmailEnabled = $state(user.weekly_summary_email_enabled);
 
   $effect(() => {
     weeklySummaryEmailEnabled = user.weekly_summary_email_enabled;

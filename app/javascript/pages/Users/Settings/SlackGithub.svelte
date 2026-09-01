@@ -31,7 +31,7 @@
 
   let { user, slack, github }: Props = $props();
 
-  let usesSlackStatus = $state(false);
+  let usesSlackStatus = $state(user.uses_slack_status);
   let unlinkGithubModalOpen = $state(false);
 
   $effect(() => {

@@ -42,7 +42,7 @@
     "Something else",
   ];
 
-  let allowPublicStatsLookup = $state(false);
+  let allowPublicStatsLookup = $state(user.allow_public_stats_lookup);
   let rotatingApiKey = $state(false);
   let apiKeyCopied = $state(false);
   let rotateApiKeyModalOpen = $state(false);

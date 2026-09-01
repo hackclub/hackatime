@@ -24,8 +24,8 @@
 
   let { user, options }: Props = $props();
 
-  let extensionTextType = $state("");
-  let showGoalsInStatusbar = $state(false);
+  let extensionTextType = $state(user.hackatime_extension_text_type);
+  let showGoalsInStatusbar = $state(user.show_goals_in_statusbar);
 
   $effect(() => {
     extensionTextType = user.hackatime_extension_text_type;
