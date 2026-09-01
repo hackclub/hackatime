@@ -1,6 +1,4 @@
 class My::ProjectRepoMappingsController < InertiaController
-  layout "inertia", only: [ :index, :show ]
-
   before_action :ensure_current_user
   before_action :require_github_oauth, only: [ :update ]
   before_action :set_project_repo_mapping_for_edit, only: [ :update ]

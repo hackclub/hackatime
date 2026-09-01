@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class InertiaController < ApplicationController
+  layout "inertia"
+
   inertia_share layout: -> { inertia_layout_props }
 
   private

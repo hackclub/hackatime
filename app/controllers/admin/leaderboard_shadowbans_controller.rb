@@ -1,6 +1,4 @@
 class Admin::LeaderboardShadowbansController < InertiaController
-  layout "inertia"
-
   before_action :require_shadowban_admin!
 
   def index

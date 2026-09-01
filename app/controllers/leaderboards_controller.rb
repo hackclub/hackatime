@@ -1,6 +1,4 @@
 class LeaderboardsController < InertiaController
-  layout "inertia"
-
   def index
     period_type = validated_period_type
     country = load_country_context
