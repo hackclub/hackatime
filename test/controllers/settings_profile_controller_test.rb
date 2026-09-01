@@ -16,13 +16,17 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
     user = create(:user)
     user.update!(slack_username: "slack_name")
     sign_in_as(user)
+    return_path = "#{my_settings_profile_path}?section=display-name"
 
-    patch my_settings_profile_display_name_path, params: { user: { display_name_override: "Custom Name" } }
+    patch my_settings_profile_display_name_path,
+      params: { user: { display_name_override: "Custom Name" } },
+      headers: { "HTTP_REFERER" => return_path }
 
     assert_response :redirect
-    assert_redirected_to my_settings_profile_path
+    assert_redirected_to return_path
     assert_equal "Custom Name", user.reload.display_name_override
     assert_equal "Custom Name", user.display_name
+    assert_equal "Settings updated successfully", flash[:notice]
   end
 
   test "display name update clears blank override" do
@@ -47,6 +51,8 @@ class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_inertia_component "Users/Settings/Profile"
+    assert_predicate flash[:error], :present?
+    assert_nil user.reload.display_name_override
   end
 
   test "username update with invalid username returns unprocessable entity" do
