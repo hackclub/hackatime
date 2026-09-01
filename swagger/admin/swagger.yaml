@@ -1265,8 +1265,9 @@ paths:
       summary: Get timeline
       tags:
       - Admin Timeline
-      description: Get timeline events including coding activity and commits for selected
-        users.
+      description: Get timeline events including coding activity and commits for up
+        to 20 users. The authenticated admin is always included, even when no users
+        are selected.
       security:
       - AdminToken: []
       parameters:
@@ -1278,12 +1279,12 @@ paths:
         description: Date for the timeline (YYYY-MM-DD)
       - name: user_ids
         in: query
-        description: Comma-separated list of User IDs
+        description: Comma-separated list of User IDs, in display order
         schema:
           type: string
       - name: slack_uids
         in: query
-        description: Comma-separated list of Slack User IDs
+        description: Comma-separated list of Slack User IDs, in display order
         schema:
           type: string
       responses:
@@ -1308,6 +1309,7 @@ paths:
                     example: '2024-03-19'
                   users:
                     type: array
+                    maxItems: 20
                     items:
                       type: object
                       properties:
@@ -1467,6 +1469,16 @@ paths:
                           example: https://avatars.slack-edge.com/2024-03-20/orpheus_512.png
         '422':
           description: unprocessable entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Query parameter is required
+                required:
+                - error
         '401':
           description: unauthorized
   "/api/admin/v1/timeline/leaderboard_users":

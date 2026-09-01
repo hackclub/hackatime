@@ -1,20 +1,55 @@
 class TimelineService
+  MAX_TIMELINE_USERS = 20
+  LEADERBOARD_USERS_LIMIT = 25
+  SEARCH_USERS_LIMIT = 20
+  LEADERBOARD_USER_SELECT_FIELDS = %i[id username slack_username github_username slack_avatar_url github_avatar_url display_name_override].freeze
   TIMEOUT_DURATION = 10.minutes.to_i
 
   attr_reader :date, :selected_user_ids
 
+  class << self
+    def for_selection(date:, current_user:, user_ids:, slack_uids:)
+      requested_user_ids = user_ids.to_s.split(",").map(&:to_i).uniq.first(MAX_TIMELINE_USERS)
+      requested_slack_uids = slack_uids.to_s.split(",").uniq.first(MAX_TIMELINE_USERS)
+      user_ids_by_slack_uid = User.where(slack_uid: requested_slack_uids).pluck(:slack_uid, :id).to_h
+      requested_user_ids.concat(requested_slack_uids.filter_map { |slack_uid| user_ids_by_slack_uid[slack_uid] })
+
+      new(date: date, selected_user_ids: [ current_user.id, *requested_user_ids ])
+    end
+
+    def search_users(query)
+      User.fuzzy_ranked_search(query, limit: SEARCH_USERS_LIMIT)
+    end
+
+    def leaderboard_users(current_user:, period:)
+      leaderboard = Leaderboard.where.not(finished_generating_at: nil)
+                               .find_by(start_date: Date.current,
+                                        period_type: period == "last_7_days" ? :last_7_days : :daily,
+                                        deleted_at: nil)
+      leaderboard_user_ids = leaderboard ? leaderboard.entries.order(total_seconds: :desc).limit(LEADERBOARD_USERS_LIMIT).pluck(:user_id) : []
+      ordered_user_ids = [ current_user.id, *leaderboard_user_ids ].uniq.first(LEADERBOARD_USERS_LIMIT)
+      users_by_id = User.where(id: ordered_user_ids).select(*LEADERBOARD_USER_SELECT_FIELDS).preload(:email_addresses).index_by(&:id)
+
+      ordered_user_ids.filter_map { |user_id| users_by_id[user_id] }
+    end
+  end
+
   def initialize(date:, selected_user_ids:)
     @date = date
-    @selected_user_ids = selected_user_ids.uniq
+    @selected_user_ids = selected_user_ids.uniq.first(MAX_TIMELINE_USERS)
+  end
+
+  def users
+    @users ||= selected_user_ids.filter_map { |user_id| users_by_id[user_id] }
   end
 
   def users_by_id
-    @users_by_id ||= User.where(id: selected_user_ids).index_by(&:id)
+    @users_by_id ||= User.where(id: selected_user_ids).preload(:email_addresses).index_by(&:id)
   end
 
   def timeline_data
     duration_cap = Heartbeat.heartbeat_timeout_duration.to_i
-    users_by_id.values.map do |user|
+    users.map do |user|
       user_tz = user.timezone || "UTC"
       day_start = date.in_time_zone(user_tz).beginning_of_day.to_f
       day_end = date.in_time_zone(user_tz).end_of_day.to_f

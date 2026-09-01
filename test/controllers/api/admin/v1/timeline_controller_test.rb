@@ -12,6 +12,19 @@ class Api::Admin::V1::TimelineControllerTest < ActionDispatch::IntegrationTest
     assert_empty response.parsed_body.dig("users", 0, "spans")
   end
 
+  test "show limits the JSON timeline to the shared maximum user count" do
+    admin = create(:user, :admin)
+    requested_users = create_list(:user, TimelineService::MAX_TIMELINE_USERS + 2)
+    key = create(:admin_api_key, user: admin, name: "test")
+
+    get "/api/admin/v1/timeline", params: { user_ids: requested_users.map(&:id).join(",") }, headers: auth_headers(key)
+
+    assert_response :success
+    selected_user_ids = response.parsed_body.fetch("users").pluck("user").pluck("id")
+    assert_equal TimelineService::MAX_TIMELINE_USERS, selected_user_ids.size
+    assert_equal [ admin.id, *requested_users.first(TimelineService::MAX_TIMELINE_USERS - 1).map(&:id) ], selected_user_ids
+  end
+
   test "show rejects a malformed date instead of falling back" do
     admin = create(:user, :admin)
     key = create(:admin_api_key, user: admin, name: "test")

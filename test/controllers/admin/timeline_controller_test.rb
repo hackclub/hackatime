@@ -23,6 +23,19 @@ class Admin::TimelineControllerTest < ActionDispatch::IntegrationTest
     assert_empty inertia.props.dig("columns", 0, "spans")
   end
 
+  test "show limits the browser timeline to the shared maximum user count" do
+    admin = create(:user, :admin)
+    requested_users = create_list(:user, TimelineService::MAX_TIMELINE_USERS + 2)
+    sign_in_as(admin)
+
+    get admin_timeline_path(user_ids: requested_users.map(&:id).join(","))
+
+    assert_response :success
+    selected_user_ids = inertia.props.fetch("selected_users").pluck("id")
+    assert_equal TimelineService::MAX_TIMELINE_USERS, selected_user_ids.size
+    assert_equal [ admin.id, *requested_users.first(TimelineService::MAX_TIMELINE_USERS - 1).map(&:id) ], selected_user_ids
+  end
+
   test "show falls back to today for a malformed date param" do
     admin = create(:user, :admin)
     sign_in_as(admin)
