@@ -79,6 +79,37 @@ class UserTest < ActiveSupport::TestCase
     assert_equal [ new_api_key.id ], user.api_keys.reload.pluck(:id)
   end
 
+  test "hackatime_api_key prefers the default named key without removing extra keys" do
+    user = create(:user)
+    create(:api_key, user: user, name: "Desktop")
+    default_key = create(:api_key, user: user, name: "Hackatime key")
+    create(:api_key, user: user, name: "Laptop")
+
+    assert_equal default_key, user.hackatime_api_key
+    assert_equal 3, user.api_keys.count
+  end
+
+  test "hackatime_api_key falls back to the lowest id without creating another key" do
+    user = create(:user)
+    oldest_key = create(:api_key, user: user, name: "Desktop")
+    create(:api_key, user: user, name: "Laptop")
+
+    assert_equal oldest_key, user.hackatime_api_key(create_if_missing: true)
+    assert_equal 2, user.api_keys.count
+  end
+
+  test "hackatime_api_key creates the default key only when requested" do
+    user = create(:user)
+
+    assert_nil user.hackatime_api_key
+    assert_equal 0, user.api_keys.count
+
+    api_key = user.hackatime_api_key(create_if_missing: true)
+
+    assert_equal "Hackatime key", api_key.name
+    assert_equal [ api_key.id ], user.api_keys.reload.pluck(:id)
+  end
+
   test "flipper id uses the user id" do
     user = create(:user)
 
