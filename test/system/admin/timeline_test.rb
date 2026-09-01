@@ -33,6 +33,62 @@ class AdminTimelineTest < ApplicationSystemTestCase
     assert_includes marker[:style], "top: 504px"
   end
 
+  test "ignores stale searches and selects a user with the keyboard without refetching on Enter" do
+    slow_user = create(:user, username: "timeline_slow_result")
+    fast_user = create(:user, username: "timeline_fast_result")
+
+    visit admin_timeline_path(date: DATE.iso8601)
+
+    page.execute_script(<<~JS)
+      const originalFetch = window.fetch.bind(window);
+      window.__timelineSearchQueries = [];
+      window.fetch = async (...args) => {
+        const requestUrl = typeof args[0] === "string" ? args[0] : args[0].url;
+        const url = new URL(requestUrl, window.location.origin);
+        if (url.pathname !== "/admin/timeline/search_users") {
+          return originalFetch(...args);
+        }
+
+        const query = url.searchParams.get("query");
+        window.__timelineSearchQueries.push(query);
+        const response = await originalFetch(...args);
+        if (query === #{slow_user.username.to_json}) {
+          document.body.dataset.timelineSlowResponseReady = "true";
+          await new Promise((resolve) => setTimeout(resolve, 1_000));
+        }
+        return response;
+      };
+    JS
+
+    search = find("#timeline-user-search")
+    search.set slow_user.username
+    assert_selector "body[data-timeline-slow-response-ready='true']"
+
+    request_count = page.evaluate_script("window.__timelineSearchQueries.length")
+    search.send_keys :enter
+    assert_equal request_count,
+      page.evaluate_script("window.__timelineSearchQueries.length")
+
+    search.set fast_user.username
+    option = find("[role='option']", text: fast_user.display_name)
+    assert_equal "listbox", find("##{search[:'aria-controls']}")[:role]
+
+    sleep 1.1
+    assert_selector "[role='option']", text: fast_user.display_name
+    assert_no_selector "[role='option']", text: slow_user.display_name
+
+    search.send_keys :down
+    option = find("[role='option']", text: fast_user.display_name)
+    assert_equal "true", option[:"aria-selected"]
+    assert_equal option[:id], search[:"aria-activedescendant"]
+
+    search.send_keys :enter
+    assert_no_selector "[role='listbox']"
+    assert_text fast_user.display_name
+    assert_includes find("input[name='user_ids']", visible: false).value,
+      fast_user.id.to_s
+  end
+
   # test "shows a NOW line and centers the grid on the current time when viewing today" do
   #   visit admin_timeline_path
 
