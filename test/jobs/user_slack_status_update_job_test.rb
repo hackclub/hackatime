@@ -83,6 +83,26 @@ class UserSlackStatusUpdateJobTest < ActiveJob::TestCase
     assert_requested request, times: 2
   end
 
+  test "reports a non-retryable Slack API error with user context without retrying" do
+    user = create(:user, slack_access_token: "requested-token", uses_slack_status: true)
+    stub_request(:get, "https://slack.com/api/users.profile.get")
+      .to_return(body: { ok: false, error: "missing_scope" }.to_json)
+    log_output = StringIO.new
+    previous_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(log_output)
+
+    assert_no_enqueued_jobs only: UserSlackStatusUpdateJob do
+      error = assert_raises(SlackIntegration::ApiError) do
+        UserSlackStatusUpdateJob.perform_now(user.id)
+      end
+      assert_includes error.message, "missing_scope"
+    end
+
+    assert_includes log_output.string, "Failed to update Slack status for user #{user.id}"
+  ensure
+    Rails.logger = previous_logger if previous_logger
+  end
+
   test "does nothing when the user no longer exists" do
     missing_user_id = User.maximum(:id).to_i + 1
 

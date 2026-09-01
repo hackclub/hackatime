@@ -15,6 +15,8 @@ class UserSlackStatusUpdateJob < ApplicationJob
 
   def perform(user_id)
     User.find_by(id: user_id)&.update_slack_status
+  rescue SlackIntegration::ServerError
+    raise
   rescue SlackIntegration::RateLimitedError => e
     if executions < MAX_ATTEMPTS
       retry_job(wait: e.retry_after.seconds)
@@ -25,5 +27,12 @@ class UserSlackStatusUpdateJob < ApplicationJob
         extra: { user_id: }
       )
     end
+  rescue SlackIntegration::ApiError => e
+    report_error(
+      e,
+      message: "Failed to update Slack status for user #{user_id}",
+      extra: { user_id: }
+    )
+    raise
   end
 end
