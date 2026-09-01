@@ -86,11 +86,29 @@ class Api::Internal::RevocationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Token is invalid or already revoked", response.parsed_body["error"]
   end
 
+  test "returns unauthorized when the revocation key is missing" do
+    ENV.delete("HKA_REVOCATION_KEY")
+
+    post "/api/internal/revoke", params: { token: SecureRandom.uuid_v4 }, headers: auth_headers("present-token"), as: :json
+
+    assert_response :unauthorized
+    assert_empty response.body
+    assert_nil response.location
+  end
+
+  test "returns unauthorized when the bearer token has a different length" do
+    post "/api/internal/revoke", params: { token: SecureRandom.uuid_v4 }, headers: auth_headers("short"), as: :json
+
+    assert_response :unauthorized
+    assert_empty response.body
+    assert_nil response.location
+  end
+
   private
 
-  def auth_headers
+  def auth_headers(token = ENV.fetch("HKA_REVOCATION_KEY"))
     {
-      "Authorization" => ActionController::HttpAuthentication::Token.encode_credentials(ENV.fetch("HKA_REVOCATION_KEY"))
+      "Authorization" => ActionController::HttpAuthentication::Token.encode_credentials(token)
     }
   end
 end
