@@ -13,7 +13,7 @@ module Api
         end
 
         def alt_candidates
-          candidates = ip_machine_pair_rows(limit: ALT_CANDIDATES_LIMIT).map { |pair| serialize_alt_candidate(pair) }
+          candidates = ip_machine_pair_rows(limit: ALT_CANDIDATES_LIMIT, inclusive_cutoff: true).map { |pair| serialize_alt_candidate(pair) }
           render json: { candidates: candidates }
         end
 
@@ -54,7 +54,8 @@ module Api
 
         private
 
-        def ip_machine_pair_rows(limit:)
+        def ip_machine_pair_rows(limit:, inclusive_cutoff: false)
+          cutoff_operator = inclusive_cutoff ? ">=" : ">"
           query = <<-SQL
             WITH user_machine_ip_activity AS (
               SELECT
@@ -68,7 +69,7 @@ module Api
                 AND machine IS NOT NULL
                 AND ip_address IS NOT NULL
                 AND deleted_at IS NULL
-                AND time > ?
+                AND time #{cutoff_operator} ?
               GROUP BY user_id, machine, ip_address
             )
             SELECT
