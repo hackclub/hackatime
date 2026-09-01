@@ -9,6 +9,47 @@ class GoalsSettingsTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
+  test "goal modal opens immediately and keeps its open binding in sync" do
+    visit my_settings_goals_path
+
+    open_modal = lambda do
+      page.evaluate_script <<~JAVASCRIPT
+        (async () => {
+          const button = [...document.querySelectorAll("button")]
+            .find((candidate) => candidate.textContent.trim() === "New goal");
+          button.click();
+          await Promise.resolve();
+
+          const dialog = document.querySelector("[role='dialog']");
+          return {
+            present: dialog !== null,
+            hasBody: dialog?.textContent.includes("I want to code for"),
+            hasCancelAction: dialog?.textContent.includes("Cancel"),
+            hasCreateAction: dialog?.textContent.includes("Create Goal"),
+          };
+        })()
+      JAVASCRIPT
+    end
+
+    expected_content = {
+      "present" => true,
+      "hasBody" => true,
+      "hasCancelAction" => true,
+      "hasCreateAction" => true
+    }
+    assert_equal expected_content, open_modal.call
+
+    find("[role='dialog'] button[aria-label='Close']").click
+    assert_no_selector "[role='dialog']"
+
+    assert_equal expected_content, open_modal.call
+
+    within("[role='dialog']") do
+      click_on "Cancel"
+    end
+    assert_no_selector "[role='dialog']"
+  end
+
   test "goals settings can create edit and delete goal" do
     visit my_settings_goals_path
 
