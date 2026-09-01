@@ -151,7 +151,6 @@
   title="Unlink GitHub account?"
   description="GitHub-based features will stop until you reconnect."
   maxWidth="max-w-md"
-  hasActions
 >
   {#snippet actions()}
     <ModalActions onCancel={() => (unlinkGithubModalOpen = false)}>

@@ -275,8 +275,6 @@
   title={editingGoal ? "Edit target" : "Set a new target"}
   maxWidth="max-w-2xl"
   bodyClass="mb-6"
-  hasBody
-  hasActions
 >
   {#snippet body()}
     <div class="space-y-4">

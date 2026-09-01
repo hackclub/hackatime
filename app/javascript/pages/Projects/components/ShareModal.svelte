@@ -47,9 +47,7 @@
     ? "Anyone with the link can view this project's stats."
     : "Share a public link so anyone can view this project's stats."}
   maxWidth="max-w-sm"
-  hasBody
   bodyClass="mb-4"
-  hasActions
 >
   {#snippet body()}
     {#if isShared && shareUrl}
