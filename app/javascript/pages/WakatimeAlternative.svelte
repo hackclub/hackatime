@@ -95,17 +95,22 @@
     {
       title: "No team dashboards",
       description:
-        "WakaTime Pro has team analytics. We don't. If you need to see what your coworkers are shipping, stick with WakaTime.",
+        "WakaTime Pro has team analytics. At the moment, we're not planning on implementing this, because we'd rather focus on making our offering for individual users better instead.",
     },
     {
       title: "Built for Hack Club",
       description:
-        "Anyone can sign up, but the leaderboards and culture skew toward the Hack Club community. That's a feature for some people and a downside for others.",
+        "Anyone can sign up, but the leaderboards and culture skew toward the Hack Club community. (Psst... if you're aged 13-18, you should come join us!)",
     },
     {
       title: "Younger project",
       description:
-        "WakaTime has been around since 2013. Hackatime launched in 2024. The plugin ecosystem is the same, but we're still adding things.",
+        "WakaTime has been around since 2013, whereas Hackatime launched in 2024. The plugin ecosystem is the same, but we're still adding things.",
+    },
+    {
+      title: "Less AI tracking features",
+      description:
+        "WakaTime is much more suited to your needs if you need detailed stats on things like token usage. Whilst we do track AI coding time, and show things like AI vs human coding time, we aren't super interested in adding more AI stuff to Hackatime.",
     },
   ];
 
@@ -162,18 +167,24 @@
         Why look for a WakaTime alternative?
       </h2>
       <p class="text-secondary leading-relaxed mb-4 max-w-[75ch]">
-        WakaTime invented this category and the product is genuinely good. We
-        like it enough that we use their editor extensions. The catch is the
-        free tier: you get basic stats, but project breakdowns and history past
-        two weeks live behind a $9/month plan (or $14/month if you want more
-        than two weeks of dashboard history). If you're a student or just
-        tracking personal projects, paying every month for what's basically a
-        nice graph gets old.
+        WakaTime invented this category, but it's also pricey for what it does.
+        You get basic stats, but project breakdowns and anything older than two
+        weeks sit behind a $9/month plan, and a longer dashboard history costs
+        $14. That's a lot of money for some coding stats!
+      </p>
+      <p class="text-secondary leading-relaxed mb-4 max-w-[75ch]">
+        WakaTime is also focused on tracking <i>AI</i> coding time, rather than human
+        coding time. On the other hand, we're mainly focused on tracking human coding
+        time, although we do also show things like how much (or little) AI you use
+        per day if you're into that kind of thing!
       </p>
       <p class="text-secondary leading-relaxed max-w-[75ch]">
-        Hackatime is <strong class="text-surface-content">free</strong>. Not
-        free trial, not free tier - just free. We're not planning to add a paid
-        version later either.
+        On the other hand, Hackatime is <strong class="text-surface-content"
+          >completely free!</strong
+        >
+        We built it for Hack Club's events so we could have a unified system to track
+        students' coding time, but it's cheap enough to run that we can give free
+        access to <i>everyone</i>, and it serves as good marketing!
       </p>
     </div>
   </section>
