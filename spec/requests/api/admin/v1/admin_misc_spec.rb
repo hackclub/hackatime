@@ -20,7 +20,7 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
               items: {
                 type: :object,
                 properties: {
-                  date_timestamp_s: { type: :integer, example: 1704067200, description: 'Start-of-day epoch (seconds, UTC)' },
+                  date_timestamp_s: { type: :integer, example: 1704067200, description: "Epoch for the start of the target user's local day" },
                   total_seconds: { type: :number, example: 7200.0, description: 'Total coding seconds for the day' },
                   points: {
                     type: :array,
