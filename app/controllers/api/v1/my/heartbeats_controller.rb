@@ -1,5 +1,7 @@
 class Api::V1::My::HeartbeatsController < ApplicationController
   include ActionView::Helpers::DateHelper
+  include DateParsing
+
   before_action :ensure_authenticated!
 
   def most_recent
@@ -24,8 +26,16 @@ class Api::V1::My::HeartbeatsController < ApplicationController
   end
 
   def index
-    start_time = params[:start_time].present? ? Time.parse(params[:start_time]) : Time.current.beginning_of_day
-    end_time = params[:end_time].present? ? Time.parse(params[:end_time]) : Time.current.end_of_day
+    time_range = parse_date_range(
+      start_value: params[:start_time],
+      end_value: params[:end_time],
+      start_default: Time.current.beginning_of_day,
+      end_default: Time.current.end_of_day
+    ) { |value| Time.parse(value) }
+    return unless time_range
+
+    start_time = time_range.begin
+    end_time = time_range.end
 
     heartbeats = current_user.heartbeats
       .where("time >= ? AND time <= ?", start_time.to_f, end_time.to_f)

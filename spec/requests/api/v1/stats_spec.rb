@@ -49,7 +49,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         run_test!
       end
 
-      response(422, 'invalid date') do
+      response(400, 'invalid or reversed date range') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:api_key) { nil }
         let(:start_date) { 'invalid-date' }
@@ -144,7 +144,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         run_test!
       end
 
-      response(422, 'invalid date') do
+      response(400, 'invalid or reversed date range') do
         let(:username) { 'testuser' }
         let(:start_date) { 'invalid-date' }
         let(:end_date) { '2023-01-02' }
@@ -229,10 +229,10 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
       parameter name: :project_name, in: :path, type: :string, description: 'Project name'
-      parameter name: :start, in: :query, schema: { type: :string, format: :date_time }
-      parameter name: :end, in: :query, schema: { type: :string, format: :date_time }
-      parameter name: :start_date, in: :query, schema: { type: :string, format: :date_time }
-      parameter name: :end_date, in: :query, schema: { type: :string, format: :date_time }
+      parameter name: :start, in: :query, schema: { type: :string, format: :date_time }, description: 'Start date/time (ISO 8601), defaults to 1 year ago'
+      parameter name: :end, in: :query, schema: { type: :string, format: :date_time }, description: 'End date/time (ISO 8601), defaults to the current time'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Alias for start'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Alias for end'
 
       response(200, 'successful') do
         let(:username) { 'testuser' }
@@ -257,10 +257,21 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         run_test!
       end
 
-      response(400, 'bad request — Returned when project_name is blank/whitespace-only.') do
+      response(400, 'invalid date range or missing project name') do
         let(:username) { 'testuser' }
         let(:project_name) { '%20' }
         let(:start) { nil }
+        let(:end) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(400, 'invalid date range or missing project name') do
+        let(:username) { 'testuser' }
+        let(:project_name) { 'harbor' }
+        let(:start) { 'not-a-date' }
         let(:end) { nil }
         let(:start_date) { nil }
         let(:end_date) { nil }
@@ -306,10 +317,10 @@ RSpec.describe 'Api::V1::Stats', type: :request do
       parameter name: :since, in: :query, schema: { type: :string, format: :date_time }, description: 'Start time (ISO 8601) for project discovery'
       parameter name: :until, in: :query, schema: { type: :string, format: :date_time }, description: 'End time (ISO 8601) for project discovery'
       parameter name: :until_date, in: :query, schema: { type: :string, format: :date_time }, description: 'End time (ISO 8601) for project discovery'
-      parameter name: :start, in: :query, schema: { type: :string, format: :date_time }
-      parameter name: :end, in: :query, schema: { type: :string, format: :date_time }
-      parameter name: :start_date, in: :query, schema: { type: :string, format: :date_time }
-      parameter name: :end_date, in: :query, schema: { type: :string, format: :date_time }
+      parameter name: :start, in: :query, schema: { type: :string, format: :date_time }, description: 'Start date/time (ISO 8601), defaults to 1 year ago'
+      parameter name: :end, in: :query, schema: { type: :string, format: :date_time }, description: 'End date/time (ISO 8601), defaults to the current time'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Alias for start'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date_time }, description: 'Alias for end'
 
       response(200, 'successful') do
         let(:username) { 'testuser' }
@@ -342,6 +353,20 @@ RSpec.describe 'Api::V1::Stats', type: :request do
               }
             }
           }
+        run_test!
+      end
+
+      response(400, 'invalid or reversed date range') do
+        let(:username) { 'testuser' }
+        let(:projects) { nil }
+        let(:since) { nil }
+        let(:until) { nil }
+        let(:until_date) { nil }
+        let(:start) { 'not-a-date' }
+        let(:end) { nil }
+        let(:start_date) { nil }
+        let(:end_date) { nil }
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
 
@@ -484,7 +509,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         run_test!
       end
 
-      response(422, 'invalid date') do
+      response(400, 'invalid or reversed date range') do
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }
         let(:username) { 'testuser' }

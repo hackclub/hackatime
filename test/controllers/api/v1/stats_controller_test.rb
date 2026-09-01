@@ -210,6 +210,46 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
+  test "date-filtered endpoints reject malformed ranges consistently" do
+    user = create(:user, username: "dates_#{SecureRandom.hex(3)}", allow_public_stats_lookup: true)
+    admin_api_key = create_admin_api_key
+
+    requests = [
+      [ "/api/v1/stats", { start_date: "not-a-date" }, { "Authorization" => "Bearer #{admin_api_key.token}" } ],
+      [ "/api/v1/users/#{user.username}/stats", { start_date: "not-a-date" }, {} ],
+      [ "/api/v1/users/#{user.username}/heartbeats/spans", { start_date: "not-a-date" }, {} ],
+      [ "/api/v1/users/#{user.username}/project/test", { start: "not-a-date" }, {} ],
+      [ "/api/v1/users/#{user.username}/projects/details", { start_date: "not-a-date" }, {} ]
+    ]
+
+    requests.each do |path, params, headers|
+      get path, params: params, headers: headers
+
+      assert_response :bad_request, path
+      assert_equal({ "error" => "Invalid date range" }, response.parsed_body, path)
+    end
+  end
+
+  test "date-filtered endpoints reject reversed ranges consistently" do
+    user = create(:user, username: "dates_#{SecureRandom.hex(3)}", allow_public_stats_lookup: true)
+    admin_api_key = create_admin_api_key
+
+    requests = [
+      [ "/api/v1/stats", { start_date: "2025-02-01", end_date: "2025-01-01" }, { "Authorization" => "Bearer #{admin_api_key.token}" } ],
+      [ "/api/v1/users/#{user.username}/stats", { start_date: "2025-02-01", end_date: "2025-01-01" }, {} ],
+      [ "/api/v1/users/#{user.username}/heartbeats/spans", { start_date: "2025-02-01", end_date: "2025-01-01" }, {} ],
+      [ "/api/v1/users/#{user.username}/project/test", { start: "2025-02-01", end: "2025-01-01" }, {} ],
+      [ "/api/v1/users/#{user.username}/projects/details", { start: "2025-02-01", end: "2025-01-01" }, {} ]
+    ]
+
+    requests.each do |path, params, headers|
+      get path, params: params, headers: headers
+
+      assert_response :bad_request, path
+      assert_equal({ "error" => "Invalid date range" }, response.parsed_body, path)
+    end
+  end
+
   private
 
   def create_admin_api_key
