@@ -5,7 +5,9 @@
 
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import { staticPages, users } from "../api";
   import MarketingFooter from "../components/MarketingFooter.svelte";
+  import MarketingHeader from "../components/MarketingHeader.svelte";
   import Checkmark from "hcicons-svelte/checkmark";
 
   type Feature = {
@@ -131,39 +133,7 @@
 </svelte:head>
 
 <div class="min-h-screen w-full bg-darker text-surface-content">
-  <header
-    class="fixed top-0 w-full bg-darker/95 backdrop-blur-sm z-50 border-b border-surface-200/60"
-  >
-    <div
-      class="max-w-[1100px] mx-auto px-6 py-4 flex justify-between items-center"
-    >
-      <a href="/" class="flex items-center gap-3">
-        <img
-          src="/images/new-icon-rounded.png"
-          class="w-10 h-10 rounded-lg"
-          alt="Hackatime"
-        />
-        <span class="font-bold text-2xl tracking-tight">Hackatime</span>
-      </a>
-      <nav
-        class="hidden md:flex gap-8 items-center text-sm font-medium text-secondary"
-      >
-        {#each navLinks as link}
-          <a
-            href={link.href}
-            target={link.external ? "_blank" : undefined}
-            class="hover:text-surface-content transition-colors">{link.label}</a
-          >
-        {/each}
-        <Link
-          href="/signin"
-          class="px-4 py-2 bg-primary text-on-primary rounded-md font-semibold hover:opacity-90 transition-colors"
-        >
-          Start tracking
-        </Link>
-      </nav>
-    </div>
-  </header>
+  <MarketingHeader {navLinks} ctaLabel="Start tracking" />
 
   <section class="pt-32 pb-16">
     <div class="max-w-[900px] mx-auto px-6">
@@ -327,7 +297,7 @@ api_key = YOUR_API_KEY_HERE</code
         ></pre>
       <p class="text-secondary leading-relaxed">
         Or sign in and let our <Link
-          href="/setup"
+          href={users.setup.path()}
           class="text-primary hover:underline">setup page</Link
         > do it for you.
       </p>
@@ -344,7 +314,7 @@ api_key = YOUR_API_KEY_HERE</code
           Install the plugin and see your hours.
         </p>
         <Link
-          href="/signin"
+          href={staticPages.signin.path()}
           class="inline-block px-8 py-3.5 bg-primary text-on-primary rounded-md font-semibold text-base hover:opacity-90 transition-colors"
         >
           Start tracking for free
