@@ -1,8 +1,10 @@
 class UserSlackStatusUpdateJob < ApplicationJob
   queue_as :latency_10s
 
-  retry_on HTTP::TimeoutError, HTTP::ConnectionError, JSON::ParserError,
-    wait: :polynomially_longer, attempts: 3 do |job, error|
+  MAX_ATTEMPTS = 3
+
+  retry_on HTTP::TimeoutError, HTTP::ConnectionError, JSON::ParserError, SlackIntegration::ServerError,
+    wait: :polynomially_longer, attempts: MAX_ATTEMPTS do |job, error|
       user_id = job.arguments.first
       job.report_error(
         error,
@@ -13,5 +15,15 @@ class UserSlackStatusUpdateJob < ApplicationJob
 
   def perform(user_id)
     User.find_by(id: user_id)&.update_slack_status
+  rescue SlackIntegration::RateLimitedError => e
+    if executions < MAX_ATTEMPTS
+      retry_job(wait: e.retry_after.seconds)
+    else
+      report_error(
+        e,
+        message: "Failed to update Slack status for user #{user_id}",
+        extra: { user_id: }
+      )
+    end
   end
 end

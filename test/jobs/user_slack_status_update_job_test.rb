@@ -22,7 +22,7 @@ class UserSlackStatusUpdateJobTest < ActiveJob::TestCase
     create(:user, slack_access_token: "other-token", uses_slack_status: true)
     request = stub_request(:get, "https://slack.com/api/users.profile.get")
       .with(headers: { "Authorization" => "Bearer requested-token" })
-      .to_return(body: { profile: { status_text: "In a meeting" } }.to_json)
+      .to_return(body: { ok: true, profile: { status_text: "In a meeting" } }.to_json)
 
     UserSlackStatusUpdateJob.perform_now(user.id)
 
@@ -34,10 +34,48 @@ class UserSlackStatusUpdateJobTest < ActiveJob::TestCase
     request = stub_request(:get, "https://slack.com/api/users.profile.get")
       .to_raise(HTTP::ConnectionError.new("Slack unavailable"))
       .then
-      .to_return(body: { profile: { status_text: "In a meeting" } }.to_json)
+      .to_return(body: { ok: true, profile: { status_text: "In a meeting" } }.to_json)
 
     assert_enqueued_with(job: UserSlackStatusUpdateJob, args: [ user.id ]) do
       UserSlackStatusUpdateJob.perform_now(user.id)
+    end
+
+    perform_enqueued_jobs(only: UserSlackStatusUpdateJob)
+
+    assert_requested request, times: 2
+  end
+
+  test "retries a transient Slack server error" do
+    user = create(:user, slack_access_token: "requested-token", uses_slack_status: true)
+    request = stub_request(:get, "https://slack.com/api/users.profile.get")
+      .to_return(status: 503, body: { ok: false, error: "service_unavailable" }.to_json)
+      .then
+      .to_return(body: { ok: true, profile: { status_text: "In a meeting" } }.to_json)
+
+    assert_enqueued_with(job: UserSlackStatusUpdateJob, args: [ user.id ]) do
+      UserSlackStatusUpdateJob.perform_now(user.id)
+    end
+
+    perform_enqueued_jobs(only: UserSlackStatusUpdateJob)
+
+    assert_requested request, times: 2
+  end
+
+  test "retries a Slack rate limit after the requested delay" do
+    user = create(:user, slack_access_token: "requested-token", uses_slack_status: true)
+    request = stub_request(:get, "https://slack.com/api/users.profile.get")
+      .to_return(
+        status: 429,
+        headers: { "Retry-After" => "60" },
+        body: { ok: false, error: "ratelimited" }.to_json
+      )
+      .then
+      .to_return(body: { ok: true, profile: { status_text: "In a meeting" } }.to_json)
+
+    travel_to Time.current.change(usec: 0) do
+      assert_enqueued_with(job: UserSlackStatusUpdateJob, args: [ user.id ], at: 60.seconds.from_now) do
+        UserSlackStatusUpdateJob.perform_now(user.id)
+      end
     end
 
     perform_enqueued_jobs(only: UserSlackStatusUpdateJob)
