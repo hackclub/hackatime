@@ -52,10 +52,12 @@ class AccountMergeServiceTest < ActiveSupport::TestCase
     create(:goal, user: older)
     create(:goal, user: newer)
 
-    assert_raises(ActiveRecord::RecordNotUnique) do
+    error = assert_raises(AccountMergeService::MergeError) do
       AccountMergeService.call(older_user: older, newer_user: newer)
     end
 
+    assert_equal "Destination account has conflicting records", error.message
+    assert_instance_of ActiveRecord::RecordNotUnique, error.cause
     assert_equal newer.id, heartbeat.reload.user_id
     assert_equal newer.id, transferred_key.reload.user_id
     assert_equal "Wakatime API Key", transferred_key.name

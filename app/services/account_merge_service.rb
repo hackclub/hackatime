@@ -1,6 +1,8 @@
 class AccountMergeService < ApplicationService
   DELETABLE_TABLES = %w[heartbeat_import_sources wakatime_mirrors project_labels].freeze
 
+  class MergeError < StandardError; end
+
   def self.call(older_user:, newer_user:) = new(older_user:, newer_user:).call
 
   def initialize(older_user:, newer_user:)
@@ -50,6 +52,8 @@ class AccountMergeService < ApplicationService
     end
 
     results.join(", ")
+  rescue ActiveRecord::RecordNotUnique => error
+    raise MergeError, "Destination account has conflicting records", cause: error
   end
 
   private

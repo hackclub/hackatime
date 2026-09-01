@@ -61,7 +61,7 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     assert_includes flash[:notice], "3 related records cleaned up"
   end
 
-  test "merge does not expose unexpected failure details" do
+  test "merge redirects after an expected failure without exposing details" do
     admin = create(:user, :ultraadmin)
     older = create(:user, username: "older_user")
     newer = create(:user, username: "newer_user")
@@ -78,5 +78,34 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_account_merger_path
     assert_equal "Merge failed and was rolled back. Check the application logs for details.", flash[:alert]
     assert User.exists?(newer.id)
+  end
+
+  test "merge reports and re-raises unexpected service failures" do
+    admin = create(:user, :ultraadmin)
+    older = create(:user, username: "older_user")
+    newer = create(:user, username: "newer_user")
+    sign_in_as(admin)
+
+    older.update_column(:created_at, 2.days.ago)
+    newer.update_column(:created_at, 1.day.ago)
+
+    log_output = StringIO.new
+    previous_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(log_output)
+
+    unexpected_service = Class.new
+    unexpected_service.const_set(:MergeError, Class.new(StandardError))
+    unexpected_service.define_singleton_method(:call) { |**| raise "unexpected merge defect" }
+
+    stub_const(Object, :AccountMergeService, unexpected_service) do
+      error = assert_raises(RuntimeError) do
+        post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+      end
+
+      assert_equal "unexpected merge defect", error.message
+    end
+    assert_includes log_output.string, "older user ##{older.id} and newer user ##{newer.id}: RuntimeError: unexpected merge defect"
+  ensure
+    Rails.logger = previous_logger if previous_logger
   end
 end

@@ -35,20 +35,31 @@ class Admin::AccountMergerController < InertiaController
       return merge_error("The NEWER user (right side) must have been created after the OLDER user (left side). #{newer_user.display_name} was created #{newer_user.created_at.to_date} which is before #{older_user.display_name} created #{older_user.created_at.to_date}.")
     end
 
-    merge_results = AccountMergeService.call(older_user:, newer_user:)
+    begin
+      merge_results = AccountMergeService.call(older_user:, newer_user:)
+    rescue AccountMergeService::MergeError => error
+      report_merge_failure(error, older_user:, newer_user:)
+      return merge_error("Merge failed and was rolled back. Check the application logs for details.")
+    rescue StandardError => error
+      report_merge_failure(error, older_user:, newer_user:)
+      raise
+    end
+
     redirect_to admin_account_merger_path, notice: "Merge complete! #{merge_results}"
-  rescue StandardError => e
-    report_error(
-      e,
-      message: "Account merge failed and was rolled back for older user ##{older_id} and newer user ##{newer_id}: #{e.class}: #{e.message}",
-      extra: { older_user_id: older_id, newer_user_id: newer_id }
-    )
-    redirect_to admin_account_merger_path, alert: "Merge failed and was rolled back. Check the application logs for details."
   end
 
   private
 
   def merge_error(message) = redirect_to(admin_account_merger_path, alert: message)
+
+  def report_merge_failure(exception, older_user:, newer_user:)
+    diagnostic = exception.cause || exception
+    report_error(
+      exception,
+      message: "Account merge failed and was rolled back for older user ##{older_user.id} and newer user ##{newer_user.id}: #{diagnostic.class}: #{diagnostic.message}",
+      extra: { older_user_id: older_user.id, newer_user_id: newer_user.id }
+    )
+  end
 
   def format_user(user)
     {
