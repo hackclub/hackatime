@@ -21,6 +21,17 @@ class SettingsAppearanceControllerTest < ActionDispatch::IntegrationTest
     assert_equal user.theme, inertia.props.dig("user", "theme")
   end
 
+  test "expired session mutation continues to the GET settings page" do
+    user = create(:user)
+    sign_in_as(user)
+    reset!
+
+    patch my_settings_appearance_theme_path, params: { user: { theme: "nord" } }
+
+    assert_response :redirect
+    assert_redirected_to signin_path(continue: my_settings_appearance_path)
+  end
+
   test "theme update persists selected theme and clears Inertia history" do
     user = create(:user)
     sign_in_as(user)
