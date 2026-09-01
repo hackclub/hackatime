@@ -319,7 +319,19 @@
                   id="timeline-user-search"
                   value={query}
                   oninput={(event) => setQuery(event.currentTarget.value)}
-                  onkeydown={handleKeydown}
+                  onkeydown={(event) => {
+                    if (
+                      event.key === "Enter" &&
+                      open &&
+                      highlight === -1 &&
+                      results[0]
+                    ) {
+                      event.preventDefault();
+                      select(results[0]);
+                    } else {
+                      handleKeydown(event);
+                    }
+                  }}
                   onfocus={openResults}
                   onblur={() => setTimeout(closeResults, 200)}
                   autocomplete="off"

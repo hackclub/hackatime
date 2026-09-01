@@ -135,7 +135,7 @@
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      open = false;
+      closeResults();
       return;
     }
 
@@ -160,6 +160,8 @@
   }
 
   function closeResults() {
+    debouncedQuery.cancel();
+    invalidateSearch();
     open = false;
   }
 </script>

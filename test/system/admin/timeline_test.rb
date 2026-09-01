@@ -33,41 +33,16 @@ class AdminTimelineTest < ApplicationSystemTestCase
     assert_includes marker[:style], "top: 504px"
   end
 
-  test "ignores stale searches and selects a user with the keyboard without refetching on Enter" do
+  test "ignores stale searches and selects a user with the listbox keyboard behavior" do
     slow_user = create(:user, username: "timeline_slow_result")
     fast_user = create(:user, username: "timeline_fast_result")
 
     visit admin_timeline_path(date: DATE.iso8601)
-
-    page.execute_script(<<~JS)
-      const originalFetch = window.fetch.bind(window);
-      window.__timelineSearchQueries = [];
-      window.fetch = async (...args) => {
-        const requestUrl = typeof args[0] === "string" ? args[0] : args[0].url;
-        const url = new URL(requestUrl, window.location.origin);
-        if (url.pathname !== "/admin/timeline/search_users") {
-          return originalFetch(...args);
-        }
-
-        const query = url.searchParams.get("query");
-        window.__timelineSearchQueries.push(query);
-        const response = await originalFetch(...args);
-        if (query === #{slow_user.username.to_json}) {
-          document.body.dataset.timelineSlowResponseReady = "true";
-          await new Promise((resolve) => setTimeout(resolve, 1_000));
-        }
-        return response;
-      };
-    JS
+    track_timeline_searches(delay_query: slow_user.username)
 
     search = find("#timeline-user-search")
     search.set slow_user.username
     assert_selector "body[data-timeline-slow-response-ready='true']"
-
-    request_count = page.evaluate_script("window.__timelineSearchQueries.length")
-    search.send_keys :enter
-    assert_equal request_count,
-      page.evaluate_script("window.__timelineSearchQueries.length")
 
     search.set fast_user.username
     option = find("[role='option']", text: fast_user.display_name)
@@ -87,6 +62,48 @@ class AdminTimelineTest < ApplicationSystemTestCase
     assert_text fast_user.display_name
     assert_includes find("input[name='user_ids']", visible: false).value,
       fast_user.id.to_s
+  end
+
+  test "Enter selects the first result without another request" do
+    user = create(:user, username: "timeline_enter_result")
+
+    visit admin_timeline_path(date: DATE.iso8601)
+    track_timeline_searches
+
+    search = find("#timeline-user-search")
+    search.set user.username
+    option = find("[role='option']", text: user.display_name)
+    assert_equal "false", option[:"aria-selected"]
+
+    request_count = page.evaluate_script("window.__timelineSearchQueries.length")
+    search.send_keys :enter
+    sleep 0.3
+
+    assert_equal request_count,
+      page.evaluate_script("window.__timelineSearchQueries.length")
+    assert_no_selector "[role='listbox']"
+    assert_includes find("input[name='user_ids']", visible: false).value,
+      user.id.to_s
+  end
+
+  test "Escape aborts a delayed search without reopening results" do
+    user = create(:user, username: "timeline_escape")
+
+    visit admin_timeline_path(date: DATE.iso8601)
+    track_timeline_searches(delay_query: user.username)
+
+    search = find("#timeline-user-search")
+    search.set user.username
+    assert_selector "body[data-timeline-slow-response-ready='true']"
+
+    search.send_keys :escape
+    assert_selector "body[data-timeline-search-aborted='true']"
+    sleep 1.1
+
+    assert_equal "false", search[:"aria-expanded"]
+    assert_no_selector "[role='listbox']"
+    assert_equal [ user.username ],
+      page.evaluate_script("window.__timelineSearchQueries")
   end
 
   # test "shows a NOW line and centers the grid on the current time when viewing today" do
@@ -109,6 +126,32 @@ class AdminTimelineTest < ApplicationSystemTestCase
   # end
 
   private
+
+  def track_timeline_searches(delay_query: nil)
+    page.execute_script(<<~JS)
+      const originalFetch = window.fetch.bind(window);
+      window.__timelineSearchQueries = [];
+      window.fetch = async (...args) => {
+        const requestUrl = typeof args[0] === "string" ? args[0] : args[0].url;
+        const url = new URL(requestUrl, window.location.origin);
+        if (url.pathname !== "/admin/timeline/search_users") {
+          return originalFetch(...args);
+        }
+
+        const query = url.searchParams.get("query");
+        window.__timelineSearchQueries.push(query);
+        args[1]?.signal?.addEventListener("abort", () => {
+          document.body.dataset.timelineSearchAborted = "true";
+        });
+        const response = await originalFetch(...args);
+        if (query === #{delay_query.to_json}) {
+          document.body.dataset.timelineSlowResponseReady = "true";
+          await new Promise((resolve) => setTimeout(resolve, 1_000));
+        }
+        return response;
+      };
+    JS
+  end
 
   def create_heartbeat(user, time:)
     create(
