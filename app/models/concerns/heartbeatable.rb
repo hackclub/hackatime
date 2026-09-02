@@ -250,6 +250,20 @@ module Heartbeatable
       connection.select_all(sql).each_with_object({}) { |row, hash| hash[row["bucket"]] = row["duration"].to_i }
     end
 
+    def duration_seconds_excluding_gaps_over_timeout(scope = all)
+      scope = scope.with_valid_timestamps
+      heartbeat_gaps = scope.select("LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end").where.not(time: nil)
+      timeout = heartbeat_timeout_duration.to_i
+
+      connection.select_value(<<~SQL.squish).to_f.to_i
+        SELECT COALESCE(SUM(duration_end - duration_start), 0)
+        FROM (#{heartbeat_gaps.to_sql}) AS durations
+        WHERE duration_start IS NOT NULL
+          AND duration_end > duration_start
+          AND duration_end - duration_start <= #{timeout}
+      SQL
+    end
+
     def duration_seconds(scope = all)
       scope = scope.with_valid_timestamps
 

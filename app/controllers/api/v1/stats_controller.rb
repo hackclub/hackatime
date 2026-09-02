@@ -97,7 +97,7 @@ class Api::V1::StatsController < ApplicationController
     if params[:features]&.include?("projects") && params[:filter_by_project].present?
       heartbeats = @user.heartbeats.coding_only.with_valid_timestamps
                                    .where(time: start_date..end_date, project: filter_by_projects)
-      summary[:unique_total_seconds] = unique_heartbeat_seconds(heartbeats)
+      summary[:unique_total_seconds] = heartbeats.duration_seconds_excluding_gaps_over_timeout
     end
 
     trust_level = @user.public_trust_level
@@ -200,18 +200,6 @@ class Api::V1::StatsController < ApplicationController
   def project_stats_query(include_archived: false)
     @project_stats_queries ||= {}
     @project_stats_queries[include_archived] ||= ProjectStatsQuery.new(user: @user, params: params, include_archived: include_archived)
-  end
-
-  def unique_heartbeat_seconds(heartbeats)
-    timestamps = heartbeats.order(:time, :id).pluck(:time)
-    return 0 if timestamps.empty?
-
-    total_seconds = 0
-    timestamps.each_cons(2) do |prev_time, curr_time|
-      gap = curr_time - prev_time
-      total_seconds += gap if gap > 0 && gap <= 2.minutes
-    end
-    total_seconds.to_i
   end
 
   def parse_date_param(param_name, default:, boundary:)
