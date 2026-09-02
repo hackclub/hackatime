@@ -1,14 +1,16 @@
 require 'swagger_helper'
 
 RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request, openapi_spec: 'admin/swagger.yaml' do
+  include ActiveSupport::Testing::TimeHelpers
+
   def create_user(username, email)
     create(:user, :with_email, username: username, email: email)
   end
 
-  def create_heartbeat(user, machine:, ip_address: nil)
+  def create_heartbeat(user, machine:, ip_address: nil, time: Time.current.to_i)
     create(:heartbeat,
       user: user,
-      time: Time.current.to_i,
+      time: time,
       project: 'test',
       language: 'Ruby',
       editor: 'VS Code',
@@ -180,6 +182,70 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request, openapi_spec: 'admi
         let(:lookback_days) { 30 }
         let(:limit) { nil }
         run_test!
+      end
+    end
+  end
+
+  describe 'machine and IP candidate compatibility' do
+    it 'returns equivalent records in each endpoint response shape' do
+      user_a = create_user('candidate_compat_a', 'candidate_compat_a@example.com')
+      user_b = create_user('candidate_compat_b', 'candidate_compat_b@example.com')
+      create_heartbeat(user_a, machine: 'candidate-compat-box', ip_address: '192.0.2.1')
+      create_heartbeat(user_b, machine: 'candidate-compat-box', ip_address: '192.0.2.1')
+      headers = { 'Authorization' => 'Bearer dev-admin-api-key-12345' }
+
+      get '/api/admin/v1/heartbeats/ip_machine_pairs', params: { lookback_days: 30, limit: 5_000 }, headers: headers
+      expect(response).to have_http_status(:ok)
+      pair = JSON.parse(response.body).fetch('pairs').find do |record|
+        [ record['user_a_id'], record['user_b_id'] ] == [ user_a.id, user_b.id ].sort
+      end
+
+      get '/api/admin/v1/alts/candidates', params: { lookback_days: 30 }, headers: headers
+      expect(response).to have_http_status(:ok)
+      candidate = JSON.parse(response.body).fetch('candidates').find do |record|
+        [ record['user_a_id'], record['user_b_id'] ] == [ user_a.id, user_b.id ].sort
+      end
+
+      expect(pair).not_to be_nil
+      expect(candidate).not_to be_nil
+      expect(pair.keys).to match_array(%w[
+        user_a_id user_b_id machine ip_address
+        user_a_first_seen user_a_last_seen user_b_first_seen user_b_last_seen
+      ])
+      expect(candidate).to eq(
+        'user_a_id' => pair['user_a_id'],
+        'user_b_id' => pair['user_b_id'],
+        'machine' => pair['machine'],
+        'ip_address' => pair['ip_address'],
+        'user_a_first_seen_on_combo' => pair['user_a_first_seen'],
+        'user_a_last_seen_on_combo' => pair['user_a_last_seen'],
+        'user_b_first_seen_on_combo' => pair['user_b_first_seen'],
+        'user_b_last_seen_on_combo' => pair['user_b_last_seen']
+      )
+    end
+
+    it 'preserves the legacy inclusive lookback cutoff' do
+      travel_to(Time.utc(2026, 9, 1, 12)) do
+        user_a = create_user('candidate_cutoff_a', 'candidate_cutoff_a@example.com')
+        user_b = create_user('candidate_cutoff_b', 'candidate_cutoff_b@example.com')
+        cutoff = 30.days.ago.to_i
+        create_heartbeat(user_a, machine: 'candidate-cutoff-box', ip_address: '192.0.2.3', time: cutoff)
+        create_heartbeat(user_b, machine: 'candidate-cutoff-box', ip_address: '192.0.2.3', time: cutoff)
+        headers = { 'Authorization' => 'Bearer dev-admin-api-key-12345' }
+
+        get '/api/admin/v1/heartbeats/ip_machine_pairs', params: { lookback_days: 30 }, headers: headers
+        expect(response).to have_http_status(:ok)
+        pair_ids = JSON.parse(response.body).fetch('pairs').map do |pair|
+          [ pair['user_a_id'], pair['user_b_id'] ]
+        end
+        expect(pair_ids).not_to include([ user_a.id, user_b.id ].sort)
+
+        get '/api/admin/v1/alts/candidates', params: { lookback_days: 30 }, headers: headers
+        expect(response).to have_http_status(:ok)
+        candidate_ids = JSON.parse(response.body).fetch('candidates').map do |candidate|
+          [ candidate['user_a_id'], candidate['user_b_id'] ]
+        end
+        expect(candidate_ids).to include([ user_a.id, user_b.id ].sort)
       end
     end
   end
