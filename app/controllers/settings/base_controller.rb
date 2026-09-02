@@ -1,6 +1,4 @@
 class Settings::BaseController < InertiaController
-  layout "inertia"
-
   before_action :set_user
 
   def show = render_settings_page

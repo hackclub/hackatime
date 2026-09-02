@@ -1,6 +1,4 @@
 class DeletionRequestsController < InertiaController
-  layout "inertia", only: [ :show ]
-
   before_action :require_login
   before_action :check_can_request, only: [ :create ]
 

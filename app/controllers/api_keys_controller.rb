@@ -1,6 +1,4 @@
 class ApiKeysController < InertiaController
-  layout "inertia", only: [ :show ]
-
   before_action :authenticate_user!
 
   def show

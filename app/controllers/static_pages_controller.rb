@@ -1,8 +1,6 @@
 class StaticPagesController < InertiaController
   include DashboardData
 
-  layout "inertia", only: %i[index wakatime_alternative]
-
   def index
     if current_user
       flavor_texts = FlavorText.motto + FlavorText.conditional_mottos(current_user)

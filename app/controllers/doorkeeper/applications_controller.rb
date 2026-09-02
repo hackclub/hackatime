@@ -2,8 +2,6 @@
 
 module Doorkeeper
   class ApplicationsController < InertiaController
-    layout "inertia"
-
     before_action :authenticate_oauth_owner!
     before_action :set_application, only: %i[show edit update destroy rotate_secret]
 

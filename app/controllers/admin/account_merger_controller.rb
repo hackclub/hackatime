@@ -1,6 +1,4 @@
 class Admin::AccountMergerController < InertiaController
-  layout "inertia"
-
   before_action :require_ultraadmin!
 
   def show = render(inertia: "Admin/AccountMerger")

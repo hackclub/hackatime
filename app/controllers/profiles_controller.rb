@@ -1,6 +1,4 @@
 class ProfilesController < InertiaController
-  layout "inertia"
-
   before_action :find_user
 
   SOCIAL_LINKS = [

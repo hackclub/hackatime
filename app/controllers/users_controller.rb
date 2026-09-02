@@ -1,8 +1,6 @@
 class UsersController < InertiaController
   SETUP_THEME = "rose_pine_dawn".freeze
 
-  layout "inertia", only: %i[setup]
-
   before_action :ensure_current_user_for_setup, only: %i[setup]
   before_action :set_setup_meta, only: %i[setup]
   before_action :require_admin, only: [ :update_trust_level ]
