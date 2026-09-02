@@ -4,7 +4,8 @@ module Api
       class PermissionsController < Api::Admin::V1::ApplicationController
         include AdminLevelChangeMessages
 
-        before_action :require_superadmin
+        before_action :require_superadmin, only: [ :index, :update ]
+        before_action :can_write!, only: [ :user_convict ]
 
         def index
           users = User.where.not(admin_level: :default).order(admin_level: :asc, username: :asc)
@@ -55,6 +56,46 @@ module Api
           end
         rescue ActiveRecord::RecordNotFound
           render_not_found_json("User not found")
+        end
+
+        def user_convict
+          user = find_user_by_id
+          return unless user
+
+          trust_level = params[:trust_level]
+          reason = params[:reason]
+          notes = params[:notes]
+
+          return render_error("you cant punish a mortal and not justify your actions") if reason.blank?
+          return render_error("read the docs you idiot") unless User.trust_levels.key?(trust_level)
+          return render_error("no perms lmaooo", status: :forbidden) unless current_user.can_change_trust_of?(user, trust_level)
+
+          success = user.set_trust(trust_level, changed_by_user: current_user, reason: reason, notes: notes)
+
+          return render_error("no perms lmaooo") unless success
+
+          render json: {
+            success: true,
+            message: "gotcha, updated to #{trust_level}",
+            user: {
+              id: user.id,
+              username: user.display_name,
+              trust_level: user.trust_level,
+              updated_at: user.updated_at
+            },
+            audit_log: {
+              changed_by: current_user.display_name,
+              reason: reason,
+              notes: notes,
+              timestamp: Time.current
+            }
+          }
+        end
+
+        private
+
+        def can_write!
+          render_forbidden("no perms lmaooo") unless current_user.admin_level.in?(AuthHelpers::ADMIN_LEVELS)
         end
       end
     end

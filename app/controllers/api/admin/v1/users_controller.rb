@@ -1,30 +1,8 @@
 module Api
   module Admin
     module V1
-      module UserUtilities
-        extend ActiveSupport::Concern
+      class UsersController < Api::Admin::V1::ApplicationController
         include DateParsing
-
-        HEARTBEAT_RESPONSE_COLUMNS = [
-          *%i[id time created_at lineno cursorpos is_write project language entity branch category dependencies editor machine operating_system type project_root_count user_agent line_additions line_deletions ip_address lines source_type],
-          :ja4_id
-        ].freeze
-
-        HEARTBEAT_FIELD_COLUMNS = {
-          "projects" => "project",
-          "languages" => "language",
-          "entities" => "entity",
-          "branches" => "branch",
-          "categories" => "category",
-          "editors" => "editor",
-          "machines" => "machine",
-          "user_agents" => "user_agent",
-          "ips" => "ip_address"
-        }.freeze
-
-        included do
-          before_action :can_write!, only: [ :user_convict ]
-        end
 
         def get_user_by_email
           return render_error("bro dont have a email") if params[:email].blank?
@@ -54,29 +32,6 @@ module Api
               }
             }
           }
-        end
-
-        def get_users_by_ip
-          return render_error("bro dont got the ip") if params[:ip].blank?
-
-          result = Heartbeat.where(ip_address: params[:ip]).select(:ip_address, :user_id, :machine, :user_agent).distinct
-          render json: {
-            users: result.map { |u|
-              {
-                user_id: u.user_id,
-                ip_address: u.ip_address,
-                machine: u.machine,
-                user_agent: u.user_agent
-              }
-            }
-          }
-        end
-
-        def get_users_by_machine
-          return render_error("bro dont got the machine") if params[:machine].blank?
-
-          result = Heartbeat.where(machine: params[:machine]).select(:user_id, :machine).distinct
-          render json: { users: result.map { |u| { user_id: u.user_id, machine: u.machine } } }
         end
 
         def user_info
@@ -217,65 +172,6 @@ module Api
           }
         end
 
-        def user_convict
-          user = find_user_by_id
-          return unless user
-
-          trust_level = params[:trust_level]
-          reason = params[:reason]
-          notes = params[:notes]
-
-          return render_error("you cant punish a mortal and not justify your actions") if reason.blank?
-          return render_error("read the docs you idiot") unless User.trust_levels.key?(trust_level)
-          return render_error("no perms lmaooo", status: :forbidden) unless current_user.can_change_trust_of?(user, trust_level)
-
-          success = user.set_trust(trust_level, changed_by_user: current_user, reason: reason, notes: notes)
-
-          return render_error("no perms lmaooo") unless success
-
-          render json: {
-            success: true,
-            message: "gotcha, updated to #{trust_level}",
-            user: {
-              id: user.id,
-              username: user.display_name,
-              trust_level: user.trust_level,
-              updated_at: user.updated_at
-            },
-            audit_log: {
-              changed_by: current_user.display_name,
-              reason: reason,
-              notes: notes,
-              timestamp: Time.current
-            }
-          }
-        end
-
-        def trust_logs
-          user = find_user_by_id
-          return unless user
-
-          logs = TrustLevelAuditLog.for_user(user).recent.limit(25)
-          render json: {
-            trust_logs: logs.map { |log|
-              {
-                id: log.id,
-                previous_trust_level: log.previous_trust_level,
-                new_trust_level: log.new_trust_level,
-                changed_by: {
-                  id: log.changed_by.id,
-                  username: log.changed_by.username,
-                  display_name: log.changed_by.display_name,
-                  admin_level: log.changed_by.admin_level
-                },
-                reason: log.reason,
-                notes: log.notes,
-                created_at: log.created_at
-              }
-            }
-          }
-        end
-
         def user_info_batch
           return render_error("ids parameter required") if params[:ids].blank?
 
@@ -289,95 +185,6 @@ module Api
               methods: %i[display_name avatar_url]
             )
           }
-        end
-
-        def user_heartbeats
-          user = find_user_by_id
-          return unless user
-
-          limit = (params[:limit] || 1000).to_i.clamp(1, 5_000)
-          offset = (params[:offset] || 0).to_i.clamp(0, Float::INFINITY)
-
-          query = user.heartbeats
-          query = apply_time_range(query) or return
-          %i[project language entity editor machine].each do |f|
-            query = query.where(f => params[f]) if params[f].present?
-          end
-
-          total_count = query.count
-          source_types = Heartbeat.source_types.invert
-          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
-          ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).index_by(&:id)
-          heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id|
-            {
-              id: id,
-              time: time,
-              created_at: created_at,
-              project: project,
-              branch: branch,
-              category: category,
-              dependencies: dependencies,
-              editor: editor,
-              entity: entity,
-              language: language,
-              machine: machine,
-              operating_system: operating_system,
-              type: type,
-              user_agent: user_agent,
-              line_additions: line_additions,
-              line_deletions: line_deletions,
-              lineno: lineno,
-              lines: lines,
-              cursorpos: cursorpos,
-              project_root_count: project_root_count,
-              is_write: is_write,
-              source_type: source_types[source_type] || source_type,
-              ip_address: ip_address,
-              ja4: ja4s_by_id[ja4_id]&.then { |ja4| { fingerprint: ja4.fingerprint, name: ja4.name } }
-            }
-          end
-
-          render json: {
-            user_id: user.id,
-            heartbeats: heartbeats,
-            total_count: total_count,
-            has_more: (offset + limit) < total_count
-          }
-        end
-
-        def user_heartbeat_values
-          user = find_user_by_id
-          return unless user
-
-          field = params[:field]
-          column_name = HEARTBEAT_FIELD_COLUMNS[field]
-          return render_error("invalid field") unless column_name
-
-          limit = (params[:limit] || 5000).to_i.clamp(1, 5000)
-
-          query = user.heartbeats
-          query = apply_time_range(query) or return
-
-          quoted_column = Heartbeat.connection.quote_column_name(column_name)
-          values = query.where.not(column_name => nil).distinct
-                        .order(Arel.sql("#{quoted_column} ASC"))
-                        .limit(limit).pluck(column_name).reject(&:empty?)
-
-          render json: { user_id: user.id, field: field, values: values, count: values.count }
-        end
-
-        private
-
-        def can_write!
-          render_forbidden("no perms lmaooo") unless current_user.admin_level.in?(AuthHelpers::ADMIN_LEVELS)
-        end
-
-        def find_user_by_id
-          user_id = params[:id] || params[:user_id]
-          return render_error("who?") if user_id.blank?
-          User.find(user_id)
-        rescue ActiveRecord::RecordNotFound
-          render_not_found_json("user not found")
         end
       end
     end

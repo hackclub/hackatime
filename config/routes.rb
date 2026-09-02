@@ -283,19 +283,19 @@ Rails.application.routes.draw do
     namespace :admin do
       namespace :v1 do
         get "check", to: "admin#check"
-        get "user/info", to: "admin#user_info"
-        get "user/info_batch", to: "admin#user_info_batch"
-        get "user/heartbeats", to: "admin#user_heartbeats"
-        get "user/heartbeat_values", to: "admin#user_heartbeat_values"
-        get "user/get_users_by_ip", to: "admin#get_users_by_ip"
-        get "user/get_users_by_machine", to: "admin#get_users_by_machine"
-        get "user/stats", to: "admin#user_stats"
-        get "user/projects", to: "admin#user_projects"
-        get "user/trust_logs", to: "admin#trust_logs"
+        get "user/info", to: "users#user_info"
+        get "user/info_batch", to: "users#user_info_batch"
+        get "user/heartbeats", to: "heartbeats#user_heartbeats"
+        get "user/heartbeat_values", to: "heartbeats#user_heartbeat_values"
+        get "user/get_users_by_ip", to: "heartbeats#get_users_by_ip"
+        get "user/get_users_by_machine", to: "heartbeats#get_users_by_machine"
+        get "user/stats", to: "users#user_stats"
+        get "user/projects", to: "users#user_projects"
+        get "user/trust_logs", to: "trust_level_audit_logs#trust_logs"
         get "banned_users", to: "admin#banned_users"
-        post "user/get_user_by_email", to: "admin#get_user_by_email"
-        post "user/search_fuzzy", to: "admin#search_users_fuzzy"
-        post "user/convict", to: "admin#user_convict"
+        post "user/get_user_by_email", to: "users#get_user_by_email"
+        post "user/search_fuzzy", to: "users#search_users_fuzzy"
+        post "user/convict", to: "permissions#user_convict"
 
         # Admin API Keys management
         resources :admin_api_keys, only: [ :index, :show, :create, :destroy ]
