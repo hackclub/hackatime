@@ -66,13 +66,31 @@ module DashboardData
       PG::TextDecoder::Array.new.decode(value.to_s)
     end
 
-    def weekly_project_stats(user:, scope:)
-      ranges = week_ranges(user.timezone)
-      result = ranges.to_h { |week_key, *_| [ week_key, {} ] }
+    def weekly_project_stats(user:, scope:, start_date: nil, end_date: nil)
+      tz = ActiveSupport::TimeZone[user.timezone] || Time.zone
 
+      effective_end =
+        if end_date.present?
+          end_date.in_time_zone(tz).end_of_day
+        else
+          tz.now.end_of_day
+        end
+
+      effective_start =
+        if start_date.present?
+          start_date.in_time_zone(tz).beginning_of_day
+        else
+          (effective_end - 12.weeks).beginning_of_day
+        end
+
+      start_ts = effective_start.to_i
+      end_ts = effective_end.to_i
+
+      ranges = week_ranges(user.timezone, start_date: start_date, end_date: end_date)
+      result = ranges.to_h { |week_key, *_| [week_key, {}] }
       relation_sql = scope.with_valid_timestamps
         .where.not(time: nil)
-        .where(time: ranges.last[1]..ranges.first[2])
+        .where(time: start_ts..end_ts)
         .select(:id, :time, :project)
         .to_sql
 
@@ -80,23 +98,11 @@ module DashboardData
       week_group_sql = "DATE_TRUNC('week', to_timestamp(time) AT TIME ZONE #{quoted_timezone})"
 
       rows = Heartbeat.connection.select_all(<<~SQL.squish)
-        SELECT TO_CHAR(week_group, 'YYYY-MM-DD') AS week_key,
-               grouped_time,
-               COALESCE(SUM(diff), 0)::integer AS duration
-        FROM (
-          SELECT project AS grouped_time,
-                 #{week_group_sql} AS week_group,
-                 CASE
-                   WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
-                   ELSE LEAST(
-                     time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
-                     #{Heartbeat.heartbeat_timeout_duration.to_i}
-                   )
-                 END AS diff
-          FROM (#{relation_sql}) dashboard_heartbeats
-        ) diffs
-        GROUP BY week_group, grouped_time
-        ORDER BY week_key DESC, grouped_time
+        SELECT TO_CHAR(week_group, 'YYYY-MM-DD') AS week_key, grouped_time, COALESCE(SUM(diff), 0)::integer AS duration
+        FROM (SELECT project AS grouped_time, #{week_group_sql} AS week_group,
+        CASE WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
+        ELSE LEAST (time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id), #{Heartbeat.heartbeat_timeout_duration.to_i})
+        END AS diff FROM (#{relation_sql}) dashboard_heartbeats) diffs GROUP BY week_group, grouped_time ORDER BY week_key DESC, grouped_time
       SQL
 
       rows.each do |row|
@@ -214,12 +220,31 @@ module DashboardData
       }
     end
 
-    def week_ranges(timezone)
+    def week_ranges(timezone, start_date: nil, end_date: nil)
       Time.use_zone(timezone) do
-        (0..11).map do |week_offset|
-          week_start = week_offset.weeks.ago.beginning_of_week
-          [ week_start.to_date.iso8601, week_start.to_f, week_offset.weeks.ago.end_of_week.to_f ]
+        effective_end =
+          if end_date.present?
+            end_date.in_time_zone.end_of_day
+          else
+            Time.zone.now.end_of_day
+          end
+
+        effective_start =
+          if start_date.present?
+            start_date.in_time_zone.beginning_of_day
+          else
+            (effective_end - 12.weeks).beginning_of_day
+          end
+
+        cursor = effective_end.beginning_of_week
+        min_week_start = start_date.present? ? effective_start.beginning_of_week : cursor - 11.weeks
+        ranges = []
+        while cursor >= min_week_start
+          ranges << [cursor.to_date.iso8601, cursor.to_i, cursor.end_of_week.to_i]
+          cursor -= 1.week
         end
+
+        ranges
       end
     end
 
