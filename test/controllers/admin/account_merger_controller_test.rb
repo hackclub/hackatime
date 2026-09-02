@@ -61,7 +61,7 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     assert_includes flash[:notice], "3 related records cleaned up"
   end
 
-  test "merge renames transferred api keys when the older account already has the same key name" do
+  test "merge redirects after an expected failure without exposing details" do
     admin = create(:user, :ultraadmin)
     older = create(:user, username: "older_user")
     newer = create(:user, username: "newer_user")
@@ -70,19 +70,17 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     older.update_column(:created_at, 2.days.ago)
     newer.update_column(:created_at, 1.day.ago)
 
-    create(:api_key, user: older, name: "Wakatime API Key")
-    transferred_key = create(:api_key, user: newer, name: "Wakatime API Key")
+    create(:goal, user: older)
+    create(:goal, user: newer)
 
     post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
 
     assert_redirected_to admin_account_merger_path
-    assert_nil User.find_by(id: newer.id)
-    assert_equal older.id, transferred_key.reload.user_id
-    assert_equal "Wakatime API Key (transferred)", transferred_key.name
-    assert_equal [ "Wakatime API Key", "Wakatime API Key (transferred)" ], older.api_keys.order(:name).pluck(:name)
+    assert_equal "Merge failed and was rolled back. Check the application logs for details.", flash[:alert]
+    assert User.exists?(newer.id)
   end
 
-  test "merge transfers instance import sources to the older account when it does not have one" do
+  test "merge reports and re-raises unexpected service failures" do
     admin = create(:user, :ultraadmin)
     older = create(:user, username: "older_user")
     newer = create(:user, username: "newer_user")
@@ -91,53 +89,23 @@ class Admin::AccountMergerControllerTest < ActionDispatch::IntegrationTest
     older.update_column(:created_at, 2.days.ago)
     newer.update_column(:created_at, 1.day.ago)
 
-    create_instance_import_source_for(newer, endpoint_url: "https://newer.example.com")
+    log_output = StringIO.new
+    previous_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(log_output)
 
-    post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+    unexpected_service = Class.new
+    unexpected_service.const_set(:MergeError, Class.new(StandardError))
+    unexpected_service.define_singleton_method(:call) { |**| raise "unexpected merge defect" }
 
-    assert_redirected_to admin_account_merger_path
-    assert_nil User.find_by(id: newer.id)
-    assert_equal 1, instance_import_source_count_for(older)
-    assert_equal 0, instance_import_source_count_for(newer)
-    assert_equal "https://newer.example.com", instance_import_source_endpoint_for(older)
-  end
+    stub_const(Object, :AccountMergeService, unexpected_service) do
+      error = assert_raises(RuntimeError) do
+        post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
+      end
 
-  test "merge removes the newer instance import source when the older account already has one" do
-    admin = create(:user, :ultraadmin)
-    older = create(:user, username: "older_user")
-    newer = create(:user, username: "newer_user")
-    sign_in_as(admin)
-
-    older.update_column(:created_at, 2.days.ago)
-    newer.update_column(:created_at, 1.day.ago)
-
-    create_instance_import_source_for(older, endpoint_url: "https://older.example.com")
-    create_instance_import_source_for(newer, endpoint_url: "https://newer.example.com")
-
-    post merge_admin_account_merger_path, params: { older_id: older.id, newer_id: newer.id }
-
-    assert_redirected_to admin_account_merger_path
-    assert_nil User.find_by(id: newer.id)
-    assert_equal 1, instance_import_source_count_for(older)
-    assert_equal 0, instance_import_source_count_for(newer)
-    assert_equal "https://older.example.com", instance_import_source_endpoint_for(older)
-  end
-
-  private
-
-  def create_instance_import_source_for(user, endpoint_url:)
-    create(:instance_import_source,
-      user: user,
-      endpoint_url: endpoint_url,
-      encrypted_api_key: "encrypted-api-key"
-    )
-  end
-
-  def instance_import_source_count_for(user)
-    InstanceImportSource.where(user_id: user.id).count
-  end
-
-  def instance_import_source_endpoint_for(user)
-    InstanceImportSource.find_by(user_id: user.id)&.endpoint_url
+      assert_equal "unexpected merge defect", error.message
+    end
+    assert_includes log_output.string, "older user ##{older.id} and newer user ##{newer.id}: RuntimeError: unexpected merge defect"
+  ensure
+    Rails.logger = previous_logger if previous_logger
   end
 end

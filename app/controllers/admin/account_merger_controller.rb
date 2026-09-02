@@ -35,16 +35,31 @@ class Admin::AccountMergerController < InertiaController
       return merge_error("The NEWER user (right side) must have been created after the OLDER user (left side). #{newer_user.display_name} was created #{newer_user.created_at.to_date} which is before #{older_user.display_name} created #{older_user.created_at.to_date}.")
     end
 
-    merge_results = perform_merge(older_user, newer_user)
+    begin
+      merge_results = AccountMergeService.call(older_user:, newer_user:)
+    rescue AccountMergeService::MergeError => error
+      report_merge_failure(error, older_user:, newer_user:)
+      return merge_error("Merge failed and was rolled back. Check the application logs for details.")
+    rescue StandardError => error
+      report_merge_failure(error, older_user:, newer_user:)
+      raise
+    end
+
     redirect_to admin_account_merger_path, notice: "Merge complete! #{merge_results}"
-  rescue => e
-    Rails.logger.error("Account merge failed and was rolled back: #{e.message}")
-    redirect_to admin_account_merger_path, alert: "Merge failed and was rolled back: #{e.message}"
   end
 
   private
 
   def merge_error(message) = redirect_to(admin_account_merger_path, alert: message)
+
+  def report_merge_failure(exception, older_user:, newer_user:)
+    diagnostic = exception.cause || exception
+    report_error(
+      exception,
+      message: "Account merge failed and was rolled back for older user ##{older_user.id} and newer user ##{newer_user.id}: #{diagnostic.class}: #{diagnostic.message}",
+      extra: { older_user_id: older_user.id, newer_user_id: newer_user.id }
+    )
+  end
 
   def format_user(user)
     {
@@ -55,108 +70,5 @@ class Admin::AccountMergerController < InertiaController
       username: user.username,
       email: user.email_addresses.first&.email
     }
-  end
-
-  def perform_merge(older_user, newer_user)
-    results = []
-
-    ActiveRecord::Base.transaction do
-      # 1. Move heartbeats from newer to older
-      results << "#{Heartbeat.where(user_id: newer_user.id).update_all(user_id: older_user.id)} heartbeats moved"
-
-      # 2. Transfer API keys from newer to older
-      results << "#{transfer_api_keys(older_user:, newer_user:)} API keys transferred"
-
-      # 3. Transfer goals from newer to older
-      results << "#{newer_user.goals.update_all(user_id: older_user.id)} goals transferred"
-
-      # 4. Reconcile instance import sources before deleting the newer user.
-      deleted_records = reconcile_instance_import_source(older_user:, newer_user:)
-
-      # 5. Revoke newer user's sessions
-      revoked_tokens = newer_user.sign_in_tokens.destroy_all.count
-      revoked_tokens += Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
-      revoked_tokens += Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).update_all(revoked_at: Time.current)
-      results << "#{revoked_tokens} sessions/tokens revoked"
-
-      # 6. Delete all related data for the newer user
-      deleted_records += newer_user.email_addresses.destroy_all.count
-      deleted_records += newer_user.email_verification_requests.destroy_all.count
-      deleted_records += newer_user.goals.destroy_all.count
-      deleted_records += newer_user.admin_api_keys.destroy_all.count
-      deleted_records += ProjectRepoMapping.where(user_id: newer_user.id).delete_all
-      deleted_records += newer_user.heartbeat_import_runs.destroy_all.count
-      deleted_records += delete_rows("heartbeat_import_sources", user_id: newer_user.id)
-      deleted_records += delete_rows("wakatime_mirrors", user_id: newer_user.id)
-      deleted_records += Commit.where(user_id: newer_user.id).delete_all
-      deleted_records += RepoHostEvent.where(user_id: newer_user.id).delete_all
-      deleted_records += TrustLevelAuditLog.where(user_id: newer_user.id).delete_all
-      deleted_records += TrustLevelAuditLog.where(changed_by_id: newer_user.id).delete_all
-      deleted_records += DeletionRequest.where(user_id: newer_user.id).delete_all
-      deleted_records += LeaderboardEntry.where(user_id: newer_user.id).delete_all
-      deleted_records += Doorkeeper::Application.where(owner_id: newer_user.id, owner_type: "User").destroy_all.count
-      Doorkeeper::AccessToken.where(resource_owner_id: newer_user.id).delete_all
-      Doorkeeper::AccessGrant.where(resource_owner_id: newer_user.id).delete_all
-      deleted_records += delete_rows("project_labels", user_id: newer_user.id.to_s)
-      deleted_records += PaperTrail::Version.where(item_type: "User", item_id: newer_user.id).delete_all
-      results << "#{deleted_records} related records cleaned up"
-
-      # 7. Finally, delete the newer user
-      newer_user.reload
-      newer_user.destroy!
-      results << "user ##{newer_user.id} deleted"
-    end
-
-    results.join(", ")
-  end
-
-  DELETABLE_TABLES = %w[heartbeat_import_sources wakatime_mirrors project_labels].freeze
-
-  def transfer_api_keys(older_user:, newer_user:)
-    transferred_count = 0
-    reserved_names = older_user.api_keys.pluck(:name).index_with(true)
-
-    ApiKey.where(user_id: newer_user.id).find_each do |api_key|
-      api_key.update!(user: older_user, name: unique_api_key_name_for(reserved_names, api_key.name))
-      transferred_count += 1
-    end
-
-    transferred_count
-  end
-
-  def unique_api_key_name_for(reserved_names, original_name)
-    unless reserved_names[original_name]
-      reserved_names[original_name] = true
-      return original_name
-    end
-
-    suffix = " (transferred)"
-    candidate_name = "#{original_name}#{suffix}"
-    counter = 2
-    while reserved_names[candidate_name]
-      candidate_name = "#{original_name}#{suffix} #{counter}"
-      counter += 1
-    end
-
-    reserved_names[candidate_name] = true
-    candidate_name
-  end
-
-  def reconcile_instance_import_source(older_user:, newer_user:)
-    newer_source = InstanceImportSource.find_by(user_id: newer_user.id)
-    return 0 unless newer_source
-    if InstanceImportSource.exists?(user_id: older_user.id)
-      newer_source.destroy!; 1
-    else
-      newer_source.update!(user_id: older_user.id); 0
-    end
-  end
-
-  def delete_rows(table_name, conditions)
-    raise ArgumentError, "Table '#{table_name}' is not in the allowlist" unless DELETABLE_TABLES.include?(table_name)
-
-    quoted = ActiveRecord::Base.connection.quote_table_name(table_name)
-    sql = ActiveRecord::Base.sanitize_sql_array([ "DELETE FROM #{quoted} WHERE user_id = ?", conditions.fetch(:user_id) ])
-    ActiveRecord::Base.connection.delete(sql)
   end
 end
