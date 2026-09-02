@@ -3414,10 +3414,8 @@ paths:
                 required:
                 - success
                 - error
-        '302':
-          description: redirect on failed authentication — When the provided token
-            does not match HKA_REVOCATION_KEY (or is missing), the controller does
-            not return 401; it issues a 302 redirect to an external URL.
+        '401':
+          description: unauthorized
       requestBody:
         content:
           application/json:

@@ -72,8 +72,8 @@ RSpec.describe 'Api::Internal', type: :request, openapi_spec: 'admin/swagger.yam
         run_test!
       end
 
-      response(302, 'redirect on failed authentication — When the provided token does not match HKA_REVOCATION_KEY (or is missing), the controller does not return 401; it issues a 302 redirect to an external URL.') do
-        let(:Authorization) { "Bearer wrong_revocation_key" }
+      response(401, 'unauthorized') do
+        let(:Authorization) { "Bearer wrong" }
         let(:payload) { { token: SecureRandom.uuid_v4 } }
 
         before do
