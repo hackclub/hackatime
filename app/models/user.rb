@@ -353,8 +353,19 @@ class User < ApplicationRecord
 
   def create_email_signin_token(continue_param: nil) = sign_in_tokens.create!(auth_type: :email, continue_param: continue_param)
 
+  def hackatime_api_key(create_if_missing: false)
+    api_key = api_keys.find_by(name: ApiKey::DEFAULT_NAME) || api_keys.order(:id).first
+    return api_key if api_key || !create_if_missing
+
+    with_lock do
+      api_keys.find_by(name: ApiKey::DEFAULT_NAME) ||
+        api_keys.order(:id).first ||
+        api_keys.create!(name: ApiKey::DEFAULT_NAME)
+    end
+  end
+
   def rotate_api_keys!
-    api_keys.transaction { api_keys.destroy_all; api_keys.create!(name: "Hackatime key") }
+    api_keys.transaction { api_keys.destroy_all; api_keys.create!(name: ApiKey::DEFAULT_NAME) }
   end
 
   def rotate_single_api_key!(api_key)
