@@ -222,7 +222,6 @@
   title="Rotate API key?"
   description="This immediately invalidates your current API key. Any integrations using the old key will stop until updated."
   maxWidth="max-w-md"
-  hasActions
 >
   {#snippet actions()}
     <ModalActions onCancel={() => (rotateApiKeyModalOpen = false)}>
@@ -249,7 +248,6 @@
   title="Why are you deleting your account?"
   description="This helps us understand what to improve before your deletion request starts."
   maxWidth="max-w-lg"
-  hasBody
 >
   {#snippet body()}
     <Form

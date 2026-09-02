@@ -391,7 +391,6 @@
   description={pendingStatusAction?.description ??
     "Confirm this project status change."}
   maxWidth="max-w-md"
-  hasActions
 >
   {#snippet actions()}
     {#if pendingStatusAction}
@@ -422,7 +421,6 @@
   title="Why is my project invalid?"
   description="Your editor isn't sending a valid project name."
   maxWidth="max-w-lg"
-  hasBody
 >
   {#snippet body()}
     <div class="space-y-3 text-sm leading-relaxed text-surface-content/80">

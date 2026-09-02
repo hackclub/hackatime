@@ -19,7 +19,6 @@
   title="Woah, hold on a sec!"
   description="You sure you want to log out? You can sign back in later but that is a bit of a hassle..."
   maxWidth="max-w-lg"
-  hasActions
 >
   {#snippet actions()}
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">

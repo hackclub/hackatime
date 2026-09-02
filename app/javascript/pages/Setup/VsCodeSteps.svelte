@@ -94,7 +94,7 @@
   </div>
 </div>
 
-<Modal bind:open={zoomOpen} title={zoomed.title} maxWidth="max-w-5xl" hasBody>
+<Modal bind:open={zoomOpen} title={zoomed.title} maxWidth="max-w-5xl">
   {#snippet body()}
     <img
       src={zoomed.image}

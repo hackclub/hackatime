@@ -192,7 +192,6 @@
     ? "This user will become visible to other leaderboard viewers again."
     : "No one else will see this user on the public leaderboards."}
   maxWidth="max-w-lg"
-  hasActions
 >
   {#snippet actions()}
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">

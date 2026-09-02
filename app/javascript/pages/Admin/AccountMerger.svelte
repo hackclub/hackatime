@@ -153,8 +153,6 @@
   bind:open={confirmOpen}
   title="Confirm Account Merge"
   description="This action cannot be undone."
-  hasBody={true}
-  hasActions={true}
 >
   {#snippet body()}
     <p class="text-sm text-muted">

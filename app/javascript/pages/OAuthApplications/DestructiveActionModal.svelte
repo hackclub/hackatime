@@ -30,7 +30,7 @@
   const isDelete = $derived(method === "delete");
 </script>
 
-<Modal bind:open {title} {description} maxWidth="max-w-md" hasActions>
+<Modal bind:open {title} {description} maxWidth="max-w-md">
   {#snippet actions()}
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <Button

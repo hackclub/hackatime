@@ -9,6 +9,29 @@ class GoalsSettingsTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
+  test "goal modal opens immediately and keeps its open binding in sync" do
+    visit my_settings_goals_path
+
+    click_on "New goal"
+    assert_selector "[role='dialog'][data-state='open']", visible: :all, wait: 0
+    within("[role='dialog']") do
+      assert_text "I want to code for"
+      assert_button "Cancel"
+      assert_button "Create Goal"
+    end
+
+    find("[role='dialog'] button[aria-label='Close']").click
+    assert_no_selector "[role='dialog']"
+
+    click_on "New goal"
+    assert_selector "[role='dialog'][data-state='open']", visible: :all, wait: 0
+
+    within("[role='dialog']") do
+      click_on "Cancel"
+    end
+    assert_no_selector "[role='dialog']"
+  end
+
   test "goals settings can create edit and delete goal" do
     visit my_settings_goals_path
 
