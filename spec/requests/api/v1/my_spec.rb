@@ -89,6 +89,14 @@ RSpec.describe 'Api::V1::My', type: :request do
         run_test!
       end
 
+      response(400, 'invalid or reversed date range') do
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:start_time) { 'not-a-date' }
+        let(:end_time) { Time.now.iso8601 }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
       response(401, 'unauthorized — Returned when the Authorization header is missing, the OAuth token lacks the read scope, or the token is invalid.') do
         let(:Authorization) { 'Bearer invalid' }
         let(:start_time) { 1.day.ago.iso8601 }
