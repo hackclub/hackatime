@@ -1,7 +1,7 @@
 # config/initializers/rack_attack.rb
 
 class Rack::Attack
-  Rack::Attack.enabled = false
+  Rack::Attack.enabled = true
 
   if ENV["RACK_ATTACK_BYPASS"].present?
     begin
@@ -21,18 +21,11 @@ class Rack::Attack
     TOKENS = [].freeze
   end
 
-  def self.heartbeat_request?(req)
-    req.path =~ %r{\A/api/hackatime/v1/users/[^/]+/heartbeats(?:\.bulk)?\z}
-  end
-
-  def self.oauth_user_id(req)
-    return unless req.path.start_with?("/api/v1/authenticated/")
-
-    scheme, token = req.get_header("HTTP_AUTHORIZATION").to_s.split(/\s+/, 2)
-    return unless scheme&.casecmp?("Bearer") && token.present?
-
-    oauth_token = Doorkeeper::AccessToken.by_token(token)
-    "user:#{oauth_token.resource_owner_id}" if oauth_token&.accessible? && oauth_token.resource_owner_id
+  def self.authenticated_api_request?(req)
+    req.path.start_with?(
+      "/api/v1/authenticated/", "/api/v1/my/heartbeats",
+      "/api/hackatime/v1/", "/api/admin/"
+    )
   end
 
   # Always allow requests from bogon ips
@@ -49,18 +42,12 @@ class Rack::Attack
     !req.cloudflare?
   end
 
-  Rack::Attack.throttle("admin abooze", limit: 300, period: 1.minute) do |req|
-    req.ip if req.path.start_with?("/api/admin/")
-  end
-
   Rack::Attack.throttle("general", limit: 300, period: 1.minute) do |req|
-    unless req.path.start_with?("/assets")
-      oauth_user_id(req) || req.ip
-    end
+    req.ip unless req.path.start_with?("/assets") || authenticated_api_request?(req)
   end
 
   Rack::Attack.throttle("posts by ip", limit: 60, period: 5.minutes) do |req|
-    req.ip if req.post? && !heartbeat_request?(req)
+    req.ip if req.post? && !authenticated_api_request?(req)
   end
 
   Rack::Attack.throttle("documentation feedback by ip", limit: 20, period: 1.hour) do |req|
@@ -73,11 +60,6 @@ class Rack::Attack
 
   Rack::Attack.throttle("api requests", limit: 10000, period: 1.hour) do |req|
     req.ip if req.path.start_with?("/api/")
-  end
-
-  # if ur stuff is going faster than this then we got a problem dude
-  Rack::Attack.throttle("heartbeat uploads", limit: 360, period: 1.minute) do |req|
-    req.ip if req.post? && heartbeat_request?(req)
   end
 
   # lets actually log things? thanks

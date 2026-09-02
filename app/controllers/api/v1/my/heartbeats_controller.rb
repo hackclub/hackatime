@@ -1,6 +1,7 @@
 class Api::V1::My::HeartbeatsController < ApplicationController
   include ActionView::Helpers::DateHelper
   before_action :ensure_authenticated!
+  include AuthenticatedApiRateLimiting
 
   def most_recent
     scope = current_user.heartbeats.order(time: :desc)
@@ -38,6 +39,8 @@ class Api::V1::My::HeartbeatsController < ApplicationController
   end
 
   private
+
+  def authenticated_api_rate_limit_identity = "user:#{current_user.id}"
 
   def ensure_authenticated!
     @current_user = api_user_from_credentials(
