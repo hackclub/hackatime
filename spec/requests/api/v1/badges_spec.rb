@@ -42,6 +42,7 @@ RSpec.describe 'Api::V1::Badges', type: :request do
         Any additional query parameters not consumed below (e.g. `style`, `logo`,
         `logoColor`, `labelColor`) are passed straight through to shields.io.
       DESC
+      security []
 
       parameter name: :user_id, in: :path, type: :string, required: true,
                 description: 'User identifier: Slack UID, username, or numeric internal ID.'

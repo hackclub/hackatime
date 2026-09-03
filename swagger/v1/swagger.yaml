@@ -7,6 +7,15 @@ info:
     Hackatime's API gives access to coding activity data.
 
     We support the WakaTime spec, allowing you to use existing plugins and tools.
+  contact:
+    name: Hack Club
+    url: https://github.com/hackclub/hackatime
+  license:
+    name: MIT
+    url: https://github.com/hackclub/hackatime/blob/main/LICENSE
+externalDocs:
+  description: Hackatime documentation
+  url: https://hackatime.hackclub.com/docs
 paths:
   "/api/hackatime/v1/users/{id}/heartbeats":
     post:
@@ -365,19 +374,19 @@ paths:
           type: string
       - name: start
         in: query
-        format: date
-        required: true
-        description: Inclusive start date in YYYY-MM-DD format.
         schema:
           type: string
+          format: date
+        required: true
+        description: Inclusive start date in YYYY-MM-DD format.
       - name: end
         in: query
-        format: date
+        schema:
+          type: string
+          format: date
         required: true
         description: Inclusive end date in YYYY-MM-DD format. The range may contain
           at most 366 days.
-        schema:
-          type: string
       - name: project
         in: query
         required: false
@@ -862,6 +871,60 @@ paths:
                               example: 0
         '401':
           description: unauthorized
+  "/openapi.json":
+    get:
+      summary: Fetch the OpenAPI description of this API
+      tags:
+      - Discovery
+      description: |
+        Returns this document. No authentication is required.
+
+        `/api/openapi.json` is an alias for the same resource, and the YAML
+        representation is available at `/openapi.yaml` (aliased at
+        `/api/openapi.yaml`).
+      security: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                description: An OpenAPI 3.0 document describing the Hackatime API.
+                properties:
+                  openapi:
+                    type: string
+                    example: 3.0.1
+                  info:
+                    type: object
+                  paths:
+                    type: object
+                  components:
+                    type: object
+                  servers:
+                    type: array
+                    items:
+                      type: object
+                required:
+                - openapi
+                - info
+                - paths
+  "/openapi.yaml":
+    get:
+      summary: Fetch the OpenAPI description of this API as YAML
+      tags:
+      - Discovery
+      description: The YAML representation of `/openapi.json`. No authentication is
+        required.
+      security: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/yaml:
+              schema:
+                type: string
+                description: An OpenAPI 3.0 document, serialised as YAML.
   "/api/summary":
     get:
       summary: Get WakaTime-compatible summary
@@ -871,6 +934,7 @@ paths:
         WakaTime clients. This endpoint does NOT authenticate any API token: access
         is gated solely by the target user (identified by user_id/user) having allow_public_stats_lookup
         enabled. No caller credentials are required or verified.'
+      security: []
       parameters:
       - name: start
         in: query
@@ -1328,6 +1392,7 @@ paths:
 
         Any additional query parameters not consumed below (e.g. `style`, `logo`,
         `logoColor`, `labelColor`) are passed straight through to shields.io.
+      security: []
       parameters:
       - name: user_id
         in: path
@@ -1380,6 +1445,7 @@ paths:
         in the last 5 minutes, along with the project each is currently working
         on (if its repo mapping is not archived). The endpoint is public (no
         authentication required) and the result is cached for 5 minutes.
+      security: []
       responses:
         '200':
           description: successful
@@ -1437,6 +1503,7 @@ paths:
       - Leaderboard
       description: Returns the daily leaderboard of coding time. Public, no authentication
         required. The leaderboard is cached and regenerated periodically.
+      security: []
       responses:
         '200':
           description: successful
@@ -1476,6 +1543,7 @@ paths:
       - Leaderboard
       description: Returns the weekly leaderboard of coding time (last 7 days). Public,
         no authentication required.
+      security: []
       responses:
         '200':
           description: successful
@@ -1696,6 +1764,7 @@ paths:
       - Stats
       description: Returns the number of distinct users whose trust level was newly
         set to "red" (banned/convicted) over the last day, week, and month.
+      security: []
       responses:
         '200':
           description: successful
@@ -1725,6 +1794,10 @@ paths:
       description: Returns heartbeat spans for a user, useful for visualizations.
         Accessible anonymously when the target user has public stats lookup enabled;
         otherwise the requester must be the user (authenticated via the User API Key).
+      security:
+      - {}
+      - Bearer: []
+      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path
@@ -1809,6 +1882,10 @@ paths:
         public-facing levels are ever returned: blue (0, unscored), red (1, convicted),
         green (2, trusted). The internal "yellow" (suspected) level is masked to blue
         and never exposed.'
+      security:
+      - {}
+      - Bearer: []
+      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path
@@ -1851,6 +1928,10 @@ paths:
       - Stats
       description: Returns a list of project names for a user from the last 30 days.
         Accessible anonymously when the target user has public stats lookup enabled.
+      security:
+      - {}
+      - Bearer: []
+      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path
@@ -1891,6 +1972,10 @@ paths:
       - Stats
       description: Returns details for a specific project. Accessible anonymously
         when the target user has public stats lookup enabled.
+      security:
+      - {}
+      - Bearer: []
+      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path
@@ -2000,6 +2085,10 @@ paths:
       description: Returns details for multiple projects, or all projects in a time
         range. Accessible anonymously when the target user has public stats lookup
         enabled.
+      security:
+      - {}
+      - Bearer: []
+      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path

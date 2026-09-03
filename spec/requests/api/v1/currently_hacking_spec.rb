@@ -10,6 +10,7 @@ RSpec.describe 'Api::V1::CurrentlyHacking', type: :request do
         on (if its repo mapping is not archived). The endpoint is public (no
         authentication required) and the result is cached for 5 minutes.
       DESC
+      security []
       produces 'application/json'
 
       response(200, 'successful') do

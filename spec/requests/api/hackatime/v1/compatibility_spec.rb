@@ -285,8 +285,8 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
       produces 'application/json'
 
       parameter name: :id, in: :path, type: :string, description: 'User ID or "current" (recommended). The authenticated user is resolved from the API token.'
-      parameter name: :start, in: :query, type: :string, format: :date, required: true, description: 'Inclusive start date in YYYY-MM-DD format.'
-      parameter name: :end, in: :query, type: :string, format: :date, required: true, description: 'Inclusive end date in YYYY-MM-DD format. The range may contain at most 366 days.'
+      parameter name: :start, in: :query, schema: { type: :string, format: :date }, required: true, description: 'Inclusive start date in YYYY-MM-DD format.'
+      parameter name: :end, in: :query, schema: { type: :string, format: :date }, required: true, description: 'Inclusive end date in YYYY-MM-DD format. The range may contain at most 366 days.'
       parameter name: :project, in: :query, type: :string, required: false, description: 'Only include activity for this project.'
       parameter name: :timezone, in: :query, type: :string, required: false, description: "Timezone used to segment days. Defaults to the user's timezone."
 

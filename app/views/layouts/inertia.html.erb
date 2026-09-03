@@ -12,6 +12,8 @@
     <meta name="author" content="Hack Club">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="<%= content_for(:canonical_url) || request.original_url %>">
+    <link rel="service-desc" type="application/json" href="<%= openapi_path %>">
+    <link rel="service-doc" type="text/html" href="<%= api_docs_path %>">
     <meta name="theme-color" content="<%= current_theme_color %>">
     <meta name="msapplication-TileColor" content="<%= current_theme_color %>">
     <meta property="og:title" content="<%= @og_title || content_for(:og_title) || @page_title || content_for(:title) || 'Hackatime - Free Coding Time Tracker' %>">
