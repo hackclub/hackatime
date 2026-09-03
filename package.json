@@ -34,7 +34,7 @@
     "svelte-check": "^4.7.6",
     "svelte-hero-icons": "^5.2.0",
     "tailwindcss": "^4.3.3",
-    "virtua": "^0.50.6",
+    "virtua": "^0.51.0",
     "vite": "^8.2.2",
     "vite-plugin-ruby": "^5.2.3"
   },
