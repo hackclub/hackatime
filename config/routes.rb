@@ -22,6 +22,15 @@ Rails.application.routes.draw do
   get "api-docs", to: "api_docs#show", as: :api_docs
   get "api-docs/admin", to: "api_docs#admin", as: :admin_api_docs
   mount Rswag::Api::Engine => "/api-docs"
+
+  # Machine-readable description of the public API. /openapi.json is the
+  # canonical location; the others are conventional aliases that API clients
+  # and agents probe for.
+  get "openapi.json", to: "openapi#show_json", as: :openapi, format: false
+  get "openapi.yaml", to: "openapi#show_yaml", as: :openapi_yaml, format: false
+  get "api/openapi.json", to: "openapi#show_json", as: :api_openapi, format: false
+  get "api/openapi.yaml", to: "openapi#show_yaml", as: :api_openapi_yaml, format: false
+
   defaults export: true do
     use_doorkeeper do
       controllers authorizations: "custom_doorkeeper/authorizations"
