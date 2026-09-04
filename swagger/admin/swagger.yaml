@@ -2896,6 +2896,8 @@ paths:
       summary: Get Ban State
       tags:
       - Admin Resources
+      description: |
+        Report the current heartbeat poisoning state. Requires a superadmin API key.
       security:
       - AdminToken: []
       responses:
@@ -2925,7 +2927,7 @@ paths:
                   poison_reason:
                     type: string
                     nullable: true
-                    example: 'Fraud!'
+                    example: Fraud!
                   hidden_heartbeats:
                     type: integer
                     example: 1284
@@ -2945,6 +2947,9 @@ paths:
       summary: Poison Heartbeats
       tags:
       - Admin Resources
+      description: 'Poison Hearbeats!
+
+        '
       security:
       - AdminToken: []
       parameters: []
@@ -2973,7 +2978,7 @@ paths:
                   poison_reason:
                     type: string
                     nullable: true
-                    example: 'Fraud!'
+                    example: Fraud!
                   hidden_heartbeats:
                     type: integer
                     example: 1284
@@ -2999,7 +3004,7 @@ paths:
                     type: string
                     example: User not found
         '401':
-          description: unauthorized — Returned when the key is missing, invalid, or
+          description: unauthorized - Returned when the key is missing, invalid, or
             not superadmin level.
       requestBody:
         content:
@@ -3020,13 +3025,14 @@ paths:
                 reason:
                   type: string
                   nullable: true
-                  example: 'Telescreen: fabricated heartbeats'
+                  example: Fraud!
               required:
               - date
     delete:
       summary: Un-Poison Hearbeats
       tags:
       - Admin Resources
+      description: 'Lift the poison. Requires a superadmin API key.
       security:
       - AdminToken: []
       responses:
@@ -3050,6 +3056,7 @@ paths:
                   already_unbanned:
                     type: boolean
                     example: false
+                    description: Present when the user was not banned
         '404':
           description: user not found
           content:

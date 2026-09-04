@@ -13,7 +13,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
       poisoned: { type: :boolean, example: true },
       poisoned_until: { type: :string, format: 'date-time', nullable: true, example: '2026-06-16T00:00:00Z' },
       poisoned_at: { type: :string, format: 'date-time', nullable: true, example: '2026-06-15T18:04:00Z' },
-      poison_reason: { type: :string, nullable: true, example: 'Telescreen: fabricated heartbeats' },
+      poison_reason: { type: :string, nullable: true, example: 'Fraud!' },
       hidden_heartbeats: { type: :integer, example: 1284 }
     }
   }
