@@ -2884,6 +2884,184 @@ paths:
                           description: Primary email or "no email"
         '401':
           description: unauthorized
+  "/api/admin/v1/ban/{hackatime_id}":
+    parameters:
+    - name: hackatime_id
+      in: path
+      description: 'Hackatime user identifier: numeric ID, Slack UID, HCA ID or username'
+      required: true
+      schema:
+        type: string
+    get:
+      summary: Get Ban State
+      tags:
+      - Admin Resources
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: integer
+                    example: 42
+                  poisoned:
+                    type: boolean
+                    example: true
+                  poisoned_until:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    example: '2026-06-16T00:00:00Z'
+                  poisoned_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    example: '2026-06-15T18:04:00Z'
+                  poison_reason:
+                    type: string
+                    nullable: true
+                    example: 'Fraud!'
+                  hidden_heartbeats:
+                    type: integer
+                    example: 1284
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+        '401':
+          description: unauthorized
+    post:
+      summary: Poison Heartbeats
+      tags:
+      - Admin Resources
+      security:
+      - AdminToken: []
+      parameters: []
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user_id:
+                    type: integer
+                    example: 42
+                  poisoned_until:
+                    type: string
+                    format: date-time
+                    example: '2026-06-16T00:00:00Z'
+                  poisoned_at:
+                    type: string
+                    format: date-time
+                    example: '2026-06-15T18:04:00Z'
+                  poison_reason:
+                    type: string
+                    nullable: true
+                    example: 'Fraud!'
+                  hidden_heartbeats:
+                    type: integer
+                    example: 1284
+        '422':
+          description: invalid date - Returned when the date is missing, unparseable,
+            or in the future.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+        '401':
+          description: unauthorized — Returned when the key is missing, invalid, or
+            not superadmin level.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  format: date
+                  example: '2026-06-15'
+                  description: Inclusive last day to poison
+                end_date:
+                  type: string
+                  format: date
+                  example: '2026-06-15'
+                  description: Alias for `date`
+                reason:
+                  type: string
+                  nullable: true
+                  example: 'Telescreen: fabricated heartbeats'
+              required:
+              - date
+    delete:
+      summary: Un-Poison Hearbeats
+      tags:
+      - Admin Resources
+      security:
+      - AdminToken: []
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user_id:
+                    type: integer
+                    example: 42
+                  poisoned_until:
+                    type: string
+                    nullable: true
+                    example:
+                  already_unbanned:
+                    type: boolean
+                    example: false
+        '404':
+          description: user not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: User not found
+        '401':
+          description: unauthorized
   "/api/admin/v1/heartbeats/ip_machine_pairs":
     get:
       summary: List users sharing the same machine + IP combination
