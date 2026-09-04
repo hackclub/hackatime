@@ -274,7 +274,7 @@ class User < ApplicationRecord
   private def discard_stale_leaderboard_entries!
     Leaderboard::REBUILDABLE_PERIODS.each do |period|
       date = LeaderboardDateRange.normalize_date(Date.current, period)
-      board = Leaderboard.find_by(start_date: date, period_type: period, timezone_utc_offset: nil)
+      board = Leaderboard.find_by(start_date: date, period_type: period, timezone_utc_offset: nil, deleted_at: nil)
       LeaderboardEntry.where(user_id: id, leaderboard_id: board.id).delete_all if board
 
       LeaderboardUpdateJob.perform_later(period, date, force_update: true)
