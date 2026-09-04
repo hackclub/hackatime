@@ -161,6 +161,26 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   end
 
 
+  test "ignores unpermitted parameters in the request body" do
+    post "/api/admin/v1/ban/#{@user.id}",
+      params: { date: "2026-03-01", reason: "Fraud!", poisoned_until: "2030-01-01", admin_level: "ultraadmin" },
+      headers: auth_headers, as: :json
+
+    assert_response :created
+    @user.reload
+    assert_equal @cutoff + 1.day, @user.poisoned_until.utc
+    assert_equal "Fraud!", @user.poison_reason
+    assert_not @user.admin_level_ultraadmin?
+  end
+
+  test "rejects an oversized raw body instead of parsing it" do
+    post "/api/admin/v1/ban/#{@user.id}", params: "x" * 500,
+      headers: auth_headers.merge("Content-Type" => "text/plain")
+
+    assert_response :unprocessable_entity
+    assert_not @user.reload.poisoned?
+  end
+
   test "requires an api key" do
     post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, as: :json
 

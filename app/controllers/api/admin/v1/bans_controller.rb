@@ -2,6 +2,8 @@ module Api
   module Admin
     module V1
       class BansController < Api::Admin::V1::ApplicationController
+        MAX_RAW_DATE_LENGTH = 40
+
         before_action :require_superadmin
         before_action :set_user
 
@@ -9,7 +11,7 @@ module Api
           cutoff = ban_date
           return render_error("date is required") if cutoff.blank?
 
-          @user.apply_poison!(cutoff, reason: params[:reason])
+          @user.apply_poison!(cutoff, reason: ban_params[:reason])
 
           render json: {
             success: true,
@@ -55,12 +57,16 @@ module Api
           render_not_found_json("User not found") unless @user
         end
 
+        def ban_params = params.permit(:date, :end_date, :reason)
+
         def ban_date
-          return params[:date] if params[:date].present?
-          return params[:end_date] if params[:end_date].present?
+          permitted = ban_params
+          return permitted[:date] if permitted[:date].present?
+          return permitted[:end_date] if permitted[:end_date].present?
 
           raw = request.raw_post.to_s.strip
-          raw.presence unless raw.start_with?("{", "[")
+          return if raw.blank? || raw.length > MAX_RAW_DATE_LENGTH
+          raw unless raw.start_with?("{", "[")
         end
 
         def hidden_heartbeat_count = Heartbeat.only_poisoned.where(user_id: @user.id).count
