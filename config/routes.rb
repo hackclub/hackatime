@@ -297,6 +297,8 @@ Rails.application.routes.draw do
         post "user/search_fuzzy", to: "admin#search_users_fuzzy"
         post "user/convict", to: "admin#user_convict"
 
+        resource :ban, only: [ :show, :create, :destroy ], path: "ban/:hackatime_id"
+
         # Admin API Keys management
         resources :admin_api_keys, only: [ :index, :show, :create, :destroy ]
 

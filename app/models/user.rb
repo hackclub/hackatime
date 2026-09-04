@@ -241,6 +241,92 @@ class User < ApplicationRecord
     LeaderboardPageCache.clear!
   end
 
+  scope :poisoned, -> { where.not(poisoned_until: nil) }
+
+  def poisoned? = poisoned_until.present?
+
+  def apply_poison!(cutoff, reason: nil)
+    raise ArgumentError, "cutoff is required" if cutoff.blank?
+    raise ArgumentError, "cutoff cannot be in the future" if poison_cutoff_in_future?(cutoff)
+
+    cutoff = coerce_poison_cutoff(cutoff)
+    raise ArgumentError, "cutoff is invalid" if cutoff.blank?
+
+    update!(poisoned_until: cutoff, poisoned_at: Time.current, poison_reason: reason.presence)
+    invalidate_poisoned_derived_data!
+    true
+  end
+
+  def remove_poison!
+    return false unless poisoned?
+
+    update!(poisoned_until: nil, poisoned_at: nil, poison_reason: nil)
+    invalidate_poisoned_derived_data!
+    true
+  end
+  private def invalidate_poisoned_derived_data!
+    schedule_dashboard_rollup_refresh
+    discard_stale_leaderboard_entries!
+    clear_leaderboard_page_cache
+  end
+
+
+  private def discard_stale_leaderboard_entries!
+    Leaderboard::REBUILDABLE_PERIODS.each do |period|
+      date = LeaderboardDateRange.normalize_date(Date.current, period)
+      board = Leaderboard.find_by(start_date: date, period_type: period, timezone_utc_offset: nil, deleted_at: nil)
+      LeaderboardEntry.where(user_id: id, leaderboard_id: board.id).delete_all if board
+
+      LeaderboardUpdateJob.perform_later(period, date, force_update: true)
+    end
+  end
+
+  private def poison_cutoff_in_future?(cutoff)
+    Time.use_zone(timezone.presence || "UTC") do
+      if (date = poison_cutoff_date_only(cutoff))
+        date > Date.current
+      else
+        instant = coerce_poison_cutoff(cutoff)
+        instant.present? && instant > Time.current
+      end
+    end
+  end
+
+  private def poison_cutoff_date_only(cutoff)
+    case cutoff
+    when DateTime then nil
+    when Date then cutoff
+    when String then Date.parse(cutoff.strip) if cutoff.strip.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+    end
+  rescue Date::Error
+    nil
+  end
+
+  private def coerce_poison_cutoff(cutoff)
+    case cutoff
+    when Time, ActiveSupport::TimeWithZone, DateTime then cutoff
+    when Date then end_of_day_in_user_zone(cutoff)
+    when String then parse_poison_cutoff_string(cutoff)
+    end
+  end
+
+  private def end_of_day_in_user_zone(date)
+    Time.use_zone(timezone.presence || "UTC") { date.in_time_zone.beginning_of_day + 1.day }
+  end
+
+  private def parse_poison_cutoff_string(value)
+    value = value.strip
+    return if value.blank?
+
+    if value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+      end_of_day_in_user_zone(Date.parse(value))
+    else
+      Time.use_zone(timezone.presence || "UTC") { Time.zone.parse(value) }
+    end
+  rescue Date::Error
+    nil
+  end
+
   def schedule_leaderboard_shadowban_expiration
     LeaderboardShadowbanExpirationJob.set(wait_until: leaderboard_shadowban_expires_at).perform_later(id)
   end
