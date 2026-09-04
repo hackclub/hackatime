@@ -129,6 +129,17 @@ class HeartbeatPoisoningTest < ActiveSupport::TestCase
     end
   end
 
+  test "poisoning removes the user's stale leaderboard entries" do
+    board = Leaderboard.create!(start_date: Date.current, period_type: :daily)
+    mine = LeaderboardEntry.create!(leaderboard: board, user: @user, total_seconds: 1140)
+    other = LeaderboardEntry.create!(leaderboard: board, user: create(:user, timezone: "UTC"), total_seconds: 1140)
+
+    @user.apply_poison!(@cutoff)
+
+    assert_nil LeaderboardEntry.find_by(id: mine.id)
+    assert_not_nil LeaderboardEntry.find_by(id: other.id)
+  end
+
   test "only_poisoned returns exactly the hidden heartbeats" do
     @user.apply_poison!(@cutoff)
 

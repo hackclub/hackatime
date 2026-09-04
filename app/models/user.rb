@@ -266,7 +266,15 @@ class User < ApplicationRecord
   end
   private def invalidate_poisoned_derived_data!
     schedule_dashboard_rollup_refresh
+    discard_stale_leaderboard_entries!
     clear_leaderboard_page_cache
+  end
+
+
+  private def discard_stale_leaderboard_entries!
+    boundary = [ poisoned_until, Time.current ].compact.max
+    boards = Leaderboard.where(start_date: ..boundary.to_date)
+    LeaderboardEntry.where(user_id: id, leaderboard_id: boards.select(:id)).delete_all
   end
 
   private def poison_cutoff_in_future?(cutoff)
