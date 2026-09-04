@@ -72,6 +72,36 @@ class HeartbeatPoisoningTest < ActiveSupport::TestCase
     assert_not_includes Heartbeat.all, @before_cutoff
   end
 
+  test "a DateTime cutoff keeps its time of day" do
+    @user.apply_poison!(DateTime.new(2026, 3, 1, 12, 0, 0))
+
+    assert_equal Time.utc(2026, 3, 1, 12), @user.poisoned_until.utc
+  end
+
+  test "a Date cutoff still covers the whole day" do
+    @user.apply_poison!(Date.new(2026, 3, 1))
+
+    assert_equal Time.utc(2026, 3, 2), @user.poisoned_until.utc
+  end
+
+  test "resubmitting a poisoned heartbeat is a duplicate, not a failure" do
+    attrs = {
+      "entity" => "src/dedup.rb", "type" => "file", "category" => "coding",
+      "editor" => "vscode", "project" => "dedup", "language" => "Ruby",
+      "branch" => "main", "time" => (@cutoff - 2.days).to_f
+    }
+    create(:heartbeat, user: @user, source_type: :direct_entry,
+      entity: "src/dedup.rb", type: "file", category: "coding", editor: "vscode",
+      project: "dedup", language: "Ruby", branch: "main", time: (@cutoff - 2.days).to_f)
+
+    @user.apply_poison!(@cutoff)
+
+    result = HeartbeatIngest.call(user: @user, mode: :direct, request_context: {}, heartbeats: [ attrs ])
+
+    assert_equal 0, result.failed_count
+    assert_equal 1, result.duplicate_count
+  end
+
   test "removing the poison restores the hidden heartbeats" do
     @user.apply_poison!(@cutoff)
     assert_not_includes Heartbeat.all, @before_cutoff
@@ -80,6 +110,23 @@ class HeartbeatPoisoningTest < ActiveSupport::TestCase
 
     assert_includes Heartbeat.all, @before_cutoff
     assert_not @user.reload.poisoned?
+  end
+
+  test "the default scope applies the poison filter exactly once" do
+    @user.apply_poison!(@cutoff)
+
+    assert_equal 1, Heartbeat.all.to_sql.scan(/EXISTS/).length
+    assert_equal 0, Heartbeat.including_poison { Heartbeat.all.to_sql.scan(/EXISTS/).length }
+  end
+
+  test "scopes remain composable without tripping the default scope" do
+    @user.apply_poison!(@cutoff)
+
+    assert_nothing_raised do
+      Heartbeat.where(project: "new-project").excluding_poisoned.count
+      Heartbeat.only_poisoned.count
+      Heartbeat.coding_only.excluding_poisoned.duration_seconds
+    end
   end
 
   test "only_poisoned returns exactly the hidden heartbeats" do
@@ -131,12 +178,25 @@ class HeartbeatPoisoningTest < ActiveSupport::TestCase
     assert_includes Heartbeat.all, next_day
   end
 
-  test "a timestamp cutoff is treated as an absolute instant" do
+  test "a timestamp cutoff with an explicit offset is treated as an absolute instant" do
     @user.update!(timezone: "America/New_York")
 
     @user.apply_poison!("2026-03-01T12:00:00Z")
 
     assert_equal Time.utc(2026, 3, 1, 12), @user.poisoned_until.utc
+  end
+  test "a naive timestamp resolves in the user's zone regardless of the ambient zone" do
+    @user.update!(timezone: "America/New_York")
+
+    Time.use_zone("Asia/Tokyo") { @user.apply_poison!("2026-03-01T12:00:00") }
+    from_tokyo = @user.poisoned_until.utc
+
+    @user.remove_poison!
+    Time.use_zone("UTC") { @user.apply_poison!("2026-03-01T12:00:00") }
+    from_utc = @user.poisoned_until.utc
+
+    assert_equal Time.utc(2026, 3, 1, 17), from_tokyo
+    assert_equal from_tokyo, from_utc
   end
 
   test "poisoning schedules a dashboard rollup refresh so derived totals recompute" do

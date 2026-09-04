@@ -123,10 +123,12 @@ class HeartbeatIngest
     ).slice(*Heartbeat.column_names.map(&:to_sym))
   end
 
+  def heartbeats_for_dedup = Heartbeat.including_poison { Heartbeat.where(user_id: @user.id) }
+
   def persist_direct_heartbeats(entries)
     entries_by_hash = entries.group_by { |entry| entry[:fields_hash] }
     hashes = entries_by_hash.keys
-    persisted_by_hash = @user.heartbeats.where(fields_hash: hashes).index_by(&:fields_hash)
+    persisted_by_hash = heartbeats_for_dedup.where(fields_hash: hashes).index_by(&:fields_hash)
     missing_entries = entries_by_hash.filter_map do |fields_hash, matching_entries|
       matching_entries.first unless persisted_by_hash.key?(fields_hash)
     end
@@ -147,7 +149,7 @@ class HeartbeatIngest
       unresolved_hashes = missing_entries.map { |entry| entry[:fields_hash] } - inserted_by_hash.keys
       if unresolved_hashes.any?
         persisted_by_hash.merge!(
-          @user.heartbeats.where(fields_hash: unresolved_hashes).index_by(&:fields_hash)
+          heartbeats_for_dedup.where(fields_hash: unresolved_hashes).index_by(&:fields_hash)
         )
       end
     end
@@ -273,7 +275,7 @@ class HeartbeatIngest
     records = seen_hashes.values
     compatible_hashes = records.flat_map { |record| [ record[:fields_hash], record[:legacy_fields_hash] ] }.compact.uniq
     existing_hashes = compatible_hashes.each_slice(10_000).flat_map do |hashes|
-      @user.heartbeats.where(fields_hash: hashes).pluck(:fields_hash)
+      heartbeats_for_dedup.where(fields_hash: hashes).pluck(:fields_hash)
     end.to_set
     records = records.reject do |record|
       existing_hashes.include?(record[:fields_hash]) || existing_hashes.include?(record[:legacy_fields_hash])

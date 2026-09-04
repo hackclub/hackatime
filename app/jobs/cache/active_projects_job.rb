@@ -13,6 +13,12 @@ class Cache::ActiveProjectsJob < Cache::ActivityJob
         WHERE source_type = ?
           AND deleted_at IS NULL
           AND time > ?
+          AND NOT EXISTS (
+            SELECT 1 FROM users poisoned_users
+            WHERE poisoned_users.id = heartbeats.user_id
+              AND poisoned_users.poisoned_until IS NOT NULL
+              AND heartbeats.time < EXTRACT(EPOCH FROM poisoned_users.poisoned_until)
+          )
       )
       SELECT DISTINCT ON (recent.user_id) project_repo_mappings.*, recent.user_id
       FROM project_repo_mappings

@@ -6,6 +6,11 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
     properties: { error: { type: :string, example: 'User not found' } }
   }
 
+  date_error_schema = {
+    type: :object,
+    properties: { error: { type: :string, example: 'date cannot be in the future' } }
+  }
+
   ban_state_schema = {
     type: :object,
     properties: {
@@ -59,7 +64,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
     post('Poison Heartbeats (Ban)') do
       tags 'Admin Resources'
       description <<~DESC
-        Poison Hearbeats!
+        Poison Heartbeats!
       DESC
       security [ AdminToken: [] ]
       consumes 'application/json'
@@ -67,12 +72,22 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
 
       parameter name: :payload, in: :body, schema: {
         type: :object,
+        description: 'Supply the cutoff as `date` or its alias `end_date`. Exactly one is required.',
         properties: {
-          date: { type: :string, format: 'date', example: '2026-06-15', description: 'Inclusive last day to poison' },
-          end_date: { type: :string, format: 'date', example: '2026-06-15', description: 'Alias for `date`' },
+          date: {
+            type: :string,
+            example: '2026-06-15',
+            description: 'Inclusive last day to poison. A date (`YYYY-MM-DD`) covers ' \
+                         "the whole day in the user's timezone; an ISO 8601 timestamp is " \
+                         'treated as an absolute instant. Must not be in the future.'
+          },
+          end_date: { type: :string, example: '2026-06-15', description: 'Alias for `date`' },
           reason: { type: :string, nullable: true, example: 'Fraud!' }
         },
-        required: [ 'date' ]
+        anyOf: [
+          { required: [ 'date' ] },
+          { required: [ 'end_date' ] }
+        ]
       }
 
       response(201, 'created') do
@@ -99,7 +114,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
         let(:target) { create(:user, username: 'rswag_ban_future', timezone: 'UTC') }
         let(:hackatime_id) { target.id.to_s }
         let(:payload) { { date: (Date.current + 1).to_s } }
-        schema(**error_schema)
+        schema(**date_error_schema)
         run_test!
       end
 

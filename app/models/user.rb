@@ -282,6 +282,7 @@ class User < ApplicationRecord
 
   private def poison_cutoff_date_only(cutoff)
     case cutoff
+    when DateTime then nil
     when Date then cutoff
     when String then Date.parse(cutoff.strip) if cutoff.strip.match?(/\A\d{4}-\d{2}-\d{2}\z/)
     end
@@ -291,8 +292,8 @@ class User < ApplicationRecord
 
   private def coerce_poison_cutoff(cutoff)
     case cutoff
-    when Date then end_of_day_in_user_zone(cutoff)
     when Time, ActiveSupport::TimeWithZone, DateTime then cutoff
+    when Date then end_of_day_in_user_zone(cutoff)
     when String then parse_poison_cutoff_string(cutoff)
     end
   end
@@ -308,7 +309,7 @@ class User < ApplicationRecord
     if value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
       end_of_day_in_user_zone(Date.parse(value))
     else
-      Time.zone.parse(value)
+      Time.use_zone(timezone.presence || "UTC") { Time.zone.parse(value) }
     end
   rescue Date::Error
     nil

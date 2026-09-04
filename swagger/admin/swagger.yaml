@@ -2947,7 +2947,7 @@ paths:
       summary: Poison Heartbeats
       tags:
       - Admin Resources
-      description: 'Poison Hearbeats!
+      description: 'Poison Heartbeats!
 
         '
       security:
@@ -2992,7 +2992,7 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: User not found
+                    example: date cannot be in the future
         '404':
           description: user not found
           content:
@@ -3011,28 +3011,35 @@ paths:
           application/json:
             schema:
               type: object
+              description: Supply the cutoff as `date` or its alias `end_date`. Exactly
+                one is required.
               properties:
                 date:
                   type: string
-                  format: date
                   example: '2026-06-15'
-                  description: Inclusive last day to poison
+                  description: Inclusive last day to poison. A date (`YYYY-MM-DD`)
+                    covers the whole day in the user's timezone; an ISO 8601 timestamp
+                    is treated as an absolute instant. Must not be in the future.
                 end_date:
                   type: string
-                  format: date
                   example: '2026-06-15'
                   description: Alias for `date`
                 reason:
                   type: string
                   nullable: true
                   example: Fraud!
-              required:
-              - date
+              anyOf:
+              - required:
+                - date
+              - required:
+                - end_date
     delete:
-      summary: Un-Poison Hearbeats
+      summary: Un-Poison Heartbeats
       tags:
       - Admin Resources
       description: 'Lift the poison. Requires a superadmin API key.
+
+        '
       security:
       - AdminToken: []
       responses:

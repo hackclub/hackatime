@@ -18,7 +18,7 @@ module HeartbeatPoisoning
            .exists
     end
 
-    default_scope { HeartbeatPoisoning.included_poison? ? all : excluding_poisoned }
+    default_scope { HeartbeatPoisoning.included_poison? ? all : where.not(poisoned_arel) }
 
     scope :excluding_poisoned, -> { where.not(poisoned_arel) }
 
