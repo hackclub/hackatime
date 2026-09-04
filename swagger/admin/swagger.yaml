@@ -2896,8 +2896,10 @@ paths:
       summary: Get Ban State
       tags:
       - Admin Resources
-      description: |
-        Report the current heartbeat poisoning state. Requires a superadmin API key.
+      description: 'Report the current heartbeat poisoning state. Requires a superadmin
+        API key.
+
+        '
       security:
       - AdminToken: []
       responses:

@@ -29,10 +29,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
 
     get('Get Ban State') do
       tags 'Admin Resources'
-      description <<~DESC
-        Report the current heartbeat poisoning state, including the cutoff, when the
-        ban was applied and the recorded reason. Requires a superadmin API key.
-      DESC
+      description "Report the current heartbeat poisoning state. Requires a superadmin API key.\n"
       security [ AdminToken: [] ]
       produces 'application/json'
 
@@ -61,7 +58,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
       end
     end
 
-    post('Poison Heartbeats (Ban)') do
+    post('Poison Heartbeats') do
       tags 'Admin Resources'
       description <<~DESC
         Poison Heartbeats!
@@ -140,7 +137,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
       end
     end
 
-    delete('Remove Poison (Unban)') do
+    delete('Un-Poison Heartbeats') do
       tags 'Admin Resources'
       description <<~DESC
         Lift the poison. Requires a superadmin API key.
