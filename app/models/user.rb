@@ -272,9 +272,13 @@ class User < ApplicationRecord
 
 
   private def discard_stale_leaderboard_entries!
-    boundary = [ poisoned_until, Time.current ].compact.max
-    boards = Leaderboard.where(start_date: ..boundary.to_date)
-    LeaderboardEntry.where(user_id: id, leaderboard_id: boards.select(:id)).delete_all
+    Leaderboard::REBUILDABLE_PERIODS.each do |period|
+      date = LeaderboardDateRange.normalize_date(Date.current, period)
+      board = Leaderboard.find_by(start_date: date, period_type: period, timezone_utc_offset: nil)
+      LeaderboardEntry.where(user_id: id, leaderboard_id: board.id).delete_all if board
+
+      LeaderboardUpdateJob.perform_later(period, date, force_update: true)
+    end
   end
 
   private def poison_cutoff_in_future?(cutoff)

@@ -140,6 +140,41 @@ class HeartbeatPoisoningTest < ActiveSupport::TestCase
     assert_not_nil LeaderboardEntry.find_by(id: other.id)
   end
 
+  test "poisoning leaves historical leaderboard entries alone" do
+    old_board = Leaderboard.create!(start_date: Date.current - 90, period_type: :daily)
+    historical = LeaderboardEntry.create!(leaderboard: old_board, user: @user, total_seconds: 900)
+
+    @user.apply_poison!(@cutoff)
+
+    assert_not_nil LeaderboardEntry.find_by(id: historical.id)
+  end
+
+  test "unbanning does not delete historical leaderboard entries" do
+    old_board = Leaderboard.create!(start_date: Date.current - 90, period_type: :daily)
+    historical = LeaderboardEntry.create!(leaderboard: old_board, user: @user, total_seconds: 900)
+    @user.apply_poison!(@cutoff)
+
+    @user.remove_poison!
+
+    assert_not_nil LeaderboardEntry.find_by(id: historical.id)
+  end
+
+  test "poison changes enqueue leaderboard rebuilds for the current boards" do
+    clear_enqueued_jobs
+
+    @user.apply_poison!(@cutoff)
+
+    Leaderboard::REBUILDABLE_PERIODS.each do |period|
+      assert_enqueued_with job: LeaderboardUpdateJob,
+        args: [ period, LeaderboardDateRange.normalize_date(Date.current, period), { force_update: true } ]
+    end
+
+    clear_enqueued_jobs
+    @user.remove_poison!
+
+    assert_enqueued_jobs Leaderboard::REBUILDABLE_PERIODS.size, only: LeaderboardUpdateJob
+  end
+
   test "only_poisoned returns exactly the hidden heartbeats" do
     @user.apply_poison!(@cutoff)
 
