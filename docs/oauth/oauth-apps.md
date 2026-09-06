@@ -26,7 +26,7 @@ Scopes control what data your app can access. It's a good idea to only request t
 |-------|-------------|-------------------|
 | `profile` | Access basic profile information (user ID, email addresses, Slack ID, GitHub username, trust factor) | Yes |
 | `read` | View basic info about the user's Hackatime account | No |
-| `admin` | Access the [Admin API](#admin-api-access) on the authorizing admin's behalf. | No |
+| `admin` | Access the [Admin API](#admin-api-access) on the authorizing user's behalf, subject to their role permissions. | No |
 
 If you don't specify any scopes, only the `profile` scope is granted.
 
@@ -39,6 +39,7 @@ scope=profile+read
 ### Admin scope restrictions
 
 - Only **admin+** users (`admin`, `superadmin`, `ultraadmin`) can attach the `admin` scope to an OAuth application.
+- **Viewers and admin+ users** (`viewer`, `admin`, `superadmin`, `ultraadmin`) can authorize an approved application requesting the `admin` scope. The token does not grant permissions beyond the authorizing user's role.
 - Apps with the `admin` scope must be **confidential** (server-side clients that can keep a secret).
 - **This scope requires approval from Hack Club HQ to use.** It won't work if you try to use it without permission!
 
@@ -107,7 +108,7 @@ POST https://hackatime.hackclub.com/oauth/token
 {
   "access_token": "abc123...",
   "token_type": "Bearer",
-  "expires_in": 504576000,
+  "expires_in": 504911232,
   "scope": "profile read",
   "created_at": 1700000000
 }
@@ -233,6 +234,14 @@ Returns the user's most recent heartbeat.
   "operating_system": "Mac",
   "machine": "MacBook-Pro",
   "entity": "app/models/user.rb"
+}
+```
+
+If the user has no heartbeats (excluding setup test entries), the endpoint returns **200 OK** with:
+
+```json
+{
+  "heartbeat": null
 }
 ```
 
