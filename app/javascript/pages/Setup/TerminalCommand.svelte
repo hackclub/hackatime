@@ -73,9 +73,8 @@
 
 <div class="space-y-8 sm:space-y-10">
   <ScreenHeader
-    emoji="/images/emojis/ms-lightning.svg"
     title="Let's do it!"
-    html="<b>Pick your operating system</b>, then follow the steps to run the setup command. It installs Hackatime and your editor plugins for you."
+    subtitle="Pick your operating system, then follow the steps to run the setup command. It installs Hackatime and your editor plugins for you."
   />
 
   <div class="mx-auto max-w-2xl space-y-4">
