@@ -9,11 +9,6 @@ development:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
     url: <%= ENV['DATABASE_URL'] %>
-  sailors_log:
-    adapter: postgresql
-    encoding: unicode
-    url: <%= ENV['SAILORS_LOG_DATABASE_URL'] %>
-    replica: true
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -24,11 +19,6 @@ test:
     adapter: postgresql
     database: app_test
     url: <%= ENV['TEST_DATABASE_URL'] %>
-  sailors_log:
-    adapter: postgresql
-    database: app_test
-    url: <%= ENV['TEST_DATABASE_URL'] %>
-    replica: true
 
 # Store production database in the storage/ directory, which by default
 # is mounted as a persistent Docker volume in config/deploy.yml.
@@ -39,11 +29,6 @@ production:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 16 }.to_i + 8 %> # Web threads + 8 GoodJob threads
     url: <%= ENV['POOL_DATABASE_URL'] %>
-  sailors_log:
-    adapter: postgresql
-    encoding: unicode
-    url: <%= ENV['SAILORS_LOG_DATABASE_URL'] %>
-    replica: true
   cache:
     <<: *default
     adapter: postgresql
