@@ -119,8 +119,7 @@ class InertiaController < ApplicationController
     return [] unless current_user&.admin_level == "ultraadmin"
     [
       inertia_link("GoodBoy", good_job_path, active: helpers.current_page?(good_job_path), inertia: false),
-      inertia_link("Feature Flags", flipper_path, active: helpers.current_page?(flipper_path), inertia: false),
-      inertia_link("Account Merger", admin_account_merger_path, active: helpers.current_page?(admin_account_merger_path) || request.path.start_with?("/admin/account_merger"))
+      inertia_link("Feature Flags", flipper_path, active: helpers.current_page?(flipper_path), inertia: false)
     ]
   end
 
