@@ -16,6 +16,26 @@ class HeartbeatTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
+  test "today and custom days include the final fractional second across DST" do
+    Time.use_zone("Europe/London") do
+      [ "2026-03-29", "2026-10-25" ].each do |date|
+        travel_to Time.zone.parse("#{date} 12:00:00") do
+          user = create(:user)
+          start = Time.current.beginning_of_day
+          finish = start.next_day
+          rows = [ start.to_f - 0.5, finish.to_f - 1.5, finish.to_f - 0.5, finish.to_f ].map do |time|
+            create(:heartbeat, user:, time:, source_type: :test_entry)
+          end
+          [ user.heartbeats.today, user.heartbeats.filter_by_time_range("custom", date, date) ].each do |scope|
+            assert_equal rows[1..2].map(&:id), scope.order(:time, :id).pluck(:id)
+            assert_equal 1, scope.duration_seconds
+          end
+          assert_includes [ 23.hours, 25.hours ], finish - start
+        end
+      end
+    end
+  end
+
   test "soft delete hides record from default scope and restore brings it back" do
     user = create(:user)
     heartbeat = create(:heartbeat, user: user,
