@@ -5,6 +5,8 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
 
   test "a malformed dump after a committed batch still invalidates rollups" do
     original_cache = Rails.cache
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
     user = create(:user)
     create(:heartbeat, user: user, time: 1_800_000_000.0)
@@ -23,6 +25,7 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ])
   ensure
     Rails.cache = original_cache
+    ActiveJob::Base.queue_adapter = original_adapter
   end
 
   test "sanitizes null bytes without losing valid batch rows and deduplicates replays" do
