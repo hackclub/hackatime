@@ -8,6 +8,7 @@ RSpec.describe 'Api::Summary', type: :request do
                   'This endpoint does NOT authenticate any API token: access is gated solely by the target ' \
                   'user (identified by user_id/user) having allow_public_stats_lookup enabled. No caller ' \
                   'credentials are required or verified.'
+      security []
       produces 'application/json'
 
       parameter name: :start, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD). Requires "end"/"to" to be set as well to form an explicit range.'
