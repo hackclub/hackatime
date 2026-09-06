@@ -359,7 +359,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
         create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
       end
 
-      DashboardRollup.clear_dirty(user.id)
+      total_row.update!(payload: { source_generation: DashboardRollup.generation(user.id) })
       Rails.cache.delete(DashboardRollupRefreshJob.enqueue_cache_key(user.id))
 
       stats = build_stats(user)

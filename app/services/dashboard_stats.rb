@@ -266,7 +266,7 @@ class DashboardStats
 
   def schedule_rollup_refresh(wait:)
     return if @rollup_refresh_scheduled
-    DashboardRollupRefreshJob.schedule_for(user.id, wait: wait)
+    DashboardRollupRefreshJob.enqueue_for(user.id, wait: wait)
     @rollup_refresh_scheduled = true
   end
 

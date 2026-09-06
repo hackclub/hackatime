@@ -4,14 +4,27 @@ class DashboardRollupRefreshService < ApplicationService
 
   def initialize(user:)
     @user = user
-    @scope = user.heartbeats_excluding_archived_projects
   end
 
   def call
+    # When called inside a transaction, its owner also owns the isolation level.
+    isolation = :repeatable_read unless DashboardRollup.connection.transaction_open?
+    DashboardRollup.transaction(isolation:) do
+      @scope = @user.heartbeats_excluding_archived_projects
+      records = build_records(DashboardRollup.generation(@user.id))
+      DashboardRollup.where(user_id: @user.id).delete_all
+      DashboardRollup.insert_all!(records)
+    end
+  end
+
+  private
+
+  def build_records(generation)
     now = Time.current
     records = [
       build_record(dimension: DashboardRollup::TOTAL_DIMENSION, bucket: nil,
                    total_seconds: @scope.duration_seconds, now:,
+                   payload: { source_generation: generation },
                    source_heartbeats_count: @scope.count,
                    source_max_heartbeat_time: @scope.maximum(:time)),
       build_record(dimension: DashboardRollup::FILTER_OPTIONS_DIMENSION, bucket: nil,
@@ -52,14 +65,8 @@ class DashboardRollupRefreshService < ApplicationService
       )
     end
 
-    DashboardRollup.transaction do
-      DashboardRollup.where(user_id: @user.id).delete_all
-      DashboardRollup.insert_all!(records)
-    end
-    DashboardRollup.clear_dirty(@user.id)
+    records
   end
-
-  private
 
   def build_record(
     dimension:,

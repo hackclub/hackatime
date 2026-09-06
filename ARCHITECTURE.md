@@ -162,9 +162,13 @@ disposable.
 [`DashboardRollupRefreshService`](app/services/dashboard_rollup_refresh_service.rb)
 rebuilds totals, dimensions, weekly projects, project details, filter options,
 activity graph and today's stats from the user's non-archived heartbeats. It
-atomically replaces all of one user's rows in a transaction. The refresh job
-marks the user dirty before enqueue, coalesces scheduling with a cache key, and
-uses a per-user GoodJob concurrency limit. Heartbeat commits, soft-delete/
+reads and replaces one user's rows in a repeatable-read transaction (callers
+with an existing transaction own its isolation level). Invalidations increment
+the user's durable `dashboard_rollup_generation`; the total row records the
+generation it read. A newer invalidation cannot be acknowledged by an older
+refresh. The job coalesces enqueueing with a disposable cache key and schedules
+a follow-up if generations still differ after completion. GoodJob serialises
+execution per user while allowing a pending follow-up. Heartbeat commits, soft-delete/
 restore, timezone changes, and project archive changes schedule refreshes.
 
 [`ProfileStatsService`](app/services/profile_stats_service.rb) is a thin
