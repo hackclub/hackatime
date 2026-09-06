@@ -16,6 +16,30 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
+  test "import resolves sanitised user agent identifiers and deduplicates replays" do
+    user = create(:user)
+    payload = { time: 1_700_000_000.0, entity: "main.rb", type: "file", user_agent_id: "agent\0-1" }
+    metadata = { value: "custom\0-client", editor: "ze\0d", os: "lin\0ux" }
+    agents = { "agent\0-1" => metadata }
+
+    result = HeartbeatIngest.call(user:, mode: :import, heartbeats: [ payload ], user_agents_by_id: agents)
+    assert_equal 1, result.persisted_count
+    heartbeat = user.heartbeats.sole
+    assert_equal "custom-client", heartbeat.user_agent
+    assert_equal "zed", heartbeat.editor
+    assert_equal "linux", heartbeat.operating_system
+    assert_equal [ "agent\0-1" ], agents.keys
+
+    [ agents, { "agent-1" => metadata } ].each do |replay_agents|
+      assert_no_difference("user.heartbeats.count") do
+        replay = HeartbeatIngest.call(user:, mode: :import,
+          heartbeats: [ payload.merge(user_agent_id: "agent-1") ], user_agents_by_id: replay_agents)
+        assert_equal 1, replay.duplicate_count
+        assert_equal 0, replay.failed_count
+      end
+    end
+  end
+
   test "direct and imported heartbeats share authoritative rules and deduplicate corrected replays" do
     expected = {
       ".env" => "Dotenv", ".gitignore" => "Ignore List", ".rspec" => "Option List",

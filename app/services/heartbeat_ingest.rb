@@ -27,7 +27,7 @@ class HeartbeatIngest
     @mode = mode
     @heartbeats = heartbeats
     @request_context = request_context.with_indifferent_access
-    @user_agents_by_id = user_agents_by_id
+    @user_agents_by_id = user_agents_by_id.transform_keys { |id| strip_null_bytes(id.to_s) }
     @schedule_rollup_refresh = schedule_rollup_refresh
   end
 
