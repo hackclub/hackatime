@@ -4,7 +4,7 @@ module TimeRangeFilterable
   RANGES = {
     today: {
       human_name: "Today",
-      calculate: -> { Time.current.beginning_of_day..Time.current.end_of_day }
+      calculate: -> { Time.current.beginning_of_day...Time.current.beginning_of_day.next_day }
     },
     yesterday: {
       human_name: "Yesterday",
@@ -73,8 +73,11 @@ module TimeRangeFilterable
       interval = interval&.to_sym
       if interval == :custom
         from_time = from.present? ? Time.zone.parse(from).beginning_of_day.to_i : 0
-        to_time = to.present? ? Time.zone.parse(to).end_of_day.to_i : 253402300799
-        where(time: from_time..to_time)
+        if to.present?
+          where(time: from_time...Time.zone.parse(to).beginning_of_day.next_day.to_i)
+        else
+          where(time: from_time..253402300799)
+        end
       elsif RANGES.key?(interval)
         public_send(interval)
       else
