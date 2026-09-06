@@ -17,7 +17,7 @@ class HeartbeatImportService
       heartbeat_batch.clear
     end
 
-    handler = HeartbeatSaxHandler.new do |hb|
+    handler = HeartbeatStreamHandler.new do |hb|
       total_count += 1
       on_progress&.call(total_count) if progress_interval.positive? && (total_count % progress_interval).zero?
 
@@ -25,7 +25,7 @@ class HeartbeatImportService
       flush.call if heartbeat_batch.size >= BATCH_SIZE
     end
 
-    Oj.saj_parse(handler, file_content)
+    Oj.sc_parse(handler, file_content)
     on_progress&.call(total_count)
 
     raise StandardError, "Expected a heartbeat export JSON file." if total_count.zero?
@@ -40,54 +40,56 @@ class HeartbeatImportService
       skipped_count: total_count - imported_count, errors: errors + [ e.message ] }
   end
 
-  class HeartbeatSaxHandler < Oj::Saj
+  # Retain only the current heartbeat, not the surrounding dump or day arrays.
+  # Unlike SAJ, ScHandler preserves embedded NULs for ingestion to sanitize.
+  class HeartbeatStreamHandler < Oj::ScHandler
     def initialize(&block)
       @block = block
       @depth = 0
-      @current_heartbeat = nil
       @heartbeat_array_depths = []
-      @field_array_stack = []
     end
 
-    def hash_start(key)
-      @current_heartbeat = {} if inside_heartbeat_array? && @depth == @heartbeat_array_depths.last + 1
+    def hash_start
+      @key = nil
       @depth += 1
+      {} if @heartbeat_array_depths.any?
     end
 
-    def hash_end(key)
+    def hash_end
       @depth -= 1
-      if inside_heartbeat_array? && @depth == @heartbeat_array_depths.last + 1 && @current_heartbeat
-        @block.call(@current_heartbeat)
-        @current_heartbeat = nil
-      end
     end
 
-    def array_start(key)
-      @heartbeat_array_depths << @depth if key == "heartbeats"
-      if @current_heartbeat && key.present?
-        @current_heartbeat[key] = []
-        @field_array_stack << key
+    def hash_key(key)
+      @key = key
+    end
+
+    def hash_set(hash, key, value)
+      hash[key] = value if hash
+    end
+
+    def array_start
+      container = if @key == "heartbeats" && @heartbeat_array_depths.empty?
+        @heartbeat_array_depths << @depth
+        :heartbeats
+      elsif @heartbeat_array_depths.any?
+        []
       end
+      @key = nil
       @depth += 1
+      container
     end
 
-    def array_end(key)
+    def array_end
       @depth -= 1
-      @heartbeat_array_depths.pop if key == "heartbeats" && @heartbeat_array_depths.last == @depth
-      @field_array_stack.pop if @field_array_stack.last == key
+      @heartbeat_array_depths.pop if @heartbeat_array_depths.last == @depth
     end
 
-    def add_value(value, key)
-      return unless @current_heartbeat
-      if key
-        @current_heartbeat[key] = value
-      elsif @field_array_stack.any?
-        @current_heartbeat[@field_array_stack.last] << value
+    def array_append(array, value)
+      if array == :heartbeats
+        @block.call(value)
+      elsif array
+        array << value
       end
     end
-
-    private
-
-    def inside_heartbeat_array? = @heartbeat_array_depths.any?
   end
 end

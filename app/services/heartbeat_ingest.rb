@@ -27,7 +27,7 @@ class HeartbeatIngest
     @mode = mode
     @heartbeats = heartbeats
     @request_context = request_context.with_indifferent_access
-    @user_agents_by_id = user_agents_by_id
+    @user_agents_by_id = user_agents_by_id.transform_keys { |id| strip_null_bytes(id.to_s) }
     @schedule_rollup_refresh = schedule_rollup_refresh
   end
 
@@ -237,7 +237,8 @@ class HeartbeatIngest
 
   def normalize_imported_heartbeat(heartbeat, placeholder_state: { contexts: {}, last_project: nil })
     hb = heartbeat.respond_to?(:with_indifferent_access) ? heartbeat.with_indifferent_access : heartbeat.to_h.with_indifferent_access
-    user_agent_info = (@user_agents_by_id[hb[:user_agent_id].to_s] || {}).with_indifferent_access
+    hb = strip_null_bytes(hb)
+    user_agent_info = strip_null_bytes((@user_agents_by_id[hb[:user_agent_id].to_s] || {}).with_indifferent_access)
     resolved_user_agent = hb[:user_agent].presence || user_agent_info[:value].presence || hb[:user_agent_id].presence
     parsed_user_agent = parse_user_agent(resolved_user_agent, category: hb[:category])
     derived_ai_editor = parsed_user_agent[:editor].presence if parsed_user_agent[:ai_model].present?

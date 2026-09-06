@@ -1,6 +1,29 @@
 require "test_helper"
 
 class HeartbeatImportServiceTest < ActiveSupport::TestCase
+  test "sanitizes null bytes without losing valid batch rows and deduplicates replays" do
+    user = create(:user)
+    rows = [
+      { entity: "first.rb", project: "api", time: 1_700_000_000.0, type: "file" },
+      { entity: "sec\0ond.rb", project: "api", branch: "ma\0in", dependencies: [ "ra\0ils" ], time: 1_700_000_060.0, type: "file" }
+    ]
+
+    result = HeartbeatImportService.import_from_file(StringIO.new({ heartbeats: rows }.to_json), user)
+    assert result[:success], result[:error]
+    assert_equal 2, result[:imported_count]
+    heartbeat = user.heartbeats.find_by!(entity: "second.rb")
+    assert_equal "main", heartbeat.branch
+    assert_equal [ "rails" ], heartbeat.dependencies
+
+    sanitized = [ rows.first, rows.second.merge(entity: "second.rb", branch: "main", dependencies: [ "rails" ]) ]
+    [ rows, sanitized ].each do |replay|
+      result = HeartbeatImportService.import_from_file({ heartbeats: replay }.to_json, user)
+      assert result[:success], result[:error]
+      assert_equal 0, result[:imported_count]
+    end
+    assert_equal 2, user.heartbeats.count
+  end
+
   test "deduplicates imported heartbeats by fields hash" do
     user = create(:user)
     file_content = {
