@@ -27,7 +27,7 @@ if [ -z "$gh_version" ] || ! dpkg --compare-versions "$gh_version" ge "$gh_min_v
   sudo apt-get install -y gh
 fi
 
-if ! command -v docker >/dev/null 2>&1; then
+if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
   echo "==> Installing Docker and Docker Compose"
   sudo install -m 0755 -d /etc/apt/keyrings
   sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
