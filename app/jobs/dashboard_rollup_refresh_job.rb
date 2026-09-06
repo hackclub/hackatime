@@ -4,14 +4,20 @@ class DashboardRollupRefreshJob < ApplicationJob
   include GoodJob::ActiveJobExtensions::Concurrency
 
   good_job_control_concurrency_with(
-    total_limit: 1, key: -> { "dashboard_rollup_refresh_job_#{arguments.first}" }
+    perform_limit: 1, key: -> { "dashboard_rollup_refresh_job_#{arguments.first}" }
   )
+  retry_on ActiveRecord::SerializationFailure, ActiveRecord::Deadlocked,
+    GoodJob::ActiveJobExtensions::Concurrency::ConcurrencyExceededError, wait: 5.seconds, attempts: 10
 
   DEFAULT_WAIT = 2.minutes
   ENQUEUE_CACHE_KEY_PREFIX = "dashboard_rollup_refresh_enqueued".freeze
 
   def self.schedule_for(user_id, wait: DEFAULT_WAIT)
     DashboardRollup.mark_dirty(user_id)
+    enqueue_for(user_id, wait:)
+  end
+
+  def self.enqueue_for(user_id, wait: DEFAULT_WAIT)
     return unless Rails.cache.write(enqueue_cache_key(user_id), true, expires_in: wait + 1.minute, unless_exist: true)
     set(wait: wait).perform_later(user_id)
   end
@@ -22,7 +28,9 @@ class DashboardRollupRefreshJob < ApplicationJob
     user = User.find_by(id: user_id)
     return unless user
     DashboardRollupRefreshService.new(user:).call
+    refreshed = true
   ensure
     Rails.cache.delete(self.class.enqueue_cache_key(user_id))
+    self.class.enqueue_for(user_id) if refreshed && DashboardRollup.dirty?(user_id)
   end
 end
