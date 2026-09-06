@@ -1,6 +1,27 @@
 require "test_helper"
 
 class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
+  test "ordinary stats attribute before project and category filters" do
+    user = create(:user, username: "stats_#{SecureRandom.hex(3)}")
+    start = Time.utc(2026, 4, 14, 10)
+    [ [ "alpha", "coding" ], [ "beta", "browsing" ], [ "alpha", "coding" ], [ "beta", "browsing" ] ].each_with_index do |(project, category), index|
+      create_heartbeat(user:, time: start.to_f + index * 60, project:, category:)
+    end
+    params = { start_date: start.iso8601, end_date: (start + 1.hour).iso8601, features: "projects" }
+    get "/api/v1/users/#{user.username}/stats", params: params
+    assert_response :success
+    assert_equal({ "alpha" => 60, "beta" => 120 }, response.parsed_body.dig("data", "projects").to_h { |row| [ row["name"], row["total_seconds"] ] })
+
+    [ { filter_by_project: "alpha" }, { filter_by_category: "coding" } ].each do |filter|
+      get "/api/v1/users/#{user.username}/stats", params: params.merge(filter)
+      assert_response :success
+      assert_equal 60, response.parsed_body.dig("data", "total_seconds")
+      get "/api/v1/users/#{user.username}/stats", params: params.merge(filter).merge(total_seconds: "true")
+      assert_response :success
+      assert_equal 60, response.parsed_body["total_seconds"]
+    end
+  end
+
   test "user_stats total_seconds matches full summary total for the same filters" do
     user = create(:user, username: "stats_user_#{SecureRandom.hex(3)}")
 

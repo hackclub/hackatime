@@ -227,24 +227,23 @@ module Heartbeatable
       SQL
     end
 
-    def attributed_durations_by(scope, field)
-      scope = scope.with_valid_timestamps
-      field_expr = connection.quote_column_name(field.to_s)
-      attribution_heartbeats = scope.unscope(:group, :select, :order).select(:id, :time, field)
-      heartbeat_gaps = unscoped.from(attribution_heartbeats, :attribution_heartbeats).select(<<~SQL.squish)
-        attribution_heartbeats.#{field_expr} AS bucket,
-        LAG(attribution_heartbeats.time) OVER (
-          ORDER BY attribution_heartbeats.time, attribution_heartbeats.id
-        ) AS duration_start,
-        attribution_heartbeats.time AS duration_end
-      SQL
-      capped_durations = with_capped_duration(heartbeat_gaps)
+    # Apply range and eligibility inside the window, dimension filters outside.
+    def with_attributed_duration(scope = all)
+      timeline = scope.with_valid_timestamps.unscope(:group, :select, :order).select(
+        "#{quoted_table_name}.*",
+        Arel.sql("LEAST(COALESCE(time - LAG(time) OVER (PARTITION BY user_id ORDER BY time, id), 0), #{heartbeat_timeout_duration.to_i}) AS duration")
+      )
+      unscoped.from(timeline, table_name)
+    end
 
+    def attributed_durations_by(scope, field, include_blank: false)
+      field_expr = connection.quote_column_name(field.to_s)
+      attributed = with_attributed_duration(scope).select(field, :duration)
       sql = <<~SQL.squish
-        SELECT bucket, COALESCE(SUM(duration), 0)::integer AS duration
-        FROM (#{capped_durations.to_sql}) attributed_durations
-        WHERE bucket IS NOT NULL AND bucket <> ''
-        GROUP BY bucket
+        SELECT #{field_expr} AS bucket, COALESCE(SUM(duration), 0)::integer AS duration
+        FROM (#{attributed.to_sql}) attributed_durations
+        #{"WHERE #{field_expr} IS NOT NULL AND #{field_expr} <> ''" unless include_blank}
+        GROUP BY #{field_expr}
       SQL
 
       connection.select_all(sql).each_with_object({}) { |row, hash| hash[row["bucket"]] = row["duration"].to_i }

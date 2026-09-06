@@ -24,7 +24,7 @@ class DashboardRollupRefreshService < ApplicationService
     records = [
       build_record(dimension: DashboardRollup::TOTAL_DIMENSION, bucket: nil,
                    total_seconds: @scope.duration_seconds, now:,
-                   payload: { source_generation: generation },
+                   payload: { source_generation: generation, attribution_version: DashboardRollup::ATTRIBUTION_VERSION },
                    source_heartbeats_count: @scope.count,
                    source_max_heartbeat_time: @scope.maximum(:time)),
       build_record(dimension: DashboardRollup::FILTER_OPTIONS_DIMENSION, bucket: nil,

@@ -27,7 +27,7 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
       assert_equal user.heartbeats.maximum(:time), total_row.source_max_heartbeat_time
 
       assert_equal(
-        user.heartbeats.group(:project).duration_seconds,
+        { "alpha" => 240, "beta" => 240, nil => 180 },
         DashboardRollup.where(user: user, dimension: "project").to_h { |row| [ row.bucket, row.total_seconds ] }
       )
 
@@ -92,7 +92,7 @@ class DashboardRollupRefreshServiceTest < ActiveSupport::TestCase
       assert_equal [ "active" ], filter_options["project"]
       assert_equal [ "go", "ruby" ], filter_options["language"]
       assert_equal 180, today_stats["todays_duration_seconds"]
-      assert_equal [ "active" ], DashboardRollup.where(user: user, dimension: "project").pluck(:bucket_value)
+      assert_equal({ "active" => 60, nil => 120 }, DashboardRollup.where(user: user, dimension: "project").to_h { |row| [ row.bucket, row.total_seconds ] })
       assert_equal [ "go", "ruby" ], DashboardRollup.where(user: user, dimension: "language").order(:bucket_value).pluck(:bucket_value)
     end
   end

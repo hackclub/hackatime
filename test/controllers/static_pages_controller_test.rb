@@ -62,7 +62,7 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
       assert_equal(
         {
           "alpha" => 240,
-          "beta" => 120
+          "beta" => 240
         },
         stats["project_durations"]
       )
@@ -70,8 +70,8 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
       assert_equal(
         {
           "2026-04-13" => {
-            "alpha" => 60,
-            "beta" => 120
+            "alpha" => 180,
+            "beta" => 240
           },
           "2026-04-06" => {
             "alpha" => 60

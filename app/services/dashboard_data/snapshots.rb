@@ -14,40 +14,26 @@ module DashboardData
     end
 
     def project_grouped_durations(scope)
-      non_null = scope.where.not(project: nil).group(:project).duration_seconds
-      return non_null if scope.where(project: nil).none?
-
-      null_duration = scope.where(project: nil).duration_seconds
-      return non_null if null_duration.zero?
-
-      non_null.merge(nil => null_duration)
+      Heartbeat.attributed_durations_by(scope, :project, include_blank: true)
     end
 
-    def project_details_snapshot(scope:)
-      timeout = Heartbeat.heartbeat_timeout_duration.to_i
-      relation_sql = scope.with_valid_timestamps
-        .where.not(project: [ nil, "" ], time: nil)
-        .select(:id, :time, :project, :language)
+    def project_details_snapshot(scope:, names: nil)
+      attributed = Heartbeat.with_attributed_duration(scope)
+      attributed = attributed.where(project: names) if names.present?
+      relation_sql = attributed
+        .where.not(project: [ nil, "" ])
+        .select(:time, :project, :language, :duration)
         .to_sql
 
       rows = Heartbeat.connection.select_all(<<~SQL.squish)
-        SELECT grouped_time,
+        SELECT project AS grouped_time,
                COUNT(*)::integer AS heartbeat_count,
                MIN(time) AS first_heartbeat,
                MAX(time) AS last_heartbeat,
                ARRAY_REMOVE(ARRAY_AGG(DISTINCT NULLIF(language, '')), NULL) AS languages,
-               COALESCE(SUM(diff), 0)::integer AS duration
-        FROM (
-          SELECT project AS grouped_time,
-                 time,
-                 language,
-                 CASE
-                   WHEN LAG(time) OVER (PARTITION BY project ORDER BY time, id) IS NULL THEN 0
-                   ELSE LEAST(time - LAG(time) OVER (PARTITION BY project ORDER BY time, id), #{timeout})
-                 END AS diff
-          FROM (#{relation_sql}) project_detail_heartbeats
-        ) diffs
-        GROUP BY grouped_time
+               COALESCE(SUM(duration), 0)::integer AS duration
+        FROM (#{relation_sql}) project_detail_heartbeats
+        GROUP BY project
       SQL
 
       rows.each_with_object({}) do |row, result|
@@ -72,10 +58,9 @@ module DashboardData
       ranges = week_ranges(user.timezone)
       result = ranges.to_h { |week_key, *_| [ week_key, {} ] }
 
-      relation_sql = scope.with_valid_timestamps
-        .where.not(time: nil)
+      relation_sql = Heartbeat.with_attributed_duration(scope)
         .where(time: ranges.last[1]..ranges.first[2])
-        .select(:id, :time, :project)
+        .select(:time, :project, :duration)
         .to_sql
 
       quoted_timezone = Heartbeat.connection.quote(user.timezone)
@@ -84,17 +69,11 @@ module DashboardData
       rows = Heartbeat.connection.select_all(<<~SQL.squish)
         SELECT TO_CHAR(week_group, 'YYYY-MM-DD') AS week_key,
                grouped_time,
-               COALESCE(SUM(diff), 0)::integer AS duration
+               COALESCE(SUM(duration), 0)::integer AS duration
         FROM (
           SELECT project AS grouped_time,
                  #{week_group_sql} AS week_group,
-                 CASE
-                   WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
-                   ELSE LEAST(
-                     time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
-                     #{Heartbeat.heartbeat_timeout_duration.to_i}
-                   )
-                 END AS diff
+                 duration
           FROM (#{relation_sql}) dashboard_heartbeats
         ) diffs
         GROUP BY week_group, grouped_time
@@ -259,12 +238,7 @@ module DashboardData
     # Date range and archive eligibility belong inside this window; dashboard
     # dimension filters belong outside it. Each gap belongs to the current row.
     def attributed_dashboard_scope(scope)
-      timeout = Heartbeat.heartbeat_timeout_duration.to_i
-      timeline = scope.with_valid_timestamps.reorder(nil).select(
-        :id, :time, *GROUPED_DIMENSIONS,
-        Arel.sql("LEAST(COALESCE(time - LAG(time) OVER (ORDER BY time, id), 0), #{timeout}) AS duration")
-      )
-      Heartbeat.unscoped.from(timeline, :heartbeats)
+      Heartbeat.with_attributed_duration(scope)
     end
 
     def filtered_query_snapshot(user:, scope:)
