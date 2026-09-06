@@ -1,6 +1,6 @@
 require 'swagger_helper'
 
-RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin/swagger.yaml' do
+RSpec.describe 'Api::Admin::V1::AdminUrlContracts', type: :request, openapi_spec: 'admin/swagger.yaml' do
   path '/api/admin/v1/user/info_batch' do
     get('Get user info batch') do
       tags 'Admin Utils'

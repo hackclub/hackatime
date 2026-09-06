@@ -1,6 +1,6 @@
 require "test_helper"
 
-class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
+class Api::Admin::V1::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
   test "user heartbeats returns ja4 fingerprint and name" do
     admin = create(:user, :superadmin)
     key = create(:admin_api_key, user: admin, name: "test")
