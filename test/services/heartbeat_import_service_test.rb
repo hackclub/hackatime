@@ -1,6 +1,30 @@
 require "test_helper"
 
 class HeartbeatImportServiceTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
+  test "a malformed dump after a committed batch still invalidates rollups" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    user = create(:user)
+    create(:heartbeat, user: user, time: 1_800_000_000.0)
+    DashboardRollupRefreshService.new(user: user).call
+    clear_enqueued_jobs
+    Rails.cache.clear
+    row = { entity: "old.rb", time: 1_700_000_000.0, type: "file" }.to_json
+    truncated_dump = '{"heartbeats":[' + ([ row ] * HeartbeatImportService::BATCH_SIZE).join(",") + ',{"entity":'
+
+    result = HeartbeatImportService.import_from_file(StringIO.new(truncated_dump), user)
+
+    assert_not result[:success]
+    assert_equal 1, result[:imported_count]
+    assert_equal 2, user.heartbeats.count
+    assert DashboardRollup.dirty?(user.id)
+    assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ])
+  ensure
+    Rails.cache = original_cache
+  end
+
   test "sanitizes null bytes without losing valid batch rows and deduplicates replays" do
     user = create(:user)
     rows = [
