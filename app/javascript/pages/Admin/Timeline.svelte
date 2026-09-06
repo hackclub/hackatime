@@ -4,6 +4,7 @@
   import AdminUserMention from "../../components/AdminUserMention.svelte";
   import Button from "../../components/Button.svelte";
   import TextInput from "../../components/TextInput.svelte";
+  import UserSearchCombobox from "../../components/UserSearchCombobox.svelte";
   import { adminTimeline, users } from "../../api";
 
   type UserSummary = {
@@ -101,12 +102,6 @@
     });
 
   let selected = $state<UserSummary[]>(untrack(() => selected_users));
-  let query = $state("");
-  let results = $state<UserSummary[]>([]);
-  let searching = $state(false);
-  let searchError = $state(false);
-  let showResults = $state(false);
-  let searchSequence = 0;
   const canMutate = $derived(
     ["admin", "superadmin", "ultraadmin"].includes(current_user.admin_level),
   );
@@ -188,46 +183,13 @@
   $effect(() => {
     selected = selected_users;
   });
-  $effect(() => {
-    const value = query.trim();
-    const sequence = ++searchSequence;
-    if (value.length < 2 && !/^\d+$/.test(value)) {
-      results = [];
-      showResults = false;
-      searching = false;
-      return;
-    }
-    const timer = setTimeout(async () => {
-      searching = true;
-      searchError = false;
-      try {
-        const response = await fetch(
-          adminTimeline.searchUsers.path({ query: { query: value } }),
-        );
-        if (!response.ok) throw new Error();
-        if (sequence === searchSequence) {
-          results = await response.json();
-          showResults = true;
-        }
-      } catch {
-        if (sequence === searchSequence) {
-          searchError = true;
-          showResults = true;
-        }
-      } finally {
-        if (sequence === searchSequence) searching = false;
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  });
 
   function selectUser(user: UserSummary) {
     if (!selected.some(({ id }) => id === user.id))
       selected = [...selected, user];
-    query = "";
-    results = [];
-    showResults = false;
   }
+  const canSearchUsers = (query: string) =>
+    query.length >= 2 || /^\d+$/.test(query);
   async function applyPreset(period: string) {
     const response = await fetch(
       adminTimeline.leaderboardUsers.path({ query: { period } }),
@@ -235,26 +197,6 @@
     if (!response.ok)
       return alert("Could not load preset users. Please try again.");
     selected = (await response.json()).users;
-  }
-  async function handleSearchKeydown(event: KeyboardEvent) {
-    if (event.key === "Escape") {
-      query = "";
-      showResults = false;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      if (results[0]) return selectUser(results[0]);
-      const value = query.trim();
-      if (value.length < 2 && !/^\d+$/.test(value)) return;
-      searching = true;
-      const response = await fetch(
-        adminTimeline.searchUsers.path({ query: { query: value, limit: 1 } }),
-      );
-      searching = false;
-      if (!response.ok) return;
-      const [user] = await response.json();
-      if (user) selectUser(user);
-    }
   }
   async function setTrust(column: Column) {
     if (!canMutate) return alert("you dont have human rights to do that");
@@ -312,77 +254,131 @@
         value={date}
       />
       <div class="flex items-center gap-3">
-        <div class="relative flex-1">
-          <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
-              {#if searching}<svg
-                  class="h-4 w-4 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  aria-label="Searching"
-                  ><circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  ></circle><path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path></svg
-                >{:else}<svg
-                  class="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                  ><path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  ></path></svg
-                >{/if}
-            </span>
-            <TextInput
-              bind:value={query}
-              onkeydown={handleSearchKeydown}
-              onfocus={() => query.length >= 2 && (showResults = true)}
-              onblur={() => setTimeout(() => (showResults = false), 200)}
-              autocomplete="off"
-              placeholder="Add user by name/email/id..."
-              class="w-full rounded-md bg-darker py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-300 focus:border-transparent focus:outline-none"
-            />
-          </div>
-          {#if showResults}<div
-              class="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-surface-200 bg-dark shadow-lg"
-            >
-              {#if searchError}<div class="px-4 py-2 text-sm text-red">
-                  Error searching users
-                </div>{:else if results.length === 0}<div
-                  class="px-4 py-2 text-sm text-muted"
+        <UserSearchCombobox
+          searchUrl={adminTimeline.searchUsers.path()}
+          id="timeline-user-search"
+          onselect={selectUser}
+          searchWhen={canSearchUsers}
+        >
+          {#snippet children({
+            query,
+            results,
+            open,
+            highlight,
+            searching,
+            searchError,
+            listboxId,
+            activeDescendant,
+            setQuery,
+            select,
+            selectFirstResult,
+            handleKeydown,
+            handleOptionKeydown,
+            openResults,
+            closeResults,
+          })}
+            <div class="relative flex-1">
+              <div class="relative">
+                <span
+                  class="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
                 >
-                  No users found
+                  {#if searching}<svg
+                      class="h-4 w-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      aria-label="Searching"
+                      ><circle
+                        class="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="4"
+                      ></circle><path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path></svg
+                    >{:else}<svg
+                      class="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      ><path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      ></path></svg
+                    >{/if}
+                </span>
+                <label for="timeline-user-search" class="sr-only">
+                  Search users
+                </label>
+                <TextInput
+                  id="timeline-user-search"
+                  value={query}
+                  oninput={(event) => setQuery(event.currentTarget.value)}
+                  onkeydown={(event) => {
+                    if (event.key === "Enter" && highlight === -1) {
+                      event.preventDefault();
+                      selectFirstResult();
+                    } else {
+                      handleKeydown(event);
+                    }
+                  }}
+                  onfocus={openResults}
+                  onblur={() => setTimeout(closeResults, 200)}
+                  autocomplete="off"
+                  placeholder="Add user by name/email/id..."
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-controls={listboxId}
+                  aria-expanded={open}
+                  aria-activedescendant={activeDescendant}
+                  class="w-full rounded-md bg-darker py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-300 focus:border-transparent focus:outline-none"
+                />
+              </div>
+              {#if open}<div
+                  id={listboxId}
+                  class="absolute left-0 top-full z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-surface-200 bg-dark shadow-lg"
+                  role="listbox"
+                  aria-label="Search users"
+                >
+                  {#if searchError}<div class="px-4 py-2 text-sm text-red">
+                      Error searching users
+                    </div>{:else if results.length === 0}<div
+                      class="px-4 py-2 text-sm text-muted"
+                    >
+                      No users found
+                    </div>{/if}
+                  {#each results as user, index}<button
+                      id={`timeline-user-search-result-${user.id}`}
+                      type="button"
+                      role="option"
+                      aria-selected={index === highlight}
+                      onmousedown={(event) => event.preventDefault()}
+                      onclick={() => select(user)}
+                      onkeydown={(event) => handleOptionKeydown(event, user)}
+                      class="my-1 mx-2 flex w-[calc(100%-1rem)] cursor-pointer items-center rounded-lg border px-3 py-2 text-sm text-surface-content transition-colors hover:border-surface-200 hover:bg-darkless {index ===
+                      highlight
+                        ? 'border-surface-200 bg-darkless'
+                        : 'border-transparent'}"
+                    >
+                      {#if user.avatar_url}<img
+                          src={user.avatar_url}
+                          alt={user.display_name}
+                          class="mr-3 h-5 w-5 rounded-full"
+                        />{/if}<span>{user.display_name}</span><span
+                        class="ml-auto rounded-full bg-surface-100 px-2 py-1 text-xs text-muted"
+                        >#{user.id}</span
+                      >
+                    </button>{/each}
                 </div>{/if}
-              {#each results as user}<button
-                  type="button"
-                  onmousedown={(event) => event.preventDefault()}
-                  onclick={() => selectUser(user)}
-                  class="my-1 mx-2 flex w-[calc(100%-1rem)] cursor-pointer items-center rounded-lg border border-transparent px-3 py-2 text-sm text-surface-content transition-colors hover:border-surface-200 hover:bg-darkless"
-                >
-                  {#if user.avatar_url}<img
-                      src={user.avatar_url}
-                      alt={user.display_name}
-                      class="mr-3 h-5 w-5 rounded-full"
-                    />{/if}<span>{user.display_name}</span><span
-                    class="ml-auto rounded-full bg-surface-100 px-2 py-1 text-xs text-muted"
-                    >#{user.id}</span
-                  >
-                </button>{/each}
-            </div>{/if}
-        </div>
+            </div>
+          {/snippet}
+        </UserSearchCombobox>
         <Button
           unstyled
           type="button"
