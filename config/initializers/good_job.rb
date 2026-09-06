@@ -23,10 +23,6 @@ Rails.application.configure do
     end
 
   config.good_job.cron = {
-    # update_slack_status: {
-    #   cron: "*/5 * * * *",
-    #   class: "UserSlackStatusUpdateJob"
-    # },
     daily_leaderboard_update: {
       cron: "* * * * *",
       class: "LeaderboardUpdateJob",

@@ -8,6 +8,8 @@ module SlackIntegration
     end
   end
 
+  class ServerError < ApiError; end
+
   class RateLimitedError < StandardError
     attr_reader :retry_after
 
@@ -69,7 +71,7 @@ module SlackIntegration
     current_status_response = HTTP.auth("Bearer #{slack_access_token}")
       .get("https://slack.com/api/users.profile.get")
 
-    current_status = JSON.parse(current_status_response.body.to_s)
+    current_status = parse_slack_status_response!(current_status_response)
 
     custom_status_regex = /spent on \w+ today$/
     status_present = current_status.dig("profile", "status_text").present?
@@ -93,7 +95,7 @@ module SlackIntegration
     status_emoji = ":#{status_emoji}:"
     status_text = "#{current_project_duration_formatted} spent on #{current_project} today"
 
-    HTTP.auth("Bearer #{slack_access_token}")
+    update_status_response = HTTP.auth("Bearer #{slack_access_token}")
       .post("https://slack.com/api/users.profile.set", form: {
         profile: {
           status_text:,
@@ -101,5 +103,19 @@ module SlackIntegration
           status_expiration: (Time.now + 10.minutes).to_i
         }
       })
+    parse_slack_status_response!(update_status_response)
+  end
+
+  private
+
+  def parse_slack_status_response!(response)
+    status = response.status.code
+    raise RateLimitedError, response.headers["Retry-After"] if status == 429
+    raise ServerError.new("server error", status:) if status >= 500
+
+    data = JSON.parse(response.body.to_s)
+    raise ApiError.new(data["error"] || "unexpected response", status:) unless response.status.success? && data["ok"]
+
+    data
   end
 end
