@@ -136,9 +136,11 @@ derives it from ordered heartbeat timestamps. The default timeout is 2 minutes:
 
 * the first heartbeat contributes zero;
 * each later heartbeat contributes `min(current_time - previous_time, 120s)`;
-* grouped duration partitions by the requested group, while
-  `attributed_durations_by` computes globally ordered gaps and attributes each
-  gap to the current heartbeat's bucket;
+* legacy grouped duration partitions by the requested group; dimension reports
+  instead use `with_attributed_duration` / `attributed_durations_by`, which
+  compute ordered gaps per user before filtering or grouping by dimensions;
+* project details, weekly project buckets, dashboard rollups and ordinary stats
+  APIs attribute each gap to the current row over the complete eligible range;
 * `to_span` splits when a gap exceeds the timeout and caps the prior span's tail
   at the timeout; and
 * boundary-aware calculations include the preceding heartbeat so a requested

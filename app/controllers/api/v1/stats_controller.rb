@@ -51,7 +51,12 @@ class Api::V1::StatsController < ApplicationController
       start_date: start_date,
       end_date: end_date
     }
-    service_params[:scope] = scope if scope
+    if params[:test_param] == "true"
+      service_params[:scope] = scope if scope
+    else
+      service_params[:projects] = filter_by_projects
+      service_params[:categories] = filter_by_categories
+    end
 
     no_ai_coding = params[:no_ai_coding] == "true"
 
@@ -70,6 +75,7 @@ class Api::V1::StatsController < ApplicationController
     else
       if params[:total_seconds] == "true"
         query = Heartbeat.where(user_id: @user.id).where("time >= ? AND time < ?", start_date.to_f, end_date.to_f)
+        query = Heartbeat.with_attributed_duration(query) unless params[:boundary_aware] == "true"
         query = query.where(project: filter_by_projects) if filter_by_projects
         query = query.where(category: filter_by_categories) if filter_by_categories
 
@@ -84,7 +90,7 @@ class Api::V1::StatsController < ApplicationController
           ) || 0
         else
           query = query.where.not(category: "ai coding") if no_ai_coding
-          query.duration_seconds || 0
+          query.pick(Arel.sql("COALESCE(SUM(duration), 0)::integer"))
         end
 
         return render json: { total_seconds: total_seconds }

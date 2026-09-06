@@ -6,6 +6,7 @@ class DashboardRollup < ApplicationRecord
   TODAY_STATS_DIMENSION = "today_stats".freeze
   FILTER_OPTIONS_DIMENSION = "filter_options".freeze
   CODING_RHYTHM_DIMENSION = "coding_rhythm".freeze
+  ATTRIBUTION_VERSION = 2
 
   belongs_to :user
 
@@ -30,6 +31,6 @@ class DashboardRollup < ApplicationRecord
     return false unless current_generation
 
     payload = find_by(user_id: user_id, dimension: TOTAL_DIMENSION)&.payload
-    payload&.fetch("source_generation", nil) != current_generation
+    payload&.fetch("source_generation", nil) != current_generation || payload&.fetch("attribution_version", nil) != ATTRIBUTION_VERSION
   end
 end

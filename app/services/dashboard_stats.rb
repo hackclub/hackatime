@@ -16,7 +16,7 @@ class DashboardStats
     interval = params[:interval]
     return build_filterable_dashboard_data(interval) if rollup_eligible?
 
-    key = [ "attributed_dashboard_v1", user, archived_project_names ] + FILTERS.map { |field| params[field] } + [ interval.to_s, params[:from], params[:to] ]
+    key = [ "attributed_dashboard_v2", user, archived_project_names ] + FILTERS.map { |field| params[field] } + [ interval.to_s, params[:from], params[:to] ]
     Rails.cache.fetch(key, expires_in: 5.minutes) { build_filterable_dashboard_data(interval) }
   end
 

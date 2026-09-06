@@ -182,7 +182,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   end
 
   def calculate_category_stats(heartbeats, category)
-    durations = heartbeats.group(category).duration_seconds
+    durations = Heartbeat.attributed_durations_by(heartbeats, category, include_blank: true)
     total_duration = durations.values.sum.to_f
     return [] if total_duration == 0
 

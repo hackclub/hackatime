@@ -38,23 +38,34 @@ class DashboardStatsTest < ActiveSupport::TestCase
   test "project grouped durations preserve nil project values" do
     user = create(:user)
     stats = build_stats(user)
+    [ nil, "alpha", nil, "alpha" ].each_with_index do |project, index|
+      create(:heartbeat, user:, project:, time: Time.utc(2026, 4, 14, 10).to_i + index * 60, source_type: :test_entry)
+    end
+    assert_equal({ nil => 60, "alpha" => 120 }, stats.project_grouped_durations(user.heartbeats))
+  end
 
-    create(:heartbeat,
-      user: user, time: Time.current.to_f - 60, project: nil,
-      language: "ruby", editor: "vscode", operating_system: "macos",
-      category: "coding", source_type: :test_entry
-    )
-    create(:heartbeat,
-      user: user, time: Time.current.to_f, project: nil,
-      language: "ruby", editor: "vscode", operating_system: "macos",
-      category: "coding", source_type: :test_entry
-    )
-    create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-    create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-
-    scope = user.heartbeats
-
-    assert_equal scope.group(:project).duration_seconds, stats.project_grouped_durations(scope)
+  test "project attribution agrees across live filtered weekly details and rollup results" do
+    travel_to Time.utc(2026, 4, 14, 12) do
+      user = create(:user)
+      [ "alpha", "beta", "alpha", "beta" ].each_with_index do |project, index|
+        create(:heartbeat, user:, project:, time: Time.current.to_i - 300 + index * 60, source_type: :test_entry)
+      end
+      live = build_stats(user).build_filterable_dashboard_data("today")
+      filtered = build_stats(user, params: { project: "alpha,beta" }).build_filterable_dashboard_data("today")
+      [ live, filtered ].each do |result|
+        assert_equal 180, result[:total_time]
+        assert_equal({ "alpha" => 60, "beta" => 120 }, result[:project_durations])
+        assert_equal result[:project_durations], result[:weekly_project_stats].fetch("2026-04-13")
+      end
+      details = ProjectStatsQuery.new(user:, params: {}).project_details(names: [ "alpha" ])
+      assert_equal 60, details.first[:total_seconds]
+      DashboardRollupRefreshService.new(user:).call
+      assert_equal live[:project_durations], build_stats(user).filterable_dashboard_data[:project_durations]
+      assert_not DashboardRollup.dirty?(user.id)
+      total = DashboardRollup.find_by!(user:, dimension: "total")
+      total.update!(payload: total.payload.except("attribution_version"))
+      assert DashboardRollup.dirty?(user.id)
+    end
   end
 
   test "all-time dashboard data can be served from rollups" do
@@ -595,8 +606,8 @@ class DashboardStatsTest < ActiveSupport::TestCase
 
         assert_equal "alpha", result["top_project"]
         assert_equal [ "alpha" ], result[:project]
-        assert_equal({ "alpha" => 60 }, result[:project_durations])
-        assert_equal({ "alpha" => 60 }, result[:weekly_project_stats].fetch("2026-04-13"))
+        assert_equal({ "alpha" => 180 }, result[:project_durations])
+        assert_equal({ "alpha" => 180 }, result[:weekly_project_stats].fetch("2026-04-13"))
       end
     end
   end

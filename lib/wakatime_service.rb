@@ -4,10 +4,9 @@ include ApplicationHelper
 include ErrorReporting
 
 class WakatimeService
-  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil, boundary_aware: false, valid_timestamps_only: false, exclude_categories: [])
+  def initialize(user: nil, specific_filters: [], allow_cache: true, limit: 10, start_date: nil, end_date: nil, scope: nil, boundary_aware: false, valid_timestamps_only: false, exclude_categories: [], projects: nil, categories: nil)
     @scope = scope || Heartbeat.all
     @scope = @scope.with_valid_timestamps if valid_timestamps_only
-    @scope = @scope.where.not("LOWER(category) IN (?)", exclude_categories) if exclude_categories.any?
     @exclude_categories = exclude_categories
     @user = user
     @boundary_aware = boundary_aware
@@ -25,6 +24,14 @@ class WakatimeService
     @limit = nil if @limit&.zero?
 
     @scope = @scope.where(user_id: @user.id) if @user.present?
+
+    @attributed_scope = Heartbeat.with_attributed_duration(@scope)
+    @attributed_scope = @attributed_scope.where(project: projects) if projects
+    @attributed_scope = @attributed_scope.where(category: categories) if categories
+    if exclude_categories.any?
+      @scope = @scope.where.not("LOWER(category) IN (?)", exclude_categories)
+      @attributed_scope = @attributed_scope.where.not("LOWER(category) IN (?)", exclude_categories)
+    end
 
     @specific_filters = specific_filters
     @allow_cache = allow_cache
@@ -90,7 +97,7 @@ class WakatimeService
     @total_seconds = if @boundary_aware
       Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date, excluded_categories: @exclude_categories) || 0
     else
-      @scope.duration_seconds || 0
+      @attributed_scope.pick(Arel.sql("COALESCE(SUM(duration), 0)::integer"))
     end
     summary[:total_seconds] = @total_seconds
 
@@ -107,7 +114,7 @@ class WakatimeService
   end
 
   def summary_cache_key
-    scope_digest = Digest::SHA256.hexdigest(@scope.to_sql)
+    scope_digest = Digest::SHA256.hexdigest((@boundary_aware ? @scope : @attributed_scope).to_sql)
     filters = @specific_filters.map(&:to_s).sort.join(",")
 
     [ "wakatime_service", "summary", "v1", scope_digest, filters, @limit ].join(":")
@@ -115,14 +122,19 @@ class WakatimeService
 
   def generate_summary_chunk(group_by)
     result = []
-    @scope.group(group_by).duration_seconds.each do |key, value|
+    durations = if @boundary_aware
+      @scope.group(group_by).duration_seconds
+    else
+      @attributed_scope.group(group_by).pluck(group_by, Arel.sql("COALESCE(SUM(duration), 0)::integer")).to_h
+    end
+    durations.each do |key, value|
       entry = {
         name: @raw_names ? (key.presence || "Other") : transform_display_name(group_by, key),
         total_seconds: value,
         text: ApplicationController.helpers.short_time_simple(value),
         hours: value / 3600,
         minutes: (value % 3600) / 60,
-        percent: (100.0 * value / @total_seconds).round(2),
+        percent: @total_seconds.positive? ? (100.0 * value / @total_seconds).round(2) : 0,
         digital: ApplicationController.helpers.digital_time(value)
       }
       entry[:color] = LanguageUtils.color(key) if group_by == :language

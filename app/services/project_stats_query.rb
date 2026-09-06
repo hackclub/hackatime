@@ -18,7 +18,7 @@ class ProjectStatsQuery
   end
 
   def project_names
-    names = scoped_heartbeats(discovery_start_time, discovery_end_time).select(:project).distinct.pluck(:project).compact
+    names = scoped_heartbeats(discovery_start_time, discovery_end_time).select(:project).distinct.pluck(:project).compact_blank
     @include_archived ? names : names.reject { |name| archived_project_names.include?(name) }
   end
 
@@ -31,9 +31,9 @@ class ProjectStatsQuery
     end
 
     query = scoped_heartbeats(stats_start_time, stats_end_time)
-    query = query.where(project: requested_names) if requested_names.any?
+    query = query.where(project: nil).or(query.where.not(project: archived_project_names)) unless @include_archived || archived_project_names.empty?
 
-    stats = DashboardData::Snapshots.project_details_snapshot(scope: query)
+    stats = DashboardData::Snapshots.project_details_snapshot(scope: query, names: requested_names)
     return [] if stats.empty?
 
     candidate_names = requested_names.presence || stats.keys
@@ -79,7 +79,7 @@ class ProjectStatsQuery
     end_ts = timestamp_value(end_time)
     return @user.heartbeats.none if start_ts.nil? || end_ts.nil?
 
-    @user.heartbeats.with_valid_timestamps.where.not(project: [ nil, "" ]).where(time: start_ts..end_ts)
+    @user.heartbeats.with_valid_timestamps.where(time: start_ts..end_ts)
   end
 
   def archived_project_names
@@ -90,7 +90,7 @@ class ProjectStatsQuery
     rows = DashboardRollup.where(user_id: @user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true).to_a
     return if rows.empty?
 
-    DashboardRollupRefreshJob.schedule_for(@user.id, wait: 0.seconds) if DashboardRollup.dirty?(@user.id)
+    DashboardRollupRefreshJob.enqueue_for(@user.id, wait: 0.seconds) if DashboardRollup.dirty?(@user.id)
 
     details_by_project = rows.index_by(&:bucket)
     details_by_project.delete("")
