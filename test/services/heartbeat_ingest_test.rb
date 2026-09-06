@@ -16,6 +16,32 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
+  test "direct and imported heartbeats share authoritative rules and deduplicate corrected replays" do
+    expected = {
+      ".env" => "Dotenv", ".gitignore" => "Ignore List", ".rspec" => "Option List",
+      ".gitattributes" => "Git Attributes", "config.cjs" => "JavaScript",
+      "page.jinja" => "Jinja", "main.luau" => "Luau", "styles.postcss" => "PostCSS"
+    }
+    %i[direct import].each do |mode|
+      user = create(:user)
+      payload = expected.keys.map do |entity|
+        { entity:, language: "Ezhil", time: 1_700_000_000.0, type: "file" }
+      end
+      first = HeartbeatIngest.call(user:, mode:, heartbeats: payload)
+
+      assert_equal expected.length, first.persisted_count
+      assert_equal 0, first.failed_count
+      assert_equal expected, user.heartbeats.pluck(:entity, :language).to_h
+      assert_equal [ mode == :direct ? "direct_entry" : "wakapi_import" ], user.heartbeats.distinct.pluck(:source_type)
+      replay = payload.map { |row| row.merge(language: expected.fetch(row[:entity])) }
+      assert_no_difference("user.heartbeats.count") do
+        result = HeartbeatIngest.call(user:, mode:, heartbeats: replay)
+        assert_equal expected.length, result.duplicate_count
+        assert_equal 0, result.failed_count
+      end
+    end
+  end
+
   test "direct heartbeat ingest persists normalized heartbeats and schedules dashboard rollup refresh" do
     user = create(:user)
 
@@ -107,6 +133,93 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     )
 
     assert_equal "coding", user.heartbeats.sole.category
+  end
+
+  test "direct heartbeat ingest corrects a Dotenv filename misclassified as Ezhil" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ { entity: ".env", language: "Ezhil", time: Time.current.to_f, type: "file" } ]
+    )
+
+    assert_equal "Dotenv", user.heartbeats.sole.language
+  end
+
+  test "direct heartbeat ingest replaces AUTO_DETECTED from the filename" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user:,
+      mode: :direct,
+      heartbeats: [ { entity: "main.rb", language: "AUTO_DETECTED", time: Time.current.to_f, type: "file" } ]
+    )
+
+    assert_equal "Ruby", user.heartbeats.sole.language
+  end
+
+  test "direct heartbeat ingest does not guess an ambiguous missing language" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user:,
+      mode: :direct,
+      heartbeats: [ { entity: "main.rs", time: Time.current.to_f, type: "file" } ]
+    )
+
+    assert_nil user.heartbeats.sole.language
+  end
+
+  test "direct heartbeat ingest persists the pre-remap hash as an alias" do
+    user = create(:user)
+
+    result = HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ { entity: ".env", language: "Ezhil", time: Time.current.to_f, type: "file" } ]
+    )
+
+    heartbeat = result.items.sole.heartbeat
+    alias_record = HeartbeatHashAlias.find_by!(heartbeat_id: heartbeat.id)
+    pre_remap_attributes = heartbeat.attributes.merge("language" => "Ezhil")
+    assert_equal Heartbeat.generate_fields_hash(pre_remap_attributes), alias_record.alias_hash
+    assert_equal heartbeat.fields_hash, alias_record.canonical_hash
+  end
+
+  test "direct heartbeat ingest resolves a canonical hash through a durable alias" do
+    user = create(:user)
+    time = Time.current.to_f
+    legacy = create(:heartbeat, user:, entity: ".env", language: "Ezhil", time:, type: "file", category: "coding")
+    canonical_hash = Heartbeat.generate_fields_hash(legacy.attributes.merge("language" => "Dotenv"))
+    HeartbeatHashAlias.create!(
+      user:, heartbeat_id: legacy.id, alias_hash: canonical_hash,
+      canonical_hash: legacy.fields_hash
+    )
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(
+        user:, mode: :direct,
+        heartbeats: [ { entity: ".env", language: "Ezhil", time:, type: "file" } ]
+      )
+
+      assert_equal legacy.id, result.items.sole.heartbeat.id
+      assert_equal 0, result.persisted_count
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
+  test "direct heartbeat ingest replaces an alias target after soft deletion" do
+    user = create(:user)
+    payload = { entity: ".env", language: "Ezhil", time: Time.current.to_f, type: "file" }
+    old_heartbeat = HeartbeatIngest.call(user:, mode: :direct, heartbeats: [ payload ]).items.sole.heartbeat
+    old_heartbeat.soft_delete
+
+    result = HeartbeatIngest.call(user:, mode: :direct, heartbeats: [ payload ])
+
+    new_heartbeat = result.items.sole.heartbeat
+    assert_not_equal old_heartbeat.id, new_heartbeat.id
+    assert_equal new_heartbeat.id, HeartbeatHashAlias.find_by!(user:).heartbeat_id
   end
 
   test "direct heartbeat ingest uses the HTTP user agent when the body omits it" do
@@ -485,6 +598,35 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal [ 100, 200 ], user.heartbeats.order(:ai_output_tokens).pluck(:ai_output_tokens)
   end
 
+  test "direct batch resolution does not let an unresolved duplicate replace a resolved heartbeat" do
+    user = create(:user)
+    timestamp = Time.current.to_f
+    legacy = create(
+      :heartbeat,
+      user:,
+      entity: ".env",
+      language: "Ezhil",
+      time: timestamp,
+      type: "file",
+      category: "coding"
+    )
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(
+        user:,
+        mode: :direct,
+        heartbeats: [
+          { entity: ".env", language: "Ezhil", time: timestamp, type: "file" },
+          { entity: ".env", language: "Dotenv", time: timestamp, type: "file" }
+        ]
+      )
+
+      assert_equal 0, result.persisted_count
+      assert_equal 2, result.duplicate_count
+      assert_equal [ legacy.id, legacy.id ], result.items.map { |item| item.heartbeat.id }
+    end
+  end
+
   test "import heartbeat ingest normalizes nanosecond-scaled epoch times" do
     user = create(:user)
     sane_time = 1_700_000_000.0
@@ -496,6 +638,23 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     )
 
     assert_in_delta sane_time, user.heartbeats.sole.time, 1.0
+  end
+
+  test "import heartbeat ingest replaces an unresolved AUTO_DETECTED filename with Unknown" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user:,
+      mode: :import,
+      heartbeats: [ {
+        entity: "/tmp/file.unrecognised",
+        language: "AUTO_DETECTED",
+        time: 1_700_000_000.0,
+        type: "file"
+      } ]
+    )
+
+    assert_equal "Unknown", user.heartbeats.sole.language
   end
 
   test "import heartbeat ingest applies blank defaults and sanitizes project names" do
@@ -551,8 +710,8 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
       time: 1_700_000_000.0,
       type: "file"
     }
-    # Stored before AUTHORITATIVE_EXTENSIONS existed, so its hash was computed
-    # with the client-reported "Lua" rather than the corrected "Luau".
+    # Stored before the Luau remap rule existed, so its hash was computed with
+    # the client-reported "Lua" rather than the corrected "Luau".
     create_legacy_imported_heartbeat(user, raw)
 
     assert_no_difference("user.heartbeats.count") do
@@ -561,6 +720,10 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
       assert_equal 0, result.persisted_count
       assert_equal 1, result.duplicate_count
     end
+
+    legacy = user.heartbeats.sole
+    canonical_hash = Heartbeat.generate_fields_hash(legacy.attributes.merge("language" => "Luau"))
+    assert_equal legacy.id, HeartbeatHashAlias.find_by!(user:, alias_hash: canonical_hash).heartbeat_id
   end
 
   test "import heartbeat ingest recognizes legacy hashes containing placeholders" do
@@ -640,6 +803,33 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal 80, heartbeat.ai_prompt_length
     assert_equal 12, heartbeat.ai_line_changes
     assert_equal 4, heartbeat.human_line_changes
+  end
+
+  test "legacy import compatibility hashes keep distinct AI telemetry separate" do
+    user = create(:user)
+    timestamp = 1_700_000_000.0
+    base = {
+      ai_session: "session-123",
+      category: "ai coding",
+      entity: "Claude session",
+      time: timestamp,
+      type: "app"
+    }
+
+    first = HeartbeatIngest.call(
+      user:,
+      mode: :import,
+      heartbeats: [ base.merge(ai_output_tokens: 100) ]
+    )
+    second = HeartbeatIngest.call(
+      user:,
+      mode: :import,
+      heartbeats: [ base.merge(ai_output_tokens: 200) ]
+    )
+
+    assert_equal 1, first.persisted_count
+    assert_equal 1, second.persisted_count
+    assert_equal [ 100, 200 ], user.heartbeats.order(:ai_output_tokens).pluck(:ai_output_tokens)
   end
 
   test "direct heartbeat ingest does not queue repo mapping for the last-project sentinel" do

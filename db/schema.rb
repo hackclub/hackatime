@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_05_203922) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -273,6 +273,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at_unfinished_unperformed", where: "((finished_at IS NULL) AND (performed_at IS NULL))"
   end
 
+  create_table "heartbeat_hash_aliases", force: :cascade do |t|
+    t.text "alias_hash", null: false
+    t.text "canonical_hash", null: false
+    t.datetime "created_at", null: false
+    t.bigint "heartbeat_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["heartbeat_id"], name: "index_heartbeat_hash_aliases_on_heartbeat_id"
+    t.index ["user_id", "alias_hash"], name: "index_heartbeat_hash_aliases_on_user_id_and_alias_hash", unique: true
+    t.index ["user_id"], name: "index_heartbeat_hash_aliases_on_user_id"
+  end
+
   create_table "heartbeat_import_runs", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "encrypted_api_key"
@@ -317,6 +329,60 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_heartbeat_import_sources_on_user_id", unique: true
+  end
+
+  create_table "heartbeat_remap_alias_changes", force: :cascade do |t|
+    t.text "after_canonical_hash", null: false
+    t.bigint "after_heartbeat_id", null: false
+    t.text "alias_hash", null: false
+    t.text "before_canonical_hash"
+    t.bigint "before_heartbeat_id"
+    t.datetime "created_at", null: false
+    t.bigint "heartbeat_id", null: false
+    t.bigint "heartbeat_remap_run_id", null: false
+    t.datetime "rolled_back_at"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["heartbeat_remap_run_id", "heartbeat_id", "rolled_back_at"], name: "index_heartbeat_remap_alias_changes_on_rollback_owner"
+    t.index ["heartbeat_remap_run_id", "user_id", "alias_hash"], name: "index_heartbeat_remap_alias_changes_on_run_user_alias", unique: true
+    t.index ["heartbeat_remap_run_id"], name: "index_heartbeat_remap_alias_changes_on_heartbeat_remap_run_id"
+    t.index ["user_id"], name: "index_heartbeat_remap_alias_changes_on_user_id"
+  end
+
+  create_table "heartbeat_remap_changes", force: :cascade do |t|
+    t.string "action", null: false
+    t.datetime "created_at", null: false
+    t.bigint "heartbeat_id", null: false
+    t.bigint "heartbeat_remap_run_id", null: false
+    t.jsonb "postimage", default: {}, null: false
+    t.jsonb "preimage", default: {}, null: false
+    t.datetime "rolled_back_at"
+    t.string "rule_ids", default: [], null: false, array: true
+    t.datetime "updated_at", null: false
+    t.bigint "winner_heartbeat_id"
+    t.index ["heartbeat_remap_run_id", "heartbeat_id"], name: "index_heartbeat_remap_changes_on_run_and_heartbeat", unique: true
+    t.index ["heartbeat_remap_run_id", "rolled_back_at", "action", "id"], name: "index_heartbeat_remap_changes_on_pending_rollback"
+    t.index ["heartbeat_remap_run_id"], name: "index_heartbeat_remap_changes_on_heartbeat_remap_run_id"
+  end
+
+  create_table "heartbeat_remap_runs", force: :cascade do |t|
+    t.integer "batch_size", null: false
+    t.bigint "changed_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.bigint "cursor_id", default: 0, null: false
+    t.bigint "deduplicated_count", default: 0, null: false
+    t.boolean "dry_run", default: true, null: false
+    t.bigint "error_count", default: 0, null: false
+    t.text "error_message"
+    t.datetime "finished_at"
+    t.bigint "max_heartbeat_id", null: false
+    t.string "rule_ids", default: [], null: false, array: true
+    t.bigint "scanned_count", default: 0, null: false
+    t.bigint "stale_count", default: 0, null: false
+    t.datetime "started_at"
+    t.integer "state", default: 0, null: false
+    t.bigint "unsafe_count", default: 0, null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "heartbeats", force: :cascade do |t|
@@ -767,8 +833,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
   add_foreign_key "goals", "users"
+  add_foreign_key "heartbeat_hash_aliases", "users"
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
+  add_foreign_key "heartbeat_remap_alias_changes", "heartbeat_remap_runs", on_delete: :cascade
+  add_foreign_key "heartbeat_remap_alias_changes", "users"
+  add_foreign_key "heartbeat_remap_changes", "heartbeat_remap_runs", on_delete: :cascade
   add_foreign_key "heartbeats", "ja4s", on_delete: :nullify
   add_foreign_key "heartbeats", "users"
   add_foreign_key "instance_import_sources", "users"

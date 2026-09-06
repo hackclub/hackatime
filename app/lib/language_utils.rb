@@ -1,12 +1,6 @@
 module LanguageUtils
   DEFAULT_COLOR = "#888888"
 
-  # Some extensions are silly and report the wrong language for a given entity path.
-  # But, we know better!
-  # This means that we can just override the language when we think it's incorrect, and Hackatime
-  # will be accurate Most Of The Time(tm). Without this, it's the opposite!
-  AUTHORITATIVE_EXTENSIONS = %w[.luau].freeze
-
   def self.data
     @data ||= begin
       base = YAML.load_file(Rails.root.join("config/languages.yml"))
@@ -41,9 +35,21 @@ module LanguageUtils
   end
   private_class_method :build_lookup
 
+  def self.build_unambiguous_lookup(key)
+    owners = Hash.new { |hash, value| hash[value] = [] }
+    data.each do |name, info|
+      (info[key] || []).each { |value| owners[value.downcase] << name }
+    end
+    owners.filter_map { |value, names| [ value, names.first ] if names.uniq.one? }.to_h
+  end
+  private_class_method :build_unambiguous_lookup
+
   def self.alias_map = @alias_map ||= build_lookup("aliases", include_name_as_key: true)
   def self.extension_map = @extension_map ||= build_lookup("extensions")
   def self.filename_map = @filename_map ||= build_lookup("filenames")
+  def self.unambiguous_extension_map = @unambiguous_extension_map ||= build_unambiguous_lookup("extensions")
+  def self.unambiguous_filename_map = @unambiguous_filename_map ||= build_unambiguous_lookup("filenames")
+  private_class_method :unambiguous_extension_map, :unambiguous_filename_map
 
   # Resolve a raw language string to its canonical name.
   def self.find_name(raw)
@@ -63,23 +69,14 @@ module LanguageUtils
 
   def self.detect_from_entity(entity) = detect_from_filename(entity) || detect_from_extension(entity)
 
-  def self.authoritative_language(entity)
-    return nil if entity.blank?
-    return nil unless AUTHORITATIVE_EXTENSIONS.include?(File.extname(entity).downcase)
-    detect_from_extension(entity)
+  def self.detect_unambiguous_from_entity(entity)
+    return if entity.blank?
+
+    unambiguous_filename_map[File.basename(entity).downcase] || unambiguous_extension_map[File.extname(entity).downcase]
   end
 
-  def self.fill_missing_language(raw, entity:)
-    authoritative_language(entity) || legacy_fill_missing_language(raw, entity:)
-  end
-
-  # The pre-override fill, without AUTHORITATIVE_EXTENSIONS. Kept so the import
-  # dedup path can reproduce fields hashes stored before the override existed;
-  # routing those through the override would compute hashes that never existed
-  # and re-importing an old dump would mint duplicate heartbeats.
-  def self.legacy_fill_missing_language(raw, entity:)
-    blank_or_unknown?(raw) ? detect_from_entity(entity) : raw
-  end
+  def self.fill_missing_language(raw, entity:) = blank_or_unknown?(raw) ? detect_unambiguous_from_entity(entity) : raw
+  def self.legacy_fill_missing_language(raw, entity:) = blank_or_unknown?(raw) ? detect_from_entity(entity) : raw
 
   # Canonical display name: "js" → "JavaScript", "cpp" → "C++"
   def self.display_name(raw) = raw.blank? ? "Unknown" : (find_name(raw) || raw)

@@ -17,6 +17,7 @@ class HeartbeatIngest
 
   Result = Data.define(:total_count, :persisted_count, :duplicate_count, :failed_count, :errors, :items)
   Item = Data.define(:heartbeat, :status, :error)
+  Normalized = Data.define(:attributes, :pre_remap_hash)
 
   def self.call(...) = new(...).call
   def self.schedule_rollup_refresh(user:) = DashboardRollupRefreshJob.schedule_for(user.id)
@@ -48,7 +49,8 @@ class HeartbeatIngest
     placeholder_state = { contexts: {}, last_project: nil }
 
     @heartbeats.each_with_index do |heartbeat, index|
-      attrs = normalize_direct_heartbeat(heartbeat, placeholder_state:)
+      normalized = normalize_direct_heartbeat(heartbeat, placeholder_state:)
+      attrs = normalized.attributes
       model_attributes = validated_model_attributes(attrs)
       attrs = model_attributes.symbolize_keys
       update_placeholder_state!(attrs, placeholder_state)
@@ -57,7 +59,8 @@ class HeartbeatIngest
         heartbeat:,
         attrs:,
         model_attributes:,
-        fields_hash: Heartbeat.generate_fields_hash(model_attributes)
+        fields_hash: Heartbeat.generate_fields_hash(model_attributes),
+        identity_hashes: [ normalized.pre_remap_hash ]
       }
     rescue => e
       errors << { heartbeat: heartbeat, error: e.message, type: e.class.name }
@@ -111,7 +114,7 @@ class HeartbeatIngest
     attrs[:user_agent] = attrs[:user_agent].presence || attrs.delete(:plugin).presence || @request_context[:user_agent].presence
     parsed_ua = WakatimeUserAgentParser.parse(attrs[:user_agent], category: attrs[:category])
 
-    attrs.merge(
+    normalized = attrs.merge(
       user_id: @user.id,
       source_type:,
       ip_address: @request_context[:ip_address],
@@ -121,12 +124,23 @@ class HeartbeatIngest
       operating_system: parsed_ua[:os].presence || attrs[:operating_system].presence,
       machine: @request_context[:machine].presence || attrs[:machine].presence
     ).slice(*Heartbeat.column_names.map(&:to_sym))
+    pre_remap_hash = fields_hash_for(normalized)
+    result = HeartbeatRemapper.call(normalized)
+    Normalized.new(attributes: result.attributes, pre_remap_hash:)
   end
 
   def persist_direct_heartbeats(entries)
+    result = with_heartbeat_transaction { persist_direct_batch(entries) }
+    if result.second.any? && @schedule_rollup_refresh
+      self.class.schedule_rollup_refresh(user: @user)
+    end
+    result
+  end
+
+  def persist_direct_batch(entries)
     entries_by_hash = entries.group_by { |entry| entry[:fields_hash] }
     hashes = entries_by_hash.keys
-    persisted_by_hash = @user.heartbeats.where(fields_hash: hashes).index_by(&:fields_hash)
+    persisted_by_hash = resolve_heartbeats(entries)
     missing_entries = entries_by_hash.filter_map do |fields_hash, matching_entries|
       matching_entries.first unless persisted_by_hash.key?(fields_hash)
     end
@@ -139,7 +153,7 @@ class HeartbeatIngest
         Heartbeat.insert_all(records, unique_by:, returning: Heartbeat.column_names)
       end
       inserted_by_hash = result.to_a.index_by { |attributes| attributes.fetch("fields_hash") }
-        .transform_values { |attributes| Heartbeat.new(attributes) }
+        .transform_values { |attributes| Heartbeat.instantiate(attributes) }
       persisted_by_hash.merge!(inserted_by_hash)
 
       # Another request can win the conflict after our prefetch but before the
@@ -153,10 +167,7 @@ class HeartbeatIngest
     end
 
     hashes.each { |fields_hash| persisted_by_hash.fetch(fields_hash) }
-    if inserted_by_hash.any? && @schedule_rollup_refresh
-      self.class.schedule_rollup_refresh(user: @user)
-    end
-
+    persist_hash_aliases(entries, persisted_by_hash)
     [ persisted_by_hash, inserted_by_hash.keys ]
   end
 
@@ -171,6 +182,14 @@ class HeartbeatIngest
     heartbeat.validate!
     heartbeat.attributes
   end
+
+  def model_attributes_for(attrs)
+    heartbeat = Heartbeat.new(attrs)
+    heartbeat.user = @user
+    heartbeat.attributes
+  end
+
+  def fields_hash_for(attrs) = Heartbeat.generate_fields_hash(model_attributes_for(attrs))
 
   def direct_insert_record(entry, timestamp:)
     entry[:model_attributes]
@@ -193,7 +212,12 @@ class HeartbeatIngest
       total_count += 1
       attrs = normalize_imported_heartbeat(heartbeat, placeholder_state:)
       existing = seen_hashes[attrs[:fields_hash]]
-      seen_hashes[attrs[:fields_hash]] = attrs if existing.nil? || attrs[:time] > existing[:time]
+      if existing.nil? || attrs[:time] > existing[:time]
+        attrs[:identity_hashes] |= existing[:identity_hashes] if existing
+        seen_hashes[attrs[:fields_hash]] = attrs
+      else
+        existing[:identity_hashes] |= attrs[:identity_hashes]
+      end
     rescue => e
       errors << { heartbeat: heartbeat, error: e.message, type: e.class.name }
     end
@@ -252,17 +276,20 @@ class HeartbeatIngest
     resolve_placeholders!(attrs, placeholder_state)
     attrs[:language] = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
+    pre_remap_hash = import_fields_hash(model_attributes_for(attrs), source: hb)
+    attrs = HeartbeatRemapper.call(attrs).attributes
     model_attributes = validated_model_attributes(attrs)
     normalized = model_attributes
       .except("id", "fields_hash", "created_at", "updated_at", "time_epoch")
       .symbolize_keys
     normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
-    normalized[:legacy_fields_hash] = legacy_import_fields_hash(
+    legacy_fields_hash = legacy_import_fields_hash(
       hb,
       user_agent_info:,
       resolved_user_agent:,
       normalized_time: normalized[:time]
     )
+    normalized[:identity_hashes] = [ pre_remap_hash, legacy_fields_hash ].compact.uniq
     update_placeholder_state!(normalized, placeholder_state)
     normalized
   end
@@ -270,28 +297,81 @@ class HeartbeatIngest
   def flush_import_batch(seen_hashes)
     return 0 if seen_hashes.empty?
 
-    records = seen_hashes.values
-    compatible_hashes = records.flat_map { |record| [ record[:fields_hash], record[:legacy_fields_hash] ] }.compact.uniq
-    existing_hashes = compatible_hashes.each_slice(10_000).flat_map do |hashes|
-      @user.heartbeats.where(fields_hash: hashes).pluck(:fields_hash)
-    end.to_set
-    records = records.reject do |record|
-      existing_hashes.include?(record[:fields_hash]) || existing_hashes.include?(record[:legacy_fields_hash])
+    with_heartbeat_transaction { flush_import_records(seen_hashes.values) }
+  end
+
+  def flush_import_records(records)
+    persisted_by_hash = resolve_heartbeats(records)
+    missing_records = records.reject { |record| persisted_by_hash.key?(record[:fields_hash]) }
+    if missing_records.empty?
+      persist_hash_aliases(records, persisted_by_hash)
+      return 0
     end
-    return 0 if records.empty?
 
     timestamp = Time.current
-    ActiveRecord::Base.logger.silence do
+    inserted_by_hash = ActiveRecord::Base.logger.silence do
       # Build records inside the retry block so a cutover-time schema refresh
       # recomputes both the conflict target and the time_epoch partition column.
       with_heartbeat_unique_by do |unique_by|
-        insert_records = records.map do |record|
-          record.except(:legacy_fields_hash)
+        insert_records = missing_records.map do |record|
+          record.except(:identity_hashes)
             .merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(record[:time]))
         end
-        Heartbeat.insert_all(insert_records, unique_by:).length
+        Heartbeat.insert_all(insert_records, unique_by:, returning: Heartbeat.column_names).to_a
       end
+    end.index_by { |attributes| attributes.fetch("fields_hash") }
+      .transform_values { |attributes| Heartbeat.instantiate(attributes) }
+    persisted_by_hash.merge!(inserted_by_hash)
+
+    unresolved_hashes = missing_records.map { |record| record[:fields_hash] } - inserted_by_hash.keys
+    if unresolved_hashes.any?
+      persisted_by_hash.merge!(@user.heartbeats.where(fields_hash: unresolved_hashes).index_by(&:fields_hash))
     end
+    persist_hash_aliases(records, persisted_by_hash)
+    inserted_by_hash.length
+  end
+
+  def resolve_heartbeats(entries)
+    lookup_hashes = entries.flat_map { |entry| [ entry[:fields_hash], *Array(entry[:identity_hashes]) ] }.compact.uniq
+    heartbeats_by_stored_hash = @user.heartbeats.where(fields_hash: lookup_hashes).index_by(&:fields_hash)
+    aliases = HeartbeatHashAlias.where(user_id: @user.id, alias_hash: lookup_hashes).pluck(:alias_hash, :heartbeat_id)
+    heartbeats_by_id = @user.heartbeats.where(id: aliases.map(&:second)).index_by(&:id)
+    heartbeats_by_alias = aliases.to_h { |alias_hash, heartbeat_id| [ alias_hash, heartbeats_by_id[heartbeat_id] ] }.compact
+
+    entries.group_by { |entry| entry[:fields_hash] }.to_h do |fields_hash, matching_entries|
+      heartbeat = heartbeats_by_stored_hash[fields_hash] || heartbeats_by_alias[fields_hash]
+      heartbeat ||= matching_entries
+        .flat_map { |entry| Array(entry[:identity_hashes]) }
+        .filter_map { |identity_hash| heartbeats_by_stored_hash[identity_hash] || heartbeats_by_alias[identity_hash] }
+        .min_by(&:id)
+      [ fields_hash, heartbeat ]
+    end.compact
+  end
+
+  def persist_hash_aliases(entries, persisted_by_hash)
+    timestamp = Time.current
+    records = entries.flat_map do |entry|
+      heartbeat = persisted_by_hash.fetch(entry[:fields_hash])
+      [ entry[:fields_hash], *Array(entry[:identity_hashes]) ].compact.uniq.filter_map do |alias_hash|
+        next if alias_hash == heartbeat.fields_hash
+
+        {
+          user_id: @user.id,
+          heartbeat_id: heartbeat.id,
+          alias_hash:,
+          canonical_hash: heartbeat.fields_hash,
+          created_at: timestamp,
+          updated_at: timestamp
+        }
+      end
+    end.uniq { |record| record.values_at(:user_id, :alias_hash) }
+    return if records.empty?
+
+    HeartbeatHashAlias.upsert_all(
+      records,
+      unique_by: %i[user_id alias_hash],
+      update_only: %i[heartbeat_id canonical_hash]
+    )
   end
 
   # Import normalization is part of the persisted dedup contract. Keep the
@@ -300,6 +380,14 @@ class HeartbeatIngest
   def legacy_import_fields_hash(hb, user_agent_info:, resolved_user_agent:, normalized_time:)
     legacy_user_agent = legacy_parse_user_agent(resolved_user_agent)
     Heartbeat.generate_fields_hash(
+      ai_model: hb[:ai_model],
+      ai_session: hb[:ai_session],
+      ai_subscription_plan: hb[:ai_subscription_plan],
+      ai_input_tokens: hb[:ai_input_tokens],
+      ai_output_tokens: hb[:ai_output_tokens],
+      ai_prompt_length: hb[:ai_prompt_length],
+      ai_line_changes: hb[:ai_line_changes],
+      human_line_changes: hb[:human_line_changes],
       user_id: @user.id,
       time: normalized_time,
       entity: hb[:entity],
@@ -378,6 +466,20 @@ class HeartbeatIngest
 
     Rails.logger.warn("HeartbeatIngest unique_by fallback: #{e.class}: #{e.message}")
     yield heartbeat_unique_by
+  end
+
+  def with_heartbeat_transaction
+    retried = false
+    begin
+      Heartbeat.transaction { yield }
+    rescue ActiveRecord::StatementInvalid, ArgumentError => e
+      raise if retried
+
+      retried = true
+      Heartbeat.reset_column_information
+      Rails.logger.warn("HeartbeatIngest transaction schema retry: #{e.class}: #{e.message}")
+      retry
+    end
   end
 
   def normalize_epoch_time(value)
