@@ -73,7 +73,7 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
   path '/api/admin/v1/alts/candidates' do
     get('List potential alt-account candidates') do
       tags 'Admin'
-      description 'Returns pairs of users that have shared the same machine + IP address within the lookback window. Capped at 5000 candidate pairs.'
+      description 'Compatibility endpoint for the machine and IP pair report. Preserves the legacy candidate response keys and caps results at 5000 pairs.'
       security [ AdminToken: [] ]
       produces 'application/json'
 
@@ -102,10 +102,26 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
           }
 
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user_a) { create(:user, :with_email) }
+        let(:user_b) { create(:user, :with_email) }
         let(:lookback_days) { 30 }
+
+        before do
+          create(:heartbeat, user: user_a, machine: 'legacy-candidate-box', ip_address: '192.0.2.2')
+          create(:heartbeat, user: user_b, machine: 'legacy-candidate-box', ip_address: '192.0.2.2')
+        end
+
         run_test! do |response|
           body = JSON.parse(response.body)
           expect(body['candidates']).to be_an(Array)
+          candidate = body['candidates'].find do |record|
+            [ record['user_a_id'], record['user_b_id'] ].sort == [ user_a.id, user_b.id ].sort
+          end
+          expect(candidate.keys).to match_array(%w[
+            user_a_id user_b_id machine ip_address
+            user_a_first_seen_on_combo user_a_last_seen_on_combo
+            user_b_first_seen_on_combo user_b_last_seen_on_combo
+          ])
         end
       end
 
