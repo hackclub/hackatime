@@ -38,12 +38,16 @@ class Heartbeat < ApplicationRecord
   def self.recent_imported_count = Cache::HeartbeatCountsJob.perform_now[:recent_imported_count]
 
   def self.generate_fields_hash(attributes)
+    Digest::MD5.hexdigest(identity_attributes(attributes).to_json)
+  end
+
+  def self.identity_attributes(attributes)
     attributes = attributes.transform_keys(&:to_s)
-    indexed = attributes.slice(*indexed_attributes)
-    ai_indexed_attributes.each do |attribute|
-      indexed[attribute] = attributes[attribute] unless attributes[attribute].nil?
+    attributes.slice(*indexed_attributes).tap do |indexed|
+      ai_indexed_attributes.each do |attribute|
+        indexed[attribute] = attributes[attribute] unless attributes[attribute].nil?
+      end
     end
-    Digest::MD5.hexdigest(indexed.to_json)
   end
 
   def self.indexed_attributes
