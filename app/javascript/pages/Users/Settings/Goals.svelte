@@ -4,7 +4,7 @@
 </script>
 
 <script lang="ts">
-  import { router } from "@inertiajs/svelte";
+  import { Form } from "@inertiajs/svelte";
   import { secondsToDisplay } from "../../../utils";
   import Button from "../../../components/Button.svelte";
   import Modal from "../../../components/Modal.svelte";
@@ -76,7 +76,6 @@
   let selectedPeriod = $state<ProgrammingGoal["period"]>(defaultPeriod());
   let selectedLanguages = $state<string[]>([]);
   let selectedProjects = $state<string[]>([]);
-  let submitting = $state(false);
 
   $effect(() => {
     goalModalOpen = goal_form?.open ?? false;
@@ -130,48 +129,9 @@
     goalModalOpen = true;
   }
 
-  function submit(
-    method: "patch" | "post" | "delete",
-    url: string,
-    data: Record<string, unknown> = {},
-  ) {
-    if (submitting) return;
-    submitting = true;
-    const options = {
-      preserveScroll: true,
-      onSuccess: () => {
-        goalModalOpen = false;
-        editingGoal = null;
-      },
-      onFinish: () => {
-        submitting = false;
-      },
-    };
-    if (method === "delete") {
-      router.delete(url, options);
-    } else {
-      router[method](url, data as never, options);
-    }
-  }
-
-  function saveGoal() {
-    const data = {
-      goal: {
-        period: selectedPeriod,
-        target_seconds: currentTargetSeconds,
-        languages: selectedLanguages,
-        projects: selectedProjects,
-      },
-    };
-    if (editingGoal) {
-      submit(
-        "patch",
-        settingsGoals.update.path({ goalId: editingGoal.id }),
-        data,
-      );
-    } else {
-      submit("post", settingsGoals.create.path(), data);
-    }
+  function closeGoalModal() {
+    goalModalOpen = false;
+    editingGoal = null;
   }
 </script>
 
@@ -226,24 +186,26 @@
               size="xs"
               class="rounded-md"
               onclick={() => openEditModal(goal)}
-              disabled={submitting}
             >
               Edit
             </Button>
-            <Button
-              type="button"
-              variant="surface"
-              size="xs"
-              class="rounded-md"
-              onclick={() =>
-                submit(
-                  "delete",
-                  settingsGoals.destroy.path({ goalId: goal.id }),
-                )}
-              disabled={submitting}
+            <Form
+              action={settingsGoals.destroy.path({ goalId: goal.id })}
+              method="delete"
+              options={{ preserveScroll: true }}
             >
-              Delete
-            </Button>
+              {#snippet children({ processing })}
+                <Button
+                  type="submit"
+                  variant="surface"
+                  size="xs"
+                  class="rounded-md"
+                  disabled={processing}
+                >
+                  {processing ? "Deleting..." : "Delete"}
+                </Button>
+              {/snippet}
+            </Form>
           </div>
         </article>
       {/each}
@@ -263,7 +225,7 @@
       variant="primary"
       class="rounded-md px-3 py-2"
       onclick={openCreateModal}
-      disabled={hasReachedGoalLimit || submitting}
+      disabled={hasReachedGoalLimit}
     >
       New goal
     </Button>
@@ -351,24 +313,53 @@
   {/snippet}
 
   {#snippet actions()}
-    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-      <Button
-        type="button"
-        variant="dark"
-        class="h-10 rounded-md border border-surface-300 text-muted"
-        onclick={() => (goalModalOpen = false)}
-      >
-        Cancel
-      </Button>
-      <Button
-        type="button"
-        variant="primary"
-        class="h-10 rounded-md"
-        onclick={saveGoal}
-        disabled={submitting}
-      >
-        {submitting ? "Saving..." : editingGoal ? "Update Goal" : "Create Goal"}
-      </Button>
-    </div>
+    <Form
+      action={editingGoal
+        ? settingsGoals.update.path({ goalId: editingGoal.id })
+        : settingsGoals.create.path()}
+      method={editingGoal ? "patch" : "post"}
+      options={{ preserveScroll: true }}
+      onSuccess={closeGoalModal}
+    >
+      {#snippet children({ processing })}
+        <input type="hidden" name="goal[period]" value={selectedPeriod} />
+        <input
+          type="hidden"
+          name="goal[target_seconds]"
+          value={currentTargetSeconds}
+        />
+        <input type="hidden" name="goal[languages][]" value="" />
+        {#each selectedLanguages as language}
+          <input type="hidden" name="goal[languages][]" value={language} />
+        {/each}
+        <input type="hidden" name="goal[projects][]" value="" />
+        {#each selectedProjects as project}
+          <input type="hidden" name="goal[projects][]" value={project} />
+        {/each}
+
+        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="dark"
+            class="h-10 rounded-md border border-surface-300 text-muted"
+            onclick={() => (goalModalOpen = false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            class="h-10 rounded-md"
+            disabled={processing}
+          >
+            {processing
+              ? "Saving..."
+              : editingGoal
+                ? "Update Goal"
+                : "Create Goal"}
+          </Button>
+        </div>
+      {/snippet}
+    </Form>
   {/snippet}
 </Modal>
