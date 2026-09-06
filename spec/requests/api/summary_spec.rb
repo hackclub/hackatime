@@ -81,7 +81,7 @@ RSpec.describe 'Api::Summary', type: :request do
         run_test!
       end
 
-      response(400, 'invalid date range') do
+      response(400, 'invalid, incomplete or reversed date range') do
         let(:date_test_user) { create(:user, slack_uid: "UDATE#{SecureRandom.hex(4)}", timezone: 'UTC', allow_public_stats_lookup: true) }
         let(:Authorization) { "Bearer dev-api-key-12345" }
         let(:api_key) { "dev-api-key-12345" }

@@ -1,4 +1,6 @@
 class Api::V1::StatsController < ApplicationController
+  include DateParsing
+
   USER_LOOKUP_ACTIONS = [ :user_stats, :user_spans, :user_projects, :user_project, :user_projects_details ].freeze
 
   before_action :authenticate_admin_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
@@ -7,12 +9,18 @@ class Api::V1::StatsController < ApplicationController
 
   def show
     # take either user_id with a start date & end date
-    start_date = parse_date_param(:start_date, default: 10.years.ago, boundary: :start)
-    return if performed?
-    end_date = parse_date_param(:end_date, default: Date.today.end_of_day, boundary: :end)
-    return if performed?
+    date_range = parse_date_range(
+      start_value: params[:start_date],
+      end_value: params[:end_date],
+      start_default: 10.years.ago,
+      end_default: Date.today.end_of_day
+    ) do |value, boundary|
+      date = Date.iso8601(value)
+      boundary == :start ? date.beginning_of_day : date.end_of_day
+    end
+    return unless date_range
 
-    query = Heartbeat.where(time: start_date..end_date)
+    query = Heartbeat.where(time: date_range)
 
     if params[:username].present?
       user = User.lookup_by_identifier(params[:username])
@@ -31,10 +39,10 @@ class Api::V1::StatsController < ApplicationController
 
   def user_stats
     # Used by the github stats page feature
-    start_date = parse_datetime_param(:start_date, default: 10.years.ago)
-    return if performed?
-    end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
-    return if performed?
+    date_range = default_datetime_range
+    return unless date_range
+    start_date = date_range.begin
+    end_date = date_range.end
 
     # /api/v1/users/current/stats?filter_by_project=harbor,high-seas
     filter_by_projects = params[:filter_by_project].presence&.split(",")
@@ -113,10 +121,10 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_spans
-    start_date = parse_datetime_param(:start_date, default: 10.years.ago)
-    return if performed?
-    end_date = parse_datetime_param(:end_date, default: Date.today.end_of_day)
-    return if performed?
+    date_range = default_datetime_range
+    return unless date_range
+    start_date = date_range.begin
+    end_date = date_range.end
 
     heartbeats = @user.heartbeats.where(time: start_date.to_f..end_date.to_f)
     heartbeats = heartbeats.where(project: params[:project]) if params[:project].present?
@@ -148,11 +156,19 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_projects
+    return unless parse_date_range(
+      start_value: params[:since].presence || params[:start].presence || params[:start_date],
+      end_value: params[:until].presence || params[:until_date].presence || params[:end].presence || params[:end_date],
+      start_default: 30.days.ago.beginning_of_day,
+      end_default: Time.current
+    ) { |value| value.to_datetime }
+
     render json: { projects: project_stats_query(include_archived: true).project_names }
   end
 
   def user_project
     return render_bad_request("whats the name?") unless params[:project_name].present?
+    return unless project_stats_date_range
 
     project_data = project_stats_query.project_details(names: [ params[:project_name] ]).first
     return render_not_found_json("found nuthin") unless project_data
@@ -160,6 +176,8 @@ class Api::V1::StatsController < ApplicationController
   end
 
   def user_projects_details
+    return unless project_stats_date_range
+
     render json: { projects: project_stats_query.project_details(names: params[:projects]&.split(",")&.map(&:strip)) }
   end
 
@@ -214,22 +232,21 @@ class Api::V1::StatsController < ApplicationController
     total_seconds.to_i
   end
 
-  def parse_date_param(param_name, default:, boundary:)
-    raw_value = params[param_name]
-    return default if raw_value.blank?
-    parsed_date = Date.iso8601(raw_value)
-    boundary == :start ? parsed_date.beginning_of_day : parsed_date.end_of_day
-  rescue ArgumentError, Date::Error, TypeError
-    render_error("Invalid #{param_name}")
+  def default_datetime_range
+    parse_date_range(
+      start_value: params[:start_date],
+      end_value: params[:end_date],
+      start_default: 10.years.ago,
+      end_default: Date.today.end_of_day
+    ) { |value| Time.zone.parse(value.to_s) }
   end
 
-  def parse_datetime_param(param_name, default:)
-    raw_value = params[param_name]
-    return default if raw_value.blank?
-    parsed_time = Time.zone.parse(raw_value.to_s)
-    raise ArgumentError if parsed_time.nil?
-    parsed_time
-  rescue ArgumentError, TypeError
-    render_error("Invalid #{param_name}")
+  def project_stats_date_range
+    parse_date_range(
+      start_value: params[:start].presence || params[:start_date],
+      end_value: params[:end].presence || params[:end_date],
+      start_default: 1.year.ago.to_datetime,
+      end_default: Time.current.to_datetime
+    ) { |value| value.to_datetime }
   end
 end
