@@ -19,6 +19,34 @@ class ProfileSettingsTest < ApplicationSystemTestCase
     assert_selector "[data-settings-card]", minimum: 3
   end
 
+  test "settings layouts render through SSR and client navigation" do
+    settings_url = URI.join(page.current_url, my_settings_profile_path).to_s
+    response = page.driver.with_playwright_page do |playwright_page|
+      playwright_page.context.request.get(settings_url)
+    end
+    response_ok = response.ok?
+    ssr_body = response.text
+    response.dispose
+
+    assert response_ok
+    assert_includes ssr_body, 'data-nav-target="nav"'
+    assert_includes ssr_body, "data-settings-shell"
+
+    visit my_settings_profile_path
+    assert_no_selector '#app > script[type="application/json"]', visible: :all
+    page.execute_script("window.settingsNavigationStarted = true")
+
+    within("[data-settings-sidebar]") do
+      click_on "Goals"
+    end
+
+    assert_current_path my_settings_goals_path, ignore_query: true
+    assert_equal true, page.evaluate_script("window.settingsNavigationStarted")
+    assert_selector '[data-nav-target="nav"]'
+    assert_selector "[data-settings-shell]"
+    assert_text "Programming Goals"
+  end
+
   test "profile settings updates country and username" do
     @user.update!(country_code: "CA", username: "old_name")
     new_username = "settings_#{SecureRandom.hex(4)}"
