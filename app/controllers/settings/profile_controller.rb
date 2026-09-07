@@ -66,12 +66,7 @@ class Settings::ProfileController < Settings::BaseController
   end
 
   def update_section(permitted_params)
-    if @user.update(permitted_params)
-      redirect_back(fallback_location: my_settings_profile_path, notice: "Settings updated successfully")
-    else
-      flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
-      render_settings_page(status: :unprocessable_entity)
-    end
+    update_user_settings(permitted_params, redirect_location: my_settings_profile_path, back: true)
   end
 
   def region_params

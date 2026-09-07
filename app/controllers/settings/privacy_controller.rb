@@ -1,11 +1,6 @@
 class Settings::PrivacyController < Settings::BaseController
   def update
-    if @user.update(privacy_params)
-      redirect_back(fallback_location: my_settings_privacy_path, notice: "Settings updated successfully")
-    else
-      flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
-      render_settings_page(status: :unprocessable_entity)
-    end
+    update_user_settings(privacy_params, redirect_location: my_settings_privacy_path, back: true)
   end
 
   def rotate_api_key
