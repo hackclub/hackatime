@@ -6,8 +6,6 @@ class Settings::ProfileController < Settings::BaseController
   private
 
   def page_props
-    options = base_options(keys: %i[countries timezones])
-    options[:timezones] = pin_current_timezone(options[:timezones])
     {
       username_max_length: User::USERNAME_MAX_LENGTH,
       display_name_max_length: User::DISPLAY_NAME_MAX_LENGTH,
@@ -18,7 +16,12 @@ class Settings::ProfileController < Settings::BaseController
         display_name_override: @user.display_name_override,
         username: @user.username
       },
-      options: options,
+      options: {
+        countries: ISO3166::Country.all
+          .map { |country| { label: country.common_name, value: country.alpha2 } }
+          .sort_by { |country| country[:label] },
+        timezones: pin_current_timezone(Settings::BaseController.timezone_options)
+      },
       profile_url: (@user.username.present? ? "https://hackati.me/#{@user.username}" : nil),
       emails: email_props
     }

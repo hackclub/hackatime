@@ -25,26 +25,11 @@ class Settings::BaseController < InertiaController
   # Subclasses override this to provide page-specific props
   def page_props = {}
 
-  BASE_OPTION_BUILDERS = {
-    countries: -> { ISO3166::Country.all.map { |c| { label: c.common_name, value: c.alpha2 } }.sort_by { |c| c[:label] } },
-    # see .timezone_options below; a user's current zone, if outside the list,
-    # is pinned in ProfileController#page_props so it never disappears.
-    timezones: -> { Settings::BaseController.timezone_options },
-    extension_text_types: -> { User.hackatime_extension_text_types.keys.map { |k| { label: k.humanize, value: k } } },
-    themes: -> { User.theme_options }
-  }.freeze
-
   def self.timezone_options
     @timezone_options ||= ActiveSupport::TimeZone.all
       .group_by { |z| z.tzinfo.identifier } # London & Edinburgh both map to Europe/London
       .map { |identifier, zones| { label: "(GMT#{zones.first.formatted_offset}) #{zones.map(&:name).join(", ")}", value: identifier } }
       .freeze
-  end
-
-  # Build a base options hash containing only the requested keys.
-  def base_options(keys: nil)
-    (keys.present? ? BASE_OPTION_BUILDERS.slice(*keys) : BASE_OPTION_BUILDERS)
-      .transform_values { |builder| builder.call }
   end
 
   def set_user

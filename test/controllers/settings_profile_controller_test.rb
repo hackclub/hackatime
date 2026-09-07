@@ -1,6 +1,31 @@
 require "test_helper"
 
 class SettingsProfileControllerTest < ActionDispatch::IntegrationTest
+  test "show provides profile options and pins a legacy timezone" do
+    travel_to Time.utc(2026, 1, 15) do
+      user = create(:user)
+      user.update_column(:timezone, "Eastern Time (US & Canada)")
+      sign_in_as(user)
+
+      get my_settings_profile_path
+
+      assert_response :success
+      assert_inertia_component "Users/Settings/Profile"
+
+      options = inertia.props.fetch("options")
+      countries = options.fetch("countries")
+      timezones = options.fetch("timezones")
+
+      assert_equal %w[countries timezones], options.keys
+      assert_equal countries.sort_by { |country| country.fetch("label") }, countries
+      assert_equal({ "label" => "Afghanistan", "value" => "AF" }, countries.first)
+      assert_equal({
+        "label" => "Eastern Time (US & Canada) (UTC-05:00)",
+        "value" => "Eastern Time (US & Canada)"
+      }, timezones.first)
+    end
+  end
+
   test "region update normalizes blank country code to nil" do
     user = create(:user)
     user.update!(country_code: "US")
