@@ -14,6 +14,7 @@
 <script lang="ts">
   import { Debounced } from "runed";
   import Search from "hcicons-svelte/search";
+  import Button from "./Button.svelte";
   import { formatUtcDate } from "../utils";
 
   type Accent = "primary" | "green" | "red";
@@ -233,13 +234,14 @@
             {/if}
           </div>
         </div>
-        <button
+        <Button
+          unstyled
           type="button"
           class="shrink-0 cursor-pointer text-sm text-muted hover:text-red"
           onclick={() => (selected = null)}
         >
           Clear
-        </button>
+        </Button>
       </div>
     </div>
   {:else}
