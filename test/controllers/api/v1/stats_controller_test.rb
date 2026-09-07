@@ -29,6 +29,60 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
     assert_equal summary_total, total_only
   end
 
+  test "user_stats unique_total_seconds matches filtered coding duration at timeout and date boundaries" do
+    user = create(:user, username: "stats_user_#{SecureRandom.hex(3)}")
+    start_time = Time.utc(2025, 12, 15, 10, 0, 0)
+    end_time = start_time + 301.seconds
+
+    create_heartbeat(user:, time: (start_time - 60.seconds).to_f, project: "alpha", category: "coding")
+    create_heartbeat(user:, time: start_time.to_f, project: "alpha", category: "coding")
+    create_heartbeat(user:, time: (start_time + 120.seconds).to_f, project: "alpha", category: "coding")
+    create_heartbeat(user:, time: (start_time + 180.seconds).to_f, project: "alpha", category: "browsing")
+    create_heartbeat(user:, time: (start_time + 180.seconds).to_f, project: "other", category: "coding")
+    create_heartbeat(user:, time: (start_time + 241.seconds).to_f, project: "beta", category: "coding")
+    create_heartbeat(user:, time: end_time.to_f, project: "beta", category: "coding")
+
+    get "/api/v1/users/#{user.username}/stats", params: {
+      features: "projects",
+      filter_by_project: "alpha,beta",
+      start_date: start_time.iso8601(3),
+      end_date: end_time.iso8601(3)
+    }
+
+    assert_response :success
+    scope = user.heartbeats.coding_only.with_valid_timestamps
+                .where(time: start_time..end_time, project: %w[alpha beta])
+    authoritative_duration = scope.duration_seconds_excluding_gaps_over_timeout
+
+    assert_equal 180, authoritative_duration
+    assert_equal authoritative_duration, JSON.parse(response.body).dig("data", "unique_total_seconds")
+  end
+
+  test "user_stats unique_total_seconds ignores invalid timestamps in test mode" do
+    user = create(:user, username: "stats_user_#{SecureRandom.hex(3)}")
+    start_time = Time.at(-60).utc
+    end_time = Time.at(180).utc
+
+    create_heartbeat(user:, time: -60.0, project: "alpha", category: "coding")
+    create_heartbeat(user:, time: 0.0, project: "alpha", category: "coding")
+    create_heartbeat(user:, time: 120.0, project: "alpha", category: "coding")
+
+    get "/api/v1/users/#{user.username}/stats", params: {
+      features: "projects",
+      filter_by_project: "alpha",
+      start_date: start_time.iso8601,
+      end_date: end_time.iso8601,
+      test_param: "true"
+    }
+
+    assert_response :success
+    scope = user.heartbeats.coding_only.with_valid_timestamps.where(time: start_time..end_time, project: "alpha")
+    authoritative_duration = scope.duration_seconds_excluding_gaps_over_timeout
+
+    assert_equal 120, authoritative_duration
+    assert_equal authoritative_duration, JSON.parse(response.body).dig("data", "unique_total_seconds")
+  end
+
   test "user_stats with project filter does not load heartbeat records" do
     user = create(:user, username: "stats_user_#{SecureRandom.hex(3)}")
     create_heartbeat(user:, time: Time.utc(2025, 12, 15, 10, 0, 0).to_f, project: "Galactic_war", category: "coding")
