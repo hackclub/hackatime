@@ -1,6 +1,51 @@
 require "test_helper"
 
 class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
+  test "quantized visualization uses the target user's calendar days across DST and month boundaries" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, timezone: "America/Los_Angeles")
+    timezone = ActiveSupport::TimeZone[user.timezone]
+
+    outside_start = timezone.local(2024, 2, 29, 23, 59, 30).to_i
+    march_start = timezone.local(2024, 3, 1, 0, 0, 30).to_i
+    before_local_midnight = timezone.local(2024, 3, 9, 23, 59, 30).to_i
+    after_local_midnight = timezone.local(2024, 3, 10, 0, 0, 30).to_i
+    before_dst_jump = timezone.local(2024, 3, 10, 1, 59, 30).to_i
+    after_dst_jump = timezone.local(2024, 3, 10, 3, 0, 30).to_i
+    march_end = timezone.local(2024, 3, 31, 23, 59, 30).to_i
+    outside_end = timezone.local(2024, 4, 1, 0, 0, 30).to_i
+
+    [
+      outside_start,
+      march_start,
+      before_local_midnight,
+      after_local_midnight,
+      before_dst_jump,
+      after_dst_jump,
+      march_end,
+      outside_end
+    ].each { |time| create(:heartbeat, user: user, time: time) }
+
+    get "/api/admin/v1/users/#{user.id}/visualization/quantized",
+      params: { year: 2024, month: 3 }, headers: auth_headers(key)
+
+    assert_response :success
+    days = response.parsed_body.fetch("days")
+    assert_equal 31, days.length
+    assert_equal timezone.local(2024, 3, 1).to_i, days.first.fetch("date_timestamp_s")
+    assert_equal timezone.local(2024, 3, 31).to_i, days.last.fetch("date_timestamp_s")
+    assert_equal 23.hours.to_i,
+      days[10].fetch("date_timestamp_s") - days[9].fetch("date_timestamp_s")
+
+    assert_equal [ march_start ], days[0].fetch("points").pluck("time")
+    assert_equal [ before_local_midnight ], days[8].fetch("points").pluck("time")
+    assert_equal [ after_local_midnight, before_dst_jump, after_dst_jump ],
+      days[9].fetch("points").pluck("time")
+    assert_equal 180, days[9].fetch("total_seconds")
+    assert_equal [ march_end ], days[30].fetch("points").pluck("time")
+  end
+
   test "user heartbeats returns ja4 fingerprint and name" do
     admin = create(:user, :superadmin)
     key = create(:admin_api_key, user: admin, name: "test")

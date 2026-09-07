@@ -41,36 +41,45 @@ module Api
           return render_error("invalid parameters") if year.nil? || month.nil? || month < 1 || month > 12
 
           begin
-            start_epoch = Time.utc(year, month, 1).to_i
-            end_epoch = month == 12 ? Time.utc(year + 1, 1, 1).to_i : Time.utc(year, month + 1, 1).to_i
+            timezone = Time.find_zone!(user.timezone)
+            start_date = Date.new(year, month, 1)
+            end_date = start_date.next_month
+            start_epoch = timezone.local(start_date.year, start_date.month, start_date.day).to_i
+            end_epoch = timezone.local(end_date.year, end_date.month, end_date.day).to_i
           rescue Date::Error
             return render_error("invalid date")
           end
 
           quantized_query = <<-SQL
-            WITH base_heartbeats AS (
+            WITH query_parameters(timezone) AS (VALUES (?)),
+            base_heartbeats AS (
                 SELECT
                     "time",
                     lineno,
                     cursorpos,
-                    date_trunc('day', to_timestamp("time")) as day_start
+                    to_timestamp("time") AT TIME ZONE query_parameters.timezone AS local_time
                 FROM heartbeats
+                CROSS JOIN query_parameters
                 WHERE user_id = ?
                 AND deleted_at IS NULL
-                AND "time" >= ? AND "time" <= ?
+                AND "time" >= ? AND "time" < ?
                 LIMIT 1000000
+            ),
+            bucketed_heartbeats AS (
+                SELECT *, date_trunc('day', local_time) AS day_start
+                FROM base_heartbeats
             ),
             daily_stats AS (
                 SELECT
                     *,
                     GREATEST(1, MAX(lineno) OVER (PARTITION BY day_start)) as max_lineno,
                     GREATEST(1, MAX(cursorpos) OVER (PARTITION BY day_start)) as max_cursorpos
-                FROM base_heartbeats
+                FROM bucketed_heartbeats
             ),
             quantized_heartbeats AS (
                 SELECT
                     *,
-                    ROUND(2 + (("time" - extract(epoch from day_start)) / 86400) * (396)) as qx,
+                    ROUND(2 + (extract(epoch from (local_time - day_start)) / 86400) * (396)) as qx,
                     ROUND(2 + (1 - CAST(lineno AS decimal) / max_lineno) * (96)) as qy_lineno,
                     ROUND(2 + (1 - CAST(cursorpos AS decimal) / max_cursorpos) * (96)) as qy_cursorpos
                 FROM daily_stats
@@ -102,12 +111,21 @@ module Api
           SQL
 
           daily_totals_query = <<-SQL
-            WITH heartbeats_with_gaps AS (
+            WITH query_parameters(timezone) AS (VALUES (?)),
+            base_heartbeats AS (
               SELECT
-                date_trunc('day', to_timestamp("time"))::date as day,
-                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time", id) as gap
+                id,
+                "time",
+                to_timestamp("time") AT TIME ZONE query_parameters.timezone AS local_time
               FROM heartbeats
-              WHERE user_id = ? AND deleted_at IS NULL AND time >= ? AND time <= ?
+              CROSS JOIN query_parameters
+              WHERE user_id = ? AND deleted_at IS NULL AND time >= ? AND time < ?
+            ),
+            heartbeats_with_gaps AS (
+              SELECT
+                date_trunc('day', local_time)::date as day,
+                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', local_time) ORDER BY "time", id) as gap
+              FROM base_heartbeats
             )
             SELECT day, SUM(LEAST(gap, 120)) as total_seconds
             FROM heartbeats_with_gaps
@@ -116,19 +134,20 @@ module Api
           SQL
 
           conn = ActiveRecord::Base.connection
-          quantized_result = conn.execute(ActiveRecord::Base.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ]))
-          daily_totals_result = conn.execute(ActiveRecord::Base.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ]))
+          query_parameters = [ user.timezone, user.id, start_epoch, end_epoch ]
+          quantized_result = conn.execute(ActiveRecord::Base.sanitize_sql([ quantized_query, *query_parameters ]))
+          daily_totals_result = conn.execute(ActiveRecord::Base.sanitize_sql([ daily_totals_query, *query_parameters ]))
 
           daily_totals = daily_totals_result.each_with_object({}) { |row, h| h[row["day"]] = row["total_seconds"] }
 
           points_by_day = quantized_result.each_with_object({}) do |row, hash|
-            day = Time.at(row["time"]).to_date
+            day = Time.at(row["time"]).in_time_zone(timezone).to_date
             (hash[day] ||= []) << { time: row["time"], lineno: row["lineno"], cursorpos: row["cursorpos"] }
           end
 
-          days = (start_epoch...end_epoch).step(86400).map do |epoch|
-            day = Time.at(epoch).to_date
-            { date_timestamp_s: epoch, total_seconds: daily_totals[day] || 0, points: points_by_day[day] || [] }
+          days = (start_date...end_date).map do |date|
+            date_epoch = timezone.local(date.year, date.month, date.day).to_i
+            { date_timestamp_s: date_epoch, total_seconds: daily_totals[date] || 0, points: points_by_day[date] || [] }
           end
 
           render json: { days: days }
