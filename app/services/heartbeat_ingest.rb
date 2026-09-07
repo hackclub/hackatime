@@ -104,7 +104,8 @@ class HeartbeatIngest
 
     resolve_placeholders!(attrs, placeholder_state)
 
-    inferred = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
+    known_language = attrs[:language] if LanguageUtils.find_name(attrs[:language])
+    inferred = LanguageUtils.fill_missing_language(known_language, entity: attrs[:entity])
     attrs[:language] = inferred if inferred.present?
 
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])

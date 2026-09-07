@@ -812,6 +812,40 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal 1, calls
   end
 
+  test "direct heartbeat ingest replaces unrecognized client languages with extension detection" do
+    user = User.create!(timezone: "UTC")
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "src/main.asm",
+        language: "RGBDS Assembly",
+        time: Time.current.to_f,
+        type: "file"
+      } ]
+    )
+
+    assert_equal "Assembly", user.heartbeats.sole.language
+  end
+
+  test "direct heartbeat ingest preserves recognized client languages" do
+    user = User.create!(timezone: "UTC")
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "src/main.asm",
+        language: "Assembly",
+        time: Time.current.to_f,
+        type: "file"
+      } ]
+    )
+
+    assert_equal "Assembly", user.heartbeats.sole.language
+  end
+
   test "import heartbeat ingest deduplicates imported heartbeats and schedules dashboard rollup refresh" do
     user = create(:user)
 
