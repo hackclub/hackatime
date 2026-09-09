@@ -47,7 +47,7 @@
   let remoteApiKey = $state("");
   let importOverlay = $state<Partial<HeartbeatImportStatusProps> | null>(null);
   let overlayStartTime = $state<number | null>(null);
-  let includeStats = false;
+  let includeStats = $state(false);
 
   const { start: startPolling, stop: stopPolling } = usePoll(
     1000,
